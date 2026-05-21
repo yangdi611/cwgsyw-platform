@@ -10,7 +10,8 @@ CREATE TABLE daily_report (
     issues          TEXT,
     tomorrow_plan   TEXT NOT NULL,
     work_hours      NUMERIC(4,1),
-    status          VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+    status          VARCHAR(32) NOT NULL DEFAULT 'DRAFT'
+                        CHECK (status IN ('DRAFT','SUBMITTED','APPROVED','REJECTED')),
     process_inst_id VARCHAR(128),
     is_deleted      BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at      TIMESTAMP,
@@ -32,6 +33,7 @@ CREATE TABLE daily_report_approval (
     comment         TEXT,
     created_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
+CREATE INDEX idx_daily_report_approval_report ON daily_report_approval(report_id);
 
 INSERT INTO sys_resource (code, name, actions, sort_order) VALUES
 ('daily_report', '日报管理', '["create","read","update","submit","approve","export"]', 60),
@@ -61,10 +63,12 @@ INSERT INTO sys_role_permission (role_id, permission_id)
 SELECT r.id, p.id
 FROM sys_role r, sys_permission p
 WHERE r.code = 'group_leader'
-  AND p.code IN ('daily_report:read', 'daily_report:approve');
+  AND p.code IN ('daily_report:read', 'daily_report:approve')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_role_permission (role_id, permission_id)
 SELECT r.id, p.id
 FROM sys_role r, sys_permission p
 WHERE r.code = 'member'
-  AND p.code IN ('daily_report:create', 'daily_report:read', 'daily_report:update', 'daily_report:submit');
+  AND p.code IN ('daily_report:create', 'daily_report:read', 'daily_report:update', 'daily_report:submit')
+ON CONFLICT DO NOTHING;
