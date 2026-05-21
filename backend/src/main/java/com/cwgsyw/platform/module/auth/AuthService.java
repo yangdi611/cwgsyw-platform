@@ -29,7 +29,8 @@ public class AuthService {
             throw new IllegalArgumentException("账号已禁用");
         }
         Set<String> permissions = rbacService.getUserPermissions(user.getId());
+        String scope = rbacService.getHighestScope(user.getId());
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getTenantId());
-        return new LoginResponse(token, user.getUsername(), user.getRealName(), permissions);
+        return new LoginResponse(token, user.getUsername(), user.getRealName(), scope, permissions);
     }
 }

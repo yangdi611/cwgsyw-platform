@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/authStore'
+import { usePermission } from '@/hooks/usePermission'
 
 interface DailyReport {
   id: number
@@ -15,6 +17,8 @@ interface DailyReport {
   completed_items: string
   status: string
   work_hours: number
+  reporter_name?: string
+  group_name?: string
 }
 
 const statusConfig: Record<string, {
@@ -31,13 +35,11 @@ const statusConfig: Record<string, {
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 function buildCalendar(year: number, month: number) {
-  // month is 0-indexed
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const cells: (number | null)[] = []
   for (let i = 0; i < firstDay; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-  // pad to full weeks
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 }
@@ -45,25 +47,38 @@ function buildCalendar(year: number, month: number) {
 export default function DailyReportsPage() {
   const today = new Date()
   const [viewYear, setViewYear] = useState(today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(today.getMonth()) // 0-indexed
-  const [selected, setSelected] = useState<DailyReport | null>(null)
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const queryClient = useQueryClient()
+
+  const groupScope = useAuthStore((s) => s.groupScope)
+  const { hasPermission } = usePermission()
+
+  // 管理员/超管/组长 能看到他人日报；组员只看自己
+  const canViewOthers = hasPermission('daily_report', 'approve')
+  // 是否是管理员以上（可看全部，不限组）
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   const monthParam = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`
 
   const { data, isLoading } = useQuery({
-    queryKey: ['my-daily-reports', monthParam],
-    queryFn: () =>
-      api.get('/daily-reports/my', { params: { month: monthParam, page: 1, size: 31 } })
-        .then(r => r.data.data.records as DailyReport[]),
+    queryKey: ['daily-reports', monthParam, canViewOthers ? 'group' : 'my'],
+    queryFn: () => {
+      if (canViewOthers) {
+        return api.get('/daily-reports/group', { params: { month: monthParam, page: 1, size: 200 } })
+          .then(r => r.data.data.records as DailyReport[])
+      }
+      return api.get('/daily-reports/my', { params: { month: monthParam, page: 1, size: 31 } })
+        .then(r => r.data.data.records as DailyReport[])
+    },
   })
 
   const submitMutation = useMutation({
     mutationFn: (id: number) => api.post(`/daily-reports/${id}/submit`),
     onSuccess: () => {
       toast.success('日报已提交审批')
-      queryClient.invalidateQueries({ queryKey: ['my-daily-reports', monthParam] })
-      setSelected(null)
+      queryClient.invalidateQueries({ queryKey: ['daily-reports', monthParam] })
+      setSelectedDate(null)
     },
     onError: (e: unknown) => {
       const err = e as { response?: { data?: { message?: string } } }
@@ -71,32 +86,40 @@ export default function DailyReportsPage() {
     },
   })
 
-  // Build a date -> report map for quick lookup
-  const reportMap = new Map<string, DailyReport>()
-  ;(data ?? []).forEach(r => reportMap.set(r.report_date, r))
+  // date -> reports[] map（同一天可能有多条，组长/管理员视角）
+  const reportsByDate = new Map<string, DailyReport[]>()
+  ;(data ?? []).forEach(r => {
+    const list = reportsByDate.get(r.report_date) ?? []
+    list.push(r)
+    reportsByDate.set(r.report_date, list)
+  })
 
   const cells = buildCalendar(viewYear, viewMonth)
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const selectedReports = selectedDate ? (reportsByDate.get(selectedDate) ?? []) : []
 
   const prevMonth = () => {
+    setSelectedDate(null)
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
     else setViewMonth(m => m - 1)
-    setSelected(null)
   }
   const nextMonth = () => {
+    setSelectedDate(null)
     if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
     else setViewMonth(m => m + 1)
-    setSelected(null)
   }
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-
-  const monthLabel = `${viewYear} 年 ${viewMonth + 1} 月`
+  const viewLabel = canViewOthers
+    ? (isAdmin ? '全部日报' : '本组日报')
+    : '我的日报'
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">我的日报</h1>
+        <div>
+          <h1 className="text-2xl font-bold">工作日报</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">当前视图：{viewLabel}</p>
+        </div>
         <Link href="/daily/new" className={buttonVariants({ variant: 'default', size: 'sm' })}>
           <Plus className="h-4 w-4 mr-1" />新建日报
         </Link>
@@ -107,7 +130,7 @@ export default function DailyReportsPage() {
         <Button variant="ghost" size="sm" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="font-semibold text-lg">{monthLabel}</span>
+        <span className="font-semibold text-lg">{viewYear} 年 {viewMonth + 1} 月</span>
         <Button variant="ghost" size="sm" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -123,41 +146,35 @@ export default function DailyReportsPage() {
         ))}
       </div>
 
-      {/* Calendar grid */}
       {isLoading ? (
         <p className="text-muted-foreground py-12 text-center">加载中...</p>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          {/* Weekday headers */}
           <div className="grid grid-cols-7 bg-muted">
             {WEEKDAYS.map(d => (
               <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
             ))}
           </div>
 
-          {/* Day cells */}
           <div className="grid grid-cols-7 divide-x divide-y border-t">
             {cells.map((day, idx) => {
-              if (day === null) {
-                return <div key={`empty-${idx}`} className="h-20 bg-muted/30" />
-              }
+              if (day === null) return <div key={`empty-${idx}`} className="h-20 bg-muted/30" />
+
               const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const report = reportMap.get(dateStr)
+              const reports = reportsByDate.get(dateStr) ?? []
               const isToday = dateStr === todayStr
-              const isSelected = selected?.report_date === dateStr
-              const cfg = report ? statusConfig[report.status] : null
+              const isSelected = selectedDate === dateStr
 
               return (
                 <div
                   key={dateStr}
-                  onClick={() => setSelected(report && isSelected ? null : (report ?? null))}
+                  onClick={() => reports.length > 0 ? setSelectedDate(isSelected ? null : dateStr) : undefined}
                   className={cn(
-                    'h-20 p-1.5 cursor-pointer transition-colors relative',
-                    isSelected ? 'bg-primary/10 ring-2 ring-inset ring-primary' : 'hover:bg-muted/50',
-                    !report && 'cursor-default'
+                    'h-20 p-1.5 transition-colors relative',
+                    reports.length > 0 ? 'cursor-pointer' : 'cursor-default',
+                    isSelected ? 'bg-primary/10 ring-2 ring-inset ring-primary' : reports.length > 0 ? 'hover:bg-muted/50' : ''
                   )}
                 >
-                  {/* Day number */}
                   <span className={cn(
                     'text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full',
                     isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'
@@ -165,26 +182,36 @@ export default function DailyReportsPage() {
                     {day}
                   </span>
 
-                  {/* Report indicator */}
-                  {cfg && (
-                    <div className="mt-1">
-                      <span className={cn('inline-block w-2 h-2 rounded-full', cfg.dot)} />
-                      <span className="ml-1 text-xs text-muted-foreground">{cfg.label}</span>
+                  {/* 同一天多条日报（组长/管理员视角）*/}
+                  {reports.length > 0 && (
+                    <div className="mt-1 space-y-0.5 overflow-hidden">
+                      {reports.slice(0, 2).map(r => {
+                        const cfg = statusConfig[r.status]
+                        return (
+                          <div key={r.id} className="flex items-center gap-1">
+                            <span className={cn('inline-block w-1.5 h-1.5 rounded-full flex-shrink-0', cfg?.dot ?? 'bg-gray-400')} />
+                            <span className="text-xs text-muted-foreground truncate">
+                              {canViewOthers && r.reporter_name ? r.reporter_name : cfg?.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {reports.length > 2 && (
+                        <span className="text-xs text-muted-foreground">+{reports.length - 2} 条</span>
+                      )}
                     </div>
                   )}
 
-                  {/* No report on weekday — subtle hint */}
-                  {!report && day <= new Date(viewYear, viewMonth + 1, 0).getDate() && (
+                  {/* 未填日报的历史日期，悬停显示 + */}
+                  {reports.length === 0 && dateStr <= todayStr && !canViewOthers && (
                     <div className="absolute bottom-1 right-1 opacity-0 hover:opacity-100 transition-opacity">
-                      {dateStr <= todayStr && (
-                        <Link
-                          href={`/daily/new?date=${dateStr}`}
-                          onClick={e => e.stopPropagation()}
-                          className="text-muted-foreground hover:text-primary"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Link>
-                      )}
+                      <Link
+                        href={`/daily/new?date=${dateStr}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -194,38 +221,47 @@ export default function DailyReportsPage() {
         </div>
       )}
 
-      {/* Selected report detail panel */}
-      {selected && (
-        <div className="mt-4 p-4 border rounded-lg bg-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">{selected.report_date}</span>
-              <Badge variant={statusConfig[selected.status]?.badge ?? 'secondary'}>
-                {statusConfig[selected.status]?.label ?? selected.status}
-              </Badge>
-              {selected.work_hours && (
-                <span className="text-sm text-muted-foreground">{selected.work_hours}h</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href={`/daily/${selected.id}`}
-                className={buttonVariants({ variant: 'outline', size: 'sm' })}
-              >
-                查看详情
-              </Link>
-              {(selected.status === 'DRAFT' || selected.status === 'REJECTED') && (
-                <Button
-                  size="sm"
-                  onClick={() => submitMutation.mutate(selected.id)}
-                  disabled={submitMutation.isPending}
-                >
-                  提交审批
-                </Button>
-              )}
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground line-clamp-3">{selected.completed_items}</p>
+      {/* 点击某天展开该天所有日报 */}
+      {selectedDate && selectedReports.length > 0 && (
+        <div className="mt-4 space-y-3">
+          {selectedReports.map(report => {
+            const cfg = statusConfig[report.status]
+            const isOwn = !canViewOthers
+            return (
+              <div key={report.id} className="p-4 border rounded-lg bg-card">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold">{selectedDate}</span>
+                    {canViewOthers && report.reporter_name && (
+                      <span className="text-sm font-medium text-foreground">
+                        {report.reporter_name}
+                        {report.group_name && (
+                          <span className="text-muted-foreground font-normal"> · {report.group_name}</span>
+                        )}
+                      </span>
+                    )}
+                    <Badge variant={cfg?.badge ?? 'secondary'}>{cfg?.label ?? report.status}</Badge>
+                    {report.work_hours && (
+                      <span className="text-sm text-muted-foreground">{report.work_hours}h</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href={`/daily/${report.id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                      查看详情
+                    </Link>
+                    {(isOwn || (!isOwn && false)) &&
+                      (report.status === 'DRAFT' || report.status === 'REJECTED') && (
+                      <Button size="sm" onClick={() => submitMutation.mutate(report.id)}
+                        disabled={submitMutation.isPending}>
+                        提交审批
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">{report.completed_items}</p>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

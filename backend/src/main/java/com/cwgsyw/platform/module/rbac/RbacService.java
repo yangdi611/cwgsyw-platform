@@ -27,6 +27,16 @@ public class RbacService {
             .collect(Collectors.toSet());
     }
 
+    /** 返回用户所有角色中优先级最高的 scope：platform > tenant > group */
+    public String getHighestScope(Long userId) {
+        List<Long> roleIds = userRoleMapper.findRoleIdsByUserId(userId);
+        if (roleIds.isEmpty()) return "group";
+        List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+        if (roles.stream().anyMatch(r -> "platform".equals(r.getScope()))) return "platform";
+        if (roles.stream().anyMatch(r -> "tenant".equals(r.getScope()))) return "tenant";
+        return "group";
+    }
+
     public List<SysResource> getAllResources() {
         return resourceMapper.selectList(null);
     }

@@ -15,16 +15,18 @@ public class SecurityUser implements UserDetails {
     private final String password;
     private final String tenantId;
     private final Long groupId;
+    private final String groupScope;   // "group" | "tenant" | "platform"
     private final Set<String> permissions;
     private final Collection<? extends GrantedAuthority> authorities;
 
     public SecurityUser(Long userId, String username, String password,
-                        String tenantId, Long groupId, Set<String> permissions) {
+                        String tenantId, Long groupId, String groupScope, Set<String> permissions) {
         this.userId = userId;
         this.username = username;
         this.password = password;
         this.tenantId = tenantId;
         this.groupId = groupId;
+        this.groupScope = groupScope != null ? groupScope : "group";
         this.permissions = permissions;
         this.authorities = permissions.stream()
             .map(SimpleGrantedAuthority::new)

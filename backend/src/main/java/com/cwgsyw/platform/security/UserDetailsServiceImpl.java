@@ -19,7 +19,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userMapper.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("用户不存在: " + username));
         Set<String> permissions = rbacService.getUserPermissions(user.getId());
+        String highestScope = rbacService.getHighestScope(user.getId());
         return new SecurityUser(user.getId(), user.getUsername(), user.getPassword(),
-            user.getTenantId(), user.getGroupId(), permissions);
+            user.getTenantId(), user.getGroupId(), highestScope, permissions);
     }
 }

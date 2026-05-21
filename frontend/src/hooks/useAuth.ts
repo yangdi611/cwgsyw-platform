@@ -10,10 +10,9 @@ export function useAuth() {
 
   const login = async (username: string, password: string) => {
     const res = await api.post('/auth/login', { username, password })
-    const { token, username: u, real_name, permissions } = res.data.data
+    const { token, username: u, real_name, group_scope, permissions } = res.data.data
     setToken(token)
-    setAuth({ username: u, realName: real_name }, permissions)
-    // 等 store 写入完成后再跳转
+    setAuth({ username: u, realName: real_name }, group_scope ?? 'group', permissions)
     await new Promise((r) => setTimeout(r, 50))
     router.push('/')
   }

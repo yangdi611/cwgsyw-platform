@@ -4,7 +4,8 @@ import { persist } from 'zustand/middleware'
 interface AuthState {
   user: { username: string; realName: string } | null
   permissions: Set<string>
-  setAuth: (user: { username: string; realName: string }, permissions: string[]) => void
+  groupScope: string   // "group" | "tenant" | "platform"
+  setAuth: (user: { username: string; realName: string }, groupScope: string, permissions: string[]) => void
   clearAuth: () => void
 }
 
@@ -13,14 +14,16 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       permissions: new Set(),
-      setAuth: (user, permissions) =>
-        set({ user, permissions: new Set(permissions) }),
-      clearAuth: () => set({ user: null, permissions: new Set() }),
+      groupScope: 'group',
+      setAuth: (user, groupScope, permissions) =>
+        set({ user, groupScope, permissions: new Set(permissions) }),
+      clearAuth: () => set({ user: null, groupScope: 'group', permissions: new Set() }),
     }),
     {
       name: 'cwgsyw-auth',
       partialize: (state) => ({
         user: state.user,
+        groupScope: state.groupScope,
         permissions: [...state.permissions],
       }),
       onRehydrateStorage: () => (state) => {

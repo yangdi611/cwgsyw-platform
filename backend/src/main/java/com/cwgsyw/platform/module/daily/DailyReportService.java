@@ -40,12 +40,17 @@ public class DailyReportService {
         return PageResult.of(p.convert(this::toVO));
     }
 
-    public PageResult<DailyReportVO> listGroupReports(Long groupId, String status, int page, int size) {
+    public PageResult<DailyReportVO> listGroupReports(Long groupId, String status, String month, int page, int size) {
         LambdaQueryWrapper<DailyReport> query = new LambdaQueryWrapper<DailyReport>()
-            .eq(DailyReport::getGroupId, groupId)
             .eq(DailyReport::getIsDeleted, false)
             .orderByDesc(DailyReport::getReportDate);
+        if (groupId != null) query.eq(DailyReport::getGroupId, groupId);
         if (status != null) query.eq(DailyReport::getStatus, status);
+        if (month != null && !month.isBlank()) {
+            LocalDate start = LocalDate.parse(month + "-01");
+            LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+            query.between(DailyReport::getReportDate, start, end);
+        }
         return PageResult.of(reportMapper.selectPage(new Page<>(page, size), query).convert(this::toVO));
     }
 

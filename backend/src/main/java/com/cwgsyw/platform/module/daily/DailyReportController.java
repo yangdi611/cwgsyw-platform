@@ -29,10 +29,13 @@ public class DailyReportController {
     @PreAuthorize("hasPermission('daily_report', 'approve')")
     public R<PageResult<DailyReportVO>> groupReports(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "200") int size,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String month,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(reportService.listGroupReports(cu.getGroupId(), status, page, size));
+        // 管理员/超管 scope=tenant/platform，不限组；组长 scope=group，限自己的组
+        Long groupId = "group".equals(cu.getGroupScope()) ? cu.getGroupId() : null;
+        return R.ok(reportService.listGroupReports(groupId, status, month, page, size));
     }
 
     @GetMapping("/{id}")
