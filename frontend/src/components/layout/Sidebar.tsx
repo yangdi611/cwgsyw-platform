@@ -1,0 +1,51 @@
+'use client'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { usePermission } from '@/hooks/usePermission'
+import {
+  Users,
+  Building2,
+  Shield,
+  LayoutDashboard,
+} from 'lucide-react'
+
+const navItems = [
+  { href: '/', label: '首页', icon: LayoutDashboard, resource: null, action: null },
+  { href: '/users', label: '用户管理', icon: Users, resource: 'user', action: 'read' },
+  { href: '/groups', label: '组管理', icon: Building2, resource: 'group', action: 'read' },
+  { href: '/rbac/roles', label: '角色权限', icon: Shield, resource: 'role', action: 'read' },
+]
+
+export function Sidebar() {
+  const pathname = usePathname()
+  const { hasPermission } = usePermission()
+
+  return (
+    <aside className="w-56 border-r bg-background flex flex-col min-h-screen">
+      <div className="p-4 border-b">
+        <span className="font-bold text-lg">IT 运维平台</span>
+      </div>
+      <nav className="flex-1 p-2 space-y-1">
+        {navItems.map(({ href, label, icon: Icon, resource, action }) => {
+          if (resource && action && !hasPermission(resource, action)) return null
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                pathname === href
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+}
