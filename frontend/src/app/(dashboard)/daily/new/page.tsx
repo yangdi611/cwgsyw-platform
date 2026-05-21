@@ -1,11 +1,14 @@
 'use client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { DailyReportForm } from '@/components/daily/DailyReportForm'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 
-export default function NewDailyReportPage() {
+function NewDailyReportContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const prefillDate = searchParams.get('date') ?? undefined
 
   const handleSave = async (data: {
     reportDate: string
@@ -28,7 +31,18 @@ export default function NewDailyReportPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">新建日报</h1>
-      <DailyReportForm onSubmit={handleSave} />
+      <DailyReportForm
+        onSubmit={handleSave}
+        defaultValues={prefillDate ? { reportDate: prefillDate } : undefined}
+      />
     </div>
+  )
+}
+
+export default function NewDailyReportPage() {
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">加载中...</p>}>
+      <NewDailyReportContent />
+    </Suspense>
   )
 }
