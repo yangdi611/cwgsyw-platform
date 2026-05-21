@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
@@ -13,18 +13,15 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    setHydrated(true)
-  }, [])
+  const hydrated = useAuthStore((s) => s._hydrated)
 
   useEffect(() => {
     if (!hydrated) return
     if (!getToken() || !user) router.replace('/login')
   }, [hydrated, user, router])
 
-  if (!hydrated || !user) return null
+  if (!hydrated) return null
+  if (!user) return null
 
   return (
     <div className="flex min-h-screen">

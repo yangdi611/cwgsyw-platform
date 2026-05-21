@@ -13,6 +13,8 @@ export function useAuth() {
     const { token, username: u, real_name, permissions } = res.data.data
     setToken(token)
     setAuth({ username: u, realName: real_name }, permissions)
+    // 等 store 写入完成后再跳转
+    await new Promise((r) => setTimeout(r, 50))
     router.push('/')
   }
 
