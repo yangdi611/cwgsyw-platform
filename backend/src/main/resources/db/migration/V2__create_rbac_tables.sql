@@ -6,7 +6,7 @@ CREATE TABLE sys_resource (
     name        VARCHAR(128) NOT NULL,
     actions     JSONB NOT NULL DEFAULT '[]',
     sort_order  INT NOT NULL DEFAULT 0,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE sys_permission (
@@ -26,8 +26,12 @@ CREATE TABLE sys_role (
     scope       VARCHAR(32) NOT NULL DEFAULT 'group',
     description VARCHAR(255),
     is_deleted  BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_by  BIGINT,
+    updated_by  BIGINT,
+    deleted_at  TIMESTAMP,
+    deleted_by  BIGINT
 );
 CREATE UNIQUE INDEX idx_sys_role_code ON sys_role(tenant_id, code) WHERE NOT is_deleted;
 
