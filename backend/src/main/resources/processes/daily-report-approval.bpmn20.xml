@@ -26,8 +26,19 @@
       <conditionExpression>${approved == false}</conditionExpression>
     </sequenceFlow>
 
-    <endEvent id="approved" name="审批通过"/>
-    <endEvent id="rejected" name="审批拒绝"/>
+    <endEvent id="approved" name="审批通过">
+      <extensionElements>
+        <flowable:executionListener event="start"
+          delegateExpression="${dailyReportApprovalListener}"/>
+      </extensionElements>
+    </endEvent>
+
+    <endEvent id="rejected" name="审批拒绝">
+      <extensionElements>
+        <flowable:executionListener event="start"
+          delegateExpression="${dailyReportApprovalListener}"/>
+      </extensionElements>
+    </endEvent>
 
   </process>
 </definitions>
