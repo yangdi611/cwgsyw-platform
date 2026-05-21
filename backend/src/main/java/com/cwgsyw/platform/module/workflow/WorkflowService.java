@@ -40,7 +40,14 @@ public class WorkflowService {
             .singleResult();
         if (task == null) throw new IllegalArgumentException("任务不存在: " + taskId);
 
-        taskService.claim(taskId, String.valueOf(approverId));
+        String currentAssignee = task.getAssignee();
+        String approverStr = String.valueOf(approverId);
+        if (currentAssignee != null && !currentAssignee.equals(approverStr)) {
+            throw new IllegalArgumentException("该任务已被其他人认领，无法操作");
+        }
+        if (currentAssignee == null) {
+            taskService.claim(taskId, approverStr);
+        }
 
         Map<String, Object> vars = new HashMap<>();
         vars.put("approved", approved);
@@ -55,7 +62,7 @@ public class WorkflowService {
             .taskCandidateGroup(candidateGroup)
             .orderByTaskCreateTime().desc()
             .list();
-        return tasks.stream().map(this::toVO).collect(Collectors.toList());
+        return toVOList(tasks);
     }
 
     public List<TaskVO> getPendingTasksByUser(Long userId) {
@@ -63,10 +70,29 @@ public class WorkflowService {
             .taskCandidateOrAssigned(String.valueOf(userId))
             .orderByTaskCreateTime().desc()
             .list();
-        return tasks.stream().map(this::toVO).collect(Collectors.toList());
+        return toVOList(tasks);
     }
 
-    private TaskVO toVO(Task task) {
+    private List<TaskVO> toVOList(List<Task> tasks) {
+        if (tasks.isEmpty()) return List.of();
+        Set<String> piIds = tasks.stream()
+            .map(Task::getProcessInstanceId)
+            .collect(java.util.stream.Collectors.toSet());
+        Map<String, String> businessKeyMap = runtimeService
+            .createProcessInstanceQuery()
+            .processInstanceIds(piIds)
+            .list()
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(
+                pi -> pi.getId(),
+                pi -> pi.getBusinessKey() != null ? pi.getBusinessKey() : ""
+            ));
+        return tasks.stream()
+            .map(task -> toVO(task, businessKeyMap.getOrDefault(task.getProcessInstanceId(), "")))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    private TaskVO toVO(Task task, String businessKey) {
         TaskVO vo = new TaskVO();
         vo.setTaskId(task.getId());
         vo.setProcessInstanceId(task.getProcessInstanceId());
@@ -77,17 +103,12 @@ public class WorkflowService {
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDateTime()
             : null);
-
-        ProcessInstance pi = runtimeService
-            .createProcessInstanceQuery()
-            .processInstanceId(task.getProcessInstanceId())
-            .singleResult();
-        if (pi != null) {
-            String businessKey = pi.getBusinessKey();
-            vo.setBusinessKey(businessKey);
-            if (businessKey != null && businessKey.startsWith("dailyReport:")) {
+        vo.setBusinessKey(businessKey);
+        if (businessKey.startsWith("dailyReport:")) {
+            String[] parts = businessKey.split(":", 2);
+            if (parts.length == 2 && !parts[1].isEmpty()) {
                 vo.setBusinessType("daily_report");
-                vo.setBusinessId(Long.parseLong(businessKey.split(":")[1]));
+                vo.setBusinessId(Long.parseLong(parts[1]));
             }
         }
         return vo;
