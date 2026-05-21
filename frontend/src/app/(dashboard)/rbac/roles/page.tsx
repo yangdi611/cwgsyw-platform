@@ -59,11 +59,12 @@ export default function RolesPage() {
                   {scopeLabel[role.scope] ?? role.scope}
                 </Badge>
                 <PermissionGuard resource="resource" action="assign">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/rbac/permissions?roleId=${role.id}`}>
-                      配置权限
-                    </Link>
-                  </Button>
+                  <Link
+                    href={`/rbac/permissions?roleId=${role.id}`}
+                    className="text-sm text-primary hover:underline px-3 py-1.5"
+                  >
+                    配置权限
+                  </Link>
                 </PermissionGuard>
               </div>
             </div>
