@@ -13,6 +13,7 @@ import com.cwgsyw.platform.module.workflow.WorkflowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -24,12 +25,18 @@ public class DailyReportService {
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
 
-    public PageResult<DailyReportVO> listMyReports(Long userId, int page, int size) {
-        Page<DailyReport> p = reportMapper.selectPage(new Page<>(page, size),
-            new LambdaQueryWrapper<DailyReport>()
-                .eq(DailyReport::getReporterId, userId)
-                .eq(DailyReport::getIsDeleted, false)
-                .orderByDesc(DailyReport::getReportDate));
+    public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
+        LambdaQueryWrapper<DailyReport> query = new LambdaQueryWrapper<DailyReport>()
+            .eq(DailyReport::getReporterId, userId)
+            .eq(DailyReport::getIsDeleted, false)
+            .orderByDesc(DailyReport::getReportDate);
+        if (month != null && !month.isBlank()) {
+            // month format: "2026-05"
+            LocalDate start = LocalDate.parse(month + "-01");
+            LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+            query.between(DailyReport::getReportDate, start, end);
+        }
+        Page<DailyReport> p = reportMapper.selectPage(new Page<>(page, size), query);
         return PageResult.of(p.convert(this::toVO));
     }
 

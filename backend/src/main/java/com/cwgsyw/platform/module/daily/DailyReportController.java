@@ -19,9 +19,10 @@ public class DailyReportController {
     @PreAuthorize("hasPermission('daily_report', 'read')")
     public R<PageResult<DailyReportVO>> myReports(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "31") int size,
+            @RequestParam(required = false) String month,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(reportService.listMyReports(cu.getUserId(), page, size));
+        return R.ok(reportService.listMyReports(cu.getUserId(), month, page, size));
     }
 
     @GetMapping("/group")

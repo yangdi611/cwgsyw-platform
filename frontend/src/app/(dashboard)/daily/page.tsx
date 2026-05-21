@@ -49,10 +49,12 @@ export default function DailyReportsPage() {
   const [selected, setSelected] = useState<DailyReport | null>(null)
   const queryClient = useQueryClient()
 
+  const monthParam = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`
+
   const { data, isLoading } = useQuery({
-    queryKey: ['my-daily-reports', viewYear, viewMonth],
+    queryKey: ['my-daily-reports', monthParam],
     queryFn: () =>
-      api.get('/daily-reports/my', { params: { page: 1, size: 31 } })
+      api.get('/daily-reports/my', { params: { month: monthParam, page: 1, size: 31 } })
         .then(r => r.data.data.records as DailyReport[]),
   })
 
@@ -60,7 +62,7 @@ export default function DailyReportsPage() {
     mutationFn: (id: number) => api.post(`/daily-reports/${id}/submit`),
     onSuccess: () => {
       toast.success('日报已提交审批')
-      queryClient.invalidateQueries({ queryKey: ['my-daily-reports', viewYear, viewMonth] })
+      queryClient.invalidateQueries({ queryKey: ['my-daily-reports', monthParam] })
       setSelected(null)
     },
     onError: (e: unknown) => {
