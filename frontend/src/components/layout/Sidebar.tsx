@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import {
+  FileText,
+  CheckSquare,
   Users,
   Building2,
   Shield,
@@ -11,10 +13,12 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: '首页', icon: LayoutDashboard, resource: null, action: null },
-  { href: '/users', label: '用户管理', icon: Users, resource: 'user', action: 'read' },
-  { href: '/groups', label: '组管理', icon: Building2, resource: 'group', action: 'read' },
-  { href: '/rbac/roles', label: '角色权限', icon: Shield, resource: 'role', action: 'read' },
+  { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
+  { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
+  { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
+  { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
+  { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
+  { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
 ]
 
 export function Sidebar() {
