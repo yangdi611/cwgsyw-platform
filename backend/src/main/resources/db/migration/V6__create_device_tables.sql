@@ -22,6 +22,7 @@ CREATE INDEX idx_device_tenant ON device(tenant_id) WHERE NOT is_deleted;
 
 CREATE TABLE device_credential (
     id              BIGSERIAL PRIMARY KEY,
+    tenant_id       VARCHAR(64) NOT NULL DEFAULT 'default',
     device_id       BIGINT NOT NULL REFERENCES device(id),
     username        VARCHAR(128) NOT NULL,
     password_enc    TEXT NOT NULL,
