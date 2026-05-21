@@ -36,8 +36,9 @@ public class DailyReportController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('daily_report', 'read')")
-    public R<DailyReportVO> getById(@PathVariable Long id) {
-        return R.ok(reportService.getById(id));
+    public R<DailyReportVO> getById(@PathVariable Long id,
+                                    @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(reportService.getById(id, cu.getTenantId()));
     }
 
     @PostMapping
@@ -45,7 +46,7 @@ public class DailyReportController {
     public R<DailyReportVO> create(@Valid @RequestBody CreateDailyReportRequest req,
                                    @AuthenticationPrincipal SecurityUser cu) {
         var report = reportService.create(req, cu.getUserId(), cu.getGroupId(), cu.getTenantId());
-        return R.ok(reportService.getById(report.getId()));
+        return R.ok(reportService.getById(report.getId(), cu.getTenantId()));
     }
 
     @PutMapping("/{id}")

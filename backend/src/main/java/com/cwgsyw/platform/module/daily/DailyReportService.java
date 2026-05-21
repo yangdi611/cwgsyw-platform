@@ -83,6 +83,7 @@ public class DailyReportService {
         reportMapper.updateById(report);
     }
 
+    @Transactional
     public void updateStatusByProcessInst(String processInstId, String status) {
         DailyReport report = reportMapper.selectOne(
             new LambdaQueryWrapper<DailyReport>()
@@ -93,9 +94,12 @@ public class DailyReportService {
         }
     }
 
-    public DailyReportVO getById(Long id) {
+    public DailyReportVO getById(Long id, String tenantId) {
         DailyReport report = reportMapper.selectById(id);
         if (report == null || report.getIsDeleted()) {
+            throw new IllegalArgumentException("日报不存在");
+        }
+        if (!report.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("日报不存在");
         }
         return toVO(report);
