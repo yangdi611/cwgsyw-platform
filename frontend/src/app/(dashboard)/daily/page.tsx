@@ -93,7 +93,7 @@ export default function DailyReportsPage() {
   const monthLabel = `${viewYear} 年 ${viewMonth + 1} 月`
 
   return (
-    <div className="max-w-4xl">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">我的日报</h1>
