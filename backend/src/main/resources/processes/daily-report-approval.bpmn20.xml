@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://cwgsyw.com/processes">
+
+  <process id="dailyReportApproval" name="日报审批流" isExecutable="true">
+
+    <startEvent id="start" name="提交日报"/>
+
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="groupLeaderApproval"/>
+
+    <userTask id="groupLeaderApproval" name="组长审批"
+              flowable:candidateGroups="${groupId}">
+      <documentation>组内任意组长审批即可通过（或签）</documentation>
+    </userTask>
+
+    <sequenceFlow id="flow2" sourceRef="groupLeaderApproval" targetRef="approvalGateway"/>
+
+    <exclusiveGateway id="approvalGateway" name="审批结果"/>
+
+    <sequenceFlow id="flowApproved" sourceRef="approvalGateway" targetRef="approved">
+      <conditionExpression>${approved == true}</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flowRejected" sourceRef="approvalGateway" targetRef="rejected">
+      <conditionExpression>${approved == false}</conditionExpression>
+    </sequenceFlow>
+
+    <endEvent id="approved" name="审批通过"/>
+    <endEvent id="rejected" name="审批拒绝"/>
+
+  </process>
+</definitions>
