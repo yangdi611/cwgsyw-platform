@@ -22,6 +22,16 @@ spring:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
 
+flowable:
+  database-schema-update: true
+  async-executor-activate: false
+  history-level: full
+  check-process-definitions: true
+  process-definition-location-prefix: classpath:/processes/
+  process-definition-location-suffixes:
+    - "**.bpmn20.xml"
+    - "**.bpmn"
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
