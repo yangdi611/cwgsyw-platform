@@ -2,7 +2,9 @@ package com.cwgsyw.platform.module.daily;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
@@ -20,6 +22,7 @@ public class DailyReportService {
     private final WorkflowService workflowService;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
+    private final AuditLogMapper auditLogMapper;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, int page, int size) {
         Page<DailyReport> p = reportMapper.selectPage(new Page<>(page, size),
@@ -88,10 +91,20 @@ public class DailyReportService {
         DailyReport report = reportMapper.selectOne(
             new LambdaQueryWrapper<DailyReport>()
                 .eq(DailyReport::getProcessInstId, processInstId));
-        if (report != null) {
-            report.setStatus(status);
-            reportMapper.updateById(report);
-        }
+        if (report == null) return;
+        String oldStatus = report.getStatus();
+        report.setStatus(status);
+        reportMapper.updateById(report);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(report.getTenantId())
+            .module("daily_report")
+            .action("APPROVED".equals(status) ? "approve" : "reject")
+            .targetId(report.getId())
+            .targetType("daily_report")
+            .operatorId(0L)
+            .remark("processInst=" + processInstId + ", " + oldStatus + " -> " + status)
+            .createdAt(LocalDateTime.now())
+            .build());
     }
 
     public DailyReportVO getById(Long id, String tenantId) {
