@@ -13,27 +13,19 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
-  const [hydrated, setHydrated] = useState(false)
+  const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    // 订阅 persist hydration 完成事件
-    const unsub = useAuthStore.persist.onFinishHydration(() => {
-      setHydrated(true)
-    })
-    // 如果已经 hydrated（比如快速二次渲染），直接设置
-    if (useAuthStore.persist.hasHydrated()) {
-      setHydrated(true)
+    // 只在客户端运行，直接读 token，不依赖 Zustand hydration 时机
+    const token = getToken()
+    if (!token) {
+      router.replace('/login')
+    } else {
+      setChecked(true)
     }
-    return unsub
-  }, [])
+  }, [router])
 
-  useEffect(() => {
-    if (!hydrated) return
-    if (!getToken() || !user) router.replace('/login')
-  }, [hydrated, user, router])
-
-  if (!hydrated) return null
-  if (!user) return null
+  if (!checked) return null
 
   return (
     <div className="flex min-h-screen">
