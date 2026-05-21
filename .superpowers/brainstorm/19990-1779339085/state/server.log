@@ -1,0 +1,15 @@
+{"type":"server-started","port":51943,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:51943","screen_dir":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content","state_dir":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/state"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/architecture.html"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/change-module.html"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/roles.html"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/rbac.html"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/org-structure.html"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/tech-decisions.html"}
+{"source":"user-event","type":"click","text":"A\n        \n          Next.js 15 + React 19 推荐\n          App Router、SSR/SSG 混合渲染、Server Actions。2024-2025 最主流，生态最完整。shadcn/ui + Tailwind v4 组件库，开箱即用企业级 UI。\n          适合：需要 SEO 或未来对外开放的场景；部署需要 Node.js 服务","choice":"a","id":null,"timestamp":1779339890416}
+{"source":"user-event","type":"click","text":"A\n        \n          Next.js 15 + React 19 推荐\n          App Router、SSR/SSG 混合渲染、Server Actions。2024-2025 最主流，生态最完整。shadcn/ui + Tailwind v4 组件库，开箱即用企业级 UI。\n          适合：需要 SEO 或未来对外开放的场景；部署需要 Node.js 服务","choice":"a","id":null,"timestamp":1779339891264}
+{"source":"user-event","type":"click","text":"B\n        \n          Vite + React 19 (SPA)\n          纯客户端渲染，构建产物是静态文件，Nginx 直接托管。配合 TanStack Router + TanStack Query，架构更简单，运维更轻量。\n          适合：内部工具，不需要 SSR；部署最简单，一个 Nginx 容器搞定","choice":"b","id":null,"timestamp":1779339892064}
+{"source":"user-event","type":"click","text":"A\n        \n          Next.js 15 + React 19 推荐\n          App Router、SSR/SSG 混合渲染、Server Actions。2024-2025 最主流，生态最完整。shadcn/ui + Tailwind v4 组件库，开箱即用企业级 UI。\n          适合：需要 SEO 或未来对外开放的场景；部署需要 Node.js 服务","choice":"a","id":null,"timestamp":1779339901947}
+{"source":"user-event","type":"click","text":"A\n        \n          Flowable 7 推荐\n          Java 生态最成熟的流程引擎，Spring Boot 无缝集成，支持 BPMN 2.0 标准。支持或签/会签/条件分支，可视化流程配置。社区活跃，文档完整。\n          代价：学习成本略高，数据库表多（约30张）","choice":"a","id":null,"timestamp":1779339912047}
+{"source":"user-event","type":"click","text":"A\n        \n          Apache POI (Word) + iText/OpenPDF (PDF) 推荐\n          Word 模板用书签占位符填充，导出 .docx 格式完全保留原始排版。PDF 由 Word 转换或独立生成，水印通过 iText 叠加。Java 生态最成熟方案。\n          在线编辑器存 HTML，导出时映射到 Word 模板","choice":"a","id":null,"timestamp":1779339922846}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/19990-1779339085/content/summary.html"}
+{"type":"server-stopped","reason":"idle timeout"}

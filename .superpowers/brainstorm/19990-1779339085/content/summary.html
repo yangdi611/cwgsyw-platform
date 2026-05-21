@@ -1,0 +1,129 @@
+<h2>完整设计方案汇总</h2>
+<p class="subtitle">请确认以下所有设计决策，确认后将写入设计文档</p>
+
+<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+
+  <!-- Tech Stack -->
+  <div style="background: #1e293b; border-radius: 10px; padding: 16px; border: 1px solid #334155;">
+    <div style="font-size: 11px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">技术栈</div>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #cbd5e1;">
+      <div><span style="color:#64748b;">前端</span><br>Next.js 15 + React 19<br>shadcn/ui + Tailwind v4<br>Zustand + TanStack Query</div>
+      <div><span style="color:#64748b;">后端</span><br>Spring Boot 3.x + Java 21<br>Spring Security + JWT<br>Flowable 7（审批流）<br>MyBatis-Plus</div>
+      <div><span style="color:#64748b;">数据库 & 存储</span><br>PostgreSQL 16<br>Redis 7<br>MinIO（文件）</div>
+      <div><span style="color:#64748b;">文档生成</span><br>Apache POI（Word）<br>iText/OpenPDF（PDF）</div>
+      <div><span style="color:#64748b;">部署</span><br>Docker Compose（单机）<br>全容器化私有部署<br>预留 K8s Helm Chart</div>
+    </div>
+  </div>
+
+  <!-- Modules -->
+  <div style="display: flex; gap: 12px;">
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border-top: 3px solid #22c55e;">
+      <div style="font-weight:700; color:#22c55e; margin-bottom:8px;">📋 工作报告</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        · 结构化日报表单<br>
+        · 邮件/微信定时提醒<br>
+        · 组长审批（或签）<br>
+        · 月报自动聚合<br>
+        · 季报 Excel/PDF 导出
+      </div>
+    </div>
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border-top: 3px solid #f59e0b;">
+      <div style="font-weight:700; color:#f59e0b; margin-bottom:8px;">🔄 变更文档</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        · AI辅助填写（Kimi/DeepSeek/GLM）<br>
+        · 两份模板（申请单+方案）<br>
+        · Word模板+在线编辑预览<br>
+        · 审批流（可配置多级）<br>
+        · 生成邮件内容（供复制）<br>
+        · Word/PDF导出+水印
+      </div>
+    </div>
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border-top: 3px solid #3b82f6;">
+      <div style="font-weight:700; color:#3b82f6; margin-bottom:8px;">🗄️ 共享文档</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        · 分类目录<br>
+        · 文件上传/版本历史<br>
+        · 在线预览<br>
+        · 文档管理员专属管理<br>
+        · 按权限控制可见范围
+      </div>
+    </div>
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border-top: 3px solid #ec4899;">
+      <div style="font-weight:700; color:#ec4899; margin-bottom:8px;">🔑 设备密码库</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        · AES-256 加密存储<br>
+        · 按组/分类隔离<br>
+        · 查询审计日志<br>
+        · 组长管理本组密码<br>
+        · 纯查询，无借用流程
+      </div>
+    </div>
+  </div>
+
+  <!-- Org + RBAC -->
+  <div style="display: flex; gap: 12px;">
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border: 1px solid #334155;">
+      <div style="font-size:11px; font-weight:700; color:#a855f7; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">组织结构</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        <strong style="color:#e2e8f0;">管理组</strong>（管理员，跨组）<br>
+        <strong style="color:#22c55e;">数据库组</strong> / <strong style="color:#3b82f6;">主机组</strong> / <strong style="color:#f59e0b;">网络组</strong> / <strong style="color:#ec4899;">云平台组</strong><br>
+        每组：组长（多人，或签）+ 组员<br>
+        用户可属多角色，权限取并集
+      </div>
+    </div>
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border: 1px solid #334155;">
+      <div style="font-size:11px; font-weight:700; color:#f59e0b; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">动态 RBAC</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        Resource → Permission → Role → User<br>
+        超级管理员页面化配置角色权限<br>
+        新增模块自动出现在配置页<br>
+        默认最小权限原则<br>
+        roles.scope = group/tenant/platform
+      </div>
+    </div>
+    <div style="flex:1; background: #1e293b; border-radius: 10px; padding: 14px; border: 1px solid #334155;">
+      <div style="font-size:11px; font-weight:700; color:#22c55e; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">审批流引擎（Flowable）</div>
+      <div style="font-size:12px; color:#94a3b8; line-height:1.8;">
+        可配置节点：顺序/并行/条件分支<br>
+        或签：任意一人通过即可<br>
+        会签：全部通过<br>
+        适用：日报、变更文档、共享文档<br>
+        管理员页面化配置审批流
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-tenant path -->
+  <div style="background: #1e293b; border-radius: 10px; padding: 14px; border-left: 4px solid #6366f1;">
+    <div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">多租户升级路径</div>
+    <div style="font-size:13px; color:#94a3b8;">
+      <strong style="color:#a5b4fc;">阶段一（当前）：</strong>所有表含 tenant_id，值固定为 default →
+      <strong style="color:#a5b4fc;">阶段二：</strong>开启 tenant 路由，租户注册/管理 →
+      <strong style="color:#a5b4fc;">阶段三 SaaS：</strong>计费模块，可选独立 DB 部署
+    </div>
+  </div>
+
+  <!-- Build phases -->
+  <div style="background: #0f172a; border-radius: 10px; padding: 16px; border: 1px solid #334155;">
+    <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">建议开发阶段</div>
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1; background:#1e293b; border-radius:8px; padding:12px; border-top:3px solid #6366f1;">
+        <div style="font-weight:700; color:#6366f1; font-size:12px; margin-bottom:6px;">Phase 1 — 基础骨架</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.7;">用户/组织/角色管理<br>动态 RBAC<br>登录认证<br>Docker Compose 部署</div>
+      </div>
+      <div style="flex:1; background:#1e293b; border-radius:8px; padding:12px; border-top:3px solid #22c55e;">
+        <div style="font-weight:700; color:#22c55e; font-size:12px; margin-bottom:6px;">Phase 2 — 核心业务</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.7;">日报系统 + 审批流<br>设备密码库<br>通知中心（邮件）</div>
+      </div>
+      <div style="flex:1; background:#1e293b; border-radius:8px; padding:12px; border-top:3px solid #f59e0b;">
+        <div style="font-weight:700; color:#f59e0b; font-size:12px; margin-bottom:6px;">Phase 3 — 文档能力</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.7;">变更文档 + AI 网关<br>共享文档存储<br>Word/PDF 导出+水印</div>
+      </div>
+      <div style="flex:1; background:#1e293b; border-radius:8px; padding:12px; border-top:3px solid #ec4899;">
+        <div style="font-weight:700; color:#ec4899; font-size:12px; margin-bottom:6px;">Phase 4 — 报表 & 通知</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.7;">月报/季报聚合导出<br>微信公众号通知<br>审计日志完善</div>
+      </div>
+    </div>
+  </div>
+
+</div>
