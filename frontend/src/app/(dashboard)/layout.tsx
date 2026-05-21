@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
@@ -13,7 +13,19 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
-  const hydrated = useAuthStore((s) => s._hydrated)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    // 订阅 persist hydration 完成事件
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setHydrated(true)
+    })
+    // 如果已经 hydrated（比如快速二次渲染），直接设置
+    if (useAuthStore.persist.hasHydrated()) {
+      setHydrated(true)
+    }
+    return unsub
+  }, [])
 
   useEffect(() => {
     if (!hydrated) return

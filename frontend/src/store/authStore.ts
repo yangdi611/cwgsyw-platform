@@ -4,7 +4,6 @@ import { persist } from 'zustand/middleware'
 interface AuthState {
   user: { username: string; realName: string } | null
   permissions: Set<string>
-  _hydrated: boolean
   setAuth: (user: { username: string; realName: string }, permissions: string[]) => void
   clearAuth: () => void
 }
@@ -14,7 +13,6 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       permissions: new Set(),
-      _hydrated: false,
       setAuth: (user, permissions) =>
         set({ user, permissions: new Set(permissions) }),
       clearAuth: () => set({ user: null, permissions: new Set() }),
@@ -26,11 +24,8 @@ export const useAuthStore = create<AuthState>()(
         permissions: [...state.permissions],
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          if (Array.isArray((state as any).permissions)) {
-            state.permissions = new Set((state as any).permissions)
-          }
-          state._hydrated = true
+        if (state && Array.isArray((state as any).permissions)) {
+          state.permissions = new Set((state as any).permissions)
         }
       },
     }
