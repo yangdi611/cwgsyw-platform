@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cwgsyw_platform
+    username: platform_user
+    password: change_me_in_production
+  data:
+    redis:
+      host: localhost
+      password: change_me_in_production
+
+jwt:
+  secret: dev_secret_must_be_at_least_256_bits_long_padding_padding_ok
+encrypt:
+  key: dev_encrypt_key_32bytes_here!!
+
+logging:
+  level:
+    com.cwgsyw: DEBUG
