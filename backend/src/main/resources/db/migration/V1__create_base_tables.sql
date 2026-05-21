@@ -6,10 +6,10 @@ CREATE TABLE sys_group (
     name        VARCHAR(64) NOT NULL,
     description VARCHAR(255),
     is_deleted  BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at  TIMESTAMPTZ,
+    deleted_at  TIMESTAMP,
     deleted_by  BIGINT,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP NOT NULL DEFAULT NOW(),
     created_by  BIGINT,
     updated_by  BIGINT
 );
@@ -27,10 +27,10 @@ CREATE TABLE sys_user (
     avatar_url   VARCHAR(512),
     status       SMALLINT NOT NULL DEFAULT 1,
     is_deleted   BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at   TIMESTAMPTZ,
+    deleted_at   TIMESTAMP,
     deleted_by   BIGINT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP NOT NULL DEFAULT NOW(),
     created_by   BIGINT,
     updated_by   BIGINT
 );
@@ -50,7 +50,7 @@ CREATE TABLE audit_log (
     before_json  JSONB,
     after_json   JSONB,
     remark       VARCHAR(512),
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_audit_log_tenant_module ON audit_log(tenant_id, module, created_at DESC);
 CREATE INDEX idx_audit_log_operator ON audit_log(operator_id, created_at DESC);

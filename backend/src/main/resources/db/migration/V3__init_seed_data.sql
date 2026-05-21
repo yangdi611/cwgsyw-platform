@@ -48,7 +48,7 @@ WHERE r.code = 'admin';
 -- 初始超级管理员账号（密码: Admin@123，BCrypt 12轮加密）
 INSERT INTO sys_user (username, password, real_name, email, status) VALUES
 ('superadmin',
- '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewLFRWBFIlMDxSji',
+ '$2b$12$imGdoIOacDpn9k0Y2rnP8.zvSiB/ilLzUNMUM8STF0WNujuhAFw16',
  '超级管理员', 'superadmin@example.com', 1);
 
 -- 给超级管理员分配角色
