@@ -11,7 +11,7 @@ spring:
 jwt:
   secret: dev_secret_must_be_at_least_256_bits_long_padding_padding_ok
 encrypt:
-  key: dev_encrypt_key_32bytes_here!!
+  key: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleTEyMzQ=
 
 logging:
   level:
