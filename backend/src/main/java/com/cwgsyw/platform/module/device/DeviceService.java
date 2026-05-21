@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +38,24 @@ public class DeviceService {
         if (deviceType != null) query.eq(Device::getDeviceType, deviceType);
         if (category != null) query.eq(Device::getCategory, category);
         Page<Device> p = deviceMapper.selectPage(new Page<>(page, size), query);
-        return PageResult.of(p.convert(d -> toVO(d, false)));
+
+        // Batch fetch group names to avoid N+1
+        Set<Long> groupIds = p.getRecords().stream()
+            .filter(d -> d.getGroupId() != null)
+            .map(Device::getGroupId)
+            .collect(Collectors.toSet());
+        Map<Long, String> groupNames = groupIds.isEmpty()
+            ? Map.of()
+            : groupMapper.selectBatchIds(groupIds).stream()
+                .collect(Collectors.toMap(
+                    com.cwgsyw.platform.module.org.entity.Group::getId,
+                    com.cwgsyw.platform.module.org.entity.Group::getName));
+
+        return PageResult.of(p.convert(d -> {
+            DeviceVO vo = toVO(d, false);
+            if (d.getGroupId() != null) vo.setGroupName(groupNames.get(d.getGroupId()));
+            return vo;
+        }));
     }
 
     public DeviceVO getById(Long id, String tenantId) {
@@ -58,8 +77,7 @@ public class DeviceService {
         device.setCategory(req.getCategory());
         device.setDescription(req.getDescription());
         deviceMapper.insert(device);
-        writeAudit(tenantId, "create", device.getId(), operatorId, null,
-            "{\"name\":\"" + device.getName() + "\"}");
+        writeAudit(tenantId, "create", device.getId(), operatorId, "name=" + device.getName());
         return device;
     }
 
@@ -76,8 +94,7 @@ public class DeviceService {
         if (req.getDescription() != null) device.setDescription(req.getDescription());
         if (req.getGroupId() != null) device.setGroupId(req.getGroupId());
         deviceMapper.updateById(device);
-        writeAudit(tenantId, "update", id, operatorId, null,
-            "{\"name\":\"" + device.getName() + "\"}");
+        writeAudit(tenantId, "update", id, operatorId, "name=" + device.getName());
     }
 
     @Transactional
@@ -90,7 +107,7 @@ public class DeviceService {
         device.setDeletedAt(LocalDateTime.now());
         device.setDeletedBy(operatorId);
         deviceMapper.updateById(device);
-        writeAudit(tenantId, "delete", id, operatorId, null, null);
+        writeAudit(tenantId, "delete", id, operatorId, null);
     }
 
     @Transactional
@@ -106,8 +123,7 @@ public class DeviceService {
         cred.setPasswordEnc(crypto.encrypt(req.getPassword()));
         cred.setDescription(req.getDescription());
         credentialMapper.insert(cred);
-        writeAudit(tenantId, "add_credential", deviceId, operatorId, null,
-            "{\"username\":\"" + req.getUsername() + "\"}");
+        writeAudit(tenantId, "add_credential", deviceId, operatorId, "username=" + req.getUsername());
         return cred;
     }
 
@@ -115,17 +131,29 @@ public class DeviceService {
     public void deleteCredential(Long credentialId, String tenantId, Long operatorId) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
         if (cred == null || cred.getIsDeleted()) throw new IllegalArgumentException("账号不存在");
+        // Fix 1: verify parent device belongs to caller's tenant
+        Device device = deviceMapper.selectById(cred.getDeviceId());
+        if (device == null || !device.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("账号不存在");
+        }
         cred.setIsDeleted(true);
         cred.setDeletedAt(LocalDateTime.now());
         cred.setDeletedBy(operatorId);
         credentialMapper.updateById(cred);
-        writeAudit(tenantId, "delete_credential", cred.getDeviceId(), operatorId, null, null);
+        writeAudit(tenantId, "delete_credential", cred.getDeviceId(), operatorId, null);
     }
 
-    @Transactional
+    // Fix 2: @Transactional removed — audit is written first and committed independently;
+    // a decrypt failure will not roll back the audit record.
     public String revealPassword(Long credentialId, String tenantId, Long operatorId, String operatorIp) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
         if (cred == null || cred.getIsDeleted()) throw new IllegalArgumentException("账号不存在");
+        // Fix 1: verify parent device belongs to caller's tenant
+        Device device = deviceMapper.selectById(cred.getDeviceId());
+        if (device == null || !device.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("账号不存在");
+        }
+        // Audit is written (and auto-committed) before decrypt is attempted
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("device")
@@ -140,6 +168,8 @@ public class DeviceService {
         return crypto.decrypt(cred.getPasswordEnc());
     }
 
+    // toVO handles group name only for includeCredentials=true (getById path).
+    // For the list path, group names are batch-fetched in list() and set after toVO returns.
     private DeviceVO toVO(Device d, boolean includeCredentials) {
         DeviceVO vo = new DeviceVO();
         vo.setId(d.getId());
@@ -151,11 +181,12 @@ public class DeviceService {
         vo.setDescription(d.getDescription());
         vo.setCreatedAt(d.getCreatedAt());
         vo.setUpdatedAt(d.getUpdatedAt());
-        if (d.getGroupId() != null) {
-            var group = groupMapper.selectById(d.getGroupId());
-            if (group != null) vo.setGroupName(group.getName());
-        }
         if (includeCredentials) {
+            // Single group lookup is fine for getById (single device)
+            if (d.getGroupId() != null) {
+                var group = groupMapper.selectById(d.getGroupId());
+                if (group != null) vo.setGroupName(group.getName());
+            }
             List<CredentialVO> creds = credentialMapper.findByDeviceId(d.getId())
                 .stream().map(c -> {
                     CredentialVO cv = new CredentialVO();
@@ -171,8 +202,9 @@ public class DeviceService {
         return vo;
     }
 
+    // Fix 3: remark-based audit — no JSON string concatenation, no malformed-JSON risk
     private void writeAudit(String tenantId, String action, Long targetId,
-                            Long operatorId, String before, String after) {
+                            Long operatorId, String remark) {
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("device")
@@ -180,8 +212,7 @@ public class DeviceService {
             .targetId(targetId)
             .targetType("device")
             .operatorId(operatorId)
-            .beforeJson(before)
-            .afterJson(after)
+            .remark(remark)
             .createdAt(LocalDateTime.now())
             .build());
     }
