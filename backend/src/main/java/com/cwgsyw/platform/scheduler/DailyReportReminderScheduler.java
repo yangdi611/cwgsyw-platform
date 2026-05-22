@@ -46,14 +46,22 @@ public class DailyReportReminderScheduler {
             .stream().map(DailyReport::getReporterId).collect(Collectors.toSet());
 
         String template = configService.get(tenantId, "notify.reminder.template");
+        if (template == null || template.isBlank()) {
+            template = "【IT运维平台】您今日尚未提交工作日报，请尽快填写。";
+        }
 
+        String finalTemplate = template;
         allUsers.stream()
             .filter(u -> !haveFiled.contains(u.getId()))
             .forEach(u -> {
-                log.info("Sending daily report reminder to user {}", u.getId());
-                notificationService.notify(tenantId, u.getId(),
-                    "工作日报提醒", template,
-                    "daily_report_reminder", null, null);
+                try {
+                    log.info("Sending daily report reminder to user {}", u.getId());
+                    notificationService.notify(tenantId, u.getId(),
+                        "工作日报提醒", finalTemplate,
+                        "daily_report_reminder", null, null);
+                } catch (Exception e) {
+                    log.error("Failed to send reminder to user {}: {}", u.getId(), e.getMessage());
+                }
             });
     }
 
