@@ -13,4 +13,5 @@ public class CreateDailyReportRequest {
     private String issues;
     @NotBlank private String tomorrowPlan;
     private BigDecimal workHours;
+    private Long groupId;   // optional override; used when caller has no group (admin/superadmin)
 }
