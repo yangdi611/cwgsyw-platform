@@ -3,15 +3,18 @@ package com.cwgsyw.platform.module.changedoc;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/change-docs")
 @RequiredArgsConstructor
+@Validated
 public class ChangeDocController {
     private final ChangeDocService changeDocService;
 
