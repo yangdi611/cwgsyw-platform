@@ -7,6 +7,9 @@ spring:
     redis:
       host: localhost
       password: change_me_in_production
+  mail:
+    host: localhost
+    port: 1025
 
 jwt:
   secret: dev_secret_must_be_at_least_256_bits_long_padding_padding_ok
