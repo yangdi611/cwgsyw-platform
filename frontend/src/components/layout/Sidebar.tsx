@@ -11,6 +11,8 @@ import {
   Shield,
   LayoutDashboard,
   KeyRound,
+  Bell,
+  Settings,
 } from 'lucide-react'
 
 const navItems = [
@@ -18,9 +20,11 @@ const navItems = [
   { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
   { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
   { href: '/devices',        label: '设备密码库', icon: KeyRound,       resource: 'device',       action: 'read' },
+  { href: '/notifications',  label: '通知中心',   icon: Bell,           resource: 'notification', action: 'read' },
   { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
   { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
   { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
+  { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
 ]
 
 export function Sidebar() {

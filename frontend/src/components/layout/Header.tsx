@@ -2,6 +2,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 export function Header() {
   const { user, logout } = useAuth()
@@ -10,6 +11,7 @@ export function Header() {
     <header className="h-14 border-b flex items-center justify-between px-6 bg-background">
       <div />
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <Avatar className="h-8 w-8">
           <AvatarFallback>{user?.realName?.[0] ?? 'U'}</AvatarFallback>
         </Avatar>
