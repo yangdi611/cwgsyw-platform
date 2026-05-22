@@ -8,4 +8,5 @@ public class CreateCredentialRequest {
     @NotBlank private String username;
     @NotBlank private String password;
     private String description;
+    private Long groupId;   // which org-group owns this credential
 }

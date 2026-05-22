@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 public class CredentialVO {
     private Long id;
     private Long deviceId;
+    private Long groupId;
+    private String groupName;
     private String username;
     private String password;       // null when masked, plaintext when revealed
     private String description;

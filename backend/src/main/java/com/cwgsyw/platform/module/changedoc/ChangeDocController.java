@@ -70,6 +70,12 @@ public class ChangeDocController {
         return R.ok(changeDocService.generateAiContent(user.getTenantId(), id, user.getUserId(), req));
     }
 
+    @GetMapping("/{id}/snapshots")
+    @PreAuthorize("hasAuthority('change_doc:read')")
+    public R<List<?>> snapshots(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(changeDocService.listSnapshots(user.getTenantId(), id));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('change_doc:delete')")
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {

@@ -33,7 +33,7 @@ public class DeviceController {
     @PreAuthorize("hasPermission('device', 'read')")
     public R<DeviceVO> getById(@PathVariable Long id,
                                @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(deviceService.getById(id, cu.getTenantId()));
+        return R.ok(deviceService.getById(id, cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PostMapping
@@ -41,7 +41,7 @@ public class DeviceController {
     public R<DeviceVO> create(@Valid @RequestBody CreateDeviceRequest req,
                               @AuthenticationPrincipal SecurityUser cu) {
         var device = deviceService.create(req, cu.getTenantId(), cu.getUserId());
-        return R.ok(deviceService.getById(device.getId(), cu.getTenantId()));
+        return R.ok(deviceService.getById(device.getId(), cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PutMapping("/{id}")
@@ -66,7 +66,7 @@ public class DeviceController {
     public R<Void> addCredential(@PathVariable Long deviceId,
                                  @Valid @RequestBody CreateCredentialRequest req,
                                  @AuthenticationPrincipal SecurityUser cu) {
-        deviceService.addCredential(deviceId, req, cu.getTenantId(), cu.getUserId());
+        deviceService.addCredential(deviceId, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId());
         return R.ok();
     }
 

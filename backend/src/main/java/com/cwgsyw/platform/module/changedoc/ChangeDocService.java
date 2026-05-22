@@ -312,6 +312,17 @@ public class ChangeDocService {
                 .collect(Collectors.toList());
     }
 
+    public List<ChangeDocSnapshot> listSnapshots(String tenantId, Long id) {
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+        return changeDocSnapshotMapper.selectList(
+                new LambdaQueryWrapper<ChangeDocSnapshot>()
+                        .eq(ChangeDocSnapshot::getChangeDocId, id)
+                        .orderByAsc(ChangeDocSnapshot::getCreatedAt));
+    }
+
     public ChangeDocVO get(String tenantId, Long id) {
         ChangeDoc doc = changeDocMapper.selectById(id);
         if (doc == null || !tenantId.equals(doc.getTenantId())) {
