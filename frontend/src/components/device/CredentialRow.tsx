@@ -40,12 +40,23 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
       if (!pwd) {
         const res = await api.get(`/devices/credentials/${credentialId}/reveal`)
         pwd = res.data.data
-        setPassword(pwd)
+        // intentionally NOT calling setPassword — don't expose on screen
       }
-      await navigator.clipboard.writeText(pwd!)
+      // Try modern clipboard API, fall back to execCommand for HTTP (non-HTTPS) environments
+      try {
+        await navigator.clipboard.writeText(pwd!)
+      } catch {
+        const el = document.createElement('textarea')
+        el.value = pwd!
+        el.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
       toast.success('密码已复制到剪贴板')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? '复制失败')
+      toast.error(e?.response?.data?.message ?? '获取密码失败')
     }
   }
 
