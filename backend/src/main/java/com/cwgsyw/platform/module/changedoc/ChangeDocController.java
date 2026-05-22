@@ -5,6 +5,10 @@ import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +21,8 @@ import java.util.List;
 @Validated
 public class ChangeDocController {
     private final ChangeDocService changeDocService;
+    private final ExportService exportService;
+    private final EmailTemplateService emailTemplateService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('change_doc:read')")
@@ -81,5 +87,36 @@ public class ChangeDocController {
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
         changeDocService.delete(user.getTenantId(), id, user.getUserId());
         return R.ok(null);
+    }
+
+    @GetMapping("/{id}/export")
+    @PreAuthorize("hasAuthority('change_doc:export')")
+    public ResponseEntity<byte[]> export(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "pdf") String format,
+            @AuthenticationPrincipal SecurityUser user) {
+        ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
+        String filename = doc.getChangeNo() + (format.equals("docx") ? ".docx" : ".pdf");
+        byte[] bytes;
+        MediaType mediaType;
+        if ("docx".equals(format)) {
+            bytes = exportService.exportDocx(doc, user.getTenantId());
+            mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        } else {
+            bytes = exportService.exportPdfDirect(doc, user.getTenantId());
+            mediaType = MediaType.APPLICATION_PDF;
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.setContentType(mediaType);
+        return ResponseEntity.ok().headers(headers).body(bytes);
+    }
+
+    @GetMapping("/{id}/email-template")
+    @PreAuthorize("hasAuthority('change_doc:read')")
+    public R<String> emailTemplate(@PathVariable Long id,
+                                    @AuthenticationPrincipal SecurityUser user) {
+        ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
+        return R.ok(emailTemplateService.buildEmailBody(EmailTemplateService.EmailType.CHANGE_DOC_EXPORTED, doc, null));
     }
 }
