@@ -187,7 +187,7 @@ export default function ChangeDocDetailPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>资源支持说明</Label>
-                {isDraft ? <Input value={form.resourceSupport ?? ''} onChange={set('resourceSupport')} /> : <p className="text-sm">{doc.resourceSupport}</p>}
+                {isDraft ? <Textarea value={form.resourceSupport ?? ''} onChange={set('resourceSupport')} rows={2} /> : <p className="text-sm whitespace-pre-wrap">{doc.resourceSupport}</p>}
               </div>
             </div>
           </div>
@@ -239,7 +239,9 @@ export default function ChangeDocDetailPage() {
         <div className="flex gap-2 flex-wrap">
           {isDraft && (
             <>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
+              {hasPermission('change_doc', 'update') && (
+                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
+              )}
               <Button variant="outline" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>提交审批</Button>
             </>
           )}

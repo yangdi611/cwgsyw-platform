@@ -65,7 +65,7 @@ export default function ChangeDocsPage() {
                     <Link href={`/change-docs/${doc.id}`} className="font-medium hover:underline">
                       {doc.changeNo} — {doc.title}
                     </Link>
-                    <p className="text-xs text-muted-foreground">{doc.applicantName} · {doc.createdAt}</p>
+                    <p className="text-xs text-muted-foreground">{doc.applicantName} · {new Date(doc.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
                   </div>
                 </div>
                 <Link href={`/change-docs/${doc.id}`} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md hover:bg-muted">查看</Link>
