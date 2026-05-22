@@ -4,6 +4,7 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.ai.dto.AiProviderConfigVO;
 import com.cwgsyw.platform.module.ai.dto.SaveAiProviderConfigRequest;
 import com.cwgsyw.platform.security.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
