@@ -1,10 +1,14 @@
 package com.cwgsyw.platform.module.config;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.config.entity.SysConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -12,6 +16,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SysConfigService {
     private final SysConfigMapper configMapper;
+    private final AuditLogMapper auditLogMapper;
 
     public String get(String tenantId, String key) {
         String val = configMapper.findValue(tenantId, key);
@@ -23,7 +28,9 @@ public class SysConfigService {
     }
 
     public Map<String, String> getAll(String tenantId) {
-        return configMapper.findByTenant(tenantId).stream()
+        List<SysConfig> rows = configMapper.findByTenant(tenantId);
+        if (rows == null) return Collections.emptyMap();
+        return rows.stream()
             .collect(Collectors.toMap(SysConfig::getConfigKey,
                 c -> c.getConfigValue() != null ? c.getConfigValue() : ""));
     }
@@ -34,5 +41,14 @@ public class SysConfigService {
             .eq(SysConfig::getConfigKey, key)
             .set(SysConfig::getConfigValue, value)
             .set(SysConfig::getUpdatedAt, LocalDateTime.now()));
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(tenantId)
+            .module("sys_config")
+            .action("update")
+            .targetType("sys_config")
+            .operatorId(0L)
+            .remark("key=" + key)
+            .createdAt(LocalDateTime.now())
+            .build());
     }
 }
