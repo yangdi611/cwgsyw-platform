@@ -5,6 +5,7 @@ import com.cwgsyw.platform.module.config.SysConfigService;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.time.format.DateTimeFormatter;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExportService {
@@ -45,10 +47,11 @@ public class ExportService {
             PdfWriter.getInstance(pdf, out);
             pdf.open();
 
-            com.lowagie.text.Font titleFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            com.lowagie.text.Font headingFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            com.lowagie.text.Font labelFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
-            com.lowagie.text.Font bodyFont    = FontFactory.getFont(FontFactory.HELVETICA, 11);
+            String cjkFontPath = findCjkFont();
+            com.lowagie.text.Font titleFont   = loadFont(cjkFontPath, 18, com.lowagie.text.Font.BOLD);
+            com.lowagie.text.Font headingFont = loadFont(cjkFontPath, 12, com.lowagie.text.Font.BOLD);
+            com.lowagie.text.Font labelFont   = loadFont(cjkFontPath, 11, com.lowagie.text.Font.BOLD);
+            com.lowagie.text.Font bodyFont    = loadFont(cjkFontPath, 11, com.lowagie.text.Font.NORMAL);
 
             pdf.add(new Paragraph("变更申请单", titleFont));
             pdf.add(Chunk.NEWLINE);
@@ -80,7 +83,7 @@ public class ExportService {
             addPdfSection(pdf, "六、相关人员联系方式",   doc.getContacts(), headingFont, bodyFont);
 
             pdf.close();
-            return addWatermarkToPdf(out.toByteArray(), wmText, wmOpacity, wmAngle, wmSize);
+            return addWatermarkToPdf(out.toByteArray(), wmText, wmOpacity, wmAngle, wmSize, cjkFontPath);
         } catch (Exception e) {
             throw new RuntimeException("生成 PDF 失败: " + e.getMessage(), e);
         }
@@ -197,12 +200,22 @@ public class ExportService {
         pdf.add(c);
     }
 
-    private byte[] addWatermarkToPdf(byte[] pdfBytes, String text, float opacity, float angle, float fontSize) {
+    private byte[] addWatermarkToPdf(byte[] pdfBytes, String text, float opacity, float angle, float fontSize, String cjkFontPath) {
         try {
             PdfReader reader = new PdfReader(new ByteArrayInputStream(pdfBytes));
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PdfStamper stamper = new PdfStamper(reader, out);
-            BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+            BaseFont bf;
+            if (cjkFontPath != null) {
+                try {
+                    bf = BaseFont.createFont(cjkFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                } catch (Exception e) {
+                    log.warn("Failed to load CJK font for watermark, falling back to Helvetica: {}", e.getMessage());
+                    bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+                }
+            } else {
+                bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+            }
             int pages = reader.getNumberOfPages();
             for (int i = 1; i <= pages; i++) {
                 PdfContentByte canvas = stamper.getUnderContent(i);
@@ -227,6 +240,38 @@ public class ExportService {
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("添加水印失败: " + e.getMessage(), e);
+        }
+    }
+
+    private String findCjkFont() {
+        String[] candidates = {
+            "/usr/share/fonts/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto/NotoSerifCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSerifCJKsc-Regular.otf",
+        };
+        for (String path : candidates) {
+            if (new java.io.File(path).exists()) {
+                log.info("Using CJK font: {}", path);
+                return path;
+            }
+        }
+        log.warn("No CJK font found; Chinese characters may not render in PDF");
+        return null;
+    }
+
+    private com.lowagie.text.Font loadFont(String fontPath, float size, int style) {
+        if (fontPath == null) {
+            return new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, size, style);
+        }
+        try {
+            BaseFont bf = BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            return new com.lowagie.text.Font(bf, size, style);
+        } catch (Exception e) {
+            log.warn("Failed to load CJK font from {}: {}", fontPath, e.getMessage());
+            return new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, size, style);
         }
     }
 
