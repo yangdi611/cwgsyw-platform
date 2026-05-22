@@ -13,6 +13,7 @@ import {
   KeyRound,
   Bell,
   Settings,
+  Bot,
 } from 'lucide-react'
 
 const navItems = [
