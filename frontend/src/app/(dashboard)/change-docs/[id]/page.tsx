@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
+import { Download, Mail } from 'lucide-react'
 
 interface ChangeDocVO {
   id: number
@@ -57,6 +58,8 @@ export default function ChangeDocDetailPage() {
   const [form, setForm] = useState<Partial<ChangeDocVO>>({})
   const [aiLoading, setAiLoading] = useState(false)
   const [approveComment, setApproveComment] = useState('')
+  const [emailBody, setEmailBody] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (!hasPermission('change_doc', 'read')) router.replace('/')
@@ -145,6 +148,35 @@ export default function ChangeDocDetailPage() {
       toast.error(err?.response?.data?.message ?? 'AI 生成失败')
     } finally {
       setAiLoading(false)
+    }
+  }
+
+  const handleExport = async (format: 'pdf' | 'docx') => {
+    setExporting(true)
+    try {
+      const res = await api.get(`/change-docs/${id}/export`, {
+        params: { format },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${doc?.changeNo ?? 'change-doc'}.${format}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('导出失败')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleEmailTemplate = async () => {
+    try {
+      const res = await api.get(`/change-docs/${id}/email-template`)
+      setEmailBody(res.data.data)
+    } catch {
+      toast.error('获取邮件模板失败')
     }
   }
 
@@ -259,7 +291,51 @@ export default function ChangeDocDetailPage() {
               <Button variant="destructive" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending}>拒绝</Button>
             </>
           )}
+          {/* Export buttons — visible for approved docs with export permission */}
+          {doc.status === 'approved' && hasPermission('change_doc', 'export') && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} disabled={exporting}>
+                <Download className="h-4 w-4 mr-1" />导出 PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('docx')} disabled={exporting}>
+                <Download className="h-4 w-4 mr-1" />导出 Word
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleEmailTemplate}>
+                <Mail className="h-4 w-4 mr-1" />生成邮件
+              </Button>
+            </>
+          )}
         </div>
+
+        {/* Email template preview */}
+        {emailBody && (
+          <div className="mt-4 border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-sm">邮件正文（复制后手动发送）</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  navigator.clipboard.writeText(emailBody).catch(() => {
+                    const el = document.createElement('textarea')
+                    el.value = emailBody
+                    el.style.cssText = 'position:fixed;opacity:0'
+                    document.body.appendChild(el)
+                    el.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(el)
+                  })
+                  toast.success('邮件内容已复制')
+                }}
+              >
+                复制
+              </Button>
+            </div>
+            <pre className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md max-h-64 overflow-y-auto">
+              {emailBody}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   )
