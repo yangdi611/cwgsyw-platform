@@ -9,7 +9,6 @@ import com.cwgsyw.platform.module.changedoc.entity.ChangeDoc;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,8 +18,10 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -39,32 +40,24 @@ public class ChangeDocService {
 
     // daily counter: key = "tenantId:yyyy-MMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
-    private volatile String lastInitDate = "";
-
-    @PostConstruct
-    public void initCounters() {
-        // counters are initialized lazily on first use
-    }
 
     // ─── Change number generation ─────────────────────────────────────────────
 
     private String generateChangeNo(String tenantId) {
-        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MMdd"));
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String prefix = "CHG-" + dateStr;
         String counterKey = tenantId + ":" + dateStr;
 
-        dailyCounters.computeIfAbsent(counterKey, k -> {
-            int maxSeq = changeDocMapper.maxSeqForPrefix(tenantId, prefix);
-            return new AtomicInteger(maxSeq);
-        });
+        AtomicInteger counter = dailyCounters.computeIfAbsent(counterKey, k ->
+                new AtomicInteger(changeDocMapper.maxSeqForPrefix(tenantId, prefix)));
 
-        int seq = dailyCounters.get(counterKey).incrementAndGet();
+        int seq = counter.incrementAndGet();
         return String.format("%s-%03d", prefix, seq);
     }
 
     // ─── Mapping helpers ─────────────────────────────────────────────────────
 
-    private ChangeDocVO toVO(ChangeDoc doc) {
+    private ChangeDocVO toVO(ChangeDoc doc, Map<Long, String> userNames) {
         ChangeDocVO vo = new ChangeDocVO();
         vo.setId(doc.getId());
         vo.setChangeNo(doc.getChangeNo());
@@ -88,25 +81,30 @@ public class ChangeDocService {
         vo.setCreatedAt(doc.getCreatedAt());
         vo.setUpdatedAt(doc.getUpdatedAt());
 
-        // resolve names via UserMapper
         if (doc.getApplicantId() != null) {
-            try {
-                var user = userMapper.selectById(doc.getApplicantId());
-                if (user != null) vo.setApplicantName(user.getUsername());
-            } catch (Exception e) {
-                log.debug("Could not resolve applicant name for id {}", doc.getApplicantId());
-            }
+            vo.setApplicantName(userNames.get(doc.getApplicantId()));
         }
         if (doc.getApproverId() != null) {
-            try {
-                var user = userMapper.selectById(doc.getApproverId());
-                if (user != null) vo.setApproverName(user.getUsername());
-            } catch (Exception e) {
-                log.debug("Could not resolve approver name for id {}", doc.getApproverId());
-            }
+            vo.setApproverName(userNames.get(doc.getApproverId()));
         }
 
         return vo;
+    }
+
+    private ChangeDocVO toVO(ChangeDoc doc) {
+        Map<Long, String> userNames = new HashMap<>();
+        Set<Long> ids = new java.util.HashSet<>();
+        if (doc.getApplicantId() != null) ids.add(doc.getApplicantId());
+        if (doc.getApproverId() != null) ids.add(doc.getApproverId());
+        for (Long uid : ids) {
+            try {
+                var user = userMapper.selectById(uid);
+                if (user != null) userNames.put(uid, user.getUsername());
+            } catch (Exception e) {
+                log.debug("Could not resolve user name for id {}", uid);
+            }
+        }
+        return toVO(doc, userNames);
     }
 
     private String toJson(Object obj) {
@@ -184,7 +182,7 @@ public class ChangeDocService {
 
         String beforeJson = toJson(doc);
 
-        if (StringUtils.hasText(req.getTitle())) doc.setTitle(req.getTitle());
+        if (req.getTitle() != null) doc.setTitle(req.getTitle());
         if (req.getChangeDesc() != null) doc.setChangeDesc(req.getChangeDesc());
         if (req.getImpactScope() != null) doc.setImpactScope(req.getImpactScope());
         if (req.getChangeWindow() != null) doc.setChangeWindow(req.getChangeWindow());
@@ -251,7 +249,6 @@ public class ChangeDocService {
         return toVO(doc);
     }
 
-    @Transactional
     public String generateAiContent(String tenantId, Long id, Long operatorId, AiGenerateRequest req) {
         ChangeDoc doc = changeDocMapper.selectById(id);
         if (doc == null || !tenantId.equals(doc.getTenantId())) {
@@ -286,8 +283,32 @@ public class ChangeDocService {
             wrapper.eq(ChangeDoc::getStatus, status);
         }
 
-        return changeDocMapper.selectList(wrapper).stream()
-                .map(this::toVO)
+        List<ChangeDoc> docs = changeDocMapper.selectList(wrapper);
+
+        // Batch-fetch user names to avoid N+1 queries
+        Set<Long> userIds = docs.stream()
+                .flatMap(d -> {
+                    Set<Long> ids = new java.util.HashSet<>();
+                    if (d.getApplicantId() != null) ids.add(d.getApplicantId());
+                    if (d.getApproverId() != null) ids.add(d.getApproverId());
+                    return ids.stream();
+                })
+                .collect(Collectors.toSet());
+
+        Map<Long, String> userNames = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userIds.forEach(uid -> {
+                try {
+                    var user = userMapper.selectById(uid);
+                    if (user != null) userNames.put(uid, user.getUsername());
+                } catch (Exception e) {
+                    log.debug("Could not resolve user name for id {}", uid);
+                }
+            });
+        }
+
+        return docs.stream()
+                .map(d -> toVO(d, userNames))
                 .collect(Collectors.toList());
     }
 
