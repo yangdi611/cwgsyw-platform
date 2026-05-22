@@ -24,6 +24,7 @@ public class DailyReportService {
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
+    private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
         LambdaQueryWrapper<DailyReport> query = new LambdaQueryWrapper<DailyReport>()
@@ -96,14 +97,31 @@ public class DailyReportService {
         report.setStatus("SUBMITTED");
         report.setProcessInstId(processInstId);
         reportMapper.updateById(report);
+        // Notify all other users in the group that a report awaits approval
+        var allInGroup = userMapper.selectList(
+            new LambdaQueryWrapper<com.cwgsyw.platform.module.user.entity.User>()
+                .eq(com.cwgsyw.platform.module.user.entity.User::getGroupId, report.getGroupId())
+                .eq(com.cwgsyw.platform.module.user.entity.User::getIsDeleted, false));
+        String reporterName = allInGroup.stream()
+            .filter(u -> u.getId().equals(userId))
+            .findFirst()
+            .map(u -> u.getRealName() != null ? u.getRealName() : u.getUsername())
+            .orElse("组员");
+        allInGroup.stream()
+            .filter(u -> !u.getId().equals(userId))
+            .forEach(u -> notificationService.notify(
+                report.getTenantId(), u.getId(),
+                "日报待审批",
+                reporterName + " 提交了 " + report.getReportDate() + " 的工作日报，请审批。",
+                "daily_report_submit", "daily_report", report.getId()));
     }
 
     @Transactional
-    public void updateStatusByProcessInst(String processInstId, String status) {
+    public DailyReport updateStatusByProcessInstAndReturn(String processInstId, String status) {
         DailyReport report = reportMapper.selectOne(
             new LambdaQueryWrapper<DailyReport>()
                 .eq(DailyReport::getProcessInstId, processInstId));
-        if (report == null) return;
+        if (report == null) return null;
         String oldStatus = report.getStatus();
         report.setStatus(status);
         reportMapper.updateById(report);
@@ -117,6 +135,12 @@ public class DailyReportService {
             .remark("processInst=" + processInstId + ", " + oldStatus + " -> " + status)
             .createdAt(LocalDateTime.now())
             .build());
+        return report;
+    }
+
+    @Transactional
+    public void updateStatusByProcessInst(String processInstId, String status) {
+        updateStatusByProcessInstAndReturn(processInstId, status);
     }
 
     public DailyReportVO getById(Long id, String tenantId) {
