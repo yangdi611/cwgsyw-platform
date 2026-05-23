@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
-import { Download, Mail } from 'lucide-react'
+import { Download, Mail, History } from 'lucide-react'
 
 interface ChangeDocVO {
   id: number
@@ -60,6 +60,13 @@ export default function ChangeDocDetailPage() {
   const [approveComment, setApproveComment] = useState('')
   const [emailBody, setEmailBody] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+
+  const { data: snapshots = [] } = useQuery<{ id: number; remark: string; created_at: string; operator_id: number }[]>({
+    queryKey: ['change-doc-snapshots', id],
+    queryFn: () => api.get(`/change-docs/${id}/snapshots`).then(r => r.data.data),
+    enabled: showHistory && hasPermission('change_doc', 'read'),
+  })
 
   useEffect(() => {
     if (!hasPermission('change_doc', 'read')) router.replace('/')
@@ -336,6 +343,28 @@ export default function ChangeDocDetailPage() {
             </pre>
           </div>
         )}
+
+        {/* Snapshot history */}
+        <div className="mt-4">
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(h => !h)}>
+            <History className="h-4 w-4 mr-1" />
+            {showHistory ? '收起操作历史' : '查看操作历史'}
+          </Button>
+          {showHistory && (
+            <div className="mt-2 border rounded-lg divide-y text-sm">
+              {snapshots.length === 0 ? (
+                <p className="px-4 py-3 text-muted-foreground text-xs">暂无历史记录</p>
+              ) : snapshots.map(s => (
+                <div key={s.id} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-muted-foreground">{s.remark}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(s.created_at).toLocaleString('zh-CN')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

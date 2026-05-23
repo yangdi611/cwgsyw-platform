@@ -36,6 +36,7 @@ public class ExportService {
     }
 
     public byte[] exportPdfDirect(ChangeDocVO doc, String tenantId) {
+        boolean wmEnabled = !"false".equals(configService.get(tenantId, "watermark.enabled"));
         String wmText    = configService.get(tenantId, "watermark.text");
         float  wmOpacity = parseFloat(configService.get(tenantId, "watermark.opacity"), 0.15f);
         float  wmAngle   = parseFloat(configService.get(tenantId, "watermark.angle"),   45f);
@@ -83,7 +84,10 @@ public class ExportService {
             addPdfSection(pdf, "六、相关人员联系方式",   doc.getContacts(), headingFont, bodyFont);
 
             pdf.close();
-            return addWatermarkToPdf(out.toByteArray(), wmText, wmOpacity, wmAngle, wmSize, cjkFontPath);
+            byte[] pdfBytes = out.toByteArray();
+            return wmEnabled
+                    ? addWatermarkToPdf(pdfBytes, wmText, wmOpacity, wmAngle, wmSize, cjkFontPath)
+                    : pdfBytes;
         } catch (Exception e) {
             throw new RuntimeException("生成 PDF 失败: " + e.getMessage(), e);
         }
