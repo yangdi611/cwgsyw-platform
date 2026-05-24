@@ -13,7 +13,7 @@ public class ChangeDoc {
     private String tenantId;
     private String changeNo;
     private String title;
-    private String status;           // draft | pending | approved | rejected
+    private String status;
     private Long applicantId;
     private LocalDateTime applyTime;
     private String changeDesc;
@@ -37,7 +37,12 @@ public class ChangeDoc {
     private LocalDateTime updatedAt;
     private Long createdBy;
 
+    /** @deprecated use applicationTemplateId / planTemplateId */
+    @Deprecated
     private Long templateId;
+
+    private Long applicationTemplateId;
+    private Long planTemplateId;
 
     @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
     private java.util.Map<String, String> fieldsData;

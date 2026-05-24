@@ -15,9 +15,7 @@ public class ChangeDocTemplate {
     private Integer version;
     private Boolean isActive;
     private String docxKey;
-    @TableLogic
-    private Boolean isDeleted;
+    private String docType;   // application | plan | general
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long createdBy;
 }

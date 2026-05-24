@@ -10,8 +10,6 @@ public class ChangeDocVO {
     private Long id;
     private String changeNo;
     private String status;
-    private Long templateId;
-    private String templateName;
     private Long applicantId;
     private String applicantName;
     private LocalDateTime applyTime;
@@ -21,6 +19,15 @@ public class ChangeDocVO {
     private String approverComment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // dual template
+    private Long applicationTemplateId;
+    private String applicationTemplateName;
+    private Long planTemplateId;
+    private String planTemplateName;
+
+    // dynamic field data and config
     private Map<String, String> fieldsData;
-    private List<FieldConfigVO> fieldConfig;
+    private List<FieldConfigVO> applicationFieldConfig;
+    private List<FieldConfigVO> planFieldConfig;
 }
