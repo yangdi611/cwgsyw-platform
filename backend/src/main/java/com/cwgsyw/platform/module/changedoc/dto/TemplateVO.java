@@ -11,7 +11,7 @@ public class TemplateVO {
     private String description;
     private Integer version;
     private Boolean isActive;
-    private Boolean hasDocx;
+    private boolean hasDocx;
     private List<FieldConfigVO> fields;
     private LocalDateTime createdAt;
 }
