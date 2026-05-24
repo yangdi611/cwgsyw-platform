@@ -16,6 +16,7 @@ import {
   Bot,
   BarChart2,
   ClipboardList,
+  FileCode,
 } from 'lucide-react'
 
 const navItems = [
