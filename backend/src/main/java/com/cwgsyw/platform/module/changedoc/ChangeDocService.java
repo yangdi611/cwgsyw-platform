@@ -7,6 +7,7 @@ import com.cwgsyw.platform.module.ai.AiGatewayService;
 import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDoc;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
+import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +34,14 @@ public class ChangeDocService {
 
     private final ChangeDocMapper changeDocMapper;
     private final ChangeDocSnapshotMapper changeDocSnapshotMapper;
+    private final ChangeDocFieldMapper changeDocFieldMapper;
+    private final ChangeDocTemplateMapper changeDocTemplateMapper;
     private final AuditLogMapper auditLogMapper;
     private final AiGatewayService aiGatewayService;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
 
-    // daily counter: key = "tenantId:yyyy-MMdd"
+    // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
 
     // ─── Change number generation ─────────────────────────────────────────────
@@ -61,31 +64,32 @@ public class ChangeDocService {
         ChangeDocVO vo = new ChangeDocVO();
         vo.setId(doc.getId());
         vo.setChangeNo(doc.getChangeNo());
-        vo.setTitle(doc.getTitle());
         vo.setStatus(doc.getStatus());
+        vo.setTemplateId(doc.getTemplateId());
         vo.setApplicantId(doc.getApplicantId());
         vo.setApplyTime(doc.getApplyTime());
-        vo.setChangeDesc(doc.getChangeDesc());
-        vo.setImpactScope(doc.getImpactScope());
-        vo.setChangeWindow(doc.getChangeWindow());
-        vo.setResourceSupport(doc.getResourceSupport());
-        vo.setBackground(doc.getBackground());
-        vo.setSteps(doc.getSteps());
-        vo.setRiskAssessment(doc.getRiskAssessment());
-        vo.setRollbackPlan(doc.getRollbackPlan());
-        vo.setVerifyMethod(doc.getVerifyMethod());
-        vo.setContacts(doc.getContacts());
         vo.setApprovedAt(doc.getApprovedAt());
         vo.setApproverId(doc.getApproverId());
         vo.setApproverComment(doc.getApproverComment());
         vo.setCreatedAt(doc.getCreatedAt());
         vo.setUpdatedAt(doc.getUpdatedAt());
+        vo.setFieldsData(doc.getFieldsData());
 
         if (doc.getApplicantId() != null) {
             vo.setApplicantName(userNames.get(doc.getApplicantId()));
         }
         if (doc.getApproverId() != null) {
             vo.setApproverName(userNames.get(doc.getApproverId()));
+        }
+
+        // Resolve template name
+        if (doc.getTemplateId() != null) {
+            try {
+                ChangeDocTemplate tpl = changeDocTemplateMapper.selectById(doc.getTemplateId());
+                if (tpl != null) vo.setTemplateName(tpl.getName());
+            } catch (Exception e) {
+                log.debug("Could not resolve template name for id {}", doc.getTemplateId());
+            }
         }
 
         return vo;
@@ -151,14 +155,18 @@ public class ChangeDocService {
         ChangeDoc doc = new ChangeDoc();
         doc.setTenantId(tenantId);
         doc.setChangeNo(StringUtils.hasText(req.getChangeNo()) ? req.getChangeNo() : generateChangeNo(tenantId));
-        doc.setTitle(req.getTitle());
+        doc.setTemplateId(req.getTemplateId());
+        doc.setFieldsData(req.getFieldsData());
+
+        // Derive legacy title column from fieldsData for display/snapshot purposes
+        Map<String, String> fd = req.getFieldsData();
+        if (fd != null && fd.containsKey("title")) {
+            doc.setTitle(fd.get("title"));
+        }
+
         doc.setStatus("draft");
         doc.setApplicantId(operatorId);
         doc.setApplyTime(LocalDateTime.now());
-        doc.setChangeDesc(req.getChangeDesc());
-        doc.setImpactScope(req.getImpactScope());
-        doc.setChangeWindow(req.getChangeWindow());
-        doc.setResourceSupport(req.getResourceSupport());
         doc.setCreatedBy(operatorId);
         doc.setCreatedAt(LocalDateTime.now());
         doc.setUpdatedAt(LocalDateTime.now());
@@ -182,17 +190,18 @@ public class ChangeDocService {
 
         String beforeJson = toJson(doc);
 
-        if (req.getTitle() != null) doc.setTitle(req.getTitle());
-        if (req.getChangeDesc() != null) doc.setChangeDesc(req.getChangeDesc());
-        if (req.getImpactScope() != null) doc.setImpactScope(req.getImpactScope());
-        if (req.getChangeWindow() != null) doc.setChangeWindow(req.getChangeWindow());
-        if (req.getResourceSupport() != null) doc.setResourceSupport(req.getResourceSupport());
-        if (req.getBackground() != null) doc.setBackground(req.getBackground());
-        if (req.getSteps() != null) doc.setSteps(req.getSteps());
-        if (req.getRiskAssessment() != null) doc.setRiskAssessment(req.getRiskAssessment());
-        if (req.getRollbackPlan() != null) doc.setRollbackPlan(req.getRollbackPlan());
-        if (req.getVerifyMethod() != null) doc.setVerifyMethod(req.getVerifyMethod());
-        if (req.getContacts() != null) doc.setContacts(req.getContacts());
+        if (req.getFieldsData() != null && !req.getFieldsData().isEmpty()) {
+            Map<String, String> merged = new HashMap<>();
+            if (doc.getFieldsData() != null) merged.putAll(doc.getFieldsData());
+            merged.putAll(req.getFieldsData());
+            doc.setFieldsData(merged);
+
+            // Sync legacy title column if changed
+            if (merged.containsKey("title")) {
+                doc.setTitle(merged.get("title"));
+            }
+        }
+
         doc.setUpdatedAt(LocalDateTime.now());
 
         changeDocMapper.updateById(doc);
@@ -255,6 +264,12 @@ public class ChangeDocService {
             throw new IllegalArgumentException("变更文档不存在");
         }
 
+        Map<String, String> fd = doc.getFieldsData() != null ? doc.getFieldsData() : Map.of();
+
+        String changeDesc   = req.getChangeDesc()   != null ? req.getChangeDesc()   : fd.getOrDefault("change_desc", "");
+        String impactScope  = req.getImpactScope()  != null ? req.getImpactScope()  : fd.getOrDefault("impact_scope", "");
+        String changeWindow = req.getChangeWindow() != null ? req.getChangeWindow() : fd.getOrDefault("change_window", "");
+
         String prompt = String.format("""
                 请根据以下变更信息，生成专业的变更方案内容，包含：背景与目的、详细操作步骤、风险评估与应对措施、回滚计划、验证方法。
 
@@ -264,9 +279,7 @@ public class ChangeDocService {
 
                 请用JSON格式返回，字段：background, steps, risk_assessment, rollback_plan, verify_method。每个字段的值为HTML格式的富文本内容。
                 """,
-                req.getChangeDesc() != null ? req.getChangeDesc() : doc.getChangeDesc(),
-                req.getImpactScope() != null ? req.getImpactScope() : doc.getImpactScope(),
-                req.getChangeWindow() != null ? req.getChangeWindow() : doc.getChangeWindow());
+                changeDesc, impactScope, changeWindow);
 
         String result = aiGatewayService.generate(tenantId, prompt, "ChangeDoc", id, operatorId);
         writeAuditLog(tenantId, "ai_generate", id, operatorId, null, null, "AI生成变更方案内容");
@@ -328,7 +341,25 @@ public class ChangeDocService {
         if (doc == null || !tenantId.equals(doc.getTenantId())) {
             throw new IllegalArgumentException("变更文档不存在");
         }
-        return toVO(doc);
+        ChangeDocVO vo = toVO(doc);
+        // Enrich with field config from template
+        if (doc.getTemplateId() != null) {
+            List<FieldConfigVO> fieldConfig = changeDocFieldMapper.findByTemplate(doc.getTemplateId())
+                    .stream().map(f -> {
+                        FieldConfigVO fvo = new FieldConfigVO();
+                        fvo.setId(f.getId());
+                        fvo.setFieldKey(f.getFieldKey());
+                        fvo.setLabel(f.getLabel());
+                        fvo.setFieldType(f.getFieldType());
+                        fvo.setSortOrder(f.getSortOrder());
+                        fvo.setRequired(f.getRequired());
+                        fvo.setInForm(f.getInForm());
+                        fvo.setPlaceholder(f.getPlaceholder());
+                        return fvo;
+                    }).collect(Collectors.toList());
+            vo.setFieldConfig(fieldConfig);
+        }
+        return vo;
     }
 
     @Transactional

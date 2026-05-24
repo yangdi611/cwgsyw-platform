@@ -59,11 +59,11 @@ public class ExportService {
             addPdfField(pdf, "变更编号", doc.getChangeNo(), labelFont, bodyFont);
             addPdfField(pdf, "申请人",   doc.getApplicantName(), labelFont, bodyFont);
             addPdfField(pdf, "申请时间", doc.getApplyTime() != null ? doc.getApplyTime().format(FMT) : "", labelFont, bodyFont);
-            addPdfField(pdf, "变更标题", doc.getTitle(), labelFont, bodyFont);
-            addPdfField(pdf, "变更内容描述", doc.getChangeDesc(), labelFont, bodyFont);
-            addPdfField(pdf, "影响范围",     doc.getImpactScope(), labelFont, bodyFont);
-            addPdfField(pdf, "变更时间窗口", doc.getChangeWindow(), labelFont, bodyFont);
-            addPdfField(pdf, "资源支持说明", doc.getResourceSupport(), labelFont, bodyFont);
+            addPdfField(pdf, "变更标题", fieldOf(doc, "title"), labelFont, bodyFont);
+            addPdfField(pdf, "变更内容描述", fieldOf(doc, "change_desc"), labelFont, bodyFont);
+            addPdfField(pdf, "影响范围",     fieldOf(doc, "impact_scope"), labelFont, bodyFont);
+            addPdfField(pdf, "变更时间窗口", fieldOf(doc, "change_window"), labelFont, bodyFont);
+            addPdfField(pdf, "资源支持说明", fieldOf(doc, "resource_support"), labelFont, bodyFont);
             if ("approved".equals(doc.getStatus())) {
                 addPdfField(pdf, "审批人",   doc.getApproverName(), labelFont, bodyFont);
                 addPdfField(pdf, "审批时间", doc.getApprovedAt() != null ? doc.getApprovedAt().format(FMT) : "", labelFont, bodyFont);
@@ -76,12 +76,12 @@ public class ExportService {
             pdf.newPage();
             pdf.add(new Paragraph("变更方案", titleFont));
             pdf.add(Chunk.NEWLINE);
-            addPdfSection(pdf, "一、背景与目的",         doc.getBackground(), headingFont, bodyFont);
-            addPdfSection(pdf, "二、详细操作步骤",       doc.getSteps(), headingFont, bodyFont);
-            addPdfSection(pdf, "三、风险评估与应对措施", doc.getRiskAssessment(), headingFont, bodyFont);
-            addPdfSection(pdf, "四、回滚计划",           doc.getRollbackPlan(), headingFont, bodyFont);
-            addPdfSection(pdf, "五、验证方法",           doc.getVerifyMethod(), headingFont, bodyFont);
-            addPdfSection(pdf, "六、相关人员联系方式",   doc.getContacts(), headingFont, bodyFont);
+            addPdfSection(pdf, "一、背景与目的",         fieldOf(doc, "background"), headingFont, bodyFont);
+            addPdfSection(pdf, "二、详细操作步骤",       fieldOf(doc, "steps"), headingFont, bodyFont);
+            addPdfSection(pdf, "三、风险评估与应对措施", fieldOf(doc, "risk_assessment"), headingFont, bodyFont);
+            addPdfSection(pdf, "四、回滚计划",           fieldOf(doc, "rollback_plan"), headingFont, bodyFont);
+            addPdfSection(pdf, "五、验证方法",           fieldOf(doc, "verify_method"), headingFont, bodyFont);
+            addPdfSection(pdf, "六、相关人员联系方式",   fieldOf(doc, "contacts"), headingFont, bodyFont);
 
             pdf.close();
             byte[] pdfBytes = out.toByteArray();
@@ -101,11 +101,11 @@ public class ExportService {
         addField(xdoc, "变更编号", doc.getChangeNo());
         addField(xdoc, "申请人",   doc.getApplicantName());
         addField(xdoc, "申请时间", doc.getApplyTime() != null ? doc.getApplyTime().format(FMT) : "");
-        addField(xdoc, "变更标题", doc.getTitle());
-        addField(xdoc, "变更内容描述", doc.getChangeDesc());
-        addField(xdoc, "影响范围",     doc.getImpactScope());
-        addField(xdoc, "变更时间窗口", doc.getChangeWindow());
-        addField(xdoc, "资源支持说明", doc.getResourceSupport());
+        addField(xdoc, "变更标题", fieldOf(doc, "title"));
+        addField(xdoc, "变更内容描述", fieldOf(doc, "change_desc"));
+        addField(xdoc, "影响范围",     fieldOf(doc, "impact_scope"));
+        addField(xdoc, "变更时间窗口", fieldOf(doc, "change_window"));
+        addField(xdoc, "资源支持说明", fieldOf(doc, "resource_support"));
 
         if ("approved".equals(doc.getStatus())) {
             addField(xdoc, "审批人",   doc.getApproverName());
@@ -119,12 +119,12 @@ public class ExportService {
         addPageBreak(xdoc);
 
         addTitle(xdoc, "变更方案");
-        addSection(xdoc, "一、背景与目的",         doc.getBackground());
-        addSection(xdoc, "二、详细操作步骤",       doc.getSteps());
-        addSection(xdoc, "三、风险评估与应对措施", doc.getRiskAssessment());
-        addSection(xdoc, "四、回滚计划",           doc.getRollbackPlan());
-        addSection(xdoc, "五、验证方法",           doc.getVerifyMethod());
-        addSection(xdoc, "六、相关人员联系方式",   doc.getContacts());
+        addSection(xdoc, "一、背景与目的",         fieldOf(doc, "background"));
+        addSection(xdoc, "二、详细操作步骤",       fieldOf(doc, "steps"));
+        addSection(xdoc, "三、风险评估与应对措施", fieldOf(doc, "risk_assessment"));
+        addSection(xdoc, "四、回滚计划",           fieldOf(doc, "rollback_plan"));
+        addSection(xdoc, "五、验证方法",           fieldOf(doc, "verify_method"));
+        addSection(xdoc, "六、相关人员联系方式",   fieldOf(doc, "contacts"));
 
         return xdoc;
     }
@@ -277,6 +277,12 @@ public class ExportService {
             log.warn("Failed to load CJK font from {}: {}", fontPath, e.getMessage());
             return new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, size, style);
         }
+    }
+
+    private String fieldOf(ChangeDocVO doc, String key) {
+        if (doc.getFieldsData() == null) return "";
+        String v = doc.getFieldsData().get(key);
+        return v != null ? v : "";
     }
 
     private String stripHtml(String html) {

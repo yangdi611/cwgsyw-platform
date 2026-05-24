@@ -129,6 +129,8 @@ public class EmailTemplateService {
 
     /** 返回 <table>...<tr> 行，末尾不关闭 </table>（允许调用方插入额外行） */
     private String buildDocTableOpen(ChangeDocVO doc, String applyTime) {
+        String title       = fieldOf(doc, "title");
+        String impactScope = fieldOf(doc, "impact_scope");
         return """
                 <table>
                   <tr><td class="label">变更编号</td><td>%s</td></tr>
@@ -138,10 +140,10 @@ public class EmailTemplateService {
                   <tr><td class="label">影响范围</td><td>%s</td></tr>
                 """.formatted(
                     esc(doc.getChangeNo()),
-                    esc(doc.getTitle()),
+                    esc(title),
                     esc(doc.getApplicantName()),
                     applyTime,
-                    esc(doc.getImpactScope())
+                    esc(impactScope)
                 );
     }
 
@@ -191,6 +193,13 @@ public class EmailTemplateService {
                 </body>
                 </html>
                 """.formatted(esc(title), esc(title), bodyHtml);
+    }
+
+    /** 从 fieldsData 安全读取一个字段值，找不到时返回空字符串 */
+    private String fieldOf(ChangeDocVO doc, String key) {
+        if (doc.getFieldsData() == null) return "";
+        String v = doc.getFieldsData().get(key);
+        return v != null ? v : "";
     }
 
     /** 简单 HTML 转义（防止内容注入） */
