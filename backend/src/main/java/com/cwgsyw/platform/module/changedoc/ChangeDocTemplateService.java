@@ -36,7 +36,6 @@ public class ChangeDocTemplateService {
         tpl.setIsActive(true);
         tpl.setCreatedAt(LocalDateTime.now());
         tpl.setUpdatedAt(LocalDateTime.now());
-        tpl.setCreatedBy(operatorId);
         templateMapper.insert(tpl);
         return toTemplateVO(tpl, List.of());
     }
@@ -204,8 +203,7 @@ public class ChangeDocTemplateService {
     private ChangeDocTemplate getOrThrow(String tenantId, Long id) {
         ChangeDocTemplate tpl = templateMapper.selectOne(new LambdaQueryWrapper<ChangeDocTemplate>()
                 .eq(ChangeDocTemplate::getTenantId, tenantId)
-                .eq(ChangeDocTemplate::getId, id)
-                .eq(ChangeDocTemplate::getIsDeleted, false));
+                .eq(ChangeDocTemplate::getId, id));
         if (tpl == null) throw new IllegalArgumentException("模板不存在: " + id);
         return tpl;
     }

@@ -6,7 +6,9 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.ai.AiGatewayService;
 import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDoc;
+import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
+import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,7 +67,6 @@ public class ChangeDocService {
         vo.setId(doc.getId());
         vo.setChangeNo(doc.getChangeNo());
         vo.setStatus(doc.getStatus());
-        vo.setTemplateId(doc.getTemplateId());
         vo.setApplicantId(doc.getApplicantId());
         vo.setApplyTime(doc.getApplyTime());
         vo.setApprovedAt(doc.getApprovedAt());
@@ -82,14 +83,16 @@ public class ChangeDocService {
             vo.setApproverName(userNames.get(doc.getApproverId()));
         }
 
-        // Resolve template name
-        if (doc.getTemplateId() != null) {
-            try {
-                ChangeDocTemplate tpl = changeDocTemplateMapper.selectById(doc.getTemplateId());
-                if (tpl != null) vo.setTemplateName(tpl.getName());
-            } catch (Exception e) {
-                log.debug("Could not resolve template name for id {}", doc.getTemplateId());
-            }
+        // Resolve dual template names
+        vo.setApplicationTemplateId(doc.getApplicationTemplateId());
+        vo.setPlanTemplateId(doc.getPlanTemplateId());
+        if (doc.getApplicationTemplateId() != null) {
+            ChangeDocTemplate appTpl = changeDocTemplateMapper.selectById(doc.getApplicationTemplateId());
+            vo.setApplicationTemplateName(appTpl != null ? appTpl.getName() : null);
+        }
+        if (doc.getPlanTemplateId() != null) {
+            ChangeDocTemplate planTpl = changeDocTemplateMapper.selectById(doc.getPlanTemplateId());
+            vo.setPlanTemplateName(planTpl != null ? planTpl.getName() : null);
         }
 
         return vo;
@@ -155,7 +158,8 @@ public class ChangeDocService {
         ChangeDoc doc = new ChangeDoc();
         doc.setTenantId(tenantId);
         doc.setChangeNo(StringUtils.hasText(req.getChangeNo()) ? req.getChangeNo() : generateChangeNo(tenantId));
-        doc.setTemplateId(req.getTemplateId());
+        doc.setApplicationTemplateId(req.getApplicationTemplateId());
+        doc.setPlanTemplateId(req.getPlanTemplateId());
         doc.setFieldsData(req.getFieldsData());
 
         // Derive legacy title column from fieldsData; fall back to changeNo to satisfy NOT NULL
@@ -342,22 +346,38 @@ public class ChangeDocService {
             throw new IllegalArgumentException("变更文档不存在");
         }
         ChangeDocVO vo = toVO(doc);
-        // Enrich with field config from template
-        if (doc.getTemplateId() != null) {
-            List<FieldConfigVO> fieldConfig = changeDocFieldMapper.findByTemplate(doc.getTemplateId())
-                    .stream().map(f -> {
-                        FieldConfigVO fvo = new FieldConfigVO();
-                        fvo.setId(f.getId());
-                        fvo.setFieldKey(f.getFieldKey());
-                        fvo.setLabel(f.getLabel());
-                        fvo.setFieldType(f.getFieldType());
-                        fvo.setSortOrder(f.getSortOrder());
-                        fvo.setRequired(f.getRequired());
-                        fvo.setInForm(f.getInForm());
-                        fvo.setPlaceholder(f.getPlaceholder());
-                        return fvo;
-                    }).collect(Collectors.toList());
-            vo.setFieldConfig(fieldConfig);
+        // Enrich with dual field configs from templates
+        if (doc.getApplicationTemplateId() != null) {
+            List<ChangeDocField> appFields = changeDocFieldMapper.findByTemplate(doc.getApplicationTemplateId());
+            List<FieldConfigVO> appFieldVOs = appFields.stream().map(f -> {
+                FieldConfigVO fvo = new FieldConfigVO();
+                fvo.setId(f.getId());
+                fvo.setFieldKey(f.getFieldKey());
+                fvo.setLabel(f.getLabel());
+                fvo.setFieldType(f.getFieldType());
+                fvo.setRequired(f.getRequired());
+                fvo.setInForm(f.getInForm());
+                fvo.setPlaceholder(f.getPlaceholder());
+                fvo.setSortOrder(f.getSortOrder());
+                return fvo;
+            }).collect(java.util.stream.Collectors.toList());
+            vo.setApplicationFieldConfig(appFieldVOs);
+        }
+        if (doc.getPlanTemplateId() != null) {
+            List<ChangeDocField> planFields = changeDocFieldMapper.findByTemplate(doc.getPlanTemplateId());
+            List<FieldConfigVO> planFieldVOs = planFields.stream().map(f -> {
+                FieldConfigVO fvo = new FieldConfigVO();
+                fvo.setId(f.getId());
+                fvo.setFieldKey(f.getFieldKey());
+                fvo.setLabel(f.getLabel());
+                fvo.setFieldType(f.getFieldType());
+                fvo.setRequired(f.getRequired());
+                fvo.setInForm(f.getInForm());
+                fvo.setPlaceholder(f.getPlaceholder());
+                fvo.setSortOrder(f.getSortOrder());
+                return fvo;
+            }).collect(java.util.stream.Collectors.toList());
+            vo.setPlanFieldConfig(planFieldVOs);
         }
         return vo;
     }
