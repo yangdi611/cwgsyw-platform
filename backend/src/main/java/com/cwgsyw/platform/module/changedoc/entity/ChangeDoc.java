@@ -1,11 +1,12 @@
 package com.cwgsyw.platform.module.changedoc.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("change_doc")
+@TableName(value = "change_doc", autoResultMap = true)
 public class ChangeDoc {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -35,4 +36,9 @@ public class ChangeDoc {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long createdBy;
+
+    private Long templateId;
+
+    @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
+    private java.util.Map<String, String> fieldsData;
 }
