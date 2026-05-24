@@ -158,11 +158,11 @@ public class ChangeDocService {
         doc.setTemplateId(req.getTemplateId());
         doc.setFieldsData(req.getFieldsData());
 
-        // Derive legacy title column from fieldsData for display/snapshot purposes
+        // Derive legacy title column from fieldsData; fall back to changeNo to satisfy NOT NULL
         Map<String, String> fd = req.getFieldsData();
-        if (fd != null && fd.containsKey("title")) {
-            doc.setTitle(fd.get("title"));
-        }
+        String title = (fd != null && fd.containsKey("title") && !fd.get("title").isBlank())
+                ? fd.get("title") : doc.getChangeNo();
+        doc.setTitle(title);
 
         doc.setStatus("draft");
         doc.setApplicantId(operatorId);

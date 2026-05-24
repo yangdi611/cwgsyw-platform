@@ -30,6 +30,7 @@ const navItems = [
   { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
   { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
   { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
+  { href: '/admin/change-doc-templates', label: 'AI模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
   { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
   { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
 ]

@@ -17,10 +17,10 @@ interface TemplateVO {
   name: string
   description: string
   version: number
-  isActive: boolean
-  hasDocx: boolean
-  fields: { id: number; fieldKey: string; label: string }[]
-  createdAt: string
+  is_active: boolean
+  has_docx: boolean
+  fields: { id: number; field_key: string; label: string }[]
+  created_at: string
 }
 
 export default function ChangeDocTemplatesPage() {
@@ -122,10 +122,10 @@ export default function ChangeDocTemplatesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">{tpl.name}</span>
-                    <Badge variant={tpl.isActive ? 'default' : 'secondary'}>
-                      {tpl.isActive ? '启用中' : '已禁用'}
+                    <Badge variant={tpl.is_active ? 'default' : 'secondary'}>
+                      {tpl.is_active ? '启用中' : '已禁用'}
                     </Badge>
-                    {tpl.hasDocx && (
+                    {tpl.has_docx && (
                       <Badge variant="outline" className="text-xs text-green-600 border-green-300">已上传 .docx</Badge>
                     )}
                     <span className="text-xs text-muted-foreground">v{tpl.version} · {tpl.fields?.length ?? 0} 个字段</span>
@@ -153,11 +153,11 @@ export default function ChangeDocTemplatesPage() {
                     </Link>
                     <Button
                       size="sm"
-                      variant={tpl.isActive ? 'secondary' : 'outline'}
-                      onClick={() => toggleMutation.mutate({ id: tpl.id, active: !tpl.isActive })}
+                      variant={tpl.is_active ? 'secondary' : 'outline'}
+                      onClick={() => toggleMutation.mutate({ id: tpl.id, active: !tpl.is_active })}
                       disabled={toggleMutation.isPending}
                     >
-                      {tpl.isActive ? '禁用' : '启用'}
+                      {tpl.is_active ? '禁用' : '启用'}
                     </Button>
                   </div>
                 )}

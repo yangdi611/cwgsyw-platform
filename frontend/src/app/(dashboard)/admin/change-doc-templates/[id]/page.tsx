@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -13,12 +13,12 @@ import { ArrowLeft, Trash2, Plus, GripVertical } from 'lucide-react'
 
 interface FieldConfigVO {
   id: number
-  fieldKey: string
+  field_key: string
   label: string
-  fieldType: string
-  sortOrder: number
+  field_type: string
+  sort_order: number
   required: boolean
-  inForm: boolean
+  in_form: boolean
   placeholder: string
 }
 
@@ -26,7 +26,7 @@ interface TemplateVO {
   id: number
   name: string
   description: string
-  hasDocx: boolean
+  has_docx: boolean
   fields: FieldConfigVO[]
 }
 
@@ -80,15 +80,15 @@ export default function TemplateFieldsPage() {
 
   const addField = () => {
     setDirty(true)
-    const maxOrder = fields.reduce((m, f) => Math.max(m, f.sortOrder ?? 0), 0)
+    const maxOrder = fields.reduce((m, f) => Math.max(m, f.sort_order ?? 0), 0)
     setFields(f => [...f, {
       id: 0,
-      fieldKey: '',
+      field_key: '',
       label: '新字段',
-      fieldType: 'textarea',
-      sortOrder: maxOrder + 10,
+      field_type: 'textarea',
+      sort_order: maxOrder + 10,
       required: false,
-      inForm: true,
+      in_form: true,
       placeholder: '',
     }])
   }
@@ -115,10 +115,10 @@ export default function TemplateFieldsPage() {
             Word 模板中的 <code className="bg-muted px-1 rounded">{'{{field_key}}'}</code> 与此处 field_key 对应
           </p>
         </div>
-        {tpl?.hasDocx && <Badge variant="outline" className="text-green-600 border-green-300">已上传 .docx</Badge>}
+        {tpl?.has_docx && <Badge variant="outline" className="text-green-600 border-green-300">已上传 .docx</Badge>}
       </div>
 
-      {!tpl?.hasDocx && (
+      {!tpl?.has_docx && (
         <div className="mb-4 p-3 border border-amber-200 bg-amber-50 dark:bg-amber-950/20 rounded-lg text-sm text-amber-800 dark:text-amber-200">
           尚未上传 Word 模板文件。可先配置字段，上传后点「解析书签」自动识别占位符。
         </div>
@@ -133,10 +133,10 @@ export default function TemplateFieldsPage() {
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">书签 Key</label>
                   <Input
-                    value={field.fieldKey}
+                    value={field.field_key}
                     className="h-8 text-xs font-mono"
                     placeholder="例：change_desc"
-                    onChange={e => update(idx, 'fieldKey', e.target.value)}
+                    onChange={e => update(idx, 'field_key', e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
@@ -150,8 +150,8 @@ export default function TemplateFieldsPage() {
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">字段类型</label>
                   <Select
-                    value={field.fieldType}
-                    onValueChange={v => update(idx, 'fieldType', v ?? 'textarea')}
+                    value={field.field_type}
+                    onValueChange={v => update(idx, 'field_type', v ?? 'textarea')}
                   >
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -184,8 +184,8 @@ export default function TemplateFieldsPage() {
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={!!field.inForm}
-                    onChange={e => update(idx, 'inForm', e.target.checked)}
+                    checked={!!field.in_form}
+                    onChange={e => update(idx, 'in_form', e.target.checked)}
                     className="rounded"
                   />
                   表单可见

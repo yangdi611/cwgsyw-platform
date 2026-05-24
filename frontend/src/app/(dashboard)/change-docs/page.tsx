@@ -10,7 +10,7 @@ import { usePermission } from '@/hooks/usePermission'
 interface ChangeDocListItem {
   id: number
   changeNo: string
-  title: string
+  templateName: string
   status: string
   applicantName: string
   createdAt: string
@@ -63,7 +63,7 @@ export default function ChangeDocsPage() {
                   <Badge variant={st.variant}>{st.label}</Badge>
                   <div>
                     <Link href={`/change-docs/${doc.id}`} className="font-medium hover:underline">
-                      {doc.changeNo} — {doc.title}
+                      {doc.changeNo}{doc.templateName ? ` — ${doc.templateName}` : ''}
                     </Link>
                     <p className="text-xs text-muted-foreground">{doc.applicantName} · {new Date(doc.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
                   </div>
