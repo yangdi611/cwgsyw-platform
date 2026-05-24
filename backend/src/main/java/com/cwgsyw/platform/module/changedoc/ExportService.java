@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.changedoc;
 import com.cwgsyw.platform.module.changedoc.dto.ChangeDocVO;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.lowagie.text.*;
+import java.util.Map;
 import com.lowagie.text.pdf.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,10 +23,24 @@ import java.time.format.DateTimeFormatter;
 public class ExportService {
 
     private final SysConfigService configService;
+    private final ChangeDocTemplateService templateService;
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public byte[] exportDocx(ChangeDocVO doc, String tenantId) {
+        // Use template .docx if available
+        if (doc.getTemplateId() != null) {
+            try {
+                return templateService.fillDocx(tenantId, doc.getTemplateId(),
+                        doc.getFieldsData() != null ? doc.getFieldsData() : Map.of());
+            } catch (IllegalStateException e) {
+                // Template has no .docx file yet — fall through to programmatic generation
+            }
+        }
+        return exportDocxProgrammatic(doc);
+    }
+
+    private byte[] exportDocxProgrammatic(ChangeDocVO doc) {
         try (XWPFDocument xdoc = buildDocument(doc);
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             xdoc.write(out);
