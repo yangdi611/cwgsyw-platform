@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 export function useColumnConfig(modelId: string, defaultKeys: string[]) {
   const storageKey = `cmdb_col_config_${modelId}`
+  const defaultKeysRef = useRef(defaultKeys)
 
   const [visible, setVisible] = useState<string[]>(() => {
     if (typeof window === 'undefined') return defaultKeys
@@ -11,6 +12,17 @@ export function useColumnConfig(modelId: string, defaultKeys: string[]) {
     } catch {}
     return defaultKeys
   })
+
+  // Re-read from localStorage whenever storageKey changes (model switch)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(storageKey)
+      setVisible(saved ? JSON.parse(saved) as string[] : defaultKeysRef.current)
+    } catch {
+      setVisible(defaultKeysRef.current)
+    }
+  }, [storageKey])
 
   const toggle = useCallback((key: string) => {
     setVisible(prev => {
@@ -23,9 +35,9 @@ export function useColumnConfig(modelId: string, defaultKeys: string[]) {
   }, [storageKey])
 
   const reset = useCallback(() => {
-    setVisible(defaultKeys)
+    setVisible(defaultKeysRef.current)
     try { localStorage.removeItem(storageKey) } catch {}
-  }, [storageKey, defaultKeys])
+  }, [storageKey])
 
   return { visible, toggle, reset }
 }

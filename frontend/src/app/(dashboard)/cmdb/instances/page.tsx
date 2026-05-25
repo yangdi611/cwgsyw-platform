@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
@@ -45,7 +45,7 @@ interface PageResult<T> {
   total: number
 }
 
-export default function CiResourcesPage() {
+function CiResourcesInner() {
   const { hasPermission } = usePermission()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -279,5 +279,13 @@ export default function CiResourcesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function CiResourcesPage() {
+  return (
+    <Suspense>
+      <CiResourcesInner />
+    </Suspense>
   )
 }
