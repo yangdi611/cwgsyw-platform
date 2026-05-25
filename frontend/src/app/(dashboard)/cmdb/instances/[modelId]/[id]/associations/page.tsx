@@ -45,7 +45,7 @@ export default function AssociationsPage() {
   }, [hasPermission, router])
 
   const { data: inst } = useQuery<CiInstanceSummary>({
-    queryKey: ['cmdb-instance-summary', modelId, id],
+    queryKey: ['cmdb-instance', modelId, id],
     queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => ({
       name: r.data.data.name,
       model_id: r.data.data.model_id,
@@ -150,6 +150,7 @@ export default function AssociationsPage() {
                     <td className="px-4 py-3">
                       {hasPermission('cmdb_instance', 'delete') && (
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                          disabled={deleteMutation.isPending}
                           onClick={() => { if (confirm('删除此关联?')) deleteMutation.mutate(rel.id) }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
