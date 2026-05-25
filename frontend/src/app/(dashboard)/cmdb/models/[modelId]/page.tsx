@@ -95,6 +95,7 @@ export default function ModelDetailPage() {
           </div>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">{model.model_id}</p>
         </div>
+        <Link href={`/cmdb/instances/${modelId}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>查看实例</Link>
         {canWrite && (
           <Button size="sm" onClick={() => setAddingAttr(v => !v)}>
             <Plus className="h-4 w-4 mr-1" />添加属性
