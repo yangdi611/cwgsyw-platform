@@ -100,6 +100,21 @@ public class CiInstanceRelService {
             .eq(CiAssociationDef::getDefId, req.getDefId()));
         if (def == null) throw new IllegalArgumentException("关联定义不存在: " + req.getDefId());
 
+        // Validate src and dst instances exist and match the def's model types
+        CiInstance srcCheck = instanceMapper.selectOne(new LambdaQueryWrapper<CiInstance>()
+            .eq(CiInstance::getTenantId, tenantId).eq(CiInstance::getId, req.getSrcId()));
+        if (srcCheck == null) throw new IllegalArgumentException("源CI实例不存在: " + req.getSrcId());
+        if (!def.getSrcModelId().equals(srcCheck.getModelId()))
+            throw new IllegalArgumentException("源CI实例模型 [" + srcCheck.getModelId() +
+                "] 与关联定义要求的 [" + def.getSrcModelId() + "] 不匹配");
+
+        CiInstance dstCheck = instanceMapper.selectOne(new LambdaQueryWrapper<CiInstance>()
+            .eq(CiInstance::getTenantId, tenantId).eq(CiInstance::getId, req.getDstId()));
+        if (dstCheck == null) throw new IllegalArgumentException("目标CI实例不存在: " + req.getDstId());
+        if (!def.getDstModelId().equals(dstCheck.getModelId()))
+            throw new IllegalArgumentException("目标CI实例模型 [" + dstCheck.getModelId() +
+                "] 与关联定义要求的 [" + def.getDstModelId() + "] 不匹配");
+
         validateMapping(tenantId, def, req.getSrcId(), req.getDstId());
 
         CiInstanceRel rel = new CiInstanceRel();
