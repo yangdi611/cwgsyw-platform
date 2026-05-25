@@ -30,7 +30,16 @@ public class CiInstanceService {
     private final UserMapper userMapper;
 
     public PageResult<CiInstanceVO> listInstances(String tenantId, String modelId, int page, int size) {
-        Page<CiInstance> result = instanceMapper.findByModel(new Page<>(page, size), tenantId, modelId);
+        LambdaQueryWrapper<CiInstance> qw = new LambdaQueryWrapper<CiInstance>()
+                .eq(CiInstance::getTenantId, tenantId)
+                .eq(CiInstance::getModelId, modelId)
+                .orderByDesc(CiInstance::getCreatedAt);
+        long total = instanceMapper.selectCount(new LambdaQueryWrapper<CiInstance>()
+                .eq(CiInstance::getTenantId, tenantId)
+                .eq(CiInstance::getModelId, modelId));
+        Page<CiInstance> result = instanceMapper.selectPage(new Page<>(page, size, false), qw);
+        result.setTotal(total);
+
         Set<Long> userIds = result.getRecords().stream()
                 .filter(i -> i.getCreatedBy() != null)
                 .map(CiInstance::getCreatedBy)
@@ -40,7 +49,6 @@ public class CiInstanceService {
                         .collect(Collectors.toMap(
                                 com.cwgsyw.platform.module.user.entity.User::getId,
                                 u -> u.getRealName() != null ? u.getRealName() : u.getUsername()));
-
         return PageResult.of(result.convert(inst -> toVO(inst, userNames, null)));
     }
 
@@ -97,15 +105,19 @@ public class CiInstanceService {
 
         validateAttrs(tenantId, inst.getModelId(), merged, attrDefs, id);
 
-        instanceMapper.update(null, new LambdaUpdateWrapper<CiInstance>()
-                .eq(CiInstance::getId, id)
-                .set(CiInstance::getAttrs, merged)
-                .set(CiInstance::getName, deriveDisplayName(merged, attrDefs))
-                .set(CiInstance::getUpdatedAt, LocalDateTime.now())
-                .set(CiInstance::getUpdatedBy, operatorId));
+        String derivedName = deriveDisplayName(merged, attrDefs);
+        // Use updateById so JacksonTypeHandler is applied to attrs JSONB column
+        // (LambdaUpdateWrapper.set() bypasses typeHandler and causes hstore error)
+        CiInstance patch = new CiInstance();
+        patch.setId(id);
+        patch.setAttrs(merged);
+        patch.setName(derivedName);
+        patch.setUpdatedAt(LocalDateTime.now());
+        patch.setUpdatedBy(operatorId);
+        instanceMapper.updateById(patch);
 
         inst.setAttrs(merged);
-        inst.setName(deriveDisplayName(merged, attrDefs));
+        inst.setName(derivedName);
         writeAudit(tenantId, "update_instance", id, operatorId, "id=" + id);
         return toVO(inst, Map.of(), null);
     }
