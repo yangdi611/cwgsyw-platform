@@ -71,7 +71,7 @@ export default function InstanceListPage() {
     <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/models/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          <Link href={`/cmdb/admin/models/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             <ArrowLeft className="h-4 w-4 mr-1" />返回模型
           </Link>
           <div>
