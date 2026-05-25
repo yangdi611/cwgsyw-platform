@@ -40,6 +40,7 @@ cwgsyw-platform/
 - **不做物理删除**：所有表有 `is_deleted + deleted_at + deleted_by`，通过 MyBatis-Plus `@TableLogic` 实现软删
 - **多租户**：所有表有 `tenant_id VARCHAR(64) DEFAULT 'default'`，当前 MVP 固定为 `'default'`
 - **Flyway**：`validate-on-migrate: false`（防止手动修改过的迁移文件引发 checksum 错误）
+- **CMDB 动态属性**：`ci_instance.attrs` 使用 `JSONB` + GIN 索引，通过 MyBatis-Plus `JacksonTypeHandler` 映射到 `Map<String, Object>`
 
 ### 已完成的迁移
 
@@ -52,12 +53,14 @@ cwgsyw-platform/
 | V5   | 修复 `sys_role` 缺少 BaseEntity 列                        |
 | V6   | `device`, `device_credential`, `password_access_log` + RBAC |
 | V7   | `sys_config`, `notification_message` + RBAC               |
-| V8   | `change_doc`, `change_doc_approval` + RBAC 权限           |
-| V9   | `change_doc` 添加 `doc_number`, `category`, `risk_level` 列 |
-| V10  | `change_doc` 添加 MinIO 附件字段 (`attachment_*`)         |
-| V11  | `change_doc` 添加 Word 模板导出字段 (`template_*`, `exported_*`) |
-| V12  | `change_doc` 添加 AI 摘要字段 (`ai_summary`, `ai_generated_at`) |
-| V13  | `change_doc` 双模板支持（`template2_*`, `exported2_*`）   |
+| V8   | `ai_provider_config`, `ai_call_log` + RBAC (`ai_config`)  |
+| V9   | `change_doc`, `change_doc_snapshot` + RBAC (`change_doc`) |
+| V10  | `device_credential` 添加 `group_id` 列                    |
+| V11  | `sys_config` 添加水印配置默认值                           |
+| V12  | `change_doc_template`, `change_doc_field` + `change_doc` 添加 `template_id`/`fields_data` |
+| V13  | `change_doc` 添加 `application_template_id`/`plan_template_id` 双模板 |
+| V14  | CMDB 元数据：`ci_model_group`, `ci_model`, `ci_attribute_group`, `ci_attribute`, `ci_association_kind`, `ci_association_def` + 内置主机/应用模型 + RBAC |
+| V15  | CMDB 实例：`ci_instance`（JSONB attrs + GIN 索引）        |
 
 ---
 
@@ -81,6 +84,11 @@ cwgsyw-platform/
 ### 3. 禁止物理删除
 
 所有删除操作通过 MyBatis-Plus 逻辑删除，不允许执行 `DELETE FROM` SQL。
+
+### 4. Jackson SNAKE_CASE
+
+后端全局配置 `property-naming-strategy: SNAKE_CASE`。Java `modelId` → JSON `model_id`。
+前端 API 请求体 (POST/PUT) 必须使用 snake_case 字段名。
 
 ---
 
@@ -111,15 +119,21 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 
 ### 已注册资源
 
-| resource       | actions                                              |
-|----------------|------------------------------------------------------|
-| `user`         | create, read, update, delete                         |
-| `group`        | create, read, update, delete                         |
-| `role`         | create, read, update, delete, assign                 |
-| `daily_report` | create, read, update, delete, approve                |
-| `workflow`     | read, approve                                        |
-| `device`       | create, read, update, delete, view_password          |
-| `notification` | read, manage                                         |
+| resource              | actions                                              |
+|-----------------------|------------------------------------------------------|
+| `user`                | create, read, update, delete                         |
+| `group`               | create, read, update, delete                         |
+| `role`                | create, read, update, delete, assign                 |
+| `daily_report`        | create, read, update, delete, approve, export        |
+| `workflow`            | read, approve                                        |
+| `device`              | create, read, update, delete, view_password          |
+| `notification`        | read, manage                                         |
+| `ai_config`           | read, write                                          |
+| `change_doc`          | create, read, update, delete, approve, export        |
+| `change_doc_template` | read, write                                          |
+| `audit`               | read                                                 |
+| `cmdb_model`          | read, write                                          |
+| `cmdb_instance`       | create, read, update, delete, export                 |
 
 ---
 
@@ -128,7 +142,7 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 ```java
 user.getUserId()     // Long
 user.getUsername()   // String
-user.getGroupId()    // Long
+user.getGroupId()    // Long  (null for admin/super_admin)
 user.getGroupScope() // "group" | "tenant" | "platform"
 user.getTenantId()   // String, 当前固定 "default"
 user.getPermissions() // Collection<GrantedAuthority>
@@ -138,14 +152,19 @@ user.getPermissions() // Collection<GrantedAuthority>
 
 ## 关键 Bean / 服务
 
-| Bean                    | 位置                                    | 说明                            |
-|-------------------------|-----------------------------------------|---------------------------------|
-| `CryptoService`         | `config/CryptoService.java`             | AES-256-GCM 加解密              |
-| `EmailService`          | `config/EmailService.java`              | 运行时从 sys_config 读 SMTP 配置发邮件 |
-| `SysConfigService`      | `module/config/SysConfigService.java`   | 读写 sys_config 表              |
-| `NotificationService`   | `module/notification/NotificationService.java` | 写站内信 + 触发邮件       |
-| `WorkflowService`       | `module/workflow/WorkflowService.java`  | Flowable 流程操作               |
-| `AuditLogMapper`        | `common/AuditLogMapper.java`            | 直接写 audit_log                |
+| Bean                    | 位置                                              | 说明                                    |
+|-------------------------|---------------------------------------------------|-----------------------------------------|
+| `CryptoService`         | `config/CryptoService.java`                       | AES-256-GCM 加解密                      |
+| `EmailService`          | `config/EmailService.java`                        | 运行时从 sys_config 读 SMTP 配置发邮件  |
+| `SysConfigService`      | `module/config/SysConfigService.java`             | 读写 sys_config 表                      |
+| `NotificationService`   | `module/notification/NotificationService.java`    | 写站内信 + 触发邮件                     |
+| `WorkflowService`       | `module/workflow/WorkflowService.java`            | Flowable 流程操作                       |
+| `AuditLogMapper`        | `common/AuditLogMapper.java`                      | 直接写 audit_log（含分页查询方法）      |
+| `AiGatewayService`      | `module/ai/AiGatewayService.java`                 | 统一 AI 调用（Kimi/DeepSeek/GLM）       |
+| `ExportService`         | `module/changedoc/ExportService.java`             | 变更文档 Word/PDF 导出（含水印）        |
+| `MinioStorageService`   | `module/changedoc/MinioStorageService.java`       | MinIO 文件上传/下载/删除                |
+| `CiMetadataService`     | `module/cmdb/CiMetadataService.java`              | CMDB 模型/属性/关联元数据管理           |
+| `CiInstanceService`     | `module/cmdb/CiInstanceService.java`              | CMDB CI 实例 CRUD + 属性校验            |
 
 ---
 
@@ -154,26 +173,69 @@ user.getPermissions() // Collection<GrantedAuthority>
 - **Auth guard**：`(dashboard)/layout.tsx` 用 `getToken()` 直接判断（不依赖 Zustand hydration）
 - **权限判断**：`usePermission().hasPermission(resource, action)`
 - **groupScope**：从 `useAuthStore(s => s.groupScope)` 获取，用于区分 admin/leader/member 视图
+- **groupId**：从 `useAuthStore(s => s.groupId)` 获取（admin/super_admin 为 null）
 - **API 前缀**：所有请求通过 `@/lib/api`（axios instance），baseURL = `/api`
 - **通知铃铛**：`NotificationBell` 挂载在 dashboard layout header，30 秒轮询未读数
+- **动态表单**：CMDB 和变更文档均基于 `field_config` 动态渲染表单，见 `cmdb/instances/[modelId]/new/page.tsx`
+
+---
+
+## CMDB 模块说明
+
+CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 PostgreSQL JSONB 实现。
+
+### 核心概念
+
+- **模型（CiModel）**：CI 类型定义，如主机、应用、MySQL 实例。`model_id` 是唯一标识。
+- **属性（CiAttribute）**：模型的字段定义，含类型系统（singlechar/longchar/int/float/enum/enummulti/date/bool/objuser/list）
+- **属性分组（CiAttributeGroup）**：属性在详情页的分组展示
+- **关联种类（CiAssociationKind）**：关联语义，如"属于"/"运行"/"依赖"
+- **模型关联定义（CiAssociationDef）**：定义两个模型间允许建立哪种关联，含基数(1:1/1:n/n:n)
+- **CI 实例（CiInstance）**：模型的具体数据，所有动态属性存在 `attrs JSONB` 列中
+
+### API 路由
+
+- `GET/POST /api/cmdb/meta/models` — 模型 CRUD
+- `GET /api/cmdb/meta/models/{modelId}` — 模型详情（含 attributes + attribute_groups）
+- `POST /api/cmdb/meta/models/{modelId}/attributes` — 新增属性
+- `GET/POST /api/cmdb/meta/association-kinds` — 关联种类
+- `GET/POST /api/cmdb/meta/association-defs` — 模型关联定义
+- `GET/POST /api/cmdb/instances/{modelId}` — 实例列表/创建
+- `GET/PUT/DELETE /api/cmdb/instances/{modelId}/{id}` — 实例详情/更新/删除
+
+### 内置模型
+
+| model_id | 名称 | 内置属性数 |
+|----------|------|-----------|
+| `host`   | 主机 | 12（inner_ip、hostname、os_type、env、status 等） |
+| `app`    | 应用 | 5（app_name、owner、repo_url 等） |
 
 ---
 
 ## 已完成的功能模块
 
-| Phase | 功能              | 状态 |
-|-------|-------------------|------|
-| 1     | 认证、RBAC、用户/组管理、Docker 部署 | ✅ |
-| 2a    | 日报系统 + Flowable 审批工作流      | ✅ |
-| 2b    | 设备密码库 (AES-256-GCM)            | ✅ |
-| 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
+| Phase     | 功能                                              | 状态 | Tag                    |
+|-----------|---------------------------------------------------|------|------------------------|
+| 1         | 认证、RBAC、用户/组管理、Docker 部署              | ✅   | v0.1.0                 |
+| 2a        | 日报系统 + Flowable 审批工作流                    | ✅   | v0.2.0-daily           |
+| 2b        | 设备密码库 (AES-256-GCM) + 分组凭据              | ✅   | v0.2.1-device          |
+| 2c        | 邮件通知中心 + 站内信 + 定时提醒                  | ✅   | v0.3.0-notifications   |
+| 3a        | AI 网关（Kimi/DeepSeek/GLM）                      | ✅   | v0.3.1-ai-gateway      |
+| 3b        | 变更文档系统（双模板 + 动态字段）                 | ✅   | v0.4.0-change-docs     |
+| 3c        | 变更文档 Word/PDF 导出 + 邮件模板 + 水印          | ✅   | v0.5.0-export          |
+| 3d        | 变更文档双模板（申请单/方案 Tab）                 | ✅   | v0.7.1-dual-template   |
+| 4         | 月报导出(Excel) + 审计日志 UI + 报表页            | ✅   | v0.6.0-phase4          |
+| 4 UX      | 水印开关、快照历史、设备搜索、日报审批            | ✅   | v0.6.1-ux              |
+| CMDB-1    | CMDB 元数据层（模型/属性/关联种类/关联定义）      | ✅   | v0.8.0-cmdb-phase1     |
+| CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | 🚧   | —                      |
 
 ## 计划中的功能模块
 
-| Phase | 功能                                              |
-|-------|---------------------------------------------------|
-| 3     | 变更文档系统 + AI 辅助 + Word/PDF 导出            |
-| 4     | 月度/季度报表导出、微信通知、审计日志 UI          |
+| Phase     | 功能                                              |
+|-----------|---------------------------------------------------|
+| CMDB-2    | CI 实例 CRUD（动态表单渲染，当前正在实现）        |
+| CMDB-3    | 实例关联关系（建立/查询两个 CI 间的关联）         |
+| CMDB-4    | 拓扑树 + 与变更文档"影响范围"字段打通            |
 
 ---
 
@@ -186,14 +248,18 @@ docker compose up -d
 # 查看后端日志
 docker compose logs backend -f
 
-# 重新构建后端
-docker compose build backend && docker compose up -d backend
+# 重新构建后端（用 --no-cache 确保 migration 文件包含进 JAR）
+docker compose build --no-cache backend && docker compose up -d backend
 
 # 重新构建前端
 docker compose build frontend && docker compose up -d frontend
 
 # 进入 DB
-docker compose exec db psql -U platform_user -d cwgsyw_platform
+docker compose exec postgres psql -U platform_user -d cwgsyw_platform
+
+# 当前 branch
+# feature/cmdb — CMDB 开发分支
+# master — 稳定版本
 ```
 
 ---
@@ -204,4 +270,11 @@ docker compose exec db psql -U platform_user -d cwgsyw_platform
 - Phase 2a: `docs/superpowers/plans/2026-05-21-phase2a-daily-report.md`
 - Phase 2b: `docs/superpowers/plans/2026-05-22-phase2b-device-vault.md`
 - Phase 2c: `docs/superpowers/plans/2026-05-22-phase2c-notifications.md`
+- Phase 3a: `docs/superpowers/plans/2026-05-22-phase3a-ai-gateway.md`
+- Phase 3b: `docs/superpowers/plans/2026-05-22-phase3b-change-documents.md`
+- Phase 3c: `docs/superpowers/plans/2026-05-23-phase3c-change-doc-export.md`
+- Phase 3d: `docs/superpowers/plans/2026-05-24-phase3d-dual-template.md`
+- Phase 4: `docs/superpowers/plans/2026-05-23-phase4-reports-audit.md`
+- CMDB Phase 1: `docs/superpowers/plans/2026-05-24-cmdb-phase1-metadata.md`
+- CMDB Phase 2: `docs/superpowers/plans/2026-05-25-cmdb-phase2-instances.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
