@@ -31,6 +31,6 @@ public class AuthService {
         Set<String> permissions = rbacService.getUserPermissions(user.getId());
         String scope = rbacService.getHighestScope(user.getId());
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getTenantId());
-        return new LoginResponse(token, user.getUsername(), user.getRealName(), scope, permissions);
+        return new LoginResponse(token, user.getUsername(), user.getRealName(), scope, user.getGroupId(), permissions);
     }
 }

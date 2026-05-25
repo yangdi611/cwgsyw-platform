@@ -58,12 +58,14 @@ public class DeviceService {
         }));
     }
 
-    public DeviceVO getById(Long id, String tenantId) {
+    public DeviceVO getById(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {
         Device device = deviceMapper.selectById(id);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
-        return toVO(device, true);
+        // group scope members only see their own group's credentials
+        Long filterGroupId = "group".equals(callerGroupScope) ? callerGroupId : null;
+        return toVO(device, true, filterGroupId);
     }
 
     @Transactional
@@ -112,18 +114,21 @@ public class DeviceService {
 
     @Transactional
     public DeviceCredential addCredential(Long deviceId, CreateCredentialRequest req,
-                                          String tenantId, Long operatorId) {
+                                          String tenantId, Long operatorId, Long callerGroupId) {
         Device device = deviceMapper.selectById(deviceId);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
+        // Use explicitly provided groupId, or fall back to caller's group
+        Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
         DeviceCredential cred = new DeviceCredential();
         cred.setDeviceId(deviceId);
+        cred.setGroupId(groupId);
         cred.setUsername(req.getUsername());
         cred.setPasswordEnc(crypto.encrypt(req.getPassword()));
         cred.setDescription(req.getDescription());
         credentialMapper.insert(cred);
-        writeAudit(tenantId, "add_credential", deviceId, operatorId, "username=" + req.getUsername());
+        writeAudit(tenantId, "add_credential", deviceId, operatorId, "username=" + req.getUsername() + " group_id=" + groupId);
         return cred;
     }
 
@@ -168,9 +173,13 @@ public class DeviceService {
         return crypto.decrypt(cred.getPasswordEnc());
     }
 
-    // toVO handles group name only for includeCredentials=true (getById path).
-    // For the list path, group names are batch-fetched in list() and set after toVO returns.
+    // toVO for list path (no credentials)
     private DeviceVO toVO(Device d, boolean includeCredentials) {
+        return toVO(d, includeCredentials, null);
+    }
+
+    // toVO with optional group filter for credentials (null = show all groups)
+    private DeviceVO toVO(Device d, boolean includeCredentials, Long filterGroupId) {
         DeviceVO vo = new DeviceVO();
         vo.setId(d.getId());
         vo.setGroupId(d.getGroupId());
@@ -187,11 +196,27 @@ public class DeviceService {
                 var group = groupMapper.selectById(d.getGroupId());
                 if (group != null) vo.setGroupName(group.getName());
             }
-            List<CredentialVO> creds = credentialMapper.findByDeviceId(d.getId())
-                .stream().map(c -> {
+            // Batch-fetch all groups once for credential group names
+            List<DeviceCredential> allCreds = credentialMapper.findByDeviceId(d.getId());
+            Set<Long> credGroupIds = allCreds.stream()
+                .filter(c -> c.getGroupId() != null)
+                .map(DeviceCredential::getGroupId)
+                .collect(Collectors.toSet());
+            Map<Long, String> credGroupNames = credGroupIds.isEmpty()
+                ? Map.of()
+                : groupMapper.selectBatchIds(credGroupIds).stream()
+                    .collect(Collectors.toMap(
+                        com.cwgsyw.platform.module.org.entity.Group::getId,
+                        com.cwgsyw.platform.module.org.entity.Group::getName));
+
+            List<CredentialVO> creds = allCreds.stream()
+                .filter(c -> filterGroupId == null || filterGroupId.equals(c.getGroupId()))
+                .map(c -> {
                     CredentialVO cv = new CredentialVO();
                     cv.setId(c.getId());
                     cv.setDeviceId(c.getDeviceId());
+                    cv.setGroupId(c.getGroupId());
+                    cv.setGroupName(c.getGroupId() != null ? credGroupNames.get(c.getGroupId()) : null);
                     cv.setUsername(c.getUsername());
                     cv.setDescription(c.getDescription());
                     cv.setCreatedAt(c.getCreatedAt());

@@ -58,4 +58,16 @@ public class SysConfigController {
             configService.set(tid, "notify.reminder.template", req.getReminderTemplate());
         return R.ok(null);
     }
+
+    @PutMapping("/watermark")
+    @PreAuthorize("hasAuthority('notification:manage')")
+    public R<Void> updateWatermark(@AuthenticationPrincipal SecurityUser user,
+                                    @RequestBody Map<String, Object> req) {
+        String tid = user.getTenantId();
+        if (req.containsKey("text"))     configService.set(tid, "watermark.text",      String.valueOf(req.get("text")));
+        if (req.containsKey("opacity"))  configService.set(tid, "watermark.opacity",   String.valueOf(req.get("opacity")));
+        if (req.containsKey("position")) configService.set(tid, "watermark.position",  String.valueOf(req.get("position")));
+        if (req.containsKey("enabled"))  configService.set(tid, "watermark.enabled",   String.valueOf(req.get("enabled")));
+        return R.ok(null);
+    }
 }

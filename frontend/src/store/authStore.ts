@@ -5,7 +5,8 @@ interface AuthState {
   user: { username: string; realName: string } | null
   permissions: Set<string>
   groupScope: string   // "group" | "tenant" | "platform"
-  setAuth: (user: { username: string; realName: string }, groupScope: string, permissions: string[]) => void
+  groupId: number | null
+  setAuth: (user: { username: string; realName: string }, groupScope: string, groupId: number | null, permissions: string[]) => void
   clearAuth: () => void
 }
 
@@ -15,15 +16,17 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       permissions: new Set(),
       groupScope: 'group',
-      setAuth: (user, groupScope, permissions) =>
-        set({ user, groupScope, permissions: new Set(permissions) }),
-      clearAuth: () => set({ user: null, groupScope: 'group', permissions: new Set() }),
+      groupId: null,
+      setAuth: (user, groupScope, groupId, permissions) =>
+        set({ user, groupScope, groupId, permissions: new Set(permissions) }),
+      clearAuth: () => set({ user: null, groupScope: 'group', groupId: null, permissions: new Set() }),
     }),
     {
       name: 'cwgsyw-auth',
       partialize: (state) => ({
         user: state.user,
         groupScope: state.groupScope,
+        groupId: state.groupId,
         permissions: [...state.permissions],
       }),
       onRehydrateStorage: () => (state) => {

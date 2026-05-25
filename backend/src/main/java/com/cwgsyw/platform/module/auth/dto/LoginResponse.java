@@ -11,5 +11,6 @@ public class LoginResponse {
     private String username;
     private String realName;
     private String groupScope;   // "group" | "tenant" | "platform"
+    private Long groupId;
     private Set<String> permissions;
 }

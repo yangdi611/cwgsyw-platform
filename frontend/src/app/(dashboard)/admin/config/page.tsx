@@ -7,9 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
+
+type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
 export default function AdminConfigPage() {
   const { hasPermission } = usePermission()
@@ -39,6 +42,11 @@ export default function AdminConfigPage() {
   const [reminderCron, setReminderCron] = useState('0 0 17 * * MON-FRI')
   const [reminderTemplate, setReminderTemplate] = useState('')
 
+  const [watermarkEnabled, setWatermarkEnabled] = useState(false)
+  const [watermarkText, setWatermarkText] = useState('')
+  const [watermarkOpacity, setWatermarkOpacity] = useState('0.3')
+  const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>('bottom-right')
+
   useEffect(() => {
     if (!config || Object.keys(config).length === 0) return
     setSmtpEnabled(config['smtp.enabled'] === 'true')
@@ -52,6 +60,10 @@ export default function AdminConfigPage() {
     setReminderEnabled(config['notify.reminder.enabled'] === 'true')
     setReminderCron(config['notify.reminder.cron'] ?? '0 0 17 * * MON-FRI')
     setReminderTemplate(config['notify.reminder.template'] ?? '')
+    setWatermarkEnabled(config['watermark.enabled'] === 'true')
+    setWatermarkText(config['watermark.text'] ?? '')
+    setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
+    setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
   }, [config])
 
   const smtpMutation = useMutation({
@@ -80,6 +92,20 @@ export default function AdminConfigPage() {
     }),
     onSuccess: () => {
       toast.success('提醒配置已保存')
+      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+    },
+    onError: () => toast.error('保存失败'),
+  })
+
+  const watermarkMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/watermark', {
+      enabled: watermarkEnabled,
+      text: watermarkText,
+      opacity: Number(watermarkOpacity),
+      position: watermarkPosition,
+    }),
+    onSuccess: () => {
+      toast.success('水印配置已保存')
       queryClient.invalidateQueries({ queryKey: ['admin-config'] })
     },
     onError: () => toast.error('保存失败'),
@@ -138,7 +164,7 @@ export default function AdminConfigPage() {
       </section>
 
       {/* Reminder */}
-      <section className="border rounded-lg p-6">
+      <section className="border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">日报提醒</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -165,6 +191,58 @@ export default function AdminConfigPage() {
           </div>
           <Button onClick={() => notifyMutation.mutate()} disabled={notifyMutation.isPending}>
             保存提醒配置
+          </Button>
+        </div>
+      </section>
+
+      {/* Watermark */}
+      <section className="border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">文档水印</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch checked={watermarkEnabled} onCheckedChange={setWatermarkEnabled} id="watermark-enabled" />
+            <Label htmlFor="watermark-enabled">启用水印</Label>
+          </div>
+          <div className="space-y-1.5">
+            <Label>水印文字</Label>
+            <Input
+              value={watermarkText}
+              onChange={e => setWatermarkText(e.target.value)}
+              placeholder="内部资料 请勿外传"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>透明度 (0-1)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                value={watermarkOpacity}
+                onChange={e => setWatermarkOpacity(e.target.value)}
+                placeholder="0.3"
+              />
+              <p className="text-xs text-muted-foreground">0 为完全透明，1 为完全不透明</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>水印位置</Label>
+              <Select value={watermarkPosition} onValueChange={v => setWatermarkPosition(v as WatermarkPosition)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择位置" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top-left">左上角</SelectItem>
+                  <SelectItem value="top-right">右上角</SelectItem>
+                  <SelectItem value="bottom-left">左下角</SelectItem>
+                  <SelectItem value="bottom-right">右下角</SelectItem>
+                  <SelectItem value="center">居中</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
+            保存水印配置
           </Button>
         </div>
       </section>

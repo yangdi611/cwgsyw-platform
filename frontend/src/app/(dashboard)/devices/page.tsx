@@ -1,10 +1,12 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import api from '@/lib/api'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { Plus, Server, Network, Shield, Cloud, HardDrive } from 'lucide-react'
+import { Plus, Server, Network, Shield, Cloud, HardDrive, Search } from 'lucide-react'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 
 interface Device {
@@ -26,9 +28,23 @@ const typeConfig: Record<string, { label: string; icon: React.ElementType }> = {
 }
 
 export default function DevicesPage() {
+  const [search, setSearch] = useState('')
+
   const { data, isLoading } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then(r => r.data.data.records as Device[]),
+  })
+
+  const filtered = (data ?? []).filter(d => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      d.name?.toLowerCase().includes(q) ||
+      d.ip?.toLowerCase().includes(q) ||
+      d.category?.toLowerCase().includes(q) ||
+      d.group_name?.toLowerCase().includes(q) ||
+      (typeConfig[d.device_type]?.label ?? '').includes(q)
+    )
   })
 
   return (
@@ -42,9 +58,20 @@ export default function DevicesPage() {
         </PermissionGuard>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mb-4 max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-8"
+          placeholder="搜索名称、IP、分类、组..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
       {isLoading ? <p className="text-muted-foreground">加载中...</p> : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(data ?? []).map(device => {
+          {filtered.map(device => {
             const tc = typeConfig[device.device_type] ?? typeConfig.other
             const Icon = tc.icon
             return (
@@ -71,9 +98,9 @@ export default function DevicesPage() {
               </Link>
             )
           })}
-          {(data ?? []).length === 0 && (
+          {filtered.length === 0 && !isLoading && (
             <p className="text-muted-foreground col-span-2 text-center py-12">
-              暂无设备，点击右上角新增
+              {search ? `没有找到包含"${search}"的设备` : '暂无设备，点击右上角新增'}
             </p>
           )}
         </div>

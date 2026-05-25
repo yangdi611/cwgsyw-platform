@@ -5,6 +5,7 @@ COPY src ./src
 RUN apk add --no-cache maven && mvn package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache font-noto-cjk
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]

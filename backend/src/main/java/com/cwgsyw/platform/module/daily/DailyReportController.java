@@ -49,7 +49,11 @@ public class DailyReportController {
     @PreAuthorize("hasPermission('daily_report', 'create')")
     public R<DailyReportVO> create(@Valid @RequestBody CreateDailyReportRequest req,
                                    @AuthenticationPrincipal SecurityUser cu) {
-        var report = reportService.create(req, cu.getUserId(), cu.getGroupId(), cu.getTenantId());
+        Long groupId = cu.getGroupId() != null ? cu.getGroupId() : req.getGroupId();
+        if (groupId == null) {
+            throw new IllegalArgumentException("请指定所属组（管理员账号需在请求中传入 group_id）");
+        }
+        var report = reportService.create(req, cu.getUserId(), groupId, cu.getTenantId());
         return R.ok(reportService.getById(report.getId(), cu.getTenantId()));
     }
 
