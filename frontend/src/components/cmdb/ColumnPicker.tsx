@@ -35,7 +35,11 @@ export function ColumnPicker({ allColumns, visibleKeys, onToggle }: ColumnPicker
             {allColumns.map(col => (
               <label
                 key={col.key}
-                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm ${
+                  col.required
+                    ? 'cursor-default opacity-60'
+                    : 'hover:bg-muted/50 cursor-pointer'
+                }`}
               >
                 <input
                   type="checkbox"
