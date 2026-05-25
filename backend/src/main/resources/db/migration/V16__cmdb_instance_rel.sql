@@ -3,7 +3,7 @@
 CREATE TABLE ci_instance_rel (
     id          BIGSERIAL PRIMARY KEY,
     tenant_id   VARCHAR(64)  NOT NULL DEFAULT 'default',
-    def_id      VARCHAR(64)  NOT NULL,
+    def_id      VARCHAR(128) NOT NULL,
     src_id      BIGINT       NOT NULL,
     dst_id      BIGINT       NOT NULL,
     attrs       JSONB        NOT NULL DEFAULT '{}',
@@ -11,8 +11,8 @@ CREATE TABLE ci_instance_rel (
     deleted_at  TIMESTAMP,
     deleted_by  BIGINT,
     created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    created_by  BIGINT       NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by  BIGINT       NOT NULL DEFAULT 0,
     updated_by  BIGINT
 );
 
