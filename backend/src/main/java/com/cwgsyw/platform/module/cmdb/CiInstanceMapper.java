@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface CiInstanceMapper extends BaseMapper<CiInstance> {
 
+    @ResultMap("com.cwgsyw.platform.module.cmdb.entity.CiInstance.resultMap")
     @Select("SELECT * FROM ci_instance WHERE tenant_id = #{tenantId} AND model_id = #{modelId} AND is_deleted = FALSE ORDER BY created_at DESC")
     Page<CiInstance> findByModel(Page<CiInstance> page,
                                   @Param("tenantId") String tenantId,
@@ -20,5 +22,5 @@ public interface CiInstanceMapper extends BaseMapper<CiInstance> {
                            @Param("modelId") String modelId,
                            @Param("fieldKey") String fieldKey,
                            @Param("value") String value,
-                           @Param("excludeId") Long excludeId);
+                           @Param("excludeId") long excludeId);
 }
