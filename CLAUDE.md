@@ -52,6 +52,12 @@ cwgsyw-platform/
 | V5   | 修复 `sys_role` 缺少 BaseEntity 列                        |
 | V6   | `device`, `device_credential`, `password_access_log` + RBAC |
 | V7   | `sys_config`, `notification_message` + RBAC               |
+| V8   | `change_doc`, `change_doc_approval` + RBAC 权限           |
+| V9   | `change_doc` 添加 `doc_number`, `category`, `risk_level` 列 |
+| V10  | `change_doc` 添加 MinIO 附件字段 (`attachment_*`)         |
+| V11  | `change_doc` 添加 Word 模板导出字段 (`template_*`, `exported_*`) |
+| V12  | `change_doc` 添加 AI 摘要字段 (`ai_summary`, `ai_generated_at`) |
+| V13  | `change_doc` 双模板支持（`template2_*`, `exported2_*`）   |
 
 ---
 
