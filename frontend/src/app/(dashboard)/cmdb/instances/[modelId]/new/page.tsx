@@ -119,6 +119,24 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
       </Select>
     )
   }
+  if (field_type === 'enummulti' && Array.isArray(option)) {
+    const opts = option as { id: string; name: string }[]
+    const selected: string[] = (() => { try { return JSON.parse(value || '[]') } catch { return [] } })()
+    const toggle = (id: string) => {
+      const next = selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]
+      onChange(JSON.stringify(next))
+    }
+    return (
+      <div className="flex flex-wrap gap-3">
+        {opts.map(o => (
+          <label key={o.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" checked={selected.includes(o.id)} onChange={() => toggle(o.id)} className="rounded" />
+            {o.name}
+          </label>
+        ))}
+      </div>
+    )
+  }
   if (field_type === 'bool') {
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>

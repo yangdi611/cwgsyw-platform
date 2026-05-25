@@ -18,12 +18,14 @@ interface CiAttributeVO {
   is_required: boolean; is_editable: boolean; option: unknown
   placeholder: string; unit: string; sort_order: number; group_id: string
 }
+interface CiAttributeGroupVO { group_id: string; name: string; sort_order: number }
 interface CiInstanceVO {
   id: number; model_id: string; name: string
   attrs: Record<string, unknown>
   field_config: CiAttributeVO[]
   created_at: string; updated_at: string; created_by_name: string
 }
+interface CiModelVO { attribute_groups: CiAttributeGroupVO[] }
 
 export default function InstanceDetailPage() {
   const { modelId, id } = useParams<{ modelId: string; id: string }>()
@@ -40,6 +42,12 @@ export default function InstanceDetailPage() {
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelId, id],
     queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => r.data.data),
+  })
+
+  const { data: model } = useQuery<CiModelVO>({
+    queryKey: ['cmdb-model', modelId],
+    queryFn: () => api.get(`/cmdb/meta/models/${modelId}`).then(r => r.data.data),
+    enabled: !!inst,
   })
 
   useEffect(() => {
@@ -65,6 +73,9 @@ export default function InstanceDetailPage() {
 
   const canEdit = hasPermission('cmdb_instance', 'update')
   const fieldConfig = inst.field_config ?? []
+  const groupNames = Object.fromEntries(
+    (model?.attribute_groups ?? []).map(g => [g.group_id, g.name])
+  )
   const attrsByGroup = fieldConfig.reduce((acc, a) => {
     const g = a.group_id || 'default'
     if (!acc[g]) acc[g] = []
@@ -110,6 +121,9 @@ export default function InstanceDetailPage() {
           const attrs = (attrsByGroup[groupId] ?? []).sort((a, b) => a.sort_order - b.sort_order)
           return (
             <div key={groupId} className="border rounded-lg p-5">
+              {groupNames[groupId] && (
+                <h2 className="font-semibold text-sm mb-4">{groupNames[groupId]}</h2>
+              )}
               <div className="space-y-3">
                 {attrs.map(attr => {
                   const rawVal = inst.attrs?.[attr.field_key]
@@ -151,6 +165,24 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
         <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
         <SelectContent>{opts.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
       </Select>
+    )
+  }
+  if (field_type === 'enummulti' && Array.isArray(option)) {
+    const opts = option as { id: string; name: string }[]
+    const selected: string[] = (() => { try { return JSON.parse(value || '[]') } catch { return [] } })()
+    const toggle = (id: string) => {
+      const next = selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]
+      onChange(JSON.stringify(next))
+    }
+    return (
+      <div className="flex flex-wrap gap-3 pt-2">
+        {opts.map(o => (
+          <label key={o.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" checked={selected.includes(o.id)} onChange={() => toggle(o.id)} className="rounded" />
+            {o.name}
+          </label>
+        ))}
+      </div>
     )
   }
   if (field_type === 'bool') {
