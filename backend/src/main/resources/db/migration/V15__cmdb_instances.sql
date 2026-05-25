@@ -11,8 +11,9 @@ CREATE TABLE ci_instance (
     deleted_by  BIGINT,
     created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    created_by  BIGINT       NOT NULL DEFAULT 0
+    created_by  BIGINT       NOT NULL DEFAULT 0,
+    updated_by  BIGINT
 );
 
 CREATE INDEX idx_ci_instance_model ON ci_instance(tenant_id, model_id, created_at DESC) WHERE NOT is_deleted;
-CREATE INDEX idx_ci_instance_attrs ON ci_instance USING GIN(attrs);
+CREATE INDEX idx_ci_instance_attrs ON ci_instance USING GIN(attrs) WHERE NOT is_deleted;
