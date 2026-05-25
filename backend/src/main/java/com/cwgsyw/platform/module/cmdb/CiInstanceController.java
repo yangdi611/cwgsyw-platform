@@ -16,6 +16,18 @@ public class CiInstanceController {
 
     private final CiInstanceService instanceService;
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAuthority('cmdb_instance:read')")
+    public R<CiInstanceSearchResult> search(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String modelId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(instanceService.searchAcrossModels(
+                user.getTenantId(), keyword, modelId, page, size));
+    }
+
     @GetMapping("/{modelId}")
     @PreAuthorize("hasAuthority('cmdb_instance:read')")
     public R<PageResult<CiInstanceVO>> list(

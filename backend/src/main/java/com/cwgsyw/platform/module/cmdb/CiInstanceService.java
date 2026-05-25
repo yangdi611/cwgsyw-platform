@@ -134,6 +134,64 @@ public class CiInstanceService {
                 "model_id=" + inst.getModelId() + " name=" + inst.getName());
     }
 
+    // ── Cross-model Search ────────────────────────────────────────────────────
+
+    public CiInstanceSearchResult searchAcrossModels(String tenantId, String keyword,
+                                                      String modelId, int page, int size) {
+        boolean hasKeyword = org.springframework.util.StringUtils.hasText(keyword);
+        boolean hasModel = org.springframework.util.StringUtils.hasText(modelId);
+
+        LambdaQueryWrapper<CiInstance> qw = new LambdaQueryWrapper<CiInstance>()
+                .eq(CiInstance::getTenantId, tenantId)
+                .eq(hasModel, CiInstance::getModelId, modelId)
+                .like(hasKeyword, CiInstance::getName, keyword)
+                .orderByDesc(CiInstance::getUpdatedAt);
+
+        long total = instanceMapper.selectCount(new LambdaQueryWrapper<CiInstance>()
+                .eq(CiInstance::getTenantId, tenantId)
+                .eq(hasModel, CiInstance::getModelId, modelId)
+                .like(hasKeyword, CiInstance::getName, keyword));
+
+        Page<CiInstance> result = instanceMapper.selectPage(new Page<>(page, size, false), qw);
+        result.setTotal(total);
+
+        // 模型名称 map
+        Map<String, String> modelNameMap = modelMapper.selectList(
+                        new LambdaQueryWrapper<CiModel>().eq(CiModel::getTenantId, tenantId))
+                .stream().collect(Collectors.toMap(CiModel::getModelId, CiModel::getName));
+
+        // 各模型匹配当前关键词的实例数（单次 GROUP BY 查询）
+        Map<String, Long> modelCounts = instanceMapper.selectMaps(
+                        new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<CiInstance>()
+                                .select("model_id, count(*) as cnt")
+                                .eq("tenant_id", tenantId)
+                                .eq("is_deleted", false)
+                                .like(hasKeyword, "name", keyword)
+                                .groupBy("model_id"))
+                .stream().collect(Collectors.toMap(
+                        m -> (String) m.get("model_id"),
+                        m -> ((Number) m.get("cnt")).longValue()));
+
+        List<CiInstanceSearchVO> records = result.getRecords().stream().map(inst -> {
+            CiInstanceSearchVO vo = new CiInstanceSearchVO();
+            vo.setId(inst.getId());
+            vo.setName(inst.getName() != null ? inst.getName() : "#" + inst.getId());
+            vo.setModelId(inst.getModelId());
+            vo.setModelName(modelNameMap.getOrDefault(inst.getModelId(), inst.getModelId()));
+            vo.setAttrs(inst.getAttrs());
+            vo.setUpdatedAt(inst.getUpdatedAt());
+            return vo;
+        }).collect(Collectors.toList());
+
+        CiInstanceSearchResult res = new CiInstanceSearchResult();
+        res.setRecords(records);
+        res.setTotal(total);
+        res.setPage(page);
+        res.setSize(size);
+        res.setModelCounts(modelCounts);
+        return res;
+    }
+
     // ── Validation ────────────────────────────────────────────────────────────
 
     private void validateAttrs(String tenantId, String modelId, Map<String, Object> incoming,
