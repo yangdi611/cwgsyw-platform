@@ -25,6 +25,7 @@ public class CiInstanceService {
 
     private final CiInstanceMapper instanceMapper;
     private final CiAttributeMapper attributeMapper;
+    private final CiModelMapper modelMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
 
@@ -47,12 +48,25 @@ public class CiInstanceService {
         CiInstance inst = findOrThrow(tenantId, id);
         List<CiAttributeVO> fieldConfig = attributeMapper.findByModel(tenantId, inst.getModelId())
                 .stream().map(this::toAttrVO).collect(Collectors.toList());
-        return toVO(inst, Map.of(), fieldConfig);
+        Map<Long, String> userNames = Map.of();
+        if (inst.getCreatedBy() != null) {
+            userNames = userMapper.selectBatchIds(List.of(inst.getCreatedBy())).stream()
+                    .collect(Collectors.toMap(
+                            com.cwgsyw.platform.module.user.entity.User::getId,
+                            u -> u.getRealName() != null ? u.getRealName() : u.getUsername()));
+        }
+        return toVO(inst, userNames, fieldConfig);
     }
 
     @Transactional
     public CiInstanceVO createInstance(String tenantId, Long operatorId, String modelId,
                                         SaveCiInstanceRequest req) {
+        CiModel model = modelMapper.selectOne(new LambdaQueryWrapper<CiModel>()
+                .eq(CiModel::getTenantId, tenantId)
+                .eq(CiModel::getModelId, modelId)
+                .eq(CiModel::getIsDeleted, false));
+        if (model == null) throw new IllegalArgumentException("CI模型不存在: " + modelId);
+
         List<CiAttribute> attrs = attributeMapper.findByModel(tenantId, modelId);
         validateAttrs(tenantId, modelId, req.getAttrs(), attrs, -1L);
 
@@ -91,6 +105,7 @@ public class CiInstanceService {
                 .set(CiInstance::getUpdatedBy, operatorId));
 
         inst.setAttrs(merged);
+        inst.setName(deriveDisplayName(merged, attrDefs));
         writeAudit(tenantId, "update_instance", id, operatorId, "id=" + id);
         return toVO(inst, Map.of(), null);
     }
