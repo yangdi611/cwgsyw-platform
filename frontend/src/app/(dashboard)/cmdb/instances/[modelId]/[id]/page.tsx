@@ -10,8 +10,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Save, X } from 'lucide-react'
+import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 interface CiAttributeVO {
   id: number; field_key: string; name: string; field_type: string
@@ -27,6 +28,43 @@ interface CiInstanceVO {
 }
 interface CiModelVO { attribute_groups: CiAttributeGroupVO[] }
 
+interface CiInstanceRelVO {
+  id: number
+  def_id: string
+  is_src: boolean
+  peer_id: number
+  peer_name: string
+  peer_model_id: string
+  peer_model_name: string
+  direction_label: string
+  attrs: Record<string, unknown>
+  created_at: string
+}
+
+interface CiRelGroupVO {
+  kind_id: string
+  kind_name: string
+  src_to_dst: string
+  dst_to_src: string
+  relations: CiInstanceRelVO[]
+}
+
+interface CiAssociationDefVO {
+  def_id: string
+  kind_id: string
+  name: string
+  src_model_id: string
+  dst_model_id: string
+  mapping: string
+}
+
+interface InstanceSearchVO {
+  id: number
+  name: string
+  model_id: string
+  model_name: string
+}
+
 export default function InstanceDetailPage() {
   const { modelId, id } = useParams<{ modelId: string; id: string }>()
   const { hasPermission } = usePermission()
@@ -34,6 +72,12 @@ export default function InstanceDetailPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
+  const [relPanelOpen, setRelPanelOpen] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [selectedDefId, setSelectedDefId] = useState('')
+  const [peerSearch, setPeerSearch] = useState('')
+  const [selectedPeerId, setSelectedPeerId] = useState<number | null>(null)
+  const [addError, setAddError] = useState('')
 
   useEffect(() => {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
@@ -66,6 +110,63 @@ export default function InstanceDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-instance', modelId, id] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '保存失败'),
+  })
+
+  const { data: relGroups = [], refetch: refetchRels } = useQuery<CiRelGroupVO[]>({
+    queryKey: ['cmdb-rel', id],
+    queryFn: () => api.get(`/cmdb/rel/${id}`).then(r => r.data.data),
+    enabled: relPanelOpen,
+  })
+
+  const { data: allDefs = [] } = useQuery<CiAssociationDefVO[]>({
+    queryKey: ['cmdb-assoc-defs'],
+    queryFn: () => api.get('/cmdb/meta/association-defs').then(r => r.data.data),
+    enabled: addDialogOpen,
+  })
+
+  const applicableDefs = allDefs.filter(
+    d => d.src_model_id === modelId || d.dst_model_id === modelId
+  )
+
+  const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
+  const targetModelId = selectedDef
+    ? (selectedDef.src_model_id === modelId ? selectedDef.dst_model_id : selectedDef.src_model_id)
+    : null
+
+  const { data: searchResult } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
+    queryKey: ['cmdb-rel-search', targetModelId, peerSearch],
+    queryFn: () => api.get('/cmdb/rel/search', {
+      params: { modelId: targetModelId, keyword: peerSearch, size: 8 }
+    }).then(r => r.data.data),
+    enabled: !!targetModelId && addDialogOpen,
+  })
+
+  const deleteRelMutation = useMutation({
+    mutationFn: (relId: number) => api.delete(`/cmdb/rel/${relId}`),
+    onSuccess: () => { toast.success('关联已删除'); refetchRels() },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
+
+  const createRelMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedDef || !selectedPeerId) throw new Error('请选择关联定义和目标实例')
+      const isSrc = selectedDef.src_model_id === modelId
+      return api.post('/cmdb/rel', {
+        def_id: selectedDefId,
+        src_id: isSrc ? Number(id) : selectedPeerId,
+        dst_id: isSrc ? selectedPeerId : Number(id),
+      })
+    },
+    onSuccess: () => {
+      toast.success('关联已建立')
+      setAddDialogOpen(false)
+      setSelectedDefId('')
+      setSelectedPeerId(null)
+      setPeerSearch('')
+      setAddError('')
+      refetchRels()
+    },
+    onError: (e: any) => setAddError(e?.response?.data?.message ?? '创建失败'),
   })
 
   if (isLoading) return <p className="text-muted-foreground">加载中...</p>
@@ -150,6 +251,137 @@ export default function InstanceDetailPage() {
           )
         })}
       </div>
+
+      {/* Association Panel */}
+      <div className="mt-6 border rounded-lg overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+          onClick={() => setRelPanelOpen(v => !v)}
+        >
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            关联关系
+          </div>
+          {relPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {relPanelOpen && (
+          <div className="px-5 pb-5 pt-1 space-y-4 border-t">
+            {relGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">暂无关联</p>
+            ) : (
+              relGroups.map(group => (
+                <div key={group.kind_id}>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">[{group.kind_name}]</p>
+                  <div className="space-y-1">
+                    {group.relations.map(rel => (
+                      <div key={rel.id} className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-muted/30 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{rel.direction_label}</span>
+                          <span className="font-medium">{rel.peer_name}</span>
+                          <span className="text-xs text-muted-foreground">({rel.peer_model_name})</span>
+                        </div>
+                        {hasPermission('cmdb_instance', 'delete') && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive"
+                            onClick={() => { if (confirm('删除此关联?')) deleteRelMutation.mutate(rel.id) }}>
+                            <XIcon className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+
+            <div className="flex items-center justify-between pt-2 border-t">
+              {hasPermission('cmdb_instance', 'create') && (
+                <Button size="sm" variant="outline"
+                  onClick={() => { setAddDialogOpen(true); setAddError('') }}>
+                  + 添加关联
+                </Button>
+              )}
+              <Link href={`/cmdb/instances/${modelId}/${id}/associations`}
+                className="text-xs text-muted-foreground hover:text-foreground ml-auto">
+                管理全部关联 →
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add Relation Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={open => {
+        setAddDialogOpen(open)
+        if (!open) { setAddError(''); setSelectedDefId(''); setSelectedPeerId(null); setPeerSearch('') }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>添加关联</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm">关联定义</Label>
+              <Select value={selectedDefId} onValueChange={v => {
+                setSelectedDefId(v ?? ''); setSelectedPeerId(null); setPeerSearch(''); setAddError('')
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择关联定义..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {applicableDefs.map(d => (
+                    <SelectItem key={d.def_id} value={d.def_id}>
+                      {d.name} ({d.mapping})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedDef && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  目标实例
+                  <span className="text-muted-foreground ml-1 font-normal">
+                    ({searchResult?.records?.[0]?.model_name ?? targetModelId})
+                  </span>
+                </Label>
+                <Input
+                  placeholder="搜索实例名称..."
+                  value={peerSearch}
+                  onChange={e => { setPeerSearch(e.target.value); setSelectedPeerId(null) }}
+                />
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {(searchResult?.records ?? []).map(inst => (
+                    <button key={inst.id}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedPeerId === inst.id ? 'bg-muted font-medium' : ''}`}
+                      onClick={() => setSelectedPeerId(inst.id)}>
+                      {inst.name}
+                    </button>
+                  ))}
+                  {(searchResult?.records ?? []).length === 0 && (
+                    <p className="text-center text-muted-foreground text-xs py-3">无匹配实例</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {addError && (
+              <p className="text-sm text-destructive">{addError}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
+            <Button
+              onClick={() => createRelMutation.mutate()}
+              disabled={!selectedDefId || !selectedPeerId || createRelMutation.isPending}>
+              {createRelMutation.isPending ? '创建中...' : '建立关联'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
