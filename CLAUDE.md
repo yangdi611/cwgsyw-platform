@@ -61,6 +61,7 @@ cwgsyw-platform/
 | V13  | `change_doc` 添加 `application_template_id`/`plan_template_id` 双模板 |
 | V14  | CMDB 元数据：`ci_model_group`, `ci_model`, `ci_attribute_group`, `ci_attribute`, `ci_association_kind`, `ci_association_def` + 内置主机/应用模型 + RBAC |
 | V15  | CMDB 实例：`ci_instance`（JSONB attrs + GIN 索引）        |
+| V16  | CMDB 实例关联：`ci_instance_rel`（src_id/dst_id/def_id/attrs JSONB + 4 索引含唯一约束） |
 
 ---
 
@@ -135,6 +136,8 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `cmdb_model`          | read, write                                          |
 | `cmdb_instance`       | create, read, update, delete, export                 |
 
+> **CMDB 关联操作复用 `cmdb_instance` 资源**：建立关联用 `create`，查询用 `read`，删除用 `delete`，不单独注册 `cmdb_association` 资源。
+
 ---
 
 ## SecurityUser
@@ -165,6 +168,7 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `MinioStorageService`   | `module/changedoc/MinioStorageService.java`       | MinIO 文件上传/下载/删除                |
 | `CiMetadataService`     | `module/cmdb/CiMetadataService.java`              | CMDB 模型/属性/关联元数据管理           |
 | `CiInstanceService`     | `module/cmdb/CiInstanceService.java`              | CMDB CI 实例 CRUD + 属性校验            |
+| `CiInstanceRelService`  | `module/cmdb/CiInstanceRelService.java`           | CMDB 实例关联 CRUD + mapping 基数校验   |
 
 ---
 
@@ -177,6 +181,9 @@ user.getPermissions() // Collection<GrantedAuthority>
 - **API 前缀**：所有请求通过 `@/lib/api`（axios instance），baseURL = `/api`
 - **通知铃铛**：`NotificationBell` 挂载在 dashboard layout header，30 秒轮询未读数
 - **动态表单**：CMDB 和变更文档均基于 `field_config` 动态渲染表单，见 `cmdb/instances/[modelId]/new/page.tsx`
+- **Button asChild 不可用**：项目使用 `@base-ui/react/button`，不支持 Radix 风格 `asChild`。需要链接按钮时用 `<Link className={buttonVariants({...})}>` 替代
+- **分页 total 问题**：MyBatis-Plus `selectPage` 对 `Boolean @TableLogic` 字段自动 count 有 bug（返回 0）。统一用 `selectCount` + `new Page<>(p, s, false)` + `result.setTotal(total)` 三步分页
+- **JSONB 更新**：`LambdaUpdateWrapper.set(entity::getAttrs, map)` 会绕过 `JacksonTypeHandler` 触发 hstore 错误。更新含 JSONB 字段的记录必须用 `updateById(entity)` 方式
 
 ---
 
@@ -189,9 +196,10 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - **模型（CiModel）**：CI 类型定义，如主机、应用、MySQL 实例。`model_id` 是唯一标识。
 - **属性（CiAttribute）**：模型的字段定义，含类型系统（singlechar/longchar/int/float/enum/enummulti/date/bool/objuser/list）
 - **属性分组（CiAttributeGroup）**：属性在详情页的分组展示
-- **关联种类（CiAssociationKind）**：关联语义，如"属于"/"运行"/"依赖"
-- **模型关联定义（CiAssociationDef）**：定义两个模型间允许建立哪种关联，含基数(1:1/1:n/n:n)
+- **关联种类（CiAssociationKind）**：关联语义，内置：`belong`（属于/包含）、`run`（运行/被运行）、`connect`（连接）、`depend`（依赖）、`deploy`（部署）、`bk_mainline`（主线）
+- **模型关联定义（CiAssociationDef）**：定义两个模型间允许建立哪种关联，含基数(1:1/1:n/n:n)和 `on_delete` 行为
 - **CI 实例（CiInstance）**：模型的具体数据，所有动态属性存在 `attrs JSONB` 列中
+- **实例关联（CiInstanceRel）**：两个 CI 实例间的有向关联，`src_id → dst_id`，通过 `def_id` 引用关联定义。`attrs JSONB` 预留 Phase 4 扩展（当前为 `{}`）
 
 ### API 路由
 
@@ -202,8 +210,22 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - `GET/POST /api/cmdb/meta/association-defs` — 模型关联定义
 - `GET/POST /api/cmdb/instances/{modelId}` — 实例列表/创建
 - `GET/PUT/DELETE /api/cmdb/instances/{modelId}/{id}` — 实例详情/更新/删除
+- `GET /api/cmdb/rel/{instanceId}` — 查询某实例所有关联（正向+反向，按 kind 分组）
+- `POST /api/cmdb/rel` — 建立关联（body: `{def_id, src_id, dst_id}`，触发 mapping 基数校验）
+- `DELETE /api/cmdb/rel/{relId}` — 软删除关联
+- `GET /api/cmdb/rel/search` — 搜索实例（params: `modelId`, `keyword`, `page`, `size`）
 
-### 内置模型
+### 前端页面结构（当前，待 CMDB-UX 重构）
+
+| 路径 | 说明 |
+|------|------|
+| `/cmdb` | 模型列表（入口，待重构为全局搜索） |
+| `/cmdb/models/[modelId]` | 模型属性编辑 |
+| `/cmdb/associations` | 关联种类/定义管理 |
+| `/cmdb/instances/[modelId]` | 某模型的实例列表 |
+| `/cmdb/instances/[modelId]/new` | 新建实例（动态表单） |
+| `/cmdb/instances/[modelId]/[id]` | 实例详情/编辑 + 关联面板 |
+| `/cmdb/instances/[modelId]/[id]/associations` | 实例关联管理页 |
 
 | model_id | 名称 | 内置属性数 |
 |----------|------|-----------|
@@ -227,14 +249,14 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | 4         | 月报导出(Excel) + 审计日志 UI + 报表页            | ✅   | v0.6.0-phase4          |
 | 4 UX      | 水印开关、快照历史、设备搜索、日报审批            | ✅   | v0.6.1-ux              |
 | CMDB-1    | CMDB 元数据层（模型/属性/关联种类/关联定义）      | ✅   | v0.8.0-cmdb-phase1     |
-| CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | 🚧   | —                      |
+| CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | ✅   | v0.9.0-cmdb-phase2     |
+| CMDB-3    | CI 实例关联（mapping 基数校验 + 关联面板 + 管理页）| ✅   | v0.10.0-cmdb-phase3    |
 
 ## 计划中的功能模块
 
 | Phase     | 功能                                              |
 |-----------|---------------------------------------------------|
-| CMDB-2    | CI 实例 CRUD（动态表单渲染，当前正在实现）        |
-| CMDB-3    | 实例关联关系（建立/查询两个 CI 间的关联）         |
+| CMDB-UX   | CMDB 导航重构：搜索首页 + CI 资源浏览 + 配置管理分离 |
 | CMDB-4    | 拓扑树 + 与变更文档"影响范围"字段打通            |
 
 ---
@@ -277,4 +299,6 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 - Phase 4: `docs/superpowers/plans/2026-05-23-phase4-reports-audit.md`
 - CMDB Phase 1: `docs/superpowers/plans/2026-05-24-cmdb-phase1-metadata.md`
 - CMDB Phase 2: `docs/superpowers/plans/2026-05-25-cmdb-phase2-instances.md`
+- CMDB Phase 3: `docs/superpowers/plans/2026-05-25-cmdb-phase3-instance-associations.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
+- CMDB Phase 3 设计: `docs/superpowers/specs/2026-05-25-cmdb-phase3-instance-associations.md`
