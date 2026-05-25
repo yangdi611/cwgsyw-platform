@@ -85,7 +85,7 @@ function NavGroupItem({ group, pathname, hasPermission }: {
   if (visibleChildren.length === 0) return null
 
   const isAnyChildActive = visibleChildren.some(
-    c => c.href === '/' ? pathname === '/' : pathname.startsWith(c.href)
+    c => c.href === '/cmdb' ? pathname === '/cmdb' : pathname.startsWith(c.href)
   )
   const [open, setOpen] = usePersistState(group.storageKey, isAnyChildActive)
 
