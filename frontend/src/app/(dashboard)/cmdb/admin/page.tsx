@@ -26,7 +26,6 @@ interface CiModelVO {
 
 interface AsstKind { id: number; kind_id: string; name: string; src_to_dst: string; dst_to_src: string; is_built_in: boolean }
 interface AsstDef { id: number; def_id: string; kind_id: string; src_model_id: string; dst_model_id: string; name: string; mapping: string; is_built_in: boolean }
-interface CiModelSimple { id: number; model_id: string; name: string }
 
 const ICON_MAP: Record<string, React.ElementType> = {
   server: Server, database: Database, network: Network,
@@ -197,7 +196,7 @@ function AssociationsTab() {
 
   const { data: kinds = [] } = useQuery<AsstKind[]>({ queryKey: ['cmdb-asst-kinds'], queryFn: () => api.get('/cmdb/meta/association-kinds').then(r => r.data.data) })
   const { data: defs = [] } = useQuery<AsstDef[]>({ queryKey: ['cmdb-asst-defs'], queryFn: () => api.get('/cmdb/meta/association-defs').then(r => r.data.data) })
-  const { data: models = [] } = useQuery<CiModelSimple[]>({ queryKey: ['cmdb-models'], queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data) })
+  const { data: models = [] } = useQuery<CiModelVO[]>({ queryKey: ['cmdb-models'], queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data) })
 
   const createKindMutation = useMutation({
     mutationFn: () => api.post('/cmdb/meta/association-kinds', { kind_id: newKind.kindId, name: newKind.name, src_to_dst: newKind.srcToDst || undefined, dst_to_src: newKind.dstToSrc || undefined }),
@@ -310,6 +309,7 @@ function AssociationsTab() {
               </div>
               {canWrite && !d.is_built_in && (
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                  disabled={deleteDefMutation.isPending}
                   onClick={() => { if (confirm('删除此关联定义?')) deleteDefMutation.mutate(d.id) }}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

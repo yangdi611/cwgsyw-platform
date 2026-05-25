@@ -189,6 +189,7 @@ export default function ModelDetailPage() {
                           <td className="px-4 py-2.5 text-right">
                             {!attr.is_built_in && (
                               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                                disabled={deleteAttrMutation.isPending}
                                 onClick={() => { if (confirm(`删除属性 "${attr.name}"?`)) deleteAttrMutation.mutate(attr.id) }}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
