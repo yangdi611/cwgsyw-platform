@@ -184,6 +184,8 @@ user.getPermissions() // Collection<GrantedAuthority>
 - **Button asChild 不可用**：项目使用 `@base-ui/react/button`，不支持 Radix 风格 `asChild`。需要链接按钮时用 `<Link className={buttonVariants({...})}>` 替代
 - **分页 total 问题**：MyBatis-Plus `selectPage` 对 `Boolean @TableLogic` 字段自动 count 有 bug（返回 0）。统一用 `selectCount` + `new Page<>(p, s, false)` + `result.setTotal(total)` 三步分页
 - **JSONB 更新**：`LambdaUpdateWrapper.set(entity::getAttrs, map)` 会绕过 `JacksonTypeHandler` 触发 hstore 错误。更新含 JSONB 字段的记录必须用 `updateById(entity)` 方式
+- **useColumnConfig**：`useColumnConfig(modelId, defaultKeys)` - storageKey = `cmdb_col_config_{modelId}`。切换 modelId 时会自动从 localStorage 重新读取（内部有 useEffect）。`defaultKeys` 若每次传新数组引用会导致 reset() 不稳定，建议在组件外定义为常量
+- **useSearchParams Suspense**：Next.js 15 App Router 中使用 `useSearchParams()` 的组件必须被 `<Suspense>` 包裹，否则会产生构建警告
 
 ---
 
@@ -215,17 +217,19 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - `DELETE /api/cmdb/rel/{relId}` — 软删除关联
 - `GET /api/cmdb/rel/search` — 搜索实例（params: `modelId`, `keyword`, `page`, `size`）
 
-### 前端页面结构（当前，待 CMDB-UX 重构）
+### 前端页面结构（当前 v0.11.0）
 
 | 路径 | 说明 |
 |------|------|
-| `/cmdb` | 模型列表（入口，待重构为全局搜索） |
-| `/cmdb/models/[modelId]` | 模型属性编辑 |
-| `/cmdb/associations` | 关联种类/定义管理 |
-| `/cmdb/instances/[modelId]` | 某模型的实例列表 |
+| `/cmdb` | **搜索首页**（跨模型关键词搜索 + 模型筛选标签 + 列自定义） |
+| `/cmdb/instances` | **CI 资源页**（左侧模型树 + 右侧实例表格 + 列自定义） |
 | `/cmdb/instances/[modelId]/new` | 新建实例（动态表单） |
 | `/cmdb/instances/[modelId]/[id]` | 实例详情/编辑 + 关联面板 |
 | `/cmdb/instances/[modelId]/[id]/associations` | 实例关联管理页 |
+| `/cmdb/admin` | **配置管理**（模型管理 + 关联定义 Tab，`cmdb_model:write`） |
+| `/cmdb/admin/models/[modelId]` | 模型属性编辑 |
+| `/cmdb/models/[modelId]` | → redirect to `/cmdb/admin/models/[modelId]` |
+| `/cmdb/associations` | → redirect to `/cmdb/admin` |
 
 | model_id | 名称 | 内置属性数 |
 |----------|------|-----------|
@@ -251,12 +255,12 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | CMDB-1    | CMDB 元数据层（模型/属性/关联种类/关联定义）      | ✅   | v0.8.0-cmdb-phase1     |
 | CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | ✅   | v0.9.0-cmdb-phase2     |
 | CMDB-3    | CI 实例关联（mapping 基数校验 + 关联面板 + 管理页）| ✅   | v0.10.0-cmdb-phase3    |
+| CMDB-UX   | CMDB 导航重构（搜索首页 + CI资源 + 配置管理分离）  | ✅   | v0.11.0-cmdb-ux        |
 
 ## 计划中的功能模块
 
 | Phase     | 功能                                              |
 |-----------|---------------------------------------------------|
-| CMDB-UX   | CMDB 导航重构：搜索首页 + CI 资源浏览 + 配置管理分离 |
 | CMDB-4    | 拓扑树 + 与变更文档"影响范围"字段打通            |
 
 ---
@@ -300,5 +304,7 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 - CMDB Phase 1: `docs/superpowers/plans/2026-05-24-cmdb-phase1-metadata.md`
 - CMDB Phase 2: `docs/superpowers/plans/2026-05-25-cmdb-phase2-instances.md`
 - CMDB Phase 3: `docs/superpowers/plans/2026-05-25-cmdb-phase3-instance-associations.md`
+- CMDB-UX: `docs/superpowers/plans/2026-05-26-cmdb-ux-redesign.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
 - CMDB Phase 3 设计: `docs/superpowers/specs/2026-05-25-cmdb-phase3-instance-associations.md`
+- CMDB-UX 设计: `docs/superpowers/specs/2026-05-26-cmdb-ux-redesign.md`
