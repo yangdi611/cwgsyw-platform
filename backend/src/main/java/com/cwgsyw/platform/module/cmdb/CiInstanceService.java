@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -138,8 +139,9 @@ public class CiInstanceService {
 
     public CiInstanceSearchResult searchAcrossModels(String tenantId, String keyword,
                                                       String modelId, int page, int size) {
-        boolean hasKeyword = org.springframework.util.StringUtils.hasText(keyword);
-        boolean hasModel = org.springframework.util.StringUtils.hasText(modelId);
+        size = Math.min(size, 200);
+        boolean hasKeyword = StringUtils.hasText(keyword);
+        boolean hasModel = StringUtils.hasText(modelId);
 
         LambdaQueryWrapper<CiInstance> qw = new LambdaQueryWrapper<CiInstance>()
                 .eq(CiInstance::getTenantId, tenantId)
@@ -166,6 +168,7 @@ public class CiInstanceService {
                                 .select("model_id, count(*) as cnt")
                                 .eq("tenant_id", tenantId)
                                 .eq("is_deleted", false)
+                                .eq(hasModel, "model_id", modelId)
                                 .like(hasKeyword, "name", keyword)
                                 .groupBy("model_id"))
                 .stream().collect(Collectors.toMap(
