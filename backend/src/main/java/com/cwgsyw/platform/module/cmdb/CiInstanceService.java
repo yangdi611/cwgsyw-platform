@@ -76,16 +76,17 @@ public class CiInstanceService {
     public CiInstanceVO updateInstance(String tenantId, Long id, Long operatorId,
                                         SaveCiInstanceRequest req) {
         CiInstance inst = findOrThrow(tenantId, id);
-        List<CiAttribute> attrs = attributeMapper.findByModel(tenantId, inst.getModelId());
-        validateAttrs(tenantId, inst.getModelId(), req.getAttrs(), attrs, id);
+        List<CiAttribute> attrDefs = attributeMapper.findByModel(tenantId, inst.getModelId());
 
         Map<String, Object> merged = new HashMap<>(inst.getAttrs() != null ? inst.getAttrs() : Map.of());
         if (req.getAttrs() != null) merged.putAll(req.getAttrs());
 
+        validateAttrs(tenantId, inst.getModelId(), merged, attrDefs, id);
+
         instanceMapper.update(null, new LambdaUpdateWrapper<CiInstance>()
                 .eq(CiInstance::getId, id)
                 .set(CiInstance::getAttrs, merged)
-                .set(CiInstance::getName, deriveDisplayName(merged, attrs))
+                .set(CiInstance::getName, deriveDisplayName(merged, attrDefs))
                 .set(CiInstance::getUpdatedAt, LocalDateTime.now())
                 .set(CiInstance::getUpdatedBy, operatorId));
 
