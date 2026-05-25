@@ -73,6 +73,7 @@ export default function CmdbSearchPage() {
     queryFn: () => api.get('/cmdb/instances/search', {
       params: { keyword: debouncedKeyword, modelId: filterModel, page: 1, size: 20 },
     }).then(r => r.data.data),
+    enabled: isSearching,
   })
 
   const { data: models = [] } = useQuery<CiModelVO[]>({
