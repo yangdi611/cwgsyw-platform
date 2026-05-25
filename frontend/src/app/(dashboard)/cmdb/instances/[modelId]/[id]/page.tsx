@@ -353,11 +353,11 @@ export default function InstanceDetailPage() {
                   onChange={e => { setPeerSearch(e.target.value); setSelectedPeerId(null) }}
                 />
                 <div className="border rounded-md max-h-40 overflow-y-auto">
-                  {(searchResult?.records ?? []).map(inst => (
-                    <button key={inst.id}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedPeerId === inst.id ? 'bg-muted font-medium' : ''}`}
-                      onClick={() => setSelectedPeerId(inst.id)}>
-                      {inst.name}
+                  {(searchResult?.records ?? []).map(searchInst => (
+                    <button key={searchInst.id}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors ${selectedPeerId === searchInst.id ? 'bg-muted font-medium' : ''}`}
+                      onClick={() => setSelectedPeerId(searchInst.id)}>
+                      {searchInst.name}
                     </button>
                   ))}
                   {(searchResult?.records ?? []).length === 0 && (
