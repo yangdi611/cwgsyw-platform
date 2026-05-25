@@ -120,6 +120,8 @@ public class CiInstanceRelService {
         CiInstance dstInst = instanceMapper.selectById(req.getDstId());
         CiAssociationKind kind = kindMapper.selectOne(new LambdaQueryWrapper<CiAssociationKind>()
             .eq(CiAssociationKind::getKindId, def.getKindId()));
+        CiModel dstModel = dstInst != null ? modelMapper.selectOne(new LambdaQueryWrapper<CiModel>()
+            .eq(CiModel::getModelId, dstInst.getModelId())) : null;
 
         CiInstanceRelVO vo = new CiInstanceRelVO();
         vo.setId(rel.getId());
@@ -128,6 +130,7 @@ public class CiInstanceRelService {
         vo.setPeerId(req.getDstId());
         vo.setPeerName(dstInst != null ? dstInst.getName() : String.valueOf(req.getDstId()));
         vo.setPeerModelId(dstInst != null ? dstInst.getModelId() : null);
+        vo.setPeerModelName(dstModel != null ? dstModel.getName() : (dstInst != null ? dstInst.getModelId() : null));
         vo.setDirectionLabel(kind != null ? kind.getSrcToDst() : def.getKindId());
         vo.setAttrs(rel.getAttrs());
         vo.setCreatedAt(rel.getCreatedAt());
@@ -142,6 +145,7 @@ public class CiInstanceRelService {
         if (rel == null) throw new IllegalArgumentException("关联不存在: " + relId);
 
         relMapper.update(null, new LambdaUpdateWrapper<CiInstanceRel>()
+            .eq(CiInstanceRel::getTenantId, tenantId)
             .eq(CiInstanceRel::getId, relId)
             .set(CiInstanceRel::getIsDeleted, true)
             .set(CiInstanceRel::getDeletedAt, LocalDateTime.now())
@@ -189,6 +193,8 @@ public class CiInstanceRelService {
         int dstCount = relMapper.countByDstAndDef(tenantId, def.getDefId(), dstId, -1L);
         if (dstCount > 0) {
             CiInstance dstInst = instanceMapper.selectById(dstId);
+            if (dstInst == null) throw new IllegalArgumentException(
+                "目标CI实例不存在(id=" + dstId + ")，无法建立 " + mapping + " 关联");
             CiModel dstModel = modelMapper.selectOne(new LambdaQueryWrapper<CiModel>()
                 .eq(CiModel::getModelId, dstInst.getModelId()));
             throw new IllegalArgumentException(
@@ -199,6 +205,8 @@ public class CiInstanceRelService {
             int srcCount = relMapper.countBySrcAndDef(tenantId, def.getDefId(), srcId, -1L);
             if (srcCount > 0) {
                 CiInstance srcInst = instanceMapper.selectById(srcId);
+                if (srcInst == null) throw new IllegalArgumentException(
+                    "源CI实例不存在(id=" + srcId + ")，无法建立 1:1 关联");
                 CiModel srcModel = modelMapper.selectOne(new LambdaQueryWrapper<CiModel>()
                     .eq(CiModel::getModelId, srcInst.getModelId()));
                 throw new IllegalArgumentException(
