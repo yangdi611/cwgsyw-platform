@@ -6,7 +6,7 @@ import api from '@/lib/api'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ChevronDown, ChevronRight, Plus, Trash2, Eye } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronLeft, Plus, Trash2, Eye } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useColumnConfig } from '@/hooks/useColumnConfig'
 import { ColumnPicker, ColumnDef } from '@/components/cmdb/ColumnPicker'
@@ -156,7 +156,7 @@ function CiResourcesInner() {
       <div className="flex-1 overflow-auto p-6">
         {!selectedModelId ? (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-muted-foreground">
-            <ChevronRight className="h-8 w-8 opacity-30" />
+            <ChevronLeft className="h-8 w-8 opacity-30" />
             <p className="text-sm">从左侧选择一个 CI 模型</p>
           </div>
         ) : (
