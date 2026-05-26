@@ -46,14 +46,15 @@ interface PageResult<T> {
 }
 
 function CiResourcesInner() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(
     searchParams.get('model')

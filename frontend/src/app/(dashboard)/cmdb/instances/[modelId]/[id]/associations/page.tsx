@@ -35,14 +35,15 @@ interface CiInstanceSummary {
 
 export default function AssociationsPage() {
   const { modelId, id } = useParams<{ modelId: string; id: string }>()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [filterKind, setFilterKind] = useState<string>('all')
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: inst } = useQuery<CiInstanceSummary>({
     queryKey: ['cmdb-instance', modelId, id],

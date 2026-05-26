@@ -50,12 +50,13 @@ const ACTION_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 }
 
 export default function AuditLogPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('audit', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const [module, setModule]       = useState('')
   const [startDate, setStartDate] = useState('')

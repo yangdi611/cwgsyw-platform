@@ -51,7 +51,7 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 
 export default function ChangeDocDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -67,8 +67,9 @@ export default function ChangeDocDetailPage() {
   const [aiLoadingField, setAiLoadingField] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('change_doc', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   useEffect(() => {
     if (doc) setFieldsData(doc.fieldsData ?? {})

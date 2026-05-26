@@ -50,12 +50,13 @@ const SEARCH_COL_DEFS: ColumnDef[] = [
 const DEFAULT_SEARCH_COLS = ['_name', '_model', '_updated_at']
 
 export default function CmdbSearchPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const [keyword, setKeyword]               = useState('')
   const [debouncedKeyword, setDebouncedKw]  = useState('')

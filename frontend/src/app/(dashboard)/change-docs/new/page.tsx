@@ -32,7 +32,7 @@ interface FieldConfigVO {
 interface CiSnapshot { id: number; name: string; model_name: string; model_id: string }
 
 export default function NewChangeDocPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateVO | null>(null)
@@ -47,8 +47,9 @@ export default function NewChangeDocPage() {
   const [selectedCis, setSelectedCis] = useState<Record<string, CiSnapshot[]>>({})
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('change_doc', 'create')) router.replace('/change-docs')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<TemplateVO[]>({
     queryKey: ['change-doc-templates-active'],

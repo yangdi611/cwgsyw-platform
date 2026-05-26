@@ -37,14 +37,15 @@ function getQuarterRange(offset: number) {
 }
 
 export default function ReportsPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const groupScope = useAuthStore(s => s.groupScope)
   const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('daily_report', 'export')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const [startDate, setStartDate] = useState(() => getMonthRange(0).start)
   const [endDate, setEndDate]     = useState(() => getMonthRange(0).end)

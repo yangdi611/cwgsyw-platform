@@ -26,13 +26,14 @@ interface CiModelVO {
 
 export default function NewInstancePage() {
   const { modelId } = useParams<{ modelId: string }>()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [attrs, setAttrs] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'create')) router.replace(`/cmdb/instances/${modelId}`)
-  }, [hasPermission, router, modelId])
+  }, [isHydrated, hasPermission, router, modelId])
 
   const { data: model, isLoading } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],

@@ -68,7 +68,7 @@ interface InstanceSearchVO {
 
 export default function InstanceDetailPage() {
   const { modelId, id } = useParams<{ modelId: string; id: string }>()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
@@ -82,8 +82,9 @@ export default function InstanceDetailPage() {
   const [addError, setAddError] = useState('')
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelId, id],

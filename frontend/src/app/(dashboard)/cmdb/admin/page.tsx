@@ -32,13 +32,14 @@ const ICON_MAP: Record<string, React.ElementType> = {
 }
 
 export default function AdminPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [tab, setTab] = useState<'models' | 'associations'>('models')
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_model', 'write')) router.replace('/cmdb')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   return (
     <div className="max-w-5xl">

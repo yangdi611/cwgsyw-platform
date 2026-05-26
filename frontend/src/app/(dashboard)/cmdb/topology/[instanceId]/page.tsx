@@ -17,14 +17,15 @@ interface CiTopologyResult {
 
 export default function TopologyPage() {
   const { instanceId } = useParams<{ instanceId: string }>()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [depth, setDepth] = useState(2)
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null)
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data, isLoading, isError } = useQuery<CiTopologyResult>({
     queryKey: ['cmdb-topology', instanceId, depth],
