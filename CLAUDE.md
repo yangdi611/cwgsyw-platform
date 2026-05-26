@@ -169,6 +169,7 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `CiMetadataService`     | `module/cmdb/CiMetadataService.java`              | CMDB 模型/属性/关联元数据管理           |
 | `CiInstanceService`     | `module/cmdb/CiInstanceService.java`              | CMDB CI 实例 CRUD + 属性校验            |
 | `CiInstanceRelService`  | `module/cmdb/CiInstanceRelService.java`           | CMDB 实例关联 CRUD + mapping 基数校验   |
+| `CiTopologyService`     | `module/cmdb/CiTopologyService.java`              | BFS 拓扑遍历，返回 nodes+edges 图结构   |
 
 ---
 
@@ -201,7 +202,7 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - **关联种类（CiAssociationKind）**：关联语义，内置：`belong`（属于/包含）、`run`（运行/被运行）、`connect`（连接）、`depend`（依赖）、`deploy`（部署）、`bk_mainline`（主线）
 - **模型关联定义（CiAssociationDef）**：定义两个模型间允许建立哪种关联，含基数(1:1/1:n/n:n)和 `on_delete` 行为
 - **CI 实例（CiInstance）**：模型的具体数据，所有动态属性存在 `attrs JSONB` 列中
-- **实例关联（CiInstanceRel）**：两个 CI 实例间的有向关联，`src_id → dst_id`，通过 `def_id` 引用关联定义。`attrs JSONB` 预留 Phase 4 扩展（当前为 `{}`）
+- **实例关联（CiInstanceRel）**：两个 CI 实例间的有向关联，`src_id → dst_id`，通过 `def_id` 引用关联定义。`attrs JSONB` 用于存储关联属性（Phase 4 起可扩展）
 
 ### API 路由
 
@@ -216,16 +217,19 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - `POST /api/cmdb/rel` — 建立关联（body: `{def_id, src_id, dst_id}`，触发 mapping 基数校验）
 - `DELETE /api/cmdb/rel/{relId}` — 软删除关联
 - `GET /api/cmdb/rel/search` — 搜索实例（params: `modelId`, `keyword`, `page`, `size`）
+- `GET /api/cmdb/instances/search` — 跨模型搜索（params: `keyword`, `modelId`, `page`, `size`，返回 `model_counts`）
+- `GET /api/cmdb/topology/{instanceId}` — BFS 拓扑图（param: `depth` 1-5，默认 2，返回 `{nodes, edges}`）
 
-### 前端页面结构（当前 v0.11.0）
+### 前端页面结构（当前 v0.12.0）
 
 | 路径 | 说明 |
 |------|------|
 | `/cmdb` | **搜索首页**（跨模型关键词搜索 + 模型筛选标签 + 列自定义） |
 | `/cmdb/instances` | **CI 资源页**（左侧模型树 + 右侧实例表格 + 列自定义） |
 | `/cmdb/instances/[modelId]/new` | 新建实例（动态表单） |
-| `/cmdb/instances/[modelId]/[id]` | 实例详情/编辑 + 关联面板 |
+| `/cmdb/instances/[modelId]/[id]` | 实例详情/编辑 + 关联面板 + 拓扑预览面板 |
 | `/cmdb/instances/[modelId]/[id]/associations` | 实例关联管理页 |
+| `/cmdb/topology/[instanceId]` | **拓扑全屏页**（React Flow，深度选择器，节点详情面板） |
 | `/cmdb/admin` | **配置管理**（模型管理 + 关联定义 Tab，`cmdb_model:write`） |
 | `/cmdb/admin/models/[modelId]` | 模型属性编辑 |
 | `/cmdb/models/[modelId]` | → redirect to `/cmdb/admin/models/[modelId]` |
@@ -256,12 +260,11 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | ✅   | v0.9.0-cmdb-phase2     |
 | CMDB-3    | CI 实例关联（mapping 基数校验 + 关联面板 + 管理页）| ✅   | v0.10.0-cmdb-phase3    |
 | CMDB-UX   | CMDB 导航重构（搜索首页 + CI资源 + 配置管理分离）  | ✅   | v0.11.0-cmdb-ux        |
+| CMDB-4    | 拓扑树（React Flow BFS）+ 变更文档 ci_selector 字段 | ✅   | v0.12.0-cmdb-phase4    |
 
 ## 计划中的功能模块
 
-| Phase     | 功能                                              |
-|-----------|---------------------------------------------------|
-| CMDB-4    | 拓扑树 + 与变更文档"影响范围"字段打通            |
+暂无（所有规划功能已完成）。
 
 ---
 
@@ -305,6 +308,71 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 - CMDB Phase 2: `docs/superpowers/plans/2026-05-25-cmdb-phase2-instances.md`
 - CMDB Phase 3: `docs/superpowers/plans/2026-05-25-cmdb-phase3-instance-associations.md`
 - CMDB-UX: `docs/superpowers/plans/2026-05-26-cmdb-ux-redesign.md`
+- CMDB Phase 4: `docs/superpowers/plans/2026-05-26-cmdb-phase4-topology.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
 - CMDB Phase 3 设计: `docs/superpowers/specs/2026-05-25-cmdb-phase3-instance-associations.md`
 - CMDB-UX 设计: `docs/superpowers/specs/2026-05-26-cmdb-ux-redesign.md`
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **cwgsyw-platform** (3419 symbols, 6972 relationships, 285 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/cwgsyw-platform/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/cwgsyw-platform/clusters` | All functional areas |
+| `gitnexus://repo/cwgsyw-platform/processes` | All execution flows |
+| `gitnexus://repo/cwgsyw-platform/process/{name}` | Step-by-step execution trace |
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Work in the Changedoc area (127 symbols) | `.claude/skills/generated/changedoc/SKILL.md` |
+| Work in the Cmdb area (81 symbols) | `.claude/skills/generated/cmdb/SKILL.md` |
+| Work in the [id] area (66 symbols) | `.claude/skills/generated/id/SKILL.md` |
+| Work in the Ui area (56 symbols) | `.claude/skills/generated/ui/SKILL.md` |
+| Work in the Rbac area (27 symbols) | `.claude/skills/generated/rbac/SKILL.md` |
+| Work in the Config area (23 symbols) | `.claude/skills/generated/config/SKILL.md` |
+| Work in the Device area (19 symbols) | `.claude/skills/generated/device/SKILL.md` |
+| Work in the Daily area (18 symbols) | `.claude/skills/generated/daily/SKILL.md` |
+| Work in the Ai area (15 symbols) | `.claude/skills/generated/ai/SKILL.md` |
+| Work in the Security area (14 symbols) | `.claude/skills/generated/security/SKILL.md` |
+| Work in the Layout area (11 symbols) | `.claude/skills/generated/layout/SKILL.md` |
+| Work in the Report area (10 symbols) | `.claude/skills/generated/report/SKILL.md` |
+| Work in the Auth area (7 symbols) | `.claude/skills/generated/auth/SKILL.md` |
+| Work in the User area (7 symbols) | `.claude/skills/generated/user/SKILL.md` |
+| Work in the Workflow area (7 symbols) | `.claude/skills/generated/workflow/SKILL.md` |
+| Work in the Entity area (6 symbols) | `.claude/skills/generated/entity/SKILL.md` |
+| Work in the Dto area (5 symbols) | `.claude/skills/generated/dto/SKILL.md` |
+| Work in the Notification area (4 symbols) | `.claude/skills/generated/notification/SKILL.md` |
+| Work in the Instances area (4 symbols) | `.claude/skills/generated/instances/SKILL.md` |
+| Work in the Permissions area (4 symbols) | `.claude/skills/generated/permissions/SKILL.md` |
+
+<!-- gitnexus:end -->
