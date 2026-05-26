@@ -29,6 +29,8 @@ interface FieldConfigVO {
   sort_order: number
 }
 
+interface CiSnapshot { id: number; name: string; model_name: string; model_id: string }
+
 export default function NewChangeDocPage() {
   const { hasPermission } = usePermission()
   const router = useRouter()
@@ -37,6 +39,12 @@ export default function NewChangeDocPage() {
   const [changeNo, setChangeNo] = useState('')
   const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+
+  // ci_selector state
+  const [ciSelectorOpen, setCiSelectorOpen] = useState<string | null>(null)
+  const [ciSearch, setCiSearch] = useState('')
+  const [ciTopoInstanceId, setCiTopoInstanceId] = useState<number | null>(null)
+  const [selectedCis, setSelectedCis] = useState<Record<string, CiSnapshot[]>>({})
 
   useEffect(() => {
     if (!hasPermission('change_doc', 'create')) router.replace('/change-docs')
@@ -63,6 +71,30 @@ export default function NewChangeDocPage() {
   })
 
   const fields: FieldConfigVO[] = (templateDetail?.fields ?? formFields).filter(f => f.in_form)
+
+  const { data: ciSearchResult } = useQuery<{ records: { id: number; name: string; model_id: string; model_name: string }[] }>({
+    queryKey: ['ci-selector-search', ciSearch],
+    queryFn: () => api.get('/cmdb/instances/search', {
+      params: { keyword: ciSearch, size: 10 }
+    }).then(r => r.data.data),
+    enabled: !!ciSelectorOpen && ciSearch.length >= 1,
+  })
+
+  const { data: ciTopoResult } = useQuery<{ nodes: { id: number; name: string; model_id: string | null; model_name: string | null; is_root: boolean }[] }>({
+    queryKey: ['ci-selector-topo', ciTopoInstanceId],
+    queryFn: () => api.get(`/cmdb/topology/${ciTopoInstanceId}`, { params: { depth: 2 } }).then(r => r.data.data),
+    enabled: !!ciTopoInstanceId,
+  })
+
+  const toggleCiSelection = (fieldKey: string, ci: CiSnapshot) => {
+    setSelectedCis(prev => {
+      const current = prev[fieldKey] ?? []
+      const exists = current.some(c => c.id === ci.id)
+      const next = exists ? current.filter(c => c.id !== ci.id) : [...current, ci]
+      setFieldsData(fd => ({ ...fd, [fieldKey]: JSON.stringify(next) }))
+      return { ...prev, [fieldKey]: next }
+    })
+  }
 
   const handleSelectTemplate = (t: TemplateVO) => {
     setSelectedTemplate(t)
@@ -99,6 +131,108 @@ export default function NewChangeDocPage() {
     const value = fieldsData[f.field_key] ?? ''
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setFieldsData(prev => ({ ...prev, [f.field_key]: e.target.value }))
+
+    if (f.field_type === 'ci_selector') {
+      const selected = selectedCis[f.field_key] ?? []
+      return (
+        <div key={f.field_key} className="space-y-1.5">
+          <Label>{f.label}{f.required && <span className="text-destructive ml-1">*</span>}</Label>
+
+          {/* Selected CI cards */}
+          {selected.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selected.map(ci => (
+                <div key={ci.id} className="flex items-center gap-1.5 border rounded-md px-2 py-1 text-xs bg-muted/30">
+                  <span className="font-medium">{ci.name}</span>
+                  <span className="text-muted-foreground">({ci.model_name})</span>
+                  <button
+                    onClick={() => toggleCiSelection(f.field_key, ci)}
+                    className="text-muted-foreground hover:text-destructive ml-1"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {ciSelectorOpen === f.field_key ? (
+            <div className="border rounded-lg p-3 space-y-2 bg-muted/10">
+              <input
+                autoFocus
+                className="w-full border rounded px-3 py-1.5 text-sm bg-background"
+                placeholder="搜索 CI 名称..."
+                value={ciSearch}
+                onChange={e => { setCiSearch(e.target.value); setCiTopoInstanceId(null) }}
+              />
+
+              {/* Search results */}
+              {ciSearch.length >= 1 && (
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {(ciSearchResult?.records ?? []).map(ci => (
+                    <button
+                      key={ci.id}
+                      onClick={() => {
+                        toggleCiSelection(f.field_key, { id: ci.id, name: ci.name, model_id: ci.model_id, model_name: ci.model_name })
+                        setCiTopoInstanceId(ci.id)
+                        setCiSearch('')
+                      }}
+                      className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded text-sm hover:bg-muted/50"
+                    >
+                      <span>{ci.name}</span>
+                      <span className="text-xs text-muted-foreground">{ci.model_name}</span>
+                    </button>
+                  ))}
+                  {(ciSearchResult?.records ?? []).length === 0 && (
+                    <p className="text-xs text-muted-foreground px-2 py-1">无匹配结果</p>
+                  )}
+                </div>
+              )}
+
+              {/* Topology suggestions */}
+              {ciTopoResult && ciTopoResult.nodes.filter(n => !n.is_root).length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">关联 CI 建议（2层内）：</p>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {ciTopoResult.nodes.filter(n => !n.is_root).map(n => {
+                      const isSelected = selected.some(c => c.id === n.id)
+                      return (
+                        <label key={n.id} className="flex items-center gap-2 px-2 py-1 rounded text-sm hover:bg-muted/50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleCiSelection(f.field_key, {
+                              id: n.id,
+                              name: n.name,
+                              model_id: n.model_id ?? '',
+                              model_name: n.model_name ?? n.model_id ?? ''
+                            })}
+                          />
+                          <span>{n.name}</span>
+                          <span className="text-xs text-muted-foreground">{n.model_name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => { setCiSelectorOpen(null); setCiSearch(''); setCiTopoInstanceId(null) }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                收起
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setCiSelectorOpen(f.field_key)}
+              className="w-full border rounded-md px-3 py-2 text-sm text-left text-muted-foreground hover:bg-muted/30 transition-colors"
+            >
+              + 添加受影响的 CI
+            </button>
+          )}
+        </div>
+      )
+    }
 
     return (
       <div key={f.field_key} className="space-y-1.5">
