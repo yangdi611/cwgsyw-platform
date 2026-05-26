@@ -115,9 +115,7 @@ function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
   depth?: number
 }) {
   const visibleChildren = group.children.filter(c =>
-    !isGroup(c)
-      ? (!c.resource || !c.action || hasPermission(c.resource, c.action))
-      : (!c.resource || !c.action || hasPermission(c.resource, c.action))
+    !c.resource || !c.action || hasPermission(c.resource, c.action)
   )
   if (visibleChildren.length === 0) return null
 
@@ -142,7 +140,7 @@ function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
         className={cn(
           'w-full flex items-center gap-3 rounded-md text-sm transition-colors',
           depth > 0 ? 'px-3 py-1.5' : 'px-3 py-2',
-          isAnyChildActive ? 'text-foreground font-medium' : 'hover:bg-muted text-muted-foreground'
+          isAnyChildActive ? 'text-foreground font-medium hover:bg-muted' : 'hover:bg-muted text-muted-foreground'
         )}
       >
         <group.icon className={cn('shrink-0', depth > 0 ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
