@@ -10,9 +10,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon } from 'lucide-react'
+import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
 
 interface CiAttributeVO {
   id: number; field_key: string; name: string; field_type: string
@@ -73,6 +74,7 @@ export default function InstanceDetailPage() {
   const [editing, setEditing] = useState(false)
   const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
   const [relPanelOpen, setRelPanelOpen] = useState(false)
+  const [topoPanelOpen, setTopoPanelOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [selectedDefId, setSelectedDefId] = useState('')
   const [peerSearch, setPeerSearch] = useState('')
@@ -116,6 +118,12 @@ export default function InstanceDetailPage() {
     queryKey: ['cmdb-rel', id],
     queryFn: () => api.get(`/cmdb/rel/${id}`).then(r => r.data.data),
     enabled: relPanelOpen,
+  })
+
+  const { data: topoData, isLoading: topoLoading } = useQuery<{ nodes: TopologyNode[]; edges: TopologyEdge[] }>({
+    queryKey: ['cmdb-topology', id],
+    queryFn: () => api.get(`/cmdb/topology/${id}`, { params: { depth: 2 } }).then(r => r.data.data),
+    enabled: topoPanelOpen,
   })
 
   const { data: allDefs = [] } = useQuery<CiAssociationDefVO[]>({
@@ -306,6 +314,48 @@ export default function InstanceDetailPage() {
                 管理全部关联 →
               </Link>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Topology Preview Panel */}
+      <div className="mt-4 border rounded-lg overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+          onClick={() => setTopoPanelOpen(v => !v)}
+        >
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            拓扑图
+          </div>
+          <div className="flex items-center gap-2">
+            {topoPanelOpen && (
+              <Link
+                href={`/cmdb/topology/${id}`}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={e => e.stopPropagation()}
+              >
+                全屏展开 →
+              </Link>
+            )}
+            {topoPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </div>
+        </button>
+
+        {topoPanelOpen && (
+          <div className="border-t">
+            {topoLoading ? (
+              <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">加载中...</div>
+            ) : !topoData || topoData.nodes.length === 0 ? (
+              <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">暂无关联数据</div>
+            ) : (
+              <CiTopologyGraph
+                nodes={topoData.nodes}
+                edges={topoData.edges}
+                rootId={Number(id)}
+                preview={true}
+              />
+            )}
           </div>
         )}
       </div>
