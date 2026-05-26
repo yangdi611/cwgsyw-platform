@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { buttonVariants } from '@/components/ui/button'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
 import { cn } from '@/lib/utils'
@@ -26,7 +26,7 @@ export default function TopologyPage() {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
   }, [hasPermission, router])
 
-  const { data, isLoading } = useQuery<CiTopologyResult>({
+  const { data, isLoading, isError } = useQuery<CiTopologyResult>({
     queryKey: ['cmdb-topology', instanceId, depth],
     queryFn: () => api.get(`/cmdb/topology/${instanceId}`, { params: { depth } }).then(r => r.data.data),
   })
@@ -37,12 +37,18 @@ export default function TopologyPage() {
     <div className="flex flex-col h-[calc(100vh-4rem)] -m-6">
       {/* 顶部工具栏 */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-background flex-shrink-0">
-        <Link
-          href={`/cmdb/instances/${rootNode?.model_id ?? 'host'}/${instanceId}`}
-          className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />返回实例
-        </Link>
+        {rootNode ? (
+          <Link
+            href={`/cmdb/instances/${rootNode.model_id}/${instanceId}`}
+            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />返回实例
+          </Link>
+        ) : (
+          <button className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'opacity-50 cursor-not-allowed')} disabled>
+            <ArrowLeft className="h-4 w-4 mr-1" />返回实例
+          </button>
+        )}
         <div className="flex-1">
           <span className="font-semibold text-sm">
             {rootNode?.name ?? `#${instanceId}`} 的拓扑图
@@ -76,6 +82,8 @@ export default function TopologyPage() {
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">加载中...</div>
+          ) : isError ? (
+            <div className="flex items-center justify-center h-full text-destructive text-sm">加载失败，请刷新重试</div>
           ) : !data || data.nodes.length === 0 ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">暂无关联数据</div>
           ) : (
@@ -96,9 +104,9 @@ export default function TopologyPage() {
               <h3 className="font-semibold text-sm">节点详情</h3>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="text-muted-foreground hover:text-foreground text-xs"
+                className="text-muted-foreground hover:text-foreground"
               >
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-2 text-sm">
