@@ -181,7 +181,7 @@ export default function NewChangeDocPage() {
                       <span className="text-xs text-muted-foreground">{ci.model_name}</span>
                     </button>
                   ))}
-                  {(ciSearchResult?.records ?? []).length === 0 && (
+                  {ciSearchResult !== undefined && (ciSearchResult?.records ?? []).length === 0 && (
                     <p className="text-xs text-muted-foreground px-2 py-1">无匹配结果</p>
                   )}
                 </div>
@@ -224,7 +224,11 @@ export default function NewChangeDocPage() {
             </div>
           ) : (
             <button
-              onClick={() => setCiSelectorOpen(f.field_key)}
+              onClick={() => {
+                setCiSelectorOpen(f.field_key)
+                setCiSearch('')
+                setCiTopoInstanceId(null)
+              }}
               className="w-full border rounded-md px-3 py-2 text-sm text-left text-muted-foreground hover:bg-muted/30 transition-colors"
             >
               + 添加受影响的 CI
