@@ -8,7 +8,7 @@ import {
   FileText, CheckSquare, Users, Building2, Shield, LayoutDashboard,
   KeyRound, Bell, Settings, BarChart2, ClipboardList, FileCode,
   Database, Search, Server, Settings2, ChevronDown, ChevronRight,
-  Wrench, ClipboardCheck,
+  Wrench, ClipboardCheck, FolderOpen,
 } from 'lucide-react'
 
 interface NavItem {
@@ -72,6 +72,7 @@ const sidebarEntries: SidebarEntry[] = [
     defaultOpen: true,
     children: [
       cmdbGroup,
+      { href: '/files',        label: '共享文档',   icon: FolderOpen, resource: 'shared_file',  action: 'read' },
       { href: '/devices',      label: '设备密码库', icon: KeyRound,  resource: 'device',       action: 'read' },
       { href: '/change-docs',  label: '变更文档',   icon: FileText,  resource: 'change_doc',   action: 'read' },
       { href: '/reports',      label: '报表导出',   icon: BarChart2, resource: 'daily_report', action: 'export' },
