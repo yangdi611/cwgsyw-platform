@@ -26,18 +26,19 @@ import { cn } from '@/lib/utils'
 interface FolderNode {
   id: number
   name: string
-  parentId: number | null
+  parent_id: number | null
   children?: FolderNode[]
 }
 
 interface SharedFile {
   id: number
   name: string
-  fileType: string
-  fileSize: number
-  folderId: number | null
-  uploaderName: string
-  createdAt: string
+  original_name: string
+  file_type: string
+  size_bytes: number
+  folder_id: number | null
+  created_by_name: string
+  created_at: string
 }
 
 interface FolderTreeResponse {
@@ -68,6 +69,7 @@ function fileTypeLabel(type: string): string {
     png: '图片', jpg: '图片', jpeg: '图片', gif: '图片',
     zip: '压缩包', rar: '压缩包',
   }
+  if (!type) return '未知'
   return map[type.toLowerCase()] ?? type.toUpperCase()
 }
 
@@ -157,7 +159,7 @@ export default function FilesPage() {
   // Folder tree
   const { data: folderData } = useQuery<FolderTreeResponse>({
     queryKey: ['file-folders'],
-    queryFn: () => api.get('/files/folders/tree').then(r => r.data),
+    queryFn: () => api.get('/files/folders').then(r => r.data),
   })
 
   // File list
@@ -166,7 +168,7 @@ export default function FilesPage() {
     queryFn: () =>
       api.get('/files', {
         params: {
-          folder_id: selectedFolderId ?? undefined,
+          folderId: selectedFolderId ?? undefined,
           keyword: search || undefined,
           page,
           size: pageSize,
@@ -225,7 +227,7 @@ export default function FilesPage() {
 
   const handleDownload = useCallback(async (id: number, name: string) => {
     const res = await api.get(`/files/${id}/download-url`)
-    const url: string = res.data?.data?.url ?? res.data?.url
+    const url: string = res.data?.data
     if (url) {
       const a = document.createElement('a')
       a.href = url
@@ -354,14 +356,14 @@ export default function FilesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {fileTypeLabel(file.fileType)}
+                      {fileTypeLabel(file.file_type)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {formatBytes(file.fileSize)}
+                      {formatBytes(file.size_bytes)}
                     </TableCell>
-                    <TableCell className="text-sm">{file.uploaderName}</TableCell>
+                    <TableCell className="text-sm">{file.created_by_name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(file.createdAt).toLocaleString('zh-CN', {
+                      {new Date(file.created_at).toLocaleString('zh-CN', {
                         year: 'numeric', month: '2-digit', day: '2-digit',
                         hour: '2-digit', minute: '2-digit',
                       })}
