@@ -62,6 +62,7 @@ cwgsyw-platform/
 | V14  | CMDB 元数据：`ci_model_group`, `ci_model`, `ci_attribute_group`, `ci_attribute`, `ci_association_kind`, `ci_association_def` + 内置主机/应用模型 + RBAC |
 | V15  | CMDB 实例：`ci_instance`（JSONB attrs + GIN 索引）        |
 | V16  | CMDB 实例关联：`ci_instance_rel`（src_id/dst_id/def_id/attrs JSONB + 4 索引含唯一约束） |
+| V17  | `shared_folder`, `shared_file` + RBAC (`shared_file` 4 actions) |
 
 ---
 
@@ -135,6 +136,7 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `audit`               | read                                                 |
 | `cmdb_model`          | read, write                                          |
 | `cmdb_instance`       | create, read, update, delete, export                 |
+| `shared_file`         | read, upload, delete, manage                         |
 
 > **CMDB 关联操作复用 `cmdb_instance` 资源**：建立关联用 `create`，查询用 `read`，删除用 `delete`，不单独注册 `cmdb_association` 资源。
 
@@ -166,6 +168,8 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `AiGatewayService`      | `module/ai/AiGatewayService.java`                 | 统一 AI 调用（Kimi/DeepSeek/GLM）       |
 | `ExportService`         | `module/changedoc/ExportService.java`             | 变更文档 Word/PDF 导出（含水印）        |
 | `MinioStorageService`   | `module/changedoc/MinioStorageService.java`       | MinIO 文件上传/下载/删除                |
+| `SharedFileService`     | `module/sharedfile/SharedFileService.java`         | 共享文件 CRUD + 可见性过滤 + pandoc 转换  |
+| `SharedFolderService`   | `module/sharedfile/SharedFolderService.java`       | 文件夹树 + 递归软删 + 自动归档路径       |
 | `CiMetadataService`     | `module/cmdb/CiMetadataService.java`              | CMDB 模型/属性/关联元数据管理           |
 | `CiInstanceService`     | `module/cmdb/CiInstanceService.java`              | CMDB CI 实例 CRUD + 属性校验            |
 | `CiInstanceRelService`  | `module/cmdb/CiInstanceRelService.java`           | CMDB 实例关联 CRUD + mapping 基数校验   |
@@ -187,6 +191,51 @@ user.getPermissions() // Collection<GrantedAuthority>
 - **JSONB 更新**：`LambdaUpdateWrapper.set(entity::getAttrs, map)` 会绕过 `JacksonTypeHandler` 触发 hstore 错误。更新含 JSONB 字段的记录必须用 `updateById(entity)` 方式
 - **useColumnConfig**：`useColumnConfig(modelId, defaultKeys)` - storageKey = `cmdb_col_config_{modelId}`。切换 modelId 时会自动从 localStorage 重新读取（内部有 useEffect）。`defaultKeys` 若每次传新数组引用会导致 reset() 不稳定，建议在组件外定义为常量
 - **useSearchParams Suspense**：Next.js 15 App Router 中使用 `useSearchParams()` 的组件必须被 `<Suspense>` 包裹，否则会产生构建警告
+- **@RequestParam vs FormData**：GET 请求使用 camelCase（`@RequestParam Long folderId`），POST FormData 使用 snake_case（`folder_id`）。前端调用必须匹配后端参数名
+
+---
+
+## 共享文件模块
+
+独立文件库，支持文件夹树、文件上传/下载/预览/搜索、按组可见性控制、pandoc Word→Markdown 转换、变更文档审批后自动归档。
+
+### 数据模型
+
+- **SharedFolder**：`id, tenant_id, name, parent_id, sort_order, created_by`，通过 `parent_id` 构建递归树
+- **SharedFile**：`id, tenant_id, name, original_name, file_type, size_bytes, minio_path, folder_id, created_by, visible_groups (JSONB List<Long>), is_archived, archive_source_type, archive_source_id`，`@TableName(autoResultMap = true)` + `JacksonTypeHandler` 处理 JSONB
+
+### API 路由
+
+- `GET /api/files/folders` — 文件夹树
+- `POST /api/files/folders` — 创建文件夹（body: `{name, parent_id}`）
+- `DELETE /api/files/folders/{id}` — 软删除（含子文件夹递归）
+- `GET /api/files` — 文件列表（params: `folderId, keyword, page, size`，按组可见性过滤）
+- `POST /api/files/upload` — 上传（multipart: `file + folder_id`，异步触发 pandoc 预览图生成）
+- `GET /api/files/{id}/download-url` — 预签名下载 URL（5 分钟有效）
+- `GET /api/files/{id}/preview-url` — 预签名预览 URL（30 分钟有效）
+- `DELETE /api/files/{id}` — 软删除
+
+### 前端页面
+
+| 路径 | 说明 |
+|------|------|
+| `/files` | 文件管理页（左侧文件夹树 + 右侧表格，搜索/分页/新建文件夹/上传/下载/删除） |
+| `/files/preview/[id]` | 文件预览页（PDF iframe / Word docx-preview / Excel SheetJS） |
+
+### 前后端字段映射注意
+
+后端 Jackson `SNAKE_CASE`，接口返回的 JSON 字段均为 snake_case。前端 `SharedFile` 接口字段必须匹配：
+- `original_name`, `file_type`, `size_bytes`, `folder_id`, `created_by_name`, `created_at`
+
+GET 请求使用 camelCase（`@RequestParam folderId`），POST FormData 使用 snake_case（`folder_id`）。
+
+### 变更文档自动归档
+
+`SharedFileService.archiveFromChangeDoc(changeDoc)` 由审批回调触发：
+1. 调用 ExportService 生成 Word + PDF
+2. 上传到 MinIO（路径：`shared/archived/<year>/<month>/<docId>_<title>.docx/.pdf`）
+3. 通过 `getOrCreateFolder` 递归创建文件夹路径（如 `变更文档 / 2026 / 05`）
+4. 写入 `SharedFile` 记录，`is_archived=true`，`archive_source_type=CHANGE_DOC`，`visible_groups` 继承变更文档的审批组
 
 ---
 
@@ -261,10 +310,7 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | CMDB-3    | CI 实例关联（mapping 基数校验 + 关联面板 + 管理页）| ✅   | v0.10.0-cmdb-phase3    |
 | CMDB-UX   | CMDB 导航重构（搜索首页 + CI资源 + 配置管理分离）  | ✅   | v0.11.0-cmdb-ux        |
 | CMDB-4    | 拓扑树（React Flow BFS）+ 变更文档 ci_selector 字段 | ✅   | v0.12.0-cmdb-phase4    |
-
-## 计划中的功能模块
-
-暂无（所有规划功能已完成）。
+| Shared-1  | 共享文件库（文件夹树 + 上传/下载/预览 + 组可见性 + pandoc 转换 + 变更文档自动归档） | ✅ | v0.13.0-shared-files |
 
 ---
 
@@ -287,7 +333,7 @@ docker compose build frontend && docker compose up -d frontend
 docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 
 # 当前 branch
-# feature/cmdb — CMDB 开发分支
+# feat/shared-files — 共享文件库开发分支
 # master — 稳定版本
 ```
 
@@ -312,6 +358,7 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
 - CMDB Phase 3 设计: `docs/superpowers/specs/2026-05-25-cmdb-phase3-instance-associations.md`
 - CMDB-UX 设计: `docs/superpowers/specs/2026-05-26-cmdb-ux-redesign.md`
+- 共享文件库计划: `docs/superpowers/plans/2026-05-27-shared-files.md`
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
