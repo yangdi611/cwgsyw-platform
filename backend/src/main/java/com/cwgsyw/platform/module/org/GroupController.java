@@ -2,6 +2,8 @@ package com.cwgsyw.platform.module.org;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.dto.GroupMemberVO;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -12,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class GroupController {
     private final GroupMapper groupMapper;
     private final UserMapper userMapper;
+    private final AuditLogMapper auditLogMapper;
 
     @GetMapping
     @PreAuthorize("hasPermission('group', 'read')")
@@ -63,6 +67,81 @@ public class GroupController {
             return vo;
         }).collect(Collectors.toList());
         return R.ok(vos);
+    }
+
+    @PostMapping("/{id}/members")
+    @PreAuthorize("hasPermission('group', 'update')")
+    public R<Void> addMember(@PathVariable Long id,
+                              @RequestBody Map<String, Long> body,
+                              @AuthenticationPrincipal SecurityUser cu) {
+        Long userId = body.get("userId");
+        if (userId == null) throw new IllegalArgumentException("userId is required");
+
+        // 不允许自己操作自己
+        if (cu.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("不能添加或移动自己的组成员关系");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) throw new IllegalArgumentException("用户不存在: " + userId);
+
+        String beforeJson = "{\"group_id\":" + user.getGroupId() + "}";
+        user.setGroupId(id);
+        userMapper.updateById(user);
+        String afterJson = "{\"group_id\":" + id + "}";
+
+        // 审计日志
+        AuditLog log = AuditLog.builder()
+                .tenantId(cu.getTenantId())
+                .module("group")
+                .action("add_member")
+                .targetId(userId)
+                .targetType("user")
+                .operatorId(cu.getUserId())
+                .beforeJson(beforeJson)
+                .afterJson(afterJson)
+                .remark("添加到组: " + id)
+                .build();
+        auditLogMapper.insert(log);
+
+        return R.ok();
+    }
+
+    @DeleteMapping("/{id}/members/{userId}")
+    @PreAuthorize("hasPermission('group', 'update')")
+    public R<Void> removeMember(@PathVariable Long id,
+                                 @PathVariable Long userId,
+                                 @AuthenticationPrincipal SecurityUser cu) {
+        // 不允许自己操作自己
+        if (cu.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("不能移除自己的组成员关系");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) throw new IllegalArgumentException("用户不存在: " + userId);
+        if (!id.equals(user.getGroupId())) {
+            throw new IllegalArgumentException("用户不在当前组中");
+        }
+
+        String beforeJson = "{\"group_id\":" + user.getGroupId() + "}";
+        user.setGroupId(null);
+        userMapper.updateById(user);
+
+        // 审计日志
+        AuditLog log = AuditLog.builder()
+                .tenantId(cu.getTenantId())
+                .module("group")
+                .action("remove_member")
+                .targetId(userId)
+                .targetType("user")
+                .operatorId(cu.getUserId())
+                .beforeJson(beforeJson)
+                .afterJson("{\"group_id\":null}")
+                .remark("从组移除: " + id)
+                .build();
+        auditLogMapper.insert(log);
+
+        return R.ok();
     }
 
     @DeleteMapping("/{id}")
