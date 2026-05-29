@@ -124,8 +124,11 @@ public class GroupController {
         }
 
         String beforeJson = "{\"group_id\":" + user.getGroupId() + "}";
+        userMapper.update(null,
+            new LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId)
+                .set(User::getGroupId, null));
         user.setGroupId(null);
-        userMapper.updateById(user);
 
         // 审计日志
         AuditLog log = AuditLog.builder()
