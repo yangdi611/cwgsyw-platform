@@ -132,6 +132,16 @@ public class SharedFileService {
         return toVO(sf, Map.of());
     }
 
+    public SharedFileVO getFile(String tenantId, Long fileId) {
+        SharedFile sf = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
+                .eq(SharedFile::getTenantId, tenantId)
+                .eq(SharedFile::getId, fileId));
+        if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
+        String creatorName = userMapper.selectById(sf.getCreatedBy()) != null
+                ? userMapper.selectById(sf.getCreatedBy()).getRealName() : null;
+        return toVO(sf, Map.of(sf.getCreatedBy(), creatorName != null ? creatorName : String.valueOf(sf.getCreatedBy())));
+    }
+
     @Transactional
     public void deleteFile(String tenantId, Long fileId, Long operatorId) {
         SharedFile sf = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
