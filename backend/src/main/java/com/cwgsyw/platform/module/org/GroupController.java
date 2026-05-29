@@ -39,4 +39,14 @@ public class GroupController {
         groupMapper.updateById(req);
         return R.ok();
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasPermission('group', 'delete')")
+    public R<Void> delete(@PathVariable Long id,
+                          @AuthenticationPrincipal SecurityUser cu) {
+        Group group = groupMapper.selectById(id);
+        if (group == null) throw new IllegalArgumentException("组不存在: " + id);
+        groupMapper.deleteById(id);
+        return R.ok();
+    }
 }
