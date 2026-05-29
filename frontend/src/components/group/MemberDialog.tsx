@@ -56,8 +56,8 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       const memberIds = new Set(members.map(m => m.user_id))
       const available = (allUsers as SearchUser[]).filter(u => !memberIds.has(u.id))
       setSearchResults(available)
-    } catch {
-      // 搜索静默失败
+    } catch (err) {
+      console.warn('搜索用户失败', err)
     }
   }, [members])
 
@@ -102,81 +102,83 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{groupName} — 成员管理</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{groupName} — 成员管理</DialogTitle>
+          </DialogHeader>
 
-        <div className="flex gap-4 min-h-[300px] max-h-[400px]">
-          {/* Left: current members */}
-          <div className="flex-1 border rounded-md flex flex-col">
-            <div className="bg-muted px-3 py-2 text-sm font-medium border-b">
-              当前成员 ({members.length})
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {members.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">暂无成员</p>
-              ) : (
-                members.map((m) => (
-                  <div key={m.user_id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
-                    <div>
-                      <span className="text-sm font-medium">{m.real_name || m.username}</span>
-                      <span className="text-xs text-muted-foreground ml-1">@{m.username}</span>
+          <div className="flex gap-4 min-h-[300px] max-h-[400px]">
+            {/* Left: current members */}
+            <div className="flex-1 border rounded-md flex flex-col">
+              <div className="bg-muted px-3 py-2 text-sm font-medium border-b">
+                当前成员 ({members.length})
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">暂无成员</p>
+                ) : (
+                  members.map((m) => (
+                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
+                      <div>
+                        <span className="text-sm font-medium">{m.real_name || m.username}</span>
+                        <span className="text-xs text-muted-foreground ml-1">@{m.username}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 h-auto px-1 py-0 text-xs"
+                        disabled={loading}
+                        onClick={() => setRemoveTarget(m)}
+                      >
+                        移除
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 h-auto px-1 py-0 text-xs"
-                      disabled={loading}
-                      onClick={() => setRemoveTarget(m)}
-                    >
-                      移除
-                    </Button>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Right: search + add */}
+            <div className="flex-1 flex flex-col gap-2">
+              <Input
+                placeholder="搜索用户..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <div className="flex-1 border rounded-md overflow-y-auto">
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {searchKeyword ? '无匹配用户' : '输入关键词搜索'}
+                  </p>
+                ) : (
+                  searchResults.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
+                      <div>
+                        <span className="text-sm font-medium">{u.real_name || u.username}</span>
+                        <span className="text-xs text-muted-foreground ml-1">@{u.username}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-500 h-auto px-1 py-0 text-xs"
+                        disabled={loading}
+                        onClick={() => handleAdd(u.id)}
+                      >
+                        加入
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* Right: search + add */}
-          <div className="flex-1 flex flex-col gap-2">
-            <Input
-              placeholder="搜索用户..."
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              className="h-8 text-sm"
-            />
-            <div className="flex-1 border rounded-md overflow-y-auto">
-              {searchResults.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  {searchKeyword ? '无匹配用户' : '输入关键词搜索'}
-                </p>
-              ) : (
-                searchResults.map((u) => (
-                  <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
-                    <div>
-                      <span className="text-sm font-medium">{u.real_name || u.username}</span>
-                      <span className="text-xs text-muted-foreground ml-1">@{u.username}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-blue-500 h-auto px-1 py-0 text-xs"
-                      disabled={loading}
-                      onClick={() => handleAdd(u.id)}
-                    >
-                      加入
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-
-      {/* Remove confirmation */}
+      {/* Remove confirmation (sibling, not nested) */}
       <Dialog open={!!removeTarget} onOpenChange={(o) => { if (!o) setRemoveTarget(null) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -191,6 +193,6 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
           </div>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   )
 }
