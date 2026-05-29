@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import GroupDialog from '@/components/group/GroupDialog'
+import MemberDialog from '@/components/group/MemberDialog'
 
 interface Group {
   id: number
@@ -27,6 +28,7 @@ export default function GroupsPage() {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
   const [editGroup, setEditGroup] = useState<Group | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null)
+  const [memberGroup, setMemberGroup] = useState<Group | null>(null)
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['groups'],
@@ -97,6 +99,11 @@ export default function GroupsPage() {
                     {(canUpdate || canDelete) && (
                       <td className="p-3 text-right">
                         {canUpdate && (
+                          <Button variant="ghost" size="sm" onClick={() => setMemberGroup(group)}>
+                            成员
+                          </Button>
+                        )}
+                        {canUpdate && (
                           <Button variant="ghost" size="sm" onClick={() => handleEdit(group)}>
                             编辑
                           </Button>
@@ -142,6 +149,13 @@ export default function GroupsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemberDialog
+        groupId={memberGroup?.id ?? 0}
+        groupName={memberGroup?.name ?? ''}
+        open={!!memberGroup}
+        onOpenChange={(o) => { if (!o) setMemberGroup(null) }}
+      />
     </div>
   )
 }
