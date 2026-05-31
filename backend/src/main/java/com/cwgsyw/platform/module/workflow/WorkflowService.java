@@ -4,8 +4,10 @@ import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
@@ -24,6 +26,7 @@ public class WorkflowService {
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final RepositoryService repositoryService;
+    private final HistoryService historyService;
 
     @Transactional
     public String startDailyReportApproval(Long reportId, Long groupId) {
@@ -258,6 +261,124 @@ public class WorkflowService {
                     d -> d.getDeploymentTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()));
         vos.forEach(vo -> vo.setDeploymentTime(deploymentTimeMap.get(vo.getDeploymentId())));
         return vos;
+    }
+
+    // ========== Generic Process Instance Management ==========
+
+    private LocalDateTime dateToLocal(java.util.Date d) {
+        return d != null ? d.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() : null;
+    }
+
+    /**
+     * Generic process start by key
+     */
+    @Transactional
+    public InstanceVO startProcess(StartProcessRequest req, Long userId, String tenantId) {
+        ProcessInstance pi = runtimeService.startProcessInstanceByKey(
+            req.getProcessDefinitionKey(),
+            req.getBusinessKey(),
+            req.getVariables() != null ? req.getVariables() : Map.of());
+        return toInstanceVO(pi);
+    }
+
+    /**
+     * List running process instances
+     */
+    public PageResult<InstanceVO> listRunningInstances(String key, int page, int size) {
+        var query = runtimeService.createProcessInstanceQuery();
+        if (key != null && !key.isEmpty()) query.processDefinitionKey(key);
+        query.orderByStartTime().desc();
+        long total = query.count();
+        var pis = query.listPage((page - 1) * size, size);
+        var result = new PageResult<InstanceVO>();
+        result.setRecords(pis.stream().map(this::toInstanceVO).toList());
+        result.setTotal(total);
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    /**
+     * Suspend process instance
+     */
+    @Transactional
+    public void suspendInstance(String instanceId) {
+        runtimeService.suspendProcessInstanceById(instanceId);
+    }
+
+    /**
+     * Activate process instance
+     */
+    @Transactional
+    public void activateInstance(String instanceId) {
+        runtimeService.activateProcessInstanceById(instanceId);
+    }
+
+    /**
+     * Delete (terminate) process instance
+     */
+    @Transactional
+    public void deleteInstance(String instanceId, String reason) {
+        runtimeService.deleteProcessInstance(instanceId, reason);
+    }
+
+    /**
+     * List finished (historical) process instances
+     */
+    public PageResult<InstanceVO> listFinishedInstances(String key, int page, int size) {
+        var query = historyService.createHistoricProcessInstanceQuery().finished();
+        if (key != null && !key.isEmpty()) query.processDefinitionKey(key);
+        query.orderByProcessInstanceEndTime().desc();
+        long total = query.count();
+        var pis = query.listPage((page - 1) * size, size);
+        var result = new PageResult<InstanceVO>();
+        result.setRecords(pis.stream().map(hpi -> {
+            var vo = new InstanceVO();
+            vo.setId(hpi.getId());
+            vo.setBusinessKey(hpi.getBusinessKey());
+            vo.setProcessDefinitionName(hpi.getProcessDefinitionName());
+            vo.setProcessDefinitionKey(hpi.getProcessDefinitionKey());
+            vo.setStartTime(dateToLocal(hpi.getStartTime()));
+            vo.setEndTime(dateToLocal(hpi.getEndTime()));
+            vo.setEnded(true);
+            return vo;
+        }).toList());
+        result.setTotal(total);
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    /**
+     * Get historic activities for process diagram highlighting
+     */
+    public List<Map<String, Object>> getHistoricActivities(String instanceId) {
+        return historyService.createHistoricActivityInstanceQuery()
+            .processInstanceId(instanceId)
+            .orderByHistoricActivityInstanceStartTime().asc()
+            .list().stream().map(a -> {
+                Map<String, Object> m = new java.util.HashMap<>();
+                m.put("activityId", a.getActivityId());
+                m.put("activityName", a.getActivityName());
+                m.put("activityType", a.getActivityType());
+                m.put("startTime", dateToLocal(a.getStartTime()));
+                m.put("endTime", dateToLocal(a.getEndTime()));
+                m.put("assignee", a.getAssignee() != null ? a.getAssignee() : "");
+                return m;
+            }).toList();
+    }
+
+    private InstanceVO toInstanceVO(ProcessInstance pi) {
+        var vo = new InstanceVO();
+        vo.setId(pi.getId());
+        vo.setBusinessKey(pi.getBusinessKey());
+        vo.setProcessDefinitionId(pi.getProcessDefinitionId());
+        vo.setProcessDefinitionKey(pi.getProcessDefinitionKey());
+        vo.setProcessDefinitionName(pi.getProcessDefinitionName());
+        vo.setStartTime(dateToLocal(pi.getStartTime()));
+        vo.setEnded(pi.isEnded());
+        vo.setSuspended(pi.isSuspended());
+        return vo;
     }
 
     private List<TaskVO> toVOList(List<Task> tasks) {
