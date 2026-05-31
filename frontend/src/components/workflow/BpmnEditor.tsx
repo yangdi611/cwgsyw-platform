@@ -26,8 +26,13 @@ export default function BpmnEditor({ initialXml, onChange, readOnly = false }: B
       keyboard: { bindTo: document },
     });
 
-    modeler.on('import.done', () => {
+    modeler.on('import.done', async () => {
       setReady(true);
+      // Save the initial XML so the parent has it for submission
+      try {
+        const result = await modeler.saveXML({ format: true });
+        onChange?.(result.xml ?? '');
+      } catch { /* ignore */ }
       // Wait for layout to settle, then fit
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
