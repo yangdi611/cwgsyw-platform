@@ -8,7 +8,7 @@ import {
   FileText, CheckSquare, Users, Building2, Shield, LayoutDashboard,
   KeyRound, Bell, Settings, BarChart2, ClipboardList, FileCode,
   Database, Search, Server, Settings2, ChevronDown, ChevronRight,
-  Wrench, ClipboardCheck, FolderOpen,
+  Wrench, ClipboardCheck, FolderOpen, GitBranch,
 } from 'lucide-react'
 
 interface NavItem {
@@ -60,6 +60,7 @@ const sidebarEntries: SidebarEntry[] = [
     children: [
       { href: '/daily',          label: '我的日报', icon: FileText,    resource: 'daily_report', action: 'read' },
       { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare, resource: 'workflow',     action: 'read' },
+      { href: '/workflow/admin', label: '流程管理', icon: GitBranch, resource: 'workflow', action: 'configure' },
       { href: '/notifications',  label: '通知中心', icon: Bell,        resource: 'notification', action: 'read' },
     ],
   },
