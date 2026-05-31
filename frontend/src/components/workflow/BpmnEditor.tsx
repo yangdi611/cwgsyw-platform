@@ -8,11 +8,8 @@ import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 interface BpmnEditorProps {
-  /** Initial BPMN XML, uses empty template if not provided */
   initialXml?: string;
-  /** Callback when editor content changes */
   onChange?: (xml: string) => void;
-  /** Whether the editor is read-only */
   readOnly?: boolean;
 }
 
@@ -31,8 +28,13 @@ export default function BpmnEditor({ initialXml, onChange, readOnly = false }: B
 
     modeler.on('import.done', () => {
       setReady(true);
-      const canvas = modeler.get('canvas') as any;
-      canvas.zoom('fit-viewport');
+      // Wait for layout to settle, then fit
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const canvas = modeler.get('canvas') as any;
+          if (canvas) canvas.zoom('fit-viewport');
+        });
+      });
     });
 
     modeler.on('commandStack.changed', async () => {
@@ -40,7 +42,7 @@ export default function BpmnEditor({ initialXml, onChange, readOnly = false }: B
         const { xml } = await modeler.saveXML({ format: true });
         onChange?.(xml ?? '');
       } catch {
-        // ignore save errors during editing
+        // ignore
       }
     });
 
@@ -51,29 +53,47 @@ export default function BpmnEditor({ initialXml, onChange, readOnly = false }: B
       modeler.importXML(EMPTY_BPMN);
     });
 
+    // Resize handler — keep canvas fitting as container resizes
+    const handleResize = () => {
+      const canvas = modeler.get('canvas') as any;
+      if (canvas) canvas.resized();
+    };
+    window.addEventListener('resize', handleResize);
+
+    // ResizeObserver for container size changes
+    let observer: ResizeObserver | null = null;
+    if (containerRef.current) {
+      observer = new ResizeObserver(() => {
+        handleResize();
+      });
+      observer.observe(containerRef.current);
+    }
+
     return () => {
+      window.removeEventListener('resize', handleResize);
+      if (observer) observer.disconnect();
       modeler.destroy();
       modelerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-import when initialXml changes
   useEffect(() => {
     if (!modelerRef.current || !initialXml) return;
     modelerRef.current.importXML(initialXml);
     const canvas = modelerRef.current.get('canvas') as any;
-    canvas.zoom('fit-viewport');
+    requestAnimationFrame(() => canvas?.zoom('fit-viewport'));
   }, [initialXml]);
 
   return (
-    <div className="relative w-full h-full min-h-[500px] border rounded-lg bg-white">
+    <div className="relative w-full border rounded-lg bg-white"
+      style={{ height: 'calc(100vh - 280px)', minHeight: '600px' }}>
       {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
           <span className="text-muted-foreground">加载编辑器中...</span>
         </div>
       )}
-      <div ref={containerRef} className="w-full h-full min-h-[500px]" />
+      <div ref={containerRef} className="w-full h-full" />
     </div>
   );
 }
