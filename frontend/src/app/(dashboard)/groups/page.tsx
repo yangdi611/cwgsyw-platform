@@ -16,6 +16,10 @@ interface Group {
   id: number
   name: string
   description: string
+  leader_id: number | null
+  leader_real_name: string | null
+  member_count: number
+  member_preview: string[]
 }
 
 export default function GroupsPage() {
@@ -32,14 +36,11 @@ export default function GroupsPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['groups'],
-    queryFn: () => api.get('/groups').then((r) => {
-      const items = r.data.data as Group[]
-      return { records: items, total: items.length }
-    }),
+    queryFn: () => api.get('/groups').then((r) => r.data.data as Group[]),
   })
 
-  const groups = data?.records ?? []
-  const total = data?.total ?? 0
+  const groups = data ?? []
+  const total = groups.length
 
   const handleNew = () => {
     setDialogMode('create')
@@ -62,6 +63,7 @@ export default function GroupsPage() {
       refetch()
     } catch {
       toast.error('删除失败')
+      setDeleteTarget(null)
     }
   }
 
@@ -86,6 +88,8 @@ export default function GroupsPage() {
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 text-sm font-medium">组名称</th>
                   <th className="text-left p-3 text-sm font-medium">描述</th>
+                  <th className="text-left p-3 text-sm font-medium">组长</th>
+                  <th className="text-left p-3 text-sm font-medium">组员</th>
                   {(canUpdate || canDelete) && (
                     <th className="text-right p-3 text-sm font-medium">操作</th>
                   )}
@@ -96,6 +100,12 @@ export default function GroupsPage() {
                   <tr key={group.id} className="border-b last:border-0">
                     <td className="p-3 text-sm font-medium">{group.name}</td>
                     <td className="p-3 text-sm text-muted-foreground">{group.description || '-'}</td>
+                    <td className="p-3 text-sm">{group.leader_real_name || '-'}</td>
+                    <td className="p-3 text-sm text-muted-foreground">
+                      {group.member_preview && group.member_preview.length > 0
+                        ? <>{group.member_preview.join(', ')}{group.member_count > 3 ? ', ...' : ''}</>
+                        : '-'}
+                    </td>
                     {(canUpdate || canDelete) && (
                       <td className="p-3 text-right">
                         {canUpdate && (

@@ -21,10 +21,10 @@ function formatBytes(bytes: number): string {
 interface FileDetail {
   id: number
   name: string
-  fileType: string
-  fileSize: number
-  uploaderName: string
-  createdAt: string
+  file_type: string
+  size_bytes: number
+  created_by_name: string
+  created_at: string
 }
 
 interface PreviewUrlResponse {
@@ -126,7 +126,7 @@ export default function FilePreviewPage() {
   const file = detailData?.data
   const previewUrl = urlData?.data?.url
 
-  const ext = file?.fileType?.toLowerCase() ?? ''
+  const ext = file?.file_type?.toLowerCase() ?? ''
   const isPdf = ext === 'pdf'
   const isDocx = ext === 'docx' || ext === 'doc'
   const isXlsx = ext === 'xlsx' || ext === 'xls'
@@ -156,8 +156,8 @@ export default function FilePreviewPage() {
           <h1 className="text-sm font-medium truncate">{file?.name ?? '加载中...'}</h1>
           {file && (
             <p className="text-xs text-muted-foreground">
-              {file.uploaderName} · {formatBytes(file.fileSize)} ·{' '}
-              {new Date(file.createdAt).toLocaleString('zh-CN', {
+              {file.created_by_name} · {formatBytes(file.size_bytes)} ·{' '}
+              {new Date(file.created_at).toLocaleString('zh-CN', {
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit',
               })}

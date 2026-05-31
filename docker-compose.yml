@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -18,7 +18,7 @@ services:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis_data:/data
+      - ./data/redis:/data
     ports:
       - "6379:6379"
 
@@ -29,7 +29,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
+      - ./data/minio:/data
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -72,8 +72,3 @@ services:
     depends_on:
       - frontend
       - backend
-
-volumes:
-  postgres_data:
-  redis_data:
-  minio_data:

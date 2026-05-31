@@ -45,8 +45,14 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
 
   const { data: rolesData } = useQuery({
     queryKey: ['roles'],
-    queryFn: () => api.get('/rbac/roles').then(r => r.data.data as Role[]),
+    queryFn: () => api.get('/rbac/roles').then(r => (r.data.data?.records ?? []) as Role[]),
     enabled: open
+  })
+
+  const { data: userDetail } = useQuery({
+    queryKey: ['user-detail', user?.id],
+    queryFn: () => api.get('/users/' + user!.id).then(r => r.data.data),
+    enabled: open && mode === 'edit' && !!user?.id
   })
 
   useEffect(() => {
@@ -58,13 +64,13 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
           email: user.email || '',
           password: '',
           status: user.status,
-          role_ids: []
+          role_ids: userDetail?.role_ids ?? []
         })
       } else {
         reset({ username: '', real_name: '', email: '', password: '', status: 1, role_ids: [] })
       }
     }
-  }, [open, mode, user, reset])
+  }, [open, mode, user, userDetail, reset])
 
   const onSubmit = async (data: UserFormData) => {
     try {

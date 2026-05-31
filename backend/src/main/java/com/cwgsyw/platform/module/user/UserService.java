@@ -64,9 +64,23 @@ public class UserService {
     public void delete(Long id, Long operatorId) {
         User user = userMapper.selectById(id);
         if (user == null) throw new IllegalArgumentException("用户不存在");
-        user.setIsDeleted(true);
-        user.setDeletedBy(operatorId);
-        user.setDeletedAt(LocalDateTime.now());
-        userMapper.updateById(user);
+        userMapper.softDeleteById(id, LocalDateTime.now(), operatorId);
+    }
+
+    public UserDetailVO getDetail(Long id, String tenantId) {
+        User user = userMapper.selectOne(
+            new LambdaQueryWrapper<User>()
+                .eq(User::getId, id)
+                .eq(User::getTenantId, tenantId));
+        if (user == null) throw new IllegalArgumentException("用户不存在");
+        UserDetailVO vo = new UserDetailVO();
+        vo.setId(user.getId());
+        vo.setUsername(user.getUsername());
+        vo.setRealName(user.getRealName());
+        vo.setEmail(user.getEmail());
+        vo.setStatus(user.getStatus());
+        vo.setGroupId(user.getGroupId());
+        vo.setRoleIds(rbacService.getUserRoleIds(id));
+        return vo;
     }
 }

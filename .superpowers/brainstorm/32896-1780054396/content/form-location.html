@@ -1,0 +1,79 @@
+<h2>新建/编辑用户 — 表单在 Dialog 里还是页面内展开？</h2>
+<p class="subtitle">两种模式对比：Modal Dialog vs 表格上方表单区域</p>
+
+<div class="split">
+  <div class="mockup" style="flex:1">
+    <div class="mockup-header">A: Dialog 弹窗表单</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="background:#f9fafb;border-radius:8px;padding:16px;text-align:center">
+        <p style="font-weight:600;margin:0 0 8px;font-size:14px">新建用户</p>
+        <div class="placeholder" style="margin:4px 0;height:32px">用户名</div>
+        <div class="placeholder" style="margin:4px 0;height:32px">真实姓名</div>
+        <div class="placeholder" style="margin:4px 0;height:32px">邮箱</div>
+        <div class="placeholder" style="margin:4px 0;height:32px">密码</div>
+        <div class="placeholder" style="margin:4px 0;height:32px">角色分配</div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button class="mock-button">取消</button>
+          <button class="mock-button" style="background:#2563eb;color:white;border:none">保存</button>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;margin-top:8px">遮罩层覆盖表格，居中弹出</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="flex:1">
+    <div class="mockup-header">B: 页面内展开表单</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="background:#f9fafb;border-radius:8px;padding:16px;text-align:center">
+        <p style="font-weight:600;margin:0 0 8px;font-size:14px">+ 新建用户</p>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <div class="placeholder" style="flex:1;height:32px">用户名</div>
+          <div class="placeholder" style="flex:1;height:32px">真实姓名</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <div class="placeholder" style="flex:1;height:32px">邮箱</div>
+          <div class="placeholder" style="flex:1;height:32px">密码</div>
+        </div>
+        <div class="placeholder" style="margin:4px 0;height:32px">角色分配</div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button class="mock-button">取消</button>
+          <button class="mock-button" style="background:#2563eb;color:white;border:none">保存</button>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;margin-top:8px">表单在表格上方，不遮挡列表</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>对比</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr style="border-bottom:1px solid #e5e7eb">
+      <th style="text-align:left;padding:8px"></th>
+      <th style="text-align:center;padding:8px">A: Dialog</th>
+      <th style="text-align:center;padding:8px">B: 页面内</th>
+    </tr>
+    <tr style="border-bottom:1px solid #f3f4f6">
+      <td style="padding:8px">专注度</td>
+      <td style="text-align:center;padding:8px">✅ 高 — 遮罩隔离</td>
+      <td style="text-align:center;padding:8px">中 — 可见表格</td>
+    </tr>
+    <tr style="border-bottom:1px solid #f3f4f6">
+      <td style="padding:8px">代码复用</td>
+      <td style="text-align:center;padding:8px">✅ 项目已有 shadcn/ui Dialog</td>
+      <td style="text-align:center;padding:8px">需自建展开逻辑</td>
+    </tr>
+    <tr style="border-bottom:1px solid #f3f4f6">
+      <td style="padding:8px">编辑体验</td>
+      <td style="text-align:center;padding:8px">✅ 弹窗打开即聚焦</td>
+      <td style="text-align:center;padding:8px">页面跳动，表格下移</td>
+    </tr>
+    <tr style="border-bottom:1px solid #f3f4f6">
+      <td style="padding:8px">批量操作</td>
+      <td style="text-align:center;padding:8px">差</td>
+      <td style="text-align:center;padding:8px">✅ 可同时看表格和表单</td>
+    </tr>
+  </table>
+</div>
+
+<p class="subtitle">用户/组管理是低频操作，通常一次只处理一个用户，Dialog 模式更合适。</p>

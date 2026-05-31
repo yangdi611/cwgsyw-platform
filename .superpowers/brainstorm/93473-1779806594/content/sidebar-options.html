@@ -1,0 +1,83 @@
+<h2>侧边栏重组方案</h2>
+<p class="subtitle">当前有 14 个顶层条目，其中只有 CMDB 有分组。以下是三种归纳方式，选择你最喜欢的方向。</p>
+
+<div class="section">
+  <p class="label">当前结构（参考）</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">首页</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">我的日报</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">待审批</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">设备密码库</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">通知中心</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">变更文档</span>
+    <span style="background:#3b82f620;border:1px solid #3b82f640;border-radius:4px;padding:3px 8px;font-size:12px">▶ CMDB (3项)</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">报表导出</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">用户管理</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">组管理</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">角色权限</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">AI模板管理</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">系统配置</span>
+    <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px">审计日志</span>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>按职能分 4 组</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">最直观，用户一眼知道每组是什么</p>
+      <div style="font-size:12px;line-height:1.8">
+        <div style="color:var(--text-1)"><strong>首页</strong></div>
+        <div style="color:#6366f1;font-weight:600;margin-top:6px">📋 我的工作</div>
+        <div style="color:var(--text-2);padding-left:12px">我的日报 · 待审批 · 变更文档 · 通知中心</div>
+        <div style="color:#0ea5e9;font-weight:600;margin-top:6px">🗄️ 资产管理</div>
+        <div style="color:var(--text-2);padding-left:12px">设备密码库 · CMDB（搜索/CI资源/配置管理）</div>
+        <div style="color:#10b981;font-weight:600;margin-top:6px">📊 报表</div>
+        <div style="color:var(--text-2);padding-left:12px">报表导出</div>
+        <div style="color:#f59e0b;font-weight:600;margin-top:6px">⚙️ 管理后台</div>
+        <div style="color:var(--text-2);padding-left:12px">用户 · 组 · 角色权限 · AI模板 · 系统配置 · 审计</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>扁平 + 分隔线</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">保持扁平，用视觉分隔线区分区域，减少嵌套层级</p>
+      <div style="font-size:12px;line-height:1.8">
+        <div style="color:var(--text-1)"><strong>首页</strong></div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--text-2)">我的日报 · 待审批 · 变更文档 · 通知中心</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--text-2)">设备密码库 · CMDB ▶</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--text-2)">报表导出</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--text-2)">用户 · 组 · 角色权限 · AI模板 · 系统配置 · 审计</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>精简折叠组（推荐）</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">把低频管理入口折叠成组，高频操作保持在顶层，兼顾访问效率</p>
+      <div style="font-size:12px;line-height:1.8">
+        <div style="color:var(--text-1)"><strong>首页</strong></div>
+        <div style="color:var(--text-2)">我的日报</div>
+        <div style="color:var(--text-2)">待审批</div>
+        <div style="color:var(--text-2)">变更文档</div>
+        <div style="color:var(--text-2)">设备密码库</div>
+        <div style="color:var(--text-2)">通知中心</div>
+        <div style="color:#0ea5e9;font-weight:600">▶ CMDB</div>
+        <div style="color:var(--text-2);padding-left:12px;font-size:11px">搜索 · CI资源 · 配置管理</div>
+        <div style="color:var(--text-2)">报表导出</div>
+        <div style="color:#f59e0b;font-weight:600">▶ 管理后台</div>
+        <div style="color:var(--text-2);padding-left:12px;font-size:11px">用户 · 组 · 角色 · AI模板 · 系统配置 · 审计</div>
+      </div>
+    </div>
+  </div>
+</div>

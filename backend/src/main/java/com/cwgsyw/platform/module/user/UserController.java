@@ -32,6 +32,13 @@ public class UserController {
         return R.ok(userService.create(req, currentUser.getTenantId()));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasPermission('user', 'read')")
+    public R<UserDetailVO> detail(@PathVariable Long id,
+                                  @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(userService.getDetail(id, cu.getTenantId()));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('user', 'update')")
     public R<Void> update(@PathVariable Long id, @RequestBody UpdateUserRequest req) {

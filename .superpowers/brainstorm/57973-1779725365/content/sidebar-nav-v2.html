@@ -1,0 +1,142 @@
+<h2>CMDB 侧边栏导航结构</h2>
+<p class="subtitle">重构后需要三个功能区（搜索 / CI资源 / 配置管理），选择你偏好的导航方式</p>
+
+<style>
+.nav-mock {
+  background: #0f172a;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 8px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: -apple-system, sans-serif;
+  font-size: 13px;
+}
+.nav-item {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.nav-item.active {
+  background: #1e40af;
+  color: #fff;
+  font-weight: 600;
+}
+.nav-item.header {
+  color: #475569;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 10px 4px;
+}
+.nav-item.child {
+  padding-left: 24px;
+  font-size: 12px;
+}
+.nav-item.active-child {
+  background: #172554;
+  color: #93c5fd;
+  padding-left: 24px;
+  font-size: 12px;
+}
+.nav-divider {
+  border: none;
+  border-top: 1px solid #1e293b;
+  margin: 4px 0;
+}
+.page-tabs {
+  background: #0f172a;
+  padding: 8px 12px 0;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #1e293b;
+}
+.tab {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 6px 6px 0 0;
+  color: #64748b;
+}
+.tab.active {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+</style>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="nav-mock">
+        <span class="nav-item">📊 日报</span>
+        <span class="nav-item">🔐 设备密码</span>
+        <span class="nav-item">📄 变更文档</span>
+        <hr class="nav-divider">
+        <span class="nav-item active">▼ 🗄️ CMDB</span>
+        <span class="nav-item active-child">🔍 搜索</span>
+        <span class="nav-item child">📦 CI 资源</span>
+        <span class="nav-item child">⚙️ 配置管理</span>
+        <hr class="nav-divider">
+        <span class="nav-item">📈 报表</span>
+        <span class="nav-item">👥 用户</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — 展开式子菜单</h3>
+      <p>CMDB 节点可折叠/展开，三个子条目缩进显示。当前高亮的是"搜索"子条目。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="nav-mock">
+        <span class="nav-item">📊 日报</span>
+        <span class="nav-item">🔐 设备密码</span>
+        <span class="nav-item">📄 变更文档</span>
+        <span class="nav-item header">— CMDB —</span>
+        <span class="nav-item active">🔍 CI 搜索</span>
+        <span class="nav-item">📦 CI 资源</span>
+        <span class="nav-item">⚙️ CMDB 配置</span>
+        <hr class="nav-divider">
+        <span class="nav-item">📈 报表</span>
+        <span class="nav-item">👥 用户</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — 平铺独立条目</h3>
+      <p>三个条目各自独立，用小标题"CMDB"分隔区域。一次点击直达，无需展开。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="nav-mock">
+        <span class="nav-item">📊 日报</span>
+        <span class="nav-item">🔐 设备密码</span>
+        <span class="nav-item">📄 变更文档</span>
+        <span class="nav-item active">🗄️ CMDB</span>
+        <hr class="nav-divider">
+        <span class="nav-item">📈 报表</span>
+        <span class="nav-item">👥 用户</span>
+      </div>
+      <div class="page-tabs">
+        <span class="tab active">🔍 搜索</span>
+        <span class="tab">📦 CI 资源</span>
+        <span class="tab">⚙️ 配置</span>
+      </div>
+      <div style="background:#1e293b;padding:8px 12px;font-size:11px;color:#64748b;border-radius:0 0 8px 8px">
+        页面内容区域（根据 Tab 切换）
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — 单入口 + 页面内 Tab</h3>
+      <p>侧边栏保留一个 CMDB 条目，进入后页面顶部用 Tab 切换三个功能区。侧边栏最简洁。</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">点击选择，或在终端告知你的想法</p>

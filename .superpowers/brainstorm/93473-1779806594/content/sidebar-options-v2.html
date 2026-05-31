@@ -1,0 +1,98 @@
+<h2>侧边栏重构方案</h2>
+<p class="subtitle">当前有 14 个顶层条目，部分功能可以归类合并</p>
+
+<div class="section">
+  <div class="label">当前结构（14 个条目，仅 CMDB 分组）</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">首页</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">我的日报</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">待审批</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">设备密码库</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">通知中心</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">变更文档</span>
+    <span style="background:#3b82f620;padding:3px 10px;border-radius:4px;font-size:12px">▸ CMDB (3子项)</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">报表导出</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">用户管理</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">组管理</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">角色权限</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">AI模板管理</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">系统配置</span>
+    <span style="background:var(--surface-2);padding:3px 10px;border-radius:4px;font-size:12px">审计日志</span>
+  </div>
+</div>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 A — 三大分组</h3>
+      <p style="color:var(--text-2);font-size:13px;margin-bottom:12px">按「工作台 / CMDB / 管理后台」划分，层级清晰，管理员功能全部收入底部</p>
+      <div style="background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;line-height:1.9">
+        <div style="color:var(--text-1);font-weight:600">首页</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 工作台</div>
+        <div style="padding-left:16px;color:var(--text-2)">我的日报 · 待审批 · 通知中心</div>
+        <div style="padding-left:16px;color:var(--text-2)">变更文档 · 设备密码库 · 报表</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ CMDB</div>
+        <div style="padding-left:16px;color:var(--text-2)">搜索 · CI资源 · 配置管理</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 管理后台</div>
+        <div style="padding-left:16px;color:var(--text-2)">用户/组/角色 · 模板 · 配置 · 审计</div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>优点</h4><ul><li>层级最少，只有 3 层</li><li>工作台 vs 管理明确分离</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>工作台子项较多(6个)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 B — 五组细分</h3>
+      <p style="color:var(--text-2);font-size:13px;margin-bottom:12px">按功能域更细粒度拆分，每组 2~4 个子项，访问深度浅</p>
+      <div style="background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;line-height:1.9">
+        <div style="color:var(--text-1);font-weight:600">首页</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 日常工作</div>
+        <div style="padding-left:16px;color:var(--text-2)">我的日报 · 待审批</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 变更与资产</div>
+        <div style="padding-left:16px;color:var(--text-2)">变更文档 · 设备密码库</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ CMDB</div>
+        <div style="padding-left:16px;color:var(--text-2)">搜索 · CI资源 · 配置管理</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 报表与通知</div>
+        <div style="padding-left:16px;color:var(--text-2)">报表导出 · 通知中心</div>
+        <div style="color:var(--accent);font-weight:600;margin-top:6px">▸ 系统管理</div>
+        <div style="padding-left:16px;color:var(--text-2)">用户/组/角色 · 模板 · 配置 · 审计</div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>优点</h4><ul><li>每组子项少，扫描快</li><li>语义更清晰</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>多 2 个折叠组，点击多</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 C — 顶栏分区（扁平优先）</h3>
+      <p style="color:var(--text-2);font-size:13px;margin-bottom:12px">高频条目直接展示，管理类和 CMDB 折叠，最大化操作效率</p>
+      <div style="background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;line-height:1.9">
+        <div style="color:var(--text-1);font-weight:600">首页</div>
+        <div style="color:var(--text-1)">我的日报</div>
+        <div style="color:var(--text-1)">待审批</div>
+        <div style="color:var(--text-1)">变更文档</div>
+        <div style="color:var(--text-1)">设备密码库</div>
+        <div style="color:var(--text-1)">通知中心</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--accent);font-weight:600">▸ CMDB</div>
+        <div style="padding-left:16px;color:var(--text-2)">搜索 · CI资源 · 配置管理</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div style="color:var(--accent);font-weight:600">▸ 管理后台</div>
+        <div style="padding-left:16px;color:var(--text-2)">用户/组/角色 · 报表 · 模板 · 配置 · 审计</div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>优点</h4><ul><li>高频功能零点击直达</li><li>折叠层级最少</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>顶部仍有 5 个平铺项</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">点击选择你偏好的方案，或在终端说明你的想法</p>

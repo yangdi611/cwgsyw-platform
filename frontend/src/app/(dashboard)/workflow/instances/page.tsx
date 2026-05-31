@@ -26,11 +26,11 @@ interface InstanceVO {
 }
 
 interface ActivityVO {
-  activityId: string;
-  activityName: string;
-  activityType: string;
-  startTime: string;
-  endTime: string | null;
+  activity_id: string;
+  activity_name: string;
+  activity_type: string;
+  start_time: string;
+  end_time: string | null;
   assignee: string;
 }
 
@@ -93,8 +93,8 @@ export default function InstancesPage() {
     catch { toast.error('操作失败'); }
   };
 
-  const completedIds = activities.filter(a => a.endTime).map(a => a.activityId);
-  const currentIds = activities.filter(a => !a.endTime).map(a => a.activityId);
+  const completedIds = activities.filter(a => a.end_time).map(a => a.activity_id);
+  const currentIds = activities.filter(a => !a.end_time).map(a => a.activity_id);
 
   const formatDate = (s: string) => new Date(s).toLocaleString('zh-CN');
 
@@ -205,10 +205,10 @@ export default function InstancesPage() {
               <div className="space-y-1">
                 {activities.map((a, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm py-1 border-b last:border-0">
-                    <Badge variant={a.endTime ? 'outline' : 'default'} className="text-xs">
-                      {a.endTime ? '已完成' : '进行中'}
+                    <Badge variant={a.end_time ? 'outline' : 'default'} className="text-xs">
+                      {a.end_time ? '已完成' : '进行中'}
                     </Badge>
-                    <span>{a.activityName}</span>
+                    <span>{a.activity_name}</span>
                     {a.assignee && <span className="text-muted-foreground text-xs ml-auto">负责人: {a.assignee}</span>}
                   </div>
                 ))}

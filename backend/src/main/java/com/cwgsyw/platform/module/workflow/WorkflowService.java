@@ -358,11 +358,11 @@ public class WorkflowService {
             .orderByHistoricActivityInstanceStartTime().asc()
             .list().stream().map(a -> {
                 Map<String, Object> m = new java.util.HashMap<>();
-                m.put("activityId", a.getActivityId());
-                m.put("activityName", a.getActivityName());
-                m.put("activityType", a.getActivityType());
-                m.put("startTime", dateToLocal(a.getStartTime()));
-                m.put("endTime", dateToLocal(a.getEndTime()));
+                m.put("activity_id", a.getActivityId());
+                m.put("activity_name", a.getActivityName());
+                m.put("activity_type", a.getActivityType());
+                m.put("start_time", dateToLocal(a.getStartTime()));
+                m.put("end_time", dateToLocal(a.getEndTime()));
                 m.put("assignee", a.getAssignee() != null ? a.getAssignee() : "");
                 return m;
             }).toList();
