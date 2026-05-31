@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { EMPTY_BPMN } from '@/lib/bpmn';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 interface BpmnEditorProps {
   /** Initial BPMN XML, uses empty template if not provided */

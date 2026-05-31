@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import BpmnJSViewer from 'bpmn-js/lib/NavigatedViewer';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 interface BpmnViewerProps {
-  /** BPMN 2.0 XML content */
   xml: string;
-  /** Activity IDs that are completed (green highlight) */
   completedActivities?: string[];
-  /** Activity IDs that are currently active (blue highlight with pulse) */
   currentActivities?: string[];
 }
 
@@ -17,19 +18,18 @@ export default function BpmnViewer({
   currentActivities = [],
 }: BpmnViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!containerRef.current || !xml) return;
 
-    let viewer: any = null;
+    if (viewerRef.current) {
+      viewerRef.current.destroy();
+      viewerRef.current = null;
+    }
 
-    // Dynamic import to avoid SSR issues
-    import('bpmn-js/lib/NavigatedViewer').then(({ default: BpmnJSViewer }) => {
-      if (!containerRef.current) return;
-
-      viewer = new BpmnJSViewer({
-        container: containerRef.current,
-      });
+    try {
+      const viewer = new BpmnJSViewer({ container: containerRef.current });
 
       viewer.importXML(xml).then(() => {
         const canvas = viewer.get('canvas') as any;
@@ -38,7 +38,6 @@ export default function BpmnViewer({
         const overlays = viewer.get('overlays') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
 
-        // Green overlay for completed activities
         completedActivities.forEach((id) => {
           try {
             if (elementRegistry.get(id)) {
@@ -47,12 +46,9 @@ export default function BpmnViewer({
                 html: '<div style="width:100%;height:100%;background:rgba(34,197,94,0.15);border:2px solid #22c55e;border-radius:6px;pointer-events:none"></div>',
               });
             }
-          } catch {
-            // ignore missing elements
-          }
+          } catch { /* ignore */ }
         });
 
-        // Blue overlay for current activities
         currentActivities.forEach((id) => {
           try {
             if (elementRegistry.get(id)) {
@@ -61,17 +57,22 @@ export default function BpmnViewer({
                 html: '<div style="width:100%;height:100%;background:rgba(59,130,246,0.25);border:2px solid #3b82f6;border-radius:6px;animation:pulse 1.5s ease-in-out infinite;pointer-events:none"></div>',
               });
             }
-          } catch {
-            // ignore missing elements
-          }
+          } catch { /* ignore */ }
         });
       }).catch((err: any) => {
-        console.warn('Failed to import BPMN XML:', err);
+        console.warn('BPMN viewer import failed:', err);
       });
-    });
+
+      viewerRef.current = viewer;
+    } catch (err) {
+      console.error('BPMN viewer init failed:', err);
+    }
 
     return () => {
-      if (viewer) viewer.destroy();
+      if (viewerRef.current) {
+        viewerRef.current.destroy();
+        viewerRef.current = null;
+      }
     };
   }, [xml, completedActivities, currentActivities]);
 
