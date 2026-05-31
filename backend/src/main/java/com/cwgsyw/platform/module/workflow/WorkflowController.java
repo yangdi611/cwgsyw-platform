@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.cwgsyw.platform.module.workflow.dto.InstanceVO;
+import com.cwgsyw.platform.module.workflow.dto.StartProcessRequest;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/workflow")
@@ -127,5 +130,102 @@ public class WorkflowController {
             .remark("删除流程定义: " + def.getName())
             .build());
         return R.ok();
+    }
+
+    // ========== Process Instance Management ==========
+
+    /**
+     * 启动流程实例
+     */
+    @PostMapping("/instances")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<InstanceVO> startProcess(@RequestBody StartProcessRequest req,
+                                       @AuthenticationPrincipal SecurityUser cu) {
+        InstanceVO vo = workflowService.startProcess(req, cu.getUserId(), cu.getTenantId());
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(cu.getTenantId())
+            .module("workflow")
+            .action("start_process")
+            .targetId(0L)
+            .targetType("process_instance")
+            .operatorId(cu.getUserId())
+            .afterJson("{\"instanceId\":\"" + vo.getId() + "\",\"key\":\"" + req.getProcessDefinitionKey() + "\"}")
+            .remark("启动流程: " + req.getProcessDefinitionKey())
+            .build());
+        return R.ok(vo);
+    }
+
+    /**
+     * 运行中的流程实例
+     */
+    @GetMapping("/instances/running")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<PageResult<InstanceVO>> runningInstances(
+            @RequestParam(required = false) String key,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return R.ok(workflowService.listRunningInstances(key, page, size));
+    }
+
+    /**
+     * 已完成的流程实例
+     */
+    @GetMapping("/instances/finished")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<PageResult<InstanceVO>> finishedInstances(
+            @RequestParam(required = false) String key,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return R.ok(workflowService.listFinishedInstances(key, page, size));
+    }
+
+    /**
+     * 挂起流程实例
+     */
+    @PutMapping("/instances/{id}/suspend")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> suspendInstance(@PathVariable String id) {
+        workflowService.suspendInstance(id);
+        return R.ok();
+    }
+
+    /**
+     * 激活流程实例
+     */
+    @PutMapping("/instances/{id}/activate")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> activateInstance(@PathVariable String id) {
+        workflowService.activateInstance(id);
+        return R.ok();
+    }
+
+    /**
+     * 终止流程实例
+     */
+    @DeleteMapping("/instances/{id}")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> deleteInstance(@PathVariable String id,
+                                   @RequestParam(defaultValue = "手动终止") String reason,
+                                   @AuthenticationPrincipal SecurityUser cu) {
+        workflowService.deleteInstance(id, reason);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(cu.getTenantId())
+            .module("workflow")
+            .action("delete_instance")
+            .targetId(0L)
+            .targetType("process_instance")
+            .operatorId(cu.getUserId())
+            .remark("终止流程实例: " + id + " reason=" + reason)
+            .build());
+        return R.ok();
+    }
+
+    /**
+     * 流程实例历史活动（用于流程图高亮）
+     */
+    @GetMapping("/instances/{id}/activities")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<List<Map<String, Object>>> activities(@PathVariable String id) {
+        return R.ok(workflowService.getHistoricActivities(id));
     }
 }
