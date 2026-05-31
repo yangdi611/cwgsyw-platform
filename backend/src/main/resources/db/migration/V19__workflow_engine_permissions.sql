@@ -1,12 +1,8 @@
 -- V19: 流程引擎管理权限
 
--- 资源已存在 (workflow:read, workflow:configure from V4)，但补充 description
-UPDATE sys_resource SET description = '流程引擎 — 流程定义和审批管理'
-WHERE code = 'workflow';
-
 -- 确保 workflow:configure 权限存在
-INSERT INTO sys_permission (tenant_id, resource_id, action, description, created_at, updated_at)
-SELECT 'default', r.id, 'configure', '流程定义管理（CRUD 部署）', NOW(), NOW()
+INSERT INTO sys_permission (resource_id, action, code, name)
+SELECT r.id, 'configure', 'workflow:configure', '流程定义管理（CRUD 部署）'
 FROM sys_resource r
 WHERE r.code = 'workflow'
   AND NOT EXISTS (
@@ -15,8 +11,8 @@ WHERE r.code = 'workflow'
   );
 
 -- 赋权: super_admin, admin 拥有 workflow:configure
-INSERT INTO sys_role_permission (tenant_id, role_id, permission_id, created_at, updated_at)
-SELECT 'default', sr.id, sp.id, NOW(), NOW()
+INSERT INTO sys_role_permission (role_id, permission_id)
+SELECT sr.id, sp.id
 FROM sys_role sr
 CROSS JOIN sys_permission sp
 JOIN sys_resource r ON sp.resource_id = r.id
