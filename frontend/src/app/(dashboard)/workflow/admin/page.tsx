@@ -7,6 +7,8 @@ import api from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -32,6 +34,9 @@ export default function WorkflowAdminPage() {
   const [versionDef, setVersionDef] = useState<ProcessDef | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
   const [page, setPage] = useState(1);
+  const [startTarget, setStartTarget] = useState<ProcessDef | null>(null);
+  const [startBizKey, setStartBizKey] = useState('');
+  const [starting, setStarting] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-definitions', page],
@@ -55,6 +60,24 @@ export default function WorkflowAdminPage() {
       toast.error(err.response?.data?.message || '删除失败');
       setDeleteTarget(null);
     }
+  };
+
+  const handleStart = async () => {
+    if (!startTarget) return;
+    if (!startBizKey.trim()) { toast.error('请输入业务标识'); return; }
+    setStarting(true);
+    try {
+      const r = await api.post('/workflow/instances', {
+        process_definition_key: startTarget.key,
+        business_key: startBizKey.trim(),
+        variables: {},
+      });
+      toast.success(`流程已启动 — 实例: ${r.data.data.id.substring(0, 8)}...`);
+      setStartTarget(null);
+      setStartBizKey('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || '启动失败');
+    } finally { setStarting(false); }
   };
 
   const handleVersions = async (def: ProcessDef) => {
@@ -125,6 +148,7 @@ export default function WorkflowAdminPage() {
                     </td>
                     {canConfigure && (
                       <td className="p-3 text-right space-x-2">
+                        <Button variant="ghost" size="sm" className="text-green-600" onClick={() => { setStartTarget(def); setStartBizKey(''); }}>启动</Button>
                         <Button variant="ghost" size="sm" onClick={() => handleVersions(def)}>版本</Button>
                         <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.id}`)}>
                           编辑
@@ -209,6 +233,35 @@ export default function WorkflowAdminPage() {
           )}
         </div>
       )}
+      {/* Start process dialog */}
+      <Dialog open={!!startTarget} onOpenChange={(o) => { if (!o) { setStartTarget(null); setStartBizKey(''); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>启动流程: {startTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Key: <code className="font-mono">{startTarget?.key}</code> · v{startTarget?.version}
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="bizKey">业务标识 *</Label>
+            <Input
+              id="bizKey"
+              value={startBizKey}
+              onChange={e => setStartBizKey(e.target.value)}
+              placeholder="如: 日报:42、变更:审批001"
+            />
+            <p className="text-xs text-muted-foreground">
+              用于标识流程实例关联的业务对象，方便在流程实例列表中追踪
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setStartTarget(null); setStartBizKey(''); }}>取消</Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={handleStart} disabled={starting}>
+              {starting ? '启动中...' : '启动流程'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
