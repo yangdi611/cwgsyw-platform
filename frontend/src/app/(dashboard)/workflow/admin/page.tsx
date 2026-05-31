@@ -29,6 +29,8 @@ export default function WorkflowAdminPage() {
   const { hasPermission } = usePermission();
   const canConfigure = hasPermission('workflow', 'configure');
   const [deleteTarget, setDeleteTarget] = useState<ProcessDef | null>(null);
+  const [versionDef, setVersionDef] = useState<ProcessDef | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
   const [page, setPage] = useState(1);
 
   const { data, isLoading, refetch } = useQuery({
@@ -52,6 +54,16 @@ export default function WorkflowAdminPage() {
     } catch (err: any) {
       toast.error(err.response?.data?.message || '删除失败');
       setDeleteTarget(null);
+    }
+  };
+
+  const handleVersions = async (def: ProcessDef) => {
+    setVersionDef(def);
+    try {
+      const r = await api.get(`/workflow/definitions/key/${def.key}/versions`);
+      setVersions(r.data.data ?? []);
+    } catch {
+      toast.error('获取版本历史失败');
     }
   };
 
@@ -113,6 +125,7 @@ export default function WorkflowAdminPage() {
                     </td>
                     {canConfigure && (
                       <td className="p-3 text-right space-x-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleVersions(def)}>版本</Button>
                         <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.id}`)}>
                           编辑
                         </Button>
@@ -155,6 +168,47 @@ export default function WorkflowAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {versionDef && (
+        <div className="border rounded-lg p-4 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold">{versionDef.name} — 版本历史</h2>
+            <Button variant="ghost" size="sm" onClick={() => { setVersionDef(null); setVersions([]); }}>关闭</Button>
+          </div>
+          {versions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">暂无版本数据</p>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 text-sm font-medium">版本</th>
+                    <th className="text-left p-3 text-sm font-medium">名称</th>
+                    <th className="text-left p-3 text-sm font-medium">状态</th>
+                    <th className="text-left p-3 text-sm font-medium">部署时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versions.map((v: any) => (
+                    <tr key={v.id} className="border-b last:border-0">
+                      <td className="p-3 text-sm font-mono">v{v.version}</td>
+                      <td className="p-3 text-sm">{v.name}</td>
+                      <td className="p-3">
+                        <Badge variant={v.suspended ? 'destructive' : 'default'}>
+                          {v.suspended ? '已挂起' : '启用'}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {v.deployment_time ? new Date(v.deployment_time).toLocaleString('zh-CN') : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
