@@ -11,8 +11,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+
+function ProcessSelector({ value, onSave }: { value: string; onSave: (key: string) => Promise<void> }) {
+  const [selected, setSelected] = useState(value)
+  const [saving, setSaving] = useState(false)
+  const { data: defs = [] } = useQuery<any[]>({
+    queryKey: ['process-defs-selector'],
+    queryFn: () => api.get('/workflow/definitions').then(r => (r.data.data?.records ?? []) as any[]),
+  })
+
+  const handleSave = async () => {
+    setSaving(true)
+    try { await onSave(selected) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="flex gap-2 items-center">
+      <Select value={selected} onValueChange={v => setSelected(v ?? 'dailyReportApproval')}>
+        <SelectTrigger className="w-[300px]">
+          <SelectValue placeholder="选择审批流程" />
+        </SelectTrigger>
+        <SelectContent>
+          {defs.map((d: any) => (
+            <SelectItem key={d.key} value={d.key}>
+              {d.name} ({d.key})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+        {saving ? '保存中...' : '应用'}
+      </Button>
+    </div>
+  )
+}
 
 export default function AdminConfigPage() {
   const { hasPermission, isHydrated } = usePermission()
@@ -245,6 +281,26 @@ export default function AdminConfigPage() {
           <Button onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
             保存水印配置
           </Button>
+        </div>
+      </section>
+
+      {/* Workflow — daily report approval process */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4">日报审批流程</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          选择日报提交后使用的审批流程。可在
+          <Link href="/workflow/design" className="text-primary hover:underline mx-1">流程设计器</Link>
+          中修改流程（如增加审批节点），修改后下次提交日报即自动生效。
+        </p>
+        <div className="space-y-2 max-w-sm">
+          <ProcessSelector
+            value={config['daily_report_process_key'] || 'dailyReportApproval'}
+            onSave={async (key) => {
+              await api.put('/admin/config', { daily_report_process_key: key })
+              toast.success('日报审批流程已更新')
+              queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+            }}
+          />
         </div>
       </section>
     </div>
