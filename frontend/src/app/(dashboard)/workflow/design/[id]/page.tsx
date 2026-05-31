@@ -40,7 +40,7 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/workflow/definitions/${id}`).then(r => {
+    api.get(`/workflow/definitions/${encodeURIComponent(id)}`).then(r => {
       const d: DefDetail = r.data.data;
       setDetail(d);
       setName(d.name);
@@ -59,7 +59,7 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
     if (!xml) { toast.error('流程画布不能为空'); return; }
     setSaving(true);
     try {
-      await api.put(`/workflow/definitions/${id}`, {
+      await api.put(`/workflow/definitions/${encodeURIComponent(id)}`, {
         name,
         key: detail?.key,
         category,

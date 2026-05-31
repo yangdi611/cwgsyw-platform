@@ -193,8 +193,10 @@ public class WorkflowService {
         var oldDef = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
-        // Suspend old version
-        repositoryService.suspendProcessDefinitionById(definitionId, true, null);
+        // Suspend old version (only if not already suspended)
+        if (!oldDef.isSuspended()) {
+            repositoryService.suspendProcessDefinitionById(definitionId, true, null);
+        }
         // Deploy new version (same key)
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = repositoryService.createDeployment()

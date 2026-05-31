@@ -52,7 +52,7 @@ export default function WorkflowAdminPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api.delete(`/workflow/definitions/${deleteTarget.id}`);
+      await api.delete(`/workflow/definitions/${encodeURIComponent(deleteTarget.id)}`);
       toast.success(`流程 "${deleteTarget.name}" 已删除`);
       setDeleteTarget(null);
       refetch();
