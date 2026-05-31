@@ -132,6 +132,35 @@ public class WorkflowController {
         return R.ok();
     }
 
+    // ========== Process Stats ==========
+
+    /**
+     * 流程统计（所有流程）
+     */
+    @GetMapping("/stats")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<List<Map<String, Object>>> allStats() {
+        return R.ok(workflowService.getAllProcessStats());
+    }
+
+    /**
+     * 单个流程统计
+     */
+    @GetMapping("/stats/{key}")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<Map<String, Object>> processStats(@PathVariable String key) {
+        return R.ok(workflowService.getProcessStats(key));
+    }
+
+    /**
+     * 流程所有历史版本
+     */
+    @GetMapping("/definitions/key/{key}/versions")
+    @PreAuthorize("hasPermission('workflow', 'read')")
+    public R<List<ProcessDefinitionVO>> definitionVersions(@PathVariable String key) {
+        return R.ok(workflowService.getDefinitionVersions(key));
+    }
+
     // ========== Process Instance Management ==========
 
     /**

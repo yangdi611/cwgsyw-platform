@@ -263,6 +263,62 @@ public class WorkflowService {
         return vos;
     }
 
+    // ========== Process Stats ==========
+
+    /**
+     * Get statistics for a process definition key
+     */
+    public Map<String, Object> getProcessStats(String processDefinitionKey) {
+        // Running instances
+        long runningCount = runtimeService.createProcessInstanceQuery()
+            .processDefinitionKey(processDefinitionKey).count();
+
+        // Finished instances
+        long finishedCount = historyService.createHistoricProcessInstanceQuery()
+            .processDefinitionKey(processDefinitionKey).finished().count();
+
+        // Average duration (in seconds)
+        double avgDurationSec = 0;
+        if (finishedCount > 0) {
+            var finished = historyService.createHistoricProcessInstanceQuery()
+                .processDefinitionKey(processDefinitionKey).finished()
+                .orderByProcessInstanceEndTime().desc()
+                .listPage(0, 100);
+            avgDurationSec = finished.stream()
+                .filter(pi -> pi.getDurationInMillis() != null)
+                .mapToLong(org.flowable.engine.history.HistoricProcessInstance::getDurationInMillis)
+                .average()
+                .orElse(0) / 1000.0;
+        }
+
+        // Success rate: finished / total started * 100
+        long totalStarted = runningCount + finishedCount;
+        double successRate = totalStarted > 0 ? (double) finishedCount / totalStarted * 100 : 0;
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("process_definition_key", processDefinitionKey);
+        stats.put("total_started", totalStarted);
+        stats.put("running_count", runningCount);
+        stats.put("finished_count", finishedCount);
+        stats.put("success_rate", Math.round(successRate * 10) / 10.0); // 1 decimal
+        stats.put("avg_duration_seconds", Math.round(avgDurationSec * 10) / 10.0);
+        return stats;
+    }
+
+    /**
+     * Get stats for all process definitions
+     */
+    public List<Map<String, Object>> getAllProcessStats() {
+        return repositoryService.createProcessDefinitionQuery().latestVersion().list().stream()
+            .map(def -> {
+                Map<String, Object> stats = getProcessStats(def.getKey());
+                stats.put("name", def.getName());
+                stats.put("version", def.getVersion());
+                stats.put("process_definition_id", def.getId());
+                return stats;
+            }).toList();
+    }
+
     // ========== Generic Process Instance Management ==========
 
     private LocalDateTime dateToLocal(java.util.Date d) {
