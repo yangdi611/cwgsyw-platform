@@ -7,13 +7,14 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.Deployment;
-import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -103,6 +104,13 @@ public class WorkflowService {
             vo.setTenantId(def.getTenantId());
             return vo;
         }).toList();
+        // Batch load deployment times
+        Set<String> deploymentIds = vos.stream().map(ProcessDefinitionVO::getDeploymentId).collect(Collectors.toSet());
+        Map<String, LocalDateTime> deploymentTimeMap = deploymentIds.isEmpty() ? Map.of() :
+            repositoryService.createDeploymentQuery().deploymentIds(new ArrayList<>(deploymentIds)).list().stream()
+                .collect(Collectors.toMap(org.flowable.engine.repository.Deployment::getId,
+                    d -> d.getDeploymentTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()));
+        vos.forEach(vo -> vo.setDeploymentTime(deploymentTimeMap.get(vo.getDeploymentId())));
         var result = new PageResult<ProcessDefinitionVO>();
         result.setRecords(vos);
         result.setTotal(total);
@@ -119,9 +127,8 @@ public class WorkflowService {
             .processDefinitionId(definitionId).singleResult();
         if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
         // Get BPMN XML
-        var bis = repositoryService.getProcessModel(definitionId);
         String xml;
-        try {
+        try (var bis = repositoryService.getProcessModel(definitionId)) {
             xml = new String(bis.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("读取流程定义XML失败: " + definitionId, e);
@@ -227,7 +234,7 @@ public class WorkflowService {
      * Get all historical versions for a key
      */
     public List<ProcessDefinitionVO> getDefinitionVersions(String key) {
-        return repositoryService.createProcessDefinitionQuery()
+        List<ProcessDefinitionVO> vos = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey(key)
             .orderByProcessDefinitionVersion().desc()
             .list().stream().map(def -> {
@@ -243,6 +250,14 @@ public class WorkflowService {
                 vo.setTenantId(def.getTenantId());
                 return vo;
             }).toList();
+        // Batch load deployment times
+        Set<String> deploymentIds = vos.stream().map(ProcessDefinitionVO::getDeploymentId).collect(Collectors.toSet());
+        Map<String, LocalDateTime> deploymentTimeMap = deploymentIds.isEmpty() ? Map.of() :
+            repositoryService.createDeploymentQuery().deploymentIds(new ArrayList<>(deploymentIds)).list().stream()
+                .collect(Collectors.toMap(org.flowable.engine.repository.Deployment::getId,
+                    d -> d.getDeploymentTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()));
+        vos.forEach(vo -> vo.setDeploymentTime(deploymentTimeMap.get(vo.getDeploymentId())));
+        return vos;
     }
 
     private List<TaskVO> toVOList(List<Task> tasks) {
