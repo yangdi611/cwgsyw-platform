@@ -186,18 +186,16 @@ public class WorkflowService {
     }
 
     /**
-     * Update process definition (new version: suspend old version, deploy new one)
+     * Update process definition — deploys a new version.
+     * Flowable automatically uses the latest version when starting by key,
+     * so we don't need to suspend/deprecate old versions.
      */
     @Transactional
     public ProcessDefinitionVO updateDefinition(String definitionId, SaveProcessDefinitionReq req, String tenantId) {
         var oldDef = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
-        // Suspend old version (only if not already suspended)
-        if (!oldDef.isSuspended()) {
-            repositoryService.suspendProcessDefinitionById(definitionId, true, null);
-        }
-        // Deploy new version (same key)
+        // Deploy new version — Flowable naturally increments the version number
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = repositoryService.createDeployment()
             .name(req.getName())
