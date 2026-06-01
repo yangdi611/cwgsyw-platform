@@ -70,7 +70,7 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
     if (!detail) return;
     setSaving(true);
     try {
-      await api.put(`/workflow/definitions/${encodeURIComponent(detail.id)}`, {
+      await api.put(`/workflow/definitions/key/${detail.key}/update`, {
         name,
         key: detail.key,
         category,

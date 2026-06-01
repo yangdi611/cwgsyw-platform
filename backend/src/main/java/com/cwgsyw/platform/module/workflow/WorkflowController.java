@@ -153,6 +153,27 @@ public class WorkflowController {
     }
 
     /**
+     * 更新流程定义（通过 key，避免 ID 中冒号的 URL 编码问题）
+     */
+    @PutMapping("/definitions/key/{key}/update")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<ProcessDefinitionVO> updateByKey(
+            @PathVariable String key,
+            @RequestBody SaveProcessDefinitionReq req,
+            @AuthenticationPrincipal SecurityUser cu) {
+        var latest = workflowService.listDefinitions(1, 100).getRecords().stream()
+            .filter(d -> d.getKey().equals(key)).findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("流程定义不存在: " + key));
+        ProcessDefinitionVO vo = workflowService.updateDefinition(latest.getId(), req, cu.getTenantId());
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(cu.getTenantId()).module("workflow").action("update_definition")
+            .targetId(0L).targetType("process_definition").operatorId(cu.getUserId())
+            .afterJson("{\"key\":\"" + vo.getKey() + "\",\"version\":" + vo.getVersion() + "}")
+            .remark("更新流程定义: " + vo.getName() + " v" + vo.getVersion()).build());
+        return R.ok(vo);
+    }
+
+    /**
      * 流程所有历史版本
      */
     @GetMapping("/definitions/key/{key}/versions")

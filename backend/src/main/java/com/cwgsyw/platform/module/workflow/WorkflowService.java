@@ -163,9 +163,7 @@ public class WorkflowService {
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = repositoryService.createDeployment()
             .name(req.getName())
-            .key(req.getKey())
             .category(req.getCategory())
-            .tenantId(tenantId)
             .addString(resourceName, req.getXml())
             .deploy();
         var def = repositoryService.createProcessDefinitionQuery()
@@ -195,14 +193,28 @@ public class WorkflowService {
         var oldDef = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
-        // Deploy new version — Flowable naturally increments the version number
+
+        // Read the existing BPMN to extract its targetNamespace
+        String existingXml;
+        try (var bis = repositoryService.getProcessModel(definitionId)) {
+            existingXml = new String(bis.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("读取流程定义XML失败", e);
+        }
+        // Extract targetNamespace from existing XML and apply it to the new XML
+        var nsMatcher = java.util.regex.Pattern.compile("targetNamespace=\"([^\"]+)\"").matcher(existingXml);
+        String oldNs = nsMatcher.find() ? nsMatcher.group(1) : null;
+        // Preserve existing targetNamespace so Flowable recognises this as a new version
+        String newXml = req.getXml();
+        if (oldNs != null && !oldNs.isEmpty()) {
+            newXml = newXml.replaceAll("targetNamespace=\"[^\"]*\"", "targetNamespace=\"" + oldNs + "\"");
+        }
+
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = repositoryService.createDeployment()
             .name(req.getName())
-            .key(req.getKey())
             .category(req.getCategory())
-            .tenantId(tenantId)
-            .addString(resourceName, req.getXml())
+            .addString(resourceName, newXml)
             .deploy();
         var newDef = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();
