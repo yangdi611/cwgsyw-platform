@@ -253,6 +253,16 @@ public class WorkflowService {
     }
 
     /**
+     * Activate a suspended definition version — makes it available to start.
+     * Flowable auto-uses the latest active version when starting by key.
+     * To "switch" to an older version, activate it (and optionally suspend newer ones).
+     */
+    @Transactional
+    public void activateDefinition(String definitionId) {
+        repositoryService.activateProcessDefinitionById(definitionId, true, null);
+    }
+
+    /**
      * Get all historical versions for a key
      */
     public List<ProcessDefinitionVO> getDefinitionVersions(String key) {

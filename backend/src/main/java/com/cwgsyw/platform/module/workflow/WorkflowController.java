@@ -174,6 +174,16 @@ public class WorkflowController {
     }
 
     /**
+     * 激活（取消挂起）指定版本
+     */
+    @PutMapping("/definitions/{id}/activate")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> activateDefinition(@PathVariable String id) {
+        workflowService.activateDefinition(id);
+        return R.ok();
+    }
+
+    /**
      * 流程所有历史版本
      */
     @GetMapping("/definitions/key/{key}/versions")

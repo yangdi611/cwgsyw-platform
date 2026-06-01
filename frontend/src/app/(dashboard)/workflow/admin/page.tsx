@@ -210,6 +210,7 @@ export default function WorkflowAdminPage() {
                     <th className="text-left p-3 text-sm font-medium">名称</th>
                     <th className="text-left p-3 text-sm font-medium">状态</th>
                     <th className="text-left p-3 text-sm font-medium">部署时间</th>
+                    <th className="text-right p-3 text-sm font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -224,6 +225,18 @@ export default function WorkflowAdminPage() {
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
                         {v.deployment_time ? new Date(v.deployment_time).toLocaleString('zh-CN') : '-'}
+                      </td>
+                      <td className="p-3 text-right space-x-1">
+                        {v.suspended && (
+                          <Button variant="ghost" size="sm" className="text-green-600" onClick={async () => {
+                            try {
+                              await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/activate`);
+                              toast.success(`v${v.version} 已激活`);
+                              handleVersions(versionDef!);
+                            } catch { toast.error('激活失败'); }
+                          }}>激活</Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${versionDef!.key}?version=${v.id}`)}>编辑</Button>
                       </td>
                     </tr>
                   ))}

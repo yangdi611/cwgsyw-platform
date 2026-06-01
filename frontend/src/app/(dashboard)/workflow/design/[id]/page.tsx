@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +29,7 @@ interface DefDetail {
   xml: string;
 }
 
-export default function EditWorkflowDesignPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: key } = use(params); // Now id param holds the definition key, not Flowable ID
+function EditForm({ key, versionId }: { key: string; versionId?: string | null }) {
   const decodedKey = decodeURIComponent(key);
   const router = useRouter();
   const [detail, setDetail] = useState<DefDetail | null>(null);
@@ -41,12 +41,27 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Find the latest definition by key
+    // If editing from a specific version, load that version directly
+    if (versionId) {
+      api.get(`/workflow/definitions/${encodeURIComponent(versionId)}`).then(r => {
+        const d: DefDetail = r.data.data;
+        setDetail(d);
+        setName(d.name);
+        setCategory(d.category || '');
+        setDescription(d.description || '');
+        setXml(d.xml);
+        setLoading(false);
+      }).catch(() => {
+        toast.error('获取流程定义失败');
+        router.push('/workflow/admin');
+      });
+      return;
+    }
+    // Otherwise find the latest version by key
     api.get('/workflow/definitions', { params: { page: 1, size: 100 } }).then(r => {
       const defs: DefDetail[] = r.data.data?.records ?? [];
       const match = defs.find((d: any) => d.key === decodedKey);
       if (match) {
-        // Fetch full detail with XML
         return api.get(`/workflow/definitions/${encodeURIComponent(match.id)}`);
       }
       throw new Error('not found');
@@ -62,7 +77,7 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
       toast.error('获取流程定义失败');
       router.push('/workflow/admin');
     });
-  }, [decodedKey, router]);
+  }, [decodedKey, router, versionId]);
 
   const handleSave = async () => {
     if (!name) { toast.error('请填写流程名称'); return; }
@@ -127,4 +142,19 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
       </div>
     </div>
   );
+}
+
+export default function EditWorkflowDesignPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return (
+    <Suspense fallback={<p className="text-muted-foreground">加载中...</p>}>
+      <EditPageInner id={id} />
+    </Suspense>
+  );
+}
+
+function EditPageInner({ id }: { id: string }) {
+  const searchParams = useSearchParams();
+  const versionId = searchParams.get('version');
+  return <EditForm key={id} versionId={versionId} />;
 }
