@@ -213,6 +213,9 @@ public class WorkflowService {
         String oldNs = nsMatcher.find() ? nsMatcher.group(1) : null;
         // Preserve existing targetNamespace so Flowable recognises this as a new version
         String newXml = req.getXml();
+        // Inject the correct process key — editor template always uses id="Process_1"
+        newXml = newXml.replaceFirst("<bpmn:process id=\"[^\"]*\"",
+            "<bpmn:process id=\"" + oldDef.getKey() + "\"");
         if (oldNs != null && !oldNs.isEmpty()) {
             newXml = newXml.replaceAll("targetNamespace=\"[^\"]*\"", "targetNamespace=\"" + oldNs + "\"");
         }

@@ -85,12 +85,14 @@ function EditForm({ key, versionId }: { key: string; versionId?: string | null }
     if (!detail) return;
     setSaving(true);
     try {
+      // Inject the correct key into the BPMN XML — editor template always uses id="Process_1"
+      const finalXml = xml.replace(/<bpmn:process id="[^"]*"/, `<bpmn:process id="${detail.key}"`);
       await api.put(`/workflow/definitions/key/${detail.key}/update`, {
         name,
         key: detail.key,
         category,
         description,
-        xml,
+        xml: finalXml,
       });
       toast.success(`流程定义已更新 (v${(detail.version ?? 0) + 1})`);
       router.push('/workflow/admin');
