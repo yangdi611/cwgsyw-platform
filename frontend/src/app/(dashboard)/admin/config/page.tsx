@@ -50,7 +50,7 @@ const tabs = [
   { id: 'smtp', label: '邮箱配置', icon: Mail },
   { id: 'reminder', label: '日报提醒', icon: Bell },
   { id: 'watermark', label: '文档水印', icon: FileText },
-  { id: 'workflow', label: '日报审批', icon: GitBranch },
+  { id: 'workflow', label: '流程配置', icon: GitBranch },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -271,23 +271,58 @@ export default function AdminConfigPage() {
             </div>
           )}
 
-          {/* Workflow */}
+          {/* Workflow / Process Configuration */}
           {activeTab === 'workflow' && (
-            <div className="border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">日报审批流程</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                选择日报提交后使用的审批流程。可在
-                <Link href="/workflow/design" className="text-primary hover:underline mx-1">流程设计器</Link>
-                中修改流程，修改后下次提交日报即自动生效。
-              </p>
-              <ProcessSelector
-                value={config['daily_report_process_key'] || 'dailyReportApproval'}
-                onSave={async (key) => {
-                  await api.put('/admin/config', { daily_report_process_key: key })
-                  toast.success('日报审批流程已更新')
-                  queryClient.invalidateQueries({ queryKey: ['admin-config'] })
-                }}
-              />
+            <div className="border rounded-lg p-6 space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-2">业务流程配置</h2>
+                <p className="text-sm text-muted-foreground">
+                  为各业务模块指定审批流程。在
+                  <Link href="/workflow/design" className="text-primary hover:underline mx-1">流程设计器</Link>
+                  中修改流程后，下次提交即自动生效。
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-t pt-4">
+                  <Label className="font-medium">日报审批</Label>
+                  <p className="text-xs text-muted-foreground mb-2">组员提交日报后使用的审批流程</p>
+                  <ProcessSelector
+                    value={config['daily_report_process_key'] || 'dailyReportApproval'}
+                    onSave={async (key) => {
+                      await api.put('/admin/config', { daily_report_process_key: key })
+                      toast.success('日报审批流程已更新')
+                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+                    }}
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="font-medium text-muted-foreground">变更文档审批（待接入）</Label>
+                  <p className="text-xs text-muted-foreground mb-2">变更文档提交后使用的审批流程</p>
+                  <ProcessSelector
+                    value={config['change_doc_process_key'] || ''}
+                    onSave={async (key) => {
+                      await api.put('/admin/config', { change_doc_process_key: key })
+                      toast.success('变更文档审批流程已更新')
+                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+                    }}
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="font-medium text-muted-foreground">设备权限申请（待接入）</Label>
+                  <p className="text-xs text-muted-foreground mb-2">设备密码查看权限申请使用的审批流程</p>
+                  <ProcessSelector
+                    value={config['device_access_process_key'] || ''}
+                    onSave={async (key) => {
+                      await api.put('/admin/config', { device_access_process_key: key })
+                      toast.success('设备权限审批流程已更新')
+                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
