@@ -160,11 +160,18 @@ public class WorkflowService {
         if (existingCount > 0) {
             throw new IllegalArgumentException("流程 Key 已存在: " + req.getKey());
         }
+        // Replace the process id in the BPMN XML with the user's desired key.
+        // Flowable derives the process definition key from <process id="...">,
+        // not from the deployment properties. Without this, every new process
+        // would use "Process_1" from the editor template.
+        String xml = req.getXml().replaceFirst(
+            "<bpmn:process id=\"Process_1\"",
+            "<bpmn:process id=\"" + req.getKey() + "\"");
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = repositoryService.createDeployment()
             .name(req.getName())
             .category(req.getCategory())
-            .addString(resourceName, req.getXml())
+            .addString(resourceName, xml)
             .deploy();
         var def = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();

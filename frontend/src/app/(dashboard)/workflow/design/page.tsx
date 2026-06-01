@@ -30,9 +30,12 @@ export default function NewWorkflowDesignPage() {
   const handleSave = async () => {
     if (!name || !key) { toast.error('请填写流程名称和 Key'); return; }
     if (!xml) { toast.error('请设计流程画布内容'); return; }
+    // Replace the process id in the XML with the user's key — Flowable
+    // derives the definition key from <process id="...">, not from the API field.
+    const finalXml = xml.replace(/<bpmn:process id="[^"]*"/, `<bpmn:process id="${key}"`);
     setSaving(true);
     try {
-      await api.post('/workflow/definitions', { name, key, category, description, xml });
+      await api.post('/workflow/definitions', { name, key, category, description, xml: finalXml });
       toast.success('流程定义已保存');
       router.push('/workflow/admin');
     } catch (err: any) {
