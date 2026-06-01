@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 const BpmnEditor = dynamic(() => import('@/components/workflow/BpmnEditor'), {
   ssr: false,
   loading: () => (
-    <div className="h-[500px] border rounded-lg bg-muted/20 flex items-center justify-center text-muted-foreground">
+    <div className="h-[600px] border rounded-lg bg-muted/20 flex items-center justify-center text-muted-foreground">
       加载编辑器...
     </div>
   ),
@@ -29,7 +29,8 @@ interface DefDetail {
 }
 
 export default function EditWorkflowDesignPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+  const { id: key } = use(params); // Now id param holds the definition key, not Flowable ID
+  const decodedKey = decodeURIComponent(key);
   const router = useRouter();
   const [detail, setDetail] = useState<DefDetail | null>(null);
   const [name, setName] = useState('');
@@ -40,7 +41,16 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/workflow/definitions/${encodeURIComponent(id)}`).then(r => {
+    // Find the latest definition by key
+    api.get('/workflow/definitions', { params: { page: 1, size: 100 } }).then(r => {
+      const defs: DefDetail[] = r.data.data?.records ?? [];
+      const match = defs.find((d: any) => d.key === decodedKey);
+      if (match) {
+        // Fetch full detail with XML
+        return api.get(`/workflow/definitions/${encodeURIComponent(match.id)}`);
+      }
+      throw new Error('not found');
+    }).then(r => {
       const d: DefDetail = r.data.data;
       setDetail(d);
       setName(d.name);
@@ -52,21 +62,22 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
       toast.error('获取流程定义失败');
       router.push('/workflow/admin');
     });
-  }, [id, router]);
+  }, [decodedKey, router]);
 
   const handleSave = async () => {
     if (!name) { toast.error('请填写流程名称'); return; }
     if (!xml) { toast.error('流程画布不能为空'); return; }
+    if (!detail) return;
     setSaving(true);
     try {
-      await api.put(`/workflow/definitions/${encodeURIComponent(id)}`, {
+      await api.put(`/workflow/definitions/${encodeURIComponent(detail.id)}`, {
         name,
-        key: detail?.key,
+        key: detail.key,
         category,
         description,
         xml,
       });
-      toast.success(`流程定义已更新 (v${(detail?.version ?? 0) + 1})`);
+      toast.success(`流程定义已更新 (v${(detail.version ?? 0) + 1})`);
       router.push('/workflow/admin');
     } catch (err: any) {
       toast.error(err.response?.data?.message || '更新失败');

@@ -150,7 +150,7 @@ export default function WorkflowAdminPage() {
                       <td className="p-3 text-right space-x-2">
                         <Button variant="ghost" size="sm" className="text-green-600" onClick={() => { setStartTarget(def); setStartBizKey(''); }}>启动</Button>
                         <Button variant="ghost" size="sm" onClick={() => handleVersions(def)}>版本</Button>
-                        <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.id}`)}>
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${encodeURIComponent(def.key)}`)}>
                           编辑
                         </Button>
                         <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(def)}>
