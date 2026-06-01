@@ -100,7 +100,7 @@ public class DailyReportService {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
         // Read the configured process definition key (admin can change this via config)
-        String processKey = configService.getAll().getOrDefault("daily_report_process_key", "dailyReportApproval");
+        String processKey = configService.getAll(report.getTenantId()).getOrDefault("daily_report_process_key", "dailyReportApproval");
         String businessKey = "dailyReport:" + id;
         Map<String, Object> vars = new HashMap<>();
         vars.put("reportId", id);

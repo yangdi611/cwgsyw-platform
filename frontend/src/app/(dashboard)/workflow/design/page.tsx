@@ -69,14 +69,12 @@ export default function NewWorkflowDesignPage() {
       <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
         <p className="font-medium mb-1">📝 配置指南：让审批人出现</p>
         <ol className="list-decimal list-inside space-y-0.5 text-blue-700">
-          <li>从左侧拖一个 <b>User Task（用户任务）</b> 到画布，放在 Start 和 End 之间</li>
-          <li><b>选中</b> 那个 User Task → 右侧属性面板出现</li>
-          <li>在 <b>General</b> 的 Name 填"组长审批"</li>
-          <li>在 <b>Assignment</b> 的 <b>Candidate groups</b> 填 <code>${"${groupId}"}</code> — 这样会自动匹配组</li>
-          <li>在排他网关的 <b>Condition</b> 填 <code>${"${approved == true}"}</code>（通过）和 <code>${"${approved == false}"}</code>（拒绝）</li>
+          <li><b>点击箭头线</b>（不是 Gateway 菱形）→ 右侧出现 <b>Condition</b> 输入框</li>
+          <li>上面箭头填已填入通过条件，下面箭头已填入拒绝条件</li>
+          <li>选中 <b>User Task</b> → 下方 <b>Flowable Assignment</b> 面板配置审批人</li>
         </ol>
         <p className="mt-1 text-xs text-blue-500">
-          💡 多级审批 = 多个 User Task + 多个网关串联。属性面板是右侧的灰色区域，点击画布上的节点后会出现。
+          💡 Condition 在连接线上，不在网关上。多级审批 = 多个 User Task + 多个网关串联。
         </p>
       </div>
 
