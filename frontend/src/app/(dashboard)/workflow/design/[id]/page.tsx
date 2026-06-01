@@ -29,8 +29,8 @@ interface DefDetail {
   xml: string;
 }
 
-function EditForm({ key, versionId }: { key: string; versionId?: string | null }) {
-  const decodedKey = decodeURIComponent(key);
+function EditForm({ processKey, versionId }: { processKey: string; versionId?: string | null }) {
+  const decodedKey = decodeURIComponent(processKey);
   const router = useRouter();
   const [detail, setDetail] = useState<DefDetail | null>(null);
   const [name, setName] = useState('');
@@ -158,5 +158,5 @@ export default function EditWorkflowDesignPage({ params }: { params: Promise<{ i
 function EditPageInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const versionId = searchParams.get('version');
-  return <EditForm key={id} versionId={versionId} />;
+  return <EditForm key={id} processKey={id} versionId={versionId} />;
 }
