@@ -11,9 +11,21 @@ export const EMPTY_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="开始" />
+    <bpmn:userTask id="Activity_1" name="审批节点">
+      <bpmn:extensionElements>
+        <flowable:candidateGroups>\${groupId}</flowable:candidateGroups>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1" />
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="shape_start" bpmnElement="StartEvent_1">
+        <dc:Bounds x="180" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task" bpmnElement="Activity_1">
+        <dc:Bounds x="280" y="98" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 

@@ -6,6 +6,7 @@ import {
   BpmnPropertiesPanelModule,
   BpmnPropertiesProviderModule,
 } from 'bpmn-js-properties-panel';
+import FlowablePropertiesProvider, { flowableModdleDescriptor } from '@/lib/FlowableProps';
 import { EMPTY_BPMN } from '@/lib/bpmn';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
@@ -20,22 +21,27 @@ interface BpmnEditorProps {
 export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const modelerRef = useRef<BpmnModeler | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || modelerRef.current) return;
 
     const modeler = new BpmnModeler({
       container: containerRef.current,
-      propertiesPanel: {
-        parent: panelRef.current!,
-      },
+      propertiesPanel: { parent: panelRef.current! },
       additionalModules: [
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
+        FlowablePropertiesProvider,
       ],
+      moddleExtensions: {
+        flowable: flowableModdleDescriptor,
+      },
       keyboard: { bindTo: document },
     });
+
+    modelerRef.current = modeler;
 
     modeler.on('import.done', async () => {
       setReady(true);
@@ -69,26 +75,16 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       window.removeEventListener('resize', onResize);
       observer.disconnect();
       modeler.destroy();
+      modelerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!initialXml) return;
-    // Re-import handled by the initialXml prop change via modeler import
-    const modeler = (containerRef.current as any)?.__modeler;
-    if (modeler) {
-      modeler.importXML(initialXml);
-      (modeler.get('canvas') as any)?.zoom('fit-viewport');
-    }
-  }, [initialXml]);
 
   return (
     <div
       className="relative w-full border rounded-lg bg-white flex"
       style={{ height: 'calc(100vh - 280px)', minHeight: '600px' }}
     >
-      {/* Diagram canvas */}
       <div className="flex-1 relative">
         {!ready && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
@@ -97,12 +93,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
         )}
         <div ref={containerRef} className="w-full h-full" />
       </div>
-
-      {/* Right-side properties panel */}
-      <div
-        ref={panelRef}
-        className="w-72 border-l overflow-y-auto bg-gray-50 flex-shrink-0"
-      >
+      <div ref={panelRef} className="w-72 border-l overflow-y-auto bg-gray-50 flex-shrink-0">
         {!ready && (
           <div className="p-4 text-sm text-muted-foreground">加载属性面板...</div>
         )}
