@@ -38,6 +38,7 @@ export default function WorkflowAdminPage() {
   const [startTarget, setStartTarget] = useState<ProcessDef | null>(null);
   const [startBizKey, setStartBizKey] = useState('');
   const [starting, setStarting] = useState(false);
+  const [deleteVersionTarget, setDeleteVersionTarget] = useState<{ version: any; def: ProcessDef } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-definitions', page],
@@ -213,6 +214,9 @@ export default function WorkflowAdminPage() {
                                             }}>激活</Button>
                                           )}
                                           <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.key}?version=${v.id}`)}>编辑</Button>
+                                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteVersionTarget({ version: v, def })}>
+                                            删除
+                                          </Button>
                                         </td>
                                       </tr>
                                     ))}
@@ -285,6 +289,35 @@ export default function WorkflowAdminPage() {
             <Button className="bg-green-600 hover:bg-green-700" onClick={handleStart} disabled={starting}>
               {starting ? '启动中...' : '启动流程'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete version dialog */}
+      <Dialog open={!!deleteVersionTarget} onOpenChange={(o) => { if (!o) setDeleteVersionTarget(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除版本</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            确定要删除 <strong>{deleteVersionTarget?.def.name}</strong> 的
+            <strong> v{deleteVersionTarget?.version.version}</strong> 吗？
+          </p>
+          <p className="text-xs text-destructive">此操作将级联删除该版本下所有运行中和历史的流程实例，不可撤销。</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteVersionTarget(null)}>取消</Button>
+            <Button className="bg-red-500 hover:bg-red-600" onClick={async () => {
+              if (!deleteVersionTarget) return;
+              try {
+                await api.post(`/workflow/definitions/delete-version`, { definition_id: deleteVersionTarget.version.id });
+                toast.success(`v${deleteVersionTarget.version.version} 已删除`);
+                setDeleteVersionTarget(null);
+                handleVersions(deleteVersionTarget.def);
+              } catch (err: any) {
+                toast.error(err.response?.data?.message || '删除失败');
+                setDeleteVersionTarget(null);
+              }
+            }}>删除</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

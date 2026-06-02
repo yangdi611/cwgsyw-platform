@@ -4,6 +4,7 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class WorkflowController {
     private final WorkflowService workflowService;
     private final AuditLogMapper auditLogMapper;
+    private final SysConfigService configService;
 
     @GetMapping("/tasks/my")
     @PreAuthorize("hasPermission('workflow', 'read')")
@@ -180,6 +182,44 @@ public class WorkflowController {
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<Void> activateDefinition(@PathVariable String id) {
         workflowService.activateDefinition(id);
+        return R.ok();
+    }
+
+    /**
+     * 删除单个版本（含绑定保护）
+     * 使用 @RequestBody 避免 URL 路径中 definitionId 含冒号导致 Servlet 容器拦截
+     */
+    @PostMapping("/definitions/delete-version")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> deleteVersion(@RequestBody Map<String, String> body,
+                                  @AuthenticationPrincipal SecurityUser cu) {
+        String definitionId = body.get("definition_id");
+        if (definitionId == null || definitionId.isBlank()) {
+            return R.fail("缺少 definition_id 参数");
+        }
+        // Check if this version is bound to any business module via sys_config
+        Map<String, String> cfg = configService.getAll(cu.getTenantId());
+        java.util.List<String> bindingKeys = java.util.List.of(
+            "daily_report_process_definition_id",
+            "change_doc_process_definition_id",
+            "device_access_process_definition_id"
+        );
+        java.util.List<String> bindingNames = java.util.List.of(
+            "日报审批", "变更文档审批", "设备权限审批"
+        );
+        for (int i = 0; i < bindingKeys.size(); i++) {
+            String boundId = cfg.get(bindingKeys.get(i));
+            if (definitionId.equals(boundId)) {
+                return R.fail("该版本已被【" + bindingNames.get(i) + "】流程绑定，请先在系统配置中更换绑定");
+            }
+        }
+        var def = workflowService.getDefinition(definitionId);
+        workflowService.deleteDefinitionVersion(definitionId);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(cu.getTenantId()).module("workflow").action("delete_version")
+            .targetId(0L).targetType("process_definition").operatorId(cu.getUserId())
+            .beforeJson("{\"key\":\"" + def.getKey() + "\",\"version\":" + def.getVersion() + "}")
+            .remark("删除流程版本: " + def.getName() + " v" + def.getVersion()).build());
         return R.ok();
     }
 

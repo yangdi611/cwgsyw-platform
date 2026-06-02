@@ -16,31 +16,76 @@ import { Mail, Bell, FileText, GitBranch } from 'lucide-react'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
-function ProcessSelector({ value, onSave }: { value: string; onSave: (key: string) => Promise<void> }) {
-  const [selected, setSelected] = useState(value)
+function ProcessVersionSelector({ value, configKey, onSave }: {
+  value: string
+  configKey: string
+  onSave: (definitionId: string) => Promise<void>
+}) {
   const [saving, setSaving] = useState(false)
-  const { data: defs = [] } = useQuery<any[]>({
+  // Resolve the process key from the current definition ID
+  const { data: allDefs = [] } = useQuery<any[]>({
     queryKey: ['process-defs-selector'],
     queryFn: () => api.get('/workflow/definitions').then(r => (r.data.data?.records ?? []) as any[]),
   })
 
+  // Find which process this definitionId belongs to
+  const [selectedKey, setSelectedKey] = useState(() => {
+    if (!value) return ''
+    const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
+    return match?.key ?? ''
+  })
+
+  // When allDefs loads, resolve key from value
+  useEffect(() => {
+    if (value && !selectedKey) {
+      const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
+      if (match) setSelectedKey(match.key)
+    }
+  }, [allDefs, value, selectedKey])
+
+  // Fetch versions for selected process
+  const { data: versions = [] } = useQuery<any[]>({
+    queryKey: ['process-versions', selectedKey],
+    queryFn: () => api.get(`/workflow/definitions/key/${selectedKey}/versions`).then(r => r.data.data ?? []),
+    enabled: !!selectedKey,
+  })
+
+  const selectedDefId = value
+
   return (
-    <div className="flex gap-2 items-center">
-      <Select value={selected} onValueChange={v => setSelected(v ?? 'dailyReportApproval')}>
-        <SelectTrigger className="w-[300px]">
-          <SelectValue placeholder="选择审批流程" />
+    <div className="flex gap-2 items-center flex-wrap">
+      <Select value={selectedKey} onValueChange={v => {
+        setSelectedKey(v)
+        // Reset definition ID when process changes — user must pick a version
+      }}>
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="选择流程" />
         </SelectTrigger>
         <SelectContent>
-          {defs.map((d: any) => (
-            <SelectItem key={d.key} value={d.key}>{d.name} ({d.key})</SelectItem>
+          {allDefs.map((d: any) => (
+            <SelectItem key={d.key} value={d.key}>{d.name}</SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <Button variant="outline" size="sm" onClick={async () => {
-        setSaving(true)
-        try { await onSave(selected) } finally { setSaving(false) }
-      }} disabled={saving}>
-        {saving ? '保存中...' : '应用'}
+      <Select
+        value={selectedDefId}
+        onValueChange={v => {
+          if (v) onSave(v)
+        }}
+      >
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder={selectedKey ? '选择版本' : '请先选择流程'} />
+        </SelectTrigger>
+        <SelectContent>
+          {versions.map((v: any) => (
+            <SelectItem key={v.id} value={v.id}>
+              v{v.version} {v.suspended ? '(已挂起)' : '(启用)'}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button variant="outline" size="sm" disabled={saving || !selectedDefId}>
+        {saving ? '保存中...' : '已选择'}
       </Button>
     </div>
   )
@@ -286,11 +331,12 @@ export default function AdminConfigPage() {
               <div className="space-y-4">
                 <div className="border-t pt-4">
                   <Label className="font-medium">日报审批</Label>
-                  <p className="text-xs text-muted-foreground mb-2">组员提交日报后使用的审批流程</p>
-                  <ProcessSelector
-                    value={config['daily_report_process_key'] || 'dailyReportApproval'}
-                    onSave={async (key) => {
-                      await api.put('/admin/config', { daily_report_process_key: key })
+                  <p className="text-xs text-muted-foreground mb-2">组员提交日报后使用的审批流程及版本</p>
+                  <ProcessVersionSelector
+                    value={config['daily_report_process_definition_id'] || ''}
+                    configKey="daily_report_process_definition_id"
+                    onSave={async (definitionId) => {
+                      await api.put('/admin/config', { daily_report_process_definition_id: definitionId })
                       toast.success('日报审批流程已更新')
                       queryClient.invalidateQueries({ queryKey: ['admin-config'] })
                     }}
@@ -299,11 +345,12 @@ export default function AdminConfigPage() {
 
                 <div className="border-t pt-4">
                   <Label className="font-medium text-muted-foreground">变更文档审批（待接入）</Label>
-                  <p className="text-xs text-muted-foreground mb-2">变更文档提交后使用的审批流程</p>
-                  <ProcessSelector
-                    value={config['change_doc_process_key'] || ''}
-                    onSave={async (key) => {
-                      await api.put('/admin/config', { change_doc_process_key: key })
+                  <p className="text-xs text-muted-foreground mb-2">变更文档提交后使用的审批流程及版本</p>
+                  <ProcessVersionSelector
+                    value={config['change_doc_process_definition_id'] || ''}
+                    configKey="change_doc_process_definition_id"
+                    onSave={async (definitionId) => {
+                      await api.put('/admin/config', { change_doc_process_definition_id: definitionId })
                       toast.success('变更文档审批流程已更新')
                       queryClient.invalidateQueries({ queryKey: ['admin-config'] })
                     }}
@@ -312,11 +359,12 @@ export default function AdminConfigPage() {
 
                 <div className="border-t pt-4">
                   <Label className="font-medium text-muted-foreground">设备权限申请（待接入）</Label>
-                  <p className="text-xs text-muted-foreground mb-2">设备密码查看权限申请使用的审批流程</p>
-                  <ProcessSelector
-                    value={config['device_access_process_key'] || ''}
-                    onSave={async (key) => {
-                      await api.put('/admin/config', { device_access_process_key: key })
+                  <p className="text-xs text-muted-foreground mb-2">设备密码查看权限申请使用的审批流程及版本</p>
+                  <ProcessVersionSelector
+                    value={config['device_access_process_definition_id'] || ''}
+                    configKey="device_access_process_definition_id"
+                    onSave={async (definitionId) => {
+                      await api.put('/admin/config', { device_access_process_definition_id: definitionId })
                       toast.success('设备权限审批流程已更新')
                       queryClient.invalidateQueries({ queryKey: ['admin-config'] })
                     }}

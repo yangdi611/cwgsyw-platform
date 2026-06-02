@@ -256,6 +256,25 @@ public class WorkflowService {
     }
 
     /**
+     * Delete a single version of a process definition.
+     * Fails if this is the last version or if it is bound to a business module.
+     */
+    @Transactional
+    public void deleteDefinitionVersion(String definitionId) {
+        var def = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
+        // Protect: don't allow deleting the last version
+        long versionCount = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionKey(def.getKey()).count();
+        if (versionCount <= 1) {
+            throw new IllegalArgumentException("至少保留一个版本，无法删除");
+        }
+        // Cascade delete: removes this version's runtime instances + history
+        repositoryService.deleteDeployment(def.getDeploymentId(), true);
+    }
+
+    /**
      * Activate a suspended definition version — makes it available to start.
      * Flowable auto-uses the latest active version when starting by key.
      * To "switch" to an older version, activate it (and optionally suspend newer ones).
@@ -358,14 +377,19 @@ public class WorkflowService {
     }
 
     /**
-     * Generic process start by key
+     * Generic process start — by definition ID (specific version) or by key (latest version)
      */
     @Transactional
     public InstanceVO startProcess(StartProcessRequest req, Long userId, String tenantId) {
-        ProcessInstance pi = runtimeService.startProcessInstanceByKey(
-            req.getProcessDefinitionKey(),
-            req.getBusinessKey(),
-            req.getVariables() != null ? req.getVariables() : Map.of());
+        Map<String, Object> vars = req.getVariables() != null ? req.getVariables() : new HashMap<>();
+        ProcessInstance pi;
+        if (req.getProcessDefinitionId() != null && !req.getProcessDefinitionId().isBlank()) {
+            pi = runtimeService.startProcessInstanceById(
+                req.getProcessDefinitionId(), req.getBusinessKey(), vars);
+        } else {
+            pi = runtimeService.startProcessInstanceByKey(
+                req.getProcessDefinitionKey(), req.getBusinessKey(), vars);
+        }
         return toInstanceVO(pi);
     }
 

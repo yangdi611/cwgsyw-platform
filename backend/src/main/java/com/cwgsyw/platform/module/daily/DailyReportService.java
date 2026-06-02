@@ -99,15 +99,21 @@ public class DailyReportService {
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
-        // Read the configured process definition key (admin can change this via config)
-        String processKey = configService.getAll(report.getTenantId()).getOrDefault("daily_report_process_key", "dailyReportApproval");
+        // Read the configured process — prefer specific definition ID, fall back to key
+        java.util.Map<String, String> cfg = configService.getAll(report.getTenantId());
+        String definitionId = cfg.get("daily_report_process_definition_id");
+        String processKey = cfg.getOrDefault("daily_report_process_key", "dailyReportApproval");
         String businessKey = "dailyReport:" + id;
         Map<String, Object> vars = new HashMap<>();
         vars.put("reportId", id);
         vars.put("groupId", "group_" + report.getGroupId());
         vars.put("approved", false);
         StartProcessRequest req = new StartProcessRequest();
-        req.setProcessDefinitionKey(processKey);
+        if (definitionId != null && !definitionId.isBlank()) {
+            req.setProcessDefinitionId(definitionId); // 指定版本
+        } else {
+            req.setProcessDefinitionKey(processKey);   // 兼容旧配置
+        }
         req.setBusinessKey(businessKey);
         req.setVariables(vars);
         InstanceVO inst = workflowService.startProcess(req, userId, report.getTenantId());
