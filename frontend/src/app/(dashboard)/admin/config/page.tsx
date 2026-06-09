@@ -23,9 +23,15 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
 }) {
   const [saving, setSaving] = useState(false)
   // Resolve the process key from the current definition ID
+  // Only show processes that have at least one active (non-suspended) version
   const { data: allDefs = [] } = useQuery<any[]>({
     queryKey: ['process-defs-selector'],
-    queryFn: () => api.get('/workflow/definitions').then(r => (r.data.data?.records ?? []) as any[]),
+    queryFn: () => api.get('/workflow/definitions').then(r => {
+      const defs = (r.data.data?.records ?? []) as any[];
+      // Filter: only include processes where the latest version is active (not suspended)
+      // The list API returns latest version only, so if it's suspended, all versions are suspended (mutex)
+      return defs.filter((d: any) => !d.suspended);
+    }),
   })
 
   // Find which process this definitionId belongs to
@@ -77,9 +83,9 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
           <SelectValue placeholder={selectedKey ? '选择版本' : '请先选择流程'} />
         </SelectTrigger>
         <SelectContent>
-          {versions.map((v: any) => (
+          {versions.filter((v: any) => !v.suspended).map((v: any) => (
             <SelectItem key={v.id} value={v.id}>
-              v{v.version} {v.suspended ? '(已挂起)' : '(启用)'}
+              v{v.version} (启用)
             </SelectItem>
           ))}
         </SelectContent>

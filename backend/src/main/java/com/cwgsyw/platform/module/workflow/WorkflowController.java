@@ -176,12 +176,22 @@ public class WorkflowController {
     }
 
     /**
-     * 激活（取消挂起）指定版本
+     * 激活（取消挂起）指定版本 — 互斥：自动挂起同流程下其他版本
      */
     @PutMapping("/definitions/{id}/activate")
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<Void> activateDefinition(@PathVariable String id) {
         workflowService.activateDefinition(id);
+        return R.ok();
+    }
+
+    /**
+     * 挂起（禁用）指定版本
+     */
+    @PutMapping("/definitions/{id}/suspend")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> suspendDefinition(@PathVariable String id) {
+        workflowService.suspendDefinition(id);
         return R.ok();
     }
 

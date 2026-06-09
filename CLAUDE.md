@@ -363,7 +363,7 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **cwgsyw-platform** (3419 symbols, 6972 relationships, 285 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **cwgsyw-platform** (4261 symbols, 8452 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -401,25 +401,5 @@ This project is indexed by GitNexus as **cwgsyw-platform** (3419 symbols, 6972 r
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Changedoc area (127 symbols) | `.claude/skills/generated/changedoc/SKILL.md` |
-| Work in the Cmdb area (81 symbols) | `.claude/skills/generated/cmdb/SKILL.md` |
-| Work in the [id] area (66 symbols) | `.claude/skills/generated/id/SKILL.md` |
-| Work in the Ui area (56 symbols) | `.claude/skills/generated/ui/SKILL.md` |
-| Work in the Rbac area (27 symbols) | `.claude/skills/generated/rbac/SKILL.md` |
-| Work in the Config area (23 symbols) | `.claude/skills/generated/config/SKILL.md` |
-| Work in the Device area (19 symbols) | `.claude/skills/generated/device/SKILL.md` |
-| Work in the Daily area (18 symbols) | `.claude/skills/generated/daily/SKILL.md` |
-| Work in the Ai area (15 symbols) | `.claude/skills/generated/ai/SKILL.md` |
-| Work in the Security area (14 symbols) | `.claude/skills/generated/security/SKILL.md` |
-| Work in the Layout area (11 symbols) | `.claude/skills/generated/layout/SKILL.md` |
-| Work in the Report area (10 symbols) | `.claude/skills/generated/report/SKILL.md` |
-| Work in the Auth area (7 symbols) | `.claude/skills/generated/auth/SKILL.md` |
-| Work in the User area (7 symbols) | `.claude/skills/generated/user/SKILL.md` |
-| Work in the Workflow area (7 symbols) | `.claude/skills/generated/workflow/SKILL.md` |
-| Work in the Entity area (6 symbols) | `.claude/skills/generated/entity/SKILL.md` |
-| Work in the Dto area (5 symbols) | `.claude/skills/generated/dto/SKILL.md` |
-| Work in the Notification area (4 symbols) | `.claude/skills/generated/notification/SKILL.md` |
-| Work in the Instances area (4 symbols) | `.claude/skills/generated/instances/SKILL.md` |
-| Work in the Permissions area (4 symbols) | `.claude/skills/generated/permissions/SKILL.md` |
 
 <!-- gitnexus:end -->

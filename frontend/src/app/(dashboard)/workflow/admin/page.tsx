@@ -7,14 +7,12 @@ import api from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, CheckCircle, Circle } from 'lucide-react';
 
 interface ProcessDef {
   id: string;
@@ -35,10 +33,9 @@ export default function WorkflowAdminPage() {
   const [versionDef, setVersionDef] = useState<ProcessDef | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
   const [page, setPage] = useState(1);
-  const [startTarget, setStartTarget] = useState<ProcessDef | null>(null);
-  const [startBizKey, setStartBizKey] = useState('');
-  const [starting, setStarting] = useState(false);
   const [deleteVersionTarget, setDeleteVersionTarget] = useState<{ version: any; def: ProcessDef } | null>(null);
+  const [activating, setActivating] = useState<string | null>(null);
+  const [suspending, setSuspending] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-definitions', page],
@@ -64,24 +61,6 @@ export default function WorkflowAdminPage() {
     }
   };
 
-  const handleStart = async () => {
-    if (!startTarget) return;
-    if (!startBizKey.trim()) { toast.error('请输入业务标识'); return; }
-    setStarting(true);
-    try {
-      const r = await api.post('/workflow/instances', {
-        process_definition_key: startTarget.key,
-        business_key: startBizKey.trim(),
-        variables: {},
-      });
-      toast.success(`流程已启动 — 实例: ${r.data.data.id.substring(0, 8)}...`);
-      setStartTarget(null);
-      setStartBizKey('');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '启动失败');
-    } finally { setStarting(false); }
-  };
-
   const handleVersions = async (def: ProcessDef) => {
     // Toggle: if clicking the same def, collapse it
     if (versionDef?.id === def.id) {
@@ -96,6 +75,44 @@ export default function WorkflowAdminPage() {
     } catch {
       toast.error('获取版本历史失败');
     }
+  };
+
+  const handleActivate = async (v: any, def: ProcessDef) => {
+    setActivating(v.id);
+    try {
+      await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/activate`);
+      toast.success(`v${v.version} 已启用`);
+      // Refresh both version list and main list
+      handleVersions(def);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || '启用失败');
+    } finally {
+      setActivating(null);
+    }
+  };
+
+  const handleSuspend = async (v: any, def: ProcessDef) => {
+    setSuspending(v.id);
+    try {
+      await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/suspend`);
+      toast.success(`v${v.version} 已禁用`);
+      handleVersions(def);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || '禁用失败');
+    } finally {
+      setSuspending(null);
+    }
+  };
+
+  // Find the active version number for a definition by checking its suspended status
+  // The main list shows latest version only; we need to check all versions to find the active one
+  const getActiveVersionInfo = (def: ProcessDef) => {
+    // If the latest version is not suspended, it's the active one
+    if (!def.suspended) return { version: def.version, active: true };
+    // Otherwise we need to check versions — for display we just show the main def status
+    return { version: def.version, active: false };
   };
 
   return (
@@ -136,7 +153,7 @@ export default function WorkflowAdminPage() {
                   <th className="text-left p-3 text-sm font-medium">Key</th>
                   <th className="text-left p-3 text-sm font-medium">版本</th>
                   <th className="text-left p-3 text-sm font-medium">分类</th>
-                  <th className="text-left p-3 text-sm font-medium">状态</th>
+                  <th className="text-left p-3 text-sm font-medium">启动版本</th>
                   {canConfigure && (
                     <th className="text-right p-3 text-sm font-medium">操作</th>
                   )}
@@ -145,6 +162,7 @@ export default function WorkflowAdminPage() {
               <tbody>
                 {definitions.map((def) => {
                   const isExpanded = versionDef?.id === def.id;
+                  const versionInfo = getActiveVersionInfo(def);
                   return (
                     <Fragment key={def.id}>
                       <tr className={`border-b hover:bg-muted/30 ${isExpanded ? 'bg-muted/10' : ''}`}>
@@ -153,19 +171,20 @@ export default function WorkflowAdminPage() {
                         <td className="p-3 text-sm">v{def.version}</td>
                         <td className="p-3 text-sm">{def.category || '-'}</td>
                         <td className="p-3">
-                          <Badge variant={def.suspended ? 'destructive' : 'default'}>
-                            {def.suspended ? '已挂起' : '启用'}
-                          </Badge>
+                          {versionInfo.active ? (
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              v{versionInfo.version}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">--</span>
+                          )}
                         </td>
                         {canConfigure && (
                           <td className="p-3 text-right space-x-2">
-                            <Button variant="ghost" size="sm" className="text-green-600" onClick={() => { setStartTarget(def); setStartBizKey(''); }}>启动</Button>
                             <Button variant="ghost" size="sm" onClick={() => handleVersions(def)}>
                               版本
                               <ChevronDown className={`ml-1 h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${encodeURIComponent(def.key)}`)}>
-                              编辑
                             </Button>
                             <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(def)}>
                               删除
@@ -183,41 +202,62 @@ export default function WorkflowAdminPage() {
                                     <tr className="border-b bg-muted/30">
                                       <th className="text-left p-3 text-sm font-medium">版本</th>
                                       <th className="text-left p-3 text-sm font-medium">名称</th>
-                                      <th className="text-left p-3 text-sm font-medium">状态</th>
                                       <th className="text-left p-3 text-sm font-medium">部署时间</th>
-                                      <th className="text-right p-3 text-sm font-medium">操作</th>
+                                      <th className="text-left p-3 text-sm font-medium">启用状态</th>
+                                      {canConfigure && (
+                                        <th className="text-right p-3 text-sm font-medium">操作</th>
+                                      )}
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {versions.length === 0 ? (
-                                      <tr><td colSpan={5} className="p-3 text-sm text-muted-foreground text-center">暂无版本数据</td></tr>
+                                      <tr><td colSpan={canConfigure ? 5 : 4} className="p-3 text-sm text-muted-foreground text-center">暂无版本数据</td></tr>
                                     ) : versions.map((v: any) => (
                                       <tr key={v.id} className="border-b last:border-0">
                                         <td className="p-3 text-sm font-mono">v{v.version}</td>
                                         <td className="p-3 text-sm">{v.name}</td>
-                                        <td className="p-3">
-                                          <Badge variant={v.suspended ? 'destructive' : 'default'}>
-                                            {v.suspended ? '已挂起' : '启用'}
-                                          </Badge>
-                                        </td>
                                         <td className="p-3 text-sm text-muted-foreground">
                                           {v.deployment_time ? new Date(v.deployment_time).toLocaleString('zh-CN') : '-'}
                                         </td>
-                                        <td className="p-3 text-right space-x-1">
-                                          {v.suspended && (
-                                            <Button variant="ghost" size="sm" className="text-green-600" onClick={async () => {
-                                              try {
-                                                await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/activate`);
-                                                toast.success(`v${v.version} 已激活`);
-                                                handleVersions(def);
-                                              } catch { toast.error('激活失败'); }
-                                            }}>激活</Button>
+                                        <td className="p-3">
+                                          {!v.suspended ? (
+                                            <Badge variant="default" className="gap-1">
+                                              <CheckCircle className="h-3 w-3" />
+                                              已启用
+                                            </Badge>
+                                          ) : (
+                                            <span className="text-sm text-muted-foreground">--</span>
                                           )}
-                                          <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.key}?version=${v.id}`)}>编辑</Button>
-                                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteVersionTarget({ version: v, def })}>
-                                            删除
-                                          </Button>
                                         </td>
+                                        {canConfigure && (
+                                          <td className="p-3 text-right space-x-1">
+                                            {v.suspended ? (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-green-600"
+                                                disabled={activating === v.id}
+                                                onClick={() => handleActivate(v, def)}
+                                              >
+                                                {activating === v.id ? '启用中...' : '启用'}
+                                              </Button>
+                                            ) : (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-orange-500"
+                                                disabled={suspending === v.id}
+                                                onClick={() => handleSuspend(v, def)}
+                                              >
+                                                {suspending === v.id ? '禁用中...' : '禁用'}
+                                              </Button>
+                                            )}
+                                            <Button variant="ghost" size="sm" onClick={() => router.push(`/workflow/design/${def.key}?version=${v.id}`)}>编辑</Button>
+                                            <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteVersionTarget({ version: v, def })}>
+                                              删除
+                                            </Button>
+                                          </td>
+                                        )}
                                       </tr>
                                     ))}
                                   </tbody>
@@ -247,48 +287,19 @@ export default function WorkflowAdminPage() {
         </>
       )}
 
+      {/* Delete process dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            确定要删除流程 <strong>{deleteTarget?.name}</strong> (v{deleteTarget?.version}) 吗？
+            确定要删除流程 <strong>{deleteTarget?.name}</strong> 及其所有版本吗？
             此操作不可撤销，将删除所有关联的运行时数据和历史记录。
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
             <Button className="bg-red-500 hover:bg-red-600" onClick={handleDelete}>删除</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Start process dialog */}
-      <Dialog open={!!startTarget} onOpenChange={(o) => { if (!o) { setStartTarget(null); setStartBizKey(''); } }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>启动流程: {startTarget?.name}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Key: <code className="font-mono">{startTarget?.key}</code> · v{startTarget?.version}
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="bizKey">业务标识 *</Label>
-            <Input
-              id="bizKey"
-              value={startBizKey}
-              onChange={e => setStartBizKey(e.target.value)}
-              placeholder="如: 日报:42、变更:审批001"
-            />
-            <p className="text-xs text-muted-foreground">
-              用于标识流程实例关联的业务对象，方便在流程实例列表中追踪
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setStartTarget(null); setStartBizKey(''); }}>取消</Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={handleStart} disabled={starting}>
-              {starting ? '启动中...' : '启动流程'}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -312,7 +323,10 @@ export default function WorkflowAdminPage() {
                 await api.post(`/workflow/definitions/delete-version`, { definition_id: deleteVersionTarget.version.id });
                 toast.success(`v${deleteVersionTarget.version.version} 已删除`);
                 setDeleteVersionTarget(null);
-                handleVersions(deleteVersionTarget.def);
+                refetch();
+                if (versionDef?.key === deleteVersionTarget.def.key) {
+                  handleVersions(deleteVersionTarget.def);
+                }
               } catch (err: any) {
                 toast.error(err.response?.data?.message || '删除失败');
                 setDeleteVersionTarget(null);

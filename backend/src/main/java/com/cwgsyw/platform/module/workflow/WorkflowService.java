@@ -276,12 +276,30 @@ public class WorkflowService {
 
     /**
      * Activate a suspended definition version — makes it available to start.
-     * Flowable auto-uses the latest active version when starting by key.
-     * To "switch" to an older version, activate it (and optionally suspend newer ones).
+     * MUTEX: suspends all other versions of the same process key so that
+     * only one version can be active at a time.
      */
     @Transactional
     public void activateDefinition(String definitionId) {
+        var def = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
+        // Suspend all other versions of the same key first (mutex)
+        repositoryService.createProcessDefinitionQuery()
+            .processDefinitionKey(def.getKey())
+            .list().stream()
+            .filter(d -> !d.getId().equals(definitionId) && !d.isSuspended())
+            .forEach(d -> repositoryService.suspendProcessDefinitionById(d.getId(), true, null));
+        // Then activate the target version
         repositoryService.activateProcessDefinitionById(definitionId, true, null);
+    }
+
+    /**
+     * Suspend (deactivate) a definition version.
+     */
+    @Transactional
+    public void suspendDefinition(String definitionId) {
+        repositoryService.suspendProcessDefinitionById(definitionId, true, null);
     }
 
     /**
