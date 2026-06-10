@@ -25,6 +25,7 @@ interface ProcessDef {
   category: string;
   suspended: boolean;
   deployment_time: string;
+  activeVersion?: number | null;
 }
 
 export default function WorkflowAdminPage() {
@@ -141,12 +142,12 @@ export default function WorkflowAdminPage() {
     }
   };
 
-  // Find the active version number for a definition by checking its suspended status
-  // The main list shows latest version only; we need to check all versions to find the active one
+  // Use the activeVersion field from the backend which correctly reports
+  // which version is active even when it's not the latest.
   const getActiveVersionInfo = (def: ProcessDef) => {
-    // If the latest version is not suspended, it's the active one
-    if (!def.suspended) return { version: def.version, active: true };
-    // Otherwise we need to check versions — for display we just show the main def status
+    if (def.activeVersion != null) {
+      return { version: def.activeVersion, active: true };
+    }
     return { version: def.version, active: false };
   };
 

@@ -15,4 +15,6 @@ public class ProcessDefinitionVO {
     private LocalDateTime deploymentTime;
     private boolean suspended;
     private String tenantId;
+    /** Active version number for this process key, or null if none is active. */
+    private Integer activeVersion;
 }

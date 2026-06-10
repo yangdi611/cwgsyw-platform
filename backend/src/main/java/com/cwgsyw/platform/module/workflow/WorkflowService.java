@@ -116,6 +116,27 @@ public class WorkflowService {
                 .collect(Collectors.toMap(org.flowable.engine.repository.Deployment::getId,
                     d -> d.getDeploymentTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()));
         vos.forEach(vo -> vo.setDeploymentTime(deploymentTimeMap.get(vo.getDeploymentId())));
+
+        // Resolve active version for each process key.
+        // When the latest version is suspended, find the actually-active older version.
+        Map<String, Integer> activeVersionMap = new HashMap<>();
+        for (var vo : vos) {
+            if (vo.isSuspended()) {
+                // Latest is suspended — find the non-suspended version for this key
+                var nonSuspended = repositoryService.createProcessDefinitionQuery()
+                    .processDefinitionKey(vo.getKey())
+                    .active()
+                    .singleResult();
+                if (nonSuspended != null) {
+                    activeVersionMap.put(vo.getKey(), nonSuspended.getVersion());
+                }
+            } else {
+                // Latest is active — it's the active version
+                activeVersionMap.put(vo.getKey(), vo.getVersion());
+            }
+        }
+        vos.forEach(vo -> vo.setActiveVersion(activeVersionMap.get(vo.getKey())));
+
         var result = new PageResult<ProcessDefinitionVO>();
         result.setRecords(vos);
         result.setTotal(total);
