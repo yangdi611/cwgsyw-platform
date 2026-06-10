@@ -176,6 +176,16 @@ public class WorkflowController {
     }
 
     /**
+     * 重命名流程 — 修改 name 和/或 key（应用于所有版本）
+     */
+    @PutMapping("/definitions/{definitionId}/rename")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<ProcessDefinitionVO> renameDefinition(@PathVariable String definitionId,
+                                                    @RequestBody UpdateProcessMetaReq req) {
+        return R.ok(workflowService.renameDefinition(definitionId, req));
+    }
+
+    /**
      * 激活（取消挂起）指定版本 — 互斥：自动挂起同流程下其他版本
      */
     @PutMapping("/definitions/{id}/activate")

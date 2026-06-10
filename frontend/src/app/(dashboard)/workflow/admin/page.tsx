@@ -7,12 +7,14 @@ import api from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { ChevronDown, CheckCircle, Circle } from 'lucide-react';
+import { ChevronDown, CheckCircle, Circle, Pencil } from 'lucide-react';
 
 interface ProcessDef {
   id: string;
@@ -36,6 +38,10 @@ export default function WorkflowAdminPage() {
   const [deleteVersionTarget, setDeleteVersionTarget] = useState<{ version: any; def: ProcessDef } | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
   const [suspending, setSuspending] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<ProcessDef | null>(null);
+  const [renameName, setRenameName] = useState('');
+  const [renameKey, setRenameKey] = useState('');
+  const [renaming, setRenaming] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-definitions', page],
@@ -106,6 +112,35 @@ export default function WorkflowAdminPage() {
     }
   };
 
+  const openRename = (def: ProcessDef) => {
+    setRenameTarget(def);
+    setRenameName(def.name);
+    setRenameKey(def.key);
+  };
+
+  const handleRename = async () => {
+    if (!renameTarget) return;
+    if (!renameName.trim()) { toast.error('请输入流程名称'); return; }
+    if (!renameKey.trim()) { toast.error('请输入流程 Key'); return; }
+    setRenaming(true);
+    try {
+      await api.put(`/workflow/definitions/${encodeURIComponent(renameTarget.id)}/rename`, {
+        name: renameName.trim(),
+        key: renameKey.trim(),
+      });
+      toast.success('流程信息已更新');
+      setRenameTarget(null);
+      refetch();
+      if (versionDef?.id === renameTarget.id) {
+        handleVersions(renameTarget);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || '更新失败');
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   // Find the active version number for a definition by checking its suspended status
   // The main list shows latest version only; we need to check all versions to find the active one
   const getActiveVersionInfo = (def: ProcessDef) => {
@@ -151,9 +186,9 @@ export default function WorkflowAdminPage() {
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 text-sm font-medium">流程名称</th>
                   <th className="text-left p-3 text-sm font-medium">Key</th>
-                  <th className="text-left p-3 text-sm font-medium">版本</th>
+                  <th className="text-left p-3 text-sm font-medium">最新版本</th>
                   <th className="text-left p-3 text-sm font-medium">分类</th>
-                  <th className="text-left p-3 text-sm font-medium">启动版本</th>
+                  <th className="text-left p-3 text-sm font-medium">激活版本</th>
                   {canConfigure && (
                     <th className="text-right p-3 text-sm font-medium">操作</th>
                   )}
@@ -182,6 +217,10 @@ export default function WorkflowAdminPage() {
                         </td>
                         {canConfigure && (
                           <td className="p-3 text-right space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => openRename(def)}>
+                              <Pencil className="h-3 w-3 mr-1" />
+                              编辑
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => handleVersions(def)}>
                               版本
                               <ChevronDown className={`ml-1 h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -332,6 +371,41 @@ export default function WorkflowAdminPage() {
                 setDeleteVersionTarget(null);
               }
             }}>删除</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename dialog */}
+      <Dialog open={!!renameTarget} onOpenChange={(o) => { if (!o) setRenameTarget(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>编辑流程信息</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="rename-name">流程名称</Label>
+              <Input
+                id="rename-name"
+                value={renameName}
+                onChange={(e) => setRenameName(e.target.value)}
+                placeholder="输入流程名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rename-key">流程 Key</Label>
+              <Input
+                id="rename-key"
+                value={renameKey}
+                onChange={(e) => setRenameKey(e.target.value)}
+                placeholder="输入流程 Key（英文标识）"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>取消</Button>
+            <Button disabled={renaming} onClick={handleRename}>
+              {renaming ? '保存中...' : '保存'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

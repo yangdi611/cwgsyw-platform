@@ -11,6 +11,7 @@ import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class WorkflowService {
     private final TaskService taskService;
     private final RepositoryService repositoryService;
     private final HistoryService historyService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public String startDailyReportApproval(Long reportId, Long groupId) {
@@ -496,6 +498,67 @@ public class WorkflowService {
                 m.put("assignee", a.getAssignee() != null ? a.getAssignee() : "");
                 return m;
             }).toList();
+    }
+
+    /**
+     * Update process definition name and/or key for all versions of a process.
+     * Uses JdbcTemplate for direct DB updates since Flowable has no API for this.
+     */
+    @Transactional
+    public ProcessDefinitionVO renameDefinition(String definitionId, UpdateProcessMetaReq req) {
+        var def = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
+
+        String oldKey = def.getKey();
+        String newKey = req.getKey() != null && !req.getKey().isBlank() ? req.getKey().trim() : oldKey;
+        String newName = req.getName() != null && !req.getName().isBlank() ? req.getName().trim() : null;
+
+        if (newKey.equals(oldKey) && newName == null) {
+            throw new IllegalArgumentException("至少需要提供 name 或 key");
+        }
+
+        // Check key uniqueness if changing key
+        if (!newKey.equals(oldKey)) {
+            long existing = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(newKey).count();
+            if (existing > 0) {
+                throw new IllegalArgumentException("流程 Key 已存在: " + newKey);
+            }
+        }
+
+        // Update name in ACT_RE_PROCDEF and ACT_RE_DEPLOYMENT
+        if (newName != null) {
+            jdbcTemplate.update("UPDATE ACT_RE_PROCDEF SET NAME_ = ? WHERE KEY_ = ?", newName, oldKey);
+            jdbcTemplate.update("UPDATE ACT_RE_DEPLOYMENT SET NAME_ = ? WHERE ID_ IN " +
+                "(SELECT DEPLOYMENT_ID_ FROM ACT_RE_PROCDEF WHERE KEY_ = ?)", newName, oldKey);
+        }
+
+        // Update key in ACT_RE_PROCDEF and BPMN XML in ACT_GE_BYTEARRAY
+        if (!newKey.equals(oldKey)) {
+            jdbcTemplate.update("UPDATE ACT_RE_PROCDEF SET KEY_ = ? WHERE KEY_ = ?", newKey, oldKey);
+            // Update XML process id in byte arrays for all versions
+            jdbcTemplate.update(
+                "UPDATE ACT_GE_BYTEARRAY SET BYTES_ = REPLACE(BYTES_, " +
+                "('<bpmn:process id=\"' || ? || '\"'), ('<bpmn:process id=\"' || ? || '\"')) " +
+                "WHERE DEPLOYMENT_ID_ IN (SELECT DEPLOYMENT_ID_ FROM ACT_RE_PROCDEF WHERE KEY_ = ?) " +
+                "AND NAME_ LIKE '%.bpmn20.xml'", newKey, oldKey, newKey);
+        }
+
+        // Refresh and return the updated definition
+        var updatedDef = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        var vo = new ProcessDefinitionVO();
+        vo.setId(updatedDef.getId());
+        vo.setName(updatedDef.getName());
+        vo.setKey(updatedDef.getKey());
+        vo.setVersion(updatedDef.getVersion());
+        vo.setDescription(updatedDef.getDescription());
+        vo.setCategory(updatedDef.getCategory());
+        vo.setDeploymentId(updatedDef.getDeploymentId());
+        vo.setSuspended(updatedDef.isSuspended());
+        vo.setTenantId(updatedDef.getTenantId());
+        return vo;
     }
 
     private InstanceVO toInstanceVO(ProcessInstance pi) {
