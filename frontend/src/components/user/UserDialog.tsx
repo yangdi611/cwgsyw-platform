@@ -96,11 +96,11 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
         reset({
           username: userDetail.username ?? '',
           password: '',
-          real_name: (userDetail as any).realName ?? '',
+          real_name: (userDetail as any).real_name ?? '',
           email: userDetail.email ?? '',
           phone: (userDetail as any).phone ?? '',
-          group_id: (userDetail as any).groupId ?? null,
-          role_ids: (userDetail as any).roleIds ?? [],
+          group_id: (userDetail as any).group_id ?? null,
+          role_ids: (userDetail as any).role_ids ?? [],
         })
       } else if (!isEdit) {
         reset(defaultValues)
