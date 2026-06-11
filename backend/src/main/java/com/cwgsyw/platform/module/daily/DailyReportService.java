@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +41,11 @@ public class DailyReportService {
             query.between(DailyReport::getReportDate, start, end);
         }
         Page<DailyReport> p = reportMapper.selectPage(new Page<>(page, size), query);
-        return PageResult.of(p.convert(this::toVO));
+        List<DailyReport> records = p.getRecords();
+        Map<Long, String> userNames = batchUserNames(records);
+        Map<Long, String> groupNames = batchGroupNames(records);
+        return PageResult.of(new Page<DailyReportVO>(p.getCurrent(), p.getSize(), p.getTotal())
+            .setRecords(records.stream().map(r -> toVO(r, userNames, groupNames)).toList()));
     }
 
     public PageResult<DailyReportVO> listGroupReports(Long groupId, String status, String month, int page, int size) {
@@ -52,7 +59,12 @@ public class DailyReportService {
             LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
             query.between(DailyReport::getReportDate, start, end);
         }
-        return PageResult.of(reportMapper.selectPage(new Page<>(page, size), query).convert(this::toVO));
+        Page<DailyReport> p = reportMapper.selectPage(new Page<>(page, size), query);
+        List<DailyReport> records = p.getRecords();
+        Map<Long, String> userNames = batchUserNames(records);
+        Map<Long, String> groupNames = batchGroupNames(records);
+        return PageResult.of(new Page<DailyReportVO>(p.getCurrent(), p.getSize(), p.getTotal())
+            .setRecords(records.stream().map(r -> toVO(r, userNames, groupNames)).toList()));
     }
 
     @Transactional
@@ -179,5 +191,40 @@ public class DailyReportService {
         var group = groupMapper.selectById(r.getGroupId());
         if (group != null) vo.setGroupName(group.getName());
         return vo;
+    }
+
+    private DailyReportVO toVO(DailyReport r, Map<Long, String> userNames, Map<Long, String> groupNames) {
+        DailyReportVO vo = new DailyReportVO();
+        vo.setId(r.getId());
+        vo.setGroupId(r.getGroupId());
+        vo.setReporterId(r.getReporterId());
+        vo.setReportDate(r.getReportDate());
+        vo.setCompletedItems(r.getCompletedItems());
+        vo.setIssues(r.getIssues());
+        vo.setTomorrowPlan(r.getTomorrowPlan());
+        vo.setWorkHours(r.getWorkHours());
+        vo.setStatus(r.getStatus());
+        vo.setCreatedAt(r.getCreatedAt());
+        vo.setUpdatedAt(r.getUpdatedAt());
+        vo.setReporterName(userNames.get(r.getReporterId()));
+        vo.setGroupName(groupNames.get(r.getGroupId()));
+        return vo;
+    }
+
+    private Map<Long, String> batchUserNames(List<DailyReport> reports) {
+        var ids = reports.stream().map(DailyReport::getReporterId).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        return userMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(
+                com.cwgsyw.platform.module.user.entity.User::getId,
+                u -> u.getRealName() != null ? u.getRealName() : u.getUsername()));
+    }
+
+    private Map<Long, String> batchGroupNames(List<DailyReport> reports) {
+        var ids = reports.stream().filter(r -> r.getGroupId() != null)
+                .map(DailyReport::getGroupId).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        return groupMapper.selectBatchIds(ids).stream().collect(Collectors.toMap(
+                com.cwgsyw.platform.module.org.entity.Group::getId,
+                com.cwgsyw.platform.module.org.entity.Group::getName));
     }
 }
