@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -13,9 +13,20 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { usePermission } from '@/hooks/usePermission'
 import UserDialog from '@/components/user/UserDialog'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface User {
   id: number
@@ -32,7 +43,11 @@ export default function UsersPage() {
   const [keyword, setKeyword] = useState('')
   const [debouncedKeyword, setDebouncedKeyword] = useState('')
   const [page, setPage] = useState(1)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const { hasPermission } = usePermission()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword), 300)
@@ -46,10 +61,21 @@ export default function UsersPage() {
         .get('/users', {
           params: { page, size: 20, keyword: debouncedKeyword || undefined },
         })
-        .then((r) => r.data.data.records as User[]),
+        .then((r) => r.data.data as { records: User[]; total: number; page: number; size: number }),
   })
 
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const users = data?.records ?? []
+  const total = data?.total ?? 0
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/users/${id}`),
+    onSuccess: () => {
+      toast.success('用户已删除')
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setDeleteTarget(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
 
   return (
     <div>
@@ -88,17 +114,18 @@ export default function UsersPage() {
               <TableHead>手机号</TableHead>
               <TableHead>所属组织</TableHead>
               <TableHead>状态</TableHead>
+              <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(data ?? []).length === 0 ? (
+            {(users).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   暂无数据
                 </TableCell>
               </TableRow>
             ) : (
-              (data ?? []).map((user) => (
+              (users).map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
                   <TableCell>{user.real_name || '-'}</TableCell>
@@ -110,6 +137,20 @@ export default function UsersPage() {
                       {user.status === 1 ? '启用' : '禁用'}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {hasPermission('user', 'update') && (
+                        <Button variant="ghost" size="icon" onClick={() => { setEditUser(user); setDialogOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {hasPermission('user', 'delete') && (
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(user)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -117,7 +158,43 @@ export default function UsersPage() {
         </Table>
       )}
 
-      <UserDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+        <span>共 {total} 条，第 {page} 页</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            上一页
+          </Button>
+          <Button variant="outline" size="sm" disabled={users.length < 20} onClick={() => setPage(p => p + 1)}>
+            下一页
+          </Button>
+        </div>
+      </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除用户「{deleteTarget?.username}」吗？此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); }} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <UserDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) setEditUser(null)
+          setDialogOpen(open)
+        }}
+        user={editUser ?? undefined}
+      />
     </div>
   )
 }
