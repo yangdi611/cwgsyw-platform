@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.user.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.cwgsyw.platform.common.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,6 +12,7 @@ import lombok.EqualsAndHashCode;
 public class User extends BaseEntity {
     private Long groupId;
     private String username;
+    @JsonIgnore
     private String password;
     private String realName;
     private String email;
