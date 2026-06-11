@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +29,7 @@ public class UserService {
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
 
-    public PageResult<User> list(int page, int size, String tenantId, String keyword) {
+    public PageResult<UserListVO> list(int page, int size, String tenantId, String keyword) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
             .eq(User::getTenantId, tenantId);
         if (StringUtils.hasText(keyword)) {
@@ -38,7 +41,33 @@ public class UserService {
                 .like(User::getEmail, keyword));
         }
         Page<User> p = userMapper.selectPage(new Page<>(page, size), wrapper);
-        return PageResult.of(p);
+
+        // Batch fetch group names to avoid N+1
+        Set<Long> groupIds = p.getRecords().stream()
+            .filter(u -> u.getGroupId() != null)
+            .map(User::getGroupId)
+            .collect(Collectors.toSet());
+        Map<Long, String> groupNames = groupIds.isEmpty()
+            ? Map.of()
+            : groupMapper.selectBatchIds(groupIds).stream()
+                .collect(Collectors.toMap(
+                    com.cwgsyw.platform.module.org.entity.Group::getId,
+                    com.cwgsyw.platform.module.org.entity.Group::getName));
+
+        return PageResult.of(p.convert(u -> {
+            UserListVO vo = new UserListVO();
+            vo.setId(u.getId());
+            vo.setUsername(u.getUsername());
+            vo.setRealName(u.getRealName());
+            vo.setEmail(u.getEmail());
+            vo.setPhone(u.getPhone());
+            vo.setStatus(u.getStatus());
+            vo.setGroupId(u.getGroupId());
+            vo.setGroupName(u.getGroupId() != null ? groupNames.get(u.getGroupId()) : null);
+            vo.setAvatarUrl(u.getAvatarUrl());
+            vo.setCreatedAt(u.getCreatedAt());
+            return vo;
+        }));
     }
 
     @Transactional

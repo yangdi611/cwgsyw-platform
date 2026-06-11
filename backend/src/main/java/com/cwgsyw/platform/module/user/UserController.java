@@ -18,7 +18,7 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasPermission('user', 'read')")
-    public R<PageResult<User>> list(
+    public R<PageResult<UserListVO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword,

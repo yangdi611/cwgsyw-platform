@@ -11,6 +11,7 @@ import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.dto.CreateUserRequest;
 import com.cwgsyw.platform.module.user.dto.UpdateUserRequest;
 import com.cwgsyw.platform.module.user.dto.UserDetailVO;
+import com.cwgsyw.platform.module.user.dto.UserListVO;
 import com.cwgsyw.platform.module.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -152,10 +153,10 @@ class UserServiceTest {
         assertTrue(auditLog.getRemark().contains("deleteuser"));
 
         // Verify user soft-deleted
-        verify(userMapper).updateById(argThat(u -> {
-            assertTrue(u.getIsDeleted());
-            assertEquals(3L, u.getDeletedBy());
-            assertNotNull(u.getDeletedAt());
+        verify(userMapper).updateById((User) argThat(u -> {
+            assertTrue(((User) u).getIsDeleted());
+            assertEquals(3L, ((User) u).getDeletedBy());
+            assertNotNull(((User) u).getDeletedAt());
             return true;
         }));
     }
@@ -172,12 +173,18 @@ class UserServiceTest {
         when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
             .thenReturn(pageResult);
 
+        Group group = new Group();
+        group.setId(1L);
+        group.setName("运维组");
+        when(groupMapper.selectBatchIds(java.util.Set.of(1L))).thenReturn(List.of(group));
+
         // When
-        PageResult<User> result = userService.list(1, 20, "default", "张三");
+        PageResult<UserListVO> result = userService.list(1, 20, "default", "张三");
 
         // Then
         assertNotNull(result);
         assertEquals(1, result.getTotal());
+        assertEquals("运维组", result.getRecords().get(0).getGroupName());
         verify(userMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
     }
 
@@ -191,13 +198,76 @@ class UserServiceTest {
         when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
             .thenReturn(pageResult);
 
+        Group group = new Group();
+        group.setId(1L);
+        group.setName("运维组");
+        when(groupMapper.selectBatchIds(java.util.Set.of(1L))).thenReturn(List.of(group));
+
         // When
-        PageResult<User> result = userService.list(1, 20, "default", null);
+        PageResult<UserListVO> result = userService.list(1, 20, "default", null);
 
         // Then
         assertNotNull(result);
         assertEquals(1, result.getTotal());
+        assertEquals("运维组", result.getRecords().get(0).getGroupName());
         verify(userMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
+    }
+
+    @Test
+    void list_withGroupId_returnsGroupName() {
+        // Given
+        Page<User> pageResult = new Page<>(1, 20);
+        pageResult.setRecords(List.of(createUser(1L, "zhangsan", "13800138000", 5L)));
+        pageResult.setTotal(1);
+
+        when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+            .thenReturn(pageResult);
+
+        Group group = new Group();
+        group.setId(5L);
+        group.setName("网络组");
+        when(groupMapper.selectBatchIds(java.util.Set.of(5L))).thenReturn(List.of(group));
+
+        // When
+        PageResult<UserListVO> result = userService.list(1, 20, "default", null);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getRecords().size());
+        UserListVO vo = result.getRecords().get(0);
+        assertEquals(5L, vo.getGroupId());
+        assertEquals("网络组", vo.getGroupName());
+        assertEquals("zhangsan", vo.getUsername());
+    }
+
+    @Test
+    void list_someUsersWithoutGroupId_groupNameIsNull() {
+        // Given
+        User userWithGroup = createUser(1L, "zhangsan", "13800138000", 1L);
+        User userNoGroup = createUser(2L, "lisi", "13900139000", null);
+
+        Page<User> pageResult = new Page<>(1, 20);
+        pageResult.setRecords(List.of(userWithGroup, userNoGroup));
+        pageResult.setTotal(2);
+
+        when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+            .thenReturn(pageResult);
+
+        Group group = new Group();
+        group.setId(1L);
+        group.setName("运维组");
+        when(groupMapper.selectBatchIds(java.util.Set.of(1L))).thenReturn(List.of(group));
+
+        // When
+        PageResult<UserListVO> result = userService.list(1, 20, "default", null);
+
+        // Then
+        assertEquals(2, result.getRecords().size());
+        UserListVO voWithGroup = result.getRecords().get(0);
+        UserListVO voNoGroup = result.getRecords().get(1);
+        assertEquals("运维组", voWithGroup.getGroupName());
+        assertNull(voNoGroup.getGroupId());
+        assertNull(voNoGroup.getGroupName());
     }
 
     // ── getDetail with groupName ─────────────────────────────────────────
