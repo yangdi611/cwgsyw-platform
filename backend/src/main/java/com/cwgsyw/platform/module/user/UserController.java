@@ -21,21 +21,30 @@ public class UserController {
     public R<PageResult<User>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal SecurityUser currentUser) {
-        return R.ok(userService.list(page, size, currentUser.getTenantId()));
+        return R.ok(userService.list(page, size, currentUser.getTenantId(), keyword));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasPermission('user', 'read')")
+    public R<UserDetailVO> getDetail(@PathVariable Long id,
+                                     @AuthenticationPrincipal SecurityUser currentUser) {
+        return R.ok(userService.getDetail(id, currentUser.getTenantId()));
     }
 
     @PostMapping
     @PreAuthorize("hasPermission('user', 'create')")
     public R<User> create(@Valid @RequestBody CreateUserRequest req,
                           @AuthenticationPrincipal SecurityUser currentUser) {
-        return R.ok(userService.create(req, currentUser.getTenantId()));
+        return R.ok(userService.create(req, currentUser.getTenantId(), currentUser.getUserId()));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('user', 'update')")
-    public R<Void> update(@PathVariable Long id, @RequestBody UpdateUserRequest req) {
-        userService.update(id, req);
+    public R<Void> update(@PathVariable Long id, @RequestBody UpdateUserRequest req,
+                          @AuthenticationPrincipal SecurityUser currentUser) {
+        userService.update(id, req, currentUser.getUserId());
         return R.ok();
     }
 
