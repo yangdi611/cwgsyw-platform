@@ -1,11 +1,13 @@
 'use client'
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useCallback } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -53,7 +55,7 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
     role_ids: [],
   }
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<UserFormData>({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<UserFormData>({
     defaultValues,
   })
 
@@ -71,6 +73,22 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
     queryFn: () => api.get('/groups').then(r => r.data.data as Array<{ id: number; name: string }>),
     enabled: open,
   })
+
+  // Fetch roles for checkbox group
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () =>
+      api
+        .get('/rbac/roles', { params: { page: 1, size: 50 } })
+        .then((r) => r.data.data.records as Array<{ id: number; name: string; code: string; scope: string; description: string }>),
+    enabled: open,
+  })
+
+  const toggleRole = useCallback(
+    (roleId: number, checked: boolean, current: number[]) =>
+      checked ? [...current, roleId] : current.filter((id) => id !== roleId),
+    [],
+  )
 
   useEffect(() => {
     if (open) {
@@ -99,6 +117,7 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
         email: data.email,
         phone: data.phone,
         group_id: data.group_id,
+        role_ids: data.role_ids,
       }),
     onSuccess: () => {
       toast.success('用户已创建')
@@ -116,6 +135,7 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
         phone: data.phone,
         group_id: data.group_id,
         password: data.password || undefined,
+        role_ids: data.role_ids,
       }),
     onSuccess: () => {
       toast.success('用户已更新')
@@ -195,6 +215,50 @@ export default function UserDialog({ open, onOpenChange, user }: UserDialogProps
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="rounded-lg border p-3 space-y-2">
+            <Label>分配角色</Label>
+            <Controller
+              control={control}
+              name="role_ids"
+              render={({ field }) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(rolesData ?? []).map((role) => {
+                    const checked = field.value.includes(role.id)
+                    return (
+                      <label
+                        key={role.id}
+                        className="flex items-start gap-2 cursor-pointer rounded-md border p-2 hover:bg-muted/50 transition-colors"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          className="mt-0.5"
+                          onCheckedChange={(v: boolean) =>
+                            field.onChange(toggleRole(role.id, v, field.value))
+                          }
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium leading-none">
+                              {role.name}
+                            </span>
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                              {role.scope}
+                            </Badge>
+                          </div>
+                          {role.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {role.description}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            />
           </div>
 
           <DialogFooter className="pt-2">
