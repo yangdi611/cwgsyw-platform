@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,29 +35,22 @@ public class CiAttributeService {
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
 
-    // ─── List attributes for a model ──────────────────────────────────────────
-
     public List<CiAttributeVO> list(String modelId, String tenantId) {
         CiModel model = loadModel(modelId, tenantId);
         Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
         return ciAttributeMapper.listByModel(model.getName(), tenantId).stream()
-                .map(a -> toVO(a, attrGroupNames))
-                .collect(Collectors.toList());
+                .map(a -> toVO(a, attrGroupNames)).collect(Collectors.toList());
     }
-
-    // ─── Create attribute ─────────────────────────────────────────────────────
 
     @Transactional
     public CiAttributeVO create(String modelId, CreateAttributeRequest req,
                                 String tenantId, Long operatorId) {
         CiModel model = loadModel(modelId, tenantId);
 
-        // Validate fieldKey not reserved
         if (RESERVED_KEYS.contains(req.getFieldKey())) {
             throw new IllegalArgumentException("字段标识为保留字: " + req.getFieldKey());
         }
 
-        // Validate fieldKey unique within model
         LambdaQueryWrapper<CiAttribute> dupCheck = new LambdaQueryWrapper<CiAttribute>()
                 .eq(CiAttribute::getTenantId, tenantId)
                 .eq(CiAttribute::getModelId, model.getName())
@@ -70,13 +60,10 @@ public class CiAttributeService {
             throw new IllegalArgumentException("字段标识已存在: " + req.getFieldKey());
         }
 
-        // Validate enumOptions for enum type
-        if ("enum".equals(req.getFieldType()) &&
-                (req.getEnumOptions() == null || req.getEnumOptions().isBlank())) {
+        if ("enum".equals(req.getFieldType()) && (req.getEnumOptions() == null || req.getEnumOptions().isBlank())) {
             throw new IllegalArgumentException("enum 类型字段必须提供 enumOptions");
         }
 
-        // Validate attribute group exists
         validateAttrGroup(model.getName(), req.getGroupId(), tenantId);
 
         CiAttribute attr = new CiAttribute();
@@ -103,21 +90,16 @@ public class CiAttributeService {
         return toVO(attr, attrGroupNames);
     }
 
-    // ─── Update attribute ─────────────────────────────────────────────────────
-
     @Transactional
     public CiAttributeVO update(String modelId, Long attrId, UpdateAttributeRequest req,
                                 String tenantId, Long operatorId) {
         CiModel model = loadModel(modelId, tenantId);
         CiAttribute attr = loadAttribute(attrId, tenantId, model.getName());
-
         String before = snapshot(attr);
 
-        // Built-in attributes: only allow isListShow change
         if (Boolean.TRUE.equals(attr.getIsBuiltIn())) {
-            if (req.getName() != null || req.getIsRequired() != null
-                    || req.getIsEditable() != null || req.getDefaultValue() != null
-                    || req.getEnumOptions() != null || req.getSortOrder() != null) {
+            if (req.getName() != null || req.getIsRequired() != null || req.getIsEditable() != null
+                    || req.getDefaultValue() != null || req.getEnumOptions() != null || req.getSortOrder() != null) {
                 throw new IllegalArgumentException("内置字段仅允许修改 isListShow");
             }
         }
@@ -129,7 +111,6 @@ public class CiAttributeService {
         if (req.getDefaultValue() != null) attr.setDefaultValue(req.getDefaultValue());
         if (req.getEnumOptions() != null) attr.setEnumOptions(req.getEnumOptions());
         if (req.getSortOrder() != null) attr.setSortOrder(req.getSortOrder());
-
         ciAttributeMapper.updateById(attr);
 
         writeAudit(tenantId, "update_attribute", attrId, "ci_attribute",
@@ -138,8 +119,6 @@ public class CiAttributeService {
         Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
         return toVO(attr, attrGroupNames);
     }
-
-    // ─── Delete attribute ─────────────────────────────────────────────────────
 
     @Transactional
     public void delete(String modelId, Long attrId, String tenantId, Long operatorId) {
@@ -156,11 +135,8 @@ public class CiAttributeService {
         attr.setDeletedBy(operatorId);
         ciAttributeMapper.updateById(attr);
 
-        writeAudit(tenantId, "delete_attribute", attrId, "ci_attribute",
-                operatorId, before, null);
+        writeAudit(tenantId, "delete_attribute", attrId, "ci_attribute", operatorId, before, null);
     }
-
-    // ─── Helpers ───────────────────────────────────────────────────────────────
 
     private CiModel loadModel(String modelId, String tenantId) {
         return ciModelMapper.findByName(modelId, tenantId)
@@ -169,9 +145,7 @@ public class CiAttributeService {
 
     private CiAttribute loadAttribute(Long attrId, String tenantId, String modelName) {
         CiAttribute attr = ciAttributeMapper.selectById(attrId);
-        if (attr == null || attr.getIsDeleted()
-                || !attr.getTenantId().equals(tenantId)
-                || !attr.getModelId().equals(modelName)) {
+        if (attr == null || attr.getIsDeleted() || !attr.getTenantId().equals(tenantId) || !attr.getModelId().equals(modelName)) {
             throw new IllegalArgumentException("字段不存在");
         }
         return attr;
@@ -193,27 +167,18 @@ public class CiAttributeService {
                 .eq(CiAttributeGroup::getTenantId, tenantId)
                 .eq(CiAttributeGroup::getIsDeleted, false);
         return ciAttributeGroupMapper.selectList(q).stream()
-                .collect(Collectors.toMap(
-                        g -> g.getModelId() + ":" + g.getCode(),
-                        CiAttributeGroup::getName));
+                .collect(Collectors.toMap(g -> g.getModelId() + ":" + g.getCode(), CiAttributeGroup::getName));
     }
 
     private CiAttributeVO toVO(CiAttribute a, Map<String, String> attrGroupNames) {
         CiAttributeVO vo = new CiAttributeVO();
-        vo.setId(a.getId());
-        vo.setModelId(a.getModelId());
-        vo.setFieldKey(a.getFieldKey());
-        vo.setName(a.getName());
-        vo.setGroupId(a.getGroupId());
+        vo.setId(a.getId()); vo.setModelId(a.getModelId()); vo.setFieldKey(a.getFieldKey());
+        vo.setName(a.getName()); vo.setGroupId(a.getGroupId());
         vo.setGroupName(attrGroupNames.get(a.getModelId() + ":" + a.getGroupId()));
-        vo.setFieldType(a.getFieldType());
-        vo.setIsRequired(a.getIsRequired());
-        vo.setIsEditable(a.getIsEditable());
-        vo.setIsUnique(a.getIsUnique());
-        vo.setIsBuiltIn(a.getIsBuiltIn());
-        vo.setIsListShow(a.getIsListShow());
-        vo.setDefaultValue(a.getDefaultValue());
-        vo.setEnumOptions(a.getEnumOptions());
+        vo.setFieldType(a.getFieldType()); vo.setIsRequired(a.getIsRequired());
+        vo.setIsEditable(a.getIsEditable()); vo.setIsUnique(a.getIsUnique());
+        vo.setIsBuiltIn(a.getIsBuiltIn()); vo.setIsListShow(a.getIsListShow());
+        vo.setDefaultValue(a.getDefaultValue()); vo.setEnumOptions(a.getEnumOptions());
         vo.setSortOrder(a.getSortOrder());
         return vo;
     }
@@ -221,33 +186,21 @@ public class CiAttributeService {
     private String snapshot(CiAttribute a) {
         try {
             Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", a.getId());
-            map.put("modelId", a.getModelId());
-            map.put("fieldKey", a.getFieldKey());
-            map.put("name", a.getName());
-            map.put("fieldType", a.getFieldType());
-            map.put("isRequired", a.getIsRequired());
-            map.put("isUnique", a.getIsUnique());
-            map.put("sortOrder", a.getSortOrder());
+            map.put("id", a.getId()); map.put("modelId", a.getModelId());
+            map.put("fieldKey", a.getFieldKey()); map.put("name", a.getName());
+            map.put("fieldType", a.getFieldType()); map.put("isRequired", a.getIsRequired());
+            map.put("isUnique", a.getIsUnique()); map.put("sortOrder", a.getSortOrder());
             return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            return "{}";
-        }
+        } catch (Exception e) { return "{}"; }
     }
 
     private void writeAudit(String tenantId, String action, Long targetId,
-                            String targetType, Long operatorId,
-                            String beforeJson, String afterJson) {
+                            String targetType, Long operatorId, String beforeJson, String afterJson) {
         auditLogMapper.insert(AuditLog.builder()
-                .tenantId(tenantId)
-                .module("cmdb")
-                .action(action)
-                .targetId(targetId)
-                .targetType(targetType)
+                .tenantId(tenantId).module("cmdb").action(action)
+                .targetId(targetId).targetType(targetType)
                 .operatorId(operatorId != null ? operatorId : 0L)
-                .beforeJson(beforeJson)
-                .afterJson(afterJson)
-                .createdAt(LocalDateTime.now())
-                .build());
+                .beforeJson(beforeJson).afterJson(afterJson)
+                .createdAt(LocalDateTime.now()).build());
     }
 }

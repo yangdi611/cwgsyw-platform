@@ -23,33 +23,26 @@ public class CiAttributeController {
 
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_model', 'read')")
-    public R<List<CiAttributeVO>> list(@PathVariable String modelId,
-                                       @AuthenticationPrincipal SecurityUser cu) {
+    public R<List<CiAttributeVO>> list(@PathVariable String modelId, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.list(modelId, cu.getTenantId()));
     }
 
     @PostMapping
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
-    public R<CiAttributeVO> create(@PathVariable String modelId,
-                                   @Valid @RequestBody CreateAttributeRequest req,
-                                   @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiAttributeVO> create(@PathVariable String modelId, @Valid @RequestBody CreateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.create(modelId, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{attrId}")
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
-    public R<CiAttributeVO> update(@PathVariable String modelId,
-                                   @PathVariable Long attrId,
-                                   @RequestBody UpdateAttributeRequest req,
-                                   @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiAttributeVO> update(@PathVariable String modelId, @PathVariable Long attrId,
+            @RequestBody UpdateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.update(modelId, attrId, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @DeleteMapping("/{attrId}")
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
-    public R<Void> delete(@PathVariable String modelId,
-                          @PathVariable Long attrId,
-                          @AuthenticationPrincipal SecurityUser cu) {
+    public R<Void> delete(@PathVariable String modelId, @PathVariable Long attrId, @AuthenticationPrincipal SecurityUser cu) {
         ciAttributeService.delete(modelId, attrId, cu.getTenantId(), cu.getUserId());
         return R.ok();
     }
