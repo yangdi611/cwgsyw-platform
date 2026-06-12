@@ -33,30 +33,25 @@ public class CiModelController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_model', 'read')")
-    public R<CiModelVO> getById(@PathVariable Long id,
-                                @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiModelVO> getById(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciModelService.getById(id, cu.getTenantId()));
     }
 
     @PostMapping
     @PreAuthorize("hasPermission('cmdb_model', 'create')")
-    public R<CiModelVO> create(@Valid @RequestBody CreateModelRequest req,
-                               @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiModelVO> create(@Valid @RequestBody CreateModelRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciModelService.create(req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
-    public R<CiModelVO> update(@PathVariable Long id,
-                               @RequestBody UpdateModelRequest req,
-                               @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiModelVO> update(@PathVariable Long id, @RequestBody UpdateModelRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciModelService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_model', 'delete')")
-    public R<Void> delete(@PathVariable Long id,
-                          @AuthenticationPrincipal SecurityUser cu) {
+    public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         ciModelService.delete(id, cu.getTenantId(), cu.getUserId());
         return R.ok();
     }

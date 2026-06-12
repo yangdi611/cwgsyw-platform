@@ -35,8 +35,6 @@ public class CiModelService {
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
 
-    // ─── List models ──────────────────────────────────────────────────────────
-
     public PageResult<CiModelVO> list(String keyword, String group, int page, int size,
                                       String tenantId) {
         LambdaQueryWrapper<CiModel> query = new LambdaQueryWrapper<CiModel>()
@@ -48,20 +46,23 @@ public class CiModelService {
             query.and(w -> w.like(CiModel::getName, keyword).or().like(CiModel::getDisplayName, keyword));
         }
         if (group != null && !group.isBlank()) {
-            query.eq(CiModel::getName, group); // filter by group code via join below
+            LambdaQueryWrapper<CiModelGroup> gq = new LambdaQueryWrapper<CiModelGroup>()
+                    .eq(CiModelGroup::getTenantId, tenantId)
+                    .eq(CiModelGroup::getCode, group)
+                    .eq(CiModelGroup::getIsDeleted, false);
+            CiModelGroup mg = ciModelGroupMapper.selectOne(gq);
+            if (mg != null) {
+                query.eq(CiModel::getGroupId, mg.getId());
+            } else {
+                return PageResult.of(new Page<>(page, size));
+            }
         }
 
         Page<CiModel> p = ciModelMapper.selectPage(new Page<>(page, size), query);
-
-        // Batch resolve group names
         Map<Long, String> groupNames = resolveGroupNames(tenantId);
-        // Batch resolve attribute group names
         Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
-
         return PageResult.of(p.convert(m -> toVO(m, groupNames, attrGroupNames, false)));
     }
-
-    // ─── Get model by ID ──────────────────────────────────────────────────────
 
     public CiModelVO getById(Long id, String tenantId) {
         CiModel model = loadModel(id, tenantId);
@@ -70,16 +71,11 @@ public class CiModelService {
         return toVO(model, groupNames, attrGroupNames, true);
     }
 
-    // ─── Create model ─────────────────────────────────────────────────────────
-
     @Transactional
     public CiModelVO create(CreateModelRequest req, String tenantId, Long operatorId) {
-        // Validate name uniqueness
         ciModelMapper.findByName(req.getName(), tenantId).ifPresent(m -> {
             throw new IllegalArgumentException("模型标识已存在: " + req.getName());
         });
-
-        // Validate group exists
         CiModelGroup modelGroup = findModelGroup(req.getGroup(), tenantId);
 
         CiModel model = new CiModel();
@@ -90,17 +86,13 @@ public class CiModelService {
         model.setIsBuiltIn(false);
         ciModelMapper.insert(model);
 
-        writeAudit(tenantId, "create_model", model.getId(), "ci_model",
-                operatorId, null, snapshot(model));
+        writeAudit(tenantId, "create_model", model.getId(), "ci_model", operatorId, null, snapshot(model));
         return getById(model.getId(), tenantId);
     }
-
-    // ─── Update model ─────────────────────────────────────────────────────────
 
     @Transactional
     public CiModelVO update(Long id, UpdateModelRequest req, String tenantId, Long operatorId) {
         CiModel model = loadModel(id, tenantId);
-
         String before = snapshot(model);
 
         if (req.getDisplayName() != null) model.setDisplayName(req.getDisplayName());
@@ -110,12 +102,9 @@ public class CiModelService {
         }
         ciModelMapper.updateById(model);
 
-        writeAudit(tenantId, "update_model", id, "ci_model",
-                operatorId, before, snapshot(model));
+        writeAudit(tenantId, "update_model", id, "ci_model", operatorId, before, snapshot(model));
         return getById(id, tenantId);
     }
-
-    // ─── Delete model ─────────────────────────────────────────────────────────
 
     @Transactional
     public void delete(Long id, String tenantId, Long operatorId) {
@@ -124,8 +113,6 @@ public class CiModelService {
         if (Boolean.TRUE.equals(model.getIsBuiltIn())) {
             throw new IllegalStateException("内置模型不可删除");
         }
-
-        // Check for existing instances (delete protection)
         long instanceCount = ciInstanceMapper.countByModel(model.getName(), tenantId);
         if (instanceCount > 0) {
             throw new IllegalStateException("模型下存在 " + instanceCount + " 个实例，无法删除");
@@ -137,7 +124,6 @@ public class CiModelService {
         model.setDeletedBy(operatorId);
         ciModelMapper.updateById(model);
 
-        // Cascade soft-delete attributes
         List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getName(), tenantId);
         for (CiAttribute attr : attrs) {
             attr.setIsDeleted(true);
@@ -165,9 +151,7 @@ public class CiModelService {
                 .eq(CiModelGroup::getCode, groupCode)
                 .eq(CiModelGroup::getIsDeleted, false);
         CiModelGroup mg = ciModelGroupMapper.selectOne(q);
-        if (mg == null) {
-            throw new IllegalArgumentException("模型分组不存在: " + groupCode);
-        }
+        if (mg == null) throw new IllegalArgumentException("模型分组不存在: " + groupCode);
         return mg;
     }
 
@@ -184,9 +168,7 @@ public class CiModelService {
                 .eq(CiAttributeGroup::getTenantId, tenantId)
                 .eq(CiAttributeGroup::getIsDeleted, false);
         return ciAttributeGroupMapper.selectList(q).stream()
-                .collect(Collectors.toMap(
-                        g -> g.getModelId() + ":" + g.getCode(),
-                        CiAttributeGroup::getName));
+                .collect(Collectors.toMap(g -> g.getModelId() + ":" + g.getCode(), CiAttributeGroup::getName));
     }
 
     private CiModelVO toVO(CiModel m, Map<Long, String> groupNames,
@@ -199,9 +181,7 @@ public class CiModelService {
         vo.setCreatedAt(m.getCreatedAt());
         vo.setUpdatedAt(m.getUpdatedAt());
 
-        // Resolve group info
         if (m.getGroupId() != null) {
-            // Find the group code by looking up all groups
             LambdaQueryWrapper<CiModelGroup> gq = new LambdaQueryWrapper<CiModelGroup>()
                     .eq(CiModelGroup::getId, m.getGroupId())
                     .eq(CiModelGroup::getIsDeleted, false);
@@ -211,20 +191,14 @@ public class CiModelService {
                 vo.setGroupName(mg.getName());
             }
         }
-        vo.setGroupName(groupNames.get(m.getGroupId()));
 
-        // Instance count
         long count = ciInstanceMapper.countByModel(m.getName(), m.getTenantId());
         vo.setInstanceCount((int) count);
 
-        // Attributes (optional)
         if (withAttributes) {
             List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getName(), m.getTenantId());
-            vo.setAttributes(attrs.stream()
-                    .map(a -> toAttributeVO(a, attrGroupNames))
-                    .collect(Collectors.toList()));
+            vo.setAttributes(attrs.stream().map(a -> toAttributeVO(a, attrGroupNames)).collect(Collectors.toList()));
         }
-
         return vo;
     }
 
@@ -251,30 +225,20 @@ public class CiModelService {
     private String snapshot(CiModel m) {
         try {
             Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", m.getId());
-            map.put("name", m.getName());
+            map.put("id", m.getId()); map.put("name", m.getName());
             map.put("displayName", m.getDisplayName());
-            map.put("groupId", m.getGroupId());
-            map.put("isBuiltIn", m.getIsBuiltIn());
+            map.put("groupId", m.getGroupId()); map.put("isBuiltIn", m.getIsBuiltIn());
             return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            return "{}";
-        }
+        } catch (Exception e) { return "{}"; }
     }
 
     private void writeAudit(String tenantId, String action, Long targetId,
-                            String targetType, Long operatorId,
-                            String beforeJson, String afterJson) {
+                            String targetType, Long operatorId, String beforeJson, String afterJson) {
         auditLogMapper.insert(AuditLog.builder()
-                .tenantId(tenantId)
-                .module("cmdb")
-                .action(action)
-                .targetId(targetId)
-                .targetType(targetType)
+                .tenantId(tenantId).module("cmdb").action(action)
+                .targetId(targetId).targetType(targetType)
                 .operatorId(operatorId != null ? operatorId : 0L)
-                .beforeJson(beforeJson)
-                .afterJson(afterJson)
-                .createdAt(LocalDateTime.now())
-                .build());
+                .beforeJson(beforeJson).afterJson(afterJson)
+                .createdAt(LocalDateTime.now()).build());
     }
 }

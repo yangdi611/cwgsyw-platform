@@ -18,10 +18,8 @@ public class CiTopologyController {
 
     @GetMapping("/{instanceId}")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
-    public R<TopologyResultVO> getTopology(
-            @PathVariable Long instanceId,
-            @RequestParam(defaultValue = "5") int depth,
-            @AuthenticationPrincipal SecurityUser cu) {
+    public R<TopologyResultVO> getTopology(@PathVariable Long instanceId,
+            @RequestParam(defaultValue = "5") int depth, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciTopologyService.getTopology(instanceId, depth, cu.getTenantId()));
     }
 }
