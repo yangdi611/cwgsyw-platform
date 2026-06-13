@@ -1,4 +1,4 @@
-package com.cwgsyw.platform.module.cmdb.dto.history;
+package com.cwgsyw.platform.module.cmdb.dto.changes;
 
 import lombok.Data;
 
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-public class ChangeHistoryVO {
+public class ChangeHistoryV2VO {
     private Long id;
     private String action;
     private Long operatorId;
