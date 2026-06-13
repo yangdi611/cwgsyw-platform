@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
+import type { CmdbAlertVO } from '@/hooks/usePrometheusAlerts'
 
 /* ---------- Types ---------- */
 
@@ -140,7 +142,7 @@ export default function CmdbInstanceDetailPage() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'daily-reports' | 'history'>('info')
+  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'daily-reports' | 'alerts' | 'history'>('info')
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
@@ -325,6 +327,11 @@ export default function CmdbInstanceDetailPage() {
     enabled: tab === 'daily-reports',
   })
 
+  // Alerts for this instance
+  const { data: instanceAlerts = [], isLoading: alertsLoading } = useInstanceAlerts(id)
+  const firingCount = instanceAlerts.filter(a => a.status === 'firing').length
+  const acknowledgeMutation = useAcknowledgeAlert()
+
   const CHANGE_DOC_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
     draft:    { label: '草稿',   variant: 'secondary' },
     pending:  { label: '待审批', variant: 'default' },
@@ -392,7 +399,7 @@ export default function CmdbInstanceDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-6 overflow-x-auto">
-        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'daily-reports', 'history'] as const).map(t => (
+        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'daily-reports', 'alerts', 'history'] as const).map(t => (
           <button
             key={t}
             onClick={() => {
@@ -412,6 +419,7 @@ export default function CmdbInstanceDetailPage() {
             {t === 'devices' && '关联设备'}
             {t === 'change-docs' && '相关变更'}
             {t === 'daily-reports' && '相关日报'}
+            {t === 'alerts' && (<>告警{firingCount > 0 && <Badge variant="destructive" className="ml-1 text-xs px-1.5">{firingCount}</Badge>}</>)}
             {t === 'history' && '变更历史'}
           </button>
         ))}
@@ -827,6 +835,82 @@ export default function CmdbInstanceDetailPage() {
                         <Link href={`/daily/${dr.id}`}>
                           <Button size="sm" variant="outline">查看日报</Button>
                         </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+
+      {/* ========== Alerts Tab ========== */}
+      {tab === 'alerts' && (
+        <div>
+          <h2 className="font-semibold mb-4">告警信息</h2>
+
+          {alertsLoading ? (
+            <p className="text-muted-foreground text-sm">加载中...</p>
+          ) : instanceAlerts.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">暂无告警信息</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>告警名称</TableHead>
+                  <TableHead>级别</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>摘要</TableHead>
+                  <TableHead>触发时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {instanceAlerts.map((alert: CmdbAlertVO) => {
+                  const severityVariant = alert.severity === 'critical' ? 'destructive' as const
+                    : alert.severity === 'warning' ? 'secondary' as const
+                    : 'outline' as const
+                  const severityLabel = alert.severity === 'critical' ? '严重'
+                    : alert.severity === 'warning' ? '警告'
+                    : alert.severity === 'info' ? '信息'
+                    : alert.severity
+                  return (
+                    <TableRow key={alert.id}>
+                      <TableCell className="font-medium">{alert.alertName}</TableCell>
+                      <TableCell>
+                        <Badge variant={severityVariant}>{severityLabel}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={alert.status === 'firing' ? 'destructive' : 'secondary'}>
+                          {alert.status === 'firing' ? '触发中' : '已恢复'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-sm">{alert.summary ?? '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {alert.startsAt ? new Date(alert.startsAt).toLocaleString('zh-CN') : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {alert.status === 'firing' && !alert.acknowledged && (
+                          <PermissionGuard resource="cmdb_alert" action="acknowledge">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                acknowledgeMutation.mutate(alert.id, {
+                                  onSuccess: () => toast.success('告警已确认'),
+                                  onError: (e: any) => toast.error(e?.response?.data?.message ?? '确认失败'),
+                                })
+                              }}
+                              disabled={acknowledgeMutation.isPending}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />确认
+                            </Button>
+                          </PermissionGuard>
+                        )}
+                        {alert.acknowledged && (
+                          <Badge variant="outline" className="text-xs">已确认</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   )
