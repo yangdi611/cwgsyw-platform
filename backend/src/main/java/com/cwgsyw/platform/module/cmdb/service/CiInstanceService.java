@@ -39,6 +39,7 @@ public class CiInstanceService {
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final CiNotificationService ciNotificationService;
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
@@ -117,6 +118,7 @@ public class CiInstanceService {
     public CiInstanceDetailVO update(Long id, UpdateInstanceRequest req, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
         String before = snapshotInstance(inst);
+        String oldStatus = inst.getStatus();
 
         if (req.getName() != null) inst.setName(req.getName());
         if (req.getStatus() != null) inst.setStatus(req.getStatus());
@@ -135,6 +137,11 @@ public class CiInstanceService {
         }
 
         ciInstanceMapper.updateById(inst);
+
+        if (req.getStatus() != null && !oldStatus.equals(req.getStatus())) {
+            ciNotificationService.notifyStatusChange(inst, oldStatus, req.getStatus(), operatorId);
+        }
+
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
         return getDetail(id, tenantId);
     }
@@ -155,6 +162,8 @@ public class CiInstanceService {
             rel.setIsDeleted(true); rel.setDeletedAt(LocalDateTime.now()); rel.setDeletedBy(operatorId);
             ciInstanceRelMapper.updateById(rel);
         }
+
+        ciNotificationService.notifyDelete(inst, operatorId);
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
     }

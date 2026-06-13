@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Bell, CheckCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { NotificationItem } from '@/components/notification/NotificationItem'
 
 interface NotificationVO {
   id: number
@@ -78,34 +78,11 @@ export default function NotificationsPage() {
       ) : (
         <div className="space-y-2">
           {records.map(n => (
-            <div
+            <NotificationItem
               key={n.id}
-              onClick={() => !n.is_read && readMutation.mutate(n.id)}
-              className={cn(
-                'p-4 border rounded-lg transition-colors',
-                n.is_read
-                  ? 'bg-card cursor-default'
-                  : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/30'
-              )}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-2 min-w-0">
-                  {!n.is_read && (
-                    <span className="mt-1.5 inline-block w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <p className={cn('font-medium text-sm', !n.is_read && 'text-foreground')}>{n.title}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{n.content}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                  {new Date(n.created_at).toLocaleString('zh-CN', {
-                    month: 'numeric', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                </span>
-              </div>
-            </div>
+              notification={n}
+              onMarkRead={(id) => readMutation.mutate(id)}
+            />
           ))}
         </div>
       )}
