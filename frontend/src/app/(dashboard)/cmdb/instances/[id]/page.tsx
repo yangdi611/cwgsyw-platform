@@ -541,11 +541,11 @@ export default function CmdbInstanceDetailPage() {
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         <PermissionGuard resource="cmdb_relation" action="update">
-                          <Button size="sm" variant="ghost" onClick={() => {
+                          <Button size="sm" onClick={() => {
                             setRelEditTarget(rel)
-                            setRelEditMeta({ ...(rel.metadata ?? {}) } as Record<string, string>)
+                            setRelEditMeta(rel.metadata ?? {})
                           }}>
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="h-4 w-4 mr-1" />元数据
                           </Button>
                         </PermissionGuard>
                         <PermissionGuard resource="cmdb_relation" action="delete">
