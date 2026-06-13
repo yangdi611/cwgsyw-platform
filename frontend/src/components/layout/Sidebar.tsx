@@ -5,98 +5,43 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import {
-  FileText, CheckSquare, Users, Building2, Shield, LayoutDashboard,
-  KeyRound, Bell, Settings, BarChart2, ClipboardList, FileCode,
-  Database, Search, Server, Settings2, ChevronDown, ChevronRight,
-  Wrench, ClipboardCheck, FolderOpen, GitBranch, Play, BarChart3,
+  FileText,
+  CheckSquare,
+  Users,
+  Building2,
+  Shield,
+  LayoutDashboard,
+  KeyRound,
+  Bell,
+  Settings,
+  Bot,
+  BarChart2,
+  ClipboardList,
+  FileCode,
+  ServerCog,
+  Database,
+  History,
+  Globe,
 } from 'lucide-react'
 
-interface NavItem {
-  href: string
-  label: string
-  icon: React.ElementType
-  resource: string | null
-  action: string | null
-}
-
-interface NavGroup {
-  label: string
-  icon: React.ElementType
-  resource: string
-  action: string
-  storageKey: string
-  defaultOpen?: boolean
-  children: (NavItem | NavGroup)[]
-}
-
-type SidebarEntry = NavItem | NavGroup
-
-function isGroup(entry: SidebarEntry | NavItem | NavGroup): entry is NavGroup {
-  return 'children' in entry
-}
-
-const cmdbGroup: NavGroup = {
-  label: 'CMDB',
-  icon: Database,
-  resource: 'cmdb_instance',
-  action: 'read',
-  storageKey: 'sidebar_cmdb_open',
-  children: [
-    { href: '/cmdb',           label: '搜索',     icon: Search,    resource: 'cmdb_instance', action: 'read' },
-    { href: '/cmdb/instances', label: 'CI 资源',  icon: Server,    resource: 'cmdb_instance', action: 'read' },
-    { href: '/cmdb/admin',     label: '配置管理', icon: Settings2, resource: 'cmdb_model',    action: 'write' },
-  ],
-}
-
-const sidebarEntries: SidebarEntry[] = [
-  { href: '/', label: '首页', icon: LayoutDashboard, resource: null, action: null },
-  {
-    label: '日常工作',
-    icon: ClipboardCheck,
-    resource: 'daily_report',
-    action: 'read',
-    storageKey: 'sidebar_daily_open',
-    defaultOpen: true,
-    children: [
-      { href: '/daily',          label: '我的日报', icon: FileText,    resource: 'daily_report', action: 'read' },
-      { href: '/workflow/tasks',    label: '待审批',    icon: CheckSquare, resource: 'workflow', action: 'read' },
-      { href: '/workflow/instances', label: '流程实例', icon: Play,        resource: 'workflow', action: 'read' },
-      { href: '/workflow/admin',    label: '流程管理', icon: GitBranch,    resource: 'workflow', action: 'configure' },
-      { href: '/workflow/stats',   label: '流程统计', icon: BarChart3,    resource: 'workflow', action: 'read' },
-      { href: '/notifications',  label: '通知中心', icon: Bell,        resource: 'notification', action: 'read' },
-    ],
-  },
-  {
-    label: 'IT 运维工具',
-    icon: Wrench,
-    resource: 'device',
-    action: 'read',
-    storageKey: 'sidebar_ops_open',
-    defaultOpen: true,
-    children: [
-      cmdbGroup,
-      { href: '/files',        label: '共享文档',   icon: FolderOpen, resource: 'shared_file',  action: 'read' },
-      { href: '/devices',      label: '设备密码库', icon: KeyRound,  resource: 'device',       action: 'read' },
-      { href: '/change-docs',  label: '变更文档',   icon: FileText,  resource: 'change_doc',   action: 'read' },
-      { href: '/reports',      label: '报表导出',   icon: BarChart2, resource: 'daily_report', action: 'export' },
-    ],
-  },
-  {
-    label: '配置',
-    icon: Settings,
-    resource: 'user',
-    action: 'read',
-    storageKey: 'sidebar_config_open',
-    defaultOpen: false,
-    children: [
-      { href: '/users',                      label: '用户管理', icon: Users,         resource: 'user',                action: 'read' },
-      { href: '/groups',                     label: '组管理',   icon: Building2,     resource: 'group',               action: 'read' },
-      { href: '/rbac/roles',                 label: '角色权限', icon: Shield,        resource: 'role',                action: 'read' },
-      { href: '/admin/change-doc-templates', label: '变更模板', icon: FileCode,      resource: 'change_doc_template', action: 'read' },
-      { href: '/admin/config',               label: '系统配置', icon: Settings,      resource: 'notification',        action: 'manage' },
-      { href: '/admin/audit',                label: '审计日志', icon: ClipboardList, resource: 'audit',               action: 'read' },
-    ],
-  },
+const navItems = [
+  { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
+  { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
+  { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
+  { href: '/devices',        label: '设备密码库', icon: KeyRound,       resource: 'device',       action: 'read' },
+  { href: '/notifications',  label: '通知中心',   icon: Bell,            resource: 'notification',  action: 'read' },
+  { href: '/cmdb/models',    label: 'CMDB 模型',  icon: ServerCog,       resource: 'cmdb_model',    action: 'read' },
+  { href: '/cmdb/instances', label: 'CMDB 实例',  icon: Database,        resource: 'cmdb_instance', action: 'read' },
+  { href: '/cmdb/changes',   label: 'CMDB 变更',  icon: History,         resource: 'cmdb_instance', action: 'read' },
+  { href: '/ipam',           label: 'IP 地址池',   icon: Globe,           resource: 'ip_pool',       action: 'read' },
+  { href: '/change-docs',    label: '变更文档',   icon: FileText,        resource: 'change_doc',    action: 'read' },
+  { href: '/reports',        label: '报表导出',   icon: BarChart2,      resource: 'daily_report', action: 'export' },
+  { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
+  { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
+  { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
+  { href: '/admin/change-doc-templates', label: 'AI模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
+  { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
+  { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
 ]
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {

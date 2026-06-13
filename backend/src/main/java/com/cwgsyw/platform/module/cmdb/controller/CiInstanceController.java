@@ -2,12 +2,16 @@ package com.cwgsyw.platform.module.cmdb.controller;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.module.changedoc.dto.LinkedChangeDocVO;
 import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceService;
+import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
+import com.cwgsyw.platform.module.device.dto.DeviceVO;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -79,5 +83,23 @@ public class CiInstanceController {
             @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciInstanceService.getGlobalChanges(model, operatorId, startDate, endDate, page, size, cu.getTenantId()));
+    }
+
+    @GetMapping("/{id}/devices")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<List<DeviceVO>> getRelatedDevices(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getRelatedDevices(id, cu.getTenantId()));
+    }
+
+    @GetMapping("/{id}/change-docs")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<List<LinkedChangeDocVO>> getRelatedChangeDocs(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getRelatedChangeDocs(id, cu.getTenantId()));
+    }
+
+    @GetMapping("/{id}/daily-reports")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<List<DailyReportBriefVO>> getRelatedDailyReports(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getRelatedDailyReports(id, cu.getTenantId()));
     }
 }

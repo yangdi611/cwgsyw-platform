@@ -2,6 +2,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import { DailyReportForm } from '@/components/daily/DailyReportForm'
+import { CiInstanceItem } from '@/components/daily/CiInstanceMultiSelect'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
@@ -32,6 +33,7 @@ function NewDailyReportContent() {
     issues: string
     tomorrowPlan: string
     workHours: string
+    ciInstances: CiInstanceItem[]
   }) => {
     const effectiveGroupId = groupId ?? (selectedGroupId ? Number(selectedGroupId) : undefined)
     if (!effectiveGroupId) {
@@ -45,6 +47,7 @@ function NewDailyReportContent() {
       tomorrow_plan: data.tomorrowPlan,
       work_hours: data.workHours ? parseFloat(data.workHours) : null,
       group_id: effectiveGroupId,
+      ci_instance_ids: data.ciInstances.map(ci => ci.id),
     })
     toast.success('日报已保存')
     router.push('/daily')

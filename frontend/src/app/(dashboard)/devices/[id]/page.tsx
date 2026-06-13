@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CredentialRow } from '@/components/device/CredentialRow'
+import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { toast } from 'sonner'
 import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
@@ -33,6 +34,8 @@ interface DeviceDetail {
   category: string
   group_name: string
   description: string
+  ci_instance_id: number | null
+  ci_instance_name: string | null
   credentials: Credential[]
 }
 
@@ -178,6 +181,7 @@ export default function DeviceDetailPage() {
       device_type: device.device_type,
       category: device.category,
       description: device.description,
+      ci_instance_id: device.ci_instance_id,
     })
     setEditing(true)
   }
@@ -271,6 +275,13 @@ export default function DeviceDetailPage() {
               <Label>备注</Label>
               <Input value={editForm.description ?? ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
             </div>
+            <div className="space-y-1.5">
+              <Label>关联 CMDB 实例</Label>
+              <CiInstanceSelect
+                value={editForm.ci_instance_id ?? null}
+                onChange={id => setEditForm(f => ({ ...f, ci_instance_id: id }))}
+              />
+            </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => updateMutation.mutate()} disabled={!editForm.name || updateMutation.isPending}>保存</Button>
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>取消</Button>
@@ -280,12 +291,22 @@ export default function DeviceDetailPage() {
       )}
 
       {/* Device Info */}
-      {!editing && (device.ip || device.description) && (
+      {!editing && (device.ip || device.description || device.ci_instance_id) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {device.ip && (
             <Card>
               <CardHeader><CardTitle className="text-sm">IP 地址</CardTitle></CardHeader>
               <CardContent className="text-sm font-mono">{device.ip}</CardContent>
+            </Card>
+          )}
+          {device.ci_instance_id && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">关联 CMDB 实例</CardTitle></CardHeader>
+              <CardContent className="text-sm">
+                <Link href={`/cmdb/instances/${device.ci_instance_id}`} className="hover:underline text-primary">
+                  {device.ci_instance_name ?? `实例 #${device.ci_instance_id}`}
+                </Link>
+              </CardContent>
             </Card>
           )}
           {device.description && (

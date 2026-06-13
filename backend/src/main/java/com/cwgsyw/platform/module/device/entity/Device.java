@@ -15,4 +15,5 @@ public class Device extends BaseEntity {
     private String deviceType;   // server / network / security / cloud / other
     private String category;
     private String description;
+    private Long ciInstanceId;
 }
