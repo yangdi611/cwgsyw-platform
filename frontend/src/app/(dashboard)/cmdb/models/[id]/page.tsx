@@ -297,7 +297,7 @@ export default function CmdbModelDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">实例列表 ({instTotal})</h2>
             <PermissionGuard resource="cmdb_instance" action="create">
-              <Link href={`/cmdb/instances?createModel=${model.name}`}>
+              <Link href={`/cmdb/instances?model=${model.name}`}>
                 <Button size="sm"><Plus className="h-4 w-4 mr-1" />新建实例</Button>
               </Link>
             </PermissionGuard>
