@@ -69,6 +69,11 @@ cwgsyw-platform/
 | V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def` 关联扩展属性定义 |
 | V25  | CSV 导入权限 seed（`cmdb_instance:import`）              |
 | V26  | 影响分析权限 seed（`cmdb_instance:impact`）              |
+| V27  | `device` 增加 `ci_instance_id`（设备 ↔ CI 实例关联）     |
+| V28  | `change_doc_ci_link` — 变更文档 ↔ CI 实例关联表         |
+| V29  | `daily_report` 增加 `ci_instance_ids` JSONB（日报 ↔ CI） |
+| V30  | `ip_pool` + `ip_allocation` — IPAM 模块 + RBAC          |
+| V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                 |
 
 ---
 
@@ -134,6 +139,8 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `cmdb_model`    | create, read, update, delete                       |
 | `cmdb_instance` | create, read, update, delete, import, impact       |
 | `cmdb_relation` | create, read, update, delete                       |
+| `ip_pool`       | create, read, update, delete                       |
+| `cmdb_alert`    | create, read, acknowledge                          |
 
 ---
 
@@ -167,6 +174,10 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `CiTopologyService`     | `module/cmdb/service/`                  | CMDB 拓扑遍历（递归 CTE BFS）   |
 | `CsvImportService`      | `module/cmdb/service/`                  | CSV 批量导入（preview/execute） |
 | `ImpactAnalysisService` | `module/cmdb/service/`                  | 影响分析（CTE + Java BFS）      |
+| `CiNotificationService` | `module/cmdb/service/`                  | CI 状态变更/删除通知（Phase 4A）|
+| `ChangeDocLinkService`  | `module/changedoc/`                     | 变更文档 ↔ CI 实例关联（4C）    |
+| `IpPoolService`         | `module/ipam/`                          | IP 地址池管理（Phase 4E）      |
+| `PrometheusAlertSyncService` | `module/cmdb/alert/`               | Prometheus 告警同步（Phase 4F）|
 
 ---
 
@@ -189,15 +200,20 @@ user.getPermissions() // Collection<GrantedAuthority>
 | 2b    | 设备密码库 (AES-256-GCM)            | ✅ |
 | 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
 | 3a    | 变更文档系统 + AI 辅助 + Word/PDF 导出 | ✅ |
-| 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ 后端完成，前端待开发 |
-| 3c    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ 后端完成，前端待开发 |
+| 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ |
+| 3c    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ |
+| 4A    | CI 状态变更/删除通知 | ✅ |
+| 4B    | 设备 ↔ CI 实例关联 | ✅ |
+| 4C    | CMDB ↔ 变更文档关联 | ✅ |
+| 4D    | CMDB ↔ 日报关联 | ✅ |
+| 4E    | IP 地址池管理 (IPAM) | ✅ |
+| 4F    | Prometheus 告警集成 | ✅ |
 
 ## 计划中的功能模块
 
 | Phase | 功能                                              |
 |-------|---------------------------------------------------|
-| 3d    | CMDB 前端（Tier 1 + Tier 2 页面）                 |
-| 4     | 月度/季度报表导出、微信通知、审计日志 UI          |
+| 5     | 月度/季度报表导出、微信通知、审计日志 UI          |
 
 ---
 
@@ -228,4 +244,5 @@ docker compose exec db psql -U platform_user -d cwgsyw_platform
 - Phase 2a: `docs/superpowers/plans/2026-05-21-phase2a-daily-report.md`
 - Phase 2b: `docs/superpowers/plans/2026-05-22-phase2b-device-vault.md`
 - Phase 2c: `docs/superpowers/plans/2026-05-22-phase2c-notifications.md`
+- CMDB Tier 4: `docs/superpowers/plans/2026-06-13-cmdb-tier4-implementation.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
