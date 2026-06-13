@@ -14,8 +14,6 @@ public class CiModelVO {
     private String group;
     private String groupName;
     private Boolean isBuiltIn;
-    private String color;
-    private Boolean enable2dView;
     private Integer instanceCount;
     private List<CiAttributeVO> attributes;
     private LocalDateTime createdAt;

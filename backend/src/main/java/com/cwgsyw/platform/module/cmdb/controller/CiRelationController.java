@@ -3,7 +3,6 @@ package com.cwgsyw.platform.module.cmdb.controller;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CiRelationVO;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CreateRelationRequest;
-import com.cwgsyw.platform.module.cmdb.dto.relation.UpdateRelationRequest;
 import com.cwgsyw.platform.module.cmdb.service.CiRelationService;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -23,31 +22,20 @@ public class CiRelationController {
 
     @PostMapping
     @PreAuthorize("hasPermission('cmdb_relation', 'create')")
-    public R<CiRelationVO> create(@PathVariable Long id, @Valid @RequestBody CreateRelationRequest req,
-                                   @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiRelationVO> create(@PathVariable Long id, @Valid @RequestBody CreateRelationRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciRelationService.create(id, req, cu.getTenantId(), cu.getUserId()));
-    }
-
-    @PutMapping("/{relationId}")
-    @PreAuthorize("hasPermission('cmdb_relation', 'update')")
-    public R<CiRelationVO> update(@PathVariable Long id, @PathVariable Long relationId,
-                                   @RequestBody UpdateRelationRequest req,
-                                   @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciRelationService.update(id, relationId, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @DeleteMapping("/{relationId}")
     @PreAuthorize("hasPermission('cmdb_relation', 'delete')")
-    public R<Void> delete(@PathVariable Long id, @PathVariable Long relationId,
-                           @AuthenticationPrincipal SecurityUser cu) {
+    public R<Void> delete(@PathVariable Long id, @PathVariable Long relationId, @AuthenticationPrincipal SecurityUser cu) {
         ciRelationService.delete(relationId, cu.getTenantId(), cu.getUserId());
         return R.ok();
     }
 
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_relation', 'read')")
-    public R<List<CiRelationVO>> list(@PathVariable Long id, @RequestParam(required = false) String kind,
-                                       @AuthenticationPrincipal SecurityUser cu) {
+    public R<List<CiRelationVO>> list(@PathVariable Long id, @RequestParam(required = false) String kind, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciRelationService.list(id, kind, cu.getTenantId()));
     }
 }

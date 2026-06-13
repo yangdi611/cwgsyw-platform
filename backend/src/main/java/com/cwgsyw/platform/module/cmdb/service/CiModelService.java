@@ -100,8 +100,6 @@ public class CiModelService {
             CiModelGroup mg = findModelGroup(req.getGroup(), tenantId);
             model.setGroupId(mg.getId());
         }
-        if (req.getColor() != null) model.setColor(req.getColor());
-        if (req.getEnable2dView() != null) model.setEnable2dView(req.getEnable2dView());
         ciModelMapper.updateById(model);
 
         writeAudit(tenantId, "update_model", id, "ci_model", operatorId, before, snapshot(model));
@@ -180,8 +178,6 @@ public class CiModelService {
         vo.setName(m.getName());
         vo.setDisplayName(m.getDisplayName());
         vo.setIsBuiltIn(m.getIsBuiltIn());
-        vo.setColor(m.getColor());
-        vo.setEnable2dView(m.getEnable2dView());
         vo.setCreatedAt(m.getCreatedAt());
         vo.setUpdatedAt(m.getUpdatedAt());
 
@@ -232,7 +228,6 @@ public class CiModelService {
             map.put("id", m.getId()); map.put("name", m.getName());
             map.put("displayName", m.getDisplayName());
             map.put("groupId", m.getGroupId()); map.put("isBuiltIn", m.getIsBuiltIn());
-            map.put("color", m.getColor()); map.put("enable2dView", m.getEnable2dView());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) { return "{}"; }
     }

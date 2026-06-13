@@ -13,6 +13,4 @@ public class CiModel extends BaseEntity {
     private String displayName;
     private Long groupId;
     private Boolean isBuiltIn;
-    private String color;
-    private Boolean enable2dView;
 }

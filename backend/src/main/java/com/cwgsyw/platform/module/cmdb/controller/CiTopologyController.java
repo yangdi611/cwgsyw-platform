@@ -1,9 +1,7 @@
 package com.cwgsyw.platform.module.cmdb.controller;
 
 import com.cwgsyw.platform.common.R;
-import com.cwgsyw.platform.module.cmdb.dto.topology.TopologyCompareVO;
 import com.cwgsyw.platform.module.cmdb.dto.topology.TopologyResultVO;
-import com.cwgsyw.platform.module.cmdb.service.CiTopologyCompareService;
 import com.cwgsyw.platform.module.cmdb.service.CiTopologyService;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
@@ -17,21 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class CiTopologyController {
 
     private final CiTopologyService ciTopologyService;
-    private final CiTopologyCompareService ciTopologyCompareService;
 
     @GetMapping("/{instanceId}")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<TopologyResultVO> getTopology(@PathVariable Long instanceId,
             @RequestParam(defaultValue = "5") int depth, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciTopologyService.getTopology(instanceId, depth, cu.getTenantId()));
-    }
-
-    @GetMapping("/{instanceId}/compare")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
-    public R<TopologyCompareVO> compare(@PathVariable Long instanceId,
-            @RequestParam String fromTime, @RequestParam String toTime,
-            @RequestParam(defaultValue = "5") int depth,
-            @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciTopologyCompareService.compare(instanceId, fromTime, toTime, depth, cu.getTenantId()));
     }
 }

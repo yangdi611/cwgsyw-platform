@@ -69,4 +69,8 @@ public class RbacService {
             userRoleMapper.insert(sur);
         });
     }
+
+    public List<Long> getUserRoleIds(Long userId) {
+        return userRoleMapper.findRoleIdsByUserId(userId);
+    }
 }
