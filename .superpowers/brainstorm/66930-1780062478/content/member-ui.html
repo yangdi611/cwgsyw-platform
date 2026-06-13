@@ -1,0 +1,40 @@
+<h2>组成员管理放在哪里？</h2>
+<p class="subtitle">当前 /groups 页面只有组名称+描述的表格。要加上成员管理功能，交互入口放哪里？</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>组详情弹窗 ✅ 推荐</h3>
+      <p>在组表格操作列加"成员"按钮 → 点击弹出 Dialog → 左侧当前成员列表，右侧可搜索添加/移除。不跳转，一个弹窗搞定所有操作。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>不跳转，操作流畅</li><li>与项目已有的 Dialog 模式一致</li><li>可以同时看到成员和待添加用户</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>成员多时弹窗可能显小</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>独立组成员页面</h3>
+      <p>点击组名或"成员"按钮 → 跳转 /groups/[id]/members → 独立页面管理成员。页面可以更大，适合成员多的场景。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>空间大，适合大量成员</li><li>URL 可分享</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>页面跳转打断操作流</li><li>需要新建路由和页面</li><li>MVP 阶段过度设计</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>表格行内展开</h3>
+      <p>点击展开箭头 → 表格行下方展开成员子列表 → 行内操作添加/移除。不弹窗、不跳转。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>极快访问</li><li>不遮挡上下文</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>实现复杂度高</li><li>成员多时表格布局乱</li><li>项目无现成模式</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -16,6 +16,15 @@ import java.util.Map;
 public class SysConfigController {
     private final SysConfigService configService;
 
+    @PutMapping
+    @PreAuthorize("hasAuthority('notification:manage')")
+    public R<Void> setConfigs(@AuthenticationPrincipal SecurityUser user,
+                               @RequestBody Map<String, String> req) {
+        String tid = user.getTenantId();
+        req.forEach((key, value) -> configService.set(tid, key, value));
+        return R.ok(null);
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Map<String, String>> getAll(@AuthenticationPrincipal SecurityUser user) {

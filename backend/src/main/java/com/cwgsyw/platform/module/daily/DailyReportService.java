@@ -10,17 +10,23 @@ import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.workflow.WorkflowService;
+import com.cwgsyw.platform.module.workflow.dto.InstanceVO;
+import com.cwgsyw.platform.module.workflow.dto.StartProcessRequest;
+import com.cwgsyw.platform.module.config.SysConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class DailyReportService {
     private final DailyReportMapper reportMapper;
     private final WorkflowService workflowService;
+    private final SysConfigService configService;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
@@ -93,9 +99,26 @@ public class DailyReportService {
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
-        String processInstId = workflowService.startDailyReportApproval(id, report.getGroupId());
+        // Read the configured process — prefer specific definition ID, fall back to key
+        java.util.Map<String, String> cfg = configService.getAll(report.getTenantId());
+        String definitionId = cfg.get("daily_report_process_definition_id");
+        String processKey = cfg.getOrDefault("daily_report_process_key", "dailyReportApproval");
+        String businessKey = "dailyReport:" + id;
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("reportId", id);
+        vars.put("groupId", "group_" + report.getGroupId());
+        vars.put("approved", false);
+        StartProcessRequest req = new StartProcessRequest();
+        if (definitionId != null && !definitionId.isBlank()) {
+            req.setProcessDefinitionId(definitionId); // 指定版本
+        } else {
+            req.setProcessDefinitionKey(processKey);   // 兼容旧配置
+        }
+        req.setBusinessKey(businessKey);
+        req.setVariables(vars);
+        InstanceVO inst = workflowService.startProcess(req, userId, report.getTenantId());
         report.setStatus("SUBMITTED");
-        report.setProcessInstId(processInstId);
+        report.setProcessInstId(inst.getId());
         reportMapper.updateById(report);
         // Notify all other users in the group that a report awaits approval
         var allInGroup = userMapper.selectList(

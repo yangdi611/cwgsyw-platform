@@ -9,9 +9,7 @@ public class UserDetailVO {
     private String username;
     private String realName;
     private String email;
-    private String phone;
     private Integer status;
     private Long groupId;
-    private String groupName;
     private List<Long> roleIds;
 }

@@ -1,0 +1,5 @@
+{"type":"server-started","port":52453,"host":"0.0.0.0","url_host":"192.168.50.207","url":"http://192.168.50.207:52453","screen_dir":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/65422-1779730901/content","state_dir":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/65422-1779730901/state"}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/65422-1779730901/content/topology-lib.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      React Flow（推荐）\n      React 生态最成熟的流程图库，可拖拽节点、缩放、自定义节点/边样式，API 友好。适合 Next.js 项目，社区活跃，包体约 2MB。","choice":"a","id":null,"timestamp":1779731106122}
+{"type":"screen-added","file":"/Volumes/Work/AI/cwgsyw-platform/.superpowers/brainstorm/65422-1779730901/content/waiting-1.html"}
+{"type":"server-stopped","reason":"owner process exited"}

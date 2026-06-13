@@ -85,4 +85,10 @@ public class SharedFileController {
         fileService.deleteFile(user.getTenantId(), id, user.getUserId());
         return R.ok(null);
     }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('shared_file:read')")
+    public R<SharedFileVO> getFile(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(fileService.getFile(user.getTenantId(), id));
+    }
 }
