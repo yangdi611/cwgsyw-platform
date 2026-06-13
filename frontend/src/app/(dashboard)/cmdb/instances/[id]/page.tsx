@@ -1,6 +1,6 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 
 /* ---------- Types ---------- */
 
@@ -165,6 +165,30 @@ export default function CmdbInstanceDetailPage() {
   // Impact analysis
   const [impactDirection, setImpactDirection] = useState('both')
   const [impactDepth, setImpactDepth] = useState(3)
+  const [impactExporting, setImpactExporting] = useState(false)
+  const impactResultRef = useRef<HTMLDivElement>(null)
+
+  const handleExportImpactPng = async () => {
+    if (!impactResultRef.current || impactExporting) return
+    setImpactExporting(true)
+    try {
+      const { toPng } = await import('html-to-image')
+      const dataUrl = await toPng(impactResultRef.current, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      })
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const link = document.createElement('a')
+      link.download = `impact-analysis-${id}-${ts}.png`
+      link.href = dataUrl
+      link.click()
+      toast.success('影响分析结果已导出为图片')
+    } catch {
+      toast.error('导出失败，请重试')
+    } finally {
+      setImpactExporting(false)
+    }
+  }
 
   // History pagination
   const [historyPage, setHistoryPage] = useState(1)
@@ -584,6 +608,12 @@ export default function CmdbInstanceDetailPage() {
             <Button size="sm" onClick={() => setImpactTriggered(true)} disabled={impactQuery.isPending}>
               {impactQuery.isPending ? '分析中...' : '开始分析'}
             </Button>
+            {impactQuery.data && (
+              <Button size="sm" variant="outline" onClick={handleExportImpactPng} disabled={impactExporting}>
+                <Download className="h-4 w-4" />
+                {impactExporting ? '导出中...' : '导出为图片'}
+              </Button>
+            )}
           </div>
 
           {!impactTriggered ? (
@@ -591,7 +621,7 @@ export default function CmdbInstanceDetailPage() {
           ) : impactQuery.isLoading ? (
             <p className="text-muted-foreground text-sm">分析中...</p>
           ) : impactQuery.data ? (
-            <div className="space-y-4">
+            <div ref={impactResultRef} className="space-y-4">
               {/* Summary */}
               <div className="flex gap-3">
                 <Badge variant="outline">方向: {impactDirection === 'both' ? '双向' : impactDirection === 'upstream' ? '上游' : '下游'}</Badge>
