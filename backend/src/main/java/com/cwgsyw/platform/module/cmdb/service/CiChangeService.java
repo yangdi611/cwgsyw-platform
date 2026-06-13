@@ -16,8 +16,6 @@ import com.cwgsyw.platform.module.user.entity.User;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -137,7 +135,7 @@ public class CiChangeService {
         stats.setDailyBreakdown(computeDailyBreakdown(tenantId, fromResolved, toResolved, modelId));
 
         // Top 10 instances
-        stats.setTop10Instances(computeTop10Instances(tenantId, fromResolved, modelId));
+        stats.setTop10Instances(computeTop10Instances(tenantId, fromResolved, tenantId));
 
         // Cache the result
         try {
@@ -153,11 +151,9 @@ public class CiChangeService {
     // ─── Cache Invalidation ─────────────────────────────────────────────────
 
     public void invalidateStatsCache() {
-        try (Cursor<String> cursor = redisTemplate.scan(
-                ScanOptions.scanOptions().match(STATS_CACHE_PREFIX + "*").count(100).build())) {
-            List<String> keys = new ArrayList<>();
-            cursor.forEachRemaining(keys::add);
-            if (!keys.isEmpty()) {
+        try {
+            Set<String> keys = redisTemplate.keys(STATS_CACHE_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
                 redisTemplate.delete(keys);
                 log.debug("Invalidated {} stats cache keys", keys.size());
             }

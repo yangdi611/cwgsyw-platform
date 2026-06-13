@@ -58,13 +58,6 @@ public class RbacService {
         });
     }
 
-    public List<Long> getUserRoleIds(Long userId) {
-        return userRoleMapper.selectList(
-            new LambdaQueryWrapper<SysUserRole>()
-                .eq(SysUserRole::getUserId, userId))
-            .stream().map(SysUserRole::getRoleId).collect(Collectors.toList());
-    }
-
     @Transactional
     public void assignRolesToUser(Long userId, List<Long> roleIds) {
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
@@ -75,9 +68,5 @@ public class RbacService {
             sur.setRoleId(rid);
             userRoleMapper.insert(sur);
         });
-    }
-
-    public List<Long> getUserRoleIds(Long userId) {
-        return userRoleMapper.findRoleIdsByUserId(userId);
     }
 }

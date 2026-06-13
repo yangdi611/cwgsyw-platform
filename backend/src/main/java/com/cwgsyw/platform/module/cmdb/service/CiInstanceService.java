@@ -8,21 +8,13 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
-import com.cwgsyw.platform.module.daily.DailyReportMapper;
-import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
-import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationAttrDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
-import com.cwgsyw.platform.module.changedoc.ChangeDocLinkService;
-import com.cwgsyw.platform.module.changedoc.dto.LinkedChangeDocVO;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
-import com.cwgsyw.platform.module.device.DeviceMapper;
-import com.cwgsyw.platform.module.device.dto.DeviceVO;
-import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -46,11 +38,10 @@ public class CiInstanceService {
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
-    private final DeviceMapper deviceMapper;
     private final ObjectMapper objectMapper;
-    private final CiNotificationService ciNotificationService;
-    private final ChangeDocLinkService changeDocLinkService;
-    private final DailyReportMapper dailyReportMapper;
+
+    @org.springframework.context.annotation.Lazy
+    private final CiChangeService ciChangeService;
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
@@ -122,6 +113,7 @@ public class CiInstanceService {
 
         writeAudit(tenantId, "create_instance", inst.getId(), "ci_instance",
                 operatorId, null, snapshotInstance(inst));
+        ciChangeService.invalidateStatsCache();
         return getDetail(inst.getId(), tenantId);
     }
 
@@ -129,7 +121,6 @@ public class CiInstanceService {
     public CiInstanceDetailVO update(Long id, UpdateInstanceRequest req, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
         String before = snapshotInstance(inst);
-        String oldStatus = inst.getStatus();
 
         if (req.getName() != null) inst.setName(req.getName());
         if (req.getStatus() != null) inst.setStatus(req.getStatus());
@@ -148,12 +139,8 @@ public class CiInstanceService {
         }
 
         ciInstanceMapper.updateById(inst);
-
-        if (req.getStatus() != null && !oldStatus.equals(req.getStatus())) {
-            ciNotificationService.notifyStatusChange(inst, oldStatus, req.getStatus(), operatorId);
-        }
-
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
+        ciChangeService.invalidateStatsCache();
         return getDetail(id, tenantId);
     }
 
@@ -174,9 +161,8 @@ public class CiInstanceService {
             ciInstanceRelMapper.updateById(rel);
         }
 
-        ciNotificationService.notifyDelete(inst, operatorId);
-
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
+        ciChangeService.invalidateStatsCache();
     }
 
     public PageResult<CiInstanceSearchVO> search(String keyword, int size, String tenantId) {
@@ -205,67 +191,6 @@ public class CiInstanceService {
         PageResult<CiInstanceSearchVO> result = new PageResult<>();
         result.setRecords(vos); result.setTotal(vos.size()); result.setPage(1); result.setSize(size);
         return result;
-    }
-
-    public List<DeviceVO> getRelatedDevices(Long instanceId, String tenantId) {
-        loadInstance(instanceId, tenantId);
-        LambdaQueryWrapper<Device> query = new LambdaQueryWrapper<Device>()
-                .eq(Device::getCiInstanceId, instanceId)
-                .eq(Device::getIsDeleted, false)
-                .eq(Device::getTenantId, tenantId)
-                .orderByDesc(Device::getCreatedAt);
-        List<Device> devices = deviceMapper.selectList(query);
-        return devices.stream().map(d -> {
-            DeviceVO vo = new DeviceVO();
-            vo.setId(d.getId());
-            vo.setName(d.getName());
-            vo.setIp(d.getIp());
-            vo.setDeviceType(d.getDeviceType());
-            vo.setCategory(d.getCategory());
-            vo.setDescription(d.getDescription());
-            vo.setCiInstanceId(d.getCiInstanceId());
-            // ciInstanceName is the CI instance's name, not the device's name;
-            // caller already knows the CI instance, so skip it here to avoid confusion.
-            vo.setCreatedAt(d.getCreatedAt());
-            vo.setUpdatedAt(d.getUpdatedAt());
-            return vo;
-        }).collect(Collectors.toList());
-    }
-
-    /**
-     * List change documents linked to a CI instance via change_doc_ci_link.
-     * Delegates to {@link ChangeDocLinkService} to keep the join logic in one place.
-     */
-    public List<LinkedChangeDocVO> getRelatedChangeDocs(Long instanceId, String tenantId) {
-        loadInstance(instanceId, tenantId);
-        return changeDocLinkService.listLinkedChangeDocs(instanceId, tenantId);
-    }
-
-    /**
-     * List daily reports that reference this CI instance via ci_instance_ids JSONB column.
-     */
-    public List<DailyReportBriefVO> getRelatedDailyReports(Long instanceId, String tenantId) {
-        loadInstance(instanceId, tenantId);
-        List<DailyReport> reports = dailyReportMapper.findByCiInstanceId(instanceId);
-        Set<Long> reporterIds = reports.stream()
-                .map(DailyReport::getReporterId)
-                .filter(id -> id != null)
-                .collect(Collectors.toSet());
-        Map<Long, String> reporterNames = resolveUserNames(reporterIds);
-
-        return reports.stream().map(r -> {
-            DailyReportBriefVO vo = new DailyReportBriefVO();
-            vo.setId(r.getId());
-            vo.setReporterName(reporterNames.getOrDefault(r.getReporterId(), "未知"));
-            vo.setReportDate(r.getReportDate());
-            vo.setStatus(r.getStatus());
-            String brief = r.getCompletedItems();
-            if (brief != null && brief.length() > 100) {
-                brief = brief.substring(0, 100) + "...";
-            }
-            vo.setCompletedItemsBrief(brief);
-            return vo;
-        }).collect(Collectors.toList());
     }
 
     public PageResult<ChangeHistoryVO> getInstanceHistory(Long instanceId, int page, int size, String tenantId) {
@@ -317,8 +242,8 @@ public class CiInstanceService {
 
     // ─── Schema Validator ──────────────────────────────────────────────────────
 
-    static class SchemaValidator {
-        static void validate(Map<String, Object> fieldsData, List<CiAttribute> attributes) {
+    public static class SchemaValidator {
+        public static void validate(Map<String, Object> fieldsData, List<CiAttribute> attributes) {
             if (fieldsData == null) fieldsData = Map.of();
             for (CiAttribute attr : attributes) {
                 Object value = fieldsData.get(attr.getFieldKey());
@@ -326,36 +251,56 @@ public class CiInstanceService {
                     throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
                 }
                 if (value == null) continue;
-                switch (attr.getFieldType()) {
-                    case "singlechar", "user", "date" -> {
-                        if (!(value instanceof String))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为字符串类型");
-                    }
-                    case "int" -> {
-                        if (!(value instanceof Number))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为整数类型");
-                    }
-                    case "bool" -> {
-                        if (!(value instanceof Boolean))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为布尔类型");
-                    }
-                    case "enum" -> {
-                        if (!(value instanceof String enumVal))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为字符串类型");
-                        if (attr.getEnumOptions() != null) {
-                            try {
-                                List<String> options = new ObjectMapper().readValue(attr.getEnumOptions(), new TypeReference<>() {});
-                                if (!options.contains(enumVal))
-                                    throw new IllegalArgumentException("字段 " + attr.getName() + " 的值不在可选范围内: " + enumVal);
-                            } catch (IllegalArgumentException e) { throw e; } catch (Exception ignored) {}
-                        }
-                    }
-                    case "list" -> {
-                        if (!(value instanceof List))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为列表类型");
-                    }
-                    default -> {}
+                validateFieldType(attr.getName(), attr.getFieldType(), attr.getEnumOptions(), value);
+            }
+        }
+
+        /**
+         * Validate metadata fields against association attribute definitions.
+         * Reuses the same type-checking logic as instance attribute validation.
+         */
+        public static void validateAssociationAttrs(Map<String, Object> metadata, List<CiAssociationAttrDef> attrDefs) {
+            if (metadata == null) metadata = Map.of();
+            for (CiAssociationAttrDef attr : attrDefs) {
+                Object value = metadata.get(attr.getFieldKey());
+                if (Boolean.TRUE.equals(attr.getIsRequired()) && value == null) {
+                    throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
                 }
+                if (value == null) continue;
+                validateFieldType(attr.getName(), attr.getFieldType(), attr.getEnumOptions(), value);
+            }
+        }
+
+        private static void validateFieldType(String name, String fieldType, String enumOptions, Object value) {
+            switch (fieldType) {
+                case "singlechar", "user", "date" -> {
+                    if (!(value instanceof String))
+                        throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
+                }
+                case "int" -> {
+                    if (!(value instanceof Number))
+                        throw new IllegalArgumentException("字段 " + name + " 应为整数类型");
+                }
+                case "bool" -> {
+                    if (!(value instanceof Boolean))
+                        throw new IllegalArgumentException("字段 " + name + " 应为布尔类型");
+                }
+                case "enum" -> {
+                    if (!(value instanceof String enumVal))
+                        throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
+                    if (enumOptions != null) {
+                        try {
+                            List<String> options = new ObjectMapper().readValue(enumOptions, new TypeReference<>() {});
+                            if (!options.contains(enumVal))
+                                throw new IllegalArgumentException("字段 " + name + " 的值不在可选范围内: " + enumVal);
+                        } catch (IllegalArgumentException e) { throw e; } catch (Exception ignored) {}
+                    }
+                }
+                case "list" -> {
+                    if (!(value instanceof List))
+                        throw new IllegalArgumentException("字段 " + name + " 应为列表类型");
+                }
+                default -> {}
             }
         }
     }

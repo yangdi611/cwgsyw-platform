@@ -1,11 +1,9 @@
 package com.cwgsyw.platform.module.daily.dto;
 
-import com.cwgsyw.platform.module.cmdb.dto.CiInstanceBriefVO;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 public class DailyReportVO {
@@ -22,6 +20,4 @@ public class DailyReportVO {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<Long> ciInstanceIds;
-    private List<CiInstanceBriefVO> ciInstances;
 }

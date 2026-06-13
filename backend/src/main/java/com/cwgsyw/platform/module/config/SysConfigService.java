@@ -36,21 +36,11 @@ public class SysConfigService {
     }
 
     public void set(String tenantId, String key, String value) {
-        int updated = configMapper.update(null, new LambdaUpdateWrapper<SysConfig>()
+        configMapper.update(null, new LambdaUpdateWrapper<SysConfig>()
             .eq(SysConfig::getTenantId, tenantId)
             .eq(SysConfig::getConfigKey, key)
             .set(SysConfig::getConfigValue, value)
             .set(SysConfig::getUpdatedAt, LocalDateTime.now()));
-        if (updated == 0) {
-            // Key doesn't exist yet — insert new row
-            SysConfig row = new SysConfig();
-            row.setTenantId(tenantId);
-            row.setConfigKey(key);
-            row.setConfigValue(value);
-            row.setCreatedAt(LocalDateTime.now());
-            row.setUpdatedAt(LocalDateTime.now());
-            configMapper.insert(row);
-        }
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("sys_config")

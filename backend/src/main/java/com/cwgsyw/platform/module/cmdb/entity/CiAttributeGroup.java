@@ -1,22 +1,16 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("ci_attribute_group")
-public class CiAttributeGroup {
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    private String tenantId;
+public class CiAttributeGroup extends BaseEntity {
     private String modelId;
-    private String groupId;
+    private String code;
     private String name;
-    private Boolean isDefault;
-    private Boolean isBuiltIn;
     private Integer sortOrder;
-    @TableLogic
-    private Boolean isDeleted;
-    private LocalDateTime createdAt;
 }

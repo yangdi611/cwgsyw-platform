@@ -1,34 +1,25 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 @Data
-@TableName(value = "ci_attribute", autoResultMap = true)
-public class CiAttribute {
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    private String tenantId;
+@EqualsAndHashCode(callSuper = true)
+@TableName("ci_attribute")
+public class CiAttribute extends BaseEntity {
     private String modelId;
     private String fieldKey;
     private String name;
     private String groupId;
     private String fieldType;
-    @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
-    private Object option;
-    private String defaultVal;
-    private String placeholder;
-    private String unit;
     private Boolean isRequired;
     private Boolean isEditable;
     private Boolean isUnique;
     private Boolean isBuiltIn;
     private Boolean isListShow;
+    private String defaultValue;
+    private String enumOptions;
     private Integer sortOrder;
-    @TableLogic
-    private Boolean isDeleted;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private Long createdBy;
 }

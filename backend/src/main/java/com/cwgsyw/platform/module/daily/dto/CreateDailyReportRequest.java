@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Data
 public class CreateDailyReportRequest {
@@ -15,5 +14,4 @@ public class CreateDailyReportRequest {
     @NotBlank private String tomorrowPlan;
     private BigDecimal workHours;
     private Long groupId;   // optional override; used when caller has no group (admin/superadmin)
-    private List<Long> ciInstanceIds;
 }
