@@ -98,7 +98,7 @@ public class DeviceService {
         if (req.getCategory() != null) device.setCategory(req.getCategory());
         if (req.getDescription() != null) device.setDescription(req.getDescription());
         if (req.getGroupId() != null) device.setGroupId(req.getGroupId());
-        device.setCiInstanceId(req.getCiInstanceId());
+        if (req.getCiInstanceId() != null) device.setCiInstanceId(req.getCiInstanceId());
         deviceMapper.updateById(device);
         writeAudit(tenantId, "update", id, operatorId, "name=" + device.getName());
     }
