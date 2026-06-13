@@ -540,7 +540,7 @@ export default function CmdbInstanceDetailPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
-                        <PermissionGuard resource="cmdb_relation" action="create">
+                        <PermissionGuard resource="cmdb_relation" action="update">
                           <Button size="sm" variant="ghost" onClick={() => {
                             setRelEditTarget(rel)
                             setRelEditMeta({ ...(rel.metadata ?? {}) } as Record<string, string>)
