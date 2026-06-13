@@ -214,9 +214,9 @@ public class ChangeDocTemplateService {
         vo.setName(t.getName());
         vo.setDescription(t.getDescription());
         vo.setVersion(t.getVersion());
-        vo.setIsActive(t.getIsActive());
+        vo.setActive(t.getIsActive());
         vo.setHasDocx(t.getDocxKey() != null);
-        vo.setCreatedAt(t.getCreatedAt());
+        vo.setCreatedAt(t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
         vo.setFields(fields.stream().map(this::toFieldVO).collect(Collectors.toList()));
         return vo;
     }
