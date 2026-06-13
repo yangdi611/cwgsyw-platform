@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface AuditLogMapper extends BaseMapper<AuditLog> {
 
@@ -25,4 +27,16 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
                               @Param("operatorId") Long operatorId,
                               @Param("startDate")  String startDate,
                               @Param("endDate")    String endDate);
+
+    @Select("""
+        SELECT * FROM audit_log
+        WHERE tenant_id = #{tenantId}
+          AND target_type IN
+          <foreach collection='modules' item='m' open='(' separator=',' close=')'>#{m}</foreach>
+          AND created_at >= #{afterTime}::timestamp
+        ORDER BY created_at DESC
+        """)
+    List<AuditLog> queryChangesList(@Param("tenantId") String tenantId,
+                                    @Param("modules") List<String> modules,
+                                    @Param("afterTime") String afterTime);
 }
