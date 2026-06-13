@@ -15,6 +15,9 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
+import com.cwgsyw.platform.module.device.DeviceMapper;
+import com.cwgsyw.platform.module.device.dto.DeviceVO;
+import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -38,6 +41,7 @@ public class CiInstanceService {
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
+    private final DeviceMapper deviceMapper;
     private final ObjectMapper objectMapper;
     private final CiNotificationService ciNotificationService;
 
@@ -194,6 +198,30 @@ public class CiInstanceService {
         PageResult<CiInstanceSearchVO> result = new PageResult<>();
         result.setRecords(vos); result.setTotal(vos.size()); result.setPage(1); result.setSize(size);
         return result;
+    }
+
+    public List<DeviceVO> getRelatedDevices(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        LambdaQueryWrapper<Device> query = new LambdaQueryWrapper<Device>()
+                .eq(Device::getCiInstanceId, instanceId)
+                .eq(Device::getIsDeleted, false)
+                .eq(Device::getTenantId, tenantId)
+                .orderByDesc(Device::getCreatedAt);
+        List<Device> devices = deviceMapper.selectList(query);
+        return devices.stream().map(d -> {
+            DeviceVO vo = new DeviceVO();
+            vo.setId(d.getId());
+            vo.setName(d.getName());
+            vo.setIp(d.getIp());
+            vo.setDeviceType(d.getDeviceType());
+            vo.setCategory(d.getCategory());
+            vo.setDescription(d.getDescription());
+            vo.setCiInstanceId(d.getCiInstanceId());
+            vo.setCiInstanceName(d.getName());
+            vo.setCreatedAt(d.getCreatedAt());
+            vo.setUpdatedAt(d.getUpdatedAt());
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     public PageResult<ChangeHistoryVO> getInstanceHistory(Long instanceId, int page, int size, String tenantId) {
