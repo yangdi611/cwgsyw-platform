@@ -66,6 +66,9 @@ cwgsyw-platform/
 | V19  | CMDB 索引补充（含 GIN 索引、CMDB 审计索引）             |
 | V20  | 主机模型增加 `sn`（序列号）内置属性                      |
 | V23  | CMDB RBAC 权限 seed 数据（3资源 + 角色分配）             |
+| V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def` 关联扩展属性定义 |
+| V25  | CSV 导入权限 seed（`cmdb_instance:import`）              |
+| V26  | 影响分析权限 seed（`cmdb_instance:impact`）              |
 
 ---
 
@@ -129,8 +132,8 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `device`       | create, read, update, delete, view_password          |
 | `notification` | read, manage                                         |
 | `cmdb_model`    | create, read, update, delete                       |
-| `cmdb_instance` | create, read, update, delete                       |
-| `cmdb_relation` | create, read, delete                               |
+| `cmdb_instance` | create, read, update, delete, import, impact       |
+| `cmdb_relation` | create, read, update, delete                       |
 
 ---
 
@@ -159,7 +162,11 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `AuditLogMapper`        | `common/AuditLogMapper.java`            | 直接写 audit_log                |
 | `CiModelService`        | `module/cmdb/service/`                  | CMDB 模型管理                   |
 | `CiInstanceService`     | `module/cmdb/service/`                  | CMDB 实例管理（含 schema 校验） |
+| `CiAssociationAttrDefService` | `module/cmdb/service/`             | 关联扩展属性定义管理             |
+| `CiRelationService`     | `module/cmdb/service/`                  | 关联管理（含 metadata 校验）    |
 | `CiTopologyService`     | `module/cmdb/service/`                  | CMDB 拓扑遍历（递归 CTE BFS）   |
+| `CsvImportService`      | `module/cmdb/service/`                  | CSV 批量导入（preview/execute） |
+| `ImpactAnalysisService` | `module/cmdb/service/`                  | 影响分析（CTE + Java BFS）      |
 
 ---
 
@@ -183,12 +190,13 @@ user.getPermissions() // Collection<GrantedAuthority>
 | 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
 | 3a    | 变更文档系统 + AI 辅助 + Word/PDF 导出 | ✅ |
 | 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ 后端完成，前端待开发 |
+| 3c    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ 后端完成，前端待开发 |
 
 ## 计划中的功能模块
 
 | Phase | 功能                                              |
 |-------|---------------------------------------------------|
-| 3c    | CMDB Tier 2（关联增强 + CSV 导入 + 影响分析）     |
+| 3d    | CMDB 前端（Tier 1 + Tier 2 页面）                 |
 | 4     | 月度/季度报表导出、微信通知、审计日志 UI          |
 
 ---
