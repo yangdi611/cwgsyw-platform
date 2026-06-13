@@ -21,6 +21,7 @@ import java.util.List;
 @Validated
 public class ChangeDocController {
     private final ChangeDocService changeDocService;
+    private final ChangeDocLinkService changeDocLinkService;
     private final ExportService exportService;
     private final EmailTemplateService emailTemplateService;
 
@@ -74,6 +75,32 @@ public class ChangeDocController {
                                  @RequestBody AiGenerateRequest req,
                                  @AuthenticationPrincipal SecurityUser user) {
         return R.ok(changeDocService.generateAiContent(user.getTenantId(), id, user.getUserId(), req));
+    }
+
+    // ─── CMDB CI instance links ──────────────────────────────────────────────
+
+    @PostMapping("/{id}/ci-links")
+    @PreAuthorize("hasAuthority('change_doc:update')")
+    public R<Integer> linkCi(@PathVariable Long id,
+                              @RequestBody LinkCiRequest req,
+                              @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(changeDocLinkService.linkCiInstances(user.getTenantId(), id, user.getUserId(), req));
+    }
+
+    @DeleteMapping("/{id}/ci-links/{instanceId}")
+    @PreAuthorize("hasAuthority('change_doc:update')")
+    public R<Void> unlinkCi(@PathVariable Long id,
+                             @PathVariable Long instanceId,
+                             @AuthenticationPrincipal SecurityUser user) {
+        changeDocLinkService.unlinkCiInstance(user.getTenantId(), id, instanceId, user.getUserId());
+        return R.ok(null);
+    }
+
+    @GetMapping("/{id}/ci-links")
+    @PreAuthorize("hasAuthority('change_doc:read')")
+    public R<List<LinkedCiInstanceVO>> listCiLinks(@PathVariable Long id,
+                                                     @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(changeDocLinkService.listLinkedInstances(id, user.getTenantId()));
     }
 
     @GetMapping("/{id}/snapshots")
