@@ -217,7 +217,8 @@ public class CiInstanceService {
             vo.setCategory(d.getCategory());
             vo.setDescription(d.getDescription());
             vo.setCiInstanceId(d.getCiInstanceId());
-            vo.setCiInstanceName(d.getName());
+            // ciInstanceName is the CI instance's name, not the device's name;
+            // caller already knows the CI instance, so skip it here to avoid confusion.
             vo.setCreatedAt(d.getCreatedAt());
             vo.setUpdatedAt(d.getUpdatedAt());
             return vo;
