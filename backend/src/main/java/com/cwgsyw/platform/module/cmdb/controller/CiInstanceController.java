@@ -2,8 +2,8 @@ package com.cwgsyw.platform.module.cmdb.controller;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
-import com.cwgsyw.platform.module.cmdb.service.Ci2DViewService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceService;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class CiInstanceController {
 
     private final CiInstanceService ciInstanceService;
-    private final Ci2DViewService ci2DViewService;
 
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
@@ -37,15 +36,6 @@ public class CiInstanceController {
             @RequestParam @NotBlank String keyword, @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciInstanceService.search(keyword, size, cu.getTenantId()));
-    }
-
-    @GetMapping("/2d-view")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
-    public R<TwoDimensionViewVO> twoDView(
-            @RequestParam @NotBlank String modelId,
-            @RequestParam @NotBlank String groupBy,
-            @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ci2DViewService.get2DView(modelId, groupBy, cu.getTenantId()));
     }
 
     @GetMapping("/{id}")
@@ -71,5 +61,23 @@ public class CiInstanceController {
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         ciInstanceService.delete(id, cu.getTenantId(), cu.getUserId());
         return R.ok();
+    }
+
+    @GetMapping("/{id}/history")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<PageResult<ChangeHistoryVO>> history(@PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getInstanceHistory(id, page, size, cu.getTenantId()));
+    }
+
+    @GetMapping("/changes")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<PageResult<ChangeHistoryVO>> globalChanges(
+            @RequestParam(required = false) String model, @RequestParam(required = false) Long operatorId,
+            @RequestParam(required = false) String startDate, @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getGlobalChanges(model, operatorId, startDate, endDate, page, size, cu.getTenantId()));
     }
 }
