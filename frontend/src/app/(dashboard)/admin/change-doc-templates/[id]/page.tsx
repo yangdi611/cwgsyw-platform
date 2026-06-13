@@ -31,10 +31,11 @@ interface TemplateVO {
 }
 
 const FIELD_TYPES = [
-  { value: 'text',     label: '单行文本' },
-  { value: 'textarea', label: '多行文本' },
-  { value: 'date',     label: '日期' },
-  { value: 'readonly', label: '只读（导出用）' },
+  { value: 'text',        label: '单行文本' },
+  { value: 'textarea',    label: '多行文本' },
+  { value: 'date',        label: '日期' },
+  { value: 'readonly',    label: '只读（导出用）' },
+  { value: 'ci_selector', label: 'CI 选择器' },
 ]
 
 export default function TemplateFieldsPage() {
@@ -170,6 +171,17 @@ export default function TemplateFieldsPage() {
                     onChange={e => update(idx, 'placeholder', e.target.value)}
                   />
                 </div>
+                {field.field_type === 'ci_selector' && (
+                  <div className="col-span-2 mt-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                    <p className="font-semibold">CI 选择器用法说明</p>
+                    <p>允许填写人在变更文档中搜索并选择受影响的 CI 实例。</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-blue-600/80 dark:text-blue-400/80">
+                      <li>选中一个 CI 后，自动展示其 2 层关联 CI 作为候选建议</li>
+                      <li>存储选中时的 CI 名称快照，CI 删除后仍可查看历史记录</li>
+                      <li>变更文档详情页中以 CI 卡片列表呈现，可点击跳转 CMDB</li>
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-2 shrink-0 pt-1">
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">

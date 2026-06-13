@@ -1,24 +1,26 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.cwgsyw.platform.common.BaseEntity;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
 @TableName(value = "ci_instance", autoResultMap = true)
-public class CiInstance extends BaseEntity {
+public class CiInstance {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String tenantId;
     private String modelId;
     private String name;
-    private String status;
-    private String owner;
-    private String description;
-
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> fieldsData;
+    @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
+    private Map<String, Object> attrs;
+    @TableLogic
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
+    private Long deletedBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Long createdBy;
+    private Long updatedBy;
 }

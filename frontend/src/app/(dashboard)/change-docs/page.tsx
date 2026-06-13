@@ -24,12 +24,13 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 }
 
 export default function ChangeDocsPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('change_doc', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: docs = [], isLoading } = useQuery<ChangeDocListItem[]>({
     queryKey: ['change-docs'],

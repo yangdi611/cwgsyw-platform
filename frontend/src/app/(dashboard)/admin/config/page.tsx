@@ -15,13 +15,14 @@ import { useRouter } from 'next/navigation'
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
 export default function AdminConfigPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('notification', 'manage')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: config = {} } = useQuery<Record<string, string>>({
     queryKey: ['admin-config'],
