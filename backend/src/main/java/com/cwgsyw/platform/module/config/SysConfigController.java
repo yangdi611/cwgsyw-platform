@@ -16,15 +16,6 @@ import java.util.Map;
 public class SysConfigController {
     private final SysConfigService configService;
 
-    @PutMapping
-    @PreAuthorize("hasAuthority('notification:manage')")
-    public R<Void> setConfigs(@AuthenticationPrincipal SecurityUser user,
-                               @RequestBody Map<String, String> req) {
-        String tid = user.getTenantId();
-        req.forEach((key, value) -> configService.set(tid, key, value));
-        return R.ok(null);
-    }
-
     @GetMapping
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Map<String, String>> getAll(@AuthenticationPrincipal SecurityUser user) {
@@ -77,17 +68,6 @@ public class SysConfigController {
         if (req.containsKey("opacity"))  configService.set(tid, "watermark.opacity",   String.valueOf(req.get("opacity")));
         if (req.containsKey("position")) configService.set(tid, "watermark.position",  String.valueOf(req.get("position")));
         if (req.containsKey("enabled"))  configService.set(tid, "watermark.enabled",   String.valueOf(req.get("enabled")));
-        return R.ok(null);
-    }
-
-    @PutMapping("/prometheus")
-    @PreAuthorize("hasAuthority('notification:manage')")
-    public R<Void> updatePrometheus(@AuthenticationPrincipal SecurityUser user,
-                                     @RequestBody Map<String, Object> req) {
-        String tid = user.getTenantId();
-        if (req.containsKey("enabled")) configService.set(tid, "prometheus.enabled", String.valueOf(req.get("enabled")));
-        if (req.containsKey("url")) configService.set(tid, "prometheus.url", String.valueOf(req.get("url")));
-        if (req.containsKey("scrapeInterval")) configService.set(tid, "prometheus.scrape_interval", String.valueOf(req.get("scrapeInterval")));
         return R.ok(null);
     }
 }

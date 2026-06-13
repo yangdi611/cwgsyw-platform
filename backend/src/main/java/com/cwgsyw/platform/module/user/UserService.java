@@ -2,11 +2,7 @@ package com.cwgsyw.platform.module.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
-import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.org.GroupMapper;
-import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.dto.*;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -14,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 
 @Service
@@ -23,26 +18,15 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final RbacService rbacService;
-    private final GroupMapper groupMapper;
-    private final AuditLogMapper auditLogMapper;
 
-    public PageResult<User> list(int page, int size, String tenantId, String keyword) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
-            .eq(User::getTenantId, tenantId);
-        if (StringUtils.hasText(keyword)) {
-            wrapper.and(w -> w
-                .like(User::getUsername, keyword)
-                .or()
-                .like(User::getRealName, keyword)
-                .or()
-                .like(User::getEmail, keyword));
-        }
-        Page<User> p = userMapper.selectPage(new Page<>(page, size), wrapper);
+    public PageResult<User> list(int page, int size, String tenantId) {
+        Page<User> p = userMapper.selectPage(new Page<>(page, size),
+            new LambdaQueryWrapper<User>().eq(User::getTenantId, tenantId));
         return PageResult.of(p);
     }
 
     @Transactional
-    public User create(CreateUserRequest req, String tenantId, Long operatorId) {
+    public User create(CreateUserRequest req, String tenantId) {
         if (userMapper.findByUsername(req.getUsername()).isPresent()) {
             throw new IllegalArgumentException("用户名已存在");
         }
@@ -52,41 +36,21 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setRealName(req.getRealName());
         user.setEmail(req.getEmail());
-        user.setPhone(req.getPhone());
         user.setGroupId(req.getGroupId());
         user.setStatus(1);
         userMapper.insert(user);
         if (req.getRoleIds() != null && !req.getRoleIds().isEmpty()) {
             rbacService.assignRolesToUser(user.getId(), req.getRoleIds());
         }
-
-        // Audit log
-        String afterJson = toAuditJson(user, "***");
-        auditLogMapper.insert(AuditLog.builder()
-            .tenantId(tenantId)
-            .module("user")
-            .action("create")
-            .targetId(user.getId())
-            .targetType("user")
-            .operatorId(operatorId)
-            .afterJson(afterJson)
-            .remark("创建用户: " + user.getUsername())
-            .build());
-
         return user;
     }
 
     @Transactional
-    public void update(Long id, UpdateUserRequest req, Long operatorId) {
+    public void update(Long id, UpdateUserRequest req) {
         User user = userMapper.selectById(id);
         if (user == null) throw new IllegalArgumentException("用户不存在");
-
-        // Snapshot before update for audit log
-        String beforeJson = toAuditJson(user, "***");
-
         if (req.getRealName() != null) user.setRealName(req.getRealName());
         if (req.getEmail() != null) user.setEmail(req.getEmail());
-        if (req.getPhone() != null) user.setPhone(req.getPhone());
         if (req.getGroupId() != null) user.setGroupId(req.getGroupId());
         if (req.getStatus() != null) user.setStatus(req.getStatus());
         if (req.getPassword() != null) user.setPassword(passwordEncoder.encode(req.getPassword()));
@@ -94,43 +58,15 @@ public class UserService {
         if (req.getRoleIds() != null) {
             rbacService.assignRolesToUser(id, req.getRoleIds());
         }
-
-        // Audit log
-        String afterJson = toAuditJson(user, req.getPassword() != null ? "***" : "***");
-        auditLogMapper.insert(AuditLog.builder()
-            .tenantId(user.getTenantId())
-            .module("user")
-            .action("update")
-            .targetId(id)
-            .targetType("user")
-            .operatorId(operatorId)
-            .beforeJson(beforeJson)
-            .afterJson(afterJson)
-            .remark("更新用户: " + user.getUsername())
-            .build());
     }
 
     @Transactional
     public void delete(Long id, Long operatorId) {
         User user = userMapper.selectById(id);
         if (user == null) throw new IllegalArgumentException("用户不存在");
-        userMapper.softDeleteById(id, LocalDateTime.now(), operatorId);
-    }
-
-    public UserDetailVO getDetail(Long id, String tenantId) {
-        User user = userMapper.selectOne(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getId, id)
-                .eq(User::getTenantId, tenantId));
-        if (user == null) throw new IllegalArgumentException("用户不存在");
-        UserDetailVO vo = new UserDetailVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setRealName(user.getRealName());
-        vo.setEmail(user.getEmail());
-        vo.setStatus(user.getStatus());
-        vo.setGroupId(user.getGroupId());
-        vo.setRoleIds(rbacService.getUserRoleIds(id));
-        return vo;
+        user.setIsDeleted(true);
+        user.setDeletedBy(operatorId);
+        user.setDeletedAt(LocalDateTime.now());
+        userMapper.updateById(user);
     }
 }

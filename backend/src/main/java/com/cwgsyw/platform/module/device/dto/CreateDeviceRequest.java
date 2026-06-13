@@ -11,5 +11,4 @@ public class CreateDeviceRequest {
     private String category;
     private String description;
     private Long groupId;
-    private Long ciInstanceId;
 }

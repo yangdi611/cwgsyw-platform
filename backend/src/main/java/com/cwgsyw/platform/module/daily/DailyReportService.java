@@ -5,38 +5,25 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.cmdb.dto.CiInstanceBriefVO;
-import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
-import com.cwgsyw.platform.module.cmdb.entity.CiModel;
-import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
-import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.workflow.WorkflowService;
-import com.cwgsyw.platform.module.workflow.dto.InstanceVO;
-import com.cwgsyw.platform.module.workflow.dto.StartProcessRequest;
-import com.cwgsyw.platform.module.config.SysConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DailyReportService {
     private final DailyReportMapper reportMapper;
     private final WorkflowService workflowService;
-    private final SysConfigService configService;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
-    private final CiInstanceMapper ciInstanceMapper;
-    private final CiModelMapper ciModelMapper;
     private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
@@ -83,7 +70,6 @@ public class DailyReportService {
         report.setTomorrowPlan(req.getTomorrowPlan());
         report.setWorkHours(req.getWorkHours());
         report.setStatus("DRAFT");
-        report.setCiInstanceIds(req.getCiInstanceIds());
         reportMapper.insert(report);
         return report;
     }
@@ -98,7 +84,6 @@ public class DailyReportService {
         report.setIssues(req.getIssues());
         report.setTomorrowPlan(req.getTomorrowPlan());
         report.setWorkHours(req.getWorkHours());
-        report.setCiInstanceIds(req.getCiInstanceIds());
         reportMapper.updateById(report);
     }
 
@@ -108,26 +93,9 @@ public class DailyReportService {
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
-        // Read the configured process — prefer specific definition ID, fall back to key
-        java.util.Map<String, String> cfg = configService.getAll(report.getTenantId());
-        String definitionId = cfg.get("daily_report_process_definition_id");
-        String processKey = cfg.getOrDefault("daily_report_process_key", "dailyReportApproval");
-        String businessKey = "dailyReport:" + id;
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("reportId", id);
-        vars.put("groupId", "group_" + report.getGroupId());
-        vars.put("approved", false);
-        StartProcessRequest req = new StartProcessRequest();
-        if (definitionId != null && !definitionId.isBlank()) {
-            req.setProcessDefinitionId(definitionId); // 指定版本
-        } else {
-            req.setProcessDefinitionKey(processKey);   // 兼容旧配置
-        }
-        req.setBusinessKey(businessKey);
-        req.setVariables(vars);
-        InstanceVO inst = workflowService.startProcess(req, userId, report.getTenantId());
+        String processInstId = workflowService.startDailyReportApproval(id, report.getGroupId());
         report.setStatus("SUBMITTED");
-        report.setProcessInstId(inst.getId());
+        report.setProcessInstId(processInstId);
         reportMapper.updateById(report);
         // Notify all other users in the group that a report awaits approval
         var allInGroup = userMapper.selectList(
@@ -206,27 +174,6 @@ public class DailyReportService {
         vo.setStatus(r.getStatus());
         vo.setCreatedAt(r.getCreatedAt());
         vo.setUpdatedAt(r.getUpdatedAt());
-        vo.setCiInstanceIds(r.getCiInstanceIds());
-        // Populate CI instance brief info
-        if (r.getCiInstanceIds() != null && !r.getCiInstanceIds().isEmpty()) {
-            List<CiInstance> instances = ciInstanceMapper.selectBatchIds(r.getCiInstanceIds());
-            // Build modelId -> modelName map
-            Set<String> modelIds = instances.stream()
-                    .map(CiInstance::getModelId).collect(Collectors.toSet());
-            Map<String, String> modelNameMap = new HashMap<>();
-            for (String mid : modelIds) {
-                ciModelMapper.findByName(mid, r.getTenantId())
-                        .ifPresent(m -> modelNameMap.put(m.getName(), m.getDisplayName()));
-            }
-            List<CiInstanceBriefVO> briefs = instances.stream().map(inst -> {
-                CiInstanceBriefVO b = new CiInstanceBriefVO();
-                b.setId(inst.getId());
-                b.setName(inst.getName());
-                b.setModelName(modelNameMap.getOrDefault(inst.getModelId(), inst.getModelId()));
-                return b;
-            }).collect(Collectors.toList());
-            vo.setCiInstances(briefs);
-        }
         var user = userMapper.selectById(r.getReporterId());
         if (user != null) vo.setReporterName(user.getRealName() != null ? user.getRealName() : user.getUsername());
         var group = groupMapper.selectById(r.getGroupId());

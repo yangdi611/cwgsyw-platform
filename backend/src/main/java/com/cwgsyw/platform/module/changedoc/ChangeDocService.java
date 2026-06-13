@@ -10,7 +10,6 @@ import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
-import com.cwgsyw.platform.module.notification.NotificationService;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,8 +42,6 @@ public class ChangeDocService {
     private final AiGatewayService aiGatewayService;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
-    private final ChangeDocLinkService changeDocLinkService;
-    private final NotificationService notificationService;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -236,34 +233,7 @@ public class ChangeDocService {
         saveSnapshot(doc, operatorId, "submit");
         writeAuditLog(tenantId, "submit", id, operatorId, beforeJson, toJson(doc), "提交变更文档审批");
 
-        // Notify the owners of linked CI instances that approval is needed
-        notifyLinkedCiOwners(tenantId, doc, operatorId);
-
         return toVO(doc);
-    }
-
-    /**
-     * Resolve the owners of all CI instances linked to the change document and
-     * notify each unique owner (excluding the submitter) that approval is needed.
-     */
-    private void notifyLinkedCiOwners(String tenantId, ChangeDoc doc, Long operatorId) {
-        List<LinkedCiInstanceVO> linked = changeDocLinkService.listLinkedInstances(doc.getId(), tenantId);
-        if (linked.isEmpty()) return;
-
-        // Resolve each CI owner (stored as username) to a user id, deduplicated
-        Set<Long> ownerUserIds = new java.util.LinkedHashSet<>();
-        for (LinkedCiInstanceVO inst : linked) {
-            if (inst.getOwner() == null || inst.getOwner().isBlank()) continue;
-            userMapper.findByUsername(inst.getOwner()).ifPresent(u -> ownerUserIds.add(u.getId()));
-        }
-        ownerUserIds.remove(operatorId);
-
-        String title = "变更文档 #" + doc.getChangeNo() + " 需您审批";
-        String content = "变更文档「" + doc.getTitle() + "」已提交审批，您是关联 CI 实例的负责人，请及时审批。";
-        for (Long uid : ownerUserIds) {
-            notificationService.notify(tenantId, uid, title, content,
-                    "change_doc_ci_owner", "change_doc", doc.getId());
-        }
     }
 
     @Transactional

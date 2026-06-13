@@ -1,24 +1,15 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("ci_association_def")
-public class CiAssociationDef {
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    private String tenantId;
-    private String defId;
-    private String kindId;
+public class CiAssociationDef extends BaseEntity {
     private String srcModelId;
     private String dstModelId;
-    private String name;
-    private String mapping;
-    private String onDelete;
-    private Boolean isBuiltIn;
-    @TableLogic
-    private Boolean isDeleted;
-    private LocalDateTime createdAt;
+    private String associationKind;
 }

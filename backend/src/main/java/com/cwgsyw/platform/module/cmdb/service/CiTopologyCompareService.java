@@ -19,10 +19,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -72,25 +68,9 @@ public class CiTopologyCompareService {
 
     public TopologyCompareVO compare(Long rootInstanceId, String fromTime, String toTime,
                                      int depth, String tenantId) {
-        CompletableFuture<TopologySnapshot> futureA = CompletableFuture.supplyAsync(
-                () -> reconstructTopology(rootInstanceId, fromTime, depth, tenantId));
-        CompletableFuture<TopologySnapshot> futureB = CompletableFuture.supplyAsync(
-                () -> reconstructTopology(rootInstanceId, toTime, depth, tenantId));
-
-        try {
-            TopologySnapshot snapshotA = futureA.get(5, TimeUnit.SECONDS);
-            TopologySnapshot snapshotB = futureB.get(5, TimeUnit.SECONDS);
-            return compareSnapshots(snapshotA, snapshotB);
-        } catch (TimeoutException e) {
-            futureA.cancel(true);
-            futureB.cancel(true);
-            throw new RuntimeException("对比超时，请缩小时间范围或减小 depth");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("对比被中断", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("对比失败: " + e.getCause().getMessage(), e.getCause());
-        }
+        TopologySnapshot snapshotA = reconstructTopology(rootInstanceId, fromTime, depth, tenantId);
+        TopologySnapshot snapshotB = reconstructTopology(rootInstanceId, toTime, depth, tenantId);
+        return compareSnapshots(snapshotA, snapshotB);
     }
 
     // ─── Snapshot Reconstruction ────────────────────────────────────────────
