@@ -20,6 +20,7 @@ import {
   ServerCog,
   Database,
   History,
+  Globe,
 } from 'lucide-react'
 
 const navItems = [
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/cmdb/models',    label: 'CMDB 模型',  icon: ServerCog,       resource: 'cmdb_model',    action: 'read' },
   { href: '/cmdb/instances', label: 'CMDB 实例',  icon: Database,        resource: 'cmdb_instance', action: 'read' },
   { href: '/cmdb/changes',   label: 'CMDB 变更',  icon: History,         resource: 'cmdb_instance', action: 'read' },
+  { href: '/ipam',           label: 'IP 地址池',   icon: Globe,           resource: 'ip_pool',       action: 'read' },
   { href: '/change-docs',    label: '变更文档',   icon: FileText,        resource: 'change_doc',    action: 'read' },
   { href: '/reports',        label: '报表导出',   icon: BarChart2,      resource: 'daily_report', action: 'export' },
   { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
