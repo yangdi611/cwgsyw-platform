@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.Map;
 
 @Data
-public class TopologyNodeVO {
+public class TopologyNodeV2VO {
     private Long id;
     private String name;
 
@@ -27,4 +27,7 @@ public class TopologyNodeVO {
 
     @JsonProperty("key_attrs")
     private Map<String, Object> keyAttrs;
+
+    /** Fields data snapshot (used by topology compare to detect modifications). */
+    private Map<String, Object> fieldsData;
 }

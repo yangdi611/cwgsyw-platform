@@ -40,6 +40,9 @@ public class CiInstanceService {
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
 
+    @org.springframework.context.annotation.Lazy
+    private final CiChangeService ciChangeService;
+
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
         CiModel ciModel = loadModel(model, tenantId);
@@ -110,6 +113,7 @@ public class CiInstanceService {
 
         writeAudit(tenantId, "create_instance", inst.getId(), "ci_instance",
                 operatorId, null, snapshotInstance(inst));
+        ciChangeService.invalidateStatsCache();
         return getDetail(inst.getId(), tenantId);
     }
 
@@ -136,6 +140,7 @@ public class CiInstanceService {
 
         ciInstanceMapper.updateById(inst);
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
+        ciChangeService.invalidateStatsCache();
         return getDetail(id, tenantId);
     }
 
@@ -157,6 +162,7 @@ public class CiInstanceService {
         }
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
+        ciChangeService.invalidateStatsCache();
     }
 
     public PageResult<CiInstanceSearchVO> search(String keyword, int size, String tenantId) {
