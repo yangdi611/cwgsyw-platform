@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { Download, Sparkles } from 'lucide-react'
+import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
 
 interface FieldConfigVO {
   id: number
@@ -40,6 +41,13 @@ interface ChangeDocVO {
   updatedAt: string
   fieldsData: Record<string, string>
   fieldConfig: FieldConfigVO[]
+}
+
+interface LinkedCiInstanceVO {
+  id: number
+  name: string
+  modelName: string
+  impactLevel?: string
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -109,6 +117,80 @@ export default function ChangeDocDetailPage() {
     },
     onError: () => toast.error('操作失败'),
   })
+
+  // ─── CI instance links ──────────────────────────────────────────────────
+  const { data: ciLinksData } = useQuery<LinkedCiInstanceVO[]>({
+    queryKey: ['change-doc-ci-links', id],
+    queryFn: () => api.get(`/change-docs/${id}/ci-links`).then(r => r.data.data),
+    enabled: hasPermission('change_doc', 'read'),
+  })
+
+  const [linkedCiItems, setLinkedCiItems] = useState<Array<CiLinkItem>>([])
+
+  useEffect(() => {
+    setLinkedCiItems((ciLinksData ?? []).map(c => ({
+      instanceId: c.id,
+      instanceName: c.name,
+      modelName: c.modelName,
+      impactLevel: c.impactLevel,
+    })))
+  }, [ciLinksData])
+
+  const addLinkMutation = useMutation({
+    mutationFn: (vars: { instanceId: number; impactLevel?: string }) =>
+      api.post(`/change-docs/${id}/ci-links`, {
+        links: [{ instanceId: vars.instanceId, impactLevel: vars.impactLevel }],
+      }),
+    onSuccess: () => {
+      toast.success('已关联 CI 实例')
+      queryClient.invalidateQueries({ queryKey: ['change-doc-ci-links', id] })
+    },
+    onError: () => toast.error('关联失败'),
+  })
+
+  const removeLinkMutation = useMutation({
+    mutationFn: (instanceId: number) => api.delete(`/change-docs/${id}/ci-links/${instanceId}`),
+    onSuccess: () => {
+      toast.success('已取消关联')
+      queryClient.invalidateQueries({ queryKey: ['change-doc-ci-links', id] })
+    },
+    onError: () => toast.error('取消关联失败'),
+  })
+
+  const updateImpactMutation = useMutation({
+    mutationFn: async (vars: { instanceId: number; impactLevel?: string }) => {
+      // Remove then re-add to persist the new impact level
+      await api.delete(`/change-docs/${id}/ci-links/${vars.instanceId}`)
+      await api.post(`/change-docs/${id}/ci-links`, {
+        links: [{ instanceId: vars.instanceId, impactLevel: vars.impactLevel }],
+      })
+    },
+    onSuccess: () => {
+      toast.success('已更新影响等级')
+      queryClient.invalidateQueries({ queryKey: ['change-doc-ci-links', id] })
+    },
+    onError: () => toast.error('更新影响等级失败'),
+  })
+
+  const handleCiLinksChange = (newItems: Array<CiLinkItem>) => {
+    const prev = linkedCiItems
+    if (newItems.length > prev.length) {
+      // An item was added
+      const added = newItems.find(n => !prev.some(p => p.instanceId === n.instanceId))
+      if (added) addLinkMutation.mutate({ instanceId: added.instanceId, impactLevel: added.impactLevel })
+    } else if (newItems.length < prev.length) {
+      // An item was removed
+      const removed = prev.find(p => !newItems.some(n => n.instanceId === p.instanceId))
+      if (removed) removeLinkMutation.mutate(removed.instanceId)
+    } else {
+      // Same length → an impact level changed
+      const changed = newItems.find(n => {
+        const p = prev.find(pp => pp.instanceId === n.instanceId)
+        return p && p.impactLevel !== n.impactLevel
+      })
+      if (changed) updateImpactMutation.mutate({ instanceId: changed.instanceId, impactLevel: changed.impactLevel })
+    }
+  }
 
   const handleAiGenerate = async (fieldKey: string) => {
     setAiLoadingField(fieldKey)
@@ -219,6 +301,16 @@ export default function ChangeDocDetailPage() {
             <p className="text-sm text-muted-foreground">此文档无字段配置（旧数据或模板未配置字段）</p>
           </section>
         )}
+
+        {/* Linked CI instances */}
+        <section className="border rounded-lg p-5">
+          <h2 className="font-semibold text-base mb-3">关联 CI 实例</h2>
+          <CiLinkSelector
+            value={linkedCiItems}
+            onChange={handleCiLinksChange}
+            disabled={!hasPermission('change_doc', 'update')}
+          />
+        </section>
 
         {/* Approval result */}
         {(doc.status === 'approved' || doc.status === 'rejected') && (
