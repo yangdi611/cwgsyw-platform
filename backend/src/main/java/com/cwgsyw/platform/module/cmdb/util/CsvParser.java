@@ -47,6 +47,15 @@ public final class CsvParser {
      * Returns list of maps (header → value) for each row.
      */
     public static List<Map<String, String>> parse(byte[] data, String encoding) throws Exception {
+        if (data == null || data.length == 0) {
+            return Collections.emptyList();
+        }
+
+        // Strip UTF-8 BOM if present (EF BB BF)
+        if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
+            data = Arrays.copyOfRange(data, 3, data.length);
+        }
+
         Charset charset = Charset.forName(encoding);
         CSVFormat format = CSVFormat.DEFAULT.builder()
                 .setHeader()
@@ -65,7 +74,7 @@ public final class CsvParser {
                     }
                 }
                 rows.add(row);
-                if (rows.size() > MAX_ROWS) {
+                if (rows.size() >= MAX_ROWS) {
                     throw new IllegalArgumentException("请分批导入，单次上限 5000 行");
                 }
             }

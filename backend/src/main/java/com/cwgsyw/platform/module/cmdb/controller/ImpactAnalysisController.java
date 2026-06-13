@@ -8,6 +8,7 @@ import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +21,7 @@ public class ImpactAnalysisController {
     @PostMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'read') and hasPermission('cmdb_instance', 'impact')")
     public R<ImpactAnalysisResultVO> analyze(@PathVariable Long id,
-                                              @RequestBody(required = false) ImpactAnalysisRequest req,
+                                              @RequestBody(required = false) @Valid ImpactAnalysisRequest req,
                                               @AuthenticationPrincipal SecurityUser cu) {
         if (req == null) req = new ImpactAnalysisRequest();
         return R.ok(impactAnalysisService.analyze(id, req, cu.getTenantId()));
