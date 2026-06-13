@@ -17,6 +17,7 @@ import {
   BarChart2,
   ClipboardList,
   FileCode,
+  Boxes,
 } from 'lucide-react'
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/notifications',  label: '通知中心',   icon: Bell,           resource: 'notification', action: 'read' },
   { href: '/change-docs',    label: '变更文档',   icon: FileText,       resource: 'change_doc',   action: 'read' },
   { href: '/reports',        label: '报表导出',   icon: BarChart2,      resource: 'daily_report', action: 'export' },
+  { href: '/cmdb',           label: 'CMDB',       icon: Boxes,          resource: 'cmdb_model',   action: 'read' },
   { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
   { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
   { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
