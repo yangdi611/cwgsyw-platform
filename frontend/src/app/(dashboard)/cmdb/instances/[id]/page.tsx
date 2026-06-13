@@ -140,7 +140,7 @@ export default function CmdbInstanceDetailPage() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'history'>('info')
+  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'history'>('info')
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
@@ -311,6 +311,20 @@ export default function CmdbInstanceDetailPage() {
     enabled: tab === 'devices',
   })
 
+  // Related change docs
+  const { data: relatedChangeDocs = [], isLoading: cdLoading } = useQuery({
+    queryKey: ['cmdb-instance-change-docs', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/change-docs`).then(r => r.data.data ?? []),
+    enabled: tab === 'change-docs',
+  })
+
+  const CHANGE_DOC_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+    draft:    { label: '草稿',   variant: 'secondary' },
+    pending:  { label: '待审批', variant: 'default' },
+    approved: { label: '已通过', variant: 'outline' },
+    rejected: { label: '已拒绝', variant: 'destructive' },
+  }
+
   // Dynamic field renderer for edit form
   const renderEditField = (attr: CiAttributeVO) => {
     const val = editForm.fieldsData[attr.fieldKey] ?? ''
@@ -371,7 +385,7 @@ export default function CmdbInstanceDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-6 overflow-x-auto">
-        {(['info', 'relations', 'topology', 'impact', 'devices', 'history'] as const).map(t => (
+        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'history'] as const).map(t => (
           <button
             key={t}
             onClick={() => {
@@ -389,6 +403,7 @@ export default function CmdbInstanceDetailPage() {
             {t === 'topology' && '拓扑图'}
             {t === 'impact' && '影响分析'}
             {t === 'devices' && '关联设备'}
+            {t === 'change-docs' && '相关变更'}
             {t === 'history' && '变更历史'}
           </button>
         ))}
@@ -700,6 +715,69 @@ export default function CmdbInstanceDetailPage() {
           )}
         </div>
       )}
+
+      {/* ========== Change Docs Tab ========== */}
+      {tab === 'change-docs' && (
+        <div>
+          <h2 className="font-semibold mb-4">相关变更</h2>
+
+          {cdLoading ? (
+            <p className="text-muted-foreground text-sm">加载中...</p>
+          ) : relatedChangeDocs.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">暂无关联变更文档</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>变更编号</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>影响级别</TableHead>
+                  <TableHead>关联时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {relatedChangeDocs.map((cd: any) => {
+                  const st = CHANGE_DOC_STATUS_MAP[cd.status] ?? { label: cd.status ?? '-', variant: 'secondary' as const }
+                  const impactVariant = cd.impactLevel === 'high' ? 'destructive' as const
+                    : cd.impactLevel === 'medium' ? 'default' as const
+                    : 'secondary' as const
+                  const impactLabel = cd.impactLevel === 'high' ? '高'
+                    : cd.impactLevel === 'medium' ? '中'
+                    : cd.impactLevel === 'low' ? '低'
+                    : '-'
+                  return (
+                    <TableRow key={cd.id}>
+                      <TableCell>
+                        <Link href={`/change-docs/${cd.changeDocId}`} className="hover:underline font-medium">
+                          {cd.changeNo ?? '-'}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={st.variant}>{st.label}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {cd.impactLevel ? (
+                          <Badge variant={impactVariant}>{impactLabel}</Badge>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {cd.linkCreatedAt ? new Date(cd.linkCreatedAt).toLocaleString('zh-CN') : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/change-docs/${cd.changeDocId}`}>
+                          <Button size="sm" variant="outline">查看变更</Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+
       {/* ========== History Tab ========== */}
       {tab === 'history' && (
         <div>

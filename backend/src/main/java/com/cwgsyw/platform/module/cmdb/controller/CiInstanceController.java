@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.cmdb.controller;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.module.changedoc.dto.LinkedChangeDocVO;
 import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceService;
@@ -87,5 +88,11 @@ public class CiInstanceController {
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<List<DeviceVO>> getRelatedDevices(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciInstanceService.getRelatedDevices(id, cu.getTenantId()));
+    }
+
+    @GetMapping("/{id}/change-docs")
+    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    public R<List<LinkedChangeDocVO>> getRelatedChangeDocs(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceService.getRelatedChangeDocs(id, cu.getTenantId()));
     }
 }

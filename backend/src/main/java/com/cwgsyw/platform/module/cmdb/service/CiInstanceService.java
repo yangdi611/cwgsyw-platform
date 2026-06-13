@@ -14,6 +14,8 @@ import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.changedoc.ChangeDocLinkService;
+import com.cwgsyw.platform.module.changedoc.dto.LinkedChangeDocVO;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
 import com.cwgsyw.platform.module.device.DeviceMapper;
 import com.cwgsyw.platform.module.device.dto.DeviceVO;
@@ -44,6 +46,7 @@ public class CiInstanceService {
     private final DeviceMapper deviceMapper;
     private final ObjectMapper objectMapper;
     private final CiNotificationService ciNotificationService;
+    private final ChangeDocLinkService changeDocLinkService;
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
@@ -223,6 +226,15 @@ public class CiInstanceService {
             vo.setUpdatedAt(d.getUpdatedAt());
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * List change documents linked to a CI instance via change_doc_ci_link.
+     * Delegates to {@link ChangeDocLinkService} to keep the join logic in one place.
+     */
+    public List<LinkedChangeDocVO> getRelatedChangeDocs(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        return changeDocLinkService.listLinkedChangeDocs(instanceId, tenantId);
     }
 
     public PageResult<ChangeHistoryVO> getInstanceHistory(Long instanceId, int page, int size, String tenantId) {
