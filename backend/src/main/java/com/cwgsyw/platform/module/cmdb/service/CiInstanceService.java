@@ -8,6 +8,9 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
+import com.cwgsyw.platform.module.daily.DailyReportMapper;
+import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
+import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationAttrDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
@@ -47,6 +50,7 @@ public class CiInstanceService {
     private final ObjectMapper objectMapper;
     private final CiNotificationService ciNotificationService;
     private final ChangeDocLinkService changeDocLinkService;
+    private final DailyReportMapper dailyReportMapper;
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
@@ -235,6 +239,33 @@ public class CiInstanceService {
     public List<LinkedChangeDocVO> getRelatedChangeDocs(Long instanceId, String tenantId) {
         loadInstance(instanceId, tenantId);
         return changeDocLinkService.listLinkedChangeDocs(instanceId, tenantId);
+    }
+
+    /**
+     * List daily reports that reference this CI instance via ci_instance_ids JSONB column.
+     */
+    public List<DailyReportBriefVO> getRelatedDailyReports(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        List<DailyReport> reports = dailyReportMapper.findByCiInstanceId(instanceId);
+        Set<Long> reporterIds = reports.stream()
+                .map(DailyReport::getReporterId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> reporterNames = resolveUserNames(reporterIds);
+
+        return reports.stream().map(r -> {
+            DailyReportBriefVO vo = new DailyReportBriefVO();
+            vo.setId(r.getId());
+            vo.setReporterName(reporterNames.getOrDefault(r.getReporterId(), "未知"));
+            vo.setReportDate(r.getReportDate());
+            vo.setStatus(r.getStatus());
+            String brief = r.getCompletedItems();
+            if (brief != null && brief.length() > 100) {
+                brief = brief.substring(0, 100) + "...";
+            }
+            vo.setCompletedItemsBrief(brief);
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     public PageResult<ChangeHistoryVO> getInstanceHistory(Long instanceId, int page, int size, String tenantId) {

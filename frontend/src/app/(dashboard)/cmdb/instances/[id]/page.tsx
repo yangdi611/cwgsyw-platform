@@ -140,7 +140,7 @@ export default function CmdbInstanceDetailPage() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'history'>('info')
+  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'daily-reports' | 'history'>('info')
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
@@ -318,6 +318,13 @@ export default function CmdbInstanceDetailPage() {
     enabled: tab === 'change-docs',
   })
 
+  // Related daily reports
+  const { data: relatedDailyReports = [], isLoading: drLoading } = useQuery({
+    queryKey: ['cmdb-instance-daily-reports', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/daily-reports`).then(r => r.data.data ?? []),
+    enabled: tab === 'daily-reports',
+  })
+
   const CHANGE_DOC_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
     draft:    { label: '草稿',   variant: 'secondary' },
     pending:  { label: '待审批', variant: 'default' },
@@ -385,7 +392,7 @@ export default function CmdbInstanceDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-6 overflow-x-auto">
-        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'history'] as const).map(t => (
+        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'daily-reports', 'history'] as const).map(t => (
           <button
             key={t}
             onClick={() => {
@@ -404,6 +411,7 @@ export default function CmdbInstanceDetailPage() {
             {t === 'impact' && '影响分析'}
             {t === 'devices' && '关联设备'}
             {t === 'change-docs' && '相关变更'}
+            {t === 'daily-reports' && '相关日报'}
             {t === 'history' && '变更历史'}
           </button>
         ))}
@@ -767,6 +775,57 @@ export default function CmdbInstanceDetailPage() {
                       <TableCell className="text-right">
                         <Link href={`/change-docs/${cd.changeDocId}`}>
                           <Button size="sm" variant="outline">查看变更</Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+
+      {/* ========== Daily Reports Tab ========== */}
+      {tab === 'daily-reports' && (
+        <div>
+          <h2 className="font-semibold mb-4">相关日报</h2>
+
+          {drLoading ? (
+            <p className="text-muted-foreground text-sm">加载中...</p>
+          ) : relatedDailyReports.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">暂无关联日报</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>日期</TableHead>
+                  <TableHead>提交人</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>内容摘要</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {relatedDailyReports.map((dr: any) => {
+                  const DAILY_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+                    DRAFT:     { label: '草稿',   variant: 'secondary' },
+                    SUBMITTED: { label: '待审批', variant: 'default' },
+                    APPROVED:  { label: '已通过', variant: 'outline' },
+                    REJECTED:  { label: '已拒绝', variant: 'destructive' },
+                  }
+                  const st = DAILY_STATUS_MAP[dr.status] ?? { label: dr.status ?? '-', variant: 'secondary' as const }
+                  return (
+                    <TableRow key={dr.id}>
+                      <TableCell className="whitespace-nowrap text-sm">{dr.reportDate ?? '-'}</TableCell>
+                      <TableCell>{dr.reporterName ?? '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={st.variant}>{st.label}</Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-sm">{dr.completedItemsBrief ?? '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/daily/${dr.id}`}>
+                          <Button size="sm" variant="outline">查看日报</Button>
                         </Link>
                       </TableCell>
                     </TableRow>
