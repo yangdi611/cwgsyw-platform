@@ -13,9 +13,11 @@ cwgsyw-platform/
 ├── docker-compose.yml
 ├── .env.example
 └── docs/
+    ├── guide/         # 功能指南（CMDB Tier 1-4 等）
     └── superpowers/
-        ├── plans/    # 实施计划
-        └── specs/    # 需求规格
+        ├── plans/     # 实施计划
+        ├── specs/     # 需求规格
+        └── verification/  # 验证报告
 ```
 
 ---
@@ -246,3 +248,9 @@ docker compose exec db psql -U platform_user -d cwgsyw_platform
 - Phase 2c: `docs/superpowers/plans/2026-05-22-phase2c-notifications.md`
 - CMDB Tier 4: `docs/superpowers/plans/2026-06-13-cmdb-tier4-implementation.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
+
+## 功能指南
+
+- CMDB Tier 1: `docs/guide/cmdb-tier1.md` — 模型/属性/实例/关联/拓扑
+- CMDB Tier 2: `docs/guide/cmdb-tier2.md` — 关联元数据增强 + CSV 导入 + 影响分析
+- CMDB Tier 4: `docs/guide/cmdb-tier4.md` — CI 通知/设备关联/变更关联/日报关联/IPAM/告警
