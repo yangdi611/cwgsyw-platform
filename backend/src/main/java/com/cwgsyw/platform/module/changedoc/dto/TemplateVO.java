@@ -9,7 +9,7 @@ public class TemplateVO {
     private String name;
     private String description;
     private Integer version;
-    private boolean isActive;
+    private Boolean isActive;
     private boolean hasDocx;
     private String docType;
     private List<FieldConfigVO> fields;

@@ -24,7 +24,7 @@ interface TemplateVO {
 }
 
 export default function ChangeDocTemplatesPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [creating, setCreating] = useState(false)
@@ -32,8 +32,9 @@ export default function ChangeDocTemplatesPage() {
   const [newDesc, setNewDesc] = useState('')
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('change_doc_template', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [isHydrated, hasPermission, router])
 
   const { data: templates = [], isLoading } = useQuery<TemplateVO[]>({
     queryKey: ['change-doc-templates'],
