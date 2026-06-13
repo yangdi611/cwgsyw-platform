@@ -154,7 +154,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>冲突策略</Label>
-                <Select value={conflictStrategy} onValueChange={setConflictStrategy}>
+                <Select value={conflictStrategy} onValueChange={v => setConflictStrategy(v ?? 'override')}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="override">覆盖更新</SelectItem>
@@ -165,7 +165,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
               </div>
               <div className="space-y-1.5">
                 <Label>文件编码</Label>
-                <Select value={encoding} onValueChange={setEncoding}>
+                <Select value={encoding} onValueChange={v => setEncoding(v ?? 'UTF-8')}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTF-8">UTF-8</SelectItem>

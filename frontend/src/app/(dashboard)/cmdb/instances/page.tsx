@@ -171,7 +171,7 @@ export default function CmdbInstancesPage() {
       case 'enum':
         const options = (attr.enumOptions ?? '').split('\n').filter(Boolean)
         return (
-          <Select value={val} onValueChange={setVal}>
+          <Select value={val} onValueChange={v => setVal(v ?? '')}>
             <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
             <SelectContent>
               {options.map(o => <SelectItem key={o.trim()} value={o.trim()}>{o.trim()}</SelectItem>)}
@@ -182,7 +182,7 @@ export default function CmdbInstancesPage() {
         return <Input type="number" value={val} onChange={e => setVal(e.target.value)} />
       case 'bool':
         return (
-          <Select value={val || 'false'} onValueChange={setVal}>
+          <Select value={val || 'false'} onValueChange={v => setVal(v ?? '')}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="true">是</SelectItem>
@@ -222,7 +222,7 @@ export default function CmdbInstancesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
-        <Select value={model} onValueChange={v => { setModel(v === '__all__' ? '' : v); setPage(1) }}>
+        <Select value={model} onValueChange={v => { setModel((v ?? '') === '__all__' ? '' : (v ?? '')); setPage(1) }}>
           <SelectTrigger className="w-40"><SelectValue placeholder="全部模型" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>
@@ -236,7 +236,7 @@ export default function CmdbInstancesPage() {
             onChange={e => { setKeyword(e.target.value); setPage(1) }} />
         </div>
 
-        <Select value={status} onValueChange={v => { setStatus(v === '__all__' ? '' : v); setPage(1) }}>
+        <Select value={status} onValueChange={v => { setStatus((v ?? '') === '__all__' ? '' : (v ?? '')); setPage(1) }}>
           <SelectTrigger className="w-32"><SelectValue placeholder="全部状态" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部状态</SelectItem>
@@ -324,7 +324,7 @@ export default function CmdbInstancesPage() {
               <div className="space-y-1.5">
                 <Label>所属模型 *</Label>
                 <Select value={createForm.modelId}
-                  onValueChange={v => setCreateForm(f => ({ ...f, modelId: v, fieldsData: {} }))}>
+                  onValueChange={v => setCreateForm(f => ({ ...f, modelId: v ?? '', fieldsData: {} }))}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="请选择模型" /></SelectTrigger>
                   <SelectContent>
                     {models.map(m => (
@@ -342,7 +342,7 @@ export default function CmdbInstancesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>状态</Label>
-                <Select value={createForm.status} onValueChange={v => setCreateForm(f => ({ ...f, status: v }))}>
+                <Select value={createForm.status} onValueChange={v => setCreateForm(f => ({ ...f, status: v ?? '' }))}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="running">运行中</SelectItem>

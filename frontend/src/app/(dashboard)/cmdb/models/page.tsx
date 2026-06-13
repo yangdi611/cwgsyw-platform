@@ -246,7 +246,7 @@ export default function CmdbModelsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>所属分组 *</Label>
-              <Select value={form.group} onValueChange={v => setForm(f => ({ ...f, group: v }))}>
+              <Select value={form.group} onValueChange={v => setForm(f => ({ ...f, group: v ?? 'infra' }))}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MODEL_GROUPS.map(g => <SelectItem key={g.code} value={g.code}>{g.name}</SelectItem>)}

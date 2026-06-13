@@ -66,7 +66,7 @@ export default function CmdbChangesPage() {
       <h1 className="text-2xl font-bold mb-6">CMDB 变更历史</h1>
 
       <div className="flex flex-wrap gap-3 mb-4">
-        <Select value={model} onValueChange={v => { setModel(v === '__all__' ? '' : v); setPage(1) }}>
+        <Select value={model} onValueChange={v => { setModel((v ?? '') === '__all__' ? '' : (v ?? '')); setPage(1) }}>
           <SelectTrigger className="w-40"><SelectValue placeholder="全部模型" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>

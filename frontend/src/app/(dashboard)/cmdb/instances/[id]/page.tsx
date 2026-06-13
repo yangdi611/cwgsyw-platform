@@ -315,7 +315,7 @@ export default function CmdbInstanceDetailPage() {
       case 'enum':
         const options = (attr.enumOptions ?? '').split('\n').filter(Boolean)
         return (
-          <Select value={String(val)} onValueChange={setVal}>
+          <Select value={String(val)} onValueChange={v => setVal(v ?? '')}>
             <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
             <SelectContent>
               {options.map(o => <SelectItem key={o.trim()} value={o.trim()}>{o.trim()}</SelectItem>)}
@@ -326,7 +326,7 @@ export default function CmdbInstanceDetailPage() {
         return <Input type="number" value={val} onChange={e => setVal(e.target.value)} />
       case 'bool':
         return (
-          <Select value={String(val || 'false')} onValueChange={setVal}>
+          <Select value={String(val || 'false')} onValueChange={v => setVal(v ?? '')}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="true">是</SelectItem>
@@ -563,7 +563,7 @@ export default function CmdbInstanceDetailPage() {
           <div className="flex flex-wrap gap-3 mb-4">
             <div className="flex items-center gap-2">
               <Label className="text-sm">方向:</Label>
-              <Select value={impactDirection} onValueChange={v => { setImpactDirection(v); setImpactTriggered(false) }}>
+              <Select value={impactDirection} onValueChange={v => { setImpactDirection(v ?? 'bidirectional'); setImpactTriggered(false) }}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="both">双向</SelectItem>
@@ -727,7 +727,7 @@ export default function CmdbInstanceDetailPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>状态</Label>
-                <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v ?? '' }))}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="running">运行中</SelectItem>
@@ -788,7 +788,7 @@ export default function CmdbInstanceDetailPage() {
             <div className="space-y-1.5">
               <Label>关联类型 *</Label>
               <Select value={relForm.associationKind} onValueChange={v => {
-                setRelForm(f => ({ ...f, associationKind: v, metadata: {} }))
+                setRelForm(f => ({ ...f, associationKind: v ?? '', metadata: {} }))
               }}>
                 <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
                 <SelectContent>
@@ -844,7 +844,7 @@ export default function CmdbInstanceDetailPage() {
                         {ad.name}{ad.isRequired && <span className="text-destructive ml-0.5">*</span>}
                       </Label>
                       {ad.fieldType === 'enum' ? (
-                        <Select value={val} onValueChange={setVal}>
+                        <Select value={val} onValueChange={v => setVal(v ?? '')}>
                           <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
                           <SelectContent>
                             {(ad.enumOptions ?? '').split('\n').filter(Boolean).map(o =>

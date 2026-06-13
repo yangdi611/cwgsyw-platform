@@ -390,7 +390,7 @@ export default function CmdbModelDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>字段类型 *</Label>
-                <Select value={attrForm.fieldType} onValueChange={v => setAttrForm(f => ({ ...f, fieldType: v }))}>
+                <Select value={attrForm.fieldType} onValueChange={v => setAttrForm(f => ({ ...f, fieldType: v ?? 'singlechar' }))}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {FIELD_TYPES.map(ft => <SelectItem key={ft.value} value={ft.value}>{ft.label}</SelectItem>)}
