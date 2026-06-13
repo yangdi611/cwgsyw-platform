@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 
 export default function NewDevicePage() {
   const router = useRouter()
@@ -20,6 +21,7 @@ export default function NewDevicePage() {
     device_type: 'server',
     category: '',
     description: '',
+    ci_instance_id: null as number | null,
   })
 
   const createMutation = useMutation({
@@ -93,6 +95,14 @@ export default function NewDevicePage() {
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="设备用途、位置等备注信息"
             rows={3}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>关联 CMDB 实例</Label>
+          <CiInstanceSelect
+            value={form.ci_instance_id}
+            onChange={id => setForm(f => ({ ...f, ci_instance_id: id }))}
           />
         </div>
 

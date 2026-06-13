@@ -140,7 +140,7 @@ export default function CmdbInstanceDetailPage() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'history'>('info')
+  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'history'>('info')
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
@@ -304,6 +304,13 @@ export default function CmdbInstanceDetailPage() {
   const historyTotal = historyData?.total ?? 0
   const historyTotalPages = Math.ceil(historyTotal / historySize)
 
+  // Related devices
+  const { data: relatedDevices = [], isLoading: devicesLoading } = useQuery({
+    queryKey: ['cmdb-instance-devices', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/devices`).then(r => r.data.data ?? []),
+    enabled: tab === 'devices',
+  })
+
   // Dynamic field renderer for edit form
   const renderEditField = (attr: CiAttributeVO) => {
     const val = editForm.fieldsData[attr.fieldKey] ?? ''
@@ -364,7 +371,7 @@ export default function CmdbInstanceDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-6 overflow-x-auto">
-        {(['info', 'relations', 'topology', 'impact', 'history'] as const).map(t => (
+        {(['info', 'relations', 'topology', 'impact', 'devices', 'history'] as const).map(t => (
           <button
             key={t}
             onClick={() => {
@@ -381,6 +388,7 @@ export default function CmdbInstanceDetailPage() {
             {t === 'relations' && '关联关系'}
             {t === 'topology' && '拓扑图'}
             {t === 'impact' && '影响分析'}
+            {t === 'devices' && '关联设备'}
             {t === 'history' && '变更历史'}
           </button>
         ))}
@@ -655,6 +663,43 @@ export default function CmdbInstanceDetailPage() {
         </div>
       )}
 
+
+      {/* ========== Devices Tab ========== */}
+      {tab === 'devices' && (
+        <div>
+          <h2 className="font-semibold mb-4">关联设备</h2>
+          {devicesLoading ? (
+            <p className="text-muted-foreground text-sm">加载中...</p>
+          ) : relatedDevices.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">暂无关联设备</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>设备名称</TableHead>
+                  <TableHead>设备类型</TableHead>
+                  <TableHead>IP 地址</TableHead>
+                  <TableHead>分类标签</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {relatedDevices.map((dev: any) => (
+                  <TableRow key={dev.id}>
+                    <TableCell>
+                      <Link href={`/devices/${dev.id}`} className="hover:underline text-primary">
+                        {dev.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{dev.deviceType ?? '-'}</TableCell>
+                    <TableCell className="font-mono">{dev.ip ?? '-'}</TableCell>
+                    <TableCell>{dev.category ?? '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
       {/* ========== History Tab ========== */}
       {tab === 'history' && (
         <div>
