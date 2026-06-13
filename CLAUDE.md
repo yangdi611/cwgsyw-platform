@@ -58,6 +58,14 @@ cwgsyw-platform/
 | V11  | `change_doc` 添加 Word 模板导出字段 (`template_*`, `exported_*`) |
 | V12  | `change_doc` 添加 AI 摘要字段 (`ai_summary`, `ai_generated_at`) |
 | V13  | `change_doc` 双模板支持（`template2_*`, `exported2_*`）   |
+| V14  | `ci_model_group`, `ci_model` — CMDB 模型分组与模型定义  |
+| V15  | `ci_attribute_group`, `ci_attribute` — CMDB 属性分组与属性定义 |
+| V16  | `ci_instance` — CMDB 实例表（JSONB 动态字段）           |
+| V17  | `ci_association_kind`, `ci_association_def`, `ci_instance_rel` — CMDB 关联 |
+| V18  | CMDB 内置 seed 数据（5模型分组、2模型、18属性、5关联类型） |
+| V19  | CMDB 索引补充（含 GIN 索引、CMDB 审计索引）             |
+| V20  | 主机模型增加 `sn`（序列号）内置属性                      |
+| V23  | CMDB RBAC 权限 seed 数据（3资源 + 角色分配）             |
 
 ---
 
@@ -120,6 +128,9 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `workflow`     | read, approve                                        |
 | `device`       | create, read, update, delete, view_password          |
 | `notification` | read, manage                                         |
+| `cmdb_model`    | create, read, update, delete                       |
+| `cmdb_instance` | create, read, update, delete                       |
+| `cmdb_relation` | create, read, delete                               |
 
 ---
 
@@ -146,6 +157,9 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `NotificationService`   | `module/notification/NotificationService.java` | 写站内信 + 触发邮件       |
 | `WorkflowService`       | `module/workflow/WorkflowService.java`  | Flowable 流程操作               |
 | `AuditLogMapper`        | `common/AuditLogMapper.java`            | 直接写 audit_log                |
+| `CiModelService`        | `module/cmdb/service/`                  | CMDB 模型管理                   |
+| `CiInstanceService`     | `module/cmdb/service/`                  | CMDB 实例管理（含 schema 校验） |
+| `CiTopologyService`     | `module/cmdb/service/`                  | CMDB 拓扑遍历（递归 CTE BFS）   |
 
 ---
 
@@ -167,12 +181,14 @@ user.getPermissions() // Collection<GrantedAuthority>
 | 2a    | 日报系统 + Flowable 审批工作流      | ✅ |
 | 2b    | 设备密码库 (AES-256-GCM)            | ✅ |
 | 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
+| 3a    | 变更文档系统 + AI 辅助 + Word/PDF 导出 | ✅ |
+| 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ 后端完成，前端待开发 |
 
 ## 计划中的功能模块
 
 | Phase | 功能                                              |
 |-------|---------------------------------------------------|
-| 3     | 变更文档系统 + AI 辅助 + Word/PDF 导出            |
+| 3c    | CMDB Tier 2（关联增强 + CSV 导入 + 影响分析）     |
 | 4     | 月度/季度报表导出、微信通知、审计日志 UI          |
 
 ---
