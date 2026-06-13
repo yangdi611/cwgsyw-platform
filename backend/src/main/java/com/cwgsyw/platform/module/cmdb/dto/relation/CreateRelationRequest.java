@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class CreateRelationRequest {
     @NotNull
@@ -11,4 +13,6 @@ public class CreateRelationRequest {
 
     @NotBlank
     private String associationKind;
+
+    private Map<String, Object> metadata;
 }

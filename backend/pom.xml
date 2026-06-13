@@ -145,6 +145,18 @@
             <artifactId>minio</artifactId>
             <version>8.5.11</version>
         </dependency>
+        <!-- CSV parsing -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+        <!-- Charset detection -->
+        <dependency>
+            <groupId>com.googlecode.juniversalchardet</groupId>
+            <artifactId>juniversalchardet</artifactId>
+            <version>1.0.3</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -8,6 +8,7 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.history.ChangeHistoryVO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
+import com.cwgsyw.platform.module.cmdb.entity.CiAssociationAttrDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
@@ -235,8 +236,8 @@ public class CiInstanceService {
 
     // ─── Schema Validator ──────────────────────────────────────────────────────
 
-    static class SchemaValidator {
-        static void validate(Map<String, Object> fieldsData, List<CiAttribute> attributes) {
+    public static class SchemaValidator {
+        public static void validate(Map<String, Object> fieldsData, List<CiAttribute> attributes) {
             if (fieldsData == null) fieldsData = Map.of();
             for (CiAttribute attr : attributes) {
                 Object value = fieldsData.get(attr.getFieldKey());
@@ -244,36 +245,56 @@ public class CiInstanceService {
                     throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
                 }
                 if (value == null) continue;
-                switch (attr.getFieldType()) {
-                    case "singlechar", "user", "date" -> {
-                        if (!(value instanceof String))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为字符串类型");
-                    }
-                    case "int" -> {
-                        if (!(value instanceof Number))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为整数类型");
-                    }
-                    case "bool" -> {
-                        if (!(value instanceof Boolean))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为布尔类型");
-                    }
-                    case "enum" -> {
-                        if (!(value instanceof String enumVal))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为字符串类型");
-                        if (attr.getEnumOptions() != null) {
-                            try {
-                                List<String> options = new ObjectMapper().readValue(attr.getEnumOptions(), new TypeReference<>() {});
-                                if (!options.contains(enumVal))
-                                    throw new IllegalArgumentException("字段 " + attr.getName() + " 的值不在可选范围内: " + enumVal);
-                            } catch (IllegalArgumentException e) { throw e; } catch (Exception ignored) {}
-                        }
-                    }
-                    case "list" -> {
-                        if (!(value instanceof List))
-                            throw new IllegalArgumentException("字段 " + attr.getName() + " 应为列表类型");
-                    }
-                    default -> {}
+                validateFieldType(attr.getName(), attr.getFieldType(), attr.getEnumOptions(), value);
+            }
+        }
+
+        /**
+         * Validate metadata fields against association attribute definitions.
+         * Reuses the same type-checking logic as instance attribute validation.
+         */
+        public static void validateAssociationAttrs(Map<String, Object> metadata, List<CiAssociationAttrDef> attrDefs) {
+            if (metadata == null) metadata = Map.of();
+            for (CiAssociationAttrDef attr : attrDefs) {
+                Object value = metadata.get(attr.getFieldKey());
+                if (Boolean.TRUE.equals(attr.getIsRequired()) && value == null) {
+                    throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
                 }
+                if (value == null) continue;
+                validateFieldType(attr.getName(), attr.getFieldType(), attr.getEnumOptions(), value);
+            }
+        }
+
+        private static void validateFieldType(String name, String fieldType, String enumOptions, Object value) {
+            switch (fieldType) {
+                case "singlechar", "user", "date" -> {
+                    if (!(value instanceof String))
+                        throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
+                }
+                case "int" -> {
+                    if (!(value instanceof Number))
+                        throw new IllegalArgumentException("字段 " + name + " 应为整数类型");
+                }
+                case "bool" -> {
+                    if (!(value instanceof Boolean))
+                        throw new IllegalArgumentException("字段 " + name + " 应为布尔类型");
+                }
+                case "enum" -> {
+                    if (!(value instanceof String enumVal))
+                        throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
+                    if (enumOptions != null) {
+                        try {
+                            List<String> options = new ObjectMapper().readValue(enumOptions, new TypeReference<>() {});
+                            if (!options.contains(enumVal))
+                                throw new IllegalArgumentException("字段 " + name + " 的值不在可选范围内: " + enumVal);
+                        } catch (IllegalArgumentException e) { throw e; } catch (Exception ignored) {}
+                    }
+                }
+                case "list" -> {
+                    if (!(value instanceof List))
+                        throw new IllegalArgumentException("字段 " + name + " 应为列表类型");
+                }
+                default -> {}
             }
         }
     }
