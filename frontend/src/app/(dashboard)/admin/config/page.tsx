@@ -142,6 +142,10 @@ export default function AdminConfigPage() {
   const [watermarkOpacity, setWatermarkOpacity] = useState('0.3')
   const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>('bottom-right')
 
+  const [prometheusEnabled, setPrometheusEnabled] = useState(false)
+  const [prometheusUrl, setPrometheusUrl] = useState('')
+  const [prometheusInterval, setPrometheusInterval] = useState('60')
+
   useEffect(() => {
     if (!config || Object.keys(config).length === 0) return
     setSmtpEnabled(config['smtp.enabled'] === 'true')
@@ -159,6 +163,9 @@ export default function AdminConfigPage() {
     setWatermarkText(config['watermark.text'] ?? '')
     setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
     setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
+    setPrometheusEnabled(config['prometheus.enabled'] === 'true')
+    setPrometheusUrl(config['prometheus.url'] ?? '')
+    setPrometheusInterval(config['prometheus.scrape_interval'] ?? '60')
   }, [config])
 
   const smtpMutation = useMutation({
@@ -176,6 +183,19 @@ export default function AdminConfigPage() {
   const watermarkMutation = useMutation({
     mutationFn: () => api.put('/admin/config/watermark', { enabled: watermarkEnabled, text: watermarkText, opacity: Number(watermarkOpacity), position: watermarkPosition }),
     onSuccess: () => { toast.success('水印配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
+    onError: () => toast.error('保存失败'),
+  })
+
+  const prometheusMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/prometheus', {
+      enabled: prometheusEnabled,
+      url: prometheusUrl,
+      scrapeInterval: prometheusInterval,
+    }),
+    onSuccess: () => {
+      toast.success('Prometheus 配置已保存')
+      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
+    },
     onError: () => toast.error('保存失败'),
   })
 
@@ -257,28 +277,69 @@ export default function AdminConfigPage() {
             </div>
           )}
 
-          {/* Reminder */}
-          {activeTab === 'reminder' && (
-            <div className="border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">日报提醒</h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} id="reminder-enabled" />
-                  <Label htmlFor="reminder-enabled">启用日报提醒</Label>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>提醒时间 (Spring Cron)</Label>
-                  <Input value={reminderCron} onChange={e => setReminderCron(e.target.value)} placeholder="0 0 17 * * MON-FRI" />
-                  <p className="text-xs text-muted-foreground">示例：0 0 17 * * MON-FRI（每工作日 17:00）</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>提醒消息内容</Label>
-                  <Textarea value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={3} placeholder="您今日尚未提交工作日报，请尽快填写。" />
-                </div>
-                <Button onClick={() => notifyMutation.mutate()} disabled={notifyMutation.isPending}>
-                  保存提醒配置
-                </Button>
-              </div>
+      {/* Prometheus */}
+      <section className="border rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Prometheus 告警集成</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch checked={prometheusEnabled} onCheckedChange={setPrometheusEnabled} id="prometheus-enabled" />
+            <Label htmlFor="prometheus-enabled">启用 Prometheus 告警同步</Label>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Prometheus 地址</Label>
+            <Input
+              value={prometheusUrl}
+              onChange={e => setPrometheusUrl(e.target.value)}
+              placeholder="http://prometheus:9090"
+            />
+            <p className="text-xs text-muted-foreground">Prometheus Server API 地址（无需尾部斜杠）</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>同步间隔（秒）</Label>
+            <Input
+              type="number"
+              min="10"
+              value={prometheusInterval}
+              onChange={e => setPrometheusInterval(e.target.value)}
+              placeholder="60"
+            />
+            <p className="text-xs text-muted-foreground">从 Prometheus 拉取告警的间隔时间</p>
+          </div>
+          <Button onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
+            保存 Prometheus 配置
+          </Button>
+        </div>
+      </section>
+
+      {/* Watermark */}
+      <section className="border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">文档水印</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch checked={watermarkEnabled} onCheckedChange={setWatermarkEnabled} id="watermark-enabled" />
+            <Label htmlFor="watermark-enabled">启用水印</Label>
+          </div>
+          <div className="space-y-1.5">
+            <Label>水印文字</Label>
+            <Input
+              value={watermarkText}
+              onChange={e => setWatermarkText(e.target.value)}
+              placeholder="内部资料 请勿外传"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>透明度 (0-1)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                value={watermarkOpacity}
+                onChange={e => setWatermarkOpacity(e.target.value)}
+                placeholder="0.3"
+              />
+              <p className="text-xs text-muted-foreground">0 为完全透明，1 为完全不透明</p>
             </div>
           )}
 

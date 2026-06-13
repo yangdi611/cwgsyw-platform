@@ -1,292 +1,420 @@
 'use client'
-import { useEffect, useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronRight, ChevronLeft, Plus, Trash2, Eye } from 'lucide-react'
+import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { useColumnConfig } from '@/hooks/useColumnConfig'
-import { ColumnPicker, ColumnDef } from '@/components/cmdb/ColumnPicker'
-import { cn } from '@/lib/utils'
+import { PermissionGuard } from '@/components/shared/PermissionGuard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { toast } from 'sonner'
+import { Plus, Trash2, Search, ChevronLeft, ChevronRight, Upload, Eye } from 'lucide-react'
+import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
+
+/* ---------- Types ---------- */
 
 interface CiModelVO {
-  id: number
-  model_id: string
-  name: string
-  group_code: string
-  is_built_in: boolean
+  id: number; name: string; displayName: string; group: string; groupName: string
+  isBuiltIn: boolean; instanceCount: number; attributes: any[]; createdAt: string; updatedAt: string
 }
 
 interface CiAttributeVO {
-  field_key: string
-  name: string
-  is_list_show: boolean
-  sort_order: number
-}
-
-interface CiModelDetailVO {
-  model_id: string
-  name: string
-  attributes: CiAttributeVO[]
+  id: number; modelId: string; fieldKey: string; name: string
+  groupId: string; groupName: string; fieldType: string
+  isRequired: boolean; isEditable: boolean; isUnique: boolean
+  isBuiltIn: boolean; isListShow: boolean; defaultValue: string
+  enumOptions: string; sortOrder: number
 }
 
 interface CiInstanceVO {
-  id: number
-  name: string
-  attrs: Record<string, unknown>
-  created_at: string
+  id: number; name: string; modelId: string; modelName: string
+  status: string; owner: string; description: string
+  fieldsData: Record<string, any>; createdAt: string; updatedAt: string
 }
 
-interface PageResult<T> {
-  records: T[]
-  total: number
-}
+/* ---------- Component ---------- */
 
-function CiResourcesInner() {
-  const { hasPermission, isHydrated } = usePermission()
+export default function CmdbInstancesPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
+  const [model, setModel] = useState('')
+  const [keyword, setKeyword] = useState('')
+  const [status, setStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const size = 20
+
+  // Create dialog — stores modelId (number as string) for fetching attributes
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    modelId: '', name: '', status: 'running', owner: '', description: '',
+    fieldsData: {} as Record<string, string>,
+  })
+  const [selectedModelAttrs, setSelectedModelAttrs] = useState<CiAttributeVO[]>([])
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<CiInstanceVO | null>(null)
+
+  // CSV import
+  const [csvOpen, setCsvOpen] = useState(false)
+  const [csvModel, setCsvModel] = useState('')
+
   useEffect(() => {
-    if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
-  }, [isHydrated, hasPermission, router])
+  }, [hasPermission, router])
 
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(
-    searchParams.get('model')
-  )
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['未分类']))
+  // Auto-set model from URL param
+  useEffect(() => {
+    const m = searchParams.get('model')
+    if (m) setModel(m)
+  }, [searchParams])
 
+  // Fetch models for filter
   const { data: models = [] } = useQuery<CiModelVO[]>({
-    queryKey: ['cmdb-models'],
-    queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data),
+    queryKey: ['cmdb-models-all'],
+    queryFn: () => api.get('/cmdb/models', { params: { size: 100 } }).then(r => r.data.data.records),
   })
 
-  const { data: modelDetail } = useQuery<CiModelDetailVO>({
-    queryKey: ['cmdb-model', selectedModelId],
-    queryFn: () => api.get(`/cmdb/meta/models/${selectedModelId}`).then(r => r.data.data),
-    enabled: !!selectedModelId,
+  // Fetch instances
+  const { data, isLoading } = useQuery({
+    queryKey: ['cmdb-instances', model, keyword, status, page],
+    queryFn: () => api.get('/cmdb/instances', {
+      params: {
+        model: model || undefined,
+        keyword: keyword || undefined,
+        status: status || undefined,
+        page, size,
+      },
+    }).then(r => r.data.data),
+    enabled: hasPermission('cmdb_instance', 'read'),
   })
 
-  const { data: instanceResult, isLoading: instancesLoading } = useQuery<PageResult<CiInstanceVO>>({
-    queryKey: ['cmdb-instances', selectedModelId],
-    queryFn: () => api.get(`/cmdb/instances/${selectedModelId}`).then(r => r.data.data),
-    enabled: !!selectedModelId,
+  const instances = (data?.records ?? []) as CiInstanceVO[]
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / size)
+
+  // Fetch attributes when creating — uses model numeric ID
+  const { data: createModelAttrs } = useQuery<CiAttributeVO[]>({
+    queryKey: ['cmdb-model-attrs', createForm.modelId],
+    queryFn: () => api.get(`/cmdb/models/${createForm.modelId}/attributes`).then(r => r.data.data),
+    enabled: !!createForm.modelId,
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/cmdb/instances/${selectedModelId}/${id}`),
+  useEffect(() => {
+    setSelectedModelAttrs(createModelAttrs ?? [])
+  }, [createModelAttrs])
+
+  // Create instance — sends model name to backend
+  const createMutation = useMutation({
+    mutationFn: (body: any) => api.post('/cmdb/instances', body).then(r => r.data),
     onSuccess: () => {
-      toast.success('已删除')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', selectedModelId] })
+      toast.success('实例已创建')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances'] })
+      setCreateOpen(false)
+      setCreateForm({ modelId: '', name: '', status: 'running', owner: '', description: '', fieldsData: {} })
     },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } }
-      toast.error(err?.response?.data?.message ?? '删除失败')
-    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
   })
 
-  const listShowCols = (modelDetail?.attributes ?? [])
-    .filter(a => a.is_list_show)
-    .sort((a, b) => a.sort_order - b.sort_order)
+  // Delete instance
+  const deleteMutation = useMutation({
+    mutationFn: (instId: number) => api.delete(`/cmdb/instances/${instId}`),
+    onSuccess: () => {
+      toast.success('实例已删除')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances'] })
+      setDeleteTarget(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
 
-  const allColDefs: ColumnDef[] = [
-    { key: '_name', name: '实例名称', required: true },
-    ...listShowCols.map(a => ({ key: a.field_key, name: a.name })),
-    { key: '_created_at', name: '创建时间' },
-  ]
-  const defaultKeys = ['_name', ...listShowCols.slice(0, 4).map(a => a.field_key), '_created_at']
-  const { visible, toggle } = useColumnConfig(selectedModelId ?? 'none', defaultKeys)
-
-  const grouped = models.reduce((acc, m) => {
-    const g = m.group_code || '未分类'
-    if (!acc[g]) acc[g] = []
-    acc[g].push(m)
-    return acc
-  }, {} as Record<string, CiModelVO[]>)
-
-  const toggleGroup = (g: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      next.has(g) ? next.delete(g) : next.add(g)
-      return next
+  const handleCreate = () => {
+    if (!createForm.modelId) { toast.error('请选择模型'); return }
+    if (!createForm.name.trim()) { toast.error('请填写实例名称'); return }
+    // Look up model name from models list
+    const selectedModel = models.find(m => m.id.toString() === createForm.modelId)
+    createMutation.mutate({
+      model: selectedModel?.name ?? createForm.modelId,
+      name: createForm.name,
+      status: createForm.status,
+      owner: createForm.owner,
+      description: createForm.description,
+      fieldsData: createForm.fieldsData,
     })
   }
 
-  const instances = instanceResult?.records ?? []
+  const openCsvImport = () => {
+    if (!model) { toast.error('请先选择一个模型'); return }
+    setCsvModel(model)
+    setCsvOpen(true)
+  }
+
+  const renderFieldInput = (attr: CiAttributeVO) => {
+    const val = createForm.fieldsData[attr.fieldKey] ?? ''
+    const setVal = (v: string) => setCreateForm(f => ({
+      ...f, fieldsData: { ...f.fieldsData, [attr.fieldKey]: v },
+    }))
+
+    switch (attr.fieldType) {
+      case 'enum':
+        const options = (attr.enumOptions ?? '').split('\n').filter(Boolean)
+        return (
+          <Select value={val} onValueChange={v => setVal(v ?? '')}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
+            <SelectContent>
+              {options.map(o => <SelectItem key={o.trim()} value={o.trim()}>{o.trim()}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )
+      case 'int':
+        return <Input type="number" value={val} onChange={e => setVal(e.target.value)} />
+      case 'bool':
+        return (
+          <Select value={val || 'false'} onValueChange={v => setVal(v ?? '')}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">是</SelectItem>
+              <SelectItem value="false">否</SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      case 'date':
+        return <Input type="date" value={val} onChange={e => setVal(e.target.value)} />
+      case 'list':
+        return <Textarea value={val} onChange={e => setVal(e.target.value)} rows={2} />
+      default:
+        return <Input value={val} onChange={e => setVal(e.target.value)} />
+    }
+  }
 
   return (
-    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)]">
-      {/* 左侧模型树 */}
-      <div className="w-52 border-r flex-shrink-0 overflow-y-auto p-2 space-y-0.5 bg-background">
-        <p className="text-xs text-muted-foreground px-2 py-2 font-medium uppercase tracking-wider">CI 模型</p>
-        {Object.entries(grouped).map(([group, groupModels]) => (
-          <div key={group}>
-            <button
-              onClick={() => toggleGroup(group)}
-              className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {expandedGroups.has(group)
-                ? <ChevronDown className="h-3 w-3" />
-                : <ChevronRight className="h-3 w-3" />}
-              <span className="font-medium">{group}</span>
-            </button>
-            {expandedGroups.has(group) && groupModels.map(m => (
-              <button
-                key={m.model_id}
-                onClick={() => setSelectedModelId(m.model_id)}
-                className={cn(
-                  'w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ml-2',
-                  selectedModelId === m.model_id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        ))}
+    <div className="max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">CMDB 实例管理</h1>
+        <div className="flex gap-2">
+          <PermissionGuard resource="cmdb_instance" action="create">
+            <Button size="sm" onClick={() => {
+              setCreateOpen(true)
+              setCreateForm({ modelId: '', name: '', status: 'running', owner: '', description: '', fieldsData: {} })
+            }}>
+              <Plus className="h-4 w-4 mr-1" />新建实例
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard resource="cmdb_instance" action="create">
+            <Button size="sm" variant="outline" onClick={openCsvImport}>
+              <Upload className="h-4 w-4 mr-1" />导入 CSV
+            </Button>
+          </PermissionGuard>
+        </div>
       </div>
 
-      {/* 右侧实例表格 */}
-      <div className="flex-1 overflow-auto p-6">
-        {!selectedModelId ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-2 text-muted-foreground">
-            <ChevronLeft className="h-8 w-8 opacity-30" />
-            <p className="text-sm">从左侧选择一个 CI 模型</p>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <Select value={model} onValueChange={v => { setModel((v ?? '') === '__all__' ? '' : (v ?? '')); setPage(1) }}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="全部模型" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">全部模型</SelectItem>
+            {models.map(m => <SelectItem key={m.name} value={m.name}>{m.displayName}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="搜索实例名称..." value={keyword}
+            onChange={e => { setKeyword(e.target.value); setPage(1) }} />
+        </div>
+
+        <Select value={status} onValueChange={v => { setStatus((v ?? '') === '__all__' ? '' : (v ?? '')); setPage(1) }}>
+          <SelectTrigger className="w-32"><SelectValue placeholder="全部状态" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">全部状态</SelectItem>
+            <SelectItem value="running">运行中</SelectItem>
+            <SelectItem value="stopped">已停用</SelectItem>
+            <SelectItem value="maintenance">维护中</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <p className="text-muted-foreground text-sm">加载中...</p>
+      ) : instances.length === 0 ? (
+        <p className="text-muted-foreground text-sm py-8 text-center">暂无实例数据</p>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>名称</TableHead>
+                <TableHead>模型</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>负责人</TableHead>
+                <TableHead>更新时间</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {instances.map(inst => (
+                <TableRow key={inst.id}>
+                  <TableCell className="text-muted-foreground">{inst.id}</TableCell>
+                  <TableCell>
+                    <Link href={`/cmdb/instances/${inst.id}`} className="font-medium hover:underline">
+                      {inst.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell><Badge variant="outline">{inst.modelName}</Badge></TableCell>
+                  <TableCell>{inst.status || '-'}</TableCell>
+                  <TableCell>{inst.owner || '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap text-sm">
+                    {new Date(inst.updatedAt).toLocaleString('zh-CN')}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Link href={`/cmdb/instances/${inst.id}`}>
+                        <Button size="sm" variant="ghost"><Eye className="h-3.5 w-3.5" /></Button>
+                      </Link>
+                      <PermissionGuard resource="cmdb_instance" action="delete">
+                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(inst)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </PermissionGuard>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-muted-foreground">共 {total} 条</span>
+            <div className="flex gap-2 items-center">
+              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">{page} / {totalPages || 1}</span>
+              <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold">
-                  {modelDetail?.name ?? selectedModelId}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  共 {instanceResult?.total ?? 0} 条
-                </p>
+        </>
+      )}
+
+      {/* Create Instance Dialog */}
+      <Dialog open={createOpen} onOpenChange={(v) => !v && setCreateOpen(false)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>新建实例</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>所属模型 *</Label>
+                <Select value={createForm.modelId}
+                  onValueChange={v => setCreateForm(f => ({ ...f, modelId: v ?? '', fieldsData: {} }))}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="请选择模型" /></SelectTrigger>
+                  <SelectContent>
+                    {models.map(m => (
+                      <SelectItem key={m.id} value={m.id.toString()}>{m.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <ColumnPicker
-                  allColumns={allColDefs}
-                  visibleKeys={visible}
-                  onToggle={toggle}
-                />
-                {hasPermission('cmdb_instance', 'create') && (
-                  <Link
-                    href={`/cmdb/instances/${selectedModelId}/new`}
-                    className={buttonVariants({ size: 'sm' })}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />新建实例
-                  </Link>
-                )}
+              <div className="space-y-1.5">
+                <Label>实例名称 *</Label>
+                <Input value={createForm.name}
+                  onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>状态</Label>
+                <Select value={createForm.status} onValueChange={v => setCreateForm(f => ({ ...f, status: v ?? '' }))}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="running">运行中</SelectItem>
+                    <SelectItem value="stopped">已停用</SelectItem>
+                    <SelectItem value="maintenance">维护中</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>负责人</Label>
+                <Input value={createForm.owner}
+                  onChange={e => setCreateForm(f => ({ ...f, owner: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>描述</Label>
+              <Textarea value={createForm.description}
+                onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
 
-            {instancesLoading ? (
-              <p className="text-muted-foreground text-sm">加载中...</p>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      {allColDefs.filter(c => visible.includes(c.key)).map(col => (
-                        <th
-                          key={col.key}
-                          className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium group"
-                        >
-                          <span className="flex items-center gap-1">
-                            {col.name}
-                            {!col.required && (
-                              <button
-                                onClick={() => toggle(col.key)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive text-muted-foreground"
-                                title="隐藏此列"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </span>
-                        </th>
-                      ))}
-                      <th className="px-4 py-2.5 w-20" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {instances.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={visible.length + 1}
-                          className="text-center py-12 text-muted-foreground text-sm"
-                        >
-                          暂无实例，点击右上角新建
-                        </td>
-                      </tr>
-                    ) : instances.map(inst => (
-                      <tr key={inst.id} className="hover:bg-muted/30">
-                        {allColDefs.filter(c => visible.includes(c.key)).map(col => (
-                          <td key={col.key} className="px-4 py-3">
-                            {col.key === '_name' && (
-                              <span className="font-medium">
-                                {inst.name ?? <span className="text-muted-foreground">#{inst.id}</span>}
-                              </span>
-                            )}
-                            {col.key === '_created_at' && (
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(inst.created_at).toLocaleDateString('zh-CN')}
-                              </span>
-                            )}
-                            {col.key !== '_name' && col.key !== '_created_at' && (
-                              <span className="text-muted-foreground">
-                                {String(inst.attrs?.[col.key] ?? '—')}
-                              </span>
-                            )}
-                          </td>
-                        ))}
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <Link
-                              href={`/cmdb/instances/${selectedModelId}/${inst.id}`}
-                              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'h-7 w-7 p-0')}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Link>
-                            {hasPermission('cmdb_instance', 'delete') && (
-                              <Button
-                                variant="ghost" size="sm"
-                                className="h-7 w-7 p-0 text-destructive"
-                                disabled={deleteMutation.isPending}
-                                onClick={() => {
-                                  if (confirm('删除此实例?')) deleteMutation.mutate(inst.id)
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+            {/* Dynamic attributes */}
+            {selectedModelAttrs.length > 0 && (
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-3">模型属性</h3>
+                <div className="space-y-3">
+                  {selectedModelAttrs
+                    .filter(a => a.isEditable)
+                    .sort((a, b) => a.sortOrder - b.sortOrder)
+                    .map(attr => (
+                      <div key={attr.id} className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                        <Label className="text-sm pt-2">
+                          {attr.name}{attr.isRequired && <span className="text-destructive ml-0.5">*</span>}
+                        </Label>
+                        {renderFieldInput(attr)}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                </div>
               </div>
             )}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
+          </div>
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
+            <Button size="sm" onClick={handleCreate}
+              disabled={!createForm.modelId || !createForm.name.trim() || createMutation.isPending}>
+              {createMutation.isPending ? '创建中...' : '创建'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-export default function CiResourcesPage() {
-  return (
-    <Suspense>
-      <CiResourcesInner />
-    </Suspense>
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除实例「{deleteTarget?.name}」吗？此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* CSV Import Dialog */}
+      <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={csvModel} />
+    </div>
   )
 }

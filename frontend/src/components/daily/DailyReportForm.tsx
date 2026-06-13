@@ -1,9 +1,11 @@
 'use client'
 import { useForm } from 'react-hook-form'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { CiInstanceMultiSelect, CiInstanceItem } from '@/components/daily/CiInstanceMultiSelect'
 import { toast } from 'sonner'
 
 interface FormData {
@@ -15,8 +17,8 @@ interface FormData {
 }
 
 interface Props {
-  defaultValues?: Partial<FormData>
-  onSubmit: (data: FormData) => Promise<void>
+  defaultValues?: Partial<FormData> & { ciInstances?: CiInstanceItem[] }
+  onSubmit: (data: FormData & { ciInstances: CiInstanceItem[] }) => Promise<void>
   submitLabel?: string
 }
 
@@ -27,10 +29,11 @@ export function DailyReportForm({ defaultValues, onSubmit, submitLabel = '保存
       ...defaultValues,
     },
   })
+  const [ciInstances, setCiInstances] = useState<CiInstanceItem[]>(defaultValues?.ciInstances ?? [])
 
   const handleFormSubmit = async (data: FormData) => {
     try {
-      await onSubmit(data)
+      await onSubmit({ ...data, ciInstances })
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       toast.error(err?.response?.data?.message ?? '操作失败')
@@ -65,6 +68,10 @@ export function DailyReportForm({ defaultValues, onSubmit, submitLabel = '保存
         <Label htmlFor="workHours">工时（小时）</Label>
         <Input id="workHours" type="number" step="0.5" min="0" max="24"
           placeholder="8.0" {...register('workHours')} />
+      </div>
+      <div className="space-y-2">
+        <Label>关联 CI 实例</Label>
+        <CiInstanceMultiSelect value={ciInstances} onChange={setCiInstances} />
       </div>
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? '保存中...' : submitLabel}

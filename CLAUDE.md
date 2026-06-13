@@ -53,16 +53,28 @@ cwgsyw-platform/
 | V5   | 修复 `sys_role` 缺少 BaseEntity 列                        |
 | V6   | `device`, `device_credential`, `password_access_log` + RBAC |
 | V7   | `sys_config`, `notification_message` + RBAC               |
-| V8   | `ai_provider_config`, `ai_call_log` + RBAC (`ai_config`)  |
-| V9   | `change_doc`, `change_doc_snapshot` + RBAC (`change_doc`) |
-| V10  | `device_credential` 添加 `group_id` 列                    |
-| V11  | `sys_config` 添加水印配置默认值                           |
-| V12  | `change_doc_template`, `change_doc_field` + `change_doc` 添加 `template_id`/`fields_data` |
-| V13  | `change_doc` 添加 `application_template_id`/`plan_template_id` 双模板 |
-| V14  | CMDB 元数据：`ci_model_group`, `ci_model`, `ci_attribute_group`, `ci_attribute`, `ci_association_kind`, `ci_association_def` + 内置主机/应用模型 + RBAC |
-| V15  | CMDB 实例：`ci_instance`（JSONB attrs + GIN 索引）        |
-| V16  | CMDB 实例关联：`ci_instance_rel`（src_id/dst_id/def_id/attrs JSONB + 4 索引含唯一约束） |
-| V17  | `shared_folder`, `shared_file` + RBAC (`shared_file` 4 actions) |
+| V8   | `change_doc`, `change_doc_approval` + RBAC 权限           |
+| V9   | `change_doc` 添加 `doc_number`, `category`, `risk_level` 列 |
+| V10  | `change_doc` 添加 MinIO 附件字段 (`attachment_*`)         |
+| V11  | `change_doc` 添加 Word 模板导出字段 (`template_*`, `exported_*`) |
+| V12  | `change_doc` 添加 AI 摘要字段 (`ai_summary`, `ai_generated_at`) |
+| V13  | `change_doc` 双模板支持（`template2_*`, `exported2_*`）   |
+| V14  | `ci_model_group`, `ci_model` — CMDB 模型分组与模型定义  |
+| V15  | `ci_attribute_group`, `ci_attribute` — CMDB 属性分组与属性定义 |
+| V16  | `ci_instance` — CMDB 实例表（JSONB 动态字段）           |
+| V17  | `ci_association_kind`, `ci_association_def`, `ci_instance_rel` — CMDB 关联 |
+| V18  | CMDB 内置 seed 数据（5模型分组、2模型、18属性、5关联类型） |
+| V19  | CMDB 索引补充（含 GIN 索引、CMDB 审计索引）             |
+| V20  | 主机模型增加 `sn`（序列号）内置属性                      |
+| V23  | CMDB RBAC 权限 seed 数据（3资源 + 角色分配）             |
+| V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def` 关联扩展属性定义 |
+| V25  | CSV 导入权限 seed（`cmdb_instance:import`）              |
+| V26  | 影响分析权限 seed（`cmdb_instance:impact`）              |
+| V27  | `device` 增加 `ci_instance_id`（设备 ↔ CI 实例关联）     |
+| V28  | `change_doc_ci_link` — 变更文档 ↔ CI 实例关联表         |
+| V29  | `daily_report` 增加 `ci_instance_ids` JSONB（日报 ↔ CI） |
+| V30  | `ip_pool` + `ip_allocation` — IPAM 模块 + RBAC          |
+| V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                 |
 
 ---
 
@@ -121,24 +133,20 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 
 ### 已注册资源
 
-| resource              | actions                                              |
-|-----------------------|------------------------------------------------------|
-| `user`                | create, read, update, delete                         |
-| `group`               | create, read, update, delete                         |
-| `role`                | create, read, update, delete, assign                 |
-| `daily_report`        | create, read, update, delete, approve, export        |
-| `workflow`            | read, approve                                        |
-| `device`              | create, read, update, delete, view_password          |
-| `notification`        | read, manage                                         |
-| `ai_config`           | read, write                                          |
-| `change_doc`          | create, read, update, delete, approve, export        |
-| `change_doc_template` | read, write                                          |
-| `audit`               | read                                                 |
-| `cmdb_model`          | read, write                                          |
-| `cmdb_instance`       | create, read, update, delete, export                 |
-| `shared_file`         | read, upload, delete, manage                         |
-
-> **CMDB 关联操作复用 `cmdb_instance` 资源**：建立关联用 `create`，查询用 `read`，删除用 `delete`，不单独注册 `cmdb_association` 资源。
+| resource       | actions                                              |
+|----------------|------------------------------------------------------|
+| `user`         | create, read, update, delete                         |
+| `group`        | create, read, update, delete                         |
+| `role`         | create, read, update, delete, assign                 |
+| `daily_report` | create, read, update, delete, approve                |
+| `workflow`     | read, approve                                        |
+| `device`       | create, read, update, delete, view_password          |
+| `notification` | read, manage                                         |
+| `cmdb_model`    | create, read, update, delete                       |
+| `cmdb_instance` | create, read, update, delete, import, impact       |
+| `cmdb_relation` | create, read, update, delete                       |
+| `ip_pool`       | create, read, update, delete                       |
+| `cmdb_alert`    | create, read, acknowledge                          |
 
 ---
 
@@ -157,23 +165,25 @@ user.getPermissions() // Collection<GrantedAuthority>
 
 ## 关键 Bean / 服务
 
-| Bean                    | 位置                                              | 说明                                    |
-|-------------------------|---------------------------------------------------|-----------------------------------------|
-| `CryptoService`         | `config/CryptoService.java`                       | AES-256-GCM 加解密                      |
-| `EmailService`          | `config/EmailService.java`                        | 运行时从 sys_config 读 SMTP 配置发邮件  |
-| `SysConfigService`      | `module/config/SysConfigService.java`             | 读写 sys_config 表                      |
-| `NotificationService`   | `module/notification/NotificationService.java`    | 写站内信 + 触发邮件                     |
-| `WorkflowService`       | `module/workflow/WorkflowService.java`            | Flowable 流程操作                       |
-| `AuditLogMapper`        | `common/AuditLogMapper.java`                      | 直接写 audit_log（含分页查询方法）      |
-| `AiGatewayService`      | `module/ai/AiGatewayService.java`                 | 统一 AI 调用（Kimi/DeepSeek/GLM）       |
-| `ExportService`         | `module/changedoc/ExportService.java`             | 变更文档 Word/PDF 导出（含水印）        |
-| `MinioStorageService`   | `module/changedoc/MinioStorageService.java`       | MinIO 文件上传/下载/删除                |
-| `SharedFileService`     | `module/sharedfile/SharedFileService.java`         | 共享文件 CRUD + 可见性过滤 + pandoc 转换  |
-| `SharedFolderService`   | `module/sharedfile/SharedFolderService.java`       | 文件夹树 + 递归软删 + 自动归档路径       |
-| `CiMetadataService`     | `module/cmdb/CiMetadataService.java`              | CMDB 模型/属性/关联元数据管理           |
-| `CiInstanceService`     | `module/cmdb/CiInstanceService.java`              | CMDB CI 实例 CRUD + 属性校验            |
-| `CiInstanceRelService`  | `module/cmdb/CiInstanceRelService.java`           | CMDB 实例关联 CRUD + mapping 基数校验   |
-| `CiTopologyService`     | `module/cmdb/CiTopologyService.java`              | BFS 拓扑遍历，返回 nodes+edges 图结构   |
+| Bean                    | 位置                                    | 说明                            |
+|-------------------------|-----------------------------------------|---------------------------------|
+| `CryptoService`         | `config/CryptoService.java`             | AES-256-GCM 加解密              |
+| `EmailService`          | `config/EmailService.java`              | 运行时从 sys_config 读 SMTP 配置发邮件 |
+| `SysConfigService`      | `module/config/SysConfigService.java`   | 读写 sys_config 表              |
+| `NotificationService`   | `module/notification/NotificationService.java` | 写站内信 + 触发邮件       |
+| `WorkflowService`       | `module/workflow/WorkflowService.java`  | Flowable 流程操作               |
+| `AuditLogMapper`        | `common/AuditLogMapper.java`            | 直接写 audit_log                |
+| `CiModelService`        | `module/cmdb/service/`                  | CMDB 模型管理                   |
+| `CiInstanceService`     | `module/cmdb/service/`                  | CMDB 实例管理（含 schema 校验） |
+| `CiAssociationAttrDefService` | `module/cmdb/service/`             | 关联扩展属性定义管理             |
+| `CiRelationService`     | `module/cmdb/service/`                  | 关联管理（含 metadata 校验）    |
+| `CiTopologyService`     | `module/cmdb/service/`                  | CMDB 拓扑遍历（递归 CTE BFS）   |
+| `CsvImportService`      | `module/cmdb/service/`                  | CSV 批量导入（preview/execute） |
+| `ImpactAnalysisService` | `module/cmdb/service/`                  | 影响分析（CTE + Java BFS）      |
+| `CiNotificationService` | `module/cmdb/service/`                  | CI 状态变更/删除通知（Phase 4A）|
+| `ChangeDocLinkService`  | `module/changedoc/`                     | 变更文档 ↔ CI 实例关联（4C）    |
+| `IpPoolService`         | `module/ipam/`                          | IP 地址池管理（Phase 4E）      |
+| `PrometheusAlertSyncService` | `module/cmdb/alert/`               | Prometheus 告警同步（Phase 4F）|
 
 ---
 
@@ -293,24 +303,27 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 
 ## 已完成的功能模块
 
-| Phase     | 功能                                              | 状态 | Tag                    |
-|-----------|---------------------------------------------------|------|------------------------|
-| 1         | 认证、RBAC、用户/组管理、Docker 部署              | ✅   | v0.1.0                 |
-| 2a        | 日报系统 + Flowable 审批工作流                    | ✅   | v0.2.0-daily           |
-| 2b        | 设备密码库 (AES-256-GCM) + 分组凭据              | ✅   | v0.2.1-device          |
-| 2c        | 邮件通知中心 + 站内信 + 定时提醒                  | ✅   | v0.3.0-notifications   |
-| 3a        | AI 网关（Kimi/DeepSeek/GLM）                      | ✅   | v0.3.1-ai-gateway      |
-| 3b        | 变更文档系统（双模板 + 动态字段）                 | ✅   | v0.4.0-change-docs     |
-| 3c        | 变更文档 Word/PDF 导出 + 邮件模板 + 水印          | ✅   | v0.5.0-export          |
-| 3d        | 变更文档双模板（申请单/方案 Tab）                 | ✅   | v0.7.1-dual-template   |
-| 4         | 月报导出(Excel) + 审计日志 UI + 报表页            | ✅   | v0.6.0-phase4          |
-| 4 UX      | 水印开关、快照历史、设备搜索、日报审批            | ✅   | v0.6.1-ux              |
-| CMDB-1    | CMDB 元数据层（模型/属性/关联种类/关联定义）      | ✅   | v0.8.0-cmdb-phase1     |
-| CMDB-2    | CMDB 实例管理（JSONB + 动态表单 + 属性校验）      | ✅   | v0.9.0-cmdb-phase2     |
-| CMDB-3    | CI 实例关联（mapping 基数校验 + 关联面板 + 管理页）| ✅   | v0.10.0-cmdb-phase3    |
-| CMDB-UX   | CMDB 导航重构（搜索首页 + CI资源 + 配置管理分离）  | ✅   | v0.11.0-cmdb-ux        |
-| CMDB-4    | 拓扑树（React Flow BFS）+ 变更文档 ci_selector 字段 | ✅   | v0.12.0-cmdb-phase4    |
-| Shared-1  | 共享文件库（文件夹树 + 上传/下载/预览 + 组可见性 + pandoc 转换 + 变更文档自动归档） | ✅ | v0.13.0-shared-files |
+| Phase | 功能              | 状态 |
+|-------|-------------------|------|
+| 1     | 认证、RBAC、用户/组管理、Docker 部署 | ✅ |
+| 2a    | 日报系统 + Flowable 审批工作流      | ✅ |
+| 2b    | 设备密码库 (AES-256-GCM)            | ✅ |
+| 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
+| 3a    | 变更文档系统 + AI 辅助 + Word/PDF 导出 | ✅ |
+| 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ |
+| 3c    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ |
+| 4A    | CI 状态变更/删除通知 | ✅ |
+| 4B    | 设备 ↔ CI 实例关联 | ✅ |
+| 4C    | CMDB ↔ 变更文档关联 | ✅ |
+| 4D    | CMDB ↔ 日报关联 | ✅ |
+| 4E    | IP 地址池管理 (IPAM) | ✅ |
+| 4F    | Prometheus 告警集成 | ✅ |
+
+## 计划中的功能模块
+
+| Phase | 功能                                              |
+|-------|---------------------------------------------------|
+| 5     | 月度/季度报表导出、微信通知、审计日志 UI          |
 
 ---
 
@@ -345,16 +358,7 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 - Phase 2a: `docs/superpowers/plans/2026-05-21-phase2a-daily-report.md`
 - Phase 2b: `docs/superpowers/plans/2026-05-22-phase2b-device-vault.md`
 - Phase 2c: `docs/superpowers/plans/2026-05-22-phase2c-notifications.md`
-- Phase 3a: `docs/superpowers/plans/2026-05-22-phase3a-ai-gateway.md`
-- Phase 3b: `docs/superpowers/plans/2026-05-22-phase3b-change-documents.md`
-- Phase 3c: `docs/superpowers/plans/2026-05-23-phase3c-change-doc-export.md`
-- Phase 3d: `docs/superpowers/plans/2026-05-24-phase3d-dual-template.md`
-- Phase 4: `docs/superpowers/plans/2026-05-23-phase4-reports-audit.md`
-- CMDB Phase 1: `docs/superpowers/plans/2026-05-24-cmdb-phase1-metadata.md`
-- CMDB Phase 2: `docs/superpowers/plans/2026-05-25-cmdb-phase2-instances.md`
-- CMDB Phase 3: `docs/superpowers/plans/2026-05-25-cmdb-phase3-instance-associations.md`
-- CMDB-UX: `docs/superpowers/plans/2026-05-26-cmdb-ux-redesign.md`
-- CMDB Phase 4: `docs/superpowers/plans/2026-05-26-cmdb-phase4-topology.md`
+- CMDB Tier 4: `docs/superpowers/plans/2026-06-13-cmdb-tier4-implementation.md`
 - 设计规格: `docs/superpowers/specs/2026-05-21-it-ops-platform-design.md`
 - CMDB Phase 3 设计: `docs/superpowers/specs/2026-05-25-cmdb-phase3-instance-associations.md`
 - CMDB-UX 设计: `docs/superpowers/specs/2026-05-26-cmdb-ux-redesign.md`

@@ -1,6 +1,6 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -18,9 +18,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle, Download, Clock } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
 import type { CmdbAlertVO } from '@/hooks/usePrometheusAlerts'
 
@@ -55,7 +54,7 @@ interface CiAssociationAttrDefVO {
 }
 
 interface TopologyNodeVO { id: number; name: string; model_id: string; model_name: string; is_root: boolean }
-interface TopologyEdgeVO { src: number; dst: number; kind: string; label: string; metadata?: Record<string, any> }
+interface TopologyEdgeVO { src: number; dst: number; kind: string; label: string }
 interface TopologyResultVO { nodes: TopologyNodeVO[]; edges: TopologyEdgeVO[] }
 
 interface ChangeHistoryVO {
@@ -70,26 +69,6 @@ interface ImpactAnalysisResultVO {
   rootId: number; rootName: string; rootModelId: string
   direction: string; maxDepth: number; truncated: boolean
   layers: ImpactLayerVO[]; edges: ImpactEdgeVO[]
-}
-
-/* Topology compare types */
-interface TopologyNodeV2VO {
-  id: number; name: string; model_id: string; model_name: string
-  model_color?: string; status?: string; owner?: string
-  is_root: boolean; key_attrs?: Record<string, any>
-  fieldsData?: Record<string, any>
-}
-
-interface TopologyCompareEdgeVO {
-  src: number; dst: number; kind: string; label: string; status: string
-}
-
-interface TopologyCompareVO {
-  added: TopologyNodeV2VO[]
-  removed: TopologyNodeV2VO[]
-  modified: TopologyNodeV2VO[]
-  unchanged: TopologyNodeV2VO[]
-  edges: TopologyCompareEdgeVO[]
 }
 
 /* ---------- Constants ---------- */
@@ -134,35 +113,14 @@ function TopologyView({ nodes, edges }: { nodes: TopologyNodeVO[]; edges: Topolo
         </div>
         {children.length > 0 && (
           <div className="border-l-2 border-muted ml-4 pl-2">
-            {children.map(({ edge, child }) => {
-              const metaEntries = edge.metadata ? Object.entries(edge.metadata) : []
-              const kindLabel = KIND_MAP[edge.kind] ?? edge.kind
-              return (
-                <div key={`${edge.src}-${edge.dst}-${edge.kind}`}>
-                  <div className="text-xs text-muted-foreground ml-4 mb-0.5">
-                    └─ {metaEntries.length > 0 ? (
-                      <Tooltip>
-                        <TooltipTrigger render={<Badge variant="secondary" className="text-xs" />}>
-                          {kindLabel}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="space-y-0.5">
-                            {metaEntries.map(([k, v]) => (
-                              <div key={String(k)}>
-                                {k}: {typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v)}
-                              </div>
-                            ))}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs">{kindLabel}</Badge>
-                    )}
-                  </div>
-                  {child && renderNode(child, level + 1)}
+            {children.map(({ edge, child }) => (
+              <div key={`${edge.src}-${edge.dst}-${edge.kind}`}>
+                <div className="text-xs text-muted-foreground ml-4 mb-0.5">
+                  └─ <Badge variant="secondary" className="text-xs">{KIND_MAP[edge.kind] ?? edge.kind}</Badge>
                 </div>
-              )
-            })}
+                {child && renderNode(child, level + 1)}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -206,39 +164,9 @@ export default function CmdbInstanceDetailPage() {
   // Topology
   const [topoDepth, setTopoDepth] = useState(3)
 
-  // Topology compare
-  const [fromTime, setFromTime] = useState('')
-  const [toTime, setToTime] = useState('')
-  const [compareTriggered, setCompareTriggered] = useState(false)
-  const [compareDepth, setCompareDepth] = useState(3)
-
   // Impact analysis
   const [impactDirection, setImpactDirection] = useState('both')
   const [impactDepth, setImpactDepth] = useState(3)
-  const [impactExporting, setImpactExporting] = useState(false)
-  const impactResultRef = useRef<HTMLDivElement>(null)
-
-  const handleExportImpactPng = async () => {
-    if (!impactResultRef.current || impactExporting) return
-    setImpactExporting(true)
-    try {
-      const { toPng } = await import('html-to-image')
-      const dataUrl = await toPng(impactResultRef.current, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
-      })
-      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-      const link = document.createElement('a')
-      link.download = `impact-analysis-${id}-${ts}.png`
-      link.href = dataUrl
-      link.click()
-      toast.success('影响分析结果已导出为图片')
-    } catch {
-      toast.error('导出失败，请重试')
-    } finally {
-      setImpactExporting(false)
-    }
-  }
 
   // History pagination
   const [historyPage, setHistoryPage] = useState(1)
@@ -354,15 +282,6 @@ export default function CmdbInstanceDetailPage() {
     queryKey: ['cmdb-topology', id, topoDepth],
     queryFn: () => api.get(`/cmdb/topology/${id}`, { params: { depth: topoDepth } }).then(r => r.data.data),
     enabled: tab === 'topology',
-  })
-
-  // Topology compare
-  const { data: compareResult, isLoading: compareLoading, error: compareError } = useQuery<TopologyCompareVO>({
-    queryKey: ['cmdb-topology-compare', id, fromTime, toTime, compareDepth],
-    queryFn: () => api.get(`/cmdb/topology/${id}/compare`, {
-      params: { fromTime: fromTime + ':00', toTime: toTime + ':00', depth: compareDepth }
-    }).then(r => r.data.data),
-    enabled: compareTriggered && tab === 'topology',
   })
 
   // Impact analysis
@@ -485,8 +404,7 @@ export default function CmdbInstanceDetailPage() {
             key={t}
             onClick={() => {
               setTab(t)
-              if (t === 'impact') { setImpactTriggered(false) }
-              if (t === 'topology') { setCompareTriggered(false) }
+              if (t === 'impact') setImpactTriggered(false)
             }}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               tab === t
@@ -671,157 +589,6 @@ export default function CmdbInstanceDetailPage() {
           ) : (
             <p className="text-muted-foreground text-sm py-8 text-center">无拓扑数据</p>
           )}
-
-          {/* ──── Topology Compare ──── */}
-          <div className="mt-8 pt-6 border-t">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold">拓扑对比</h2>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mb-4 items-end">
-              <div>
-                <Label className="text-sm">起始时间</Label>
-                <Input type="datetime-local" value={fromTime}
-                  onChange={e => { setFromTime(e.target.value); setCompareTriggered(false) }}
-                  className="w-52" />
-              </div>
-              <div>
-                <Label className="text-sm">截止时间</Label>
-                <Input type="datetime-local" value={toTime}
-                  onChange={e => { setToTime(e.target.value); setCompareTriggered(false) }}
-                  className="w-52" />
-              </div>
-              <div>
-                <Label className="text-sm">深度</Label>
-                <Select value={String(compareDepth)} onValueChange={v => { setCompareDepth(Number(v)); setCompareTriggered(false) }}>
-                  <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button size="sm" onClick={() => setCompareTriggered(true)}
-                disabled={!fromTime || !toTime || compareLoading}>
-                {compareLoading ? '对比中...' : '开始对比'}
-              </Button>
-            </div>
-
-            {!compareTriggered ? (
-              <p className="text-muted-foreground text-sm py-4 text-center">选择时间范围后点击「开始对比」</p>
-            ) : compareLoading ? (
-              <p className="text-muted-foreground text-sm py-4 text-center">对比中...</p>
-            ) : compareError ? (
-              <p className="text-destructive text-sm py-4 text-center">对比失败：{(compareError as any)?.response?.data?.message ?? '请检查时间范围是否有效'}</p>
-            ) : compareResult ? (
-              <div className="space-y-4">
-                {/* Summary badges */}
-                <div className="flex gap-2 flex-wrap">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">新增: {compareResult.added.length}</Badge>
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">移除: {compareResult.removed.length}</Badge>
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">修改: {compareResult.modified.length}</Badge>
-                  <Badge variant="outline" className="text-muted-foreground">未变: {compareResult.unchanged.length}</Badge>
-                  <Badge variant="outline">连线变更: {compareResult.edges.length}</Badge>
-                </div>
-
-                {/* Added nodes */}
-                {compareResult.added.length > 0 && (
-                  <div className="border rounded-lg p-4 border-green-200">
-                    <h4 className="text-sm font-medium text-green-700 mb-2">已添加节点 ({compareResult.added.length})</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {compareResult.added.map(n => (
-                        <div key={n.id} className="border border-green-100 rounded p-2 text-sm bg-green-50/50">
-                          <div className="font-medium">{n.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {n.model_name}{n.status ? ` · ${n.status}` : ''}{n.owner ? ` · ${n.owner}` : ''}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Removed nodes */}
-                {compareResult.removed.length > 0 && (
-                  <div className="border rounded-lg p-4 border-red-200">
-                    <h4 className="text-sm font-medium text-red-700 mb-2">已移除节点 ({compareResult.removed.length})</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {compareResult.removed.map(n => (
-                        <div key={n.id} className="border border-red-100 rounded p-2 text-sm bg-red-50/50">
-                          <div className="font-medium">{n.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {n.model_name}{n.status ? ` · ${n.status}` : ''}{n.owner ? ` · ${n.owner}` : ''}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Modified nodes */}
-                {compareResult.modified.length > 0 && (
-                  <div className="border rounded-lg p-4 border-orange-200">
-                    <h4 className="text-sm font-medium text-orange-700 mb-2">已修改节点 ({compareResult.modified.length})</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {compareResult.modified.map(n => (
-                        <div key={n.id} className="border border-orange-100 rounded p-2 text-sm bg-orange-50/50">
-                          <div className="font-medium">{n.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {n.model_name}{n.status ? ` · ${n.status}` : ''}{n.owner ? ` · ${n.owner}` : ''}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Unchanged count */}
-                {compareResult.unchanged.length > 0 && (
-                  <p className="text-xs text-muted-foreground">未变化节点: {compareResult.unchanged.length} 个</p>
-                )}
-
-                {/* Edge changes */}
-                {compareResult.edges.length > 0 && (
-                  <div className="border rounded-lg p-4">
-                    <h4 className="text-sm font-medium mb-2">连线变更 ({compareResult.edges.length})</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>源</TableHead>
-                          <TableHead>关系</TableHead>
-                          <TableHead>目标</TableHead>
-                          <TableHead>状态</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {compareResult.edges.map((e, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-mono text-xs">{e.src}</TableCell>
-                            <TableCell><Badge variant="outline">{e.label || e.kind}</Badge></TableCell>
-                            <TableCell className="font-mono text-xs">{e.dst}</TableCell>
-                            <TableCell>
-                              <Badge className={
-                                e.status === 'added' ? 'bg-green-100 text-green-700' :
-                                e.status === 'removed' ? 'bg-red-100 text-red-700' :
-                                'text-muted-foreground'
-                              }>
-                                {e.status === 'added' ? '新增' : e.status === 'removed' ? '移除' : '未变'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {compareResult.added.length === 0 && compareResult.removed.length === 0 &&
-                 compareResult.modified.length === 0 && compareResult.edges.length === 0 && (
-                  <p className="text-muted-foreground text-sm py-4 text-center">两个时间点的拓扑结构完全相同，无变化</p>
-                )}
-              </div>
-            ) : null}
-          </div>
         </div>
       )}
 
@@ -856,12 +623,6 @@ export default function CmdbInstanceDetailPage() {
             <Button size="sm" onClick={() => setImpactTriggered(true)} disabled={impactQuery.isPending}>
               {impactQuery.isPending ? '分析中...' : '开始分析'}
             </Button>
-            {impactQuery.data && (
-              <Button size="sm" variant="outline" onClick={handleExportImpactPng} disabled={impactExporting}>
-                <Download className="h-4 w-4" />
-                {impactExporting ? '导出中...' : '导出为图片'}
-              </Button>
-            )}
           </div>
 
           {!impactTriggered ? (
@@ -869,7 +630,7 @@ export default function CmdbInstanceDetailPage() {
           ) : impactQuery.isLoading ? (
             <p className="text-muted-foreground text-sm">分析中...</p>
           ) : impactQuery.data ? (
-            <div ref={impactResultRef} className="space-y-4">
+            <div className="space-y-4">
               {/* Summary */}
               <div className="flex gap-3">
                 <Badge variant="outline">方向: {impactDirection === 'both' ? '双向' : impactDirection === 'upstream' ? '上游' : '下游'}</Badge>

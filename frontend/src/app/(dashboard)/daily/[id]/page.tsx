@@ -21,6 +21,8 @@ interface DailyReportDetail {
   tomorrow_plan: string
   work_hours: number
   status: string
+  ci_instance_ids: number[]
+  ci_instances: { id: number; name: string; modelName: string }[]
 }
 
 interface TaskVO {
@@ -93,6 +95,25 @@ export default function DailyReportDetailPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">工时</CardTitle></CardHeader>
             <CardContent className="text-sm">{report.work_hours} 小时</CardContent>
+          </Card>
+        )}
+        {report.ci_instances && report.ci_instances.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm">关联 CI 实例</CardTitle></CardHeader>
+            <CardContent className="text-sm">
+              <div className="flex flex-wrap gap-2">
+                {report.ci_instances.map(ci => (
+                  <Link
+                    key={ci.id}
+                    href={`/cmdb/instances/${ci.id}`}
+                    className="inline-flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 hover:bg-muted transition-colors"
+                  >
+                    <span>{ci.name}</span>
+                    <Badge variant="outline" className="text-[10px]">{ci.modelName}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         )}
 
