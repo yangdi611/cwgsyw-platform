@@ -1,6 +1,6 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -18,8 +18,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle, Download } from 'lucide-react'
 import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
 import type { CmdbAlertVO } from '@/hooks/usePrometheusAlerts'
 
@@ -54,7 +55,7 @@ interface CiAssociationAttrDefVO {
 }
 
 interface TopologyNodeVO { id: number; name: string; model_id: string; model_name: string; is_root: boolean }
-interface TopologyEdgeVO { src: number; dst: number; kind: string; label: string }
+interface TopologyEdgeVO { src: number; dst: number; kind: string; label: string; metadata?: Record<string, any> }
 interface TopologyResultVO { nodes: TopologyNodeVO[]; edges: TopologyEdgeVO[] }
 
 interface ChangeHistoryVO {
@@ -113,14 +114,35 @@ function TopologyView({ nodes, edges }: { nodes: TopologyNodeVO[]; edges: Topolo
         </div>
         {children.length > 0 && (
           <div className="border-l-2 border-muted ml-4 pl-2">
-            {children.map(({ edge, child }) => (
-              <div key={`${edge.src}-${edge.dst}-${edge.kind}`}>
-                <div className="text-xs text-muted-foreground ml-4 mb-0.5">
-                  └─ <Badge variant="secondary" className="text-xs">{KIND_MAP[edge.kind] ?? edge.kind}</Badge>
+            {children.map(({ edge, child }) => {
+              const metaEntries = edge.metadata ? Object.entries(edge.metadata) : []
+              const kindLabel = KIND_MAP[edge.kind] ?? edge.kind
+              return (
+                <div key={`${edge.src}-${edge.dst}-${edge.kind}`}>
+                  <div className="text-xs text-muted-foreground ml-4 mb-0.5">
+                    └─ {metaEntries.length > 0 ? (
+                      <Tooltip>
+                        <TooltipTrigger render={<Badge variant="secondary" className="text-xs" />}>
+                          {kindLabel}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-0.5">
+                            {metaEntries.map(([k, v]) => (
+                              <div key={String(k)}>
+                                {k}: {typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v)}
+                              </div>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">{kindLabel}</Badge>
+                    )}
+                  </div>
+                  {child && renderNode(child, level + 1)}
                 </div>
-                {child && renderNode(child, level + 1)}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -167,6 +189,30 @@ export default function CmdbInstanceDetailPage() {
   // Impact analysis
   const [impactDirection, setImpactDirection] = useState('both')
   const [impactDepth, setImpactDepth] = useState(3)
+  const [impactExporting, setImpactExporting] = useState(false)
+  const impactResultRef = useRef<HTMLDivElement>(null)
+
+  const handleExportImpactPng = async () => {
+    if (!impactResultRef.current || impactExporting) return
+    setImpactExporting(true)
+    try {
+      const { toPng } = await import('html-to-image')
+      const dataUrl = await toPng(impactResultRef.current, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      })
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const link = document.createElement('a')
+      link.download = `impact-analysis-${id}-${ts}.png`
+      link.href = dataUrl
+      link.click()
+      toast.success('影响分析结果已导出为图片')
+    } catch {
+      toast.error('导出失败，请重试')
+    } finally {
+      setImpactExporting(false)
+    }
+  }
 
   // History pagination
   const [historyPage, setHistoryPage] = useState(1)
@@ -623,6 +669,12 @@ export default function CmdbInstanceDetailPage() {
             <Button size="sm" onClick={() => setImpactTriggered(true)} disabled={impactQuery.isPending}>
               {impactQuery.isPending ? '分析中...' : '开始分析'}
             </Button>
+            {impactQuery.data && (
+              <Button size="sm" variant="outline" onClick={handleExportImpactPng} disabled={impactExporting}>
+                <Download className="h-4 w-4" />
+                {impactExporting ? '导出中...' : '导出为图片'}
+              </Button>
+            )}
           </div>
 
           {!impactTriggered ? (
@@ -630,7 +682,7 @@ export default function CmdbInstanceDetailPage() {
           ) : impactQuery.isLoading ? (
             <p className="text-muted-foreground text-sm">分析中...</p>
           ) : impactQuery.data ? (
-            <div className="space-y-4">
+            <div ref={impactResultRef} className="space-y-4">
               {/* Summary */}
               <div className="flex gap-3">
                 <Badge variant="outline">方向: {impactDirection === 'both' ? '双向' : impactDirection === 'upstream' ? '上游' : '下游'}</Badge>

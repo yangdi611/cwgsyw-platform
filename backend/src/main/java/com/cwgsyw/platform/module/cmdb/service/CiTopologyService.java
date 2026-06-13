@@ -81,6 +81,7 @@ public class CiTopologyService {
                 edge.setSrc(rel.getSrcInstanceId()); edge.setDst(rel.getDstInstanceId());
                 edge.setKind(rel.getAssociationKind());
                 edge.setLabel(kindLabels.getOrDefault(rel.getAssociationKind(), rel.getAssociationKind()));
+                edge.setMetadata(rel.getMetadata());
                 edgeVOs.add(edge);
             }
         }
