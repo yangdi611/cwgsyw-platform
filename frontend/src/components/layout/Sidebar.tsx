@@ -17,6 +17,9 @@ import {
   BarChart2,
   ClipboardList,
   FileCode,
+  ServerCog,
+  Database,
+  History,
 } from 'lucide-react'
 
 const navItems = [
@@ -24,8 +27,11 @@ const navItems = [
   { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
   { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
   { href: '/devices',        label: '设备密码库', icon: KeyRound,       resource: 'device',       action: 'read' },
-  { href: '/notifications',  label: '通知中心',   icon: Bell,           resource: 'notification', action: 'read' },
-  { href: '/change-docs',    label: '变更文档',   icon: FileText,       resource: 'change_doc',   action: 'read' },
+  { href: '/notifications',  label: '通知中心',   icon: Bell,            resource: 'notification',  action: 'read' },
+  { href: '/cmdb/models',    label: 'CMDB 模型',  icon: ServerCog,       resource: 'cmdb_model',    action: 'read' },
+  { href: '/cmdb/instances', label: 'CMDB 实例',  icon: Database,        resource: 'cmdb_instance', action: 'read' },
+  { href: '/cmdb/changes',   label: 'CMDB 变更',  icon: History,         resource: 'cmdb_instance', action: 'read' },
+  { href: '/change-docs',    label: '变更文档',   icon: FileText,        resource: 'change_doc',    action: 'read' },
   { href: '/reports',        label: '报表导出',   icon: BarChart2,      resource: 'daily_report', action: 'export' },
   { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
   { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
