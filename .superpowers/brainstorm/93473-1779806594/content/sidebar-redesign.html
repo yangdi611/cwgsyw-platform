@@ -1,0 +1,96 @@
+<h2>侧边栏重设计方案</h2>
+<p class="subtitle">当前有 14 个顶层条目，只有 CMDB 用了分组。选择你偏好的归纳方式：</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:20px">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>A — 按角色/频率分组</h3>
+      <p style="font-size:12px;color:var(--muted-fg);margin-bottom:12px">把日常工作和管理操作分开，日常在上，管理在下</p>
+      <div class="mockup" style="padding:0">
+        <div class="mockup-header">侧边栏预览</div>
+        <div class="mockup-body" style="padding:8px;font-size:12px;line-height:1.8">
+          <div style="color:var(--muted-fg);font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin:4px 0 2px;padding:0 4px">日常工作</div>
+          <div style="padding:4px 8px;border-radius:4px;background:var(--accent)">🏠 首页</div>
+          <div style="padding:4px 8px">📄 我的日报</div>
+          <div style="padding:4px 8px">✅ 待审批</div>
+          <div style="padding:4px 8px">📋 变更文档</div>
+          <div style="padding:4px 8px">🔔 通知中心</div>
+          <div style="color:var(--muted-fg);font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 2px;padding:0 4px">资产 & 配置</div>
+          <div style="padding:4px 8px">🔑 设备密码库</div>
+          <div style="padding:4px 8px">▶ CMDB</div>
+          <div style="color:var(--muted-fg);font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 2px;padding:0 4px">报表 & 管理</div>
+          <div style="padding:4px 8px">📊 报表导出</div>
+          <div style="padding:4px 8px">▶ 用户与权限</div>
+          <div style="padding:4px 8px">▶ 系统设置</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>优点</h4><ul><li>日常用的在最上面</li><li>管理功能折叠后很干净</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>分区概念需要用户适应</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>B — 合并管理类为一个大分组</h3>
+      <p style="font-size:12px;color:var(--muted-fg);margin-bottom:12px">用户/组/角色/模板/配置/审计 全部折叠进"管理后台"，其余平铺</p>
+      <div class="mockup" style="padding:0">
+        <div class="mockup-header">侧边栏预览</div>
+        <div class="mockup-body" style="padding:8px;font-size:12px;line-height:1.8">
+          <div style="padding:4px 8px;border-radius:4px;background:var(--accent)">🏠 首页</div>
+          <div style="padding:4px 8px">📄 我的日报</div>
+          <div style="padding:4px 8px">✅ 待审批</div>
+          <div style="padding:4px 8px">📋 变更文档</div>
+          <div style="padding:4px 8px">🔑 设备密码库</div>
+          <div style="padding:4px 8px">🔔 通知中心</div>
+          <div style="padding:4px 8px">▶ CMDB</div>
+          <div style="padding:4px 8px">📊 报表导出</div>
+          <div style="padding:4px 8px;color:#888">▼ 管理后台 <span style="font-size:10px">(8项折叠)</span></div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">👥 用户管理</div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">🏢 组管理</div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">🛡 角色权限</div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">📑 模板管理</div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">⚙️ 系统配置</div>
+          <div style="padding:2px 8px 2px 20px;color:#888;font-size:11px">📋 审计日志</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>优点</h4><ul><li>改动最小，风险低</li><li>管理员和普通用户都清晰</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>管理后台项目较多</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>C — 深度分组（全部折叠）</h3>
+      <p style="font-size:12px;color:var(--muted-fg);margin-bottom:12px">运维操作 / 资产配置 / 分析报表 / 管理后台，四大分组各自折叠</p>
+      <div class="mockup" style="padding:0">
+        <div class="mockup-header">侧边栏预览</div>
+        <div class="mockup-body" style="padding:8px;font-size:12px;line-height:1.8">
+          <div style="padding:4px 8px;border-radius:4px;background:var(--accent)">🏠 首页</div>
+          <div style="padding:4px 8px">▼ 运维操作</div>
+          <div style="padding:2px 8px 2px 20px;font-size:11px">📄 我的日报</div>
+          <div style="padding:2px 8px 2px 20px;font-size:11px">✅ 待审批</div>
+          <div style="padding:2px 8px 2px 20px;font-size:11px">📋 变更文档</div>
+          <div style="padding:2px 8px 2px 20px;font-size:11px">🔔 通知中心</div>
+          <div style="padding:4px 8px">▶ 资产配置</div>
+          <div style="padding:4px 8px">▶ 分析报表</div>
+          <div style="padding:4px 8px;color:#888">▶ 管理后台</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>优点</h4><ul><li>层次最清晰</li><li>适合未来扩展</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>需要更多点击</li><li>日常操作被折叠，不够快</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:var(--muted-fg)">💡 我推荐 <strong>方案 B</strong>：改动小、效果明显，把 6 个管理类条目折叠到一个分组，其余保持平铺不影响日常使用。点击选择你的偏好，或在终端告诉我调整方向。</p>

@@ -1,0 +1,103 @@
+<h2>侧边栏重组方案</h2>
+<p class="subtitle">当前有 14 个顶层条目，其中只有 CMDB 是分组。以下是 3 种归纳整理方案。</p>
+
+<div class="section">
+  <div class="label">当前结构（14 个顶层条目）</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);margin-bottom:20px;display:flex;gap:6px;flex-wrap:wrap;">
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">首页</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">我的日报</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">待审批</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">设备密码库</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">通知中心</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">变更文档</span>
+    <span style="background:#3b82f620;padding:2px 8px;border-radius:4px;color:var(--foreground);">▶ CMDB（3子项）</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">报表导出</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">用户管理</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">组管理</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">角色权限</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">AI模板管理</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">系统配置</span>
+    <span style="background:var(--border);padding:2px 8px;border-radius:4px;">审计日志</span>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:var(--surface);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">方案 A — 按职能分 4 组</div>
+      <div style="display:flex;gap:12px;font-size:12px;">
+        <div style="flex:1;">
+          <div style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px;margin-bottom:4px;font-size:11px;">📋 工作</div>
+          <div style="padding:2px 8px;color:var(--muted);">我的日报</div>
+          <div style="padding:2px 8px;color:var(--muted);">待审批</div>
+          <div style="padding:2px 8px;color:var(--muted);">变更文档</div>
+          <div style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px;margin:8px 0 4px;font-size:11px;">🔧 运维</div>
+          <div style="padding:2px 8px;color:var(--muted);">设备密码库</div>
+          <div style="padding:2px 8px;color:var(--muted);">▶ CMDB</div>
+        </div>
+        <div style="flex:1;">
+          <div style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px;margin-bottom:4px;font-size:11px;">📊 数据</div>
+          <div style="padding:2px 8px;color:var(--muted);">报表导出</div>
+          <div style="padding:2px 8px;color:var(--muted);">审计日志</div>
+          <div style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px;margin:8px 0 4px;font-size:11px;">⚙️ 管理</div>
+          <div style="padding:2px 8px;color:var(--muted);">用户 / 组 / 角色</div>
+          <div style="padding:2px 8px;color:var(--muted);">AI模板 / 系统配置</div>
+          <div style="padding:2px 8px;color:var(--muted);">通知中心</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>按职能分 4 组</h3>
+      <p>工作 / 运维 / 数据 / 管理。语义清晰，适合不同岗位的人快速定位。<strong>推荐</strong>，从 14 条降到 4 个折叠组。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:var(--surface);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">方案 B — 扁平 + 分割线</div>
+      <div style="font-size:12px;">
+        <div style="padding:3px 8px;color:var(--foreground);">🏠 首页</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:4px;font-size:10px;color:var(--muted);letter-spacing:.08em;">日常工作</div>
+        <div style="padding:3px 8px;color:var(--muted);">我的日报</div>
+        <div style="padding:3px 8px;color:var(--muted);">待审批</div>
+        <div style="padding:3px 8px;color:var(--muted);">变更文档</div>
+        <div style="padding:3px 8px;color:var(--muted);">通知中心</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:4px;font-size:10px;color:var(--muted);letter-spacing:.08em;">IT 运维</div>
+        <div style="padding:3px 8px;color:var(--muted);">设备密码库</div>
+        <div style="padding:3px 8px;color:var(--muted);">▶ CMDB</div>
+        <div style="padding:3px 8px;color:var(--muted);">报表导出</div>
+        <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:4px;font-size:10px;color:var(--muted);letter-spacing:.08em;">系统管理</div>
+        <div style="padding:3px 8px;color:var(--muted);">用户 / 组 / 角色</div>
+        <div style="padding:3px 8px;color:var(--muted);">配置 / 审计 / AI模板</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>扁平 + 分割线</h3>
+      <p>不折叠，用分割线和小标题做视觉分区。简洁，不需要点击展开，但条目仍然较多。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:var(--surface);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">方案 C — 激进合并（管理合一）</div>
+      <div style="font-size:12px;">
+        <div style="padding:3px 8px;color:var(--foreground);">🏠 首页</div>
+        <div style="padding:3px 8px;color:var(--muted);">我的日报</div>
+        <div style="padding:3px 8px;color:var(--muted);">待审批</div>
+        <div style="padding:3px 8px;color:var(--muted);">变更文档</div>
+        <div style="padding:3px 8px;color:var(--muted);">通知中心</div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:6px 0"/>
+        <div style="padding:3px 8px;color:var(--muted);">设备密码库</div>
+        <div style="padding:3px 8px;color:var(--muted);">▶ CMDB</div>
+        <div style="padding:3px 8px;color:var(--muted);">报表导出</div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:6px 0"/>
+        <div style="padding:3px 8px;background:#3b82f620;border-radius:4px;color:var(--foreground);">▶ 系统管理（6子项）</div>
+        <div style="padding:2px 12px;color:var(--muted);font-size:11px;">用户 / 组 / 角色 / AI模板 / 配置 / 审计</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>激进合并</h3>
+      <p>把所有管理类（用户/组/角色/AI模板/配置/审计）合并成一个"系统管理"折叠组，顶层只剩 ~8 条。适合 admin 用户较少的场景。</p>
+    </div>
+  </div>
+</div>

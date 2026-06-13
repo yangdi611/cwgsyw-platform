@@ -11,4 +11,5 @@ import lombok.EqualsAndHashCode;
 public class Group extends BaseEntity {
     private String name;
     private String description;
+    private Long leaderId;
 }

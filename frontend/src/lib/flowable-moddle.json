@@ -1,0 +1,32 @@
+{
+  "name": "Flowable",
+  "uri": "http://flowable.org/bpmn",
+  "prefix": "flowable",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [
+    {
+      "name": "CandidateGroups",
+      "isAbstract": true,
+      "extends": ["bpmn:ExtensionElements"],
+      "properties": [
+        { "name": "value", "type": "String", "isBody": true }
+      ]
+    },
+    {
+      "name": "CandidateUsers",
+      "isAbstract": true,
+      "extends": ["bpmn:ExtensionElements"],
+      "properties": [
+        { "name": "value", "type": "String", "isBody": true }
+      ]
+    },
+    {
+      "name": "Assignee",
+      "isAbstract": true,
+      "extends": ["bpmn:ExtensionElements"],
+      "properties": [
+        { "name": "value", "type": "String", "isBody": true }
+      ]
+    }
+  ]
+}

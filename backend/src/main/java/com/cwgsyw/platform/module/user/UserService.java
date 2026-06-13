@@ -114,26 +114,7 @@ public class UserService {
     public void delete(Long id, Long operatorId) {
         User user = userMapper.selectById(id);
         if (user == null) throw new IllegalArgumentException("用户不存在");
-
-        // Snapshot before delete for audit log
-        String beforeJson = toAuditJson(user, "***");
-
-        user.setIsDeleted(true);
-        user.setDeletedBy(operatorId);
-        user.setDeletedAt(LocalDateTime.now());
-        userMapper.updateById(user);
-
-        // Audit log
-        auditLogMapper.insert(AuditLog.builder()
-            .tenantId(user.getTenantId())
-            .module("user")
-            .action("delete")
-            .targetId(id)
-            .targetType("user")
-            .operatorId(operatorId)
-            .beforeJson(beforeJson)
-            .remark("删除用户: " + user.getUsername())
-            .build());
+        userMapper.softDeleteById(id, LocalDateTime.now(), operatorId);
     }
 
     public UserDetailVO getDetail(Long id, String tenantId) {
@@ -142,56 +123,14 @@ public class UserService {
                 .eq(User::getId, id)
                 .eq(User::getTenantId, tenantId));
         if (user == null) throw new IllegalArgumentException("用户不存在");
-
         UserDetailVO vo = new UserDetailVO();
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
         vo.setRealName(user.getRealName());
         vo.setEmail(user.getEmail());
-        vo.setPhone(user.getPhone());
         vo.setStatus(user.getStatus());
         vo.setGroupId(user.getGroupId());
-
-        if (user.getGroupId() != null) {
-            Group group = groupMapper.selectById(user.getGroupId());
-            if (group != null) {
-                vo.setGroupName(group.getName());
-            }
-        }
-
         vo.setRoleIds(rbacService.getUserRoleIds(id));
         return vo;
-    }
-
-    /**
-     * Build hand-written JSON for audit log (without Jackson).
-     * Password field is masked with the given placeholder.
-     */
-    private String toAuditJson(User user, String passwordMask) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        sb.append("\"id\":").append(user.getId()).append(",");
-        sb.append("\"username\":\"").append(escape(user.getUsername())).append("\",");
-        sb.append("\"real_name\":\"").append(escape(user.getRealName())).append("\",");
-        sb.append("\"email\":\"").append(escape(user.getEmail())).append("\",");
-        sb.append("\"phone\":\"").append(escape(user.getPhone())).append("\",");
-        sb.append("\"status\":").append(user.getStatus()).append(",");
-        sb.append("\"group_id\":").append(user.getGroupId()).append(",");
-        sb.append("\"password\":\"").append(passwordMask).append("\"");
-        sb.append("}");
-        return sb.toString();
-    }
-
-    /**
-     * Escape special characters for JSON string values.
-     */
-    private String escape(String value) {
-        if (value == null) return "";
-        return value
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
     }
 }

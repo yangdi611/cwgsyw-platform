@@ -1,0 +1,79 @@
+<h2>CMDB 侧边栏导航结构</h2>
+<p class="subtitle">CMDB 当前只有一个入口，重构后需要三个功能区。选择你偏好的导航组织方式。</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-family:monospace;font-size:13px;color:#94a3b8;border-radius:8px 8px 0 0;min-height:160px">
+      <div style="color:#64748b;font-size:11px;letter-spacing:1px;margin-bottom:8px">侧边栏</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📊 日报</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">🔐 设备密码</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📄 变更文档</div>
+      <div style="color:#3b82f6;font-weight:bold;margin:4px 0 2px">▼ CMDB</div>
+      <div style="padding-left:16px;color:#94a3b8;margin-bottom:2px">🔍 搜索</div>
+      <div style="padding-left:16px;color:#94a3b8;margin-bottom:2px">📦 CI 资源</div>
+      <div style="padding-left:16px;color:#94a3b8;margin-bottom:2px">⚙️ 配置管理</div>
+      <div style="color:#e2e8f0;margin-top:4px">📈 报表</div>
+    </div>
+    <div class="card-body">
+      <h3>A — 展开式子菜单</h3>
+      <p>CMDB 节点可折叠/展开，三个子条目缩进显示。点击 CMDB 展开，再点击子条目跳转页面。</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>优点</h4><ul><li>结构清晰，层级一目了然</li><li>与现有侧边栏风格统一</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>需要点击两次才能进子页</li><li>占用侧边栏更多垂直空间</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-family:monospace;font-size:13px;color:#94a3b8;border-radius:8px 8px 0 0;min-height:160px">
+      <div style="color:#64748b;font-size:11px;letter-spacing:1px;margin-bottom:8px">侧边栏</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📊 日报</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">🔐 设备密码</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📄 变更文档</div>
+      <div style="color:#64748b;font-size:10px;letter-spacing:1px;margin:8px 0 4px">— CMDB —</div>
+      <div style="color:#3b82f6;font-weight:bold;margin-bottom:2px">🔍 CI 搜索</div>
+      <div style="color:#e2e8f0;margin-bottom:2px">📦 CI 资源</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">⚙️ CMDB 配置</div>
+      <div style="color:#e2e8f0;margin-top:4px">📈 报表</div>
+    </div>
+    <div class="card-body">
+      <h3>B — 平铺独立条目（分隔线分组）</h3>
+      <p>三个条目各自独立显示在侧边栏，用分隔线标注"CMDB"区域。一次点击直达目标页面。</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>优点</h4><ul><li>一次点击直达，无需展开</li><li>可为每个条目单独设权限守卫</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>侧边栏条目增加（已有14条）</li><li>CMDB 关联性不够直观</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:16px;font-family:monospace;font-size:13px;color:#94a3b8;border-radius:8px 8px 0 0;min-height:160px">
+      <div style="color:#64748b;font-size:11px;letter-spacing:1px;margin-bottom:8px">侧边栏</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📊 日报</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">🔐 设备密码</div>
+      <div style="color:#e2e8f0;margin-bottom:4px">📄 变更文档</div>
+      <div style="color:#3b82f6;font-weight:bold;margin-bottom:4px">🗄️ CMDB</div>
+      <div style="color:#e2e8f0;margin-top:4px">📈 报表</div>
+      <div style="margin-top:12px;padding:8px;background:#1e293b;border-radius:6px;font-size:12px">
+        <div style="color:#64748b;font-size:10px;margin-bottom:6px">CMDB 页面内 Tab 导航</div>
+        <div style="display:flex;gap:8px">
+          <span style="background:#3b82f6;color:white;padding:2px 8px;border-radius:4px;font-size:11px">🔍 搜索</span>
+          <span style="color:#94a3b8;padding:2px 8px;font-size:11px">📦 CI 资源</span>
+          <span style="color:#94a3b8;padding:2px 8px;font-size:11px">⚙️ 配置</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — 单条目入口 + 页面内 Tab</h3>
+      <p>侧边栏保留一个 CMDB 条目，进入后页面顶部用 Tab 切换三个功能区（搜索/CI资源/配置管理）。</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>优点</h4><ul><li>侧边栏最简洁，不增加条目</li><li>三功能区在同一上下文内切换</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>搜索不是首要入口，需先点 CMDB</li><li>Tab 权限守卫比侧边栏守卫稍复杂</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">在浏览器点击选择，或在终端告知你的想法。</p>
