@@ -70,14 +70,14 @@ export default function InstanceListPage() {
 
   const { data: result, isLoading } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', modelId, keyword, page, size],
-    queryFn: () => api.get(`/cmdb/instances/${modelId}`, {
-      params: { page, size, keyword: keyword || undefined },
+    queryFn: () => api.get('/cmdb/instances', {
+      params: { model: modelId, page, size, keyword: keyword || undefined },
     }).then(r => r.data.data),
     enabled: hasPermission('cmdb_instance', 'read'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/cmdb/instances/${modelId}/${id}`),
+    mutationFn: (id: number) => api.delete(`/cmdb/instances/${id}`),
     onSuccess: () => {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelId] })
