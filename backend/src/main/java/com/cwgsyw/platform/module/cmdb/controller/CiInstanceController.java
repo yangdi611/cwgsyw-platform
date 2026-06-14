@@ -108,7 +108,8 @@ public class CiInstanceController {
 
     @GetMapping("/{id}/credentials")
     @PreAuthorize("hasAuthority('device:view_password')")
-    public R<List<CredentialVO>> getRelatedCredentials(@PathVariable Long id) {
-        return R.ok(deviceCredentialMapper.findCredentialVOsByCiInstanceId(id));
+    public R<List<CredentialVO>> getRelatedCredentials(@PathVariable Long id,
+                                                       @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(deviceCredentialMapper.findCredentialVOsByCiInstanceId(id, cu.getTenantId()));
     }
 }
