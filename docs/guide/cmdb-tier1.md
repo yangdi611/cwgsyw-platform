@@ -1,7 +1,7 @@
 # CMDB Tier 1 — 完整指南
 
 > 模块：CMDB（配置管理数据库）/ CI 模型 + 属性 + 实例 + 关联 + 拓扑
-> 对应 Flyway V14–V20, V23，后端 API 已完成（前端待开发）
+> 对应 Flyway V14–V20, V23，前后端均已完成
 
 ---
 
@@ -15,6 +15,7 @@
 6. [核心业务逻辑](#核心业务逻辑)
 7. [内置种子数据](#内置种子数据)
 8. [设计决策与注意事项](#设计决策与注意事项)
+9. [前端页面与组件](#前端页面与组件)
 
 ---
 
@@ -28,6 +29,10 @@ CMDB Tier 1 是平台的配置管理数据库基础层，实现了 CI（Configur
 - **关联管理**：定义 CI 实例之间的关系（属于、运行、连接、依赖等）
 - **拓扑查询**：从指定实例出发，BFS 遍历关联关系，返回拓扑图数据
 - **变更历史**：通过 audit_log 查询实例级别的变更记录
+
+### 前端页面（已完成）
+
+Tier 1 前端已全部实现，包含模型管理、实例管理、关联管理、拓扑可视化、变更历史等 8 个功能页面，详见 [前端页面与组件](#前端页面与组件) 章节。
 
 ### 模块文件结构
 
@@ -766,12 +771,12 @@ ci_association_def ──── 模型级别的关联约束（预留）
 - 属性管理接口复用 `cmdb_model:read` 和 `cmdb_model:update` 权限
 - 拓扑查询复用 `cmdb_instance:read` 权限
 
-### 前端权限检查（待开发）
+### 前端权限检查
 
-前端开发时需注意：
-- CMDB 页面路由需在 sidebar 添加权限守卫
-- 操作按钮需调用 `hasPermission('cmdb_model', 'create')` 等判断
-- 页面级别需 `useEffect` 检查权限，无权则 redirect
+前端已实现完善的权限守卫机制：
+- CMDB 页面路由在 Sidebar 中通过 `resource + action` 权限过滤，无权限的菜单项不显示
+- 每个页面组件使用 `PermissionGuard` 包裹或 `useEffect` + `hasPermission()` 检查，无权则 redirect 到首页
+- 操作按钮（创建/编辑/删除）通过 `hasPermission('cmdb_model', 'create')` 等条件渲染
 
 ---
 
@@ -979,13 +984,251 @@ V20 使用 `ON CONFLICT DO NOTHING` 而非 `ON CONFLICT ... DO UPDATE SET`，因
 
 V17 创建了 `ci_association_def`（模型级别的关联约束定义），但当前 Tier 1 的 `CiRelationService` 未使用。这是为 Tier 2 预留的——未来可以约束「只有 host 和 app 之间允许 run 关联」等模型级别规则。
 
-### 8. 前端待开发
+### 8. 前端实现
 
-CMDB Tier 1 当前仅完成后端 API。前端页面需要：
-- CMDB 管理入口（sidebar 导航 + 权限守卫）
-- 模型列表/详情/创建/编辑页面
-- 属性管理（在模型详情中）
-- 实例列表/详情/创建/编辑页面
-- 关联关系管理（在实例详情中）
-- 拓扑可视化（使用图表库如 AntV G6 或 D3.js）
-- 变更历史时间线
+CMDB Tier 1 前端已全部实现。技术栈：Next.js 14 App Router + TypeScript + TanStack Query v5 + shadcn/ui + Tailwind CSS。详见下方 [前端页面与组件](#前端页面与组件) 章节。
+
+---
+
+## 前端页面与组件
+
+### 前端文件结构
+
+```
+frontend/src/
+  app/(dashboard)/cmdb/
+    page.tsx                                    # 重定向 → /cmdb/models
+    models/
+      page.tsx                                  # 模型列表（CRUD + 分组筛选 + 搜索 + 分页）
+      [modelId]/page.tsx                        # 重定向 → /cmdb/admin/models/{modelId}
+    instances/
+      page.tsx                                  # 实例列表（CRUD + 筛选 + 搜索 + CSV 导入）
+      [modelId]/
+        page.tsx                                # 按模型查看实例列表
+        new/page.tsx                            # 新建实例（动态表单）
+        [id]/
+          page.tsx                              # 实例详情（属性编辑 + 关联面板 + 拓扑预览）
+          associations/page.tsx                 # 实例关联全量管理
+    topology/
+      [instanceId]/page.tsx                     # 全屏拓扑图（深度选择 + 节点详情）
+    changes/
+      page.tsx                                  # 变更历史列表（筛选 + 分页）
+    admin/
+      page.tsx                                  # 管理页（模型管理 Tab + 关联定义 Tab）
+      models/[modelId]/page.tsx                 # 模型详情 + 属性 CRUD
+    associations/page.tsx                       # 重定向 → /cmdb/admin
+  components/
+    layout/Sidebar.tsx                          # 侧边栏（CMDB 导航 + 权限过滤）
+    cmdb/
+      CiTopologyGraph.tsx                       # 拓扑可视化组件（ReactFlow）
+      CsvImportDialog.tsx                       # CSV 导入对话框（预览 + 执行）
+      CiInstanceSelect.tsx                      # CI 实例选择器
+      CiLinkSelector.tsx                        # CI 关联选择器（多选）
+      ColumnPicker.tsx                          # 列选择器
+```
+
+### 页面清单（8 个功能页 + 4 个重定向/辅助页）
+
+| # | 路由 | 文件 | 行数 | 功能 |
+|---|------|------|:----:|------|
+| 1 | `/cmdb` | cmdb/page.tsx | 9 | 重定向到 `/cmdb/models` |
+| 2 | `/cmdb/models` | models/page.tsx | 287 | 模型列表：CRUD + 分组侧边栏 + 搜索 + 分页 |
+| 3 | `/cmdb/models/[modelId]` | models/[modelId]/page.tsx | 6 | 重定向到 admin 详情页 |
+| 4 | `/cmdb/admin/models/[modelId]` | admin/models/[modelId]/page.tsx | 210 | 模型详情：基本信息 + 属性分组展示 + 属性 CRUD |
+| 5 | `/cmdb/instances` | instances/page.tsx | 420 | 实例列表：CRUD + 模型/状态筛选 + 动态表单 + CSV 导入 |
+| 6 | `/cmdb/instances/[modelId]` | instances/[modelId]/page.tsx | 213 | 按模型筛选实例列表 |
+| 7 | `/cmdb/instances/[modelId]/new` | instances/[modelId]/new/page.tsx | 170 | 新建实例：动态字段表单 |
+| 8 | `/cmdb/instances/[modelId]/[id]` | instances/[modelId]/[id]/page.tsx | 485 | 实例详情：属性展示/内联编辑 + 关联面板 + 拓扑预览 |
+| 9 | `/cmdb/instances/[modelId]/[id]/associations` | instances/[modelId]/[id]/associations/page.tsx | 169 | 实例关联管理：全量列表 + 按类型筛选 + 删除 |
+| 10 | `/cmdb/topology/[instanceId]` | topology/[instanceId]/page.tsx | 139 | 全屏拓扑图：深度选择器 + 节点详情面板 |
+| 11 | `/cmdb/changes` | changes/page.tsx | 127 | 变更历史：列表 + 模型筛选 + 日期范围 + 分页 |
+| 12 | `/cmdb/admin` | admin/page.tsx | 325 | 管理中心：模型管理 Tab + 关联定义 Tab |
+| 13 | `/cmdb/associations` | associations/page.tsx | 5 | 重定向到 admin 页 |
+
+> **路径说明**：实例详情路径为 `/cmdb/instances/[modelId]/[id]`（含 modelId 和 id 两段动态参数），而非早期设计的 `/cmdb/instances/[instanceId]`。关联管理不使用独立的 `/cmdb/relations` 路径，而是集成在 admin 页面的 Tab 和实例详情页的折叠面板中。
+
+---
+
+### 页面功能详解
+
+#### 1. 模型列表页 — `/cmdb/models`（287 行）
+
+**权限守卫**：`cmdb_model:read`
+
+**功能**：
+- **模型列表**（Table）：标识 / 显示名 / 分组 / 内置标记 / 实例数 / 操作按钮
+- **分组侧边栏筛选**：基础设施 / 业务应用 / 网络设备 / 安全设备 / 云资源
+- **关键字搜索**：按模型标识或显示名过滤
+- **分页**：每页 20 条，上一页/下一页
+- **创建模型**（Dialog 表单）：标识（正则 `^[a-z][a-z0-9_]*$` 校验）/ 显示名 / 分组选择
+- **编辑模型**（Dialog 回填）：修改显示名和分组
+- **删除模型**（AlertDialog 确认）：内置模型禁用删除按钮
+- **权限控制**：`PermissionGuard` + `usePermission` 控制创建/编辑/删除按钮可见性
+- **数据获取**：TanStack Query — `GET /api/cmdb/models`
+
+#### 2. 模型详情 + 属性管理 — `/cmdb/admin/models/[modelId]`（210 行）
+
+**权限守卫**：`cmdb_model:read`（写操作需 `cmdb_model:write`）
+
+**功能**：
+- **模型基本信息**：名称 / ID / 内置标签
+- **属性分组展示**：按 `attribute_groups` 分组渲染属性列表
+- **添加属性**（内联表单）：fieldKey / 名称 / 字段类型（9 种：singlechar/longchar/int/float/enum/enummulti/date/bool/objuser）/ 分组 / 提示 / 单位 / 必填 / 唯一 / 列表显示
+- **删除属性**（确认弹窗）：内置属性不可删除
+- **返回按钮** + 查看实例快捷链接
+- **数据获取**：`GET /api/cmdb/meta/models/{modelId}`
+
+#### 3. 实例列表页 — `/cmdb/instances`（420 行）
+
+**权限守卫**：`cmdb_instance:read`
+
+**功能**：
+- **实例列表**（Table）：ID / 名称 / 模型 / 状态 / 负责人 / 更新时间
+- **模型筛选**（Select）：从 URL 参数 `?model=` 自动设置
+- **关键字搜索**：按实例名搜索
+- **状态筛选**：运行中 / 已停用 / 维护中
+- **分页**：每页 20 条
+- **新建实例**（Dialog）：选模型 → 动态字段表单（根据属性定义自动渲染 enum/int/bool/date/list 等类型）
+- **删除实例**（AlertDialog 确认）
+- **CSV 导入**（CsvImportDialog 组件）：上传 CSV → 预览 → 执行导入
+- **权限守卫**：PermissionGuard + usePermission
+- **数据获取**：`GET /api/cmdb/instances?model={model}&keyword={kw}&status={st}`
+
+> **已知问题**：创建实例时前端发送 `model`（模型名称）而非 `modelId`（模型标识），可能导致后端校验失败。详见 [已知问题](#已知问题)。
+
+#### 4. 实例详情页 — `/cmdb/instances/[modelId]/[id]`（485 行）
+
+**权限守卫**：`cmdb_instance:read`
+
+这是 CMDB 最核心的页面，集成了属性展示、编辑、关联管理和拓扑预览。
+
+**功能**：
+- **属性展示**（按 group 分组）：属性名称 + 值，支持多种字段类型
+- **内联编辑模式**：点击编辑 → 字段变为可编辑 → 保存/取消
+  - 支持：longchar（文本域）/ enum（下拉）/ enummulti（多选）/ bool（开关）/ date（日期）/ int（数字）/ float（浮点）
+  - merge 策略：只发送变更字段
+- **关联关系面板**（折叠面板）：
+  - 展示关联列表，按关联类型分组
+  - 方向标签：正向/反向
+  - 删除关联
+  - **添加关联**（Dialog）：选择关联定义 → 搜索目标实例 → 建立关联
+- **拓扑图预览**（折叠面板）：
+  - 使用 `CiTopologyGraph` 组件，深度 2
+  - 全屏拓扑链接 → `/cmdb/topology/${id}`
+- **全部关联管理**链接 → `/cmdb/instances/${modelId}/${id}/associations`
+
+#### 5. 实例关联管理页 — `/cmdb/instances/[modelId]/[id]/associations`（169 行）
+
+**权限守卫**：`cmdb_instance:read`
+
+**功能**：
+- 全量关联列表（实例的所有关联关系）
+- 按关联类型筛选（Select 下拉）
+- 方向标签：作为源/作为目标
+- 删除关联（确认）
+- 返回实例详情链接
+
+#### 6. 拓扑查询页 — `/cmdb/topology/[instanceId]`（139 行）
+
+**权限守卫**：`cmdb_instance:read`（isHydrated 检查）
+
+**功能**：
+- **全屏拓扑图**（CiTopologyGraph 组件，高度 `calc(100vh - 4rem)`）
+- **深度选择器**：1 / 2 / 3 层
+- **右侧节点详情面板**：名称 / 模型 / 根节点标记 / 实例链接
+- **返回实例**按钮
+- 加载/错误/空状态覆盖
+- **数据获取**：`GET /api/cmdb/topology/{instanceId}?depth={depth}`
+
+#### 7. 变更历史页 — `/cmdb/changes`（127 行）
+
+**权限守卫**：`cmdb_instance:read`
+
+**功能**：
+- **变更列表**（Table）：操作类型（创建/更新/删除）/ 操作人 / 变更内容 / 时间
+- **模型筛选**（Select）：加载全部模型列表供选择
+- **日期范围筛选**：startDate / endDate
+- **分页**：每页 20 条
+- **数据获取**：`GET /api/cmdb/instances/changes?model=&startDate=&endDate=`
+
+> **已知限制**：变更内容仅截取 JSON 前 100 字符展示，无 diff 对比视图。Tier 3 提供了增强的变更历史（字段级 diff），详见 cmdb-tier3 文档。
+
+#### 8. 管理中心页 — `/cmdb/admin`（325 行）
+
+**权限守卫**：`cmdb_model:write`
+
+**功能**：
+- **Tab 切换**：模型管理 / 关联定义
+- **模型管理 Tab**：
+  - 按组展示模型卡片（图标 + 名称 + 描述）
+  - 新建模型表单（modelId / 名称 / 分组 / 描述 / 图标）
+- **关联类型管理**：
+  - 展示关联类型列表
+  - 新建关联类型（kindId / 名称 / 正向描述 / 反向描述）
+- **关联定义管理**：
+  - 展示模型间关联定义
+  - 新建关联定义（源模型 / 目标模型 / 类型 / 基数 1:1 / 1:n / n:n）
+  - 删除关联定义
+
+---
+
+### 复用组件
+
+| 组件 | 文件 | 用途 |
+|------|------|------|
+| `CiTopologyGraph` | components/cmdb/CiTopologyGraph.tsx (192 行) | 拓扑可视化，基于 ReactFlow（@xyflow/react），支持节点自定义渲染、模型颜色区分（host 蓝色 / app 绿色）、背景/控件/小地图 |
+| `CsvImportDialog` | components/cmdb/CsvImportDialog.tsx (299 行) | CSV 导入全流程：上传 → 预览（冲突策略选择）→ 执行进度 → 结果统计 |
+| `CiInstanceSelect` | components/cmdb/CiInstanceSelect.tsx | CI 实例单选下拉，用于关联创建时搜索目标实例 |
+| `CiLinkSelector` | components/cmdb/CiLinkSelector.tsx | CI 关联选择器（多选 + 影响级别），用于变更文档关联 |
+| `ColumnPicker` | components/cmdb/ColumnPicker.tsx | 列选择器，用于实例列表动态列展示 |
+
+### CiTopologyGraph 组件详解
+
+基于 `@xyflow/react`（ReactFlow）实现，核心特性：
+
+- **自定义节点**（`CiNode`）：显示实例名称和模型名，按 model_id 分配颜色
+- **颜色方案**：`host` → 蓝色系 / `app` → 绿色系 / 其他 → 灰色系
+- **交互**：支持拖拽、缩放、点击选中节点
+- **边样式**：带箭头标记（MarkerType.ArrowClosed），标签显示关联类型
+- **辅助组件**：Background（网格背景）、Controls（缩放控件）、MiniMap（小地图）
+
+### 侧边栏导航
+
+CMDB 导航项注册在 `Sidebar.tsx` 中，每个菜单项携带 `resource + action` 权限标识：
+
+```
+{ href: '/cmdb/models',    label: 'CMDB 模型',  icon: ServerCog,   resource: 'cmdb_model',    action: 'read' }
+{ href: '/cmdb/instances', label: 'CMDB 实例',  icon: Database,    resource: 'cmdb_instance', action: 'read' }
+{ href: '/cmdb/changes',   label: 'CMDB 变更',  icon: History,     resource: 'cmdb_instance', action: 'read' }
+```
+
+权限过滤逻辑：Sidebar 组件遍历导航项时检查当前用户是否拥有对应 `resource:action` 权限，无权限的菜单项不渲染。活跃路径高亮通过 `pathname.startsWith(href)` 实现。
+
+### 数据加载方式
+
+所有 CMDB 页面使用 TanStack Query v5 加载和管理 API 数据：
+
+- **useQuery**：GET 请求，支持缓存 key、自动重试、loading/error 状态
+- **useMutation**：POST/PUT/DELETE 请求，成功后通过 `queryClient.invalidateQueries` 自动刷新关联查询
+- **API 客户端**：统一使用 `@/lib/api`（Axios 实例），携带 JWT 认证头
+
+### 技术依赖
+
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| Next.js | 14 | App Router 框架 |
+| React | 18 | UI 库 |
+| TanStack Query | 5 | 数据获取与缓存 |
+| shadcn/ui | — | UI 组件库（Button/Input/Dialog/Table/Select 等） |
+| Tailwind CSS | 3 | 原子化样式 |
+| @xyflow/react | 12 | 拓扑图可视化 |
+| lucide-react | — | 图标库 |
+| sonner | — | Toast 通知 |
+
+---
+
+### 已知问题
+
+1. **创建实例字段不匹配**：`instances/page.tsx` 创建实例时发送 `model`（模型显示名称）而非 `modelId`（模型标识），后端 DTO 期望 `modelId`。需要前端修正字段名。
+2. **变更历史无 diff 视图**：`changes/page.tsx` 仅截取 JSON 前 100 字符展示，无字段级 diff 对比。Tier 3 的 `cmdb_change` 资源提供了增强版变更历史（含 JsonDiffView 组件），详见 cmdb-tier3 文档。
+3. **路径与早期设计不一致**：实例详情使用 `[modelId]/[id]` 双段路径（非 `[instanceId]` 单段）；关联管理集成在 admin Tab 和实例详情中（无独立 `/cmdb/relations` 路由）；拓扑页使用 `[instanceId]` 动态参数。

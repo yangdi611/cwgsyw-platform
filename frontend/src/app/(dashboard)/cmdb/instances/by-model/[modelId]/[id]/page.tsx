@@ -92,7 +92,7 @@ export default function InstanceDetailPage() {
 
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => r.data.data),
   })
 
   const { data: model } = useQuery<CiModelVO>({
@@ -110,7 +110,7 @@ export default function InstanceDetailPage() {
   }, [inst])
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/cmdb/instances/${modelId}/${id}`, { attrs: editAttrs }),
+    mutationFn: () => api.put(`/cmdb/instances/${id}`, { fieldsData: editAttrs }),
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
