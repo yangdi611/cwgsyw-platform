@@ -74,6 +74,7 @@ cwgsyw-platform/
 | V29  | `daily_report` 增加 `ci_instance_ids` JSONB（日报 ↔ CI） |
 | V30  | `ip_pool` + `ip_allocation` — IPAM 模块 + RBAC          |
 | V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                 |
+| V32  | `ci_instance` 生命周期/资产字段 + `device_credential.ci_instance_id` |
 
 ---
 
