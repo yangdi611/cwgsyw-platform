@@ -22,7 +22,34 @@ import {
   Database,
   History,
   Globe,
+  ChevronDown,
+  ChevronRight,
+  type LucideIcon,
 } from 'lucide-react'
+
+/* ---------- Types ---------- */
+
+interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+  resource: string | null
+  action: string | null
+}
+
+interface NavGroup {
+  label: string
+  icon: LucideIcon
+  resource: string | null
+  action: string | null
+  storageKey: string
+  defaultOpen?: boolean
+  children: (NavItem | NavGroup)[]
+}
+
+function isGroup(item: NavItem | NavGroup): item is NavGroup {
+  return 'children' in item
+}
 
 const navItems = [
   { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
@@ -42,6 +69,10 @@ const navItems = [
   { href: '/admin/change-doc-templates', label: 'AI模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
   { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
   { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
+]
+
+const sidebarEntries: (NavItem | NavGroup)[] = [
+  ...navItems.map(item => ({ ...item })) as NavItem[],
 ]
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
@@ -149,7 +180,7 @@ export function Sidebar() {
       <nav className="flex-1 p-2 space-y-1">
         {sidebarEntries.map((entry) => {
           if (isGroup(entry)) {
-            if (!hasPermission(entry.resource, entry.action)) return null
+            if (entry.resource && entry.action && !hasPermission(entry.resource as string, entry.action as string)) return null
             return (
               <NavGroupItem
                 key={entry.label}
