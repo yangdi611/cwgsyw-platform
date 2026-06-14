@@ -198,7 +198,7 @@ export default function InstanceDetailPage() {
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/instances/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             <ArrowLeft className="h-4 w-4 mr-1" />返回列表
           </Link>
           <div>
@@ -317,7 +317,7 @@ export default function InstanceDetailPage() {
                   + 添加关联
                 </Button>
               )}
-              <Link href={`/cmdb/instances/${modelId}/${id}/associations`}
+              <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations`}
                 className="text-xs text-muted-foreground hover:text-foreground ml-auto">
                 管理全部关联 →
               </Link>
