@@ -70,11 +70,14 @@ cwgsyw-platform/
 | V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def` 关联扩展属性定义 |
 | V25  | CSV 导入权限 seed（`cmdb_instance:import`）              |
 | V26  | 影响分析权限 seed（`cmdb_instance:impact`）              |
-| V27  | `device` 增加 `ci_instance_id`（设备 ↔ CI 实例关联）     |
+| V27  | `ci_model` 增加 `color` + `enable_2d_view` 可视化字段 |
 | V28  | `change_doc_ci_link` — 变更文档 ↔ CI 实例关联表         |
-| V29  | `daily_report` 增加 `ci_instance_ids` JSONB（日报 ↔ CI） |
+| V29  | CMDB 变更历史/统计索引（`idx_audit_cmdb_instance_changes`, `idx_audit_cmdb_stats`）|
 | V30  | `ip_pool` + `ip_allocation` — IPAM 模块 + RBAC          |
 | V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                 |
+| V32  | `device.ci_instance_id` — 设备 ↔ CI 实例关联            |
+| V33  | `cmdb_change` 资源 + 权限 seed（变更历史查看权限）        |
+| V34  | `daily_report.ci_instance_ids` JSONB（日报 ↔ CI）        |
 
 ---
 
@@ -144,6 +147,7 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `notification` | read, manage                                         |
 | `cmdb_model`    | create, read, update, delete                       |
 | `cmdb_instance` | create, read, update, delete, import, impact       |
+| `cmdb_change`  | read                                                 |
 | `cmdb_relation` | create, read, update, delete                       |
 | `ip_pool`       | create, read, update, delete                       |
 | `cmdb_alert`    | create, read, acknowledge                          |
@@ -178,6 +182,9 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `CiAssociationAttrDefService` | `module/cmdb/service/`             | 关联扩展属性定义管理             |
 | `CiRelationService`     | `module/cmdb/service/`                  | 关联管理（含 metadata 校验）    |
 | `CiTopologyService`     | `module/cmdb/service/`                  | CMDB 拓扑遍历（递归 CTE BFS）   |
+| `CiChangeService`       | `module/cmdb/service/`                  | 变更历史 V2 + 统计 + Redis 缓存（Tier 3）|
+| `CiTopologyCompareService` | `module/cmdb/service/`               | 拓扑时间点对比（audit_log 回放）（Tier 3）|
+| `Ci2DViewService`       | `module/cmdb/service/`                  | 2D 分组视图（Tier 3）|
 | `CsvImportService`      | `module/cmdb/service/`                  | CSV 批量导入（preview/execute） |
 | `ImpactAnalysisService` | `module/cmdb/service/`                  | 影响分析（CTE + Java BFS）      |
 | `CiNotificationService` | `module/cmdb/service/`                  | CI 状态变更/删除通知（Phase 4A）|
@@ -278,6 +285,12 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 - `GET /api/cmdb/rel/search` — 搜索实例（params: `modelId`, `keyword`, `page`, `size`）
 - `GET /api/cmdb/instances/search` — 跨模型搜索（params: `keyword`, `modelId`, `page`, `size`，返回 `model_counts`）
 - `GET /api/cmdb/topology/{instanceId}` — BFS 拓扑图（param: `depth` 1-5，默认 2，返回 `{nodes, edges}`）
+- `GET /api/cmdb/topology/{instanceId}/compare` — 拓扑时间点对比（params: `fromTime`, `toTime`, `depth`，返回 added/removed/modified/unchanged + edges diff）
+- `GET /api/cmdb/instances/{instanceId}/history` — 实例变更历史 V2（params: `from`, `to`, `operatorId`, `action`, `page`, `size`）
+- `GET /api/cmdb/changes` — 全局变更历史（params: `entityType`, `entityId`, `modelId`, `from`, `to`, `operatorId`, `action`, `page`, `size`）
+- `GET /api/cmdb/changes/stats` — 变更统计（params: `from`, `to`, `modelId`，返回 today/thisWeek/thisMonth/dailyBreakdown/top10Instances）
+- `GET /api/cmdb/instances/2d-view` — 2D 分组视图（params: `modelId`, `groupBy`，模型需 `enable_2d_view=true`）
+- `GET /api/cmdb/instances/search` — 跨模型实例搜索（param: `keyword`, `size`）
 
 ### 前端页面结构（当前 v0.12.0）
 
@@ -288,7 +301,10 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | `/cmdb/instances/[modelId]/new` | 新建实例（动态表单） |
 | `/cmdb/instances/[modelId]/[id]` | 实例详情/编辑 + 关联面板 + 拓扑预览面板 |
 | `/cmdb/instances/[modelId]/[id]/associations` | 实例关联管理页 |
-| `/cmdb/topology/[instanceId]` | **拓扑全屏页**（React Flow，深度选择器，节点详情面板） |
+| `/cmdb/topology/[instanceId]` | **拓扑全屏页**（React Flow，深度选择器，节点详情面板，对比模式，过滤，PNG 导出） |
+| `/cmdb/changes` | **变更历史列表**（全局变更时间线，多维过滤，分页） |
+| `/cmdb/changes/stats` | **变更统计面板**（今日/周/月卡片 + 每日趋势 + Top 10 活跃实例） |
+| `/cmdb/instances/2d-view` | **2D 分组视图**（按属性分组网格展示实例） |
 | `/cmdb/admin` | **配置管理**（模型管理 + 关联定义 Tab，`cmdb_model:write`） |
 | `/cmdb/admin/models/[modelId]` | 模型属性编辑 |
 | `/cmdb/models/[modelId]` | → redirect to `/cmdb/admin/models/[modelId]` |
@@ -311,7 +327,8 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | 2c    | 邮件通知中心 + 站内信 + 定时提醒    | 🚧 进行中 |
 | 3a    | 变更文档系统 + AI 辅助 + Word/PDF 导出 | ✅ |
 | 3b    | CMDB Tier 1（模型+属性+实例+关联+拓扑） | ✅ |
-| 3c    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ |
+| 3b    | CMDB Tier 2（关联增强+CSV导入+影响分析） | ✅ |
+| 3c    | CMDB Tier 3（变更历史V2+统计+拓扑增强+2D视图+搜索） | ✅ |
 | 4A    | CI 状态变更/删除通知 | ✅ |
 | 4B    | 设备 ↔ CI 实例关联 | ✅ |
 | 4C    | CMDB ↔ 变更文档关联 | ✅ |
