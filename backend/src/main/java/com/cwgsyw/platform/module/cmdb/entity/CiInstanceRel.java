@@ -18,6 +18,8 @@ public class CiInstanceRel extends BaseEntity {
     private Long srcInstanceId;
     @TableField("dst_id")
     private Long dstInstanceId;
+
+    @TableField("def_id")
     private String associationKind;
 
     @TableField(typeHandler = JacksonTypeHandler.class)
