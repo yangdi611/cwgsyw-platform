@@ -4,7 +4,8 @@
 INSERT INTO sys_resource (code, name, actions, sort_order) VALUES
     ('cmdb_model',     'CMDB 模型管理', '["create","read","update","delete"]', 50),
     ('cmdb_instance',  'CMDB 实例管理', '["create","read","update","delete"]', 51),
-    ('cmdb_relation',  'CMDB 关联关系', '["create","read","delete"]',          52);
+    ('cmdb_relation',  'CMDB 关联关系', '["create","read","delete"]',          52)
+ON CONFLICT DO NOTHING;
 
 -- 自动生成权限记录
 INSERT INTO sys_permission (resource_id, action, code, name)
