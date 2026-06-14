@@ -10,12 +10,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, Activity, History } from 'lucide-react'
+import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, Activity } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
-import { ChangeRecordItem, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
-import { cn } from '@/lib/utils'
 
 interface CiAttributeVO {
   id: number; field_key: string; name: string; field_type: string
@@ -77,8 +75,6 @@ export default function InstanceDetailPage() {
   const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
   const [relPanelOpen, setRelPanelOpen] = useState(false)
   const [topoPanelOpen, setTopoPanelOpen] = useState(false)
-  const [historyPanelOpen, setHistoryPanelOpen] = useState(false)
-  const [historyRange, setHistoryRange] = useState<7 | 30 | 0>(7)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [selectedDefId, setSelectedDefId] = useState('')
   const [peerSearch, setPeerSearch] = useState('')
@@ -92,7 +88,7 @@ export default function InstanceDetailPage() {
 
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => r.data.data),
   })
 
   const { data: model } = useQuery<CiModelVO>({
@@ -110,7 +106,7 @@ export default function InstanceDetailPage() {
   }, [inst])
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/cmdb/instances/${id}`, { fieldsData: editAttrs }),
+    mutationFn: () => api.put(`/cmdb/instances/${modelId}/${id}`, { attrs: editAttrs }),
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
@@ -129,21 +125,6 @@ export default function InstanceDetailPage() {
     queryKey: ['cmdb-topology', id],
     queryFn: () => api.get(`/cmdb/topology/${id}`, { params: { depth: 2 } }).then(r => r.data.data),
     enabled: topoPanelOpen,
-  })
-
-  const { data: historyData, isLoading: historyLoading } = useQuery<{ records: ChangeHistoryV2VO[]; total: number }>({
-    queryKey: ['cmdb-instance-history', id, historyRange],
-    queryFn: () => {
-      let from: string | undefined
-      if (historyRange > 0) {
-        const d = new Date(Date.now() - historyRange * 86400000)
-        from = `${d.toISOString().slice(0, 10)}T00:00:00`
-      }
-      return api
-        .get(`/cmdb/instances/${id}/history`, { params: { from, page: 1, size: 50 } })
-        .then(r => r.data.data)
-    },
-    enabled: historyPanelOpen,
   })
 
   const { data: allDefs = [] } = useQuery<CiAssociationDefVO[]>({
@@ -217,7 +198,7 @@ export default function InstanceDetailPage() {
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          <Link href={`/cmdb/instances/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             <ArrowLeft className="h-4 w-4 mr-1" />返回列表
           </Link>
           <div>
@@ -336,66 +317,11 @@ export default function InstanceDetailPage() {
                   + 添加关联
                 </Button>
               )}
-              <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations`}
+              <Link href={`/cmdb/instances/${modelId}/${id}/associations`}
                 className="text-xs text-muted-foreground hover:text-foreground ml-auto">
                 管理全部关联 →
               </Link>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Change History Panel */}
-      <div className="mt-4 border rounded-lg overflow-hidden">
-        <button
-          className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
-          onClick={() => setHistoryPanelOpen(v => !v)}
-        >
-          <div className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            变更历史
-          </div>
-          <div className="flex items-center gap-2">
-            {historyPanelOpen && (
-              <>
-                {([['最近7天', 7], ['最近30天', 30], ['全部', 0]] as const).map(([label, val]) => (
-                  <button
-                    key={val}
-                    onClick={e => { e.stopPropagation(); setHistoryRange(val) }}
-                    className={cn(
-                      'text-xs px-2 py-0.5 rounded transition-colors',
-                      historyRange === val
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted',
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </>
-            )}
-            {historyPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </div>
-        </button>
-
-        {historyPanelOpen && (
-          <div className="px-5 pb-5 pt-3 border-t">
-            {historyLoading ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">加载中...</p>
-            ) : !historyData || historyData.records.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">暂无变更记录</p>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground mb-4">
-                  共 {historyData.total} 条变更（按时间倒序，最多展示 50 条）
-                </p>
-                <div className="space-y-1">
-                  {historyData.records.map(rec => (
-                    <ChangeRecordItem key={rec.id} record={rec} compact />
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         )}
       </div>
