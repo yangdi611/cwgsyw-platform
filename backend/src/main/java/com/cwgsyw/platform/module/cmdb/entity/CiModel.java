@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
@@ -14,5 +15,6 @@ public class CiModel extends BaseEntity {
     private Long groupId;
     private Boolean isBuiltIn;
     private String color;
+    @TableField("enable_2d_view")
     private Boolean enable2dView;
 }
