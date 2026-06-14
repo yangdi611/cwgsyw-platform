@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, History } from 'lucide-react'
+import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, Activity, History } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
@@ -228,21 +228,28 @@ export default function InstanceDetailPage() {
             </p>
           </div>
         </div>
-        {canEdit && !editing && (
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4 mr-1" />编辑
-          </Button>
-        )}
-        {editing && (
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              <Save className="h-4 w-4 mr-1" />保存
+        <div className="flex items-center gap-2">
+          {hasPermission('cmdb_instance', 'impact') && (
+            <Link href={`/cmdb/impact/${id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              <Activity className="h-4 w-4 mr-1" />影响分析
+            </Link>
+          )}
+          {canEdit && !editing && (
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4 mr-1" />编辑
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+          )}
+          {editing && (
+            <>
+              <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                <Save className="h-4 w-4 mr-1" />保存
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4">
