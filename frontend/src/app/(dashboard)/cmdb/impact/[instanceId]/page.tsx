@@ -127,7 +127,7 @@ export default function ImpactAnalysisPage() {
       {/* 顶部工具栏 */}
       <div className="flex items-center gap-3 mb-6">
         <Link
-          href={data ? `/cmdb/instances/by-model/${data.root_model_id}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
+          href={data ? `/cmdb/instances/${data.root_model_id}/${instanceId}` : `/cmdb/instances/_/${instanceId}`}
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />返回实例
@@ -247,13 +247,13 @@ function ImpactRootCard({ data }: { data: ImpactResult }) {
       </div>
       <div className="flex items-center justify-between">
         <Link
-          href={`/cmdb/instances/by-model/${data.root_model_id}/${data.root_id}`}
+          href={`/cmdb/instances/${data.root_model_id}/${data.root_id}`}
           className="text-lg font-semibold hover:underline"
         >
           {data.root_name}
         </Link>
         <Link
-          href={`/cmdb/instances/by-model/${data.root_model_id}/${data.root_id}`}
+          href={`/cmdb/instances/${data.root_model_id}/${data.root_id}`}
           className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
         >
           <ExternalLink className="h-3.5 w-3.5 mr-1" />查看详情
@@ -279,7 +279,7 @@ function ImpactNodeCard({ node, edges }: { node: ImpactNode; edges: ImpactEdge[]
       )}
       <div className="flex items-center justify-between gap-2">
         <Link
-          href={`/cmdb/instances/by-model/${node.model_id}/${node.id}`}
+          href={`/cmdb/instances/${node.model_id}/${node.id}`}
           className="font-medium text-sm hover:underline truncate"
         >
           {node.name}
