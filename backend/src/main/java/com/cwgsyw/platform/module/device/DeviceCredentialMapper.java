@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cwgsyw.platform.module.device.dto.CredentialVO;
 import com.cwgsyw.platform.module.device.entity.DeviceCredential;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
@@ -20,7 +21,9 @@ public interface DeviceCredentialMapper extends BaseMapper<DeviceCredential> {
                ci.name AS ci_instance_name, dc.created_at
         FROM device_credential dc
         LEFT JOIN ci_instance ci ON ci.id = dc.ci_instance_id
-        WHERE dc.ci_instance_id = #{ciInstanceId} AND dc.is_deleted = false
+        WHERE dc.ci_instance_id = #{ciInstanceId}
+          AND dc.tenant_id = #{tenantId}
+          AND dc.is_deleted = false
         """)
     @Results(id = "credentialVOResult", value = {
         @Result(column = "id", property = "id"),
@@ -33,5 +36,5 @@ public interface DeviceCredentialMapper extends BaseMapper<DeviceCredential> {
         @Result(column = "ci_instance_name", property = "ciInstanceName"),
         @Result(column = "created_at", property = "createdAt"),
     })
-    List<CredentialVO> findCredentialVOsByCiInstanceId(Long ciInstanceId);
+    List<CredentialVO> findCredentialVOsByCiInstanceId(@Param("ciInstanceId") Long ciInstanceId, @Param("tenantId") String tenantId);
 }

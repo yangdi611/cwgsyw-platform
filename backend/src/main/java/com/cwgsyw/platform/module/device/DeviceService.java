@@ -127,6 +127,7 @@ public class DeviceService {
         Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
         DeviceCredential cred = new DeviceCredential();
         cred.setDeviceId(deviceId);
+        cred.setTenantId(tenantId);
         cred.setGroupId(groupId);
         cred.setUsername(req.getUsername());
         cred.setPasswordEnc(crypto.encrypt(req.getPassword()));
