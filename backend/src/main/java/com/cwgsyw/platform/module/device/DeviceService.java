@@ -9,6 +9,7 @@ import com.cwgsyw.platform.config.CryptoService;
 import com.cwgsyw.platform.module.device.dto.*;
 import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.device.entity.DeviceCredential;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class DeviceService {
     private final DeviceCredentialMapper credentialMapper;
     private final CryptoService crypto;
     private final AuditLogMapper auditLogMapper;
+    private final CiInstanceMapper ciInstanceMapper;
     private final GroupMapper groupMapper;
 
     public PageResult<DeviceVO> list(Long groupId, String deviceType, String category,
@@ -78,6 +80,7 @@ public class DeviceService {
         device.setDeviceType(req.getDeviceType() != null ? req.getDeviceType() : "server");
         device.setCategory(req.getCategory());
         device.setDescription(req.getDescription());
+        device.setCiInstanceId(req.getCiInstanceId());
         deviceMapper.insert(device);
         writeAudit(tenantId, "create", device.getId(), operatorId, "name=" + device.getName());
         return device;
@@ -95,6 +98,7 @@ public class DeviceService {
         if (req.getCategory() != null) device.setCategory(req.getCategory());
         if (req.getDescription() != null) device.setDescription(req.getDescription());
         if (req.getGroupId() != null) device.setGroupId(req.getGroupId());
+        if (req.getCiInstanceId() != null) device.setCiInstanceId(req.getCiInstanceId());
         deviceMapper.updateById(device);
         writeAudit(tenantId, "update", id, operatorId, "name=" + device.getName());
     }
@@ -188,6 +192,10 @@ public class DeviceService {
         vo.setDeviceType(d.getDeviceType());
         vo.setCategory(d.getCategory());
         vo.setDescription(d.getDescription());
+        vo.setCiInstanceId(d.getCiInstanceId());
+        if (d.getCiInstanceId() != null) {
+            vo.setCiInstanceName(deviceMapper.findCiInstanceName(d.getCiInstanceId()));
+        }
         vo.setCreatedAt(d.getCreatedAt());
         vo.setUpdatedAt(d.getUpdatedAt());
         if (includeCredentials) {

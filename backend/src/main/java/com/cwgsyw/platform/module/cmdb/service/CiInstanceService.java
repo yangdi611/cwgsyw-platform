@@ -15,6 +15,14 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
+import com.cwgsyw.platform.module.changedoc.ChangeDocLinkService;
+import com.cwgsyw.platform.module.changedoc.dto.LinkedChangeDocVO;
+import com.cwgsyw.platform.module.daily.DailyReportMapper;
+import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
+import com.cwgsyw.platform.module.daily.entity.DailyReport;
+import com.cwgsyw.platform.module.device.DeviceMapper;
+import com.cwgsyw.platform.module.device.dto.DeviceVO;
+import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,6 +50,10 @@ public class CiInstanceService {
 
     @org.springframework.context.annotation.Lazy
     private final CiChangeService ciChangeService;
+
+    private final DeviceMapper deviceMapper;
+    private final DailyReportMapper dailyReportMapper;
+    private final ChangeDocLinkService changeDocLinkService;
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
@@ -303,6 +315,58 @@ public class CiInstanceService {
                 default -> {}
             }
         }
+    }
+
+    public List<DeviceVO> getRelatedDevices(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        LambdaQueryWrapper<Device> query = new LambdaQueryWrapper<Device>()
+                .eq(Device::getCiInstanceId, instanceId)
+                .eq(Device::getIsDeleted, false)
+                .eq(Device::getTenantId, tenantId)
+                .orderByDesc(Device::getCreatedAt);
+        List<Device> devices = deviceMapper.selectList(query);
+        return devices.stream().map(d -> {
+            DeviceVO vo = new DeviceVO();
+            vo.setId(d.getId());
+            vo.setName(d.getName());
+            vo.setIp(d.getIp());
+            vo.setDeviceType(d.getDeviceType());
+            vo.setCategory(d.getCategory());
+            vo.setDescription(d.getDescription());
+            vo.setCiInstanceId(d.getCiInstanceId());
+            vo.setCreatedAt(d.getCreatedAt());
+            vo.setUpdatedAt(d.getUpdatedAt());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    public List<LinkedChangeDocVO> getRelatedChangeDocs(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        return changeDocLinkService.listLinkedChangeDocs(instanceId, tenantId);
+    }
+
+    public List<DailyReportBriefVO> getRelatedDailyReports(Long instanceId, String tenantId) {
+        loadInstance(instanceId, tenantId);
+        List<DailyReport> reports = dailyReportMapper.findByCiInstanceId(instanceId);
+        Set<Long> reporterIds = reports.stream()
+                .map(DailyReport::getReporterId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> reporterNames = resolveUserNames(reporterIds);
+
+        return reports.stream().map(r -> {
+            DailyReportBriefVO vo = new DailyReportBriefVO();
+            vo.setId(r.getId());
+            vo.setReporterName(reporterNames.getOrDefault(r.getReporterId(), "未知"));
+            vo.setReportDate(r.getReportDate());
+            vo.setStatus(r.getStatus());
+            String brief = r.getCompletedItems();
+            if (brief != null && brief.length() > 100) {
+                brief = brief.substring(0, 100) + "...";
+            }
+            vo.setCompletedItemsBrief(brief);
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────

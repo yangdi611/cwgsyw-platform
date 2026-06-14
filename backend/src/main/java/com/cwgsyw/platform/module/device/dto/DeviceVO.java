@@ -14,6 +14,8 @@ public class DeviceVO {
     private String deviceType;
     private String category;
     private String description;
+    private Long ciInstanceId;
+    private String ciInstanceName;
     private List<CredentialVO> credentials;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

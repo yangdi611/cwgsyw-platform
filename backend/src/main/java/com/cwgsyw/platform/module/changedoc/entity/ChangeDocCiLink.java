@@ -17,8 +17,11 @@ public class ChangeDocCiLink {
     private Long changeDocId;
     private Long instanceId;
     private String impactLevel;
-    private LocalDateTime createdAt;
-    private Long createdBy;
     @TableLogic
     private Boolean isDeleted;
+    private LocalDateTime deletedAt;
+    private Long deletedBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Long createdBy;
 }

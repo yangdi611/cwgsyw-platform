@@ -5,6 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.cmdb.dto.CiInstanceBriefVO;
+import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
+import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
@@ -15,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +31,8 @@ public class DailyReportService {
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
+    private final CiInstanceMapper ciInstanceMapper;
+    private final CiModelMapper ciModelMapper;
     private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
@@ -70,6 +79,7 @@ public class DailyReportService {
         report.setTomorrowPlan(req.getTomorrowPlan());
         report.setWorkHours(req.getWorkHours());
         report.setStatus("DRAFT");
+        report.setCiInstanceIds(req.getCiInstanceIds());
         reportMapper.insert(report);
         return report;
     }
@@ -84,6 +94,7 @@ public class DailyReportService {
         report.setIssues(req.getIssues());
         report.setTomorrowPlan(req.getTomorrowPlan());
         report.setWorkHours(req.getWorkHours());
+        report.setCiInstanceIds(req.getCiInstanceIds());
         reportMapper.updateById(report);
     }
 
@@ -178,6 +189,29 @@ public class DailyReportService {
         if (user != null) vo.setReporterName(user.getRealName() != null ? user.getRealName() : user.getUsername());
         var group = groupMapper.selectById(r.getGroupId());
         if (group != null) vo.setGroupName(group.getName());
+        vo.setCiInstanceIds(r.getCiInstanceIds());
+        // Populate CI instance brief info
+        if (r.getCiInstanceIds() != null && !r.getCiInstanceIds().isEmpty()) {
+            List<CiInstance> instances = ciInstanceMapper.selectBatchIds(r.getCiInstanceIds());
+            // Build modelId -> modelName map
+            Set<String> modelIds = instances.stream()
+                .map(CiInstance::getModelId)
+                .collect(Collectors.toSet());
+            Map<String, String> modelNames = modelIds.isEmpty()
+                ? Map.of()
+                : ciModelMapper.selectList(
+                    new LambdaQueryWrapper<CiModel>().in(CiModel::getModelId, modelIds)
+                ).stream().collect(Collectors.toMap(CiModel::getModelId, CiModel::getDisplayName));
+            List<CiInstanceBriefVO> cis = instances.stream().map(inst -> {
+                CiInstanceBriefVO civ = new CiInstanceBriefVO();
+                civ.setId(inst.getId());
+                civ.setName(inst.getName());
+                civ.setModelId(inst.getModelId());
+                civ.setModelName(modelNames.getOrDefault(inst.getModelId(), inst.getModelId()));
+                return civ;
+            }).collect(Collectors.toList());
+            vo.setCiInstances(cis);
+        }
         return vo;
     }
 }
