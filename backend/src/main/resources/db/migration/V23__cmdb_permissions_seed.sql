@@ -12,7 +12,8 @@ INSERT INTO sys_permission (resource_id, action, code, name)
 SELECT r.id, a.action, r.code || ':' || a.action, r.name || '-' || a.action
 FROM sys_resource r,
      LATERAL jsonb_array_elements_text(r.actions) AS a(action)
-WHERE r.code IN ('cmdb_model', 'cmdb_instance', 'cmdb_relation');
+WHERE r.code IN ('cmdb_model', 'cmdb_instance', 'cmdb_relation')
+ON CONFLICT DO NOTHING;
 
 -- 超级管理员 + 管理员拥有全部 CMDB 权限
 INSERT INTO sys_role_permission (role_id, permission_id)
