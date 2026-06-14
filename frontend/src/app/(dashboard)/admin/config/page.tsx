@@ -311,38 +311,6 @@ export default function AdminConfigPage() {
         </div>
       </section>
 
-      {/* Watermark */}
-      <section className="border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">文档水印</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch checked={watermarkEnabled} onCheckedChange={setWatermarkEnabled} id="watermark-enabled" />
-            <Label htmlFor="watermark-enabled">启用水印</Label>
-          </div>
-          <div className="space-y-1.5">
-            <Label>水印文字</Label>
-            <Input
-              value={watermarkText}
-              onChange={e => setWatermarkText(e.target.value)}
-              placeholder="内部资料 请勿外传"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>透明度 (0-1)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="1"
-                step="0.05"
-                value={watermarkOpacity}
-                onChange={e => setWatermarkOpacity(e.target.value)}
-                placeholder="0.3"
-              />
-              <p className="text-xs text-muted-foreground">0 为完全透明，1 为完全不透明</p>
-            </div>
-          )}
-
           {/* Watermark */}
           {activeTab === 'watermark' && (
             <div className="border rounded-lg p-6">

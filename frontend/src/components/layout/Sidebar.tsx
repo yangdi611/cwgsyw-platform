@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, type ElementType } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -22,7 +22,37 @@ import {
   Database,
   History,
   Globe,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
+
+// ── Sidebar entry types ────────────────────────────────────────────────────
+// `navItems` is the flat list of leaf links; `sidebarEntries` is the union of
+// leaf links and collapsible groups rendered by the sidebar.
+
+interface NavItem {
+  href: string
+  label: string
+  icon: ElementType
+  resource: string | null
+  action: string | null
+}
+
+interface NavGroup {
+  label: string
+  icon: ElementType
+  resource: string
+  action: string
+  storageKey: string
+  defaultOpen?: boolean
+  children: Array<NavItem | NavGroup>
+}
+
+type NavEntry = NavItem | NavGroup
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return (entry as NavGroup).children !== undefined
+}
 
 const navItems = [
   { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
@@ -43,6 +73,11 @@ const navItems = [
   { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
   { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
 ]
+
+const sidebarEntries: NavEntry[] = navItems.map(item => ({
+  ...item,
+  icon: item.icon as ElementType,
+}))
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
   const [value, setValue] = useState<boolean>(() => {
