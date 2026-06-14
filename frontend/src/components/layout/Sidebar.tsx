@@ -24,34 +24,33 @@ import {
   Globe,
   ChevronDown,
   ChevronRight,
-  type LucideIcon,
 } from 'lucide-react'
 
-/* ---------- Types ---------- */
-
-interface NavItem {
+type NavItem = {
   href: string
   label: string
-  icon: LucideIcon
+  icon: any
   resource: string | null
   action: string | null
 }
 
-interface NavGroup {
+type NavGroup = {
   label: string
-  icon: LucideIcon
-  resource: string | null
-  action: string | null
+  icon: any
+  children: (NavItem | NavGroup)[]
   storageKey: string
   defaultOpen?: boolean
-  children: (NavItem | NavGroup)[]
+  resource: string | null
+  action: string | null
 }
 
-function isGroup(item: NavItem | NavGroup): item is NavGroup {
+type NavEntry = NavItem | NavGroup
+
+function isGroup(item: NavEntry): item is NavGroup {
   return 'children' in item
 }
 
-const navItems = [
+const navItems: NavEntry[] = [
   { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
   { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
   { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
@@ -69,10 +68,6 @@ const navItems = [
   { href: '/admin/change-doc-templates', label: 'AI模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
   { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
   { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
-]
-
-const sidebarEntries: (NavItem | NavGroup)[] = [
-  ...navItems.map(item => ({ ...item })) as NavItem[],
 ]
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
@@ -180,7 +175,7 @@ export function Sidebar() {
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((entry) => {
           if (isGroup(entry)) {
-            if (entry.resource && entry.action && !hasPermission(entry.resource as string, entry.action as string)) return null
+            if (!entry.resource || !entry.action || !hasPermission(entry.resource, entry.action)) return null
             return (
               <NavGroupItem
                 key={entry.label}
