@@ -89,7 +89,7 @@ export default function NewAssociationPage() {
     },
     onSuccess: () => {
       toast.success('关联已建立')
-      router.push(`/cmdb/instances/${modelId}/${id}/associations`)
+      router.push(`/cmdb/instances/by-model/${modelId}/${id}/associations`)
     },
     onError: (e: any) => {
       setError(e?.response?.data?.message ?? '创建失败')
@@ -102,7 +102,7 @@ export default function NewAssociationPage() {
     <div className="max-w-2xl">
       {/* 顶部 */}
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/${modelId}/${id}/associations`}
+        <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations`}
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回关联管理
         </Link>
@@ -295,7 +295,7 @@ export default function NewAssociationPage() {
       <div className="flex items-center justify-between mt-4">
         <Button variant="ghost" size="sm"
           onClick={() => step === 0
-            ? router.push(`/cmdb/instances/${modelId}/${id}/associations`)
+            ? router.push(`/cmdb/instances/by-model/${modelId}/${id}/associations`)
             : (setStep(s => s - 1), setError(''))}>
           {step === 0 ? '取消' : '上一步'}
         </Button>
