@@ -7,7 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiInstanceRelVO {
@@ -84,12 +84,18 @@ export default function AssociationsPage() {
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回详情
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">
             {inst?.name ?? `#${id}`} — 关联管理
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">共 {allRelations.length} 条关联</p>
         </div>
+        {hasPermission('cmdb_relation', 'create') && (
+          <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations/new`}
+            className={buttonVariants({ variant: 'default', size: 'sm' })}>
+            <Plus className="h-4 w-4 mr-1" />新建关联
+          </Link>
+        )}
       </div>
 
       {/* Filter */}

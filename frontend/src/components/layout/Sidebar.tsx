@@ -178,7 +178,7 @@ export function Sidebar() {
         <span className="font-bold text-lg">IT 运维平台</span>
       </div>
       <nav className="flex-1 p-2 space-y-1">
-        {sidebarEntries.map((entry) => {
+        {navItems.map((entry) => {
           if (isGroup(entry)) {
             if (entry.resource && entry.action && !hasPermission(entry.resource as string, entry.action as string)) return null
             return (

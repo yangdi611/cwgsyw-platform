@@ -357,6 +357,12 @@ export default function TopologyPage() {
                   重置
                 </button>
               )}
+              <Link
+                href={`/cmdb/instances/by-model/${selectedNode.model_id}/${selectedNode.id}`}
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
+              </Link>
             </div>
 
             {modelOptions.length > 0 && (
