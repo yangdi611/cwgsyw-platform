@@ -91,6 +91,15 @@ public class CiInstanceService {
         vo.setModelId(inst.getModelId()); vo.setModelName(model.getDisplayName());
         vo.setStatus(inst.getStatus()); vo.setOwner(inst.getOwner());
         vo.setDescription(inst.getDescription()); vo.setFieldsData(inst.getFieldsData());
+        vo.setLifecycleStatus(inst.getLifecycleStatus());
+        vo.setLifecycleStage(inst.getLifecycleStage());
+        vo.setAssetCategory(inst.getAssetCategory());
+        vo.setPurchaseDate(inst.getPurchaseDate());
+        vo.setPurchasePrice(inst.getPurchasePrice());
+        vo.setVendor(inst.getVendor());
+        vo.setWarrantyStart(inst.getWarrantyStart());
+        vo.setWarrantyEnd(inst.getWarrantyEnd());
+        vo.setContractNo(inst.getContractNo());
         vo.setAttributes(attrVOs); vo.setCreatedAt(inst.getCreatedAt()); vo.setUpdatedAt(inst.getUpdatedAt());
         return vo;
     }
@@ -118,6 +127,16 @@ public class CiInstanceService {
         inst.setStatus(req.getStatus() != null ? req.getStatus() : "online");
         inst.setOwner(req.getOwner()); inst.setDescription(req.getDescription());
         inst.setFieldsData(req.getFieldsData());
+        // 生命周期 & 资产字段
+        inst.setLifecycleStatus(req.getLifecycleStatus());
+        inst.setLifecycleStage(req.getLifecycleStage());
+        inst.setAssetCategory(req.getAssetCategory());
+        inst.setPurchaseDate(req.getPurchaseDate());
+        inst.setPurchasePrice(req.getPurchasePrice());
+        inst.setVendor(req.getVendor());
+        inst.setWarrantyStart(req.getWarrantyStart());
+        inst.setWarrantyEnd(req.getWarrantyEnd());
+        inst.setContractNo(req.getContractNo());
         ciInstanceMapper.insert(inst);
 
         writeAudit(tenantId, "create_instance", inst.getId(), "ci_instance",
@@ -135,6 +154,16 @@ public class CiInstanceService {
         if (req.getStatus() != null) inst.setStatus(req.getStatus());
         if (req.getOwner() != null) inst.setOwner(req.getOwner());
         if (req.getDescription() != null) inst.setDescription(req.getDescription());
+        // 生命周期 & 资产字段
+        if (req.getLifecycleStatus() != null) inst.setLifecycleStatus(req.getLifecycleStatus());
+        if (req.getLifecycleStage() != null) inst.setLifecycleStage(req.getLifecycleStage());
+        if (req.getAssetCategory() != null) inst.setAssetCategory(req.getAssetCategory());
+        if (req.getPurchaseDate() != null) inst.setPurchaseDate(req.getPurchaseDate());
+        if (req.getPurchasePrice() != null) inst.setPurchasePrice(req.getPurchasePrice());
+        if (req.getVendor() != null) inst.setVendor(req.getVendor());
+        if (req.getWarrantyStart() != null) inst.setWarrantyStart(req.getWarrantyStart());
+        if (req.getWarrantyEnd() != null) inst.setWarrantyEnd(req.getWarrantyEnd());
+        if (req.getContractNo() != null) inst.setContractNo(req.getContractNo());
 
         if (req.getFieldsData() != null) {
             Map<String, Object> merged = new LinkedHashMap<>();
@@ -449,6 +478,8 @@ public class CiInstanceService {
             vo.setFieldsData(filtered);
         }
         vo.setCreatedAt(inst.getCreatedAt()); vo.setUpdatedAt(inst.getUpdatedAt());
+        vo.setLifecycleStatus(inst.getLifecycleStatus());
+        vo.setLifecycleStage(inst.getLifecycleStage());
         return vo;
     }
 
@@ -458,6 +489,8 @@ public class CiInstanceService {
             map.put("id", inst.getId()); map.put("modelId", inst.getModelId());
             map.put("name", inst.getName()); map.put("status", inst.getStatus());
             map.put("owner", inst.getOwner()); map.put("fieldsData", inst.getFieldsData());
+            map.put("lifecycleStatus", inst.getLifecycleStatus());
+            map.put("lifecycleStage", inst.getLifecycleStage());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) { return "{}"; }
     }

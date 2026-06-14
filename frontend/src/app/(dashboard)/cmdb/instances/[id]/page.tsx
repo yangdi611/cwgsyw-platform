@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
 import type { CmdbAlertVO } from '@/hooks/usePrometheusAlerts'
 
@@ -39,6 +39,19 @@ interface CiInstanceDetailVO {
   fieldsData: Record<string, any>
   attributes: CiAttributeVO[]
   createdAt: string; updatedAt: string
+  lifecycleStatus: string | null; lifecycleStage: string | null
+  assetCategory: string | null; purchaseDate: string | null
+  purchasePrice: number | null; vendor: string | null
+  warrantyStart: string | null; warrantyEnd: string | null
+  contractNo: string | null
+}
+
+interface CredentialVO {
+  id: number; deviceId: number; groupId: number | null
+  groupName: string | null; username: string
+  password: string | null; description: string | null
+  ciInstanceId: number | null; ciInstanceName: string | null
+  createdAt: string
 }
 
 interface CiRelationVO {
@@ -85,6 +98,15 @@ const ACTION_MAP: Record<string, string> = {
 const KIND_MAP: Record<string, string> = {
   dependency: '依赖', deploy: '部署', connect: '连接',
   ownership: '所属', realize: '实现',
+}
+
+const LIFECYCLE_STATUS_MAP: Record<string, string> = {
+  provisioning: '配置中', running: '运行中', stopped: '已停止', retired: '已退役',
+}
+
+const ASSET_CATEGORY_MAP: Record<string, string> = {
+  server: '服务器', network: '网络设备', storage: '存储设备',
+  security: '安全设备', software: '软件', other: '其他',
 }
 
 /* ---------- Topology Visualizer ---------- */
@@ -142,14 +164,24 @@ export default function CmdbInstanceDetailPage() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'daily-reports' | 'alerts' | 'history'>('info')
+  const [tab, setTab] = useState<'info' | 'relations' | 'topology' | 'impact' | 'devices' | 'change-docs' | 'daily-reports' | 'alerts' | 'history' | 'credentials'>('info')
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({
     name: '', status: '', owner: '', description: '',
+    lifecycleStatus: '', lifecycleStage: '', assetCategory: '',
+    purchaseDate: '', purchasePrice: '', vendor: '',
+    warrantyStart: '', warrantyEnd: '', contractNo: '',
     fieldsData: {} as Record<string, string>,
   })
+
+  // Reveal password dialog
+  const [revealDialogOpen, setRevealDialogOpen] = useState(false)
+  const [revealingCredential, setRevealingCredential] = useState<CredentialVO | null>(null)
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null)
+  const [revealing, setRevealing] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Relation dialogs
   const [relCreateOpen, setRelCreateOpen] = useState(false)
@@ -191,6 +223,15 @@ export default function CmdbInstanceDetailPage() {
         status: instance.status ?? '',
         owner: instance.owner ?? '',
         description: instance.description ?? '',
+        lifecycleStatus: instance.lifecycleStatus ?? '',
+        lifecycleStage: instance.lifecycleStage ?? '',
+        assetCategory: instance.assetCategory ?? '',
+        purchaseDate: instance.purchaseDate ?? '',
+        purchasePrice: instance.purchasePrice != null ? String(instance.purchasePrice) : '',
+        vendor: instance.vendor ?? '',
+        warrantyStart: instance.warrantyStart ?? '',
+        warrantyEnd: instance.warrantyEnd ?? '',
+        contractNo: instance.contractNo ?? '',
         fieldsData: { ...(instance.fieldsData ?? {}) } as Record<string, string>,
       })
     }
@@ -203,6 +244,15 @@ export default function CmdbInstanceDetailPage() {
       status: editForm.status,
       owner: editForm.owner,
       description: editForm.description,
+      lifecycleStatus: editForm.lifecycleStatus || null,
+      lifecycleStage: editForm.lifecycleStage || null,
+      assetCategory: editForm.assetCategory || null,
+      purchaseDate: editForm.purchaseDate || null,
+      purchasePrice: editForm.purchasePrice ? Number(editForm.purchasePrice) : null,
+      vendor: editForm.vendor || null,
+      warrantyStart: editForm.warrantyStart || null,
+      warrantyEnd: editForm.warrantyEnd || null,
+      contractNo: editForm.contractNo || null,
       fieldsData: editForm.fieldsData,
     }).then(r => r.data),
     onSuccess: () => {
@@ -327,6 +377,32 @@ export default function CmdbInstanceDetailPage() {
     enabled: tab === 'daily-reports',
   })
 
+  // Related credentials
+  const { data: relatedCredentials = [], isLoading: credentialsLoading } = useQuery<CredentialVO[]>({
+    queryKey: ['cmdb-instance-credentials', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/credentials`).then(r => r.data.data ?? []),
+    enabled: tab === 'credentials',
+  })
+
+  // Reveal credential password
+  const handleRevealPassword = async (cred: CredentialVO) => {
+    setRevealingCredential(cred)
+    setRevealedPassword(null)
+    setShowPassword(false)
+    setRevealDialogOpen(true)
+    setRevealing(true)
+    try {
+      const res = await api.get(`/devices/credentials/${cred.id}/reveal`)
+      setRevealedPassword(res.data.data)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? '获取密码失败')
+      setRevealDialogOpen(false)
+      setRevealingCredential(null)
+    } finally {
+      setRevealing(false)
+    }
+  }
+
   // Alerts for this instance
   const { data: instanceAlerts = [], isLoading: alertsLoading } = useInstanceAlerts(id)
   const firingCount = instanceAlerts.filter(a => a.status === 'firing').length
@@ -399,7 +475,7 @@ export default function CmdbInstanceDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-6 overflow-x-auto">
-        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'daily-reports', 'alerts', 'history'] as const).map(t => (
+        {(['info', 'relations', 'topology', 'impact', 'devices', 'change-docs', 'daily-reports', 'alerts', 'credentials', 'history'] as const).map(t => (
           <button
             key={t}
             onClick={() => {
@@ -420,6 +496,7 @@ export default function CmdbInstanceDetailPage() {
             {t === 'change-docs' && '相关变更'}
             {t === 'daily-reports' && '相关日报'}
             {t === 'alerts' && (<>告警{firingCount > 0 && <Badge variant="destructive" className="ml-1 text-xs px-1.5">{firingCount}</Badge>}</>)}
+            {t === 'credentials' && '凭证'}
             {t === 'history' && '变更历史'}
           </button>
         ))}
@@ -452,6 +529,29 @@ export default function CmdbInstanceDetailPage() {
                 <p className="text-sm mt-0.5">{value}</p>
               </div>
             ))}
+          </div>
+
+          {/* Lifecycle info */}
+          <div className="mb-6">
+            <h3 className="font-semibold mb-3">生命周期信息</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                ['生命周期状态', instance.lifecycleStatus ? (LIFECYCLE_STATUS_MAP[instance.lifecycleStatus] ?? instance.lifecycleStatus) : '-'],
+                ['生命周期阶段', instance.lifecycleStage || '-'],
+                ['资产分类', instance.assetCategory ? (ASSET_CATEGORY_MAP[instance.assetCategory] ?? instance.assetCategory) : '-'],
+                ['购买日期', instance.purchaseDate ? new Date(instance.purchaseDate).toLocaleDateString('zh-CN') : '-'],
+                ['采购价格', instance.purchasePrice != null ? `¥${Number(instance.purchasePrice).toFixed(2)}` : '-'],
+                ['供应商', instance.vendor || '-'],
+                ['保修开始', instance.warrantyStart ? new Date(instance.warrantyStart).toLocaleDateString('zh-CN') : '-'],
+                ['保修结束', instance.warrantyEnd ? new Date(instance.warrantyEnd).toLocaleDateString('zh-CN') : '-'],
+                ['合同编号', instance.contractNo || '-'],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="border rounded-lg p-3">
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                  <p className="text-sm mt-0.5">{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Dynamic fields */}
@@ -921,6 +1021,49 @@ export default function CmdbInstanceDetailPage() {
         </div>
       )}
 
+      {/* ========== Credentials Tab ========== */}
+      {tab === 'credentials' && (
+        <div>
+          <h2 className="font-semibold mb-4">凭证</h2>
+          {credentialsLoading ? (
+            <p className="text-muted-foreground text-sm">加载中...</p>
+          ) : relatedCredentials.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">暂无凭证</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>用户名</TableHead>
+                  <TableHead>设备ID</TableHead>
+                  <TableHead>描述</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {relatedCredentials.map(cred => (
+                  <TableRow key={cred.id}>
+                    <TableCell className="font-medium">{cred.username}</TableCell>
+                    <TableCell>{cred.deviceId}</TableCell>
+                    <TableCell>{cred.description ?? '-'}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {new Date(cred.createdAt).toLocaleString('zh-CN')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <PermissionGuard resource="device" action="view_password">
+                        <Button size="sm" variant="outline" onClick={() => handleRevealPassword(cred)} disabled={revealing}>
+                          <Eye className="h-3.5 w-3.5 mr-1" />查看密码
+                        </Button>
+                      </PermissionGuard>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+
       {/* ========== History Tab ========== */}
       {tab === 'history' && (
         <div>
@@ -1011,6 +1154,67 @@ export default function CmdbInstanceDetailPage() {
               <div className="space-y-1.5">
                 <Label>描述</Label>
                 <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Lifecycle management */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium mb-3">生命周期管理</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>生命周期状态</Label>
+                  <Select value={editForm.lifecycleStatus} onValueChange={v => setEditForm(f => ({ ...f, lifecycleStatus: v ?? '' }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provisioning">配置中</SelectItem>
+                      <SelectItem value="running">运行中</SelectItem>
+                      <SelectItem value="stopped">已停止</SelectItem>
+                      <SelectItem value="retired">已退役</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>生命周期阶段</Label>
+                  <Input value={editForm.lifecycleStage} onChange={e => setEditForm(f => ({ ...f, lifecycleStage: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>资产分类</Label>
+                  <Select value={editForm.assetCategory} onValueChange={v => setEditForm(f => ({ ...f, assetCategory: v ?? '' }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="请选择" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="server">服务器</SelectItem>
+                      <SelectItem value="network">网络设备</SelectItem>
+                      <SelectItem value="storage">存储设备</SelectItem>
+                      <SelectItem value="security">安全设备</SelectItem>
+                      <SelectItem value="software">软件</SelectItem>
+                      <SelectItem value="other">其他</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>购买日期</Label>
+                  <Input type="date" value={editForm.purchaseDate} onChange={e => setEditForm(f => ({ ...f, purchaseDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>采购价格</Label>
+                  <Input type="number" step="0.01" value={editForm.purchasePrice} onChange={e => setEditForm(f => ({ ...f, purchasePrice: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>供应商</Label>
+                  <Input value={editForm.vendor} onChange={e => setEditForm(f => ({ ...f, vendor: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>保修开始</Label>
+                  <Input type="date" value={editForm.warrantyStart} onChange={e => setEditForm(f => ({ ...f, warrantyStart: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>保修结束</Label>
+                  <Input type="date" value={editForm.warrantyEnd} onChange={e => setEditForm(f => ({ ...f, warrantyEnd: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>合同编号</Label>
+                  <Input value={editForm.contractNo} onChange={e => setEditForm(f => ({ ...f, contractNo: e.target.value }))} />
+                </div>
               </div>
             </div>
 
@@ -1191,6 +1395,58 @@ export default function CmdbInstanceDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ========== Password Reveal Dialog ========== */}
+      <Dialog open={revealDialogOpen} onOpenChange={(v) => {
+        if (!v) {
+          setRevealDialogOpen(false)
+          setRevealingCredential(null)
+          setRevealedPassword(null)
+          setShowPassword(false)
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>查看密码</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {revealingCredential && (
+              <div className="space-y-1.5">
+                <Label>用户名</Label>
+                <Input value={revealingCredential.username} readOnly />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>密码</Label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={revealing ? '加载中...' : (revealedPassword ?? '')}
+                  readOnly
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowPassword(s => !s)}
+                  disabled={revealing || !revealedPassword}
+                  title={showPassword ? '隐藏密码' : '显示密码'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => {
+              setRevealDialogOpen(false)
+              setRevealingCredential(null)
+              setRevealedPassword(null)
+              setShowPassword(false)
+            }}>关闭</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

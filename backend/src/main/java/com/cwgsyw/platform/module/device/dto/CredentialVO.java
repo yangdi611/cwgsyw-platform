@@ -13,4 +13,6 @@ public class CredentialVO {
     private String password;       // null when masked, plaintext when revealed
     private String description;
     private LocalDateTime createdAt;
+    private Long ciInstanceId;
+    private String ciInstanceName;
 }
