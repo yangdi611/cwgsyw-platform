@@ -40,7 +40,7 @@ export default function TopologyPage() {
       <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-background flex-shrink-0">
         {rootNode ? (
           <Link
-            href={`/cmdb/instances/${rootNode.model_id}/${instanceId}`}
+            href={`/cmdb/instances/by-model/${rootNode.model_id}/${instanceId}`}
             className={buttonVariants({ variant: 'ghost', size: 'sm' })}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />返回实例
@@ -125,7 +125,7 @@ export default function TopologyPage() {
                 </div>
               )}
               <Link
-                href={`/cmdb/instances/${selectedNode.model_id}/${selectedNode.id}`}
+                href={`/cmdb/instances/by-model/${selectedNode.model_id}/${selectedNode.id}`}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
               >
                 <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
