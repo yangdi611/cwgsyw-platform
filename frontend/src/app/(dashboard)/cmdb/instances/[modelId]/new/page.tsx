@@ -29,6 +29,7 @@ export default function NewInstancePage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [attrs, setAttrs] = useState<Record<string, string>>({})
+  const [name, setName] = useState('')
 
   useEffect(() => {
     if (!isHydrated) return
@@ -41,7 +42,7 @@ export default function NewInstancePage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => api.post(`/cmdb/instances/${modelId}`, { attrs }),
+    mutationFn: () => api.post('/cmdb/instances', { modelId, name, fieldsData: attrs }),
     onSuccess: (res) => {
       toast.success('实例已创建')
       router.push(`/cmdb/instances/${modelId}/${res.data.data.id}`)
@@ -71,6 +72,18 @@ export default function NewInstancePage() {
       </div>
 
       <div className="space-y-6">
+        <div className="border rounded-lg p-5">
+          <div className="space-y-1.5">
+            <Label className="text-sm">
+              实例名称<span className="text-destructive ml-1">*</span>
+            </Label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="请输入实例名称"
+            />
+          </div>
+        </div>
         {groups.sort((a, b) => a.sort_order - b.sort_order).map(group => {
           const groupAttrs = (attrsByGroup[group.group_id] ?? [])
             .sort((a, b) => a.sort_order - b.sort_order)
