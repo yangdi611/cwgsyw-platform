@@ -9,4 +9,10 @@ import java.util.List;
 public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
     @Select("SELECT role_id FROM sys_user_role WHERE user_id = #{userId}")
     List<Long> findRoleIdsByUserId(Long userId);
+
+    @Select({"<script>",
+            "SELECT user_id FROM sys_user_role WHERE role_id IN",
+            "<foreach item='roleId' collection='roleIds' open='(' separator=',' close=')'>#{roleId}</foreach>",
+            "</script>"})
+    List<Long> findUserIdsByRoleIds(@Param("roleIds") List<Long> roleIds);
 }

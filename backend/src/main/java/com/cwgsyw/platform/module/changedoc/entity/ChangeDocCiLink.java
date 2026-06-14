@@ -1,27 +1,16 @@
 package com.cwgsyw.platform.module.changedoc.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("change_doc_ci_link")
-public class ChangeDocCiLink {
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class ChangeDocCiLink extends BaseEntity {
     private String tenantId;
     private Long changeDocId;
     private Long instanceId;
     private String impactLevel;
-    @TableLogic
-    private Boolean isDeleted;
-    private LocalDateTime deletedAt;
-    private Long deletedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private Long createdBy;
 }
