@@ -7,6 +7,8 @@ import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
 
 @Data
@@ -21,4 +23,15 @@ public class CiInstance extends BaseEntity {
 
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> fieldsData;
+
+    // ── 生命周期 & 资产管理字段 ──
+    private String lifecycleStatus;
+    private String lifecycleStage;
+    private String assetCategory;
+    private LocalDate purchaseDate;
+    private BigDecimal purchasePrice;
+    private String vendor;
+    private LocalDate warrantyStart;
+    private LocalDate warrantyEnd;
+    private String contractNo;
 }

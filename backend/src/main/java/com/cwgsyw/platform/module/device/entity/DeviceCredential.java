@@ -14,4 +14,5 @@ public class DeviceCredential extends BaseEntity {
     private String username;
     private String passwordEnc;
     private String description;
+    private Long ciInstanceId;
 }
