@@ -17,4 +17,8 @@ public class CiModel extends BaseEntity {
     private String color;
     @TableField("enable_2d_view")
     private Boolean enable2dView;
+    
+    public String getModelId() {
+        return this.name;
+    }
 }
