@@ -22,26 +22,20 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
   onSave: (definitionId: string) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
-  // Resolve the process key from the current definition ID
-  // Only show processes that have at least one active (non-suspended) version
   const { data: allDefs = [] } = useQuery<any[]>({
     queryKey: ['process-defs-selector'],
     queryFn: () => api.get('/workflow/definitions').then(r => {
       const defs = (r.data.data?.records ?? []) as any[];
-      // Filter: only include processes where the latest version is active (not suspended)
-      // The list API returns latest version only, so if it's suspended, all versions are suspended (mutex)
       return defs.filter((d: any) => !d.suspended);
     }),
   })
 
-  // Find which process this definitionId belongs to
   const [selectedKey, setSelectedKey] = useState(() => {
     if (!value) return ''
     const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
     return match?.key ?? ''
   })
 
-  // When allDefs loads, resolve key from value
   useEffect(() => {
     if (value && !selectedKey) {
       const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
@@ -49,7 +43,6 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
     }
   }, [allDefs, value, selectedKey])
 
-  // Fetch versions for selected process
   const { data: versions = [] } = useQuery<any[]>({
     queryKey: ['process-versions', selectedKey],
     queryFn: () => api.get(`/workflow/definitions/key/${selectedKey}/versions`).then(r => r.data.data ?? []),
@@ -62,7 +55,6 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
     <div className="flex gap-2 items-center flex-wrap">
       <Select value={selectedKey} onValueChange={v => {
         setSelectedKey(v)
-        // Reset definition ID when process changes — user must pick a version
       }}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="选择流程" />
@@ -277,69 +269,59 @@ export default function AdminConfigPage() {
             </div>
           )}
 
-      {/* Prometheus */}
-      <section className="border rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Prometheus 告警集成</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch checked={prometheusEnabled} onCheckedChange={setPrometheusEnabled} id="prometheus-enabled" />
-            <Label htmlFor="prometheus-enabled">启用 Prometheus 告警同步</Label>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Prometheus 地址</Label>
-            <Input
-              value={prometheusUrl}
-              onChange={e => setPrometheusUrl(e.target.value)}
-              placeholder="http://prometheus:9090"
-            />
-            <p className="text-xs text-muted-foreground">Prometheus Server API 地址（无需尾部斜杠）</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>同步间隔（秒）</Label>
-            <Input
-              type="number"
-              min="10"
-              value={prometheusInterval}
-              onChange={e => setPrometheusInterval(e.target.value)}
-              placeholder="60"
-            />
-            <p className="text-xs text-muted-foreground">从 Prometheus 拉取告警的间隔时间</p>
-          </div>
-          <Button onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
-            保存 Prometheus 配置
-          </Button>
-        </div>
-      </section>
+          {/* Reminder */}
+          {activeTab === 'reminder' && (
+            <div className="border rounded-lg p-6">
+              <h2 className="text-lg font-semibold mb-4">日报提醒 + Prometheus 告警</h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} id="reminder-enabled" />
+                  <Label htmlFor="reminder-enabled">启用日报提交提醒</Label>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Cron 表达式</Label>
+                  <Input value={reminderCron} onChange={e => setReminderCron(e.target.value)} placeholder="0 0 17 * * MON-FRI" />
+                  <p className="text-xs text-muted-foreground">默认：工作日 17:00</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>提醒模板</Label>
+                  <Textarea value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} placeholder="请尽快提交今日日报" rows={3} />
+                </div>
+                <Button onClick={() => notifyMutation.mutate()} disabled={notifyMutation.isPending}>
+                  保存提醒配置
+                </Button>
 
-      {/* Watermark */}
-      <section className="border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">文档水印</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch checked={watermarkEnabled} onCheckedChange={setWatermarkEnabled} id="watermark-enabled" />
-            <Label htmlFor="watermark-enabled">启用水印</Label>
-          </div>
-          <div className="space-y-1.5">
-            <Label>水印文字</Label>
-            <Input
-              value={watermarkText}
-              onChange={e => setWatermarkText(e.target.value)}
-              placeholder="内部资料 请勿外传"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>透明度 (0-1)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="1"
-                step="0.05"
-                value={watermarkOpacity}
-                onChange={e => setWatermarkOpacity(e.target.value)}
-                placeholder="0.3"
-              />
-              <p className="text-xs text-muted-foreground">0 为完全透明，1 为完全不透明</p>
+                <hr className="border-t my-6" />
+
+                <h3 className="text-lg font-semibold mb-4">Prometheus 告警集成</h3>
+                <div className="flex items-center gap-3">
+                  <Switch checked={prometheusEnabled} onCheckedChange={setPrometheusEnabled} id="prometheus-enabled" />
+                  <Label htmlFor="prometheus-enabled">启用 Prometheus 告警同步</Label>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Prometheus 地址</Label>
+                  <Input
+                    value={prometheusUrl}
+                    onChange={e => setPrometheusUrl(e.target.value)}
+                    placeholder="http://prometheus:9090"
+                  />
+                  <p className="text-xs text-muted-foreground">Prometheus Server API 地址（无需尾部斜杠）</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>同步间隔（秒）</Label>
+                  <Input
+                    type="number"
+                    min="10"
+                    value={prometheusInterval}
+                    onChange={e => setPrometheusInterval(e.target.value)}
+                    placeholder="60"
+                  />
+                  <p className="text-xs text-muted-foreground">从 Prometheus 拉取告警的间隔时间</p>
+                </div>
+                <Button onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
+                  保存 Prometheus 配置
+                </Button>
+              </div>
             </div>
           )}
 

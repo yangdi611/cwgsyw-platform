@@ -22,9 +22,35 @@ import {
   Database,
   History,
   Globe,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 
-const navItems = [
+type NavItem = {
+  href: string
+  label: string
+  icon: any
+  resource: string | null
+  action: string | null
+}
+
+type NavGroup = {
+  label: string
+  icon: any
+  children: (NavItem | NavGroup)[]
+  storageKey: string
+  defaultOpen?: boolean
+  resource: string | null
+  action: string | null
+}
+
+type NavEntry = NavItem | NavGroup
+
+function isGroup(item: NavEntry): item is NavGroup {
+  return 'children' in item
+}
+
+const navItems: NavEntry[] = [
   { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
   { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
   { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
@@ -147,9 +173,9 @@ export function Sidebar() {
         <span className="font-bold text-lg">IT 运维平台</span>
       </div>
       <nav className="flex-1 p-2 space-y-1">
-        {sidebarEntries.map((entry) => {
+        {navItems.map((entry) => {
           if (isGroup(entry)) {
-            if (!hasPermission(entry.resource, entry.action)) return null
+            if (!entry.resource || !entry.action || !hasPermission(entry.resource, entry.action)) return null
             return (
               <NavGroupItem
                 key={entry.label}
