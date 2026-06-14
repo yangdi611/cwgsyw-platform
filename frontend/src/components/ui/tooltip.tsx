@@ -17,7 +17,7 @@ function TooltipContent({
   className,
   sideOffset = 4,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Popup>) {
+}: React.ComponentProps<typeof TooltipPrimitive.Popup> & { sideOffset?: number }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner sideOffset={sideOffset}>
