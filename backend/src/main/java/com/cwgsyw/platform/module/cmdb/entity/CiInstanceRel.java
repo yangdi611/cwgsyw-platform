@@ -14,7 +14,9 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "ci_instance_rel", autoResultMap = true)
 public class CiInstanceRel extends BaseEntity {
+    @TableField("src_id")
     private Long srcInstanceId;
+    @TableField("dst_id")
     private Long dstInstanceId;
     private String associationKind;
 
