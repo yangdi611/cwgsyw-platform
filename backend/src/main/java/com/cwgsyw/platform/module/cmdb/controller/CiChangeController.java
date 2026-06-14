@@ -18,6 +18,7 @@ public class CiChangeController {
 
     private final CiChangeService ciChangeService;
 
+    /*  // Duplicate of CiInstanceController.history
     @GetMapping("/instances/{instanceId}/history")
     @PreAuthorize("hasAuthority('cmdb_change:read')")
     public R<PageResult<ChangeHistoryV2VO>> instanceHistory(
@@ -32,6 +33,7 @@ public class CiChangeController {
         return R.ok(ciChangeService.getInstanceHistory(
                 instanceId, from, to, operatorId, action, page, size, cu.getTenantId()));
     }
+    */
 
     @GetMapping("/changes")
     @PreAuthorize("hasAuthority('cmdb_change:read')")
