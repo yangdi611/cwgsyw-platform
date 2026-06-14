@@ -81,7 +81,7 @@ export default function InstanceListPage() {
           </div>
         </div>
         {hasPermission('cmdb_instance', 'create') && (
-          <Link href={`/cmdb/instances/${modelId}/new`} className={buttonVariants({ size: 'sm' })}>
+          <Link href={`/cmdb/instances/by-model/${modelId}/new`} className={buttonVariants({ size: 'sm' })}>
             <Plus className="h-4 w-4 mr-1" />新建实例
           </Link>
         )}
@@ -127,7 +127,7 @@ export default function InstanceListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Link href={`/cmdb/instances/${modelId}/${inst.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 w-7 p-0'}>
+                        <Link href={`/cmdb/instances/by-model/${modelId}/${inst.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 w-7 p-0'}>
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
                         {hasPermission('cmdb_instance', 'delete') && (

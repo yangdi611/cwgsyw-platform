@@ -80,7 +80,7 @@ export default function AssociationsPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/${modelId}/${id}`}
+        <Link href={`/cmdb/instances/by-model/${modelId}/${id}`}
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回详情
         </Link>
@@ -139,7 +139,7 @@ export default function AssociationsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium">
-                      <Link href={`/cmdb/instances/${rel.peer_model_id}/${rel.peer_id}`}
+                      <Link href={`/cmdb/instances/by-model/${rel.peer_model_id}/${rel.peer_id}`}
                         className="hover:underline">
                         {rel.peer_name}
                       </Link>
