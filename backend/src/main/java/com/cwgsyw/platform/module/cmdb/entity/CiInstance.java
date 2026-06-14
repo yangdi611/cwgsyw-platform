@@ -19,6 +19,6 @@ public class CiInstance extends BaseEntity {
     private String owner;
     private String description;
 
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "attrs", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> fieldsData;
 }
