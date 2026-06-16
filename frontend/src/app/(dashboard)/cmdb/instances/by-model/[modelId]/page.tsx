@@ -54,7 +54,7 @@ export default function InstanceListPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/cmdb/instances/${modelId}/${id}`),
+    mutationFn: (id: number) => api.delete(`/cmdb/instances/${id}`),
     onSuccess: () => {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelId] })
