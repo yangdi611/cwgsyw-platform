@@ -69,6 +69,7 @@ const navItems: NavEntry[] = [
       { href: '/cmdb/models',           label: '模型管理', icon: Box,      resource: 'cmdb_model',    action: 'read' },
       { href: '/cmdb/instances',        label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/changes',          label: '变更历史', icon: History,  resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/changes/stats',    label: '统计看板', icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/instances/2d-view', label: '2D 视图', icon: Grid3x3, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/admin',            label: '配置管理', icon: Settings, resource: 'cmdb_model',    action: 'write' },
     ],
@@ -113,11 +114,11 @@ function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
       return c.children.some(ch => {
         if (isGroup(ch)) return false
         const href = (ch as NavItem).href
-        return href === '/cmdb' ? pathname === '/cmdb' : pathname.startsWith(href)
+        return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?')
       })
     }
     const href = (c as NavItem).href
-    return href === '/cmdb' ? pathname === '/cmdb' : pathname.startsWith(href)
+    return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?')
   })
 
   const [open, setOpen] = usePersistState(group.storageKey, group.defaultOpen ?? isAnyChildActive)
@@ -154,7 +155,7 @@ function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
             const item = child as NavItem
             const isActive = item.href === '/cmdb'
               ? pathname === '/cmdb'
-              : pathname.startsWith(item.href)
+              : pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?')
             return (
               <Link
                 key={item.href}

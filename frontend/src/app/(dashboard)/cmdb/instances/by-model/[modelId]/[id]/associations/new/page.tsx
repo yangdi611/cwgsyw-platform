@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +41,9 @@ export default function NewAssociationPage() {
   const [keyword, setKeyword] = useState('')
   const [selectedPeer, setSelectedPeer] = useState<InstanceSearchVO | null>(null)
   const [error, setError] = useState('')
+  const [assocAttrs, setAssocAttrs] = useState<Record<string, string>>({})
+  const [attrKey, setAttrKey] = useState('')
+  const [attrValue, setAttrValue] = useState('')
 
   useEffect(() => {
     if (!isHydrated) return
@@ -85,6 +88,7 @@ export default function NewAssociationPage() {
       return api.post(`/cmdb/instances/${id}/relations`, {
         dst_instance_id: selectedPeer.id,
         association_kind: selectedDef.kind_id,
+        attrs: assocAttrs,
       })
     },
     onSuccess: () => {
@@ -282,6 +286,38 @@ export default function NewAssociationPage() {
                   {selectedPeer?.name}
                 </span>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">关联属性</Label>
+              <div className="flex items-center gap-2">
+                <Input placeholder="属性名" value={attrKey} onChange={e => setAttrKey(e.target.value)} />
+                <Input placeholder="属性值" value={attrValue} onChange={e => setAttrValue(e.target.value)} />
+                <Button type="button" variant="outline" size="sm"
+                  onClick={() => {
+                    if (!attrKey.trim()) return
+                    setAssocAttrs(a => ({ ...a, [attrKey.trim()]: attrValue }))
+                    setAttrKey('')
+                    setAttrValue('')
+                  }}>
+                  添加
+                </Button>
+              </div>
+              {Object.keys(assocAttrs).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(assocAttrs).map(([k, v]) => (
+                    <Badge key={k} variant="secondary" className="text-xs">
+                      {k}: {v}
+                      <button type="button" onClick={() => setAssocAttrs(a => {
+                        const next = { ...a }
+                        delete next[k]
+                        return next
+                      })}>
+                        <X className="h-3 w-3 ml-0.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <p className="text-xs text-muted-foreground">
