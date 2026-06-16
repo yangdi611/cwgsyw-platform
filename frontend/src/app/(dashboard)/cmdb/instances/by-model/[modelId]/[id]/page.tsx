@@ -47,7 +47,7 @@ export default function InstanceDetailPage() {
 
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => r.data.data),
   })
 
   if (isLoading) return <p className="text-muted-foreground">加载中...</p>

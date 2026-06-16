@@ -49,7 +49,7 @@ export default function AssociationsPage() {
 
   const { data: inst } = useQuery<CiInstanceSummary>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${modelId}/${id}`).then(r => ({
+    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => ({
       name: r.data.data.name,
       model_id: r.data.data.model_id,
     })),

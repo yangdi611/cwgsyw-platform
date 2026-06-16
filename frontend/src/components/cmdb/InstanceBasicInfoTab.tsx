@@ -54,7 +54,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
   }, [inst])
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/cmdb/instances/${modelId}/${inst.id}`, { attrs: editAttrs }),
+    mutationFn: () => api.put(`/cmdb/instances/${inst.id}`, { attrs: editAttrs }),
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
