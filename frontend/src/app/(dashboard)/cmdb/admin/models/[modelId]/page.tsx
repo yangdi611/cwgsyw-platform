@@ -44,11 +44,11 @@ export default function ModelDetailPage() {
 
   const { data: model, isLoading } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],
-    queryFn: () => api.get(`/cmdb/meta/models/${modelId}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
   })
 
   const addAttrMutation = useMutation({
-    mutationFn: () => api.post(`/cmdb/meta/models/${modelId}/attributes`, {
+    mutationFn: () => api.post(`/cmdb/models/${modelId}/attributes`, {
       field_key: newAttr.fieldKey, name: newAttr.name, field_type: newAttr.fieldType,
       group_id: newAttr.groupId, is_required: newAttr.isRequired, is_unique: newAttr.isUnique,
       is_list_show: newAttr.isListShow,
@@ -65,7 +65,7 @@ export default function ModelDetailPage() {
   })
 
   const deleteAttrMutation = useMutation({
-    mutationFn: (attrId: number) => api.delete(`/cmdb/meta/attributes/${attrId}`),
+    mutationFn: (attrId: number) => api.delete(`/cmdb/models/${modelId}/attributes/${attrId}`),
     onSuccess: () => { toast.success('属性已删除'); queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelId] }) },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })

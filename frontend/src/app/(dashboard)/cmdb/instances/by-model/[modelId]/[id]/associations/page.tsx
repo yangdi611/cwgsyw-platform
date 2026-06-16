@@ -55,11 +55,11 @@ export default function AssociationsPage() {
 
   const { data: relGroups = [], isLoading } = useQuery<CiRelGroupVO[]>({
     queryKey: ['cmdb-rel', id],
-    queryFn: () => api.get(`/cmdb/rel/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (relId: number) => api.delete(`/cmdb/rel/${relId}`),
+    mutationFn: (relId: number) => api.delete(`/cmdb/instances/${id}/relations/${relId}`),
     onSuccess: () => {
       toast.success('关联已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-rel', id] })
