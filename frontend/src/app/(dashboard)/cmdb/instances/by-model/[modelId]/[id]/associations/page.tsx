@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -19,6 +20,7 @@ interface CiInstanceRelVO {
   peer_model_id: string
   peer_model_name: string
   direction_label: string
+  attrs: Record<string, unknown>
   created_at: string
 }
 
@@ -125,13 +127,14 @@ export default function AssociationsPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">对端 CI</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">模型</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">创建时间</th>
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">关联属性</th>
                 <th className="px-4 py-2.5 w-16"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                  <td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
                     暂无关联
                   </td>
                 </tr>
@@ -153,6 +156,19 @@ export default function AssociationsPage() {
                     <td className="px-4 py-3 text-muted-foreground">{rel.peer_model_name}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(rel.created_at).toLocaleDateString('zh-CN')}
+                    </td>
+                    <td className="px-4 py-3">
+                      {rel.attrs && Object.keys(rel.attrs).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(rel.attrs).map(([k, v]) => (
+                            <Badge key={k} variant="secondary" className="text-xs">
+                              {k}={String(v)}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {hasPermission('cmdb_instance', 'delete') && (

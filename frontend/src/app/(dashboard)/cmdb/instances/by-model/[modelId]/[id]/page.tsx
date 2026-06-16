@@ -5,12 +5,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, Activity } from 'lucide-react'
+import { ArrowLeft, Pencil, Save, X, ChevronDown, ChevronUp, Link2, X as XIcon, GitBranch, GitCompare, Activity } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
@@ -80,6 +81,9 @@ export default function InstanceDetailPage() {
   const [peerSearch, setPeerSearch] = useState('')
   const [selectedPeerId, setSelectedPeerId] = useState<number | null>(null)
   const [addError, setAddError] = useState('')
+  const [newRelAttrs, setNewRelAttrs] = useState<Record<string, string>>({})
+  const [attrKey, setAttrKey] = useState('')
+  const [attrValue, setAttrValue] = useState('')
 
   useEffect(() => {
     if (!isHydrated) return
@@ -163,6 +167,7 @@ export default function InstanceDetailPage() {
       return api.post(`/cmdb/instances/${id}/relations`, {
         dst_instance_id: selectedPeerId,
         association_kind: selectedDef.kind_id,
+        attrs: newRelAttrs,
       })
     },
     onSuccess: () => {
@@ -172,6 +177,7 @@ export default function InstanceDetailPage() {
       setSelectedPeerId(null)
       setPeerSearch('')
       setAddError('')
+      setNewRelAttrs({})
       refetchRels()
     },
     onError: (e: any) => setAddError(e?.response?.data?.message ?? '创建失败'),
@@ -212,6 +218,11 @@ export default function InstanceDetailPage() {
           {hasPermission('cmdb_instance', 'impact') && (
             <Link href={`/cmdb/impact/${id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
               <Activity className="h-4 w-4 mr-1" />影响分析
+            </Link>
+          )}
+          {hasPermission('cmdb_instance', 'read') && (
+            <Link href={'/cmdb/topology/' + id} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              <GitCompare className="h-4 w-4 mr-1" />拓扑对比
             </Link>
           )}
           {canEdit && !editing && (
@@ -291,10 +302,19 @@ export default function InstanceDetailPage() {
                   <div className="space-y-1">
                     {group.relations.map(rel => (
                       <div key={rel.id} className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-muted/30 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{rel.direction_label}</span>
-                          <span className="font-medium">{rel.peer_name}</span>
-                          <span className="text-xs text-muted-foreground">({rel.peer_model_name})</span>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{rel.direction_label}</span>
+                            <span className="font-medium">{rel.peer_name}</span>
+                            <span className="text-xs text-muted-foreground">({rel.peer_model_name})</span>
+                          </div>
+                          {rel.attrs && Object.keys(rel.attrs).length > 0 && (
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              {Object.entries(rel.attrs).map(([k, v]) => (
+                                <span key={k}>{k}: {String(v)}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         {hasPermission('cmdb_instance', 'delete') && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive"
@@ -421,6 +441,41 @@ export default function InstanceDetailPage() {
                     <p className="text-center text-muted-foreground text-xs py-3">无匹配实例</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {selectedPeerId && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">关联属性</Label>
+                <div className="flex items-center gap-2">
+                  <Input placeholder="属性名" value={attrKey} onChange={e => setAttrKey(e.target.value)} />
+                  <Input placeholder="属性值" value={attrValue} onChange={e => setAttrValue(e.target.value)} />
+                  <Button type="button" variant="outline" size="sm"
+                    onClick={() => {
+                      if (!attrKey.trim()) return
+                      setNewRelAttrs(a => ({ ...a, [attrKey.trim()]: attrValue }))
+                      setAttrKey('')
+                      setAttrValue('')
+                    }}>
+                    添加
+                  </Button>
+                </div>
+                {Object.keys(newRelAttrs).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(newRelAttrs).map(([k, v]) => (
+                      <Badge key={k} variant="secondary" className="text-xs">
+                        {k}: {v}
+                        <button type="button" onClick={() => setNewRelAttrs(a => {
+                          const next = { ...a }
+                          delete next[k]
+                          return next
+                        })}>
+                          <X className="h-3 w-3 ml-0.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
