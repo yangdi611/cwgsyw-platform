@@ -69,6 +69,7 @@ const navItems: NavEntry[] = [
       { href: '/cmdb/models',           label: '模型管理', icon: Box,      resource: 'cmdb_model',    action: 'read' },
       { href: '/cmdb/instances',        label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/changes',          label: '变更历史', icon: History,  resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/alerts',           label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',   action: 'read' },
       { href: '/cmdb/changes/stats',    label: '统计看板', icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/instances/2d-view', label: '2D 视图', icon: Grid3x3, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/admin',            label: '配置管理', icon: Settings, resource: 'cmdb_model',    action: 'write' },
