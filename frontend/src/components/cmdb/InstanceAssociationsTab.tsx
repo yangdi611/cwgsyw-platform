@@ -99,13 +99,12 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
   const deleteRelMutation = useMutation({
     mutationFn: (relId: number) => api.delete(`/cmdb/instances/${id}/relations/${relId}`),
     onSuccess: () => { toast.success('关联已删除'); queryClient.invalidateQueries({ queryKey: ['cmdb-rel', id] }) },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: { response?: { data?: { message?: string } } }) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
 
   const createRelMutation = useMutation({
     mutationFn: () => {
       if (!selectedDef || !selectedPeerId) throw new Error('请选择关联定义和目标实例')
-      const isSrc = selectedDef.src_model_id === modelId
       return api.post(`/cmdb/instances/${id}/relations`, {
         dst_instance_id: selectedPeerId,
         association_kind: selectedDef.kind_id,
@@ -120,7 +119,7 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
       setAddError('')
       queryClient.invalidateQueries({ queryKey: ['cmdb-rel', id] })
     },
-    onError: (e: any) => setAddError(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: { response?: { data?: { message?: string } } }) => setAddError(e?.response?.data?.message ?? '创建失败'),
   })
 
   const totalRelations = relGroups.reduce((n, g) => n + g.relations.length, 0)

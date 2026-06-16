@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
+  const [prevInstId, setPrevInstId] = useState(inst.id)
   const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
 
   const { data: model } = useQuery<CiModelVO>({
@@ -47,11 +48,17 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
     queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
   })
 
-  useEffect(() => {
-    setEditAttrs(Object.fromEntries(
-      Object.entries(inst.attrs ?? {}).map(([k, v]) => [k, String(v ?? '')])
-    ))
-  }, [inst])
+  // Derive fresh attrs from instance — stable reference via useMemo
+  const freshAttrs = useMemo(() => Object.fromEntries(
+    Object.entries(inst.attrs ?? {}).map(([k, v]) => [k, String(v ?? '')])
+  ), [inst])
+
+  // Reset editAttrs when instance changes (render-time conditional setState,
+  // avoids set-state-in-effect that triggers inside useEffect).
+  if (prevInstId !== inst.id) {
+    setPrevInstId(inst.id)
+    setEditAttrs(freshAttrs)
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/cmdb/instances/${inst.id}`, { attrs: editAttrs }),
@@ -60,7 +67,10 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
       setEditing(false)
       queryClient.invalidateQueries({ queryKey: ['cmdb-instance', modelId, String(inst.id)] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '保存失败'),
+    onError: (e: Error) => {
+      const apiErr = e as { response?: { data?: { message?: string } } }
+      toast.error(apiErr?.response?.data?.message ?? '保存失败')
+    },
   })
 
   const canEdit = hasPermission('cmdb_instance', 'update')
