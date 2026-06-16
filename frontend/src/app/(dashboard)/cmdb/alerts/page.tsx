@@ -120,7 +120,10 @@ export default function CmdbAlertsPage() {
   const onAck = (alertId: number) => {
     ack.mutate(alertId, {
       onSuccess: () => toast.success('告警已确认'),
-      onError: (e: any) => toast.error(e?.response?.data?.message ?? '确认失败'),
+      onError: (e: Error) => {
+        const apiErr = e as { response?: { data?: { message?: string } } }
+        toast.error(apiErr?.response?.data?.message ?? '确认失败')
+      },
     })
   }
 
