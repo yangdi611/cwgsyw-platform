@@ -93,11 +93,11 @@ function ModelsTab() {
 
   const { data: models = [], isLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models'],
-    queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data),
+    queryFn: () => api.get('/cmdb/models').then(r => r.data.data),
   })
 
   const createMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/meta/models', {
+    mutationFn: () => api.post('/cmdb/models', {
       model_id: form.modelId, name: form.name, icon: form.icon,
       group_code: form.groupCode || undefined, description: form.description || undefined,
     }),
@@ -202,24 +202,24 @@ function AssociationsTab() {
   const [newKind, setNewKind] = useState({ kindId: '', name: '', srcToDst: '', dstToSrc: '' })
   const [newDef, setNewDef] = useState({ kindId: '', srcModelId: '', dstModelId: '', name: '', mapping: 'n:n' })
 
-  const { data: kinds = [] } = useQuery<AsstKind[]>({ queryKey: ['cmdb-asst-kinds'], queryFn: () => api.get('/cmdb/meta/association-kinds').then(r => r.data.data) })
-  const { data: defs = [] } = useQuery<AsstDef[]>({ queryKey: ['cmdb-asst-defs'], queryFn: () => api.get('/cmdb/meta/association-defs').then(r => r.data.data) })
-  const { data: models = [] } = useQuery<CiModelVO[]>({ queryKey: ['cmdb-models'], queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data) })
+  const { data: kinds = [] } = useQuery<AsstKind[]>({ queryKey: ['cmdb-asst-kinds'], queryFn: () => api.get('/cmdb/association-kinds').then(r => r.data.data) })
+  const { data: defs = [] } = useQuery<AsstDef[]>({ queryKey: ['cmdb-asst-defs'], queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data) })
+  const { data: models = [] } = useQuery<CiModelVO[]>({ queryKey: ['cmdb-models'], queryFn: () => api.get('/cmdb/models').then(r => r.data.data) })
 
   const createKindMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/meta/association-kinds', { kind_id: newKind.kindId, name: newKind.name, src_to_dst: newKind.srcToDst || undefined, dst_to_src: newKind.dstToSrc || undefined }),
+    mutationFn: () => api.post('/cmdb/association-kinds', { kind_id: newKind.kindId, name: newKind.name, src_to_dst: newKind.srcToDst || undefined, dst_to_src: newKind.dstToSrc || undefined }),
     onSuccess: () => { toast.success('关联种类已创建'); queryClient.invalidateQueries({ queryKey: ['cmdb-asst-kinds'] }); setAddingKind(false); setNewKind({ kindId: '', name: '', srcToDst: '', dstToSrc: '' }) },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
   })
 
   const createDefMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/meta/association-defs', { kind_id: newDef.kindId, src_model_id: newDef.srcModelId, dst_model_id: newDef.dstModelId, name: newDef.name || undefined, mapping: newDef.mapping }),
+    mutationFn: () => api.post('/cmdb/association-defs', { kind_id: newDef.kindId, src_model_id: newDef.srcModelId, dst_model_id: newDef.dstModelId, name: newDef.name || undefined, mapping: newDef.mapping }),
     onSuccess: () => { toast.success('关联关系已创建'); queryClient.invalidateQueries({ queryKey: ['cmdb-asst-defs'] }); setAddingDef(false); setNewDef({ kindId: '', srcModelId: '', dstModelId: '', name: '', mapping: 'n:n' }) },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
   })
 
   const deleteDefMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/cmdb/meta/association-defs/${id}`),
+    mutationFn: (id: number) => api.delete(`/cmdb/association-defs/${id}`),
     onSuccess: () => { toast.success('已删除'); queryClient.invalidateQueries({ queryKey: ['cmdb-asst-defs'] }) },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })

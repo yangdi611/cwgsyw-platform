@@ -93,7 +93,7 @@ export default function InstanceDetailPage() {
 
   const { data: model } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],
-    queryFn: () => api.get(`/cmdb/meta/models/${modelId}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
     enabled: !!inst,
   })
 
@@ -117,7 +117,7 @@ export default function InstanceDetailPage() {
 
   const { data: relGroups = [], refetch: refetchRels } = useQuery<CiRelGroupVO[]>({
     queryKey: ['cmdb-rel', id],
-    queryFn: () => api.get(`/cmdb/rel/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data),
     enabled: relPanelOpen,
   })
 
@@ -129,7 +129,7 @@ export default function InstanceDetailPage() {
 
   const { data: allDefs = [] } = useQuery<CiAssociationDefVO[]>({
     queryKey: ['cmdb-assoc-defs'],
-    queryFn: () => api.get('/cmdb/meta/association-defs').then(r => r.data.data),
+    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data),
     enabled: addDialogOpen,
   })
 
@@ -144,14 +144,14 @@ export default function InstanceDetailPage() {
 
   const { data: searchResult } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, peerSearch],
-    queryFn: () => api.get('/cmdb/rel/search', {
+    queryFn: () => api.get('/cmdb/instances/search', {
       params: { modelId: targetModelId, keyword: peerSearch, size: 8 }
     }).then(r => r.data.data),
     enabled: !!targetModelId && addDialogOpen,
   })
 
   const deleteRelMutation = useMutation({
-    mutationFn: (relId: number) => api.delete(`/cmdb/rel/${relId}`),
+    mutationFn: (relId: number) => api.delete(`/cmdb/instances/${id}/relations/${relId}`),
     onSuccess: () => { toast.success('关联已删除'); refetchRels() },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
@@ -160,10 +160,9 @@ export default function InstanceDetailPage() {
     mutationFn: () => {
       if (!selectedDef || !selectedPeerId) throw new Error('请选择关联定义和目标实例')
       const isSrc = selectedDef.src_model_id === modelId
-      return api.post('/cmdb/rel', {
-        def_id: selectedDefId,
-        src_id: isSrc ? Number(id) : selectedPeerId,
-        dst_id: isSrc ? selectedPeerId : Number(id),
+      return api.post(`/cmdb/instances/${id}/relations`, {
+        dst_instance_id: selectedPeerId,
+        association_kind: selectedDef.kind_id,
       })
     },
     onSuccess: () => {

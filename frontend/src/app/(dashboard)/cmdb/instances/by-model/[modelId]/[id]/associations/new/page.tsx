@@ -57,7 +57,7 @@ export default function NewAssociationPage() {
 
   const { data: allDefs = [], isLoading: defsLoading } = useQuery<CiAssociationDefVO[]>({
     queryKey: ['cmdb-assoc-defs'],
-    queryFn: () => api.get('/cmdb/meta/association-defs').then(r => r.data.data),
+    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data),
   })
 
   // 当前模型适用的关联定义
@@ -72,7 +72,7 @@ export default function NewAssociationPage() {
 
   const { data: searchResult, isFetching: searching } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, keyword],
-    queryFn: () => api.get('/cmdb/rel/search', {
+    queryFn: () => api.get('/cmdb/instances/search', {
       params: { modelId: targetModelId, keyword, size: 12 },
     }).then(r => r.data.data),
     enabled: !!targetModelId && step === 1,

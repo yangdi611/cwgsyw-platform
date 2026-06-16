@@ -38,7 +38,7 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
 
   const { data: models = [], isLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-layout-models'],
-    queryFn: () => api.get('/cmdb/meta/models').then(r => r.data.data),
+    queryFn: () => api.get('/cmdb/models').then(r => r.data.data),
     enabled: showSidebar,
   })
 

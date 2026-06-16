@@ -38,7 +38,7 @@ export default function NewInstancePage() {
 
   const { data: model, isLoading } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],
-    queryFn: () => api.get(`/cmdb/meta/models/${modelId}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
   })
 
   const createMutation = useMutation({
