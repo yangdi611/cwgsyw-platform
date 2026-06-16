@@ -6,7 +6,7 @@ import Link from 'next/link'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Plus, Trash2, Search, ChevronLeft, ChevronRight, Upload, Eye } from 'lucide-react'
+import { Plus, Trash2, Search, ChevronLeft, ChevronRight, Upload, Eye, Grid3x3, Bell } from 'lucide-react'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 
 /* ---------- Types ---------- */
@@ -212,11 +212,17 @@ export default function CmdbInstancesPage() {
               <Plus className="h-4 w-4 mr-1" />新建实例
             </Button>
           </PermissionGuard>
+          <Link href="/cmdb/instances/2d-view" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Grid3x3 className="h-4 w-4 mr-1" />2D 视图
+          </Link>
           <PermissionGuard resource="cmdb_instance" action="create">
             <Button size="sm" variant="outline" onClick={openCsvImport}>
               <Upload className="h-4 w-4 mr-1" />导入 CSV
             </Button>
           </PermissionGuard>
+          <Link href="/notifications" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Bell className="h-4 w-4 mr-1" />告警
+          </Link>
         </div>
       </div>
 
