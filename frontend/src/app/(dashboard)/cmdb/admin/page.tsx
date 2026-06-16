@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Plus, Settings, Server, Database, Network, Box, Trash2 } from 'lucide-react'
+import { Plus, Settings, Server, Database, Network, Box, ArrowRight, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiModelVO {
@@ -29,6 +30,12 @@ interface AsstDef { id: number; def_id: string; kind_id: string; src_model_id: s
 
 const ICON_MAP: Record<string, React.ElementType> = {
   server: Server, database: Database, network: Network,
+}
+
+const MAPPING_BADGE: Record<string, string> = {
+  '1:1': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300',
+  '1:n': 'bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300',
+  'n:n': 'bg-indigo-100 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300',
 }
 
 export default function AdminPage() {
@@ -298,25 +305,49 @@ function AssociationsTab() {
             </div>
           </div>
         )}
-        <div className="border rounded-lg divide-y">
-          {defs.map(d => (
-            <div key={d.def_id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium">{models.find(m => m.model_id === d.src_model_id)?.name ?? d.src_model_id}</span>
-                <span className="text-xs text-muted-foreground">—{kinds.find(k => k.kind_id === d.kind_id)?.name ?? d.kind_id}→</span>
-                <span className="text-sm font-medium">{models.find(m => m.model_id === d.dst_model_id)?.name ?? d.dst_model_id}</span>
-                <Badge variant="outline" className="text-xs">{d.mapping}</Badge>
-                {d.is_built_in && <Badge variant="secondary" className="text-xs">内置</Badge>}
+        <div className="space-y-2">
+          {defs.map(d => {
+            const srcModel = models.find(m => m.model_id === d.src_model_id)
+            const dstModel = models.find(m => m.model_id === d.dst_model_id)
+            const kindName = kinds.find(k => k.kind_id === d.kind_id)?.name ?? d.kind_id
+            const SrcIcon = ICON_MAP[srcModel?.icon ?? ''] ?? Box
+            const DstIcon = ICON_MAP[dstModel?.icon ?? ''] ?? Box
+            return (
+              <div key={d.def_id} className="border rounded-lg p-3 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+                    {/* source model */}
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 min-w-0">
+                      <SrcIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="text-sm font-medium truncate">{srcModel?.name ?? d.src_model_id}</span>
+                    </span>
+                    {/* arrow + association kind */}
+                    <span className="flex items-center gap-1 text-muted-foreground shrink-0">
+                      <ArrowRight className="h-4 w-4" />
+                      <span className="text-xs">{kindName}</span>
+                    </span>
+                    {/* destination model */}
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 min-w-0">
+                      <DstIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="text-sm font-medium truncate">{dstModel?.name ?? d.dst_model_id}</span>
+                    </span>
+                    {/* mapping cardinality badge */}
+                    <Badge variant="secondary" className={cn('font-mono', MAPPING_BADGE[d.mapping])}>
+                      {d.mapping}
+                    </Badge>
+                    {d.is_built_in && <Badge variant="secondary" className="text-xs">内置</Badge>}
+                  </div>
+                  {canWrite && !d.is_built_in && (
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive shrink-0"
+                      disabled={deleteDefMutation.isPending}
+                      onClick={() => { if (confirm('删除此关联定义?')) deleteDefMutation.mutate(d.id) }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
-              {canWrite && !d.is_built_in && (
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
-                  disabled={deleteDefMutation.isPending}
-                  onClick={() => { if (confirm('删除此关联定义?')) deleteDefMutation.mutate(d.id) }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          ))}
+            )
+          })}
           {defs.length === 0 && <p className="px-4 py-6 text-sm text-muted-foreground text-center">暂无关联定义</p>}
         </div>
       </div>

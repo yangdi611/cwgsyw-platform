@@ -7,7 +7,7 @@ import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Grid3x3, Boxes } from 'lucide-react'
 
 interface CiModelVO {
   id: number; name: string; displayName: string; group: string; groupName: string
@@ -154,9 +154,14 @@ export default function CmdbModelsPage() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">CMDB 模型管理</h1>
-          <PermissionGuard resource="cmdb_model" action="create">
-            <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />新建模型</Button>
-          </PermissionGuard>
+          <div className="flex gap-2">
+            <Link href="/cmdb/instances/2d-view" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              <Grid3x3 className="h-4 w-4 mr-1" />2D 视图
+            </Link>
+            <PermissionGuard resource="cmdb_model" action="create">
+              <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />新建模型</Button>
+            </PermissionGuard>
+          </div>
         </div>
 
         <div className="relative mb-4 max-w-sm">
@@ -194,6 +199,9 @@ export default function CmdbModelsPage() {
                     <TableCell>{m.instanceCount}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
+                        <Link href={`/cmdb/instances/by-model/${m.name}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                          <Boxes className="h-3.5 w-3.5" />查看实例
+                        </Link>
                         <PermissionGuard resource="cmdb_model" action="update">
                           <Button size="sm" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-3.5 w-3.5" /></Button>
                         </PermissionGuard>
