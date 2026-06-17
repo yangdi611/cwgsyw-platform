@@ -58,13 +58,12 @@ export default function NewAssociationPage() {
     })),
   })
 
-  const { data: allDefs = [], isLoading: defsLoading } = useQuery<CiAssociationDefVO[]>({
-    queryKey: ['cmdb-assoc-defs'],
-    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data),
-  })
+  // 获取模型详情以获取关联定义（后端未暴露独立 association-defs 端点）
+  // 从 GET /cmdb/models/{modelId} 返回的 associationDefs 字段获取
+  const modelDefs = ((inst as any)?.associationDefs ?? []) as CiAssociationDefVO[]
 
   // 当前模型适用的关联定义
-  const applicableDefs = allDefs.filter(
+  const applicableDefs = modelDefs.filter(
     d => d.src_model_id === modelId || d.dst_model_id === modelId
   )
   const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
@@ -155,9 +154,7 @@ export default function NewAssociationPage() {
               <Label className="text-sm">选择关联定义</Label>
               <span className="text-xs text-muted-foreground">（仅显示当前模型适用的定义）</span>
             </div>
-            {defsLoading ? (
-              <p className="text-sm text-muted-foreground">加载中...</p>
-            ) : applicableDefs.length === 0 ? (
+            {modelDefs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
                 当前模型暂无可用的关联定义。请先在配置管理中定义关联。
               </p>

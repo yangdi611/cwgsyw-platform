@@ -73,11 +73,13 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
     queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data),
   })
 
-  const { data: allDefs = [] } = useQuery<CiAssociationDefVO[]>({
-    queryKey: ['cmdb-assoc-defs'],
-    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data),
+  // 从模型详情获取关联定义（后端未暴露独立 association-defs 端点）
+  const { data: modelDetail } = useQuery<{ associationDefs?: CiAssociationDefVO[] }>({
+    queryKey: ['cmdb-model-defs', modelId],
+    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
     enabled: addDialogOpen,
   })
+  const allDefs = (modelDetail?.associationDefs ?? []) as CiAssociationDefVO[]
 
   const applicableDefs = allDefs.filter(
     d => d.src_model_id === modelId || d.dst_model_id === modelId

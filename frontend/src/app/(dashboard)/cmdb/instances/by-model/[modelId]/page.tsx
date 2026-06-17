@@ -49,7 +49,7 @@ export default function InstanceListPage() {
 
   const { data: result, isLoading } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', modelId],
-    queryFn: () => api.get(`/cmdb/instances/${modelId}`).then(r => r.data.data),
+    queryFn: () => api.get('/cmdb/instances', { params: { model: modelId } }).then(r => r.data.data),
     enabled: hasPermission('cmdb_instance', 'read'),
   })
 

@@ -12,6 +12,7 @@ import { InstanceAssociationsTab } from '@/components/cmdb/InstanceAssociationsT
 import { InstanceTopologyTab } from '@/components/cmdb/InstanceTopologyTab'
 import { InstanceChangeHistoryTab } from '@/components/cmdb/InstanceChangeHistoryTab'
 import { InstanceAlertsTab } from '@/components/cmdb/InstanceAlertsTab'
+import { InstanceResourcesTab } from '@/components/cmdb/InstanceResourcesTab'
 
 interface CiAttributeVO {
   id: number; field_key: string; name: string; field_type: string
@@ -31,6 +32,7 @@ const TABS = [
   { key: 'topology', label: '拓扑图' },
   { key: 'changes', label: '变更历史' },
   { key: 'alerts', label: '告警' },
+  { key: 'resources', label: '关联资源' },
 ] as const
 type TabKey = (typeof TABS)[number]['key']
 
@@ -104,6 +106,7 @@ export default function InstanceDetailPage() {
       {tab === 'topology' && <InstanceTopologyTab id={id} />}
       {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}
       {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}
+      {tab === 'resources' && <InstanceResourcesTab instanceId={id} />}
     </div>
   )
 }
