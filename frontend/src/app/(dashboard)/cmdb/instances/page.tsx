@@ -85,7 +85,15 @@ export default function CmdbInstancesPage() {
   // Fetch models for filter
   const { data: models = [] } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models-all'],
-    queryFn: () => api.get('/cmdb/models', { params: { size: 100 } }).then(r => r.data.data.records),
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/models', { params: { size: 100 } })
+        return r.data.data.records
+      } catch {
+        return []
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   // Fetch instances

@@ -44,7 +44,15 @@ export default function InstanceListPage() {
 
   const { data: model } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],
-    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/models/${modelId}`)
+        return r.data.data
+      } catch {
+        return undefined
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   const { data: result, isLoading } = useQuery<PageResult>({

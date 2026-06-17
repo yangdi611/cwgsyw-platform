@@ -49,15 +49,31 @@ export default function AssociationsPage() {
 
   const { data: inst } = useQuery<CiInstanceSummary>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => ({
-      name: r.data.data.name,
-      model_id: r.data.data.model_id,
-    })),
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/instances/${id}`)
+        return {
+          name: r.data.data.name,
+          model_id: r.data.data.model_id,
+        }
+      } catch {
+        return {} as CiInstanceSummary
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   const { data: relGroups = [], isLoading } = useQuery<CiRelGroupVO[]>({
     queryKey: ['cmdb-rel', id],
-    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data),
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/instances/${id}/relations`)
+        return r.data.data
+      } catch {
+        return []
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   const deleteMutation = useMutation({

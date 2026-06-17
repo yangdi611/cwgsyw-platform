@@ -73,10 +73,18 @@ export default function ImpactAnalysisPage() {
 
   const { data, isLoading, isError } = useQuery<ImpactResult>({
     queryKey: ['cmdb-impact', instanceId, direction, maxDepth],
-    queryFn: () => api.post(`/cmdb/instances/${instanceId}/impact`, {
-      direction,
-      max_depth: maxDepth,
-    }).then(r => r.data.data),
+    queryFn: async () => {
+      try {
+        const r = await api.post(`/cmdb/instances/${instanceId}/impact`, {
+          direction,
+          max_depth: maxDepth,
+        })
+        return r.data.data
+      } catch {
+        return { nodes: [], edges: [] }
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   // depth map: node id → depth

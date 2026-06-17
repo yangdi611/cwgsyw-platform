@@ -115,8 +115,15 @@ export default function TopologyPage() {
 
   const { data, isLoading, isError } = useQuery<CiTopologyResult>({
     queryKey: ['cmdb-topology', instanceId, depth],
-    queryFn: () => api.get(`/cmdb/topology/${instanceId}`, { params: { depth } }).then(r => r.data.data),
-    enabled: !compareMode,
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/topology/${instanceId}`, { params: { depth } })
+        return r.data.data
+      } catch {
+        return { nodes: [], edges: [] }
+      }
+    },
+    enabled: !compareMode && typeof window !== 'undefined',
   })
 
   const compareQuery = useQuery<TopologyCompareVO>({
