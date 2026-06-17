@@ -433,6 +433,8 @@ if (activeCount > 0) {
 
 ## Phase 4F: Prometheus 告警集成
 
+> 详见完整指南: [docs/guide/cmdb-ac3-alerts.md](./cmdb-ac3-alerts.md) — 覆盖数据模型、API 参考、前端组件、RBAC、审计日志、设计决策。
+
 ### 核心服务：PrometheusAlertSyncService
 
 通过 Spring `@Scheduled(fixedDelay = 30_000)` 每 30 秒轮询 Prometheus API，同步告警到 `cmdb_alert` 表。
@@ -490,7 +492,7 @@ prometheus.scrape_interval = 30
 
 ## 前端页面与组件
 
-### CMDB 前端页面（6 页）
+### CMDB 前端页面（7 页）
 
 | 路由 | 页面 | 功能 | 行数 |
 |------|------|------|------|
@@ -499,6 +501,7 @@ prometheus.scrape_interval = 30
 | `/cmdb/models/[id]` | models/[id]/page.tsx | 模型详情 + 属性 CRUD + 实例列表 Tab + 动态表单 | 494 |
 | `/cmdb/instances` | instances/page.tsx | 实例 CRUD + 模型/状态筛选 + 动态表单 + CSV 导入 | 420 |
 | `/cmdb/instances/[id]` | instances/[id]/page.tsx | 实例详情 + 关联 CRUD + 拓扑图 + 影响分析 + 关联设备 + 变更文档 + 日报 + 告警 + 变更历史 | 1196 |
+| `/cmdb/alerts` | alerts/page.tsx | Prometheus 告警列表 + 级别/状态筛选 + 分页 + 确认 | 264 |
 | `/cmdb/changes` | changes/page.tsx | 变更历史列表 + 模型筛选 + 日期范围 + 分页 | 127 |
 
 ### IPAM 前端页面（2 页）
