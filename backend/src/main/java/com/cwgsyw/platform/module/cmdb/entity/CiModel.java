@@ -12,7 +12,8 @@ import lombok.EqualsAndHashCode;
 public class CiModel extends BaseEntity {
     private String name;
     private String displayName;
-    private Long groupId;
+    @TableField("group_code")
+    private String groupCode;
     private Boolean isBuiltIn;
     private String color;
     @TableField("enable_2d_view")
