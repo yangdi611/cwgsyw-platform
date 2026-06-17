@@ -19,6 +19,7 @@ import {
   ClipboardList,
   FileCode,
   ServerCog,
+  Wrench,
   Database,
   History,
   Globe,
@@ -53,37 +54,73 @@ function isGroup(item: NavEntry): item is NavGroup {
 }
 
 const navItems: NavEntry[] = [
-  { href: '/',               label: '首页',     icon: LayoutDashboard, resource: null,           action: null },
-  { href: '/daily',          label: '我的日报', icon: FileText,        resource: 'daily_report', action: 'read' },
-  { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare,     resource: 'workflow',     action: 'read' },
-  { href: '/devices',        label: '设备密码库', icon: KeyRound,       resource: 'device',       action: 'read' },
-  { href: '/notifications',  label: '通知中心',   icon: Bell,            resource: 'notification',  action: 'read' },
+  // AC7.1: 首页保持顶层独立（不分组）
+  { href: '/', label: '首页', icon: LayoutDashboard, resource: null, action: null },
+  // AC7.2: 日常工作（默认展开）
   {
-    label: 'CMDB',
-    icon: ServerCog,
-    resource: 'cmdb_model',
+    label: '日常工作',
+    icon: ClipboardList,
+    resource: 'daily_report',
     action: 'read',
-    storageKey: 'sidebar-cmdb',
+    storageKey: 'sidebar_daily_open',
     defaultOpen: true,
     children: [
-      { href: '/cmdb/models',           label: '模型管理', icon: Box,      resource: 'cmdb_model',    action: 'read' },
-      { href: '/cmdb/instances',        label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
-      { href: '/cmdb/changes',          label: '变更历史', icon: History,  resource: 'cmdb_instance', action: 'read' },
-      { href: '/cmdb/alerts',           label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',   action: 'read' },
-      { href: '/cmdb/changes/stats',    label: '统计看板', icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
-      { href: '/cmdb/instances/2d-view', label: '2D 视图', icon: Grid3x3, resource: 'cmdb_instance', action: 'read' },
-      { href: '/cmdb/admin',            label: '配置管理', icon: Settings, resource: 'cmdb_model',    action: 'write' },
+      { href: '/daily',          label: '我的日报', icon: FileText,   resource: 'daily_report',  action: 'read' },
+      { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare, resource: 'workflow',     action: 'read' },
+      { href: '/notifications',  label: '通知中心', icon: Bell,       resource: 'notification',  action: 'read' },
     ],
   },
-  { href: '/ipam',           label: 'IP 地址池',   icon: Globe,           resource: 'ip_pool',       action: 'read' },
-  { href: '/change-docs',    label: '变更文档',   icon: FileText,        resource: 'change_doc',    action: 'read' },
-  { href: '/reports',        label: '报表导出',   icon: BarChart2,      resource: 'daily_report', action: 'export' },
-  { href: '/users',          label: '用户管理', icon: Users,           resource: 'user',          action: 'read' },
-  { href: '/groups',         label: '组管理',   icon: Building2,       resource: 'group',         action: 'read' },
-  { href: '/rbac/roles',     label: '角色权限', icon: Shield,          resource: 'role',          action: 'read' },
-  { href: '/admin/change-doc-templates', label: 'AI模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
-  { href: '/admin/config',   label: '系统配置',   icon: Settings,       resource: 'notification', action: 'manage' },
-  { href: '/admin/audit',    label: '审计日志',   icon: ClipboardList,  resource: 'audit',         action: 'read' },
+  // AC7.3: IT 运维工具（默认展开）
+  {
+    label: 'IT 运维工具',
+    icon: Wrench,
+    resource: 'device',
+    action: 'read',
+    storageKey: 'sidebar_ops_open',
+    defaultOpen: true,
+    children: [
+      // AC7.5: CMDB 作为子分组，保持原有 7 个子项和 defaultOpen
+      {
+        label: 'CMDB',
+        icon: ServerCog,
+        resource: 'cmdb_model',
+        action: 'read',
+        storageKey: 'sidebar-cmdb',
+        defaultOpen: true,
+        children: [
+          { href: '/cmdb/models',            label: '模型管理',  icon: Box,       resource: 'cmdb_model',    action: 'read' },
+          { href: '/cmdb/instances',         label: '实例管理',  icon: Database,  resource: 'cmdb_instance', action: 'read' },
+          { href: '/cmdb/changes',           label: '变更历史',  icon: History,   resource: 'cmdb_instance', action: 'read' },
+          { href: '/cmdb/alerts',            label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',    action: 'read' },
+          { href: '/cmdb/changes/stats',     label: '统计看板',  icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
+          { href: '/cmdb/instances/2d-view', label: '2D 视图',   icon: Grid3x3,   resource: 'cmdb_instance', action: 'read' },
+          { href: '/cmdb/admin',             label: '配置管理',  icon: Settings,  resource: 'cmdb_model',    action: 'write' },
+        ],
+      },
+      { href: '/devices',     label: '设备密码库', icon: KeyRound,  resource: 'device',       action: 'read' },
+      { href: '/change-docs', label: '变更文档',   icon: FileText,  resource: 'change_doc',   action: 'read' },
+      { href: '/reports',     label: '报表导出',   icon: BarChart2, resource: 'daily_report', action: 'export' },
+    ],
+  },
+  // AC7.4: 配置（默认折叠）
+  {
+    label: '配置',
+    icon: Settings,
+    resource: 'user',
+    action: 'read',
+    storageKey: 'sidebar_config_open',
+    defaultOpen: false,
+    children: [
+      { href: '/users',                      label: '用户管理', icon: Users,        resource: 'user',                action: 'read' },
+      { href: '/groups',                     label: '组管理',   icon: Building2,    resource: 'group',               action: 'read' },
+      { href: '/rbac/roles',                 label: '角色权限', icon: Shield,       resource: 'role',                action: 'read' },
+      { href: '/admin/change-doc-templates', label: '变更模板', icon: FileCode,     resource: 'change_doc_template', action: 'read' },
+      { href: '/admin/config',               label: '系统配置', icon: Settings,     resource: 'notification',        action: 'manage' },
+      { href: '/admin/audit',                label: '审计日志', icon: ClipboardList, resource: 'audit',             action: 'read' },
+    ],
+  },
+  // AC7.6: IP 地址池保持顶层独立（在 CMDB 之外）
+  { href: '/ipam', label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },
 ]
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
