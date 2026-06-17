@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
-import { GitBranch } from 'lucide-react'
+import { GitBranch, GitCompare } from 'lucide-react'
 
 interface Props {
   id: string
@@ -28,9 +28,14 @@ export function InstanceTopologyTab({ id }: Props) {
           <GitBranch className="h-4 w-4" />
           拓扑图
         </div>
-        <Link href={`/cmdb/topology/${id}`} className="text-xs text-muted-foreground hover:text-foreground">
-          全屏展开 →
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={`/cmdb/topology/${id}?compare=1`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <GitCompare className="h-3 w-3" />对比模式
+          </Link>
+          <Link href={`/cmdb/topology/${id}`} className="text-xs text-muted-foreground hover:text-foreground">
+            全屏展开 →
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
