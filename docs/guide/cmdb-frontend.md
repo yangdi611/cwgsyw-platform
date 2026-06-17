@@ -662,19 +662,129 @@ CMDB Layout 为所有 CMDB 页面提供左侧 **模型树侧边栏**（与全局
 
 #### `CsvImportDialog` (299 行)
 
-**用途**: CSV 批量导入弹窗
+**文件**: `components/cmdb/CsvImportDialog.tsx`
 
-**Props**: `{ open: boolean, onOpenChange: (open: boolean) => void, model: string }`
+**用途**: CSV 批量导入弹窗 — 支持模型规范化模板下载、编码自动检测、冲突策略、实时进度轮询、失败行导出。
 
-3 步流程:
-1. **上传**: 选择 CSV 文件 + 冲突策略 (override/skip) + 编码选择 (UTF-8/GBK)
-2. **预览**: 显示解析结果表格 + 行数统计 (toCreate, toUpdate, toSkip, failedRows)
-3. **执行/结果**: 发起导入 → 进度轮询 → 完成报告 (created, updated, skipped, failed, durationMs)
+**Props** (`CsvImportDialogProps`):
 
-状态管理: `step` (0~2), `file`, `batchId`, `preview`, `result`
-组件内 `reset()` 在关闭弹窗时重置所有状态。
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `open` | `boolean` | 弹窗可见性，受外部控制 |
+| `onOpenChange` | `(open: boolean) => void` | 关闭回调（关闭后 200ms 自动 reset 内部状态） |
+| `model` | `string` | 目标模型标识（如 `host`），用于模板生成和导入 |
 
-**使用**: `instances/page.tsx` 的 "CSV 导入" 按钮
+**3 步流程 (step 0–2):**
+
+| 步骤 | 状态变量 | 核心操作 | 关键交互 |
+|------|----------|----------|----------|
+| 0. 上传 | `step === 0` | 下载模板 + 选文件 + 配置策略/编码 → 预览 | `downloadTemplate()`, `previewMutation.mutate()` |
+| 1. 预览 | `step === 1` | 显示统计面板 + 失败行 + 数据预览 → 确认执行 | `executeMutation.mutate()` |
+| 2. 结果 | `step === 2` | 进度条（导入中）→ 结果报告 + 失败行下载 | 轮询 `useQuery` every 1.5s |
+
+**步骤 0 — 上传面板:**
+- **下载模板按钮**: 调用 `GET /api/cmdb/instances/import/template?model={model}` 下载当前模型的标准 CSV 模板（仅含必填和列表显示字段），保存至浏览器。
+- **文件选择**: `<input type="file" accept=".csv">`，文件引用存入 `file` 状态。
+- **冲突策略 Select** (`conflictStrategy`):
+  - `override`（默认） — 匹配到的已有实例执行 fieldsData patch merge 更新
+  - `skip` — 匹配到的已有实例跳过，不修改
+  - `error` — 匹配到的已有实例计入失败行
+- **文件编码 Select** (`encoding`): `UTF-8`（默认） / `GBK` / `GB2312`。留空由后端自动检测。
+- **"下一步" 按钮**: 不可用状态（`disabled`）— 未选择文件或预览请求 pending 中。上传中显示 spinner + "解析中..."。
+- **取消按钮**: 调用 `handleClose(false)` 关闭弹窗，200ms 后 reset 所有状态。
+
+**步骤 1 — 预览面板:**
+- **统计卡片**（4 列网格）：总行数 / 新建（绿色） / 更新（蓝色） / 跳过（黄色）
+- **失败行表格**（展开区域，仅 `failedRows.length > 0` 时显示）：
+  - 红色标题 + 行数
+  - 表头：行号 / 原因
+  - 最多显示前 20 条
+- **数据预览表格**：显示解析结果前 5 行（所有列动态渲染）
+- **返回按钮**: `setStep(0)` 回到上传步骤
+- **"确认导入" 按钮**: 调用 `POST /api/cmdb/instances/import/execute`。导入中显示 spinner + "导入中..."。总行数为 0 时禁用。
+
+**步骤 2 — 结果面板:**
+- **进度条**（执行中时）: 通过 `useQuery` 轮询 `GET /api/cmdb/instances/import/{batchId}/progress`，`refetchInterval: 1500`（1.5 秒）。展示 processed / totalRows 进度百分比。
+- **结果报告**（执行完成后）: 4 列统计：总计 / 创建（绿色） / 更新（蓝色） / 失败（红色）+ 耗时秒数
+- **"下载失败行" 按钮**（`result.failed > 0` 时显示）: 调用 `GET /api/cmdb/instances/import/{batchId}/failed-rows` 下载 CSV
+- **"完成" 按钮**: 关闭弹窗
+
+**接口类型:**
+
+```typescript
+// Props
+interface CsvImportDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  model: string
+}
+
+// 预览响应（后端返回）
+interface CsvImportPreviewVO {
+  batchId: string                       // 批次 ID，用于后续执行/进度/失败行 API
+  totalRows: number                     // CSV 总行数（不含表头）
+  toCreate: number                      // 将新建的行数
+  toUpdate: number                      // 将更新的行数
+  toSkip: number                        // 将跳过的行数（skip 策略）
+  failedRows: { rowNumber: number; reason: string }[]  // 校验失败行
+  encoding: string                      // 检测/使用的编码
+  previewData: Record<string, any>[]    // 预览数据（前 10 行）
+}
+
+// 进度响应
+interface CsvImportProgressVO {
+  batchId: string
+  status: string                        // processing / completed
+  totalRows: number
+  processed: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+}
+
+// 执行结果
+interface CsvImportResultVO {
+  batchId: string
+  totalRows: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  durationMs: number                    // 执行耗时（毫秒）
+}
+```
+
+**状态管理:**
+| State | 类型 | 用途 |
+|-------|------|------|
+| `step` | `number` (0–2) | 当前向导步骤 |
+| `file` | `File \| null` | 已上传文件引用 |
+| `conflictStrategy` | `string` | 冲突策略，默认 `override` |
+| `encoding` | `string` | 文件编码，默认 `UTF-8` |
+| `batchId` | `string` | 后端返回的批次标识 |
+| `preview` | `CsvImportPreviewVO \| null` | 预览数据 |
+| `result` | `CsvImportResultVO \| null` | 执行结果 |
+
+`reset()` 回调在关闭时恢复所有状态到初始值，`handleClose(false)` 延迟 200ms 执行 reset 避免闪烁。
+
+**数据流:**
+```
+下载模板 → 浏览器文件下载（GET /import/template）
+上传 → 预览 → batchId → 后端 Redis 缓存解析数据（10min TTL）
+确认执行 → keyed by batchId → 后端分批处理（100 行/批）
+进度轮询 (1.5s) → progress bar 实时更新
+完成 → 结果报告 + 可选失败行下载
+```
+
+**错误处理:**
+- `previewMutation.onError` → `toast.error(e.response.data.message)`
+- `executeMutation.onError` → `toast.error(e.response.data.message)`
+- `failed > 0` → `toast.warning('导入完成，{n} 条失败')`
+- `failed === 0` → `toast.success('导入完成，创建 {n}，更新 {m}')`
+- 文件未选择时预览会抛 `Error('请选择文件')`
+
+**使用**: `instances/page.tsx` 的 "CSV 导入" 按钮（需 `cmdb_instance:import` 权限守卫）
 
 #### `ChangeRecordItem` (124 行)
 
