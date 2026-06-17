@@ -60,6 +60,7 @@ CMDB Tier 2 在 Tier 1 的基础上扩展了 CMDB 的「关系维度」和「批
 前端 (src/app/(dashboard)/cmdb/):
   instances/by-model/[modelId]/[id]/associations/page.tsx  # 关联关系管理
   instances/by-model/[modelId]/[id]/associations/new/page.tsx # 新建关联
+  admin/page.tsx                                         # 模型管理 + 关联扩展属性管理（AC-5）
   impact/[instanceId]/page.tsx                            # 影响分析页面
   topology/[instanceId]/page.tsx                          # 拓扑图页面
   components/cmdb/
@@ -512,6 +513,21 @@ Permission: cmdb_instance:read AND cmdb_instance:impact
 
 ## 前端页面与组件
 
+### 关联扩展属性管理（AC-5）
+
+**路径：** `/cmdb/admin` → Tab 2「关联扩展属性管理」
+
+CMDB 管理后台的第二个 Tab（AC-5）实现了关联类型的扩展属性定义 CRUD：
+- **关联类型选择器**：输入框 + `<datalist>` 预定义建议，输入关联类型 ID 后点击刷新按钮加载属性列表
+- **属性列表表格**：展示 `AssociationAttrVO` 的标识/名称/类型/必填/默认值/排序，支持编辑和删除操作
+- **创建/编辑表单**：支持字段标识、显示名称、字段类型（7 种：单行文本/整数/枚举/列表/布尔/用户/日期）、必填、默认值、排序、枚举选项（仅 enum 类型时显示）
+- **字段标识不可修改**：编辑时禁用 fieldKey input，强制标识不变
+- **枚举选项**：逗号分隔输入，仅当 fieldType 为 `enum` 时显示
+- **CRUD API** 端点：`GET/POST /cmdb/association-kinds/{kind}/attributes`、`PUT/DELETE .../attributes/{attrId}`
+- 写操作权限复用 `cmdb_model:update`
+
+> 当前后端 `CiAssociationKind.code` 实体字段映射到不存在的 DB 列（表列名实际为 `kind_id`），导致 GET 端点返回 500。修复任务：t_9dd744b5。
+
 ### 关联关系管理
 
 **路径：** `/cmdb/instances/by-model/[modelId]/[id]/associations`
@@ -677,9 +693,7 @@ else:
 
 ### P0 — ci_model 表缺少 display_name 列（Bug t_12cb786a）
 
-`CiModel.java` 实体类的 `displayName` 字段被 MyBatis Plus 映射为 `display_name` SQL 列，但 V14 迁移未创建此列。导致所有涉及模型的 API（包括 T2 的关联查询、CSV 模板生成、影响分析节点 enrichment）返回 500 错误。
-
-**修复方案：** 新增 V35 迁移添加 `display_name` 列。
+`CiModel.java` 实体类的 `displayName` 字段被 MyBatis Plus 映射为 `display_name` SQL 列，但 V14 迁移未创建此列。导致所有涉及模型的 API 返回 500。
 
 **影响范围：**
 - GET /api/cmdb/models
@@ -688,4 +702,8 @@ else:
 - POST /api/cmdb/instances/import/preview
 - POST /api/cmdb/instances/{id}/impact
 
-修复后需重新部署并重新验收 T2 全部功能。
+### P0 — CiAssociationKind.code 映射错误（Bug t_9dd744b5, AC-5 验收发现）
+
+`CiAssociationKind.java` 实体的 `code` 字段通过 MyBatis Plus 映射为 SQL 列 `code`，但 `ci_association_kind` 表的实际列名为 `kind_id`。导致 `GET /api/cmdb/association-kinds/{kind}/attributes` 查询关联类型时返回 500，阻塞 AC-5 全部 CRUD 验证。
+
+**与 display_name 问题的关系：** 两个独立的 mapping bug，都导致同一个 GET 端点返回 500。display_name 导致模型查询抛异常，code→kind_id 导致关联类型查询抛异常。两者都需要修复后 AC-5 才能完整可用。

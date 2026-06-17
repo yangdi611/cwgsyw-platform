@@ -107,7 +107,7 @@ frontend/src/components/cmdb/
 |------|----------|------|------|----------|
 | `/cmdb` | `cmdb/page.tsx` | 9 | T1 | 重定向到 `/cmdb/models` |
 | `/cmdb/models` | `models/page.tsx` | 295 | T1 | 模型 CRUD + 分组/搜索/分页 |
-| `/cmdb/admin` | `admin/page.tsx` | 356 | T2 | 模型管理 Tab + 关联定义管理 Tab |
+| `/cmdb/admin` | `admin/page.tsx` | 557 | T2 | 模型管理 Tab + 关联扩展属性管理（AC5） |
 | `/cmdb/admin/models/[modelId]` | `admin/models/[modelId]/page.tsx` | 210 | T1 | 模型详情 + 属性 CRUD (字段类型/分组/必填) |
 | `/cmdb/instances` | `instances/page.tsx` | 426 | T1 | 实例 CRUD + 动态表单 + 模型/状态筛选 + CSV 导入 |
 | `/cmdb/instances/by-model/[modelId]` | `instances/by-model/[modelId]/page.tsx` | 150 | T1 | 按模型筛选的实例列表 + 跳转创建 |
@@ -154,11 +154,11 @@ frontend/src/components/cmdb/
 - **模型详情链接**: 表格行中的实例计数和模型名均可点击跳转到 `/cmdb/instances/by-model/{id}` 或 `/cmdb/admin/models/{id}`
 - **权限控制**: 通过 `usePermission().hasPermission('cmdb_model', 'write')` 控制 CRUD 按钮显隐
 
-#### `/cmdb/admin` — CMDB 管理后台 (356 行)
+#### `/cmdb/admin` — CMDB 管理后台 (557 行)
 
 **文件**: `admin/page.tsx`
 
-这是全平台最大的 CMDB 页面之一, 两个 Tab:
+这是全平台最大的 CMDB 页面之一，两个 Tab：
 
 **Tab 1: 模型管理** — 展示所有 `CiModelVO` 模型卡片网格 (icon + name + description + group_code)
 - 每张卡片使用 `ICON_MAP` 根据 icon 字段渲染不同 Lucide 图标 (Server/Database/Network/Box)
@@ -166,11 +166,32 @@ frontend/src/components/cmdb/
 - 暂停的模型标注 `is_paused: true`
 - 点击卡片进入模型详情页 `/cmdb/admin/models/{modelId}`
 
-**Tab 2: 关联定义管理** — 展示 `AsstKind` (关联种类) 和 `AsstDef` (关联定义) 表格
-- 关联种类表: kind_id, name, src_to_dst (正向标签), dst_to_src (反向标签), is_built_in
-- 关联定义表: def_id, name, src_model_id, dst_model_id, mapping (1:1/1:n/n:n), is_built_in
-- Mapping 渲染为彩色 Badge (mapping|{badge})
-- **默认模型**: 通过 `useEffect` 轮询 `/cmdb/all-models` 接口获取全量模型供关联定义选择
+**Tab 2: 关联扩展属性管理 (AC-5)** — 为指定关联类型（kind）定义自定义扩展属性
+- **关联类型选择器**：文本输入框 + `<datalist>` 预定义建议（`connected_to`, `depends_on`, `contains`, `deployed_on`, `runs_on`），回车或点击刷新按钮加载该类型的属性列表
+- **属性列表表格**：展示 `AssociationAttrVO` 字段：
+  - 标识 (`fieldKey`) — 渲染为 `<code>` 标签，英文/下划线格式
+  - 名称 (`name`) — 显示名称
+  - 类型 (`fieldType`) — 渲染为 Badge，中文标签映射：singlechar(单行文本)/int(整数)/enum(枚举)/list(列表)/bool(布尔)/user(用户)/date(日期)
+  - 必填 (`isRequired`) — 是(红色) / 否(灰色)
+  - 默认值 (`defaultValue`) — 空则显示 `-`
+  - 排序 (`sortOrder`) — 排序权重
+  - 操作 — 编辑 (PencilLine 图标) / 删除 (Trash2 图标)，仅在 `cmdb_model:write` 权限下显示
+- **创建/编辑表单**：点击「新增属性」按钮展开表单面板：
+  - 字段标识 — Input，创建时必填，编辑时禁用（不可修改 fieldKey）
+  - 显示名称 — Input，必填
+  - 字段类型 — Select （singlechar/int/enum/list/bool/user/date）
+  - 默认值 — Input，可选
+  - 排序 — Input type=number
+  - 必填 — Checkbox
+  - 枚举选项 — 仅在 fieldType=`enum` 时显示，逗号分隔输入
+- **CRUD API**：通过 TanStack Query mutations 调用后端端点：
+  - `GET /cmdb/association-kinds/{kind}/attributes` — 列表（路由传参 activeKind）
+  - `POST /cmdb/association-kinds/{kind}/attributes` — 创建
+  - `PUT /cmdb/association-kinds/{kind}/attributes/{attrId}` — 更新
+  - `DELETE /cmdb/association-kinds/{kind}/attributes/{attrId}` — 删除
+  - 创建/更新/删除成功后自动 `invalidateQueries` 刷新列表
+
+**已知问题：** 后端 `CiAssociationKind.code` 实体字段映射到不存在的 DB 列，导致 `GET /api/cmdb/association-kinds/{kind}/attributes` 返回 500。正在修复（参见 bug 任务 t_9dd744b5）。修复后属性 CRUD 完整可用。
 
 权限: 进入页面检查 `cmdb_model:write`, 无权限重定向到 `/cmdb`
 
