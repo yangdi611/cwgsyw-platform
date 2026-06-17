@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { toPng } from 'html-to-image'
 import api from '@/lib/api'
@@ -84,6 +84,7 @@ export default function TopologyPage() {
   const { instanceId } = useParams<{ instanceId: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const graphRef = useRef<HTMLDivElement>(null)
 
   const [depth, setDepth] = useState(2)
@@ -96,7 +97,14 @@ export default function TopologyPage() {
   const [compareDepth, setCompareDepth] = useState(3)
   const [compareNonce, setCompareNonce] = useState(0)
 
-  // filters
+  // Auto-enter compare mode when ?compare=1 in URL
+  const initialSearchParamsRef = useRef(false)
+  useEffect(() => {
+    if (!initialSearchParamsRef.current && searchParams?.get('compare') === '1') {
+      setCompareMode(true)
+      initialSearchParamsRef.current = true
+    }
+  }, [searchParams])
   const [selectedModels, setSelectedModels] = useState<Set<string> | null>(null)
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string> | null>(null)
 
