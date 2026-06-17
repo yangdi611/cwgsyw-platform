@@ -119,7 +119,7 @@ frontend/src/components/cmdb/
 | `/cmdb/changes` | `changes/page.tsx` | 349 | T3 | 变更历史 V2 (模型筛选 + 日期范围 + 动作筛选 + diff) |
 | `/cmdb/changes/stats` | `changes/stats/page.tsx` | 247 | T3 | 变更统计面板 (今日/周/月卡片 + 趋势 + Top 10) |
 | `/cmdb/instances/2d-view` | `instances/2d-view/page.tsx` | 241 | T3 | 2D 分组视图 (按属性分组的网格卡片布局) |
-| `/cmdb/topology/[instanceId]` | `topology/[instanceId]/page.tsx` | 471 | T3 | 拓扑图 (模型着色 + 状态边框 + 展开/折叠 + 对比模式 + PNG 导出) |
+| `/cmdb/topology/[instanceId]` | `topology/[instanceId]/page.tsx` | 471 | T3 | 拓扑图 (模型着色 + 状态边框 + 展开/折叠 + 对比模式 + ?compare=1 自动激活 + PNG 导出) |
 | `/cmdb/impact/[instanceId]` | `impact/[instanceId]/page.tsx` | 306 | T2 | 影响分析 (BFS 层次展示 + 双向/上游/下游策略) |
 | `/cmdb/alerts` | `alerts/page.tsx` | 264 | T4 | CMDB 告警列表 (状态/严重度筛选 + 确认 + 分页) |
 | `/ipam` | `frontend/src/app/(dashboard)/ipam/page.tsx` | 303 | T4 | IP 地址池列表 (CRUD + 搜索 + 状态筛选 + 利用率进度条) |
@@ -242,11 +242,11 @@ frontend/src/components/cmdb/
 |-----|------|------|
 | 基本信息 | `InstanceBasicInfoTab` | 属性组展示 + 内联编辑 |
 | 关联关系 | `InstanceAssociationsTab` | 关联列表 + 删除 + 跳转新建 |
-| 拓扑图 | `InstanceTopologyTab` | 内嵌深度 2 的 ReactFlow 拓扑预览 |
+| 拓扑图 | `InstanceTopologyTab` | 内嵌深度 2 的 ReactFlow 拓扑预览 + "对比模式" 入口链接 |
 | 变更历史 | `InstanceChangeHistoryTab` | 分页时间线 + diff |
 | 告警 | `InstanceAlertsTab` | 关联 Prometheus 告警列表 + 确认 |
 
-顶部 header 包含: 返回按钮、实例名/model_id/创建信息、影响分析按钮 (需 `cmdb_instance:impact` 权限)、拓扑对比按钮 (需 `cmdb_instance:read` 权限)
+顶部 header 包含: 返回按钮、实例名/model_id/创建信息、影响分析按钮 (需 `cmdb_instance:impact` 权限)、**拓扑对比按钮** (需 `cmdb_instance:read` 权限, 链接到 `/cmdb/topology/{id}?compare=1`)
 
 ---
 
@@ -328,12 +328,14 @@ Tier 3 数据看板:
 - **深度控制**: Input type=number 控制 BFS 遍历深度 (默认 3)
 - **展开/折叠**: 点击节点可展开其关联的子节点
 - **对比模式**: 
+  - **`?compare=1` 自动激活**: 链接到 `/cmdb/topology/{id}?compare=1` 时自动进入对比模式 (通过 `useSearchParams` + `useEffect` 读取 URL 参数)
   - 选择两个时间点 (audit_log 回放), 对比拓扑差异
   - 差异结果展示: `CompareNodeV2[]` (added/removed/modified/unchanged) + `CompareEdge` (含 diff status)
 - **PNG 导出**: 使用 `html-to-image` 的 `toPng` 方法, 下载为同名 PNG
 - **搜索过滤**: Input 搜索节点名称, 高亮匹配项
 - 返回链接到实例详情页
 - 权限: 检查 `cmdb_instance:read`
+- 相关指南: [拓扑对比模式使用指南](cmdb-topology-compare.md)
 
 #### `/cmdb/instances/2d-view` — 2D 分组视图 (241 行)
 
@@ -485,7 +487,7 @@ CMDB Layout 为所有 CMDB 页面提供左侧 **模型树侧边栏**:
 - 删除关联: AlertDialog 确认
 - **注**: 此组件与 `instances/.../associations/page.tsx` 功能重复但不共享代码
 
-#### `InstanceTopologyTab` (50 行)
+#### `InstanceTopologyTab` (55 行)
 
 **用途**: 实例详情页的"拓扑图" Tab (内嵌预览)
 
@@ -494,6 +496,7 @@ CMDB Layout 为所有 CMDB 页面提供左侧 **模型树侧边栏**:
 功能:
 - 调用 `GET /cmdb/topology/{id}?depth=2` 获取深度 2 的拓扑数据
 - 嵌入 `CiTopologyGraph` 组件 (preview 模式)
+- "对比模式" 链接跳转到 `/cmdb/topology/{id}?compare=1` (带 `GitCompare` 图标)
 - "全屏展开 →" 链接跳转到 `/cmdb/topology/{id}`
 - 无数据: `暂无关联数据`
 
