@@ -146,7 +146,7 @@ export default function CmdbInstancesPage() {
     // Look up model name from models list
     const selectedModel = models.find(m => m.id.toString() === createForm.modelId)
     createMutation.mutate({
-      model: selectedModel?.name ?? createForm.modelId,
+      modelId: selectedModel?.id.toString() ?? createForm.modelId,
       name: createForm.name,
       status: createForm.status,
       owner: createForm.owner,
@@ -277,7 +277,7 @@ export default function CmdbInstancesPage() {
                 <TableRow key={inst.id}>
                   <TableCell className="text-muted-foreground">{inst.id}</TableCell>
                   <TableCell>
-                    <Link href={`/cmdb/instances/${inst.id}`} className="font-medium hover:underline">
+                    <Link href={`/cmdb/instances/by-model/${inst.modelId}/${inst.id}`} className="font-medium hover:underline">
                       {inst.name}
                     </Link>
                   </TableCell>
@@ -289,7 +289,7 @@ export default function CmdbInstancesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Link href={`/cmdb/instances/${inst.id}`}>
+                      <Link href={`/cmdb/instances/by-model/${inst.modelId}/${inst.id}`}>
                         <Button size="sm" variant="ghost"><Eye className="h-3.5 w-3.5" /></Button>
                       </Link>
                       <PermissionGuard resource="cmdb_instance" action="delete">

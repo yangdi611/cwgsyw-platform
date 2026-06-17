@@ -202,8 +202,10 @@ function AssociationsTab() {
   const [newKind, setNewKind] = useState({ kindId: '', name: '', srcToDst: '', dstToSrc: '' })
   const [newDef, setNewDef] = useState({ kindId: '', srcModelId: '', dstModelId: '', name: '', mapping: 'n:n' })
 
-  const { data: kinds = [] } = useQuery<AsstKind[]>({ queryKey: ['cmdb-asst-kinds'], queryFn: () => api.get('/cmdb/association-kinds').then(r => r.data.data) })
-  const { data: defs = [] } = useQuery<AsstDef[]>({ queryKey: ['cmdb-asst-defs'], queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data) })
+  // 后端未暴露 association-kinds/defs 独立端点（OQ-1 决策：前端适配）
+  // 以下查询设为 disabled，CRUD 功能标记为"需要后端补充端点"
+  const { data: kinds = [] } = useQuery<AsstKind[]>({ queryKey: ['cmdb-asst-kinds'], queryFn: () => api.get('/cmdb/association-kinds').then(r => r.data.data), enabled: false })
+  const { data: defs = [] } = useQuery<AsstDef[]>({ queryKey: ['cmdb-asst-defs'], queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data), enabled: false })
   const { data: models = [] } = useQuery<CiModelVO[]>({ queryKey: ['cmdb-models'], queryFn: () => api.get('/cmdb/models').then(r => r.data.data) })
 
   const createKindMutation = useMutation({
@@ -230,7 +232,7 @@ function AssociationsTab() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">关联种类</h2>
-          {canWrite && <Button size="sm" variant="outline" onClick={() => setAddingKind(v => !v)}><Plus className="h-4 w-4 mr-1" />新建种类</Button>}
+          {canWrite && <Button size="sm" variant="outline" disabled title="需要后端补充端点"><Plus className="h-4 w-4 mr-1" />新建种类</Button>}
         </div>
         {addingKind && (
           <div className="border rounded-lg p-4 mb-3 bg-muted/30 space-y-3">
@@ -265,7 +267,7 @@ function AssociationsTab() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">模型关联定义</h2>
-          {canWrite && <Button size="sm" variant="outline" onClick={() => setAddingDef(v => !v)}><Plus className="h-4 w-4 mr-1" />新建关联</Button>}
+          {canWrite && <Button size="sm" variant="outline" disabled title="需要后端补充端点"><Plus className="h-4 w-4 mr-1" />新建关联</Button>}
         </div>
         {addingDef && (
           <div className="border rounded-lg p-4 mb-3 bg-muted/30 space-y-3">
