@@ -1,6 +1,7 @@
 # CMDB T1-T4 浏览器验收报告（最终版）
 
-> 日期: 2026-06-14  
+> 日期: 2026-06-14（首次轮次）
+> 第二轮 Bug 修复请参见 [2026-06-17-cmdb-bug-fixes-round2.md](2026-06-17-cmdb-bug-fixes-round2.md)  
 > 验证方式: Headless 浏览器 (browser_navigate/snapshot)  
 > 环境: Docker 6 容器 (development 分支)，http://localhost:80  
 > 认证: superadmin / Admin@123

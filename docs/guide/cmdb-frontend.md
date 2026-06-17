@@ -988,7 +988,22 @@ import { PermissionGuard } from '@/components/shared/PermissionGuard'
 | 2 | 非空断言 `model!.name` | `admin/models/[modelId]/page.tsx` 附近 | 添加 null 检查 |
 | 3 | `InstanceAssociationsTab` 与 `instances/.../associations/page.tsx` 功能重复但未共享代码 | 两处 | 考虑抽取公共关联管理组件 |
 
-### 架构注意事项
+### 已知问题与待修复 Bug
+
+参见 [CMDB Bug 修复报告（第二轮）](../issues/2026-06-17-cmdb-bug-fixes-round2.md)。
+
+### 当前阻塞项
+
+| Bug | 优先级 | 说明 | 状态 |
+|-----|--------|------|------|
+| CiModel.groupId → group_code | P0 | MyBatis-Plus 将 groupId 映射为 group_id，DB 实际为 group_code，导致所有 ci_model 查询 500 | ❌ 待加 @TableField |
+| IPAM NoResourceFoundException | P0 | /api/ipam/ips 端点路由异常 | ❌ 待诊断 |
+
+P0 SSR 崩溃、P1 权限 mismatch、P2 颜色回填已在 2026-06-17 完成修复。
+
+---
+
+## 架构注意事项
 
 1. **路径与早期设计不一致**: 实例详情使用 `[modelId]/[id]` 双段路径 (非早期设计的 `[instanceId]` 单段); 关联管理集成在 admin Tab 和实例详情中 (无独立 `/cmdb/relations` 路由)
 2. **代码规模**: `CiTopologyGraph.tsx` (537 行) 和 `instances/page.tsx` (426 行) 已达拆分阈值
