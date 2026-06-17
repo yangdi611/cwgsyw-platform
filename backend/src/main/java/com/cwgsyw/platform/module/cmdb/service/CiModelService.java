@@ -46,16 +46,7 @@ public class CiModelService {
             query.and(w -> w.like(CiModel::getName, keyword).or().like(CiModel::getDisplayName, keyword));
         }
         if (group != null && !group.isBlank()) {
-            LambdaQueryWrapper<CiModelGroup> gq = new LambdaQueryWrapper<CiModelGroup>()
-                    .eq(CiModelGroup::getTenantId, tenantId)
-                    .eq(CiModelGroup::getCode, group)
-                    .eq(CiModelGroup::getIsDeleted, false);
-            CiModelGroup mg = ciModelGroupMapper.selectOne(gq);
-            if (mg != null) {
-                query.eq(CiModel::getGroupId, mg.getId());
-            } else {
-                return PageResult.of(new Page<>(page, size));
-            }
+            query.eq(CiModel::getGroupCode, group);
         }
 
         Page<CiModel> p = ciModelMapper.selectPage(new Page<>(page, size), query);
@@ -82,7 +73,7 @@ public class CiModelService {
         model.setTenantId(tenantId);
         model.setName(req.getName());
         model.setDisplayName(req.getDisplayName());
-        model.setGroupId(modelGroup.getId());
+        model.setGroupCode(modelGroup.getCode());
         model.setIsBuiltIn(false);
         ciModelMapper.insert(model);
 
@@ -98,7 +89,7 @@ public class CiModelService {
         if (req.getDisplayName() != null) model.setDisplayName(req.getDisplayName());
         if (req.getGroup() != null) {
             CiModelGroup mg = findModelGroup(req.getGroup(), tenantId);
-            model.setGroupId(mg.getId());
+            model.setGroupCode(mg.getCode());
         }
         if (req.getColor() != null) model.setColor(req.getColor());
         if (req.getEnable2dView() != null) model.setEnable2dView(req.getEnable2dView());
@@ -185,9 +176,10 @@ public class CiModelService {
         vo.setCreatedAt(m.getCreatedAt());
         vo.setUpdatedAt(m.getUpdatedAt());
 
-        if (m.getGroupId() != null) {
+        if (m.getGroupCode() != null) {
             LambdaQueryWrapper<CiModelGroup> gq = new LambdaQueryWrapper<CiModelGroup>()
-                    .eq(CiModelGroup::getId, m.getGroupId())
+                    .eq(CiModelGroup::getTenantId, m.getTenantId())
+                    .eq(CiModelGroup::getCode, m.getGroupCode())
                     .eq(CiModelGroup::getIsDeleted, false);
             CiModelGroup mg = ciModelGroupMapper.selectOne(gq);
             if (mg != null) {
@@ -231,7 +223,7 @@ public class CiModelService {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", m.getId()); map.put("name", m.getName());
             map.put("displayName", m.getDisplayName());
-            map.put("groupId", m.getGroupId()); map.put("isBuiltIn", m.getIsBuiltIn());
+            map.put("groupCode", m.getGroupCode()); map.put("isBuiltIn", m.getIsBuiltIn());
             map.put("color", m.getColor()); map.put("enable2dView", m.getEnable2dView());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) { return "{}"; }
