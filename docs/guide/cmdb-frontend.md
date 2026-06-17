@@ -19,14 +19,15 @@
    - [可视化](#可视化)
    - [集成联动](#集成联动)
    - [IPAM](#ipam)
-4. [CMDB 布局系统](#cmdb-布局系统)
-5. [组件库](#组件库)
+4. [全局侧边栏导航](#全局侧边栏导航)
+5. [CMDB 布局系统](#cmdb-布局系统)
+6. [组件库](#组件库)
    - [实例详情 Tab 组件](#实例详情-tab-组件)
    - [通用组件](#通用组件)
-6. [自定义 Hooks](#自定义-hooks)
-7. [数据流模式](#数据流模式)
-8. [权限控制模型](#权限控制模型)
-9. [已知问题](#已知问题)
+7. [自定义 Hooks](#自定义-hooks)
+8. [数据流模式](#数据流模式)
+9. [权限控制模型](#权限控制模型)
+10. [已知问题](#已知问题)
 
 ---
 
@@ -418,11 +419,75 @@ Tier 4 功能:
 
 ---
 
+## 全局侧边栏导航
+
+**文件**: `components/layout/Sidebar.tsx` (223 行)
+
+全局侧边栏是 Dashboard 布局 (`(dashboard)/layout.tsx`) 的左侧固定导航，所有登录用户可见。CMDB 功能通过侧边栏的 **CMDB 导航组**进入。
+
+### CMDB 导航组结构
+
+```tsx
+const navItems: NavEntry[] = [
+  // ... 首页及日常功能项 ...
+  {
+    label: 'CMDB',
+    icon: ServerCog,       // lucide-react ServerCog 图标
+    resource: 'cmdb_model',
+    action: 'read',
+    storageKey: 'sidebar-cmdb',
+    defaultOpen: true,     // 默认展开
+    children: [
+      { href: '/cmdb/models',           label: '模型管理', icon: Box,      resource: 'cmdb_model',    action: 'read' },
+      { href: '/cmdb/instances',        label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/changes',          label: '变更历史', icon: History,  resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/alerts',           label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',   action: 'read' },
+      { href: '/cmdb/changes/stats',    label: '统计看板', icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/instances/2d-view', label: '2D 视图', icon: Grid3x3, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/admin',            label: '配置管理', icon: Settings, resource: 'cmdb_model',    action: 'write' },
+    ],
+  },
+  { href: '/ipam',  label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },  // 独立顶层项
+  // ... 其他功能项 ...
+]
+```
+
+### 导航项总览
+
+| # | 侧边栏标签 | 路由 | 图标 | 资源 | 操作 | 类型 |
+|---|-----------|------|------|------|------|------|
+| 1 | **CMDB** (组) | — | ServerCog | cmdb_model | read | NavGroup, defaultOpen |
+| — | ├ 模型管理 | `/cmdb/models` | Box | cmdb_model | read | NavItem (子项) |
+| — | ├ 实例管理 | `/cmdb/instances` | Database | cmdb_instance | read | NavItem (子项) |
+| — | ├ 变更历史 | `/cmdb/changes` | History | cmdb_instance | read | NavItem (子项) |
+| — | ├ CMDB 警告 | `/cmdb/alerts` | Bell | cmdb_alert | read | NavItem (子项) |
+| — | ├ 统计看板 | `/cmdb/changes/stats` | BarChart2 | cmdb_instance | read | NavItem (子项) |
+| — | ├ 2D 视图 | `/cmdb/instances/2d-view` | Grid3x3 | cmdb_instance | read | NavItem (子项) |
+| — | └ 配置管理 | `/cmdb/admin` | Settings | cmdb_model | write | NavItem (子项) |
+| 2 | **IP 地址池** | `/ipam` | Globe | ip_pool | read | 独立 NavItem |
+
+### 关键设计
+
+1. **可折叠组**: CMDB 导航组使用 `usePersistState` hook + `localStorage` 持久化折叠状态 (`storageKey: 'sidebar-cmdb'`)，默认展开 (`defaultOpen: true`)。折叠/展开时切换 `ChevronDown`/`ChevronRight` 图标。
+
+2. **子项高亮**: 当任意子项路由匹配当前路径时，整个导航组标题高亮（`font-medium` + 前景色）。子项自身活跃时显示 `bg-primary` 高亮背景。
+
+3. **IP 地址池独立**: IP 地址池 (`/ipam`) 是独立的顶层导航项，不属于 CMDB 组。路由、资源 (`ip_pool`) 和权限控制均与 CMDB 解耦。
+
+4. **权限守卫**: 组级别检查 `cmdb_model:read` — 无权限则整个组不渲染。子项内部也各有独立权限检查，无权限的子项自动隐藏（`visibleChildren` 过滤机制）。当所有子项均被权限过滤后，整个组自动隐藏。
+
+5. **活跃路径检测**: 支持精确匹配 + 子路径匹配 + query 参数匹配三种模式：
+   ```tsx
+   pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?')
+   ```
+
+---
+
 ## CMDB 布局系统
 
 **文件**: `cmdb/layout.tsx` (107 行)
 
-CMDB Layout 为所有 CMDB 页面提供左侧 **模型树侧边栏**:
+CMDB Layout 为所有 CMDB 页面提供左侧 **模型树侧边栏**（与全局侧边栏并行，形成双层侧边栏结构）：
 
 ### 侧边栏行为
 
