@@ -118,7 +118,15 @@ function ModelsTab() {
 
   const { data: models = [], isLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models'],
-    queryFn: () => api.get('/cmdb/models').then(r => r.data.data),
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/models')
+        return r.data.data
+      } catch {
+        return []
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   const createMutation = useMutation({
@@ -226,7 +234,15 @@ function AssociationsTab() {
   // ── Association Kinds / Defs (read-only from model data) ──
   const { data: models = [] } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models'],
-    queryFn: () => api.get('/cmdb/models').then(r => r.data.data),
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/models')
+        return r.data.data
+      } catch {
+        return []
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   // ── Association Attribute Management (AC-5) ──

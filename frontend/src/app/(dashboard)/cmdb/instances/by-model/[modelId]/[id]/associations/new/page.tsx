@@ -52,10 +52,18 @@ export default function NewAssociationPage() {
 
   const { data: inst } = useQuery<CiInstanceSummary>({
     queryKey: ['cmdb-instance', modelId, id],
-    queryFn: () => api.get(`/cmdb/instances/${id}`).then(r => ({
-      name: r.data.data.name,
-      model_id: r.data.data.model_id,
-    })),
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/instances/${id}`)
+        return {
+          name: r.data.data.name,
+          model_id: r.data.data.model_id,
+        }
+      } catch {
+        return {} as CiInstanceSummary
+      }
+    },
+    enabled: typeof window !== 'undefined',
   })
 
   // 获取模型详情以获取关联定义（后端未暴露独立 association-defs 端点）
