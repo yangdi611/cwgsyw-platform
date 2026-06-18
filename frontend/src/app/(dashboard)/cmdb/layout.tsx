@@ -41,7 +41,7 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const r = await api.get('/cmdb/models')
-        return r.data.data
+        return r.data.data?.records ?? []
       } catch {
         return []
       }

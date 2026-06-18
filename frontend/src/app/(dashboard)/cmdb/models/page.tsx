@@ -191,7 +191,7 @@ export default function CmdbModelsPage() {
                 {models.map(m => (
                   <TableRow key={m.id}>
                     <TableCell>
-                      <Link href={`/cmdb/models/${m.id}`} className="font-medium hover:underline">{m.name}</Link>
+                      <Link href={`/cmdb/admin/models/${m.id}`} className="font-medium hover:underline">{m.name}</Link>
                     </TableCell>
                     <TableCell>{m.displayName}</TableCell>
                     <TableCell><Badge variant="outline">{m.groupName}</Badge></TableCell>

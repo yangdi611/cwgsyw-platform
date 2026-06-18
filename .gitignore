@@ -7,6 +7,7 @@ frontend/.next/
 *.jar
 data/
 test/
+.worktrees/
 
 # macOS Finder conflict duplicates
 * 2.*
