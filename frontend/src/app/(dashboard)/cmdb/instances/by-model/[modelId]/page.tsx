@@ -52,13 +52,13 @@ export default function InstanceListPage() {
         return undefined
       }
     },
-    enabled: typeof window !== 'undefined',
+    enabled: isHydrated,
   })
 
   const { data: result, isLoading } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', modelId],
     queryFn: () => api.get('/cmdb/instances', { params: { model: modelId } }).then(r => r.data.data),
-    enabled: hasPermission('cmdb_instance', 'read'),
+    enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
   const deleteMutation = useMutation({

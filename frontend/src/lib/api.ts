@@ -19,6 +19,9 @@ api.interceptors.response.use(
       clearToken()
       window.location.href = '/login'
     }
+    if (err.response?.status === 403) {
+      console.warn('[API 403] Forbidden:', err.config?.url)
+    }
     return Promise.reject(err)
   }
 )

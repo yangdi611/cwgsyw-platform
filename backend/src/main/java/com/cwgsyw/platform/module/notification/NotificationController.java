@@ -16,7 +16,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('notification:read')")
+    @PreAuthorize("isAuthenticated()")
     public R<PageResult<NotificationVO>> list(
             @AuthenticationPrincipal SecurityUser user,
             @RequestParam(defaultValue = "1") int page,
@@ -25,20 +25,20 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    @PreAuthorize("hasAuthority('notification:read')")
+    @PreAuthorize("isAuthenticated()")
     public R<Integer> unreadCount(@AuthenticationPrincipal SecurityUser user) {
         return R.ok(notificationService.countUnread(user.getUserId()));
     }
 
     @PostMapping("/{id}/read")
-    @PreAuthorize("hasAuthority('notification:read')")
+    @PreAuthorize("isAuthenticated()")
     public R<Void> markRead(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
         notificationService.markRead(id, user.getUserId());
         return R.ok(null);
     }
 
     @PostMapping("/read-all")
-    @PreAuthorize("hasAuthority('notification:read')")
+    @PreAuthorize("isAuthenticated()")
     public R<Void> markAllRead(@AuthenticationPrincipal SecurityUser user) {
         notificationService.markAllRead(user.getUserId());
         return R.ok(null);

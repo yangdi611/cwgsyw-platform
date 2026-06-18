@@ -8,8 +8,10 @@ import { cn } from '@/lib/utils'
 export function NotificationBell() {
   const { data: count = 0 } = useQuery<number>({
     queryKey: ['notification-unread'],
-    queryFn: () => api.get('/notifications/unread-count').then(r => r.data.data),
+    queryFn: () => api.get('/notifications/unread-count').then(r => r.data.data).catch(() => 0),
     refetchInterval: 30_000,
+    retry: false,
+    enabled: typeof window !== 'undefined',
   })
 
   return (
