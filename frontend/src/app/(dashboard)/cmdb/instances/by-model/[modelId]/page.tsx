@@ -45,12 +45,13 @@ export default function InstanceListPage() {
   const { data: model } = useQuery<CiModelVO>({
     queryKey: ['cmdb-model', modelId],
     queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
+    enabled: isHydrated,
   })
 
   const { data: result, isLoading } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', modelId],
     queryFn: () => api.get('/cmdb/instances', { params: { model: modelId } }).then(r => r.data.data),
-    enabled: hasPermission('cmdb_instance', 'read'),
+    enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
   const deleteMutation = useMutation({
