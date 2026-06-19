@@ -15,15 +15,15 @@ import { InstanceAlertsTab } from '@/components/cmdb/InstanceAlertsTab'
 import { InstanceResourcesTab } from '@/components/cmdb/InstanceResourcesTab'
 
 interface CiAttributeVO {
-  id: number; field_key: string; name: string; field_type: string
-  is_required: boolean; is_editable: boolean; option: unknown
-  placeholder: string; unit: string; sort_order: number; group_id: string
+  id: number; fieldKey: string; name: string; fieldType: string
+  isRequired: boolean; isEditable: boolean; option: unknown
+  placeholder: string; unit: string; sortOrder: number; groupId: string
 }
 interface CiInstanceVO {
-  id: number; model_id: string; name: string
-  attrs: Record<string, unknown>
-  field_config: CiAttributeVO[]
-  created_at: string; updated_at: string; created_by_name: string
+  id: number; modelId: string; name: string
+  fieldsData: Record<string, unknown>
+  fieldConfig: CiAttributeVO[]
+  createdAt: string; updatedAt: string; createdByName: string
 }
 
 const TABS = [
@@ -73,8 +73,8 @@ export default function InstanceDetailPage() {
           <div>
             <h1 className="text-2xl font-bold">{inst.name ?? `#${inst.id}`}</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {inst.model_id} · 创建于 {new Date(inst.created_at).toLocaleString('zh-CN')}
-              {inst.created_by_name && ` · ${inst.created_by_name}`}
+              {inst.modelId} · 创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}
+              {inst.createdByName && ` · ${inst.createdByName}`}
             </p>
           </div>
         </div>
