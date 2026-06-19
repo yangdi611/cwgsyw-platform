@@ -12,17 +12,17 @@ import { Pencil, Save, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiAttributeVO {
-  id: number; field_key: string; name: string; field_type: string
-  is_required: boolean; is_editable: boolean; option: unknown
-  placeholder: string; unit: string; sort_order: number; group_id: string
+  id: number; fieldKey: string; name: string; fieldType: string
+  isRequired: boolean; isEditable: boolean; option: unknown
+  placeholder: string; unit: string; sortOrder: number; groupId: string
 }
-interface CiAttributeGroupVO { group_id: string; name: string; sort_order: number }
-interface CiModelVO { attribute_groups: CiAttributeGroupVO[] }
+interface CiAttributeGroupVO { groupId: string; name: string; sortOrder: number }
+interface CiModelVO { attributeGroups: CiAttributeGroupVO[] }
 
 interface CiInstanceVO {
-  id: number; model_id: string; name: string
-  attrs: Record<string, unknown>
-  field_config: CiAttributeVO[]
+  id: number; modelId: string; name: string
+  fieldsData: Record<string, unknown>
+  fieldConfig: CiAttributeVO[]
 }
 
 interface Props {
@@ -50,7 +50,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
 
   // Derive fresh attrs from instance — stable reference via useMemo
   const freshAttrs = useMemo(() => Object.fromEntries(
-    Object.entries(inst.attrs ?? {}).map(([k, v]) => [k, String(v ?? '')])
+    Object.entries(inst.fieldsData ?? {}).map(([k, v]) => [k, String(v ?? '')])
   ), [inst])
 
   // Reset editAttrs when instance changes (render-time conditional setState,
@@ -61,7 +61,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/cmdb/instances/${inst.id}`, { attrs: editAttrs }),
+    mutationFn: () => api.put(`/cmdb/instances/${inst.id}`, { fieldsData: editAttrs }),
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
@@ -74,17 +74,17 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
   })
 
   const canEdit = hasPermission('cmdb_instance', 'update')
-  const fieldConfig = inst.field_config ?? []
+  const fieldConfig = inst.fieldConfig ?? []
   const groupNames = Object.fromEntries(
-    (model?.attribute_groups ?? []).map(g => [g.group_id, g.name])
+    (model?.attributeGroups ?? []).map(g => [g.groupId, g.name])
   )
   const attrsByGroup = fieldConfig.reduce((acc, a) => {
-    const g = a.group_id || 'default'
+    const g = a.groupId || 'default'
     if (!acc[g]) acc[g] = []
     acc[g].push(a)
     return acc
   }, {} as Record<string, CiAttributeVO[]>)
-  const groupIds = [...new Set(fieldConfig.map(a => a.group_id || 'default'))]
+  const groupIds = [...new Set(fieldConfig.map(a => a.groupId || 'default'))]
 
   return (
     <div className="space-y-4">
@@ -108,7 +108,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
       )}
 
       {groupIds.map(groupId => {
-        const attrs = (attrsByGroup[groupId] ?? []).sort((a, b) => a.sort_order - b.sort_order)
+        const attrs = (attrsByGroup[groupId] ?? []).sort((a, b) => a.sortOrder - b.sortOrder)
         return (
           <div key={groupId} className="border rounded-lg p-5">
             {groupNames[groupId] && (
@@ -116,18 +116,18 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
             )}
             <div className="space-y-3">
               {attrs.map(attr => {
-                const rawVal = inst.attrs?.[attr.field_key]
+                const rawVal = inst.fieldsData?.[attr.fieldKey]
                 const displayVal = rawVal != null ? String(rawVal) : '—'
                 return (
-                  <div key={attr.field_key} className="grid grid-cols-3 gap-4 items-start">
+                  <div key={attr.fieldKey} className="grid grid-cols-3 gap-4 items-start">
                     <div className="text-sm text-muted-foreground pt-2">
                       {attr.name}
                       {attr.unit && <span className="ml-1 text-xs">({attr.unit})</span>}
                     </div>
                     <div className="col-span-2">
-                      {editing && attr.is_editable ? (
-                        renderEditField(attr, editAttrs[attr.field_key] ?? displayVal,
-                          val => setEditAttrs(a => ({ ...a, [attr.field_key]: val })))
+                      {editing && attr.isEditable ? (
+                        renderEditField(attr, editAttrs[attr.fieldKey] ?? displayVal,
+                          val => setEditAttrs(a => ({ ...a, [attr.fieldKey]: val })))
                       ) : (
                         <p className="text-sm pt-2">{displayVal}</p>
                       )}
@@ -144,10 +144,10 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
 }
 
 function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: string) => void) {
-  const { field_type, option, placeholder } = attr
+  const { fieldType, option, placeholder } = attr
   const ph = placeholder ?? ''
-  if (field_type === 'longchar') return <Textarea value={value} onChange={e => onChange(e.target.value)} rows={3} />
-  if (field_type === 'enum' && Array.isArray(option)) {
+  if (fieldType === 'longchar') return <Textarea value={value} onChange={e => onChange(e.target.value)} rows={3} />
+  if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>
@@ -156,7 +156,7 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
       </Select>
     )
   }
-  if (field_type === 'enummulti' && Array.isArray(option)) {
+  if (fieldType === 'enummulti' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     const selected: string[] = (() => { try { return JSON.parse(value || '[]') } catch { return [] } })()
     const toggle = (id: string) => {
@@ -174,7 +174,7 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
       </div>
     )
   }
-  if (field_type === 'bool') {
+  if (fieldType === 'bool') {
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>
         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -185,7 +185,7 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
       </Select>
     )
   }
-  if (field_type === 'date') return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />
-  if (field_type === 'int' || field_type === 'float') return <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
+  if (fieldType === 'date') return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />
+  if (fieldType === 'int' || fieldType === 'float') return <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
   return <Input value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
 }
