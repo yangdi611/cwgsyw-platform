@@ -25,6 +25,9 @@ import {
   Globe,
   Box,
   Grid3x3,
+  GitBranch,
+  Edit3,
+  FolderOpen,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -70,6 +73,18 @@ const navItems: NavEntry[] = [
       { href: '/notifications',  label: '通知中心', icon: Bell,       resource: 'notification',  action: 'read' },
     ],
   },
+  {
+    label: '流程引擎',
+    icon: GitBranch,
+    resource: 'workflow',
+    action: 'read',
+    storageKey: 'sidebar_workflow_open',
+    defaultOpen: false,
+    children: [
+      { href: '/workflow/admin',  label: '流程管理', icon: GitBranch, resource: 'workflow', action: 'read' },
+      { href: '/workflow/design', label: '流程设计', icon: Edit3,     resource: 'workflow', action: 'configure' },
+    ],
+  },
   // AC7.3: IT 运维工具（默认展开）
   {
     label: 'IT 运维工具',
@@ -98,6 +113,7 @@ const navItems: NavEntry[] = [
         ],
       },
       { href: '/devices',     label: '设备密码库', icon: KeyRound,  resource: 'device',       action: 'read' },
+      { href: '/files',       label: '共享文档',   icon: FolderOpen, resource: 'shared_file',  action: 'read' },
       { href: '/change-docs', label: '变更文档',   icon: FileText,  resource: 'change_doc',   action: 'read' },
       { href: '/reports',     label: '报表导出',   icon: BarChart2, resource: 'daily_report', action: 'export' },
     ],
