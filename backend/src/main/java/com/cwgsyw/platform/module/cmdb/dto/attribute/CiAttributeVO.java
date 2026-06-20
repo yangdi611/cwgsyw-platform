@@ -18,6 +18,7 @@ public class CiAttributeVO {
     private Boolean isBuiltIn;
     private Boolean isListShow;
     private String defaultValue;
+    @TableField(exist = false)
     private String enumOptions;
     private Integer sortOrder;
 }
