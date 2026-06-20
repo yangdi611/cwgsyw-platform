@@ -71,6 +71,14 @@ public class CiModelService {
         return toVO(model, groupNames, attrGroupNames, true);
     }
 
+    public CiModelVO getByCode(String modelCode, String tenantId) {
+        CiModel model = ciModelMapper.findByName(modelCode, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelCode));
+        Map<Long, String> groupNames = resolveGroupNames(tenantId);
+        Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
+        return toVO(model, groupNames, attrGroupNames, true);
+    }
+
     @Transactional
     public CiModelVO create(CreateModelRequest req, String tenantId, Long operatorId) {
         ciModelMapper.findByName(req.getName(), tenantId).ifPresent(m -> {

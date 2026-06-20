@@ -33,8 +33,12 @@ public class CiModelController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_model', 'read')")
-    public R<CiModelVO> getById(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciModelService.getById(id, cu.getTenantId()));
+    public R<CiModelVO> getById(@PathVariable String id, @AuthenticationPrincipal SecurityUser cu) {
+        try {
+            return R.ok(ciModelService.getById(Long.parseLong(id), cu.getTenantId()));
+        } catch (NumberFormatException e) {
+            return R.ok(ciModelService.getByCode(id, cu.getTenantId()));
+        }
     }
 
     @PostMapping

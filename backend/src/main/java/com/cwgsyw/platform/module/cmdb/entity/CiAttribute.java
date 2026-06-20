@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.cmdb.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.cwgsyw.platform.common.BaseEntity;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class CiAttribute extends BaseEntity {
     private Boolean isBuiltIn;
     private Boolean isListShow;
     private String defaultValue;
+    @TableField(exist = false)
     private String enumOptions;
     private Integer sortOrder;
 }

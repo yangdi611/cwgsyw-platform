@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.cmdb.dto.attribute;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 @Data
