@@ -33,10 +33,11 @@ interface CiRelGroupVO {
 interface CiInstanceSummary {
   name: string
   modelId: string
+  modelCode?: string
 }
 
 export default function AssociationsPage() {
-  const { modelId, id } = useParams<{ modelId: string; id: string }>()
+  const { modelCode, id } = useParams<{ modelCode: string; id: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -48,7 +49,7 @@ export default function AssociationsPage() {
   }, [isHydrated, hasPermission, router])
 
   const { data: inst } = useQuery<CiInstanceSummary>({
-    queryKey: ['cmdb-instance', modelId, id],
+    queryKey: ['cmdb-instance', modelCode, id],
     queryFn: async () => {
       try {
         const r = await api.get(`/cmdb/instances/${id}`)
@@ -98,7 +99,7 @@ export default function AssociationsPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/by-model/${modelId}/${id}`}
+        <Link href={`/cmdb/instances/by-model/${modelCode}/${id}`}
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回详情
         </Link>
@@ -109,7 +110,7 @@ export default function AssociationsPage() {
           <p className="text-xs text-muted-foreground mt-0.5">共 {allRelations.length} 条关联</p>
         </div>
         {hasPermission('cmdb_relation', 'create') && (
-          <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations/new`}
+          <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`}
             className={buttonVariants({ variant: 'default', size: 'sm' })}>
             <Plus className="h-4 w-4 mr-1" />新建关联
           </Link>

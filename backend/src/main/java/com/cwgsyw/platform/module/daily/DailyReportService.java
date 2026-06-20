@@ -200,8 +200,8 @@ public class DailyReportService {
             Map<String, String> modelNames = modelIds.isEmpty()
                 ? Map.of()
                 : ciModelMapper.selectList(
-                    new LambdaQueryWrapper<CiModel>().in(CiModel::getModelId, modelIds)
-                ).stream().collect(Collectors.toMap(CiModel::getModelId, CiModel::getDisplayName));
+                    new LambdaQueryWrapper<CiModel>().in(CiModel::getName, modelIds)
+                ).stream().collect(Collectors.toMap(CiModel::getName, CiModel::getDisplayName));
             List<CiInstanceBriefVO> cis = instances.stream().map(inst -> {
                 CiInstanceBriefVO civ = new CiInstanceBriefVO();
                 civ.setId(inst.getId());

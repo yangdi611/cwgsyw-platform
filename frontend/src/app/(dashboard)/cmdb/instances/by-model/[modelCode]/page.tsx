@@ -12,6 +12,8 @@ import { usePermission } from '@/hooks/usePermission'
 interface CiInstanceVO {
   id: number
   modelId: string
+  modelCode?: string
+  displayName?: string
   name: string
   fieldsData: Record<string, unknown>
   createdAt: string
@@ -30,7 +32,7 @@ interface CiModelVO {
 }
 
 export default function InstanceListPage() {
-  const { modelId } = useParams<{ modelId: string }>()
+  const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -41,10 +43,10 @@ export default function InstanceListPage() {
   }, [isHydrated, hasPermission, router])
 
   const { data: model } = useQuery<CiModelVO>({
-    queryKey: ['cmdb-model', modelId],
+    queryKey: ['cmdb-model', modelCode],
     queryFn: async () => {
       try {
-        const r = await api.get(`/cmdb/models/${modelId}`)
+        const r = await api.get(`/cmdb/models/${modelCode}`)
         return r.data.data
       } catch {
         return undefined
@@ -54,8 +56,8 @@ export default function InstanceListPage() {
   })
 
   const { data: result, isLoading } = useQuery<PageResult>({
-    queryKey: ['cmdb-instances', modelId],
-    queryFn: () => api.get('/cmdb/instances', { params: { model: modelId } }).then(r => r.data.data),
+    queryKey: ['cmdb-instances', modelCode],
+    queryFn: () => api.get('/cmdb/instances', { params: { model: modelCode } }).then(r => r.data.data),
     enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
@@ -63,7 +65,7 @@ export default function InstanceListPage() {
     mutationFn: (id: number) => api.delete(`/cmdb/instances/${id}`),
     onSuccess: () => {
       toast.success('已删除')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelId] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
@@ -78,16 +80,16 @@ export default function InstanceListPage() {
     <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/admin/models/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          <Link href={`/cmdb/admin/models/${modelCode}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             <ArrowLeft className="h-4 w-4 mr-1" />返回模型
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{model?.name ?? modelId} 实例列表</h1>
+            <h1 className="text-2xl font-bold">{model?.name ?? modelCode} 实例列表</h1>
             <p className="text-xs text-muted-foreground mt-0.5">共 {result?.total ?? 0} 条</p>
           </div>
         </div>
         {hasPermission('cmdb_instance', 'create') && (
-          <Link href={`/cmdb/instances/by-model/${modelId}/new`} className={buttonVariants({ size: 'sm' })}>
+          <Link href={`/cmdb/instances/by-model/${modelCode}/new`} className={buttonVariants({ size: 'sm' })}>
             <Plus className="h-4 w-4 mr-1" />新建实例
           </Link>
         )}
@@ -133,7 +135,7 @@ export default function InstanceListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Link href={`/cmdb/instances/by-model/${modelId}/${inst.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 w-7 p-0'}>
+                        <Link href={`/cmdb/instances/by-model/${modelCode}/${inst.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 w-7 p-0'}>
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
                         {hasPermission('cmdb_instance', 'delete') && (

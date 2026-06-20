@@ -25,7 +25,7 @@ interface CiModelVO {
 }
 
 export default function NewInstancePage() {
-  const { modelId } = useParams<{ modelId: string }>()
+  const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [attrs, setAttrs] = useState<Record<string, string>>({})
@@ -33,14 +33,14 @@ export default function NewInstancePage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'create')) router.replace(`/cmdb/instances/by-model/${modelId}`)
-  }, [isHydrated, hasPermission, router, modelId])
+    if (!hasPermission('cmdb_instance', 'create')) router.replace(`/cmdb/instances/by-model/${modelCode}`)
+  }, [isHydrated, hasPermission, router, modelCode])
 
   const { data: model, isLoading } = useQuery<CiModelVO>({
-    queryKey: ['cmdb-model', modelId],
+    queryKey: ['cmdb-model', modelCode],
     queryFn: async () => {
       try {
-        const r = await api.get(`/cmdb/models/${modelId}`)
+        const r = await api.get(`/cmdb/models/${modelCode}`)
         return r.data.data
       } catch {
         return undefined
@@ -50,10 +50,10 @@ export default function NewInstancePage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/instances', { modelId, name, fieldsData: attrs }),
+    mutationFn: () => api.post('/cmdb/instances', { modelId: modelCode, name, fieldsData: attrs }),
     onSuccess: (res) => {
       toast.success('实例已创建')
-      router.push(`/cmdb/instances/by-model/${modelId}/${res.data.data.id}`)
+      router.push(`/cmdb/instances/by-model/${modelCode}/${res.data.data.id}`)
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
   })
@@ -73,10 +73,10 @@ export default function NewInstancePage() {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+        <Link href={`/cmdb/instances/by-model/${modelCode}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回列表
         </Link>
-        <h1 className="text-2xl font-bold">新建 {model?.name ?? modelId} 实例</h1>
+        <h1 className="text-2xl font-bold">新建 {model?.name ?? modelCode} 实例</h1>
       </div>
 
       <div className="space-y-6">
@@ -120,7 +120,7 @@ export default function NewInstancePage() {
         <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
           {createMutation.isPending ? '创建中...' : '创建实例'}
         </Button>
-        <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'outline' })}>取消</Link>
+        <Link href={`/cmdb/instances/by-model/${modelCode}`} className={buttonVariants({ variant: 'outline' })}>取消</Link>
       </div>
     </div>
   )

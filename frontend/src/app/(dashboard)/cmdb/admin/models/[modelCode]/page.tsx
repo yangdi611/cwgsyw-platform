@@ -20,7 +20,7 @@ interface CiAttributeVO {
 }
 interface CiAttributeGroupVO { id: number; groupId: string; name: string; isDefault: boolean; isBuiltIn: boolean }
 interface CiModelVO {
-  id: number; modelId: string; name: string; icon: string; isBuiltIn: boolean
+  id: number; modelId: string; modelCode?: string; displayName?: string; name: string; icon: string; isBuiltIn: boolean
   attributes: CiAttributeVO[]; attributeGroups: CiAttributeGroupVO[]
 }
 
@@ -32,7 +32,7 @@ const FIELD_TYPES = [
 ]
 
 export default function ModelDetailPage() {
-  const { modelId } = useParams<{ modelId: string }>()
+  const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
   const canWrite = hasPermission('cmdb_model', 'write')
@@ -43,10 +43,10 @@ export default function ModelDetailPage() {
   })
 
   const { data: model, isLoading } = useQuery<CiModelVO>({
-    queryKey: ['cmdb-model', modelId],
+    queryKey: ['cmdb-model', modelCode],
     queryFn: async () => {
       try {
-        const r = await api.get(`/cmdb/models/${modelId}`)
+        const r = await api.get(`/cmdb/models/${modelCode}`)
         return r.data.data
       } catch {
         return undefined
@@ -56,7 +56,7 @@ export default function ModelDetailPage() {
   })
 
   const addAttrMutation = useMutation({
-    mutationFn: () => api.post(`/cmdb/models/${modelId}/attributes`, {
+    mutationFn: () => api.post(`/cmdb/models/${modelCode}/attributes`, {
       fieldKey: newAttr.fieldKey, name: newAttr.name, fieldType: newAttr.fieldType,
       groupId: newAttr.groupId, isRequired: newAttr.isRequired, isUnique: newAttr.isUnique,
       isListShow: newAttr.isListShow,
@@ -64,7 +64,7 @@ export default function ModelDetailPage() {
     }),
     onSuccess: () => {
       toast.success('属性已添加')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelId] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelCode] })
       setAddingAttr(false)
       setNewAttr({ fieldKey: '', name: '', fieldType: 'singlechar', groupId: 'default',
         isRequired: false, isUnique: false, isListShow: true, placeholder: '', unit: '' })
@@ -73,8 +73,8 @@ export default function ModelDetailPage() {
   })
 
   const deleteAttrMutation = useMutation({
-    mutationFn: (attrId: number) => api.delete(`/cmdb/models/${modelId}/attributes/${attrId}`),
-    onSuccess: () => { toast.success('属性已删除'); queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelId] }) },
+    mutationFn: (attrId: number) => api.delete(`/cmdb/models/${modelCode}/attributes/${attrId}`),
+    onSuccess: () => { toast.success('属性已删除'); queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelCode] }) },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
 
@@ -103,7 +103,7 @@ export default function ModelDetailPage() {
           </div>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">{model.modelId}</p>
         </div>
-        <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>查看实例</Link>
+        <Link href={`/cmdb/instances/by-model/${modelCode}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>查看实例</Link>
         {canWrite && (
           <Button size="sm" onClick={() => setAddingAttr(v => !v)}>
             <Plus className="h-4 w-4 mr-1" />添加属性

@@ -26,7 +26,7 @@ interface CiInstanceVO {
 }
 
 interface Props {
-  modelId: string
+  modelCode: string
   inst: CiInstanceVO
 }
 
@@ -36,19 +36,19 @@ interface Props {
  * {@link renderEditField}. Self-contained: fetches its own model (for group
  * names) and owns the edit/save state that previously lived in the page.
  */
-export function InstanceBasicInfoTab({ modelId, inst }: Props) {
+export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [prevInstId, setPrevInstId] = useState(inst.id)
   const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
 
-  const { data: model } = useQuery<CiModelVO>({
-    queryKey: ['cmdb-model', modelId],
-    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
+  const modelRes = useQuery({
+    queryKey: ['cmdb-model', modelCode],
+    queryFn: () => api.get(`/cmdb/models/${modelCode}`).then(r => r.data.data),
+    staleTime: 600_000, // models rarely change during a session
   })
-
-  // Derive fresh attrs from instance — stable reference via useMemo
+  const model: CiModelVO | undefined = modelRes.data
   const freshAttrs = useMemo(() => Object.fromEntries(
     Object.entries(inst.fieldsData ?? {}).map(([k, v]) => [k, String(v ?? '')])
   ), [inst])
@@ -65,7 +65,7 @@ export function InstanceBasicInfoTab({ modelId, inst }: Props) {
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instance', modelId, String(inst.id)] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instance', modelCode, String(inst.id)] })
     },
     onError: (e: Error) => {
       const apiErr = e as { response?: { data?: { message?: string } } }
