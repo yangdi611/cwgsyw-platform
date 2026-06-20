@@ -96,24 +96,24 @@ public class ImpactAnalysisService {
 
     private String buildCteSql(String direction) {
         String joinCondition = switch (direction) {
-            case "downstream" -> "r.src_instance_id = i.dst_instance_id";
-            case "upstream" -> "r.dst_instance_id = i.src_instance_id";
-            default -> "(r.src_instance_id = i.dst_instance_id OR r.dst_instance_id = i.src_instance_id)";
+            case "downstream" -> "r.src_id = i.dst_id";
+            case "upstream" -> "r.dst_id = i.src_id";
+            default -> "(r.src_id = i.dst_id OR r.dst_id = i.src_id)";
         };
 
         return """
             WITH RECURSIVE impact AS (
-                SELECT id, src_instance_id, dst_instance_id, association_kind, 0 AS depth
+                SELECT id, src_id, dst_id, def_id, 0 AS depth
                 FROM ci_instance_rel
-                WHERE (src_instance_id = ? OR dst_instance_id = ?)
+                WHERE (src_id = ? OR dst_id = ?)
                   AND NOT is_deleted AND tenant_id = ?
                 UNION ALL
-                SELECT r.id, r.src_instance_id, r.dst_instance_id, r.association_kind, i.depth + 1
+                SELECT r.id, r.src_id, r.dst_id, r.def_id, i.depth + 1
                 FROM ci_instance_rel r
                 INNER JOIN impact i ON %s
                 WHERE i.depth < ? AND NOT r.is_deleted AND r.tenant_id = ?
             )
-            SELECT DISTINCT src_instance_id AS src, dst_instance_id AS dst, association_kind AS kind, depth
+            SELECT DISTINCT src_id AS src, dst_id AS dst, def_id AS kind, depth
             FROM impact
             """.formatted(joinCondition);
     }
