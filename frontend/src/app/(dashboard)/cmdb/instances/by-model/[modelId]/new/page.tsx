@@ -14,14 +14,14 @@ import { ArrowLeft } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiAttributeVO {
-  id: number; field_key: string; name: string; field_type: string
-  is_required: boolean; is_editable: boolean; option: unknown
-  placeholder: string; unit: string; sort_order: number; group_id: string
+  id: number; fieldKey: string; name: string; fieldType: string
+  isRequired: boolean; isEditable: boolean; option: unknown
+  placeholder: string; unit: string; sortOrder: number; groupId: string
 }
-interface CiAttributeGroupVO { id: number; group_id: string; name: string; sort_order: number }
+interface CiAttributeGroupVO { id: number; groupId: string; name: string; sortOrder: number }
 interface CiModelVO {
-  model_id: string; name: string
-  attributes: CiAttributeVO[]; attribute_groups: CiAttributeGroupVO[]
+  name: string
+  attributes: CiAttributeVO[]; attributeGroups: CiAttributeGroupVO[]
 }
 
 export default function NewInstancePage() {
@@ -60,9 +60,9 @@ export default function NewInstancePage() {
 
   const set = (key: string, val: string) => setAttrs(a => ({ ...a, [key]: val }))
 
-  const groups = model?.attribute_groups ?? []
+  const groups = model?.attributeGroups ?? []
   const attrsByGroup = (model?.attributes ?? []).reduce((acc, a) => {
-    const g = a.group_id || 'default'
+    const g = a.groupId || 'default'
     if (!acc[g]) acc[g] = []
     acc[g].push(a)
     return acc
@@ -92,22 +92,22 @@ export default function NewInstancePage() {
             />
           </div>
         </div>
-        {groups.sort((a, b) => a.sort_order - b.sort_order).map(group => {
-          const groupAttrs = (attrsByGroup[group.group_id] ?? [])
-            .sort((a, b) => a.sort_order - b.sort_order)
+        {groups.sort((a, b) => a.sortOrder - b.sortOrder).map(group => {
+          const groupAttrs = (attrsByGroup[group.groupId] ?? [])
+            .sort((a, b) => a.sortOrder - b.sortOrder)
           if (groupAttrs.length === 0) return null
           return (
-            <div key={group.group_id} className="border rounded-lg p-5">
+            <div key={group.groupId} className="border rounded-lg p-5">
               <h2 className="font-semibold text-sm mb-4">{group.name}</h2>
               <div className="space-y-4">
                 {groupAttrs.map(attr => (
-                  <div key={attr.field_key} className="space-y-1.5">
+                  <div key={attr.fieldKey} className="space-y-1.5">
                     <Label className="text-sm">
                       {attr.name}
-                      {attr.is_required && <span className="text-destructive ml-1">*</span>}
+                      {attr.isRequired && <span className="text-destructive ml-1">*</span>}
                       {attr.unit && <span className="text-muted-foreground ml-1 text-xs">({attr.unit})</span>}
                     </Label>
-                    {renderField(attr, attrs[attr.field_key] ?? '', val => set(attr.field_key, val))}
+                    {renderField(attr, attrs[attr.fieldKey] ?? '', val => set(attr.fieldKey, val))}
                   </div>
                 ))}
               </div>
@@ -127,12 +127,12 @@ export default function NewInstancePage() {
 }
 
 function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) => void) {
-  const { field_type, option, placeholder } = attr
+  const { fieldType, option, placeholder } = attr
   const ph = placeholder ?? ''
-  if (field_type === 'longchar') {
+  if (fieldType === 'longchar') {
     return <Textarea value={value} onChange={e => onChange(e.target.value)} placeholder={ph} rows={3} />
   }
-  if (field_type === 'enum' && Array.isArray(option)) {
+  if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>
@@ -141,7 +141,7 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
       </Select>
     )
   }
-  if (field_type === 'enummulti' && Array.isArray(option)) {
+  if (fieldType === 'enummulti' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     const selected: string[] = (() => { try { return JSON.parse(value || '[]') } catch { return [] } })()
     const toggle = (id: string) => {
@@ -159,7 +159,7 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
       </div>
     )
   }
-  if (field_type === 'bool') {
+  if (fieldType === 'bool') {
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>
         <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
@@ -170,8 +170,8 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
       </Select>
     )
   }
-  if (field_type === 'date') return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />
-  if (field_type === 'int' || field_type === 'float') {
+  if (fieldType === 'date') return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />
+  if (fieldType === 'int' || fieldType === 'float') {
     return <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
   }
   return <Input value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />

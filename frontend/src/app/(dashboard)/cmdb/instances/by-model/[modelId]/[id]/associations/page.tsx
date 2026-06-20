@@ -13,26 +13,26 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface CiInstanceRelVO {
   id: number
-  def_id: string
-  is_src: boolean
-  peer_id: number
-  peer_name: string
-  peer_model_id: string
-  peer_model_name: string
-  direction_label: string
-  attrs: Record<string, unknown>
-  created_at: string
+  defId: string
+  isSrc: boolean
+  peerId: number
+  peerName: string
+  peerModelId: string
+  peerModelName: string
+  directionLabel: string
+  fieldsData: Record<string, unknown>
+  createdAt: string
 }
 
 interface CiRelGroupVO {
-  kind_id: string
-  kind_name: string
+  kindId: string
+  kindName: string
   relations: CiInstanceRelVO[]
 }
 
 interface CiInstanceSummary {
   name: string
-  model_id: string
+  modelId: string
 }
 
 export default function AssociationsPage() {
@@ -54,7 +54,7 @@ export default function AssociationsPage() {
         const r = await api.get(`/cmdb/instances/${id}`)
         return {
           name: r.data.data.name,
-          model_id: r.data.data.model_id,
+          modelId: r.data.data.modelId,
         }
       } catch {
         return {} as CiInstanceSummary
@@ -87,13 +87,13 @@ export default function AssociationsPage() {
 
   // Flatten all relations for table display
   const allRelations = relGroups.flatMap(g =>
-    g.relations.map(r => ({ ...r, kind_name: g.kind_name, kind_id: g.kind_id }))
+    g.relations.map(r => ({ ...r, kindName: g.kindName, kindId: g.kindId }))
   )
   const filtered = filterKind === 'all'
     ? allRelations
-    : allRelations.filter(r => r.kind_id === filterKind)
+    : allRelations.filter(r => r.kindId === filterKind)
 
-  const kindOptions = relGroups.map(g => ({ value: g.kind_id, label: g.kind_name }))
+  const kindOptions = relGroups.map(g => ({ value: g.kindId, label: g.kindName }))
 
   return (
     <div className="max-w-5xl">
@@ -157,26 +157,26 @@ export default function AssociationsPage() {
               ) : (
                 filtered.map(rel => (
                   <tr key={rel.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 text-muted-foreground">{rel.kind_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{rel.kindName}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                        {rel.direction_label}
+                        {rel.directionLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium">
-                      <Link href={`/cmdb/instances/by-model/${rel.peer_model_id}/${rel.peer_id}`}
+                      <Link href={`/cmdb/instances/by-model/${rel.peerModelId}/${rel.peerId}`}
                         className="hover:underline">
-                        {rel.peer_name}
+                        {rel.peerName}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{rel.peer_model_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{rel.peerModelName}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(rel.created_at).toLocaleDateString('zh-CN')}
+                      {new Date(rel.createdAt).toLocaleDateString('zh-CN')}
                     </td>
                     <td className="px-4 py-3">
-                      {rel.attrs && Object.keys(rel.attrs).length > 0 ? (
+                      {rel.fieldsData && Object.keys(rel.fieldsData).length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {Object.entries(rel.attrs).map(([k, v]) => (
+                          {Object.entries(rel.fieldsData).map(([k, v]) => (
                             <Badge key={k} variant="secondary" className="text-xs">
                               {k}={String(v)}
                             </Badge>
