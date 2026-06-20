@@ -35,6 +35,7 @@ public class CiRelationService {
     private final CiAssociationAttrDefMapper ciAssociationAttrDefMapper;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
+    private final CiFieldSchemaValidator ciFieldSchemaValidator;
 
     /**
      * AssociationDef 驱动的关联创建（Spec §4.4 / AD-3）。
@@ -76,7 +77,7 @@ public class CiRelationService {
         // metadata 按 def.kindId 关联的 attr def schema 校验。
         Map<String, Object> metadata = req.getMetadata() != null ? req.getMetadata() : new LinkedHashMap<>();
         List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(def.getKindId(), tenantId);
-        CiInstanceService.SchemaValidator.validateAssociationAttrs(metadata, attrDefs);
+        ciFieldSchemaValidator.validateAssociationAttrs(metadata, attrDefs);
 
         CiInstanceRel rel = new CiInstanceRel();
         rel.setTenantId(tenantId);
@@ -128,7 +129,7 @@ public class CiRelationService {
             // Validate against schema：按该 rel 所属 def 的 kindId 取 attr def。
             String kindId = resolveKindId(rel, tenantId);
             List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(kindId, tenantId);
-            CiInstanceService.SchemaValidator.validateAssociationAttrs(merged, attrDefs);
+            ciFieldSchemaValidator.validateAssociationAttrs(merged, attrDefs);
 
             rel.setMetadata(merged);
             ciInstanceRelMapper.updateById(rel);

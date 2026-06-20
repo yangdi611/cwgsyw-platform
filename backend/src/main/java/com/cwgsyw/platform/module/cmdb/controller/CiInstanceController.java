@@ -7,7 +7,9 @@ import com.cwgsyw.platform.module.cmdb.dto.changes.ChangeHistoryV2VO;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
 import com.cwgsyw.platform.module.cmdb.service.CiChangeService;
 import com.cwgsyw.platform.module.cmdb.service.Ci2DViewService;
-import com.cwgsyw.platform.module.cmdb.service.CiInstanceService;
+import com.cwgsyw.platform.module.cmdb.service.CiInstanceCommandService;
+import com.cwgsyw.platform.module.cmdb.service.CiInstanceQueryService;
+import com.cwgsyw.platform.module.cmdb.service.CiRelatedResourceService;
 import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
 import com.cwgsyw.platform.module.device.DeviceCredentialMapper;
 import com.cwgsyw.platform.module.device.dto.CredentialVO;
@@ -26,7 +28,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CiInstanceController {
 
-    private final CiInstanceService ciInstanceService;
+    private final CiInstanceQueryService ciInstanceQueryService;
+    private final CiInstanceCommandService ciInstanceCommandService;
+    private final CiRelatedResourceService ciRelatedResourceService;
     private final CiChangeService ciChangeService;
     private final Ci2DViewService ci2DViewService;
     private final DeviceCredentialMapper deviceCredentialMapper;
@@ -38,7 +42,7 @@ public class CiInstanceController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.list(model, keyword, status, page, size, cu.getTenantId()));
+        return R.ok(ciInstanceQueryService.list(model, keyword, status, page, size, cu.getTenantId()));
     }
 
     @GetMapping("/search")
@@ -46,7 +50,7 @@ public class CiInstanceController {
     public R<PageResult<CiInstanceSearchVO>> search(
             @RequestParam @NotBlank String keyword, @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.search(keyword, size, cu.getTenantId()));
+        return R.ok(ciInstanceQueryService.search(keyword, size, cu.getTenantId()));
     }
 
     @GetMapping("/2d-view")
@@ -61,25 +65,25 @@ public class CiInstanceController {
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<CiInstanceDetailVO> getById(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.getDetail(id, cu.getTenantId()));
+        return R.ok(ciInstanceQueryService.getDetail(id, cu.getTenantId()));
     }
 
     @PostMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'create')")
     public R<CiInstanceDetailVO> create(@Valid @RequestBody CreateInstanceRequest req, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.create(req, cu.getTenantId(), cu.getUserId()));
+        return R.ok(ciInstanceCommandService.create(req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_instance', 'update')")
     public R<CiInstanceDetailVO> update(@PathVariable Long id, @RequestBody UpdateInstanceRequest req, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.update(id, req, cu.getTenantId(), cu.getUserId()));
+        return R.ok(ciInstanceCommandService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_instance', 'delete')")
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        ciInstanceService.delete(id, cu.getTenantId(), cu.getUserId());
+        ciInstanceCommandService.delete(id, cu.getTenantId(), cu.getUserId());
         return R.ok();
     }
 
@@ -117,19 +121,19 @@ public class CiInstanceController {
     @GetMapping("/{id}/devices")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<List<DeviceVO>> getRelatedDevices(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.getRelatedDevices(id, cu.getTenantId()));
+        return R.ok(ciRelatedResourceService.getRelatedDevices(id, cu.getTenantId()));
     }
 
     @GetMapping("/{id}/change-docs")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<List<LinkedChangeDocVO>> getRelatedChangeDocs(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.getRelatedChangeDocs(id, cu.getTenantId()));
+        return R.ok(ciRelatedResourceService.getRelatedChangeDocs(id, cu.getTenantId()));
     }
 
     @GetMapping("/{id}/daily-reports")
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<List<DailyReportBriefVO>> getRelatedDailyReports(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciInstanceService.getRelatedDailyReports(id, cu.getTenantId()));
+        return R.ok(ciRelatedResourceService.getRelatedDailyReports(id, cu.getTenantId()));
     }
 
     @GetMapping("/{id}/credentials")
