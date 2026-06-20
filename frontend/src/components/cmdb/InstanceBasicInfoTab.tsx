@@ -13,7 +13,7 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface CiAttributeVO {
   id: number; fieldKey: string; name: string; fieldType: string
-  isRequired: boolean; isEditable: boolean; option: unknown
+  isRequired: boolean; isEditable: boolean; option: { id: string; name: string; isDefault?: boolean }[] | null
   placeholder: string; unit: string; sortOrder: number; groupId: string
 }
 interface CiAttributeGroupVO { groupId: string; name: string; sortOrder: number }

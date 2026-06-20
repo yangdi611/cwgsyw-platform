@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.cmdb.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CreateAttributeRequest;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.UpdateAttributeRequest;
@@ -80,6 +81,20 @@ public class CiAttributeService {
         attr.setIsListShow(req.getIsListShow());
         attr.setDefaultValue(req.getDefaultValue());
         attr.setEnumOptions(req.getEnumOptions());
+        // Parse enumOptions to option JSONB format
+        if (("enum".equals(req.getFieldType()) || "enummulti".equals(req.getFieldType()))
+                && req.getEnumOptions() != null && !req.getEnumOptions().isBlank()) {
+            try {
+                List<Map<String, Object>> opts = objectMapper.readValue(req.getEnumOptions(),
+                        new TypeReference<List<Map<String, Object>>>() {});
+                attr.setOption(opts);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("enumOptions 格式无效，应为 JSON 数组: " + req.getEnumOptions());
+            }
+        }
+        if (req.getOption() != null && !req.getOption().isEmpty()) {
+            attr.setOption(req.getOption());
+        }
         attr.setSortOrder(req.getSortOrder());
         ciAttributeMapper.insert(attr);
 
@@ -99,7 +114,8 @@ public class CiAttributeService {
 
         if (Boolean.TRUE.equals(attr.getIsBuiltIn())) {
             if (req.getName() != null || req.getIsRequired() != null || req.getIsEditable() != null
-                    || req.getDefaultValue() != null || req.getEnumOptions() != null || req.getSortOrder() != null) {
+                    || req.getDefaultValue() != null || req.getEnumOptions() != null || req.getSortOrder() != null
+                    || req.getOption() != null) {
                 throw new IllegalArgumentException("内置字段仅允许修改 isListShow");
             }
         }
@@ -110,6 +126,7 @@ public class CiAttributeService {
         if (req.getIsListShow() != null) attr.setIsListShow(req.getIsListShow());
         if (req.getDefaultValue() != null) attr.setDefaultValue(req.getDefaultValue());
         if (req.getEnumOptions() != null) attr.setEnumOptions(req.getEnumOptions());
+        if (req.getOption() != null) attr.setOption(req.getOption());
         if (req.getSortOrder() != null) attr.setSortOrder(req.getSortOrder());
         ciAttributeMapper.updateById(attr);
 
@@ -179,6 +196,7 @@ public class CiAttributeService {
         vo.setIsEditable(a.getIsEditable()); vo.setIsUnique(a.getIsUnique());
         vo.setIsBuiltIn(a.getIsBuiltIn()); vo.setIsListShow(a.getIsListShow());
         vo.setDefaultValue(a.getDefaultValue()); vo.setEnumOptions(a.getEnumOptions());
+        vo.setOption(a.getOption());
         vo.setSortOrder(a.getSortOrder());
         return vo;
     }
@@ -190,6 +208,7 @@ public class CiAttributeService {
             map.put("fieldKey", a.getFieldKey()); map.put("name", a.getName());
             map.put("fieldType", a.getFieldType()); map.put("isRequired", a.getIsRequired());
             map.put("isUnique", a.getIsUnique()); map.put("sortOrder", a.getSortOrder());
+            map.put("option", a.getOption());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) { return "{}"; }
     }

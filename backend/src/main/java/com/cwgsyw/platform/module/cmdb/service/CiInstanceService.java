@@ -265,7 +265,7 @@ public class CiInstanceService {
                     throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
                 }
                 if (value == null) continue;
-                validateFieldType(attr.getName(), attr.getFieldType(), attr.getEnumOptions(), value);
+                validateFieldType(attr.getName(), attr.getFieldType(), attr.getOption(), value);
             }
         }
 
@@ -285,15 +285,35 @@ public class CiInstanceService {
             }
         }
 
-        private static void validateFieldType(String name, String fieldType, String enumOptions, Object value) {
+        private static void validateFieldType(String name, String fieldType, Object optionOrEnumOptions, Object value) {
+            // Resolve valid option IDs for enum/enummulti validation — supports both
+            // List<Map> (new CiAttribute.option) and String (legacy enumOptions)
+            java.util.Set<String> validIds = null;
+            if (optionOrEnumOptions instanceof java.util.List<?> list && !list.isEmpty()) {
+                validIds = list.stream()
+                        .filter(java.util.Map.class::isInstance)
+                        .map(opt -> (String) ((java.util.Map<?, ?>) opt).get("id"))
+                        .collect(java.util.stream.Collectors.toSet());
+            } else if (optionOrEnumOptions instanceof String s && !s.isBlank()) {
+                try {
+                    java.util.List<java.util.Map<String, Object>> opts =
+                            new ObjectMapper().readValue(s, new TypeReference<>() {});
+                    validIds = opts.stream().map(opt -> (String) opt.get("id"))
+                            .collect(java.util.stream.Collectors.toSet());
+                } catch (Exception ignored) {}
+            }
             switch (fieldType) {
-                case "singlechar", "user", "date" -> {
+                case "singlechar", "longchar", "objuser", "date" -> {
                     if (!(value instanceof String))
                         throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
                 }
                 case "int" -> {
                     if (!(value instanceof Number))
                         throw new IllegalArgumentException("字段 " + name + " 应为整数类型");
+                }
+                case "float" -> {
+                    if (!(value instanceof Number))
+                        throw new IllegalArgumentException("字段 " + name + " 应为浮点类型");
                 }
                 case "bool" -> {
                     if (!(value instanceof Boolean))
@@ -302,17 +322,25 @@ public class CiInstanceService {
                 case "enum" -> {
                     if (!(value instanceof String enumVal))
                         throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
-                    if (enumOptions != null) {
-                        try {
-                            List<String> options = new ObjectMapper().readValue(enumOptions, new TypeReference<>() {});
-                            if (!options.contains(enumVal))
-                                throw new IllegalArgumentException("字段 " + name + " 的值不在可选范围内: " + enumVal);
-                        } catch (IllegalArgumentException e) { throw e; } catch (Exception ignored) {}
+                    if (validIds != null && !validIds.isEmpty()) {
+                        if (!validIds.contains(enumVal))
+                            throw new IllegalArgumentException("字段 " + name + " 的值不在可选范围内: " + enumVal);
                     }
                 }
-                case "list" -> {
-                    if (!(value instanceof List))
-                        throw new IllegalArgumentException("字段 " + name + " 应为列表类型");
+                case "enummulti" -> {
+                    if (!(value instanceof String))
+                        throw new IllegalArgumentException("字段 " + name + " 应为字符串类型(JSON数组)");
+                    try {
+                        java.util.List<String> selected = new ObjectMapper().readValue((String) value, new TypeReference<>() {});
+                        if (validIds != null && !validIds.isEmpty()) {
+                            for (String sel : selected) {
+                                if (!validIds.contains(sel))
+                                    throw new IllegalArgumentException("字段 " + name + " 的值不在可选范围内: " + sel);
+                            }
+                        }
+                    } catch (IllegalArgumentException e) { throw e; } catch (Exception e) {
+                        throw new IllegalArgumentException("字段 " + name + " 应为JSON数组格式: " + value);
+                    }
                 }
                 default -> {}
             }
