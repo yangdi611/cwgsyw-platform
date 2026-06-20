@@ -1,11 +1,14 @@
 package com.cwgsyw.platform.module.cmdb.dto.model;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 public class CiModelVO {
     private Long id;

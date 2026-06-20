@@ -19,11 +19,11 @@ interface CiInstanceRelVO {
   is_src: boolean
   peer_id: number
   peer_name: string
-  peer_model_id: string
+  peerModelId: string
   peer_model_name: string
   direction_label: string
   attrs: Record<string, unknown>
-  created_at: string
+  createdAt: string
 }
 
 interface CiRelGroupVO {
@@ -36,15 +36,15 @@ interface CiAssociationDefVO {
   def_id: string
   kind_id: string
   name: string
-  src_model_id: string
-  dst_model_id: string
+  srcModelId: string
+  dstModelId: string
   mapping: string
 }
 
 interface InstanceSearchVO {
   id: number
   name: string
-  model_id: string
+  modelId: string
   model_name: string
 }
 
@@ -82,12 +82,12 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
   const allDefs = (modelDetail?.associationDefs ?? []) as CiAssociationDefVO[]
 
   const applicableDefs = allDefs.filter(
-    d => d.src_model_id === modelId || d.dst_model_id === modelId
+    d => d.srcModelId === modelId || d.dstModelId === modelId
   )
 
   const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
   const targetModelId = selectedDef
-    ? (selectedDef.src_model_id === modelId ? selectedDef.dst_model_id : selectedDef.src_model_id)
+    ? (selectedDef.srcModelId === modelId ? selectedDef.dstModelId : selectedDef.srcModelId)
     : null
 
   const { data: searchResult } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
@@ -108,8 +108,8 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
     mutationFn: () => {
       if (!selectedDef || !selectedPeerId) throw new Error('请选择关联定义和目标实例')
       return api.post(`/cmdb/instances/${id}/relations`, {
-        dst_instance_id: selectedPeerId,
-        association_kind: selectedDef.kind_id,
+        dstInstanceId: selectedPeerId,
+        associationKind: selectedDef.kind_id,
       })
     },
     onSuccess: () => {
