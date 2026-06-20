@@ -84,8 +84,9 @@ export default function InstanceDetailPage() {
               <Activity className="h-4 w-4 mr-1" />影响分析
             </Link>
           )}
+          {/* AC10 (Issue #64): 「拓扑对比」直达独立对比子路由，与「影响分析」并列 */}
           {hasPermission('cmdb_instance', 'read') && (
-            <Link href={'/cmdb/topology/' + id} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Link href={`/cmdb/topology/${id}/compare`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
               <GitCompare className="h-4 w-4 mr-1" />拓扑对比
             </Link>
           )}
