@@ -91,7 +91,8 @@ public class CiInstanceService {
 
         CiInstanceDetailVO vo = new CiInstanceDetailVO();
         vo.setId(inst.getId()); vo.setName(inst.getName());
-        vo.setModelId(inst.getModelId()); vo.setModelName(model.getDisplayName());
+        vo.setModelCode(inst.getModelId()); vo.setModelId(inst.getModelId());
+        vo.setDisplayName(model.getDisplayName()); vo.setModelName(model.getDisplayName());
         vo.setStatus(inst.getStatus()); vo.setOwner(inst.getOwner());
         vo.setDescription(inst.getDescription()); vo.setFieldsData(inst.getFieldsData());
         vo.setAttributes(attrVOs); vo.setCreatedAt(inst.getCreatedAt()); vo.setUpdatedAt(inst.getUpdatedAt());
@@ -195,6 +196,7 @@ public class CiInstanceService {
         List<CiInstanceSearchVO> vos = records.stream().map(inst -> {
             CiInstanceSearchVO vo = new CiInstanceSearchVO();
             vo.setId(inst.getId()); vo.setName(inst.getName());
+            vo.setModelCode(inst.getModelId());
             vo.setModelId(inst.getModelId());
             vo.setModelName(modelNames.getOrDefault(inst.getModelId(), inst.getModelId()));
             return vo;
@@ -371,9 +373,9 @@ public class CiInstanceService {
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
-    private CiModel loadModel(String modelId, String tenantId) {
-        return ciModelMapper.findByName(modelId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelId));
+    private CiModel loadModel(String modelCode, String tenantId) {
+        return ciModelMapper.findByName(modelCode, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelCode));
     }
 
     private CiInstance loadInstance(Long id, String tenantId) {
@@ -427,8 +429,10 @@ public class CiInstanceService {
 
     private CiInstanceVO toListVO(CiInstance inst, String modelName, Set<String> listShowKeys) {
         CiInstanceVO vo = new CiInstanceVO();
-        vo.setId(inst.getId()); vo.setName(inst.getName()); vo.setModelId(inst.getModelId());
-        vo.setModelName(modelName); vo.setStatus(inst.getStatus());
+        vo.setId(inst.getId()); vo.setName(inst.getName());
+        vo.setModelCode(inst.getModelId()); vo.setModelId(inst.getModelId());
+        vo.setDisplayName(modelName); vo.setModelName(modelName);
+        vo.setStatus(inst.getStatus());
         vo.setOwner(inst.getOwner()); vo.setDescription(inst.getDescription());
         if (inst.getFieldsData() != null && !listShowKeys.isEmpty()) {
             Map<String, Object> filtered = new LinkedHashMap<>();

@@ -28,7 +28,7 @@ const MODEL_ICONS: Record<string, React.ElementType> = {
 
 export default function CmdbLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const params = useParams<{ modelId?: string }>()
+  const params = useParams<{ modelCode?: string }>()
   const { hasPermission } = usePermission()
 
   // The fullscreen topology page renders full-bleed (-m-6 / 100vh) and must not be
@@ -59,7 +59,7 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
     return acc
   }, {} as Record<string, CiModelVO[]>)
 
-  const activeModelId = params.modelId
+  const activeModelCode = params.modelCode
 
   return (
     <div className="flex gap-6">
@@ -80,7 +80,7 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
                   <div className="space-y-0.5">
                     {groupModels.map(m => {
                       const Icon = MODEL_ICONS[m.icon] ?? Box
-                      const active = !!activeModelId && activeModelId === m.modelId
+                      const active = !!activeModelCode && activeModelCode === m.modelId
                       return (
                         <Link
                           key={m.modelId}

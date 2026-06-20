@@ -49,7 +49,7 @@ interface InstanceSearchVO {
 }
 
 interface Props {
-  modelId: string
+  modelCode: string
   id: string
 }
 
@@ -59,7 +59,7 @@ interface Props {
  * Self-contained — fetches its own data only while mounted (the parent only
  * renders this tab when active).
  */
-export function InstanceAssociationsTab({ modelId, id }: Props) {
+export function InstanceAssociationsTab({ modelCode, id }: Props) {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -75,19 +75,19 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
 
   // 从模型详情获取关联定义（后端未暴露独立 association-defs 端点）
   const { data: modelDetail } = useQuery<{ associationDefs?: CiAssociationDefVO[] }>({
-    queryKey: ['cmdb-model-defs', modelId],
-    queryFn: () => api.get(`/cmdb/models/${modelId}`).then(r => r.data.data),
+    queryKey: ['cmdb-model-defs', modelCode],
+    queryFn: () => api.get(`/cmdb/models/${modelCode}`).then(r => r.data.data),
     enabled: addDialogOpen,
   })
   const allDefs = (modelDetail?.associationDefs ?? []) as CiAssociationDefVO[]
 
   const applicableDefs = allDefs.filter(
-    d => d.srcModelId === modelId || d.dstModelId === modelId
+    d => d.srcModelId === modelCode || d.dstModelId === modelCode
   )
 
   const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
   const targetModelId = selectedDef
-    ? (selectedDef.srcModelId === modelId ? selectedDef.dstModelId : selectedDef.srcModelId)
+    ? (selectedDef.srcModelId === modelCode ? selectedDef.dstModelId : selectedDef.srcModelId)
     : null
 
   const { data: searchResult } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
@@ -134,7 +134,7 @@ export function InstanceAssociationsTab({ modelId, id }: Props) {
           关联关系
           <span className="text-xs font-normal text-muted-foreground">（{totalRelations}）</span>
         </div>
-        <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations`}
+        <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
           className="text-xs text-muted-foreground hover:text-foreground">
           管理全部关联 →
         </Link>

@@ -20,7 +20,7 @@ interface CiAttributeVO {
   placeholder: string; unit: string; sortOrder: number; groupId: string
 }
 interface CiInstanceVO {
-  id: number; modelId: string; name: string
+  id: number; modelId: string; modelCode?: string; displayName?: string; name: string
   fieldsData: Record<string, unknown>
   fieldConfig: CiAttributeVO[]
   createdAt: string; updatedAt: string; createdByName: string
@@ -37,7 +37,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]['key']
 
 export default function InstanceDetailPage() {
-  const { modelId, id } = useParams<{ modelId: string; id: string }>()
+  const { modelCode, id } = useParams<{ modelCode: string; id: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [tab, setTab] = useState<TabKey>('basic')
@@ -48,7 +48,7 @@ export default function InstanceDetailPage() {
   }, [isHydrated, hasPermission, router])
 
   const { data: inst, isLoading } = useQuery<CiInstanceVO>({
-    queryKey: ['cmdb-instance', modelId, id],
+    queryKey: ['cmdb-instance', modelCode, id],
     queryFn: async () => {
       try {
         const r = await api.get(`/cmdb/instances/${id}`)
@@ -67,7 +67,7 @@ export default function InstanceDetailPage() {
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          <Link href={`/cmdb/instances/by-model/${modelCode}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
             <ArrowLeft className="h-4 w-4 mr-1" />返回列表
           </Link>
           <div>
@@ -109,8 +109,8 @@ export default function InstanceDetailPage() {
         ))}
       </div>
 
-      {tab === 'basic' && <InstanceBasicInfoTab modelId={modelId} inst={inst} />}
-      {tab === 'associations' && <InstanceAssociationsTab modelId={modelId} id={id} />}
+      {tab === 'basic' && <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />}
+      {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
       {tab === 'topology' && <InstanceTopologyTab id={id} />}
       {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}
       {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}

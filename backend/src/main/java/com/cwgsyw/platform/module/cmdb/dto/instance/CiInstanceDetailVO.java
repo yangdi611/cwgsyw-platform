@@ -14,7 +14,9 @@ import java.util.Map;
 public class CiInstanceDetailVO {
     private Long id;
     private String name;
-    private String modelId;
+    private String modelCode;  // canonical (AD-4)
+    private String modelId;    // alias of modelCode (compat window)
+    private String displayName; // canonical model display name
     private String modelName;
     private String status;
     private String owner;

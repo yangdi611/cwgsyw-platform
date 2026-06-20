@@ -30,16 +30,21 @@ class CmdbVoSerializationTest {
     @Test
     void ciInstanceVO_shouldSerializeAsCamelCase() throws Exception {
         CiInstanceVO vo = new CiInstanceVO();
+        vo.setModelCode("test-model");
         vo.setModelId("test-model");
+        vo.setDisplayName("Test Model");
         vo.setModelName("Test Model");
         vo.setFieldsData(Map.of("key", "val"));
         vo.setCreatedAt(java.time.LocalDateTime.of(2026, 1, 1, 12, 0));
 
         String json = objectMapper.writeValueAsString(vo);
+        assertThat(json).contains("\"modelCode\"");
         assertThat(json).contains("\"modelId\"");
+        assertThat(json).contains("\"displayName\"");
         assertThat(json).contains("\"modelName\"");
         assertThat(json).contains("\"fieldsData\"");
         assertThat(json).contains("\"createdAt\"");
+        assertThat(json).doesNotContain("model_code");
         assertThat(json).doesNotContain("model_id");
         assertThat(json).doesNotContain("model_name");
         assertThat(json).doesNotContain("fields_data");
@@ -49,17 +54,22 @@ class CmdbVoSerializationTest {
     @Test
     void ciInstanceDetailVO_shouldSerializeAsCamelCase() throws Exception {
         CiInstanceDetailVO vo = new CiInstanceDetailVO();
+        vo.setModelCode("test-model");
         vo.setModelId("test-model");
+        vo.setDisplayName("Test Model");
         vo.setModelName("Test Model");
         vo.setFieldsData(Map.of("key", "val"));
         vo.setCreatedAt(java.time.LocalDateTime.of(2026, 1, 1, 12, 0));
         vo.setUpdatedAt(java.time.LocalDateTime.of(2026, 1, 2, 12, 0));
 
         String json = objectMapper.writeValueAsString(vo);
+        assertThat(json).contains("\"modelCode\"");
         assertThat(json).contains("\"modelId\"");
+        assertThat(json).contains("\"displayName\"");
         assertThat(json).contains("\"fieldsData\"");
         assertThat(json).contains("\"createdAt\"");
         assertThat(json).contains("\"updatedAt\"");
+        assertThat(json).doesNotContain("model_code");
         assertThat(json).doesNotContain("model_id");
         assertThat(json).doesNotContain("created_at");
     }

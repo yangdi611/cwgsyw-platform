@@ -13,7 +13,7 @@ import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lu
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
 
-interface CiInstanceSummary { name: string; modelId: string }
+interface CiInstanceSummary { name: string; modelId: string; modelCode?: string }
 
 // 后端返回 ci_association_def 实体（全局 SNAKE_CASE 序列化）
 interface CiAssociationDefVO {
@@ -29,13 +29,14 @@ interface InstanceSearchVO {
   id: number
   name: string
   modelId: string
+  modelCode?: string
   model_name: string
 }
 
 const STEPS = ['选择关联定义', '选择目标实例', '确认提交'] as const
 
 export default function NewAssociationPage() {
-  const { modelId, id } = useParams<{ modelId: string; id: string }>()
+  const { modelCode, id } = useParams<{ modelCode: string; id: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
 
@@ -54,7 +55,7 @@ export default function NewAssociationPage() {
   }, [isHydrated, hasPermission, router])
 
   const { data: inst } = useQuery<CiInstanceSummary>({
-    queryKey: ['cmdb-instance', modelId, id],
+    queryKey: ['cmdb-instance', modelCode, id],
     queryFn: async () => {
       try {
         const r = await api.get(`/cmdb/instances/${id}`)
@@ -99,7 +100,7 @@ export default function NewAssociationPage() {
     },
     onSuccess: () => {
       toast.success('关联已建立')
-      router.push(`/cmdb/instances/by-model/${modelId}/${id}/associations`)
+      router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
     },
     onError: (e: any) => {
       setError(e?.response?.data?.message ?? '创建失败')
@@ -112,7 +113,7 @@ export default function NewAssociationPage() {
     <div className="max-w-2xl">
       {/* 顶部 */}
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/by-model/${modelId}/${id}/associations`}
+        <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
           className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           <ArrowLeft className="h-4 w-4 mr-1" />返回关联管理
         </Link>
@@ -163,7 +164,7 @@ export default function NewAssociationPage() {
             </div>
             {applicableDefs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = {modelId}）。
+                当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = {modelCode}）。
               </p>
             ) : (
               <div className="space-y-2">
@@ -334,7 +335,7 @@ export default function NewAssociationPage() {
       <div className="flex items-center justify-between mt-4">
         <Button variant="ghost" size="sm"
           onClick={() => step === 0
-            ? router.push(`/cmdb/instances/by-model/${modelId}/${id}/associations`)
+            ? router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
             : (setStep(s => s - 1), setError(''))}>
           {step === 0 ? '取消' : '上一步'}
         </Button>

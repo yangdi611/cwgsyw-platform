@@ -18,8 +18,13 @@ public class CiModel extends BaseEntity {
     private String color;
     @TableField("enable_2d_view")
     private Boolean enable2dView;
-    
-    public String getModelId() {
+
+    /**
+     * Canonical model code (AD-4): the model's {@code name} column carries the
+     * model-code semantics. {@code getModelId()} alias was removed; DTOs keep a
+     * {@code modelId} alias for the compatibility window.
+     */
+    public String getModelCode() {
         return this.name;
     }
 }
