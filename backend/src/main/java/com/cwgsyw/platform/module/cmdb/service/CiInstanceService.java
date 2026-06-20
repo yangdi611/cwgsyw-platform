@@ -11,6 +11,7 @@ import com.cwgsyw.platform.module.cmdb.dto.instance.*;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationAttrDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
+import com.cwgsyw.platform.module.cmdb.entity.CiChangeRecord;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
@@ -45,10 +46,12 @@ public class CiInstanceService {
     private final CiAttributeGroupMapper ciAttributeGroupMapper;
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final AuditLogMapper auditLogMapper;
+    private final CiChangeRecordMapper ciChangeRecordMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
 
-    @org.springframework.context.annotation.Lazy
+    // @Lazy no longer needed: CiChangeService now reads ci_change_record directly
+    // (Issue #64 AC6) and no longer participates in any injection cycle with this service.
     private final CiChangeService ciChangeService;
 
     private final DeviceMapper deviceMapper;
@@ -126,6 +129,8 @@ public class CiInstanceService {
 
         writeAudit(tenantId, "create_instance", inst.getId(), "ci_instance",
                 operatorId, null, snapshotInstance(inst));
+        writeChangeRecord(tenantId, "create", inst.getId(), inst.getModelId(), operatorId,
+                diffSnapshots(Map.of(), buildChangeSnapshot(inst)));
         ciChangeService.invalidateStatsCache();
         return getDetail(inst.getId(), tenantId);
     }
@@ -134,6 +139,7 @@ public class CiInstanceService {
     public CiInstanceDetailVO update(Long id, UpdateInstanceRequest req, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
         String before = snapshotInstance(inst);
+        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
 
         if (req.getName() != null) inst.setName(req.getName());
         if (req.getStatus() != null) inst.setStatus(req.getStatus());
@@ -153,6 +159,8 @@ public class CiInstanceService {
 
         ciInstanceMapper.updateById(inst);
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
+        writeChangeRecord(tenantId, "update", id, inst.getModelId(), operatorId,
+                diffSnapshots(beforeSnap, buildChangeSnapshot(inst)));
         ciChangeService.invalidateStatsCache();
         return getDetail(id, tenantId);
     }
@@ -161,6 +169,7 @@ public class CiInstanceService {
     public void delete(Long id, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
         String before = snapshotInstance(inst);
+        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
 
         inst.setIsDeleted(true); inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
         ciInstanceMapper.updateById(inst);
@@ -175,6 +184,8 @@ public class CiInstanceService {
         }
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
+        writeChangeRecord(tenantId, "delete", id, inst.getModelId(), operatorId,
+                diffSnapshots(beforeSnap, Map.of()));
         ciChangeService.invalidateStatsCache();
     }
 
@@ -481,6 +492,65 @@ public class CiInstanceService {
             map.put("owner", inst.getOwner()); map.put("fieldsData", inst.getFieldsData());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) { return "{}"; }
+    }
+
+    /**
+     * Flat field map for the domain change record: built-in fields plus every
+     * dynamic attribute from {@code fieldsData} flattened to the top level, so
+     * the structured diff captures true field-level changes (Issue #64 AC6).
+     */
+    private Map<String, Object> buildChangeSnapshot(CiInstance inst) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("name", inst.getName());
+        map.put("status", inst.getStatus());
+        map.put("owner", inst.getOwner());
+        if (inst.getDescription() != null) map.put("description", inst.getDescription());
+        if (inst.getFieldsData() != null) map.putAll(inst.getFieldsData());
+        return map;
+    }
+
+    /**
+     * Compute the structured field-level diff
+     * {@code [{field, before, after}]} between two snapshots. A key present on
+     * only one side yields a {@code null} before/after (add / remove); a value
+     * change yields both sides (modify). {@code null} maps are treated as empty.
+     */
+    private List<Map<String, Object>> diffSnapshots(Map<String, Object> before,
+                                                    Map<String, Object> after) {
+        List<Map<String, Object>> changes = new ArrayList<>();
+        Set<String> allKeys = new LinkedHashSet<>();
+        if (before != null) allKeys.addAll(before.keySet());
+        if (after != null) allKeys.addAll(after.keySet());
+        for (String key : allKeys) {
+            Object b = before != null ? before.get(key) : null;
+            Object a = after != null ? after.get(key) : null;
+            if (Objects.equals(b, a)) continue;
+            Map<String, Object> fc = new LinkedHashMap<>();
+            fc.put("field", key);
+            fc.put("before", b);
+            fc.put("after", a);
+            changes.add(fc);
+        }
+        return changes;
+    }
+
+    /**
+     * Dual-write the domain change record (Issue #64 AC6). Runs alongside
+     * {@link #writeAudit} during the dual-write period; {@code ci_change_record}
+     * becomes the canonical source for CMDB change history / stats.
+     */
+    private void writeChangeRecord(String tenantId, String action, Long instanceId,
+                                   String modelCode, Long operatorId,
+                                   List<Map<String, Object>> fieldChanges) {
+        CiChangeRecord rec = new CiChangeRecord();
+        rec.setTenantId(tenantId);
+        rec.setInstanceId(instanceId);
+        rec.setModelCode(modelCode);
+        rec.setAction(action);
+        rec.setFieldChanges(fieldChanges);
+        rec.setOperatorId(operatorId != null ? operatorId : 0L);
+        rec.setCreatedAt(LocalDateTime.now());
+        ciChangeRecordMapper.insert(rec);
     }
 
     private Map<String, Object> parseJson(String json) {
