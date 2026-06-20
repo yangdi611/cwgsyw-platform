@@ -36,7 +36,7 @@ export default function ModelDetailPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
-  const canWrite = hasPermission('cmdb_model', 'write')
+  const canWrite = hasPermission('cmdb_model', 'update')
   const [addingAttr, setAddingAttr] = useState(false)
   const [newAttr, setNewAttr] = useState({
     fieldKey: '', name: '', fieldType: 'singlechar', groupId: 'default',
