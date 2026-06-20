@@ -14,14 +14,14 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiAttributeVO {
-  id: number; field_key: string; name: string; group_id: string
-  field_type: string; is_required: boolean; is_unique: boolean; is_built_in: boolean; is_list_show: boolean
-  sort_order: number; placeholder: string; unit: string
+  id: number; fieldKey: string; name: string; groupId: string
+  fieldType: string; isRequired: boolean; isUnique: boolean; isBuiltIn: boolean; isListShow: boolean
+  sortOrder: number; placeholder: string; unit: string
 }
-interface CiAttributeGroupVO { id: number; group_id: string; name: string; is_default: boolean; is_built_in: boolean }
+interface CiAttributeGroupVO { id: number; groupId: string; name: string; isDefault: boolean; isBuiltIn: boolean }
 interface CiModelVO {
-  id: number; model_id: string; name: string; icon: string; is_built_in: boolean
-  attributes: CiAttributeVO[]; attribute_groups: CiAttributeGroupVO[]
+  id: number; modelId: string; name: string; icon: string; isBuiltIn: boolean
+  attributes: CiAttributeVO[]; attributeGroups: CiAttributeGroupVO[]
 }
 
 const FIELD_TYPES = [
@@ -57,9 +57,9 @@ export default function ModelDetailPage() {
 
   const addAttrMutation = useMutation({
     mutationFn: () => api.post(`/cmdb/models/${modelId}/attributes`, {
-      field_key: newAttr.fieldKey, name: newAttr.name, field_type: newAttr.fieldType,
-      group_id: newAttr.groupId, is_required: newAttr.isRequired, is_unique: newAttr.isUnique,
-      is_list_show: newAttr.isListShow,
+      fieldKey: newAttr.fieldKey, name: newAttr.name, fieldType: newAttr.fieldType,
+      groupId: newAttr.groupId, isRequired: newAttr.isRequired, isUnique: newAttr.isUnique,
+      isListShow: newAttr.isListShow,
       placeholder: newAttr.placeholder || undefined, unit: newAttr.unit || undefined,
     }),
     onSuccess: () => {
@@ -82,13 +82,13 @@ export default function ModelDetailPage() {
   if (!model) return <p className="text-destructive">模型不存在</p>
 
   const attrsByGroup = (model.attributes ?? []).reduce((acc, a) => {
-    const g = a.group_id || 'default'
+    const g = a.groupId || 'default'
     if (!acc[g]) acc[g] = []
     acc[g].push(a)
     return acc
   }, {} as Record<string, CiAttributeVO[]>)
 
-  const groups = model.attribute_groups ?? []
+  const groups = model.attributeGroups ?? []
 
   return (
     <div className="max-w-4xl">
@@ -99,9 +99,9 @@ export default function ModelDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold">{model.name}</h1>
-            {model.is_built_in && <Badge variant="secondary">内置</Badge>}
+            {model.isBuiltIn && <Badge variant="secondary">内置</Badge>}
           </div>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">{model.model_id}</p>
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">{model.modelId}</p>
         </div>
         <Link href={`/cmdb/instances/by-model/${modelId}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>查看实例</Link>
         {canWrite && (
@@ -133,7 +133,7 @@ export default function ModelDetailPage() {
               <Label className="text-xs">所属分组</Label>
               <Select value={newAttr.groupId} onValueChange={v => setNewAttr(f => ({ ...f, groupId: v ?? 'default' }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>{groups.map(g => <SelectItem key={g.group_id} value={g.group_id}>{g.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{groups.map(g => <SelectItem key={g.groupId} value={g.groupId}>{g.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
@@ -159,13 +159,13 @@ export default function ModelDetailPage() {
 
       <div className="space-y-4">
         {groups.map(group => {
-          const attrs = attrsByGroup[group.group_id] ?? []
+          const attrs = attrsByGroup[group.groupId] ?? []
           return (
-            <div key={group.group_id} className="border rounded-lg overflow-hidden">
+            <div key={group.groupId} className="border rounded-lg overflow-hidden">
               <div className="px-4 py-2.5 bg-muted/40 flex items-center gap-2">
                 <span className="font-medium text-sm">{group.name}</span>
                 <Badge variant="secondary" className="text-xs">{attrs.length}</Badge>
-                {group.is_default && <Badge variant="outline" className="text-xs">默认</Badge>}
+                {group.isDefault && <Badge variant="outline" className="text-xs">默认</Badge>}
               </div>
               {attrs.length === 0 ? (
                 <p className="px-4 py-3 text-xs text-muted-foreground">暂无属性</p>
@@ -182,20 +182,20 @@ export default function ModelDetailPage() {
                   </thead>
                   <tbody className="divide-y">
                     {attrs.map(attr => (
-                      <tr key={attr.field_key} className="hover:bg-muted/20">
-                        <td className="px-4 py-2.5 font-mono text-xs">{attr.field_key}</td>
+                      <tr key={attr.fieldKey} className="hover:bg-muted/20">
+                        <td className="px-4 py-2.5 font-mono text-xs">{attr.fieldKey}</td>
                         <td className="px-4 py-2.5">{attr.name}</td>
-                        <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{FIELD_TYPES.find(t => t.value === attr.field_type)?.label ?? attr.field_type}</Badge></td>
+                        <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{FIELD_TYPES.find(t => t.value === attr.fieldType)?.label ?? attr.fieldType}</Badge></td>
                         <td className="px-4 py-2.5">
                           <div className="flex gap-1 flex-wrap">
-                            {attr.is_required && <Badge variant="destructive" className="text-xs">必填</Badge>}
-                            {attr.is_unique && <Badge className="text-xs">唯一</Badge>}
-                            {attr.is_built_in && <Badge variant="secondary" className="text-xs">内置</Badge>}
+                            {attr.isRequired && <Badge variant="destructive" className="text-xs">必填</Badge>}
+                            {attr.isUnique && <Badge className="text-xs">唯一</Badge>}
+                            {attr.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
                           </div>
                         </td>
                         {canWrite && (
                           <td className="px-4 py-2.5 text-right">
-                            {!attr.is_built_in && (
+                            {!attr.isBuiltIn && (
                               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
                                 disabled={deleteAttrMutation.isPending}
                                 onClick={() => { if (confirm(`删除属性 "${attr.name}"?`)) deleteAttrMutation.mutate(attr.id) }}>

@@ -11,11 +11,10 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface CiInstanceVO {
   id: number
-  model_id: string
+  modelId: string
   name: string
-  attrs: Record<string, unknown>
-  created_at: string
-  created_by_name: string
+  fieldsData: Record<string, unknown>
+  createdAt: string
 }
 
 interface PageResult {
@@ -26,9 +25,8 @@ interface PageResult {
 }
 
 interface CiModelVO {
-  model_id: string
   name: string
-  attributes: { field_key: string; name: string; is_list_show: boolean; field_type: string }[]
+  attributes: { fieldKey: string; name: string; isListShow: boolean; fieldType: string }[]
 }
 
 export default function InstanceListPage() {
@@ -71,7 +69,7 @@ export default function InstanceListPage() {
   })
 
   const listColumns = (model?.attributes ?? [])
-    .filter(a => a.is_list_show)
+    .filter(a => a.isListShow)
     .slice(0, 5)
 
   const instances = result?.records ?? []
@@ -104,7 +102,7 @@ export default function InstanceListPage() {
               <tr>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">实例名称</th>
                 {listColumns.map(col => (
-                  <th key={col.field_key} className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">
+                  <th key={col.fieldKey} className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">
                     {col.name}
                   </th>
                 ))}
@@ -126,12 +124,12 @@ export default function InstanceListPage() {
                       {inst.name ?? <span className="text-muted-foreground">#{inst.id}</span>}
                     </td>
                     {listColumns.map(col => (
-                      <td key={col.field_key} className="px-4 py-3 text-muted-foreground">
-                        {String(inst.attrs?.[col.field_key] ?? '—')}
+                      <td key={col.fieldKey} className="px-4 py-3 text-muted-foreground">
+                        {String(inst.fieldsData?.[col.fieldKey] ?? '—')}
                       </td>
                     ))}
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(inst.created_at).toLocaleDateString('zh-CN')}
+                      {new Date(inst.createdAt).toLocaleDateString('zh-CN')}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
