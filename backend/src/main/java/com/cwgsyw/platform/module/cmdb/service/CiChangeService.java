@@ -1,14 +1,12 @@
 package com.cwgsyw.platform.module.cmdb.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
-import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.changes.*;
+import com.cwgsyw.platform.module.cmdb.entity.CiChangeRecord;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
-import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.cmdb.mapper.CiChangeRecordMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -35,7 +33,7 @@ public class CiChangeService {
     private static final long STATS_CACHE_TTL_SECONDS = 300;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private final AuditLogMapper auditLogMapper;
+    private final CiChangeRecordMapper ciChangeRecordMapper;
     private final UserMapper userMapper;
     private final CiInstanceMapper ciInstanceMapper;
     private final CiModelMapper ciModelMapper;
@@ -47,13 +45,14 @@ public class CiChangeService {
     public PageResult<ChangeHistoryV2VO> getInstanceHistory(Long instanceId, String from, String to,
                                                              Long operatorId, String action,
                                                              int page, int size, String tenantId) {
-        Page<AuditLog> p = auditLogMapper.queryChanges(
+        Page<CiChangeRecord> p = ciChangeRecordMapper.queryChanges(
                 new Page<>(page, size), tenantId,
-                List.of("ci_instance"), instanceId, action, operatorId, from, to);
+                List.of("ci_instance"), instanceId, mapActionToCanonical(action),
+                operatorId, null, from, to);
 
         Map<Long, String> operatorNames = resolveOperatorNames(p.getRecords());
         List<ChangeHistoryV2VO> records = p.getRecords().stream()
-                .map(a -> toV2VO(a, operatorNames))
+                .map(r -> toV2VO(r, operatorNames))
                 .collect(Collectors.toList());
 
         PageResult<ChangeHistoryV2VO> result = new PageResult<>();
@@ -70,25 +69,24 @@ public class CiChangeService {
                                                           String modelId, String from, String to,
                                                           Long operatorId, String action,
                                                           int page, int size, String tenantId) {
-        List<String> targetTypes = "ci_instance_rel".equals(entityType)
-                ? List.of("ci_instance_rel") : List.of("ci_instance");
+        boolean isRelation = "ci_instance_rel".equals(entityType);
+        List<String> targetTypes = isRelation ? List.of("ci_instance_rel") : List.of("ci_instance");
 
-        Page<AuditLog> p = auditLogMapper.queryChanges(
+        // model_code filtering only applies to instance records (relations have no
+        // single owning model in this view); it is now applied in SQL rather than
+        // as a post-query Java stream filter, so the page total is accurate.
+        String modelFilter = (modelId != null && !isRelation) ? modelId : null;
+
+        Page<CiChangeRecord> p = ciChangeRecordMapper.queryChanges(
                 new Page<>(page, size), tenantId,
-                targetTypes, entityId, action, operatorId, from, to);
+                targetTypes, entityId, mapActionToCanonical(action),
+                operatorId, modelFilter, from, to);
 
         Map<Long, String> operatorNames = resolveOperatorNames(p.getRecords());
 
         List<ChangeHistoryV2VO> records = p.getRecords().stream()
-                .map(a -> toV2VO(a, operatorNames))
+                .map(r -> toV2VO(r, operatorNames))
                 .collect(Collectors.toList());
-
-        // Filter by modelId if specified (check afterJson modelId field)
-        if (modelId != null && "ci_instance".equals(entityType)) {
-            records = records.stream()
-                    .filter(vo -> matchesModelId(vo, modelId))
-                    .collect(Collectors.toList());
-        }
 
         PageResult<ChangeHistoryV2VO> result = new PageResult<>();
         result.setRecords(records);
@@ -134,7 +132,7 @@ public class CiChangeService {
         // Daily breakdown
         stats.setDailyBreakdown(computeDailyBreakdown(tenantId, fromResolved, toResolved, modelId));
 
-        // Top 10 instances
+        // Top 10 instances — NOTE: original passed tenantId as the modelId arg; preserved verbatim for behaviour parity (Issue #64 AC6).
         stats.setTop10Instances(computeTop10Instances(tenantId, fromResolved, tenantId));
 
         // Cache the result
@@ -162,7 +160,7 @@ public class CiChangeService {
         }
     }
 
-    // ─── Changed Fields Computation (static) ────────────────────────────────
+    // ─── Changed Fields Computation (static, retained for reconciliation) ────
 
     public static ChangedFieldsResult computeChangedFields(Map<String, Object> beforeJson,
                                                             Map<String, Object> afterJson) {
@@ -221,41 +219,67 @@ public class CiChangeService {
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
-    private ChangeHistoryV2VO toV2VO(AuditLog a, Map<Long, String> operatorNames) {
+    /**
+     * Build a V2 change-history VO from a {@link CiChangeRecord}. The structured
+     * {@code field_changes} diff is projected back into {@code beforeJson} /
+     * {@code afterJson} maps (key present only when the side has a non-null
+     * value) so the existing front-end {@code JsonDiffView} renders create /
+     * update / delete rows as added / modified / removed respectively.
+     */
+    private ChangeHistoryV2VO toV2VO(CiChangeRecord r, Map<Long, String> operatorNames) {
         ChangeHistoryV2VO vo = new ChangeHistoryV2VO();
-        vo.setId(a.getId());
-        vo.setAction(a.getAction());
-        vo.setOperatorId(a.getOperatorId());
-        vo.setOperatorName(operatorNames.getOrDefault(a.getOperatorId(), "系统"));
-        vo.setBeforeJson(parseJson(a.getBeforeJson()));
-        vo.setAfterJson(parseJson(a.getAfterJson()));
-        vo.setCreatedAt(a.getCreatedAt());
+        vo.setId(r.getId());
+        vo.setAction(mapActionToDisplay(r.getAction()));
+        vo.setOperatorId(r.getOperatorId());
+        vo.setOperatorName(operatorNames.getOrDefault(r.getOperatorId(), "系统"));
+        vo.setCreatedAt(r.getCreatedAt());
 
-        ChangedFieldsResult cfr = computeChangedFields(vo.getBeforeJson(), vo.getAfterJson());
-        vo.setChangedFields(cfr.getFields());
-        vo.setSummary(cfr.getSummary());
+        Map<String, Object> beforeJson = new LinkedHashMap<>();
+        Map<String, Object> afterJson = new LinkedHashMap<>();
+        List<String> changedFields = new ArrayList<>();
+        List<Map<String, Object>> fieldChanges = r.getFieldChanges();
+        if (fieldChanges != null) {
+            for (Map<String, Object> fc : fieldChanges) {
+                Object fieldObj = fc.get("field");
+                if (fieldObj == null) continue;
+                String field = String.valueOf(fieldObj);
+                Object before = fc.get("before");
+                Object after = fc.get("after");
+                changedFields.add(field);
+                if (before != null) beforeJson.put(field, before);
+                if (after != null) afterJson.put(field, after);
+            }
+        }
+        vo.setBeforeJson(beforeJson.isEmpty() ? null : beforeJson);
+        vo.setAfterJson(afterJson.isEmpty() ? null : afterJson);
+        vo.setChangedFields(changedFields);
+        vo.setSummary(buildSummary(r.getAction(), changedFields));
 
         return vo;
     }
 
-    private boolean matchesModelId(ChangeHistoryV2VO vo, String modelId) {
-        Map<String, Object> json = vo.getAfterJson() != null ? vo.getAfterJson() : vo.getBeforeJson();
-        if (json == null) return false;
-        Object mid = json.get("modelId");
-        return modelId.equals(mid);
+    private String buildSummary(String action, List<String> changedFields) {
+        if ("create".equals(action)) return "创建了实例";
+        if ("delete".equals(action)) return "删除了实例";
+        if (changedFields.isEmpty()) return "无实质变更";
+        if (changedFields.size() <= 3) {
+            return "修改了 " + changedFields.size() + " 个字段: " + String.join(", ", changedFields);
+        }
+        return "修改了 " + changedFields.size() + " 个字段: "
+                + String.join(", ", changedFields.subList(0, 3)) + " 等";
     }
 
     private ActionCountVO computeActionCounts(String tenantId, String from, String to, String modelId) {
-        List<Map<String, Object>> rows = auditLogMapper.queryDailyBreakdown(tenantId, from, to, modelId);
+        List<Map<String, Object>> rows = ciChangeRecordMapper.queryDailyBreakdown(tenantId, from, to, modelId);
 
         ActionCountVO counts = new ActionCountVO();
         for (Map<String, Object> row : rows) {
             String action = String.valueOf(row.get("action"));
             int cnt = ((Number) row.get("cnt")).intValue();
             switch (action) {
-                case "create_instance" -> counts.setCreated(counts.getCreated() + cnt);
-                case "update_instance" -> counts.setUpdated(counts.getUpdated() + cnt);
-                case "delete_instance" -> counts.setDeleted(counts.getDeleted() + cnt);
+                case "create" -> counts.setCreated(counts.getCreated() + cnt);
+                case "update" -> counts.setUpdated(counts.getUpdated() + cnt);
+                case "delete" -> counts.setDeleted(counts.getDeleted() + cnt);
             }
         }
         counts.setTotal(counts.getCreated() + counts.getUpdated() + counts.getDeleted());
@@ -263,7 +287,7 @@ public class CiChangeService {
     }
 
     private List<DailyCountVO> computeDailyBreakdown(String tenantId, String from, String to, String modelId) {
-        List<Map<String, Object>> rows = auditLogMapper.queryDailyBreakdown(tenantId, from, to, modelId);
+        List<Map<String, Object>> rows = ciChangeRecordMapper.queryDailyBreakdown(tenantId, from, to, modelId);
 
         // Group by date
         Map<String, DailyCountVO> dailyMap = new LinkedHashMap<>();
@@ -279,9 +303,9 @@ public class CiChangeService {
             });
 
             switch (action) {
-                case "create_instance" -> daily.setCreated(daily.getCreated() + cnt);
-                case "update_instance" -> daily.setUpdated(daily.getUpdated() + cnt);
-                case "delete_instance" -> daily.setDeleted(daily.getDeleted() + cnt);
+                case "create" -> daily.setCreated(daily.getCreated() + cnt);
+                case "update" -> daily.setUpdated(daily.getUpdated() + cnt);
+                case "delete" -> daily.setDeleted(daily.getDeleted() + cnt);
             }
         }
 
@@ -289,26 +313,26 @@ public class CiChangeService {
     }
 
     private List<TopInstanceVO> computeTop10Instances(String tenantId, String fromDate, String modelId) {
-        List<Map<String, Object>> rows = auditLogMapper.queryTopChangedInstances(tenantId, fromDate, modelId);
+        List<Map<String, Object>> rows = ciChangeRecordMapper.queryTopChangedInstances(tenantId, fromDate, modelId);
 
         List<TopInstanceVO> result = new ArrayList<>();
         for (Map<String, Object> row : rows) {
-            Long targetId = ((Number) row.get("target_id")).longValue();
+            Long instanceId = ((Number) row.get("instance_id")).longValue();
             int changeCount = ((Number) row.get("cnt")).intValue();
 
             TopInstanceVO vo = new TopInstanceVO();
-            vo.setInstanceId(targetId);
+            vo.setInstanceId(instanceId);
             vo.setChangeCount(changeCount);
 
             // Resolve instance name and model
-            CiInstance inst = ciInstanceMapper.selectById(targetId);
+            CiInstance inst = ciInstanceMapper.selectById(instanceId);
             if (inst != null) {
                 vo.setInstanceName(inst.getName());
                 vo.setModelId(inst.getModelId());
                 ciModelMapper.findByName(inst.getModelId(), tenantId)
                         .ifPresent(m -> vo.setModelName(m.getDisplayName()));
             } else {
-                vo.setInstanceName("已删除实例#" + targetId);
+                vo.setInstanceName("已删除实例#" + instanceId);
             }
 
             result.add(vo);
@@ -321,9 +345,9 @@ public class CiChangeService {
         return STATS_CACHE_PREFIX + mid + ":" + from + ":" + to;
     }
 
-    private Map<Long, String> resolveOperatorNames(List<AuditLog> records) {
+    private Map<Long, String> resolveOperatorNames(List<CiChangeRecord> records) {
         Set<Long> userIds = records.stream()
-                .map(AuditLog::getOperatorId)
+                .map(CiChangeRecord::getOperatorId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
         if (userIds.isEmpty()) return Map.of();
@@ -333,12 +357,35 @@ public class CiChangeService {
                         (a, b) -> a));
     }
 
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return null;
-        try {
-            return objectMapper.readValue(json, new TypeReference<>() {});
-        } catch (Exception e) {
-            return null;
-        }
+    /**
+     * Map a legacy / front-end action filter value to the canonical
+     * {@code ci_change_record.action}. Accepts both legacy
+     * ({@code create_instance} …) and already-canonical values.
+     */
+    private static String mapActionToCanonical(String action) {
+        if (action == null) return null;
+        return switch (action) {
+            case "create_instance", "create" -> "create";
+            case "update_instance", "update" -> "update";
+            case "delete_instance", "delete" -> "delete";
+            case "create_relation", "update_relation", "delete_relation", "relate" -> "relate";
+            default -> action;
+        };
+    }
+
+    /**
+     * Map a canonical {@code ci_change_record.action} back to the front-end-facing
+     * value so existing UI badges / action filters keep working during the
+     * dual-write period without a coordinated front-end change.
+     */
+    private static String mapActionToDisplay(String action) {
+        if (action == null) return action;
+        return switch (action) {
+            case "create" -> "create_instance";
+            case "update" -> "update_instance";
+            case "delete" -> "delete_instance";
+            case "relate" -> "create_relation";
+            default -> action;
+        };
     }
 }
