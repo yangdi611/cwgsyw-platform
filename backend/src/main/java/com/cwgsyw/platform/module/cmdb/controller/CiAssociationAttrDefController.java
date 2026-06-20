@@ -28,7 +28,7 @@ public class CiAssociationAttrDefController {
     }
 
     @PostMapping
-    @PreAuthorize("hasPermission('cmdb_model', 'write')")
+    @PreAuthorize("hasPermission('cmdb_model', 'update')")
     public R<CiAssociationAttrDefVO> create(@PathVariable String kind,
                                              @Valid @RequestBody CreateAssociationAttrRequest req,
                                              @AuthenticationPrincipal SecurityUser cu) {
@@ -36,7 +36,7 @@ public class CiAssociationAttrDefController {
     }
 
     @PutMapping("/{attrId}")
-    @PreAuthorize("hasPermission('cmdb_model', 'write')")
+    @PreAuthorize("hasPermission('cmdb_model', 'update')")
     public R<CiAssociationAttrDefVO> update(@PathVariable String kind, @PathVariable Long attrId,
                                              @RequestBody UpdateAssociationAttrRequest req,
                                              @AuthenticationPrincipal SecurityUser cu) {
@@ -44,7 +44,7 @@ public class CiAssociationAttrDefController {
     }
 
     @DeleteMapping("/{attrId}")
-    @PreAuthorize("hasPermission('cmdb_model', 'write')")
+    @PreAuthorize("hasPermission('cmdb_model', 'update')")
     public R<Void> delete(@PathVariable String kind, @PathVariable Long attrId,
                            @AuthenticationPrincipal SecurityUser cu) {
         ciAssociationAttrDefService.delete(kind, attrId, cu.getTenantId(), cu.getUserId());

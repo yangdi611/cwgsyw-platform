@@ -70,7 +70,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_model', 'write')) router.replace('/cmdb')
+    if (!hasPermission('cmdb_model', 'update')) router.replace('/cmdb')
   }, [isHydrated, hasPermission, router])
 
   return (
@@ -155,7 +155,7 @@ function ModelsTab() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">管理 CI 模型和属性定义</p>
-        {hasPermission('cmdb_model', 'write') && (
+        {hasPermission('cmdb_model', 'update') && (
           <Button size="sm" onClick={() => setCreating(v => !v)}>
             <Plus className="h-4 w-4 mr-1" />新建模型
           </Button>
@@ -229,7 +229,7 @@ function ModelsTab() {
 function AssociationsTab() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
-  const canWrite = hasPermission('cmdb_model', 'write')
+  const canWrite = hasPermission('cmdb_model', 'update')
 
   // ── Association Kinds / Defs (read-only from model data) ──
   const { data: models = [] } = useQuery<CiModelVO[]>({
