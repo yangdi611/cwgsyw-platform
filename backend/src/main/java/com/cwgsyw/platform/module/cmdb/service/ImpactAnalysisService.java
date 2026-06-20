@@ -2,10 +2,12 @@ package com.cwgsyw.platform.module.cmdb.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.module.cmdb.dto.impact.*;
+import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationKind;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationDefMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationKindMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceRelMapper;
@@ -32,6 +34,7 @@ public class ImpactAnalysisService {
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final CiModelMapper ciModelMapper;
     private final CiAssociationKindMapper ciAssociationKindMapper;
+    private final CiAssociationDefMapper ciAssociationDefMapper;
     private final JdbcTemplate jdbcTemplate;
 
     public ImpactAnalysisResultVO analyze(Long rootInstanceId, ImpactAnalysisRequest req, String tenantId) {
@@ -158,12 +161,12 @@ public class ImpactAnalysisService {
                 queue.add(new long[]{neighborId, depth + 1});
 
                 // Deduplicate edges
-                String edgeKey = rel.getSrcInstanceId() + "-" + rel.getDstInstanceId() + "-" + rel.getAssociationKind();
+                String edgeKey = rel.getSrcInstanceId() + "-" + rel.getDstInstanceId() + "-" + rel.getDefId();
                 if (seenEdges.add(edgeKey)) {
                     ImpactEdgeVO edge = new ImpactEdgeVO();
                     edge.setSrc(rel.getSrcInstanceId());
                     edge.setDst(rel.getDstInstanceId());
-                    edge.setKind(rel.getAssociationKind());
+                    edge.setKind(rel.getDefId());
                     edges.add(edge);
                 }
             }
@@ -304,8 +307,9 @@ public class ImpactAnalysisService {
             }
         }
 
-        // Load kind labels for edges
+        // Load kind labels for edges (edges carry def_id; resolve via def → kind).
         Map<String, String> kindLabels = loadKindLabels(tenantId);
+        Map<String, String> defKindLabels = loadDefKindLabels(tenantId, kindLabels);
 
         // Enrich nodes
         for (ImpactLayerVO layer : result.getLayers()) {
@@ -330,9 +334,9 @@ public class ImpactAnalysisService {
             }
         }
 
-        // Enrich edge labels
+        // Enrich edge labels (edges carry def_id; resolve via def → kind name).
         for (ImpactEdgeVO edge : result.getEdges()) {
-            edge.setLabel(kindLabels.getOrDefault(edge.getKind(), edge.getKind()));
+            edge.setLabel(defKindLabels.getOrDefault(edge.getKind(), edge.getKind()));
         }
     }
 
@@ -342,5 +346,18 @@ public class ImpactAnalysisService {
                 .eq(CiAssociationKind::getIsDeleted, false);
         return ciAssociationKindMapper.selectList(q).stream()
                 .collect(Collectors.toMap(CiAssociationKind::getCode, CiAssociationKind::getName, (a, b) -> a));
+    }
+
+    /**
+     * def_id → 关联种类展示名（经 ci_association_def.kind_id 解析）。边存的是 def_id，
+     * 故标签需经此映射，否则回退成裸 def_id。
+     */
+    private Map<String, String> loadDefKindLabels(String tenantId, Map<String, String> kindLabels) {
+        LambdaQueryWrapper<CiAssociationDef> q = new LambdaQueryWrapper<CiAssociationDef>()
+                .eq(CiAssociationDef::getTenantId, tenantId)
+                .eq(CiAssociationDef::getIsDeleted, false);
+        return ciAssociationDefMapper.selectList(q).stream()
+                .collect(Collectors.toMap(CiAssociationDef::getDefId,
+                        d -> kindLabels.getOrDefault(d.getKindId(), d.getDefId()), (a, b) -> a));
     }
 }

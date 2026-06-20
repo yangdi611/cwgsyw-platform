@@ -4,6 +4,7 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CiRelationVO;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CreateRelationRequest;
 import com.cwgsyw.platform.module.cmdb.dto.relation.UpdateRelationRequest;
+import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.service.CiRelationService;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -26,6 +27,16 @@ public class CiRelationController {
     public R<CiRelationVO> create(@PathVariable Long id, @Valid @RequestBody CreateRelationRequest req,
                                    @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciRelationService.create(id, req, cu.getTenantId(), cu.getUserId()));
+    }
+
+    /**
+     * 当前实例可作为 src 建立的关联定义列表（AC3-8 前端选择 def 而非裸 kind 的数据源）。
+     */
+    @GetMapping("/applicable-defs")
+    @PreAuthorize("hasPermission('cmdb_relation', 'read')")
+    public R<List<CiAssociationDef>> applicableDefs(@PathVariable Long id,
+                                                     @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciRelationService.listApplicableDefs(id, cu.getTenantId()));
     }
 
     @PutMapping("/{relationId}")

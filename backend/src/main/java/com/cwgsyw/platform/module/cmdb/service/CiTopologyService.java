@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.module.cmdb.dto.topology.TopologyEdgeVO;
 import com.cwgsyw.platform.module.cmdb.dto.topology.TopologyNodeVO;
 import com.cwgsyw.platform.module.cmdb.dto.topology.TopologyResultVO;
+import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationKind;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationDefMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationKindMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
@@ -30,6 +32,7 @@ public class CiTopologyService {
     private final CiInstanceMapper ciInstanceMapper;
     private final CiModelMapper ciModelMapper;
     private final CiAssociationKindMapper ciAssociationKindMapper;
+    private final CiAssociationDefMapper ciAssociationDefMapper;
     private final CiAttributeMapper ciAttributeMapper;
 
     public TopologyResultVO getTopology(Long rootInstanceId, int depth, String tenantId) {
@@ -74,6 +77,7 @@ public class CiTopologyService {
         }
 
         Map<String, String> kindLabels = loadKindLabels(tenantId);
+        Map<String, String> defKindLabels = loadDefKindLabels(tenantId, kindLabels);
 
         List<TopologyNodeVO> nodes = instanceIds.stream().map(id -> {
             CiInstance inst = instanceMap.get(id);
@@ -104,12 +108,12 @@ public class CiTopologyService {
         Set<String> seenEdges = new HashSet<>();
         List<TopologyEdgeVO> edgeVOs = new ArrayList<>();
         for (CiInstanceRel rel : edges) {
-            String edgeKey = rel.getSrcInstanceId() + "-" + rel.getDstInstanceId() + "-" + rel.getAssociationKind();
+            String edgeKey = rel.getSrcInstanceId() + "-" + rel.getDstInstanceId() + "-" + rel.getDefId();
             if (seenEdges.add(edgeKey)) {
                 TopologyEdgeVO edge = new TopologyEdgeVO();
                 edge.setSrc(rel.getSrcInstanceId()); edge.setDst(rel.getDstInstanceId());
-                edge.setKind(rel.getAssociationKind());
-                edge.setLabel(kindLabels.getOrDefault(rel.getAssociationKind(), rel.getAssociationKind()));
+                edge.setKind(rel.getDefId());
+                edge.setLabel(defKindLabels.getOrDefault(rel.getDefId(), rel.getDefId()));
                 edgeVOs.add(edge);
             }
         }
@@ -124,5 +128,17 @@ public class CiTopologyService {
                 .eq(CiAssociationKind::getTenantId, tenantId).eq(CiAssociationKind::getIsDeleted, false);
         return ciAssociationKindMapper.selectList(q).stream()
                 .collect(Collectors.toMap(CiAssociationKind::getCode, CiAssociationKind::getName, (a, b) -> a));
+    }
+
+    /**
+     * def_id → 关联种类展示名（经 ci_association_def.kind_id 解析到 ci_association_kind.name）。
+     * 关系列存的是 def_id（非 kind 编码），故边标签需经此映射，否则会回退成裸 def_id。
+     */
+    private Map<String, String> loadDefKindLabels(String tenantId, Map<String, String> kindLabels) {
+        LambdaQueryWrapper<CiAssociationDef> q = new LambdaQueryWrapper<CiAssociationDef>()
+                .eq(CiAssociationDef::getTenantId, tenantId).eq(CiAssociationDef::getIsDeleted, false);
+        return ciAssociationDefMapper.selectList(q).stream()
+                .collect(Collectors.toMap(CiAssociationDef::getDefId,
+                        d -> kindLabels.getOrDefault(d.getKindId(), d.getDefId()), (a, b) -> a));
     }
 }

@@ -7,11 +7,11 @@ import com.cwgsyw.platform.module.cmdb.dto.relation.CiRelationVO;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CreateRelationRequest;
 import com.cwgsyw.platform.module.cmdb.dto.relation.UpdateRelationRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationAttrDef;
-import com.cwgsyw.platform.module.cmdb.entity.CiAssociationKind;
+import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationAttrDefMapper;
-import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationKindMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiAssociationDefMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceRelMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,37 +31,58 @@ public class CiRelationService {
 
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final CiInstanceMapper ciInstanceMapper;
-    private final CiAssociationKindMapper ciAssociationKindMapper;
+    private final CiAssociationDefMapper ciAssociationDefMapper;
     private final CiAssociationAttrDefMapper ciAssociationAttrDefMapper;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
 
+    /**
+     * AssociationDef 驱动的关联创建（Spec §4.4 / AD-3）。
+     *
+     * <p>校验链：defId 存在 → src/dst 实例模型匹配 def.srcModelId/dstModelId →
+     * 同向去重 → mapping 基数未超限（1:1）→ metadata 按 def.kindId 的 attr schema 校验 →
+     * 写入 ci_instance_rel → 写 audit_log。任一校验失败抛 IllegalArgumentException（可读消息）。
+     */
     @Transactional
     public CiRelationVO create(Long srcInstanceId, CreateRelationRequest req, String tenantId, Long operatorId) {
         CiInstance src = loadInstance(srcInstanceId, tenantId);
         CiInstance dst = loadInstance(req.getDstInstanceId(), tenantId);
-        validateAssociationKind(req.getAssociationKind(), tenantId);
 
-        LambdaQueryWrapper<CiInstanceRel> dupCheck = new LambdaQueryWrapper<CiInstanceRel>()
-                .eq(CiInstanceRel::getTenantId, tenantId)
-                .eq(CiInstanceRel::getSrcInstanceId, srcInstanceId)
-                .eq(CiInstanceRel::getDstInstanceId, req.getDstInstanceId())
-                .eq(CiInstanceRel::getAssociationKind, req.getAssociationKind())
-                .eq(CiInstanceRel::getIsDeleted, false);
-        if (ciInstanceRelMapper.selectCount(dupCheck) > 0) {
-            throw new IllegalArgumentException("关联关系已存在");
+        // 解析目标 def：canonical defId 优先；缺失时按 AD-3 兼容策略由 associationKind 推导。
+        CiAssociationDef def = resolveDef(req, src, dst, tenantId);
+        String defId = def.getDefId();
+
+        // 校验 src/dst 模型与 def 端点匹配（方向：src→dst 必须与 def 一致）。
+        if (!def.getSrcModelId().equals(src.getModelId()) || !def.getDstModelId().equals(dst.getModelId())) {
+            throw new IllegalArgumentException(
+                    "关联定义 " + defId + " 要求模型 " + def.getSrcModelId() + " → " + def.getDstModelId()
+                            + "，但实例为 " + src.getModelId() + " → " + dst.getModelId());
         }
 
-        // Validate metadata against association attr def schema
+        // 同向精确去重（DB 唯一索引兜底，此处给出可读错误）。
+        LambdaQueryWrapper<CiInstanceRel> dupCheck = new LambdaQueryWrapper<CiInstanceRel>()
+                .eq(CiInstanceRel::getTenantId, tenantId)
+                .eq(CiInstanceRel::getDefId, defId)
+                .eq(CiInstanceRel::getSrcInstanceId, srcInstanceId)
+                .eq(CiInstanceRel::getDstInstanceId, req.getDstInstanceId())
+                .eq(CiInstanceRel::getIsDeleted, false);
+        if (ciInstanceRelMapper.selectCount(dupCheck) > 0) {
+            throw new IllegalArgumentException("该关联关系已存在");
+        }
+
+        // mapping 基数校验：仅 1:1 限制（1:n / n:n 放行，Spec §4.4）。
+        validateCardinality(def, defId, srcInstanceId, req.getDstInstanceId(), tenantId);
+
+        // metadata 按 def.kindId 关联的 attr def schema 校验。
         Map<String, Object> metadata = req.getMetadata() != null ? req.getMetadata() : new LinkedHashMap<>();
-        List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(req.getAssociationKind(), tenantId);
+        List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(def.getKindId(), tenantId);
         CiInstanceService.SchemaValidator.validateAssociationAttrs(metadata, attrDefs);
 
         CiInstanceRel rel = new CiInstanceRel();
         rel.setTenantId(tenantId);
         rel.setSrcInstanceId(srcInstanceId);
         rel.setDstInstanceId(req.getDstInstanceId());
-        rel.setAssociationKind(req.getAssociationKind());
+        rel.setDefId(defId);
         rel.setMetadata(metadata);
         ciInstanceRelMapper.insert(rel);
 
@@ -69,6 +90,19 @@ public class CiRelationService {
                 operatorId, null, snapshotRelation(rel));
 
         return toVO(rel, src.getName(), dst.getName());
+    }
+
+    /**
+     * 返回当前实例模型可作为 {@code src} 建立的关联定义（前端选择 def 而非裸 kind，AC3-8）。
+     */
+    public List<CiAssociationDef> listApplicableDefs(Long instanceId, String tenantId) {
+        CiInstance inst = loadInstance(instanceId, tenantId);
+        LambdaQueryWrapper<CiAssociationDef> q = new LambdaQueryWrapper<CiAssociationDef>()
+                .eq(CiAssociationDef::getTenantId, tenantId)
+                .eq(CiAssociationDef::getIsDeleted, false)
+                .eq(CiAssociationDef::getSrcModelId, inst.getModelId())
+                .orderByAsc(CiAssociationDef::getId);
+        return ciAssociationDefMapper.selectList(q);
     }
 
     @Transactional
@@ -91,8 +125,9 @@ public class CiRelationService {
             if (rel.getMetadata() != null) merged.putAll(rel.getMetadata());
             merged.putAll(req.getMetadata());
 
-            // Validate against schema
-            List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(rel.getAssociationKind(), tenantId);
+            // Validate against schema：按该 rel 所属 def 的 kindId 取 attr def。
+            String kindId = resolveKindId(rel, tenantId);
+            List<CiAssociationAttrDef> attrDefs = ciAssociationAttrDefMapper.listByKind(kindId, tenantId);
             CiInstanceService.SchemaValidator.validateAssociationAttrs(merged, attrDefs);
 
             rel.setMetadata(merged);
@@ -131,7 +166,7 @@ public class CiRelationService {
         LambdaQueryWrapper<CiInstanceRel> query = new LambdaQueryWrapper<CiInstanceRel>()
                 .eq(CiInstanceRel::getTenantId, tenantId).eq(CiInstanceRel::getIsDeleted, false)
                 .and(w -> w.eq(CiInstanceRel::getSrcInstanceId, instanceId).or().eq(CiInstanceRel::getDstInstanceId, instanceId));
-        if (kind != null && !kind.isBlank()) query.eq(CiInstanceRel::getAssociationKind, kind);
+        if (kind != null && !kind.isBlank()) query.eq(CiInstanceRel::getDefId, kind);
         query.orderByDesc(CiInstanceRel::getCreatedAt);
 
         return ciInstanceRelMapper.selectList(query).stream().map(rel -> {
@@ -150,12 +185,59 @@ public class CiRelationService {
         return inst;
     }
 
-    private void validateAssociationKind(String kind, String tenantId) {
-        LambdaQueryWrapper<CiAssociationKind> q = new LambdaQueryWrapper<CiAssociationKind>()
-                .eq(CiAssociationKind::getTenantId, tenantId)
-                .eq(CiAssociationKind::getCode, kind).eq(CiAssociationKind::getIsDeleted, false);
-        if (ciAssociationKindMapper.selectCount(q) == 0)
-            throw new IllegalArgumentException("关联类型不存在: " + kind);
+    /**
+     * 解析目标关联定义：canonical {@code defId} 优先；缺失时按 AD-3 兼容策略由裸
+     * {@code associationKind} + (srcModel, dstModel) 推导。两者皆空则报错。
+     */
+    private CiAssociationDef resolveDef(CreateRelationRequest req, CiInstance src, CiInstance dst, String tenantId) {
+        String defId = req.getDefId();
+        if (defId != null && !defId.isBlank()) {
+            CiAssociationDef def = ciAssociationDefMapper.findByDefId(defId.trim(), tenantId);
+            if (def == null) {
+                throw new IllegalArgumentException("关联定义不存在: " + defId);
+            }
+            return def;
+        }
+        // 兼容 alias（deprecated associationKind）。
+        String kind = req.getAssociationKind();
+        if (kind == null || kind.isBlank()) {
+            throw new IllegalArgumentException("defId 不能为空");
+        }
+        LambdaQueryWrapper<CiAssociationDef> q = new LambdaQueryWrapper<CiAssociationDef>()
+                .eq(CiAssociationDef::getTenantId, tenantId)
+                .eq(CiAssociationDef::getIsDeleted, false)
+                .eq(CiAssociationDef::getKindId, kind.trim())
+                .eq(CiAssociationDef::getSrcModelId, src.getModelId())
+                .eq(CiAssociationDef::getDstModelId, dst.getModelId());
+        List<CiAssociationDef> matches = ciAssociationDefMapper.selectList(q);
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "无法根据 associationKind='" + kind + "' 及模型 " + src.getModelId()
+                            + " → " + dst.getModelId() + " 推导关联定义，请改用 defId");
+        }
+        return matches.get(0);
+    }
+
+    private void validateCardinality(CiAssociationDef def, String defId, Long srcInstanceId, Long dstInstanceId, String tenantId) {
+        if (!"1:1".equals(def.getMapping())) {
+            return;
+        }
+        // 1:1：src 与 dst 各自在该 def 下至多参与一次。
+        LambdaQueryWrapper<CiInstanceRel> c = new LambdaQueryWrapper<CiInstanceRel>()
+                .eq(CiInstanceRel::getTenantId, tenantId)
+                .eq(CiInstanceRel::getDefId, defId)
+                .eq(CiInstanceRel::getIsDeleted, false)
+                .and(w -> w.eq(CiInstanceRel::getSrcInstanceId, srcInstanceId)
+                        .or().eq(CiInstanceRel::getDstInstanceId, dstInstanceId));
+        if (ciInstanceRelMapper.selectCount(c) > 0) {
+            throw new IllegalArgumentException("关联定义 " + defId + " 为 1:1，该实例已存在同类关联");
+        }
+    }
+
+    /** rel.defId → def.kindId（用于取 attr def schema）。def 缺失时回退为 defId 本身。 */
+    private String resolveKindId(CiInstanceRel rel, String tenantId) {
+        CiAssociationDef def = ciAssociationDefMapper.findByDefId(rel.getDefId(), tenantId);
+        return def != null ? def.getKindId() : rel.getDefId();
     }
 
     private CiRelationVO toVO(CiInstanceRel rel, String srcName, String dstName) {
@@ -165,7 +247,7 @@ public class CiRelationService {
         vo.setSrcInstanceName(srcName);
         vo.setDstInstanceId(rel.getDstInstanceId());
         vo.setDstInstanceName(dstName);
-        vo.setAssociationKind(rel.getAssociationKind());
+        vo.setAssociationKind(rel.getDefId());
         vo.setMetadata(rel.getMetadata());
         vo.setCreatedAt(rel.getCreatedAt());
         return vo;
@@ -177,7 +259,8 @@ public class CiRelationService {
             map.put("id", rel.getId());
             map.put("srcInstanceId", rel.getSrcInstanceId());
             map.put("dstInstanceId", rel.getDstInstanceId());
-            map.put("associationKind", rel.getAssociationKind());
+            // JSON key 保持 "associationKind" 以兼容历史审计快照与 CiTopologyCompareService 读取。
+            map.put("associationKind", rel.getDefId());
             map.put("metadata", rel.getMetadata());
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) {

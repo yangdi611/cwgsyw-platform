@@ -46,7 +46,7 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
               AND NOT r.is_deleted
               AND r.tenant_id = p.p_tenant_id
         )
-        SELECT DISTINCT id, src_id AS srcInstanceId, dst_id AS dstInstanceId, def_id AS associationKind
+        SELECT DISTINCT id, src_id AS srcInstanceId, dst_id AS dstInstanceId, def_id AS defId
         FROM topo
         """)
     List<CiInstanceRel> findTopologyEdges(@Param("rootId") Long rootInstanceId,
