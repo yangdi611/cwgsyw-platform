@@ -55,8 +55,11 @@ public class CsvImportService {
         List<String> headers = new ArrayList<>();
         for (CiAttribute attr : attrs) {
             if (Boolean.TRUE.equals(attr.getIsRequired()) || Boolean.TRUE.equals(attr.getIsListShow())) {
-                if ("enum".equals(attr.getFieldType()) && attr.getEnumOptions() != null) {
-                    headers.add(attr.getFieldKey() + " (" + attr.getEnumOptions() + ")");
+                if ("enum".equals(attr.getFieldType()) && attr.getOption() != null && !attr.getOption().isEmpty()) {
+                    String options = attr.getOption().stream()
+                            .map(opt -> opt.get("name").toString())
+                            .collect(java.util.stream.Collectors.joining(","));
+                    headers.add(attr.getFieldKey() + " (" + options + ")");
                 } else {
                     headers.add(attr.getFieldKey());
                 }
@@ -436,19 +439,24 @@ public class CsvImportService {
                         errors.add("字段 " + attr.getName() + " 应为整数: " + value);
                     }
                 }
+                case "float" -> {
+                    try {
+                        Double.parseDouble(value);
+                    } catch (NumberFormatException e) {
+                        errors.add("字段 " + attr.getName() + " 应为浮点数: " + value);
+                    }
+                }
                 case "bool" -> {
                     if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
                         errors.add("字段 " + attr.getName() + " 应为布尔值(true/false): " + value);
                     }
                 }
                 case "enum" -> {
-                    if (attr.getEnumOptions() != null) {
-                        try {
-                            List<String> options = objectMapper.readValue(attr.getEnumOptions(), new TypeReference<>() {});
-                            if (!options.contains(value)) {
-                                errors.add("字段 " + attr.getName() + " 的值不在可选范围内: " + value);
-                            }
-                        } catch (Exception ignored) {}
+                    if (attr.getOption() != null && !attr.getOption().isEmpty()) {
+                        boolean valid = attr.getOption().stream().anyMatch(opt -> value.equals(opt.get("id")));
+                        if (!valid) {
+                            errors.add("字段 " + attr.getName() + " 的值不在可选范围内: " + value);
+                        }
                     }
                 }
             }
@@ -467,6 +475,10 @@ public class CsvImportService {
             switch (attr.getFieldType()) {
                 case "int" -> {
                     try { result.put(entry.getKey(), Integer.parseInt(value)); }
+                    catch (NumberFormatException e) { result.put(entry.getKey(), value); }
+                }
+                case "float" -> {
+                    try { result.put(entry.getKey(), Double.parseDouble(value)); }
                     catch (NumberFormatException e) { result.put(entry.getKey(), value); }
                 }
                 case "bool" -> result.put(entry.getKey(), Boolean.parseBoolean(value));

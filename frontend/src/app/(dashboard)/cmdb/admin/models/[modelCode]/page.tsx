@@ -17,6 +17,7 @@ interface CiAttributeVO {
   id: number; fieldKey: string; name: string; groupId: string
   fieldType: string; isRequired: boolean; isUnique: boolean; isBuiltIn: boolean; isListShow: boolean
   sortOrder: number; placeholder: string; unit: string
+  option: Array<{ id: string; name: string; isDefault?: boolean }>
 }
 interface CiAttributeGroupVO { id: number; groupId: string; name: string; isDefault: boolean; isBuiltIn: boolean }
 interface CiModelVO {

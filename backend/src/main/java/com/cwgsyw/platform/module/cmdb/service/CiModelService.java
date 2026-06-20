@@ -214,6 +214,7 @@ public class CiModelService {
         vo.setIsListShow(a.getIsListShow());
         vo.setDefaultValue(a.getDefaultValue());
         vo.setEnumOptions(a.getEnumOptions());
+        vo.setOption(a.getOption());
         vo.setSortOrder(a.getSortOrder());
         return vo;
     }
