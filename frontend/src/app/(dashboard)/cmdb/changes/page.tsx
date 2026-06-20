@@ -269,8 +269,8 @@ export default function CmdbChangesPage() {
               {changes.map(ch => {
                 const meta = actionMeta(ch.action)
                 const isOpen = expanded.has(ch.id)
-                const changedFields = ch.changed_fields ?? []
-                const hasDiff = ch.before_json != null || ch.after_json != null
+                const changedFields = ch.changedFields ?? []
+                const hasDiff = ch.beforeJson != null || ch.afterJson != null
                 return (
                   <Fragment key={ch.id}>
                     <TableRow
@@ -291,12 +291,12 @@ export default function CmdbChangesPage() {
                           {meta.label}
                         </span>
                       </TableCell>
-                      <TableCell className="font-medium">{ch.operator_name ?? '系统'}</TableCell>
+                      <TableCell className="font-medium">{ch.operatorName ?? '系统'}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {ch.summary ?? (ch.after_json ? JSON.stringify(ch.after_json).slice(0, 80) : '—')}
+                        {ch.summary ?? (ch.afterJson ? JSON.stringify(ch.afterJson).slice(0, 80) : '—')}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(ch.created_at).toLocaleString('zh-CN')}
+                        {new Date(ch.createdAt).toLocaleString('zh-CN')}
                       </TableCell>
                     </TableRow>
                     {isOpen && hasDiff && (
@@ -315,7 +315,7 @@ export default function CmdbChangesPage() {
                               ))}
                             </div>
                           )}
-                          <JsonDiffView before={ch.before_json} after={ch.after_json} />
+                          <JsonDiffView before={ch.beforeJson} after={ch.afterJson} />
                         </TableCell>
                       </TableRow>
                     )}

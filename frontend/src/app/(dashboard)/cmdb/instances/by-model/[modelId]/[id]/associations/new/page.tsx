@@ -13,19 +13,19 @@ import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lu
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
 
-interface CiInstanceSummary { name: string; model_id: string }
+interface CiInstanceSummary { name: string; modelId: string }
 interface CiAssociationDefVO {
   def_id: string
   kind_id: string
   name: string
-  src_model_id: string
-  dst_model_id: string
+  srcModelId: string
+  dstModelId: string
   mapping: string
 }
 interface InstanceSearchVO {
   id: number
   name: string
-  model_id: string
+  modelId: string
   model_name: string
 }
 
@@ -57,7 +57,7 @@ export default function NewAssociationPage() {
         const r = await api.get(`/cmdb/instances/${id}`)
         return {
           name: r.data.data.name,
-          model_id: r.data.data.model_id,
+          modelId: r.data.data.modelId,
         }
       } catch {
         return {} as CiInstanceSummary
@@ -72,12 +72,12 @@ export default function NewAssociationPage() {
 
   // 当前模型适用的关联定义
   const applicableDefs = modelDefs.filter(
-    d => d.src_model_id === modelId || d.dst_model_id === modelId
+    d => d.srcModelId === modelId || d.dstModelId === modelId
   )
   const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
   // 目标模型：取关联定义中与当前模型相对的另一端
   const targetModelId = selectedDef
-    ? (selectedDef.src_model_id === modelId ? selectedDef.dst_model_id : selectedDef.src_model_id)
+    ? (selectedDef.srcModelId === modelId ? selectedDef.dstModelId : selectedDef.srcModelId)
     : null
 
   const { data: searchResult, isFetching: searching } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
@@ -93,8 +93,8 @@ export default function NewAssociationPage() {
       if (!selectedDef || !selectedPeer) throw new Error('请选择关联定义和目标实例')
       // 新版关联 API：当前实例恒为 src
       return api.post(`/cmdb/instances/${id}/relations`, {
-        dst_instance_id: selectedPeer.id,
-        association_kind: selectedDef.kind_id,
+        dstInstanceId: selectedPeer.id,
+        associationKind: selectedDef.kind_id,
         attrs: assocAttrs,
       })
     },
@@ -170,8 +170,8 @@ export default function NewAssociationPage() {
               <div className="space-y-2">
                 {applicableDefs.map(d => {
                   const isSelected = selectedDefId === d.def_id
-                  const isSrc = d.src_model_id === modelId
-                  const targetModel = isSrc ? d.dst_model_id : d.src_model_id
+                  const isSrc = d.srcModelId === modelId
+                  const targetModel = isSrc ? d.dstModelId : d.srcModelId
                   return (
                     <button
                       key={d.def_id}

@@ -9,12 +9,12 @@ import { usePermission } from '@/hooks/usePermission'
 import { Server, Database, Network, Box, Cloud, Loader2 } from 'lucide-react'
 
 interface CiModelVO {
-  model_id: string
+  modelId: string
   name: string
   icon: string
   group_code: string
   description: string
-  is_built_in: boolean
+  isBuiltIn: boolean
   is_paused: boolean
 }
 
@@ -80,11 +80,11 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
                   <div className="space-y-0.5">
                     {groupModels.map(m => {
                       const Icon = MODEL_ICONS[m.icon] ?? Box
-                      const active = !!activeModelId && activeModelId === m.model_id
+                      const active = !!activeModelId && activeModelId === m.modelId
                       return (
                         <Link
-                          key={m.model_id}
-                          href={`/cmdb/instances/by-model/${m.model_id}`}
+                          key={m.modelId}
+                          href={`/cmdb/instances/by-model/${m.modelId}`}
                           className={cn(
                             'flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
                             active

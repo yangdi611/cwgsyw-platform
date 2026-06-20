@@ -22,12 +22,12 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface CiModelVO {
   id: number
-  model_id: string
+  modelId: string
   name: string
   icon: string
   group_code: string
   description: string
-  is_built_in: boolean
+  isBuiltIn: boolean
   is_paused: boolean
 }
 
@@ -131,7 +131,7 @@ function ModelsTab() {
 
   const createMutation = useMutation({
     mutationFn: () => api.post('/cmdb/models', {
-      model_id: form.modelId, name: form.name, icon: form.icon,
+      modelId: form.modelId, name: form.name, icon: form.icon,
       group_code: form.groupCode || undefined, description: form.description || undefined,
     }),
     onSuccess: (res) => {
@@ -139,7 +139,7 @@ function ModelsTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
       setCreating(false)
       setForm({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
-      router.push(`/cmdb/admin/models/${res.data.data.model_id}`)
+      router.push(`/cmdb/admin/models/${res.data.data.modelId}`)
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
   })
@@ -198,7 +198,7 @@ function ModelsTab() {
                 {groupModels.map(model => {
                   const Icon = ICON_MAP[model.icon] ?? Box
                   return (
-                    <Link key={model.model_id} href={`/cmdb/admin/models/${model.model_id}`}
+                    <Link key={model.modelId} href={`/cmdb/admin/models/${model.modelId}`}
                       className="border rounded-lg p-4 hover:bg-muted/50 transition-colors block">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-md">
@@ -207,9 +207,9 @@ function ModelsTab() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">{model.name}</span>
-                            {model.is_built_in && <Badge variant="secondary" className="text-xs">内置</Badge>}
+                            {model.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.model_id}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.modelId}</p>
                         </div>
                         <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
                       </div>

@@ -6,18 +6,18 @@ import { JsonDiffView } from './JsonDiffView'
 
 /**
  * Shared V2 change-history record shape (backend `ChangeHistoryV2VO`, serialised
- * with the global SNAKE_CASE Jackson strategy → all keys are snake_case).
+ * as camelCase via @JsonNaming(LowerCamelCaseStrategy.class)).
  */
 export interface ChangeHistoryV2VO {
   id: number
   action: string
-  operator_id: number | null
-  operator_name: string | null
-  before_json: Record<string, unknown> | null
-  after_json: Record<string, unknown> | null
-  changed_fields: string[] | null
+  operatorId: number | null
+  operatorName: string | null
+  beforeJson: Record<string, unknown> | null
+  afterJson: Record<string, unknown> | null
+  changedFields: string[] | null
   summary: string | null
-  created_at: string
+  createdAt: string
 }
 
 /** Action badge styling. Backend stores `create_instance | update_instance | delete_instance`. */
@@ -63,8 +63,8 @@ interface ChangeRecordItemProps {
 export function ChangeRecordItem({ record, compact = false, defaultOpen = false }: ChangeRecordItemProps) {
   const [open, setOpen] = useState(defaultOpen)
   const meta = actionMeta(record.action)
-  const changedFields = record.changed_fields ?? []
-  const hasDiff = record.before_json != null || record.after_json != null
+  const changedFields = record.changedFields ?? []
+  const hasDiff = record.beforeJson != null || record.afterJson != null
 
   return (
     <div className="relative pl-5">
@@ -86,9 +86,9 @@ export function ChangeRecordItem({ record, compact = false, defaultOpen = false 
           <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${meta.cls}`}>
             {meta.label}
           </span>
-          <span className="text-sm font-medium">{record.operator_name ?? '系统'}</span>
+          <span className="text-sm font-medium">{record.operatorName ?? '系统'}</span>
           <span className="text-xs text-muted-foreground">
-            {new Date(record.created_at).toLocaleString('zh-CN')}
+            {new Date(record.createdAt).toLocaleString('zh-CN')}
           </span>
         </div>
         {record.summary && (
@@ -113,7 +113,7 @@ export function ChangeRecordItem({ record, compact = false, defaultOpen = false 
             </div>
           )}
           {hasDiff ? (
-            <JsonDiffView before={record.before_json} after={record.after_json} />
+            <JsonDiffView before={record.beforeJson} after={record.afterJson} />
           ) : (
             <p className="text-xs text-muted-foreground">无变更快照数据</p>
           )}
