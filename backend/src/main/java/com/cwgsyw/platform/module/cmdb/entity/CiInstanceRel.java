@@ -19,8 +19,15 @@ public class CiInstanceRel extends BaseEntity {
     @TableField("dst_id")
     private Long dstInstanceId;
 
+    /**
+     * 引用的关联定义（ci_association_def.def_id）。
+     *
+     * <p>Java 字段名为 {@code defId}（AD-3 第 4 条）——历史命名 {@code associationKind}
+     * 暗示存的是 kind 值，但底层列 {@code def_id} 承载的是 def 业务主键，二者语义不同，
+     * 故收敛字段名消除歧义。{@code @TableField("def_id")} 不变。
+     */
     @TableField("def_id")
-    private String associationKind;
+    private String defId;
 
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();

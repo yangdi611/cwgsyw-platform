@@ -14,13 +14,16 @@ import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
 
 interface CiInstanceSummary { name: string; modelId: string }
+
+// 后端返回 ci_association_def 实体（全局 SNAKE_CASE 序列化）
 interface CiAssociationDefVO {
   def_id: string
   kind_id: string
   name: string
-  srcModelId: string
-  dstModelId: string
+  src_model_id: string
+  dst_model_id: string
   mapping: string
+  on_delete: string
 }
 interface InstanceSearchVO {
   id: number
@@ -66,19 +69,16 @@ export default function NewAssociationPage() {
     enabled: typeof window !== 'undefined',
   })
 
-  // 获取模型详情以获取关联定义（后端未暴露独立 association-defs 端点）
-  // 从 GET /cmdb/models/{modelId} 返回的 associationDefs 字段获取
-  const modelDefs = ((inst as any)?.associationDefs ?? []) as CiAssociationDefVO[]
+  // 当前实例可作为 src 建立的关联定义（选择 def 而非裸 kind，AC3-8）
+  const { data: applicableDefs = [] } = useQuery<CiAssociationDefVO[]>({
+    queryKey: ['cmdb-rel-applicable-defs', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations/applicable-defs`).then(r => r.data.data),
+    enabled: typeof window !== 'undefined',
+  })
 
-  // 当前模型适用的关联定义
-  const applicableDefs = modelDefs.filter(
-    d => d.srcModelId === modelId || d.dstModelId === modelId
-  )
   const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
-  // 目标模型：取关联定义中与当前模型相对的另一端
-  const targetModelId = selectedDef
-    ? (selectedDef.srcModelId === modelId ? selectedDef.dstModelId : selectedDef.srcModelId)
-    : null
+  // applicable-defs 仅返回 src 端 = 当前模型 的 def，故目标恒为 dst 端
+  const targetModelId = selectedDef ? selectedDef.dst_model_id : null
 
   const { data: searchResult, isFetching: searching } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, keyword],
@@ -91,11 +91,10 @@ export default function NewAssociationPage() {
   const createMutation = useMutation({
     mutationFn: () => {
       if (!selectedDef || !selectedPeer) throw new Error('请选择关联定义和目标实例')
-      // 新版关联 API：当前实例恒为 src
       return api.post(`/cmdb/instances/${id}/relations`, {
+        defId: selectedDef.def_id,
         dstInstanceId: selectedPeer.id,
-        associationKind: selectedDef.kind_id,
-        attrs: assocAttrs,
+        metadata: assocAttrs,
       })
     },
     onSuccess: () => {
@@ -160,18 +159,16 @@ export default function NewAssociationPage() {
             <div className="flex items-center gap-2 mb-2">
               <Link2 className="h-4 w-4 text-primary" />
               <Label className="text-sm">选择关联定义</Label>
-              <span className="text-xs text-muted-foreground">（仅显示当前模型适用的定义）</span>
+              <span className="text-xs text-muted-foreground">（仅显示当前模型作为源端的定义）</span>
             </div>
-            {modelDefs.length === 0 ? (
+            {applicableDefs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                当前模型暂无可用的关联定义。请先在配置管理中定义关联。
+                当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = {modelId}）。
               </p>
             ) : (
               <div className="space-y-2">
                 {applicableDefs.map(d => {
                   const isSelected = selectedDefId === d.def_id
-                  const isSrc = d.srcModelId === modelId
-                  const targetModel = isSrc ? d.dstModelId : d.srcModelId
                   return (
                     <button
                       key={d.def_id}
@@ -184,15 +181,15 @@ export default function NewAssociationPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Check className={cn('h-4 w-4', isSelected ? 'text-primary' : 'opacity-0')} />
-                          <span className="font-medium text-sm">{d.name}</span>
+                          <span className="font-medium text-sm">{d.name ?? d.def_id}</span>
                           <Badge variant="outline" className="text-xs">{d.kind_id}</Badge>
                         </div>
                         <Badge variant="secondary" className="text-xs">{d.mapping}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1.5 ml-6 flex items-center gap-1">
-                        <span>{isSrc ? modelId : targetModel}</span>
+                        <span>{d.src_model_id}</span>
                         <ArrowRight className="h-3 w-3" />
-                        <span>{isSrc ? targetModel : modelId}</span>
+                        <span>{d.dst_model_id}</span>
                       </div>
                     </button>
                   )
@@ -269,10 +266,11 @@ export default function NewAssociationPage() {
                 <span className="col-span-2 font-medium">{inst?.name ?? `#${id}`}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm items-center">
-                <span className="text-muted-foreground">关联类型</span>
+                <span className="text-muted-foreground">关联定义</span>
                 <span className="col-span-2 flex items-center gap-1.5">
                   <Badge variant="outline">{selectedDef?.kind_id}</Badge>
-                  <span>{selectedDef?.name}</span>
+                  <Badge variant="secondary" className="text-xs">{selectedDef?.mapping}</Badge>
+                  <span>{selectedDef?.name ?? selectedDef?.def_id}</span>
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm items-center">
@@ -326,7 +324,7 @@ export default function NewAssociationPage() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <p className="text-xs text-muted-foreground">
-              关联方向：当前实例 → 目标实例。提交后可在关联管理页查看。
+              关联方向：当前实例 → 目标实例（与关联定义 src→dst 一致）。非法组合将被后端拒绝。
             </p>
           </div>
         )}
