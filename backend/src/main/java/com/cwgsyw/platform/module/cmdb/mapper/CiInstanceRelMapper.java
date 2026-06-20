@@ -32,21 +32,21 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
                    #{maxDepth}::int AS p_max_depth
         ),
         topo AS (
-            SELECT r.id, r.src_instance_id, r.dst_instance_id, r.association_kind, 0 AS depth
+            SELECT r.id, r.src_id, r.dst_id, r.def_id, 0 AS depth
             FROM ci_instance_rel r, params p
-            WHERE (r.src_instance_id = p.p_root_id OR r.dst_instance_id = p.p_root_id)
+            WHERE (r.src_id = p.p_root_id OR r.dst_id = p.p_root_id)
               AND NOT r.is_deleted
               AND r.tenant_id = p.p_tenant_id
             UNION ALL
-            SELECT r.id, r.src_instance_id, r.dst_instance_id, r.association_kind, t.depth + 1
+            SELECT r.id, r.src_id, r.dst_id, r.def_id, t.depth + 1
             FROM ci_instance_rel r
-            INNER JOIN topo t ON (r.src_instance_id = t.dst_instance_id OR r.dst_instance_id = t.src_instance_id)
+            INNER JOIN topo t ON (r.src_id = t.dst_id OR r.dst_id = t.src_id)
             INNER JOIN params p ON true
             WHERE t.depth < p.p_max_depth
               AND NOT r.is_deleted
               AND r.tenant_id = p.p_tenant_id
         )
-        SELECT DISTINCT id, src_instance_id AS srcInstanceId, dst_instance_id AS dstInstanceId, association_kind AS associationKind
+        SELECT DISTINCT id, src_id AS srcInstanceId, dst_id AS dstInstanceId, def_id AS associationKind
         FROM topo
         """)
     List<CiInstanceRel> findTopologyEdges(@Param("rootId") Long rootInstanceId,
