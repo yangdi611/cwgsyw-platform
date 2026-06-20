@@ -103,8 +103,9 @@ const navItems: NavEntry[] = [
         storageKey: 'sidebar-cmdb',
         defaultOpen: true,
         children: [
-          { href: '/cmdb/models',            label: '模型管理',  icon: Box,       resource: 'cmdb_model',    action: 'read' },
-          { href: '/cmdb/instances',         label: '实例管理',  icon: Database,  resource: 'cmdb_instance', action: 'read' },
+          // AC10: 浏览入口（只读目录），管理操作走 /cmdb/admin
+          { href: '/cmdb/models',            label: '模型浏览',  icon: Box,       resource: 'cmdb_model',    action: 'read' },
+          { href: '/cmdb/instances',         label: '实例浏览',  icon: Database,  resource: 'cmdb_instance', action: 'read' },
           { href: '/cmdb/changes',           label: '变更历史',  icon: History,   resource: 'cmdb_instance', action: 'read' },
           { href: '/cmdb/alerts',            label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',    action: 'read' },
           { href: '/cmdb/changes/stats',     label: '统计看板',  icon: BarChart2, resource: 'cmdb_instance', action: 'read' },

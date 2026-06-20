@@ -32,9 +32,13 @@ export default function CmdbLayout({ children }: { children: ReactNode }) {
   const { hasPermission } = usePermission()
 
   // The fullscreen topology page renders full-bleed (-m-6 / 100vh) and must not be
-  // narrowed by a sidebar. Skip the model tree there, and when the user lacks read access.
+  // narrowed by a sidebar. The admin config page manages metadata (no model browsing),
+  // so it also gets a full-width layout. Skip the model tree in both cases, and when the
+  // user lacks read access.
   const showSidebar =
-    hasPermission('cmdb_instance', 'read') && !pathname.startsWith('/cmdb/topology')
+    hasPermission('cmdb_instance', 'read') &&
+    !pathname.startsWith('/cmdb/topology') &&
+    !pathname.startsWith('/cmdb/admin')
 
   const { data: models = [], isLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-layout-models'],

@@ -29,7 +29,8 @@ export function InstanceTopologyTab({ id }: Props) {
           拓扑图
         </div>
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/topology/${id}?compare=1`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          {/* AC10 (Issue #64): 对比模式已分离为独立子路由 /cmdb/topology/[id]/compare */}
+          <Link href={`/cmdb/topology/${id}/compare`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
             <GitCompare className="h-3 w-3" />对比模式
           </Link>
           <Link href={`/cmdb/topology/${id}`} className="text-xs text-muted-foreground hover:text-foreground">

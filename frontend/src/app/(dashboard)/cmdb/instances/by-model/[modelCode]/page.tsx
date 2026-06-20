@@ -1,13 +1,14 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Eye } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Eye, Upload } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 
 interface CiInstanceVO {
   id: number
@@ -36,6 +37,9 @@ export default function InstanceListPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
+
+  // AC10: CSV 批量导入入口随实例创建一起放在按模型上下文中（全局 /cmdb/instances 已改为纯浏览）。
+  const [csvOpen, setCsvOpen] = useState(false)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -88,11 +92,18 @@ export default function InstanceListPage() {
             <p className="text-xs text-muted-foreground mt-0.5">共 {result?.total ?? 0} 条</p>
           </div>
         </div>
-        {hasPermission('cmdb_instance', 'create') && (
-          <Link href={`/cmdb/instances/by-model/${modelCode}/new`} className={buttonVariants({ size: 'sm' })}>
-            <Plus className="h-4 w-4 mr-1" />新建实例
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {hasPermission('cmdb_instance', 'import') && (
+            <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" />导入 CSV
+            </Button>
+          )}
+          {hasPermission('cmdb_instance', 'create') && (
+            <Link href={`/cmdb/instances/by-model/${modelCode}/new`} className={buttonVariants({ size: 'sm' })}>
+              <Plus className="h-4 w-4 mr-1" />新建实例
+            </Link>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -153,6 +164,8 @@ export default function InstanceListPage() {
           </table>
         </div>
       )}
+
+      <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={modelCode} />
     </div>
   )
 }
