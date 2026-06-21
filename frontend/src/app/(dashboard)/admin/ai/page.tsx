@@ -2,7 +2,9 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { Card, CardContent } from '@/components/v2/Card'
+import { PageHeader } from '@/components/shared'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -73,32 +75,32 @@ function ProviderCard({
 
   const testMutation = useMutation({
     mutationFn: () =>
-      api.post(`/admin/ai/providers/${config.provider}/test`).then(r => r.data.data as string),
+      api.post(`/admin/ai/providers/${config.provider}/test`).then((r) => r.data.data as string),
     onSuccess: (reply: string) => toast.success(`测试成功：${reply}`),
     onError: () => toast.error('测试失败'),
   })
 
   return (
-    <section className="border rounded-lg p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">{config.providerLabel}</h2>
-        <div className="flex items-center gap-2">
-          <Switch
-            id={`${config.provider}-enabled`}
-            checked={form.enabled}
-            onCheckedChange={v => setForm(f => ({ ...f, enabled: v }))}
-            disabled={!canWrite}
-          />
-          <Label htmlFor={`${config.provider}-enabled`}>启用</Label>
+    <Card>
+      <CardContent className="space-y-4 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-v2-fg">{config.providerLabel}</h2>
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`${config.provider}-enabled`}
+              checked={form.enabled}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
+              disabled={!canWrite}
+            />
+            <Label htmlFor={`${config.provider}-enabled`}>启用</Label>
+          </div>
         </div>
-      </div>
-      <div className="space-y-4">
         <div className="space-y-1.5">
           <Label>API Key</Label>
           <Input
             type="password"
             value={form.apiKey}
-            onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
             placeholder={config.configured ? '••••••••（已配置，留空则不修改）' : '请输入 API Key'}
             disabled={!canWrite}
           />
@@ -108,7 +110,7 @@ function ProviderCard({
             <Label>Base URL</Label>
             <Input
               value={form.baseUrl}
-              onChange={e => setForm(f => ({ ...f, baseUrl: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
               placeholder="https://api.example.com/v1"
               disabled={!canWrite}
             />
@@ -117,7 +119,7 @@ function ProviderCard({
             <Label>模型</Label>
             <Input
               value={form.model}
-              onChange={e => setForm(f => ({ ...f, model: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
               placeholder="model-name"
               disabled={!canWrite}
             />
@@ -127,7 +129,7 @@ function ProviderCard({
           <Label>系统提示词</Label>
           <Textarea
             value={form.systemPrompt}
-            onChange={e => setForm(f => ({ ...f, systemPrompt: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
             rows={4}
             placeholder="You are a helpful assistant..."
             disabled={!canWrite}
@@ -135,11 +137,11 @@ function ProviderCard({
         </div>
         {canWrite && (
           <div className="flex gap-2">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               保存
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => testMutation.mutate()}
               disabled={testMutation.isPending}
             >
@@ -147,8 +149,8 @@ function ProviderCard({
             </Button>
           </div>
         )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -164,21 +166,23 @@ export default function AdminAiPage() {
 
   const { data: providers = [], isLoading } = useQuery<AiProviderConfigVO[]>({
     queryKey: ['ai-providers'],
-    queryFn: () => api.get('/admin/ai/providers').then(r => r.data.data),
+    queryFn: () => api.get('/admin/ai/providers').then((r) => r.data.data),
     enabled: canRead,
   })
 
   if (!canRead) return null
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">AI 网关配置</h1>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        eyebrow="系统管理"
+        title="AI 网关配置"
+        subtitle="配置 AI 供应商的 API Key、模型与系统提示词，供变更文档 AI 生成使用。"
+      />
       {isLoading ? (
-        <p className="text-muted-foreground">加载中…</p>
+        <p className="text-v2-muted">加载中…</p>
       ) : (
-        providers.map(p => (
-          <ProviderCard key={p.provider} config={p} canWrite={canWrite} />
-        ))
+        providers.map((p) => <ProviderCard key={p.provider} config={p} canWrite={canWrite} />)
       )}
     </div>
   )

@@ -5,17 +5,9 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
+import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 
 interface ActionCountVO {
   created: number
@@ -59,9 +51,7 @@ function ActionCountCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <CardTitle className="text-sm font-semibold text-v2-muted">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -71,24 +61,24 @@ function ActionCountCard({
           </div>
         ) : data ? (
           <>
-            <div className="text-3xl font-bold">{data.total}</div>
-            <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+            <div className="text-3xl font-bold tabular-nums text-v2-fg">{data.total}</div>
+            <div className="mt-2 flex gap-3 text-xs text-v2-muted">
               <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="h-2 w-2 rounded-full bg-v2-success" />
                 新增 {data.created}
               </span>
               <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                <span className="h-2 w-2 rounded-full bg-v2-primary" />
                 修改 {data.updated}
               </span>
               <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="h-2 w-2 rounded-full bg-v2-danger" />
                 删除 {data.deleted}
               </span>
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">暂无数据</p>
+          <p className="text-sm text-v2-muted">暂无数据</p>
         )}
       </CardContent>
     </Card>
@@ -108,27 +98,25 @@ function DailyBarChart({ data }: { data: DailyCountVO[] }) {
         const hDeleted = (day.deleted / maxVal) * 100
         return (
           <div key={day.date} className="flex items-center gap-3 text-xs">
-            <span className="w-20 shrink-0 text-right text-muted-foreground">
-              {day.date.slice(5)}
-            </span>
+            <span className="w-20 shrink-0 text-right text-v2-muted">{day.date.slice(5)}</span>
             <div className="flex h-5 flex-1 items-end gap-px">
               <div
-                className="rounded-t bg-green-500 transition-all"
+                className="rounded-t bg-v2-success transition-all"
                 style={{ width: `${hCreated}%`, height: '100%' }}
                 title={`新增 ${day.created}`}
               />
               <div
-                className="rounded-t bg-blue-500 transition-all"
+                className="rounded-t bg-v2-primary transition-all"
                 style={{ width: `${hUpdated}%`, height: '100%' }}
                 title={`修改 ${day.updated}`}
               />
               <div
-                className="rounded-t bg-red-500 transition-all"
+                className="rounded-t bg-v2-danger transition-all"
                 style={{ width: `${hDeleted}%`, height: '100%' }}
                 title={`删除 ${day.deleted}`}
               />
             </div>
-            <span className="w-10 text-muted-foreground">{day.created + day.updated + day.deleted}</span>
+            <span className="w-10 text-v2-muted tabular-nums">{day.created + day.updated + day.deleted}</span>
           </div>
         )
       })}
@@ -150,24 +138,49 @@ export default function CmdbChangesStatsPage() {
     enabled: hasPermission('cmdb_change', 'read'),
   })
 
-  return (
-    <div className="max-w-5xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">CMDB 变更统计</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          CI 实例变更历史统计与趋势分析
-        </p>
-      </div>
+  const topColumns: ColumnDef<TopInstanceVO>[] = [
+    {
+      key: 'rank',
+      title: '#',
+      render: (_r, idx) => <span className="text-v2-muted tabular-nums">{idx + 1}</span>,
+    },
+    {
+      key: 'instanceName',
+      title: '实例名称',
+      render: (r) => <span className="font-semibold text-v2-fg">{r.instanceName}</span>,
+    },
+    {
+      key: 'modelName',
+      title: '模型',
+      render: (r) => (
+        <span className="inline-flex items-center rounded-md border border-v2-border bg-v2-surface-soft px-2 py-0.5 text-xs text-v2-fg">
+          {r.modelName}
+        </span>
+      ),
+    },
+    {
+      key: 'changeCount',
+      title: '变更次数',
+      align: 'right',
+      render: (r) => <span className="font-v2-mono tabular-nums text-v2-fg">{r.changeCount}</span>,
+    },
+  ]
 
-      {/* 概览卡片 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="CMDB"
+        title="变更统计"
+        subtitle="CI 实例变更历史统计与趋势分析，按时间维度与活跃实例查看。"
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ActionCountCard title="今日变更" data={stats?.today} loading={isLoading} />
         <ActionCountCard title="本周变更" data={stats?.thisWeek} loading={isLoading} />
         <ActionCountCard title="本月变更" data={stats?.thisMonth} loading={isLoading} />
       </div>
 
-      {/* 每日趋势 */}
-      <Card className="mb-8">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">每日变更趋势</CardTitle>
         </CardHeader>
@@ -180,29 +193,28 @@ export default function CmdbChangesStatsPage() {
             </div>
           ) : stats?.dailyBreakdown && stats.dailyBreakdown.length > 0 ? (
             <div>
-              <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+              <div className="mb-3 flex items-center gap-4 text-xs text-v2-muted">
                 <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-green-500" />
+                  <span className="h-2.5 w-2.5 rounded bg-v2-success" />
                   新增
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-blue-500" />
+                  <span className="h-2.5 w-2.5 rounded bg-v2-primary" />
                   修改
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-red-500" />
+                  <span className="h-2.5 w-2.5 rounded bg-v2-danger" />
                   删除
                 </span>
               </div>
               <DailyBarChart data={stats.dailyBreakdown} />
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无每日变更数据</p>
+            <p className="text-sm text-v2-muted">暂无每日变更数据</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Top10 实例 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">变更最频繁的实例 (Top 10)</CardTitle>
@@ -215,30 +227,9 @@ export default function CmdbChangesStatsPage() {
               ))}
             </div>
           ) : stats?.top10Instances && stats.top10Instances.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>实例名称</TableHead>
-                  <TableHead>模型</TableHead>
-                  <TableHead className="text-right">变更次数</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.top10Instances.map((inst, idx) => (
-                  <TableRow key={inst.instanceId}>
-                    <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                    <TableCell className="font-medium">{inst.instanceName}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{inst.modelName}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">{inst.changeCount}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable columns={topColumns} data={stats.top10Instances} rowKey={(r) => r.instanceId} />
           ) : (
-            <p className="text-sm text-muted-foreground">暂无实例变更统计</p>
+            <p className="text-sm text-v2-muted">暂无实例变更统计</p>
           )}
         </CardContent>
       </Card>
