@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PageHeader } from '@/components/shared'
 import { Mail, Bell, FileText, GitBranch } from 'lucide-react'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
@@ -192,8 +193,12 @@ export default function AdminConfigPage() {
   })
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">系统配置</h1>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="系统管理"
+        title="系统配置"
+        subtitle="配置邮件服务、日报提醒、文档水印与流程审批等系统级参数。"
+      />
       <div className="flex gap-6">
         {/* Left: Tab navigation */}
         <nav className="w-44 flex-shrink-0 space-y-1">
@@ -205,8 +210,8 @@ export default function AdminConfigPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left
                   ${activeTab === tab.id
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-v2-primary-soft text-v2-primary font-medium'
+                    : 'text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg'
                   }`}
               >
                 <Icon className="size-4 flex-shrink-0" />

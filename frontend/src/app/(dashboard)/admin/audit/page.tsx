@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/v2/StatusBadge'
+import { PageHeader, FilterBar, DataTable, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -38,15 +38,17 @@ const MODULE_LABELS: Record<string, string> = {
   group: '组管理',
 }
 
-const ACTION_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  create: 'default',
-  update: 'secondary',
-  delete: 'destructive',
-  approve: 'outline',
-  reject: 'destructive',
-  view_password: 'secondary',
-  submit: 'default',
-  ai_generate: 'outline',
+type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
+
+const ACTION_VARIANT: Record<string, StatusVariant> = {
+  create: 'ok',
+  update: 'warn',
+  delete: 'danger',
+  approve: 'ok',
+  reject: 'danger',
+  view_password: 'neutral',
+  submit: 'ok',
+  ai_generate: 'neutral',
 }
 
 export default function AuditLogPage() {
@@ -58,10 +60,10 @@ export default function AuditLogPage() {
     if (!hasPermission('audit', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const [module, setModule]       = useState('')
+  const [module, setModule] = useState('')
   const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate]     = useState('')
-  const [page, setPage]           = useState(1)
+  const [endDate, setEndDate] = useState('')
+  const [page, setPage] = useState(1)
   const size = 20
 
   const { data, isLoading } = useQuery<PageResult>({
@@ -71,7 +73,7 @@ export default function AuditLogPage() {
       if (module) params.module = module
       if (startDate) params.startDate = startDate
       if (endDate) params.endDate = endDate
-      return api.get('/audit-logs', { params }).then(r => r.data.data)
+      return api.get('/audit-logs', { params }).then((r) => r.data.data)
     },
     enabled: hasPermission('audit', 'read'),
   })
@@ -79,88 +81,155 @@ export default function AuditLogPage() {
   const records = data?.records ?? []
   const hasMore = records.length === size
 
-  return (
-    <div className="max-w-6xl">
-      <h1 className="text-2xl font-bold mb-6">审计日志</h1>
+  const columns: ColumnDef<AuditLogVO>[] = [
+    {
+      key: 'createdAt',
+      title: '时间',
+      render: (r) => (
+        <span className="whitespace-nowrap text-xs text-v2-muted">
+          {new Date(r.createdAt).toLocaleString('zh-CN')}
+        </span>
+      ),
+    },
+    {
+      key: 'module',
+      title: '模块',
+      render: (r) => <span className="text-xs text-v2-fg">{MODULE_LABELS[r.module] ?? r.module}</span>,
+    },
+    {
+      key: 'action',
+      title: '操作',
+      render: (r) => (
+        <StatusBadge status={ACTION_VARIANT[r.action] ?? 'neutral'}>{r.action}</StatusBadge>
+      ),
+    },
+    {
+      key: 'operatorName',
+      title: '操作人',
+      render: (r) => <span className="text-xs text-v2-fg">{r.operatorName}</span>,
+    },
+    {
+      key: 'target',
+      title: '目标',
+      render: (r) => (
+        <span className="text-xs text-v2-muted">
+          {r.targetType}
+          {r.targetId ? ` #${r.targetId}` : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'remark',
+      title: '备注',
+      render: (r) => <span className="max-w-xs truncate text-xs text-v2-muted">{r.remark}</span>,
+    },
+    {
+      key: 'operatorIp',
+      title: 'IP',
+      render: (r) => <span className="font-v2-mono text-xs text-v2-muted">{r.operatorIp}</span>,
+    },
+  ]
 
-      <div className="flex gap-4 flex-wrap mb-4 items-end">
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="系统管理"
+        title="审计日志"
+        subtitle="记录所有写操作的模块、动作、操作人与目标对象，支持按模块与时间范围筛选。"
+      />
+
+      <FilterBar>
         <div className="space-y-1.5">
           <Label className="text-xs">模块</Label>
-          <Select value={module} onValueChange={v => { setModule(v ?? ''); setPage(1) }}>
-            <SelectTrigger className="w-36"><SelectValue placeholder="全部" /></SelectTrigger>
+          <Select
+            value={module || '__all__'}
+            onValueChange={(v) => {
+              setModule(v === '__all__' ? '' : v ?? '')
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="全部" />
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">全部模块</SelectItem>
+              <SelectItem value="__all__">全部模块</SelectItem>
               {Object.entries(MODULE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">开始日期</Label>
-          <Input type="date" className="w-40" value={startDate}
-            onChange={e => { setStartDate(e.target.value); setPage(1) }} />
+          <Input
+            type="date"
+            className="w-40"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value)
+              setPage(1)
+            }}
+          />
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">结束日期</Label>
-          <Input type="date" className="w-40" value={endDate}
-            onChange={e => { setEndDate(e.target.value); setPage(1) }} />
+          <Input
+            type="date"
+            className="w-40"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value)
+              setPage(1)
+            }}
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={() => {
-          setModule(''); setStartDate(''); setEndDate(''); setPage(1)
-        }}>重置</Button>
-      </div>
-
-      {isLoading ? (
-        <p className="text-muted-foreground text-sm">加载中...</p>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                {['时间', '模块', '操作', '操作人', '目标', '备注', 'IP'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground text-xs">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {records.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground text-sm">暂无数据</td></tr>
-              ) : (
-                records.map(log => (
-                  <tr key={log.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString('zh-CN')}
-                    </td>
-                    <td className="px-3 py-2 text-xs">{MODULE_LABELS[log.module] ?? log.module}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={ACTION_COLORS[log.action] ?? 'secondary'} className="text-xs">
-                        {log.action}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 text-xs">{log.operatorName}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {log.targetType}{log.targetId ? ` #${log.targetId}` : ''}
-                    </td>
-                    <td className="px-3 py-2 text-xs max-w-xs truncate text-muted-foreground">{log.remark}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{log.operatorIp}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="self-end">
+          <button
+            type="button"
+            onClick={() => {
+              setModule('')
+              setStartDate('')
+              setEndDate('')
+              setPage(1)
+            }}
+            className="inline-flex h-9 items-center rounded-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg transition-colors hover:bg-v2-surface-hover"
+          >
+            重置
+          </button>
         </div>
-      )}
+      </FilterBar>
 
-      <div className="flex items-center justify-between mt-3">
-        <span className="text-sm text-muted-foreground">第 {page} 页，每页 {size} 条</span>
-        <div className="flex gap-1">
-          <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>
+      <DataTable
+        columns={columns}
+        data={records}
+        rowKey={(r) => r.id}
+        loading={isLoading}
+        empty={{ title: '暂无审计日志', description: '当前筛选条件下没有操作记录。' }}
+      />
+
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-v2-muted">
+          第 <span className="font-semibold text-v2-fg tabular-nums">{page}</span> 页，每页 {size} 条
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={!hasMore}>
+          </button>
+          <button
+            type="button"
+            disabled={!hasMore}
+            onClick={() => setPage((p) => p + 1)}
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>
