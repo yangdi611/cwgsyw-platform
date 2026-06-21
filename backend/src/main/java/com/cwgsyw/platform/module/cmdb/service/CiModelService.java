@@ -218,6 +218,21 @@ public class CiModelService {
         if (withAttributes) {
             List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getName(), m.getTenantId());
             vo.setAttributes(attrs.stream().map(a -> toAttributeVO(a, attrGroupNames)).collect(Collectors.toList()));
+
+            // Attribute group metadata for the new-instance form to render section headers
+            LambdaQueryWrapper<CiAttributeGroup> agq = new LambdaQueryWrapper<CiAttributeGroup>()
+                    .eq(CiAttributeGroup::getTenantId, m.getTenantId())
+                    .eq(CiAttributeGroup::getModelId, m.getName())
+                    .eq(CiAttributeGroup::getIsDeleted, false)
+                    .orderByAsc(CiAttributeGroup::getSortOrder);
+            vo.setAttributeGroups(ciAttributeGroupMapper.selectList(agq).stream().map(g -> {
+                CiModelVO.CiAttributeGroupVO gvo = new CiModelVO.CiAttributeGroupVO();
+                gvo.setId(g.getId());
+                gvo.setGroupId(g.getCode());   // CiAttributeGroup.code maps to group_id column
+                gvo.setName(g.getName());
+                gvo.setSortOrder(g.getSortOrder());
+                return gvo;
+            }).collect(Collectors.toList()));
         }
         return vo;
     }

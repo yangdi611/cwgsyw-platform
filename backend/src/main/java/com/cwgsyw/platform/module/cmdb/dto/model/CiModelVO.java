@@ -22,6 +22,17 @@ public class CiModelVO {
     private Boolean enable2dView;
     private Integer instanceCount;
     private List<CiAttributeVO> attributes;
+    private List<CiAttributeGroupVO> attributeGroups;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** Attribute group metadata for the new-instance form to render section headers. */
+    @JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
+    @Data
+    public static class CiAttributeGroupVO {
+        private Long id;
+        private String groupId;   // group code (e.g. "base")
+        private String name;       // display name (e.g. "基本信息")
+        private Integer sortOrder;
+    }
 }
