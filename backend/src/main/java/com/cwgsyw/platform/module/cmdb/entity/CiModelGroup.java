@@ -11,5 +11,7 @@ import lombok.EqualsAndHashCode;
 public class CiModelGroup extends BaseEntity {
     private String code;
     private String name;
+    private String icon;
     private Integer sortOrder;
+    private Boolean isBuiltIn;
 }

@@ -66,7 +66,7 @@ const DEFAULT_KINDS = ['connected_to', 'depends_on', 'contains', 'deployed_on', 
 export default function AdminPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
-  const [tab, setTab] = useState<'models' | 'associations'>('models')
+  const [tab, setTab] = useState<'models' | 'model-groups' | 'attribute-groups' | 'associations'>('models')
 
   useEffect(() => {
     if (!isHydrated) return
@@ -92,6 +92,26 @@ export default function AdminPage() {
           模型管理
         </button>
         <button
+          onClick={() => setTab('model-groups')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'model-groups'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          模型分类
+        </button>
+        <button
+          onClick={() => setTab('attribute-groups')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'attribute-groups'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          属性分组
+        </button>
+        <button
           onClick={() => setTab('associations')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'associations'
@@ -104,6 +124,8 @@ export default function AdminPage() {
       </div>
 
       {tab === 'models' && <ModelsTab />}
+      {tab === 'model-groups' && <ModelGroupsTab />}
+      {tab === 'attribute-groups' && <AttributeGroupsTab />}
       {tab === 'associations' && <AssociationsTab />}
     </div>
   )
@@ -125,6 +147,17 @@ function ModelsTab() {
       } catch {
         return []
       }
+    },
+    enabled: typeof window !== 'undefined',
+  })
+
+  const { data: modelGroups = [] } = useQuery<{ code: string; name: string }[]>({
+    queryKey: ['cmdb-model-groups'],
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/model-groups')
+        return r.data.data
+      } catch { return [] }
     },
     enabled: typeof window !== 'undefined',
   })
@@ -175,7 +208,14 @@ function ModelsTab() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">所属分类</Label>
-              <Input value={form.groupCode} onChange={e => setForm(f => ({ ...f, groupCode: e.target.value }))} placeholder="如: middleware" />
+              <Select value={form.groupCode} onValueChange={v => setForm(f => ({ ...f, groupCode: v ?? '' }))}>
+                <SelectTrigger><SelectValue placeholder="请选择分类" /></SelectTrigger>
+                <SelectContent>
+                  {modelGroups.map(g => (
+                    <SelectItem key={g.code} value={g.code}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">描述</Label>
@@ -568,6 +608,344 @@ function AssociationsTab() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Model Groups Tab — manages ci_model_group (categories like 主机管理 / 应用管理)
+// ─────────────────────────────────────────────────────────────────────────
+
+interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  isBuiltIn: boolean
+  modelCount: number
+}
+
+function ModelGroupsTab() {
+  const queryClient = useQueryClient()
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ code: '', name: '', icon: '', sortOrder: 0 })
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', icon: '', sortOrder: 0 })
+
+  const { data: groups = [], isLoading } = useQuery<ModelGroupVO[]>({
+    queryKey: ['cmdb-model-groups'],
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/model-groups')
+        return r.data.data
+      } catch { return [] }
+    },
+    enabled: typeof window !== 'undefined',
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post('/cmdb/model-groups', form),
+    onSuccess: () => {
+      toast.success('分类已创建')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
+      setCreating(false)
+      setForm({ code: '', name: '', icon: '', sortOrder: 0 })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: typeof editForm }) =>
+      api.put(`/cmdb/model-groups/${id}`, body),
+    onSuccess: () => {
+      toast.success('已更新')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      setEditingId(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/cmdb/model-groups/${id}`),
+    onSuccess: () => {
+      toast.success('已删除')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-muted-foreground">管理模型分类（如 主机管理 / 应用管理）。新建模型时从这里选择所属分类。</p>
+        <Button size="sm" onClick={() => setCreating(c => !c)}>
+          <Plus className="h-4 w-4 mr-1" />新建分类
+        </Button>
+      </div>
+
+      {creating && (
+        <div className="border rounded-lg p-4 mb-6 bg-muted/30 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">编码 * <span className="text-muted-foreground">(英文/下划线)</span></Label>
+              <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="如: middleware" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">名称 *</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="如: 中间件" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">图标 <span className="text-muted-foreground">(可选)</span></Label>
+              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="如: server / database / network" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">排序</Label>
+              <Input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => createMutation.mutate()} disabled={!form.code || !form.name || createMutation.isPending}>创建</Button>
+            <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? <p className="text-muted-foreground text-sm">加载中...</p> : groups.length === 0 ? (
+        <p className="text-muted-foreground text-sm text-center py-12">暂无分类</p>
+      ) : (
+        <div className="border rounded-lg divide-y">
+          {groups.map(g => (
+            <div key={g.id} className="p-4">
+              {editingId === g.id ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">编码（不可改）</Label>
+                      <Input disabled value={g.code} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">名称</Label>
+                      <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">排序</Label>
+                      <Input type="number" value={editForm.sortOrder} onChange={e => setEditForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{g.name}</span>
+                      <code className="text-xs text-muted-foreground">{g.code}</code>
+                      {g.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
+                      <Badge variant="outline" className="text-xs">{g.modelCount} 模型</Badge>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, icon: g.icon ?? '', sortOrder: g.sortOrder }) }}>
+                    <PencilLine className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost"
+                    disabled={g.isBuiltIn || g.modelCount > 0}
+                    title={g.isBuiltIn ? '内置不可删除' : g.modelCount > 0 ? '分组下尚有模型' : ''}
+                    onClick={() => { if (confirm(`确认删除分类 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Attribute Groups Tab — manages ci_attribute_group, scoped per model
+// ─────────────────────────────────────────────────────────────────────────
+
+interface AttributeGroupVO {
+  id: number
+  groupId: string
+  name: string
+  sortOrder: number
+  isBuiltIn: boolean
+  attributeCount: number
+}
+
+function AttributeGroupsTab() {
+  const queryClient = useQueryClient()
+  const [selectedModel, setSelectedModel] = useState<string>('')
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ groupId: '', name: '', sortOrder: 0 })
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', sortOrder: 0 })
+
+  // Model picker
+  const { data: models = [] } = useQuery<CiModelVO[]>({
+    queryKey: ['cmdb-models'],
+    queryFn: async () => {
+      try {
+        const r = await api.get('/cmdb/models')
+        return r.data.data.records
+      } catch { return [] }
+    },
+    enabled: typeof window !== 'undefined',
+  })
+
+  const { data: groups = [], isLoading } = useQuery<AttributeGroupVO[]>({
+    queryKey: ['cmdb-attribute-groups', selectedModel],
+    queryFn: async () => {
+      try {
+        const r = await api.get(`/cmdb/models/${selectedModel}/attribute-groups`)
+        return r.data.data
+      } catch { return [] }
+    },
+    enabled: !!selectedModel,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post(`/cmdb/models/${selectedModel}/attribute-groups`, form),
+    onSuccess: () => {
+      toast.success('分组已创建')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model', selectedModel] })
+      setCreating(false)
+      setForm({ groupId: '', name: '', sortOrder: 0 })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: typeof editForm }) =>
+      api.put(`/cmdb/models/${selectedModel}/attribute-groups/${id}`, body),
+    onSuccess: () => {
+      toast.success('已更新')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
+      setEditingId(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/cmdb/models/${selectedModel}/attribute-groups/${id}`),
+    onSuccess: () => {
+      toast.success('已删除')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <Label className="text-sm">模型</Label>
+        <Select value={selectedModel} onValueChange={v => { setSelectedModel(v ?? ''); setEditingId(null); setCreating(false) }}>
+          <SelectTrigger className="w-72"><SelectValue placeholder="请选择模型" /></SelectTrigger>
+          <SelectContent>
+            {models.map(m => (
+              <SelectItem key={m.modelId} value={m.modelId}>
+                {m.name} <span className="text-muted-foreground ml-1">({m.modelId})</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedModel && (
+          <Button size="sm" onClick={() => setCreating(c => !c)} className="ml-auto">
+            <Plus className="h-4 w-4 mr-1" />新建分组
+          </Button>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground mb-4">为选定模型管理属性分组（如 基本信息 / 硬件信息）。新建模型属性时从这里选择所属分组。</p>
+
+      {!selectedModel ? (
+        <p className="text-muted-foreground text-sm text-center py-12">请先选择模型</p>
+      ) : (
+        <>
+          {creating && (
+            <div className="border rounded-lg p-4 mb-6 bg-muted/30 space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">分组ID * <span className="text-muted-foreground">(英文/下划线)</span></Label>
+                  <Input value={form.groupId} onChange={e => setForm(f => ({ ...f, groupId: e.target.value }))} placeholder="如: hardware" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">名称 *</Label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="如: 硬件信息" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">排序</Label>
+                  <Input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => createMutation.mutate()} disabled={!form.groupId || !form.name || createMutation.isPending}>创建</Button>
+                <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
+              </div>
+            </div>
+          )}
+
+          {isLoading ? <p className="text-muted-foreground text-sm">加载中...</p> : groups.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-12">暂无分组</p>
+          ) : (
+            <div className="border rounded-lg divide-y">
+              {groups.map(g => (
+                <div key={g.id} className="p-4">
+                  {editingId === g.id ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">分组ID（不可改）</Label>
+                          <Input disabled value={g.groupId} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">名称</Label>
+                          <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">排序</Label>
+                          <Input type="number" value={editForm.sortOrder} onChange={e => setEditForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{g.name}</span>
+                          <code className="text-xs text-muted-foreground">{g.groupId}</code>
+                          <Badge variant="outline" className="text-xs">{g.attributeCount} 属性</Badge>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                        <PencilLine className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost"
+                        disabled={g.attributeCount > 0}
+                        title={g.attributeCount > 0 ? '分组下尚有属性' : ''}
+                        onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

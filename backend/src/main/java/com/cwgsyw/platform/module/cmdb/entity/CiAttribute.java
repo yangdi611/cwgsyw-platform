@@ -24,6 +24,7 @@ public class CiAttribute extends BaseEntity {
     private Boolean isUnique;
     private Boolean isBuiltIn;
     private Boolean isListShow;
+    @TableField("default_val")
     private String defaultValue;
 
     /**
@@ -34,9 +35,12 @@ public class CiAttribute extends BaseEntity {
     private List<Map<String, Object>> option;
 
     /**
-     * @deprecated Use {@link #option} instead. This field reads the old enumOptions string column.
+     * @deprecated Use {@link #option} instead. The DB column was dropped after the migration,
+     * so this field is not persisted ({@code exist = false}); kept only so existing callers /
+     * VOs that read getEnumOptions() still compile.
      */
     @Deprecated
+    @TableField(exist = false)
     private String enumOptions;
 
     private Integer sortOrder;
