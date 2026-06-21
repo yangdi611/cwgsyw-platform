@@ -4,13 +4,19 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import GroupDialog from '@/components/group/GroupDialog'
 import MemberDialog from '@/components/group/MemberDialog'
+import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
+import { Plus, Trash2, Pencil, Users } from 'lucide-react'
 
 interface Group {
   id: number
@@ -67,75 +73,102 @@ export default function GroupsPage() {
     }
   }
 
+  const columns: ColumnDef<Group>[] = [
+    {
+      key: 'name',
+      title: '组名称',
+      render: (r) => <span className="font-semibold text-v2-fg">{r.name}</span>,
+    },
+    {
+      key: 'description',
+      title: '描述',
+      render: (r) => <span className="text-v2-muted">{r.description || '-'}</span>,
+    },
+    {
+      key: 'leader_real_name',
+      title: '组长',
+      render: (r) => <span className="text-v2-fg">{r.leader_real_name || '-'}</span>,
+    },
+    {
+      key: 'member_count',
+      title: '组员',
+      render: (r) => (
+        <div className="text-v2-muted">
+          <span className="font-semibold text-v2-fg tabular-nums">{r.member_count ?? 0}</span> 人
+          {r.member_preview && r.member_preview.length > 0 && (
+            <span className="ml-2 text-xs">
+              {r.member_preview.join(', ')}
+              {(r.member_count ?? 0) > 3 ? ', …' : ''}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    ...(canUpdate || canDelete
+      ? [
+          {
+            key: 'actions',
+            title: '操作',
+            align: 'right' as const,
+            render: (r: Group) => (
+              <div className="flex items-center justify-end gap-1">
+                {canUpdate && (
+                  <Button variant="ghost" size="sm" onClick={() => setMemberGroup(r)}>
+                    <Users className="h-3.5 w-3.5" />
+                    成员
+                  </Button>
+                )}
+                {canUpdate && (
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    编辑
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-v2-danger"
+                    onClick={() => setDeleteTarget(r)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    删除
+                  </Button>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ]
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">组管理</h1>
-        {canCreate && (
-          <Button onClick={handleNew}>+ 新建组</Button>
-        )}
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="身份与权限"
+        title="用户组管理"
+        subtitle="按业务团队组织用户，配置组长与成员，支撑日报审批与数据可见性范围。"
+        actions={
+          canCreate ? (
+            <Button variant="primary" onClick={handleNew}>
+              <Plus className="h-4 w-4" />
+              新建组
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <DataTable
+        columns={columns}
+        data={groups}
+        rowKey={(r) => r.id}
+        loading={isLoading}
+        empty={{ title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }}
+      />
+
+      <div className="text-sm text-v2-muted">
+        共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 个组
       </div>
-
-      {isLoading ? (
-        <p className="text-muted-foreground">加载中...</p>
-      ) : groups.length === 0 ? (
-        <p className="text-muted-foreground">暂无组</p>
-      ) : (
-        <>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 text-sm font-medium">组名称</th>
-                  <th className="text-left p-3 text-sm font-medium">描述</th>
-                  <th className="text-left p-3 text-sm font-medium">组长</th>
-                  <th className="text-left p-3 text-sm font-medium">组员</th>
-                  {(canUpdate || canDelete) && (
-                    <th className="text-right p-3 text-sm font-medium">操作</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group) => (
-                  <tr key={group.id} className="border-b last:border-0">
-                    <td className="p-3 text-sm font-medium">{group.name}</td>
-                    <td className="p-3 text-sm text-muted-foreground">{group.description || '-'}</td>
-                    <td className="p-3 text-sm">{group.leader_real_name || '-'}</td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {group.member_preview && group.member_preview.length > 0
-                        ? <>{group.member_preview.join(', ')}{group.member_count > 3 ? ', ...' : ''}</>
-                        : '-'}
-                    </td>
-                    {(canUpdate || canDelete) && (
-                      <td className="p-3 text-right">
-                        {canUpdate && (
-                          <Button variant="ghost" size="sm" onClick={() => setMemberGroup(group)}>
-                            成员
-                          </Button>
-                        )}
-                        {canUpdate && (
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(group)}>
-                            编辑
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(group)}>
-                            删除
-                          </Button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 text-sm text-muted-foreground">
-            共 {total} 个组
-          </div>
-        </>
-      )}
 
       <GroupDialog
         open={dialogOpen}
@@ -145,7 +178,7 @@ export default function GroupsPage() {
         onSuccess={() => refetch()}
       />
 
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
@@ -154,8 +187,12 @@ export default function GroupsPage() {
             确定要删除组 <strong>{deleteTarget?.name}</strong> 吗？该组下的成员关联将一并清除。
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
-            <Button className="bg-red-500 hover:bg-red-600" onClick={handleDelete}>删除</Button>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              删除
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -164,7 +201,7 @@ export default function GroupsPage() {
         groupId={memberGroup?.id ?? 0}
         groupName={memberGroup?.name ?? ''}
         open={!!memberGroup}
-        onOpenChange={(o) => { if (!o) setMemberGroup(null) }}
+        onOpenChange={(o) => !o && setMemberGroup(null)}
       />
     </div>
   )

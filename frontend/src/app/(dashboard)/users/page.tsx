@@ -4,14 +4,20 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/v2/Button'
+import { StatusBadge } from '@/components/v2/StatusBadge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import UserDialog from '@/components/user/UserDialog'
+import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
+import { Plus, Search, Trash2, Pencil } from 'lucide-react'
 
 interface User {
   id: number
@@ -37,10 +43,12 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
 
+  const pageSize = 20
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['users', page, keyword],
     queryFn: () =>
-      api.get('/users', { params: { page, size: 20 } }).then((r) => ({
+      api.get('/users', { params: { page, size: pageSize } }).then((r) => ({
         records: (r.data.data?.records ?? r.data.data) as User[],
         total: r.data.data?.total ?? 0,
       })),
@@ -48,7 +56,6 @@ export default function UsersPage() {
 
   const users = data?.records ?? []
   const total = data?.total ?? 0
-  const totalPages = Math.ceil(total / 20)
 
   const handleNew = () => {
     setDialogMode('create')
@@ -74,90 +81,107 @@ export default function UsersPage() {
     }
   }
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">用户管理</h1>
-        {canCreate && (
-          <Button onClick={handleNew}>+ 新建用户</Button>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <Input
-          placeholder="搜索用户名..."
-          value={keyword}
-          onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
-          className="max-w-xs"
-        />
-      </div>
-
-      {isLoading ? (
-        <p className="text-muted-foreground">加载中...</p>
-      ) : users.length === 0 ? (
-        <p className="text-muted-foreground">暂无用户</p>
-      ) : (
-        <>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 text-sm font-medium">用户名</th>
-                  <th className="text-left p-3 text-sm font-medium">真实姓名</th>
-                  <th className="text-left p-3 text-sm font-medium">邮箱</th>
-                  <th className="text-left p-3 text-sm font-medium">状态</th>
-                  {(canUpdate || canDelete) && (
-                    <th className="text-right p-3 text-sm font-medium">操作</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b last:border-0">
-                    <td className="p-3 text-sm font-medium">@{user.username}</td>
-                    <td className="p-3 text-sm">{user.real_name || '-'}</td>
-                    <td className="p-3 text-sm text-muted-foreground">{user.email || '-'}</td>
-                    <td className="p-3">
-                      <Badge variant={user.status === 1 ? 'default' : 'secondary'}>
-                        {user.status === 1 ? '启用' : '禁用'}
-                      </Badge>
-                    </td>
-                    {(canUpdate || canDelete) && (
-                      <td className="p-3 text-right">
-                        {canUpdate && (
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                            编辑
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(user)}>
-                            删除
-                          </Button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-              <span>共 {total} 条</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                  上一页
-                </Button>
-                <span className="px-3 py-1">{page} / {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                  下一页
-                </Button>
+  const columns: ColumnDef<User>[] = [
+    {
+      key: 'username',
+      title: '用户名',
+      render: (r) => <span className="font-semibold text-v2-fg">@{r.username}</span>,
+    },
+    {
+      key: 'real_name',
+      title: '真实姓名',
+      render: (r) => <span className="text-v2-fg">{r.real_name || '-'}</span>,
+    },
+    {
+      key: 'email',
+      title: '邮箱',
+      render: (r) => <span className="text-v2-muted">{r.email || '-'}</span>,
+    },
+    {
+      key: 'group_name',
+      title: '所属组',
+      render: (r) => <span className="text-v2-fg">{r.group_name || '-'}</span>,
+    },
+    {
+      key: 'status',
+      title: '状态',
+      render: (r) => (
+        <StatusBadge status={r.status === 1 ? 'ok' : 'neutral'}>
+          {r.status === 1 ? '启用' : '禁用'}
+        </StatusBadge>
+      ),
+    },
+    ...(canUpdate || canDelete
+      ? [
+          {
+            key: 'actions',
+            title: '操作',
+            align: 'right' as const,
+            render: (r: User) => (
+              <div className="flex items-center justify-end gap-1">
+                {canUpdate && (
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    编辑
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-v2-danger"
+                    onClick={() => setDeleteTarget(r)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    删除
+                  </Button>
+                )}
               </div>
-            </div>
-          )}
-        </>
-      )}
+            ),
+          },
+        ]
+      : []),
+  ]
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="身份与权限"
+        title="用户管理"
+        subtitle="维护平台用户账号、所属组与启用状态，按需分配角色与权限。"
+        actions={
+          canCreate ? (
+            <Button variant="primary" onClick={handleNew}>
+              <Plus className="h-4 w-4" />
+              新建用户
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <FilterBar>
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
+          <Input
+            placeholder="搜索用户名…"
+            value={keyword}
+            onChange={(e) => {
+              setKeyword(e.target.value)
+              setPage(1)
+            }}
+          />
+        </div>
+      </FilterBar>
+
+      <DataTable
+        columns={columns}
+        data={users}
+        rowKey={(r) => r.id}
+        loading={isLoading}
+        empty={{ title: '暂无用户', description: '点击右上角"新建用户"添加第一个账号。' }}
+      />
+
+      <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
 
       <UserDialog
         open={dialogOpen}
@@ -167,7 +191,7 @@ export default function UsersPage() {
         onSuccess={() => refetch()}
       />
 
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
@@ -176,8 +200,12 @@ export default function UsersPage() {
             确定要删除用户 <strong>@{deleteTarget?.username}</strong> 吗？此操作不可撤销。
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
-            <Button className="bg-red-500 hover:bg-red-600" onClick={handleDelete}>删除</Button>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              删除
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

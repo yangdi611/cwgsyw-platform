@@ -10,7 +10,7 @@
  */
 
 export { PageHeader, type PageHeaderProps } from './PageHeader'
-export { FilterBar, type FilterBarProps } from './FilterBar'
+export { FilterBar, FilterChip, type FilterBarProps, type FilterChipProps } from './FilterBar'
 export { EmptyState, type EmptyStateProps } from './EmptyState'
 export { Toolbar, type ToolbarProps } from './Toolbar'
 export { DataTable, type DataTableProps, type ColumnDef } from './DataTable'
