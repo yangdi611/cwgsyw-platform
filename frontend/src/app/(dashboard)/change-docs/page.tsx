@@ -39,7 +39,7 @@ export default function ChangeDocsPage() {
   })
 
   return (
-    <div className="max-w-5xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">变更文档</h1>

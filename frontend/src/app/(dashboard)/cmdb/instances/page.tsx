@@ -79,7 +79,7 @@ export default function CmdbInstancesPage() {
   const totalPages = Math.ceil(total / size)
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">CMDB 实例</h1>
         <div className="flex gap-2">
