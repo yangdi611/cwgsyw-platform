@@ -61,7 +61,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   server: Server, database: Database, network: Network,
 }
 
-const DEFAULT_KINDS = ['connected_to', 'depends_on', 'contains', 'deployed_on', 'runs_on']
+const DEFAULT_KINDS_DEPRECATED: string[] = []   // legacy placeholder; kind list now comes from /api/cmdb/association-kinds
 
 export default function AdminPage() {
   const { hasPermission, isHydrated } = usePermission()
@@ -285,9 +285,17 @@ function AssociationsTab() {
     enabled: typeof window !== 'undefined',
   })
 
+  // ── Association Kinds (real data, drives the kind dropdown) ──
+  const { data: kinds = [] } = useQuery<{ id: number; code: string; name: string; isBuiltIn: boolean }[]>({
+    queryKey: ['cmdb-association-kinds'],
+    queryFn: async () => {
+      try { return (await api.get('/cmdb/association-kinds')).data.data } catch { return [] }
+    },
+    enabled: typeof window !== 'undefined',
+  })
+
   // ── Association Attribute Management (AC-5) ──
   const [selectedKind, setSelectedKind] = useState('')
-  const [kindInput, setKindInput] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingAttr, setEditingAttr] = useState<AssociationAttrVO | null>(null)
   const [form, setForm] = useState({
@@ -295,7 +303,7 @@ function AssociationsTab() {
     isRequired: false, enumOptions: '', defaultValue: '', sortOrder: 0,
   })
 
-  const activeKind = selectedKind || kindInput
+  const activeKind = selectedKind
 
   const { data: attrs = [], isLoading: attrsLoading, refetch: refetchAttrs } = useQuery<AssociationAttrVO[]>({
     queryKey: ['cmdb-asst-attrs', activeKind],
@@ -384,10 +392,17 @@ function AssociationsTab() {
           <h2 className="font-semibold">关联种类</h2>
         </div>
         <div className="border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">
-            关联种类由系统预定义，可通过模型关联关系自动推断。
-            当前系统中定义了 <strong>{models.length}</strong> 个 CI 模型。
-          </p>
+          {kinds.length === 0 ? (
+            <p className="text-sm text-muted-foreground">暂无关联种类</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {kinds.map(k => (
+                <Badge key={k.code} variant={k.isBuiltIn ? 'secondary' : 'outline'} className="text-xs">
+                  {k.name} <span className="ml-1 font-mono opacity-60">({k.code})</span>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -415,47 +430,21 @@ function AssociationsTab() {
           )}
         </div>
 
-        {/* Kind Selector */}
+        {/* Kind Selector — populated from real /api/cmdb/association-kinds */}
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1">
             <Label className="text-xs mb-1 block text-muted-foreground">选择关联类型</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  placeholder="输入关联类型ID, 如: connected_to"
-                  value={kindInput}
-                  onChange={e => setKindInput(e.target.value)}
-                  list="kind-suggestions"
-                />
-                <datalist id="kind-suggestions">
-                  {DEFAULT_KINDS.map(k => (
-                    <option key={k} value={k} />
-                  ))}
-                </datalist>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { setSelectedKind(kindInput); refetchAttrs() }}
-                disabled={!kindInput}
-                title="加载属性"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
+            <Select value={selectedKind} onValueChange={v => setSelectedKind(v ?? '')}>
+              <SelectTrigger><SelectValue placeholder="请选择关联类型" /></SelectTrigger>
+              <SelectContent>
+                {kinds.map(k => (
+                  <SelectItem key={k.code} value={k.code}>
+                    {k.name} <span className="text-muted-foreground ml-1 font-mono text-xs">({k.code})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          {selectedKind && selectedKind !== kindInput && (
-            <div className="flex items-end pb-0.5">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { setKindInput(selectedKind); setSelectedKind(selectedKind); refetchAttrs() }}
-                title="使用已选类型"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Create / Edit Form */}
