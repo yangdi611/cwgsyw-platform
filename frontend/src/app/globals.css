@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Original shadcn/ui tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -46,9 +47,56 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* V2 Design System tokens for Tailwind utilities
+     Usage: bg-v2-bg, text-v2-fg, border-v2-border, etc. */
+  --color-v2-bg: var(--v2-bg);
+  --color-v2-surface: var(--v2-surface);
+  --color-v2-surface-soft: var(--v2-surface-soft);
+  --color-v2-surface-hover: var(--v2-surface-hover);
+  --color-v2-fg: var(--v2-fg);
+  --color-v2-muted: var(--v2-muted);
+  --color-v2-subtle: var(--v2-subtle);
+  --color-v2-border: var(--v2-border);
+  --color-v2-border-strong: var(--v2-border-strong);
+  --color-v2-primary: var(--v2-primary);
+  --color-v2-primary-hover: var(--v2-primary-hover);
+  --color-v2-primary-soft: var(--v2-primary-soft);
+  --color-v2-primary-border: var(--v2-primary-border);
+  --color-v2-success: var(--v2-success);
+  --color-v2-success-soft: var(--v2-success-soft);
+  --color-v2-success-border: var(--v2-success-border);
+  --color-v2-warning: var(--v2-warning);
+  --color-v2-warning-soft: var(--v2-warning-soft);
+  --color-v2-warning-border: var(--v2-warning-border);
+  --color-v2-danger: var(--v2-danger);
+  --color-v2-danger-soft: var(--v2-danger-soft);
+  --color-v2-danger-border: var(--v2-danger-border);
+  --color-v2-sidebar: var(--v2-sidebar);
+  --color-v2-sidebar-2: var(--v2-sidebar-2);
+  --color-v2-sidebar-border: var(--v2-sidebar-border);
+  --color-v2-sidebar-muted: var(--v2-sidebar-muted);
+  --color-v2-sidebar-fg: var(--v2-sidebar-fg);
+
+  /* V2 shadow utilities
+     Usage: shadow-v2-sm, shadow-v2-md */
+  --shadow-v2-sm: var(--v2-shadow-sm);
+  --shadow-v2-md: var(--v2-shadow-md);
+
+  /* V2 radius utilities
+     Usage: rounded-v2-sm, rounded-v2-md, rounded-v2-lg */
+  --radius-v2-sm: var(--v2-radius-sm);
+  --radius-v2-md: var(--v2-radius-md);
+  --radius-v2-lg: var(--v2-radius-lg);
+
+  /* V2 font families
+     Usage: font-v2-sans, font-v2-mono */
+  --font-v2-sans: var(--v2-font-sans);
+  --font-v2-mono: var(--v2-font-mono);
 }
 
 :root {
+  /* Shadcn/ui original tokens (preserved for compatibility) */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -81,6 +129,67 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ============================================
+     V2 Design System Tokens (from OD prototype)
+     Use these for new components and pages
+     ============================================ */
+
+  /* Background & Surface */
+  --v2-bg: #f5f7fb;
+  --v2-surface: #ffffff;
+  --v2-surface-soft: #f8fafc;
+  --v2-surface-hover: #f9fbff;
+
+  /* Text Colors */
+  --v2-fg: #101828;
+  --v2-muted: #667085;
+  --v2-subtle: #98a2b3;
+
+  /* Border */
+  --v2-border: #e4e7ec;
+  --v2-border-strong: #d0d5dd;
+
+  /* Primary (Deep Blue) */
+  --v2-primary: #1d4ed8;
+  --v2-primary-hover: #1e40af;
+  --v2-primary-soft: #eff6ff;
+  --v2-primary-border: #bfdbfe;
+
+  /* Success (Teal Green) */
+  --v2-success: #067647;
+  --v2-success-soft: #ecfdf3;
+  --v2-success-border: #abefc6;
+
+  /* Warning (Amber) */
+  --v2-warning: #b54708;
+  --v2-warning-soft: #fffaeb;
+  --v2-warning-border: #fedf89;
+
+  /* Danger (Red) */
+  --v2-danger: #b42318;
+  --v2-danger-soft: #fef3f2;
+  --v2-danger-border: #fecdca;
+
+  /* Sidebar (Dark Navy) */
+  --v2-sidebar: #0f172a;
+  --v2-sidebar-2: #111c33;
+  --v2-sidebar-border: rgba(255, 255, 255, 0.08);
+  --v2-sidebar-muted: #94a3b8;
+  --v2-sidebar-fg: #e5e7eb;
+
+  /* Shadow */
+  --v2-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --v2-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+
+  /* Radius */
+  --v2-radius-sm: 8px;
+  --v2-radius-md: 12px;
+  --v2-radius-lg: 16px;
+
+  /* Typography */
+  --v2-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --v2-font-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
 }
 
 .dark {
