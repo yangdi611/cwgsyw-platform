@@ -1,7 +1,9 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { Card } from '@/components/v2/Card'
+import { PageHeader, EmptyState } from '@/components/shared'
 import { Bell, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { NotificationItem } from '@/components/notification/NotificationItem'
@@ -27,8 +29,8 @@ export default function NotificationsPage() {
 
   const { data, isLoading } = useQuery<PageResult>({
     queryKey: ['notifications'],
-    queryFn: () => api.get('/notifications', { params: { page: 1, size: 50 } })
-      .then(r => r.data.data),
+    queryFn: () =>
+      api.get('/notifications', { params: { page: 1, size: 50 } }).then((r) => r.data.data),
   })
 
   const readMutation = useMutation({
@@ -49,35 +51,39 @@ export default function NotificationsPage() {
   })
 
   const records = data?.records ?? []
-  const unreadCount = records.filter(n => !n.is_read).length
+  const unreadCount = records.filter((n) => !n.is_read).length
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">通知中心</h1>
-          {unreadCount > 0 && (
-            <p className="text-sm text-muted-foreground mt-0.5">{unreadCount} 条未读</p>
-          )}
-        </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={() => readAllMutation.mutate()}
-            disabled={readAllMutation.isPending}>
-            <CheckCheck className="h-4 w-4 mr-1" />全部已读
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="系统管理"
+        title="通知中心"
+        subtitle={unreadCount > 0 ? `${unreadCount} 条未读通知` : '查看系统与业务通知，点击标记已读。'}
+        actions={
+          unreadCount > 0 ? (
+            <Button
+              variant="secondary"
+              onClick={() => readAllMutation.mutate()}
+              disabled={readAllMutation.isPending}
+            >
+              <CheckCheck className="h-4 w-4" />
+              全部已读
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {isLoading ? (
-        <p className="text-muted-foreground text-center py-12">加载中...</p>
-      ) : records.length === 0 ? (
-        <div className="flex flex-col items-center py-20 text-muted-foreground gap-3">
-          <Bell className="h-10 w-10 opacity-30" />
-          <p>暂无通知</p>
-        </div>
+      {isLoading ? null : records.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<Bell className="h-5 w-5 text-v2-muted" />}
+            title="暂无通知"
+            description="系统与业务通知将在这里汇总。"
+          />
+        </Card>
       ) : (
         <div className="space-y-2">
-          {records.map(n => (
+          {records.map((n) => (
             <NotificationItem
               key={n.id}
               notification={n}
