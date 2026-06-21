@@ -91,6 +91,7 @@ cwgsyw-platform/
 | V43  | `ci_change_record` — CMDB 变更记录表                                    |
 | V44  | CMDB 权限标准化（normalize）                                            |
 | V45  | 修复 `ci_model` model_id 对齐                                           |
+| V46  | 补齐 changedoc/sharedfile 表缺失的 `updated_by` 列（修 500 column does not exist）|
 
 ---
 
@@ -398,7 +399,7 @@ docker compose exec postgres psql -U platform_user -d platform_user
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **cwgsyw-platform** (5405 symbols, 9664 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **cwgsyw-platform** (5626 symbols, 10106 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
