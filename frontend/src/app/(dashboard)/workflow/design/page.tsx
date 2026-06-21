@@ -45,7 +45,7 @@ export default function NewWorkflowDesignPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">设计新流程</h1>
+      <h1 className="text-2xl font-bold text-v2-fg mb-2">设计新流程</h1>
       <p className="text-sm text-muted-foreground mb-4">
         拖拽左侧元素到画布中设计流程。选中节点后在右侧属性面板配置审批人和条件。
       </p>

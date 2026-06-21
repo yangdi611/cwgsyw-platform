@@ -118,7 +118,7 @@ export default function NewAssociationPage() {
           <ArrowLeft className="h-4 w-4 mr-1" />返回关联管理
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">新建关联</h1>
+          <h1 className="text-2xl font-bold text-v2-fg">新建关联</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             为 {inst?.name ?? `#${id}`} 创建新的关联关系
           </p>

@@ -153,7 +153,7 @@ export default function FilePreviewPage() {
           返回
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-medium truncate">{file?.name ?? '加载中...'}</h1>
+          <h1 className="text-sm font-medium truncate text-v2-fg">{file?.name ?? '加载中...'}</h1>
           {file && (
             <p className="text-xs text-muted-foreground">
               {file.created_by_name} · {formatBytes(file.size_bytes)} ·{' '}

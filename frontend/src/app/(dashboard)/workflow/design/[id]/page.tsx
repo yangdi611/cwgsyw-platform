@@ -107,7 +107,7 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">编辑流程: {name}</h1>
+      <h1 className="text-2xl font-bold text-v2-fg mb-2">编辑流程: {name}</h1>
       <p className="text-sm text-muted-foreground mb-6">
         当前版本: v{detail?.version} | 修改后将创建新版本
       </p>
