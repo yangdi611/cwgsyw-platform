@@ -31,10 +31,10 @@ public class CiModelController {
         return R.ok(ciModelService.list(keyword, group, page, size, cu.getTenantId()));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{idOrCode}")
     @PreAuthorize("hasPermission('cmdb_model', 'read')")
-    public R<CiModelVO> getById(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciModelService.getById(id, cu.getTenantId()));
+    public R<CiModelVO> getById(@PathVariable String idOrCode, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciModelService.getByIdOrCode(idOrCode, cu.getTenantId()));
     }
 
     @PostMapping

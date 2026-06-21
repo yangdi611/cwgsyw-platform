@@ -62,6 +62,27 @@ public class CiModelService {
         return toVO(model, groupNames, attrGroupNames, true);
     }
 
+    /**
+     * Accept either a numeric primary key or a model code (e.g. "host").
+     * Numeric ids preserve backward compatibility with existing callers;
+     * non-numeric values fall through to code lookup.
+     */
+    public CiModelVO getByIdOrCode(String idOrCode, String tenantId) {
+        try {
+            return getById(Long.parseLong(idOrCode), tenantId);
+        } catch (NumberFormatException e) {
+            return getByCode(idOrCode, tenantId);
+        }
+    }
+
+    public CiModelVO getByCode(String modelCode, String tenantId) {
+        CiModel model = ciModelMapper.findByName(modelCode, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelCode));
+        Map<Long, String> groupNames = resolveGroupNames(tenantId);
+        Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
+        return toVO(model, groupNames, attrGroupNames, true);
+    }
+
     @Transactional
     public CiModelVO create(CreateModelRequest req, String tenantId, Long operatorId) {
         ciModelMapper.findByName(req.getName(), tenantId).ifPresent(m -> {
