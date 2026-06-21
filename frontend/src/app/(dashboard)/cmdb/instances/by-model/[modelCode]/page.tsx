@@ -1,12 +1,13 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Eye, Upload } from 'lucide-react'
+import { Plus, Trash2, Eye, Upload, ArrowLeft } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 
@@ -38,7 +39,6 @@ export default function InstanceListPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  // AC10: CSV 批量导入入口随实例创建一起放在按模型上下文中（全局 /cmdb/instances 已改为纯浏览）。
   const [csvOpen, setCsvOpen] = useState(false)
 
   useEffect(() => {
@@ -61,7 +61,8 @@ export default function InstanceListPage() {
 
   const { data: result, isLoading } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', modelCode],
-    queryFn: () => api.get('/cmdb/instances', { params: { model: modelCode } }).then(r => r.data.data),
+    queryFn: () =>
+      api.get('/cmdb/instances', { params: { model: modelCode } }).then((r) => r.data.data),
     enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
@@ -74,96 +75,108 @@ export default function InstanceListPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
 
-  const listColumns = (model?.attributes ?? [])
-    .filter(a => a.isListShow)
-    .slice(0, 5)
-
+  const listColumns = (model?.attributes ?? []).filter((a) => a.isListShow).slice(0, 5)
   const instances = result?.records ?? []
 
-  return (
-    <div className="max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href={`/cmdb/admin/models/${modelCode}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-            <ArrowLeft className="h-4 w-4 mr-1" />返回模型
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{model?.name ?? modelCode} 实例列表</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">共 {result?.total ?? 0} 条</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {hasPermission('cmdb_instance', 'import') && (
-            <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)}>
-              <Upload className="h-4 w-4 mr-1" />导入 CSV
-            </Button>
-          )}
-          {hasPermission('cmdb_instance', 'create') && (
-            <Link href={`/cmdb/instances/by-model/${modelCode}/new`} className={buttonVariants({ size: 'sm' })}>
-              <Plus className="h-4 w-4 mr-1" />新建实例
+  const columns = useMemo<ColumnDef<CiInstanceVO>[]>(() => {
+    const cols: ColumnDef<CiInstanceVO>[] = [
+      {
+        key: 'name',
+        title: '实例名称',
+        render: (r) => (
+          <span className="font-semibold text-v2-fg">{r.name ?? `#${r.id}`}</span>
+        ),
+      },
+      ...listColumns.map((col) => ({
+        key: col.fieldKey,
+        title: col.name,
+        render: (r: CiInstanceVO) => (
+          <span className="text-sm text-v2-muted">
+            {String(r.fieldsData?.[col.fieldKey] ?? '—')}
+          </span>
+        ),
+      })),
+      {
+        key: 'createdAt',
+        title: '创建时间',
+        render: (r) => (
+          <span className="text-xs text-v2-muted">
+            {new Date(r.createdAt).toLocaleDateString('zh-CN')}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        title: '操作',
+        align: 'right' as const,
+        render: (r) => (
+          <div className="flex items-center justify-end gap-1">
+            <Link
+              href={`/cmdb/instances/by-model/${modelCode}/${r.id}`}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
+              title="查看"
+            >
+              <Eye className="h-3.5 w-3.5" />
             </Link>
-          )}
-        </div>
-      </div>
+            {hasPermission('cmdb_instance', 'delete') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 px-0 text-v2-danger"
+                title="删除"
+                onClick={() => {
+                  if (confirm('删除此实例?')) deleteMutation.mutate(r.id)
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        ),
+      },
+    ]
+    return cols
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listColumns, hasPermission, modelCode])
 
-      {isLoading ? (
-        <p className="text-muted-foreground text-sm">加载中...</p>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">实例名称</th>
-                {listColumns.map(col => (
-                  <th key={col.fieldKey} className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">
-                    {col.name}
-                  </th>
-                ))}
-                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">创建时间</th>
-                <th className="px-4 py-2.5 w-24"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {instances.length === 0 ? (
-                <tr>
-                  <td colSpan={listColumns.length + 3} className="text-center py-12 text-muted-foreground text-sm">
-                    暂无实例，点击右上角新建
-                  </td>
-                </tr>
-              ) : (
-                instances.map(inst => (
-                  <tr key={inst.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">
-                      {inst.name ?? <span className="text-muted-foreground">#{inst.id}</span>}
-                    </td>
-                    {listColumns.map(col => (
-                      <td key={col.fieldKey} className="px-4 py-3 text-muted-foreground">
-                        {String(inst.fieldsData?.[col.fieldKey] ?? '—')}
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(inst.createdAt).toLocaleDateString('zh-CN')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Link href={`/cmdb/instances/by-model/${modelCode}/${inst.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 w-7 p-0'}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Link>
-                        {hasPermission('cmdb_instance', 'delete') && (
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
-                            onClick={() => { if (confirm('删除此实例?')) deleteMutation.mutate(inst.id) }}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="CMDB"
+        title={`${model?.name ?? modelCode} 实例列表`}
+        subtitle={`共 ${result?.total ?? 0} 条实例，按模型属性展示列表字段。`}
+        actions={
+          <>
+            <Link
+              href={`/cmdb/admin/models/${modelCode}`}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回模型
+            </Link>
+            {hasPermission('cmdb_instance', 'import') && (
+              <Button variant="secondary" onClick={() => setCsvOpen(true)}>
+                <Upload className="h-4 w-4" />
+                导入 CSV
+              </Button>
+            )}
+            {hasPermission('cmdb_instance', 'create') && (
+              <Button variant="primary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/new`)}>
+                <Plus className="h-4 w-4" />
+                新建实例
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <DataTable
+        columns={columns}
+        data={instances}
+        rowKey={(r) => r.id}
+        loading={isLoading}
+        empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
+      />
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={modelCode} />
     </div>

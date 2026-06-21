@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { buttonVariants } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowLeft, Activity, GitCompare } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -13,18 +12,33 @@ import { InstanceTopologyTab } from '@/components/cmdb/InstanceTopologyTab'
 import { InstanceChangeHistoryTab } from '@/components/cmdb/InstanceChangeHistoryTab'
 import { InstanceAlertsTab } from '@/components/cmdb/InstanceAlertsTab'
 import { InstanceResourcesTab } from '@/components/cmdb/InstanceResourcesTab'
+import { cn } from '@/lib/utils'
 
 interface CiAttributeVO {
-  id: number; fieldKey: string; name: string; fieldType: string
-  isRequired: boolean; isEditable: boolean; option: { id: string; name: string; isDefault?: boolean }[] | null
-  placeholder: string; unit: string; sortOrder: number; groupId: string
+  id: number
+  fieldKey: string
+  name: string
+  fieldType: string
+  isRequired: boolean
+  isEditable: boolean
+  option: { id: string; name: string; isDefault?: boolean }[] | null
+  placeholder: string
+  unit: string
+  sortOrder: number
+  groupId: string
 }
 interface CiInstanceVO {
-  id: number; modelId: string; modelCode?: string; displayName?: string; name: string
+  id: number
+  modelId: string
+  modelCode?: string
+  displayName?: string
+  name: string
   fieldsData: Record<string, unknown>
-  fieldConfig: CiAttributeVO[]   // legacy alias, kept for type compat with components that still reference it
+  fieldConfig: CiAttributeVO[]
   attributes: CiAttributeVO[]
-  createdAt: string; updatedAt: string; createdByName: string
+  createdAt: string
+  updatedAt: string
+  createdByName: string
 }
 
 const TABS = [
@@ -61,62 +75,79 @@ export default function InstanceDetailPage() {
     enabled: typeof window !== 'undefined',
   })
 
-  if (isLoading) return <p className="text-muted-foreground">加载中...</p>
-  if (!inst) return <p className="text-destructive">实例不存在</p>
+  if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (!inst) return <p className="text-v2-danger">实例不存在</p>
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link href={`/cmdb/instances/by-model/${modelCode}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-            <ArrowLeft className="h-4 w-4 mr-1" />返回列表
+          <Link
+            href={`/cmdb/instances/by-model/${modelCode}`}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回列表
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{inst.name ?? `#${inst.id}`}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {inst.modelId} · 创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}
+            <h1 className="text-2xl font-bold text-v2-fg">{inst.name ?? `#${inst.id}`}</h1>
+            <p className="mt-0.5 text-xs text-v2-muted">
+              <span className="font-v2-mono">{inst.modelId}</span> · 创建于{' '}
+              {new Date(inst.createdAt).toLocaleString('zh-CN')}
               {inst.createdByName && ` · ${inst.createdByName}`}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {hasPermission('cmdb_instance', 'impact') && (
-            <Link href={`/cmdb/impact/${id}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-              <Activity className="h-4 w-4 mr-1" />影响分析
+            <Link
+              href={`/cmdb/impact/${id}`}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+            >
+              <Activity className="h-4 w-4" />
+              影响分析
             </Link>
           )}
-          {/* AC10 (Issue #64): 「拓扑对比」直达独立对比子路由，与「影响分析」并列 */}
           {hasPermission('cmdb_instance', 'read') && (
-            <Link href={`/cmdb/topology/${id}/compare`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-              <GitCompare className="h-4 w-4 mr-1" />拓扑对比
+            <Link
+              href={`/cmdb/topology/${id}/compare`}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+            >
+              <GitCompare className="h-4 w-4" />
+              拓扑对比
             </Link>
           )}
         </div>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex items-center gap-1 border-b mb-6">
-        {TABS.map(t => (
+      <div className="flex flex-wrap items-center gap-1 border-b border-v2-border">
+        {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={cn(
+              '-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors',
               tab === t.key
-                ? 'border-foreground text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+                ? 'border-v2-primary text-v2-primary'
+                : 'border-transparent text-v2-muted hover:text-v2-fg',
+            )}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {tab === 'basic' && <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />}
-      {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
-      {tab === 'topology' && <InstanceTopologyTab id={id} />}
-      {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}
-      {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}
-      {tab === 'resources' && <InstanceResourcesTab instanceId={id} />}
+      {/* Tab content */}
+      <div>
+        {tab === 'basic' && <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />}
+        {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
+        {tab === 'topology' && <InstanceTopologyTab id={id} />}
+        {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}
+        {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}
+        {tab === 'resources' && <InstanceResourcesTab instanceId={id} />}
+      </div>
     </div>
   )
 }
