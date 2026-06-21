@@ -114,16 +114,18 @@ public class CiInstanceCommandService {
         String before = snapshotInstance(inst);
         Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
 
-        inst.setIsDeleted(true); inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
+        inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
         ciInstanceMapper.updateById(inst);
+        ciInstanceMapper.deleteById(id);
 
         LambdaQueryWrapper<CiInstanceRel> relQuery = new LambdaQueryWrapper<CiInstanceRel>()
                 .eq(CiInstanceRel::getTenantId, tenantId).eq(CiInstanceRel::getIsDeleted, false)
                 .and(w -> w.eq(CiInstanceRel::getSrcInstanceId, id).or().eq(CiInstanceRel::getDstInstanceId, id));
         List<CiInstanceRel> rels = ciInstanceRelMapper.selectList(relQuery);
         for (CiInstanceRel rel : rels) {
-            rel.setIsDeleted(true); rel.setDeletedAt(LocalDateTime.now()); rel.setDeletedBy(operatorId);
+            rel.setDeletedAt(LocalDateTime.now()); rel.setDeletedBy(operatorId);
             ciInstanceRelMapper.updateById(rel);
+            ciInstanceRelMapper.deleteById(rel.getId());
         }
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);

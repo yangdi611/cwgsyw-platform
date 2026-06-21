@@ -154,10 +154,10 @@ public class CiRelationService {
 
         String before = snapshotRelation(rel);
 
-        rel.setIsDeleted(true);
         rel.setDeletedAt(LocalDateTime.now());
         rel.setDeletedBy(operatorId);
         ciInstanceRelMapper.updateById(rel);
+        ciInstanceRelMapper.deleteById(relationId);
 
         writeAudit(tenantId, "delete_relation", relationId, "ci_instance_rel",
                 operatorId, before, null);

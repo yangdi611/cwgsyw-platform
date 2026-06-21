@@ -147,10 +147,11 @@ public class CiAttributeService {
         }
 
         String before = snapshot(attr);
-        attr.setIsDeleted(true);
         attr.setDeletedAt(LocalDateTime.now());
         attr.setDeletedBy(operatorId);
         ciAttributeMapper.updateById(attr);
+        // @TableLogic fields are skipped by updateById — use deleteById to flip is_deleted
+        ciAttributeMapper.deleteById(attrId);
 
         writeAudit(tenantId, "delete_attribute", attrId, "ci_attribute", operatorId, before, null);
     }

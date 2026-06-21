@@ -393,12 +393,12 @@ public class ChangeDocService {
         }
 
         String beforeJson = toJson(doc);
-        doc.setIsDeleted(true);
         doc.setDeletedAt(LocalDateTime.now());
         doc.setDeletedBy(operatorId);
         doc.setUpdatedAt(LocalDateTime.now());
 
         changeDocMapper.updateById(doc);
+        changeDocMapper.deleteById(id);
         writeAuditLog(tenantId, "delete", id, operatorId, beforeJson, null, "软删除变更文档");
     }
 }

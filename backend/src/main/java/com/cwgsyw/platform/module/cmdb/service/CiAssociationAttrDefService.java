@@ -103,10 +103,10 @@ public class CiAssociationAttrDefService {
 
         String before = snapshot(entity);
 
-        entity.setIsDeleted(true);
         entity.setDeletedAt(LocalDateTime.now());
         entity.setDeletedBy(operatorId);
         ciAssociationAttrDefMapper.updateById(entity);
+        ciAssociationAttrDefMapper.deleteById(attrId);
 
         writeAudit(tenantId, "delete_association_attr", attrId, "ci_association_attr_def",
                 operatorId, before, null);

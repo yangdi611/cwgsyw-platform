@@ -64,9 +64,9 @@ public class UserService {
     public void delete(Long id, Long operatorId) {
         User user = userMapper.selectById(id);
         if (user == null) throw new IllegalArgumentException("用户不存在");
-        user.setIsDeleted(true);
         user.setDeletedBy(operatorId);
         user.setDeletedAt(LocalDateTime.now());
         userMapper.updateById(user);
+        userMapper.deleteById(id);
     }
 }

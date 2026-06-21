@@ -100,10 +100,10 @@ public class IpPoolService {
         if (activeCount > 0) {
             throw new IllegalArgumentException("地址池中尚有 " + activeCount + " 个已分配的 IP，请先释放后再删除");
         }
-        pool.setIsDeleted(true);
         pool.setDeletedAt(LocalDateTime.now());
         pool.setDeletedBy(operatorId);
         ipPoolMapper.updateById(pool);
+        ipPoolMapper.deleteById(id);
         writeAudit(tenantId, "delete", id, operatorId, "name=" + pool.getName());
     }
 

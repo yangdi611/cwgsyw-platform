@@ -109,10 +109,10 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
-        device.setIsDeleted(true);
         device.setDeletedAt(LocalDateTime.now());
         device.setDeletedBy(operatorId);
         deviceMapper.updateById(device);
+        deviceMapper.deleteById(id);
         writeAudit(tenantId, "delete", id, operatorId, null);
     }
 
@@ -146,10 +146,10 @@ public class DeviceService {
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
         }
-        cred.setIsDeleted(true);
         cred.setDeletedAt(LocalDateTime.now());
         cred.setDeletedBy(operatorId);
         credentialMapper.updateById(cred);
+        credentialMapper.deleteById(cred.getId());
         writeAudit(tenantId, "delete_credential", cred.getDeviceId(), operatorId, null);
     }
 

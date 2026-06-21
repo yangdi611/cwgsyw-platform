@@ -116,11 +116,11 @@ public class ChangeDocLinkService {
             throw new IllegalArgumentException("关联不存在");
         }
 
-        link.setIsDeleted(true);
         link.setDeletedAt(LocalDateTime.now());
         link.setDeletedBy(operatorId);
         link.setUpdatedAt(LocalDateTime.now());
         changeDocCiLinkMapper.updateById(link);
+        changeDocCiLinkMapper.deleteById(link.getId());
 
         writeAudit(tenantId, "unlink_ci", changeDocId, operatorId,
                 "取消关联 CI 实例: " + instanceId);

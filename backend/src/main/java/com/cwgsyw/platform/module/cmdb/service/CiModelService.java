@@ -134,17 +134,18 @@ public class CiModelService {
         }
 
         String before = snapshot(model);
-        model.setIsDeleted(true);
         model.setDeletedAt(LocalDateTime.now());
         model.setDeletedBy(operatorId);
         ciModelMapper.updateById(model);
+        // @TableLogic fields are skipped by updateById — deleteById flips is_deleted
+        ciModelMapper.deleteById(id);
 
         List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getName(), tenantId);
         for (CiAttribute attr : attrs) {
-            attr.setIsDeleted(true);
             attr.setDeletedAt(LocalDateTime.now());
             attr.setDeletedBy(operatorId);
             ciAttributeMapper.updateById(attr);
+            ciAttributeMapper.deleteById(attr.getId());
         }
 
         writeAudit(tenantId, "delete_model", id, "ci_model", operatorId, before, null);
