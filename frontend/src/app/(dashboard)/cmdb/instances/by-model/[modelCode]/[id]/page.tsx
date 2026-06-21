@@ -22,7 +22,8 @@ interface CiAttributeVO {
 interface CiInstanceVO {
   id: number; modelId: string; modelCode?: string; displayName?: string; name: string
   fieldsData: Record<string, unknown>
-  fieldConfig: CiAttributeVO[]
+  fieldConfig: CiAttributeVO[]   // legacy alias, kept for type compat with components that still reference it
+  attributes: CiAttributeVO[]
   createdAt: string; updatedAt: string; createdByName: string
 }
 

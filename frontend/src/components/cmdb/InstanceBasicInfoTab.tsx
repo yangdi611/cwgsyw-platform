@@ -22,7 +22,7 @@ interface CiModelVO { attributeGroups: CiAttributeGroupVO[] }
 interface CiInstanceVO {
   id: number; modelId: string; name: string
   fieldsData: Record<string, unknown>
-  fieldConfig: CiAttributeVO[]
+  attributes: CiAttributeVO[]
 }
 
 interface Props {
@@ -74,7 +74,7 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   })
 
   const canEdit = hasPermission('cmdb_instance', 'update')
-  const fieldConfig = inst.fieldConfig ?? []
+  const fieldConfig = inst.attributes ?? []
   const groupNames = Object.fromEntries(
     (model?.attributeGroups ?? []).map(g => [g.groupId, g.name])
   )
