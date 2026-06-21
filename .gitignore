@@ -8,6 +8,7 @@ frontend/.next/
 data/
 test/
 .worktrees/
+.claude/settings.local.json
 
 # macOS Finder conflict duplicates
 * 2.*
