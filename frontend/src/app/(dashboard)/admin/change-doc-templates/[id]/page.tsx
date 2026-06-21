@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { Card, CardContent } from '@/components/v2/Card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -31,10 +31,10 @@ interface TemplateVO {
 }
 
 const FIELD_TYPES = [
-  { value: 'text',        label: '单行文本' },
-  { value: 'textarea',    label: '多行文本' },
-  { value: 'date',        label: '日期' },
-  { value: 'readonly',    label: '只读（导出用）' },
+  { value: 'text', label: '单行文本' },
+  { value: 'textarea', label: '多行文本' },
+  { value: 'date', label: '日期' },
+  { value: 'readonly', label: '只读（导出用）' },
   { value: 'ci_selector', label: 'CI 选择器' },
 ]
 
@@ -46,7 +46,7 @@ export default function TemplateFieldsPage() {
 
   const { data: tpl, isLoading } = useQuery<TemplateVO>({
     queryKey: ['change-doc-template', id],
-    queryFn: () => api.get(`/admin/change-doc-templates/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/admin/change-doc-templates/${id}`).then((r) => r.data.data),
   })
 
   useEffect(() => {
@@ -76,161 +76,182 @@ export default function TemplateFieldsPage() {
 
   const update = (idx: number, key: keyof FieldConfigVO, val: unknown) => {
     setDirty(true)
-    setFields(f => f.map((field, i) => i === idx ? { ...field, [key]: val } : field))
+    setFields((f) => f.map((field, i) => (i === idx ? { ...field, [key]: val } : field)))
   }
 
   const addField = () => {
     setDirty(true)
     const maxOrder = fields.reduce((m, f) => Math.max(m, f.sort_order ?? 0), 0)
-    setFields(f => [...f, {
-      id: 0,
-      field_key: '',
-      label: '新字段',
-      field_type: 'textarea',
-      sort_order: maxOrder + 10,
-      required: false,
-      in_form: true,
-      placeholder: '',
-    }])
+    setFields((f) => [
+      ...f,
+      {
+        id: 0,
+        field_key: '',
+        label: '新字段',
+        field_type: 'textarea',
+        sort_order: maxOrder + 10,
+        required: false,
+        in_form: true,
+        placeholder: '',
+      },
+    ])
   }
 
   const removeField = (idx: number, fieldId: number) => {
     if (fieldId > 0) {
       deleteMutation.mutate(fieldId)
     }
-    setFields(f => f.filter((_, i) => i !== idx))
+    setFields((f) => f.filter((_, i) => i !== idx))
     setDirty(true)
   }
 
-  if (isLoading) return <p className="text-muted-foreground">加载中...</p>
+  if (isLoading) return <p className="text-v2-muted">加载中…</p>
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/admin/change-doc-templates" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          <ArrowLeft className="h-4 w-4 mr-1" />返回
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin/change-doc-templates"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回
         </Link>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">{tpl?.name}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Word 模板中的 <code className="bg-muted px-1 rounded">{'{{field_key}}'}</code> 与此处 field_key 对应
+          <h1 className="text-xl font-bold text-v2-fg">{tpl?.name}</h1>
+          <p className="mt-0.5 text-xs text-v2-muted">
+            Word 模板中的{' '}
+            <code className="rounded bg-v2-surface-soft px-1 font-v2-mono">{'{{field_key}}'}</code>{' '}
+            与此处 field_key 对应
           </p>
         </div>
-        {tpl?.has_docx && <Badge variant="outline" className="text-green-600 border-green-300">已上传 .docx</Badge>}
+        {tpl?.has_docx && (
+          <span className="inline-flex items-center rounded-md border border-v2-success-border bg-v2-success-soft px-2 py-1 text-xs font-medium text-v2-success">
+            已上传 .docx
+          </span>
+        )}
       </div>
 
       {!tpl?.has_docx && (
-        <div className="mb-4 p-3 border border-amber-200 bg-amber-50 dark:bg-amber-950/20 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+        <div className="rounded-v2-md border border-v2-warning-border bg-v2-warning-soft p-3 text-sm text-v2-warning">
           尚未上传 Word 模板文件。可先配置字段，上传后点「解析书签」自动识别占位符。
         </div>
       )}
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2">
         {fields.map((field, idx) => (
-          <div key={field.id || `new-${idx}`} className="border rounded-lg p-3 bg-card">
-            <div className="flex gap-2 items-start">
-              <GripVertical className="h-4 w-4 text-muted-foreground mt-2.5 shrink-0" />
-              <div className="grid grid-cols-2 gap-2 flex-1 min-w-0">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">书签 Key</label>
-                  <Input
-                    value={field.field_key}
-                    className="h-8 text-xs font-mono"
-                    placeholder="例：change_desc"
-                    onChange={e => update(idx, 'field_key', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">显示标签</label>
-                  <Input
-                    value={field.label}
-                    className="h-8"
-                    onChange={e => update(idx, 'label', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">字段类型</label>
-                  <Select
-                    value={field.field_type}
-                    onValueChange={v => update(idx, 'field_type', v ?? 'textarea')}
-                  >
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FIELD_TYPES.map(t => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">提示文字</label>
-                  <Input
-                    value={field.placeholder ?? ''}
-                    className="h-8"
-                    placeholder="输入框提示..."
-                    onChange={e => update(idx, 'placeholder', e.target.value)}
-                  />
-                </div>
-                {field.field_type === 'ci_selector' && (
-                  <div className="col-span-2 mt-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                    <p className="font-semibold">CI 选择器用法说明</p>
-                    <p>允许填写人在变更文档中搜索并选择受影响的 CI 实例。</p>
-                    <ul className="list-disc list-inside space-y-0.5 text-blue-600/80 dark:text-blue-400/80">
-                      <li>选中一个 CI 后，自动展示其 2 层关联 CI 作为候选建议</li>
-                      <li>存储选中时的 CI 名称快照，CI 删除后仍可查看历史记录</li>
-                      <li>变更文档详情页中以 CI 卡片列表呈现，可点击跳转 CMDB</li>
-                    </ul>
+          <Card key={field.id || `new-${idx}`}>
+            <CardContent className="p-3">
+              <div className="flex items-start gap-2">
+                <GripVertical className="mt-2.5 h-4 w-4 shrink-0 text-v2-subtle" />
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-v2-muted">书签 Key</label>
+                    <Input
+                      value={field.field_key}
+                      className="h-8 font-v2-mono text-xs"
+                      placeholder="例：change_desc"
+                      onChange={(e) => update(idx, 'field_key', e.target.value)}
+                    />
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <label className="text-xs text-v2-muted">显示标签</label>
+                    <Input
+                      value={field.label}
+                      className="h-8"
+                      onChange={(e) => update(idx, 'label', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-v2-muted">字段类型</label>
+                    <Select
+                      value={field.field_type}
+                      onValueChange={(v) => update(idx, 'field_type', v ?? 'textarea')}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FIELD_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-v2-muted">提示文字</label>
+                    <Input
+                      value={field.placeholder ?? ''}
+                      className="h-8"
+                      placeholder="输入框提示…"
+                      onChange={(e) => update(idx, 'placeholder', e.target.value)}
+                    />
+                  </div>
+                  {field.field_type === 'ci_selector' && (
+                    <div className="col-span-2 mt-1 space-y-1 rounded-v2-md border border-v2-primary-border bg-v2-primary-soft p-3 text-xs text-v2-primary">
+                      <p className="font-semibold">CI 选择器用法说明</p>
+                      <p>允许填写人在变更文档中搜索并选择受影响的 CI 实例。</p>
+                      <ul className="list-inside list-disc space-y-0.5 opacity-80">
+                        <li>选中一个 CI 后，自动展示其 2 层关联 CI 作为候选建议</li>
+                        <li>存储选中时的 CI 名称快照，CI 删除后仍可查看历史记录</li>
+                        <li>变更文档详情页中以 CI 卡片列表呈现，可点击跳转 CMDB</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-col gap-2 pt-1">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
+                    <input
+                      type="checkbox"
+                      checked={!!field.required}
+                      onChange={(e) => update(idx, 'required', e.target.checked)}
+                      className="rounded"
+                    />
+                    必填
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
+                    <input
+                      type="checkbox"
+                      checked={!!field.in_form}
+                      onChange={(e) => update(idx, 'in_form', e.target.checked)}
+                      className="rounded"
+                    />
+                    表单可见
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-1 h-7 w-7 p-0 text-v2-danger"
+                    onClick={() => removeField(idx, field.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-col gap-2 shrink-0 pt-1">
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!field.required}
-                    onChange={e => update(idx, 'required', e.target.checked)}
-                    className="rounded"
-                  />
-                  必填
-                </label>
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!field.in_form}
-                    onChange={e => update(idx, 'in_form', e.target.checked)}
-                    className="rounded"
-                  />
-                  表单可见
-                </label>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 text-destructive hover:text-destructive mt-1"
-                  onClick={() => removeField(idx, field.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
         {fields.length === 0 && (
-          <p className="text-muted-foreground text-sm text-center py-8 border rounded-lg">
+          <div className="rounded-lg border border-v2-border bg-v2-surface py-8 text-center text-sm text-v2-muted">
             暂无字段配置。上传 .docx 后点「解析书签」，或手动添加字段。
-          </p>
+          </div>
         )}
       </div>
 
       <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={addField}>
-          <Plus className="h-4 w-4 mr-1" />添加字段
+        <Button variant="secondary" size="sm" onClick={addField}>
+          <Plus className="h-4 w-4" />
+          添加字段
         </Button>
         <Button
+          variant="primary"
           size="sm"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
         >
-          {saveMutation.isPending ? '保存中...' : '保存配置'}
+          {saveMutation.isPending ? '保存中…' : '保存配置'}
         </Button>
       </div>
     </div>

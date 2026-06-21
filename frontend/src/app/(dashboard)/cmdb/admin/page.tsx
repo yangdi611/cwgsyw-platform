@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/shared'
 import Link from 'next/link'
 import {
   Plus, Settings, Server, Database, Network, Box, ArrowRight,
@@ -74,10 +75,8 @@ export default function AdminPage() {
   }, [isHydrated, hasPermission, router])
 
   return (
-    <div className="max-w-5xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">CMDB 配置管理</h1>
-      </div>
+    <div className="max-w-5xl space-y-6">
+      <PageHeader eyebrow="CMDB" title="配置管理" subtitle="管理 CI 模型、模型分类、属性分组与关联定义。" />
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b mb-6">
@@ -85,8 +84,8 @@ export default function AdminPage() {
           onClick={() => setTab('models')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'models'
-              ? 'border-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'border-v2-primary text-v2-primary'
+              : 'border-transparent text-v2-muted hover:text-v2-fg'
           }`}
         >
           模型管理
@@ -95,8 +94,8 @@ export default function AdminPage() {
           onClick={() => setTab('model-groups')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'model-groups'
-              ? 'border-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'border-v2-primary text-v2-primary'
+              : 'border-transparent text-v2-muted hover:text-v2-fg'
           }`}
         >
           模型分类
@@ -105,8 +104,8 @@ export default function AdminPage() {
           onClick={() => setTab('attribute-groups')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'attribute-groups'
-              ? 'border-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'border-v2-primary text-v2-primary'
+              : 'border-transparent text-v2-muted hover:text-v2-fg'
           }`}
         >
           属性分组
@@ -115,8 +114,8 @@ export default function AdminPage() {
           onClick={() => setTab('associations')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'associations'
-              ? 'border-primary text-foreground'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'border-v2-primary text-v2-primary'
+              : 'border-transparent text-v2-muted hover:text-v2-fg'
           }`}
         >
           关联定义
