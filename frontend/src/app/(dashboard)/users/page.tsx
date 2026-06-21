@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import {
@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/v2/Dialog'
 import { toast } from 'sonner'
 import UserDialog from '@/components/user/UserDialog'
 import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'

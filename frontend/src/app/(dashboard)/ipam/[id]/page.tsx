@@ -10,9 +10,9 @@ import { Button } from '@/components/v2/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { DataTable, type ColumnDef } from '@/components/shared'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/v2/Input'
+import { Label } from '@/components/v2/Label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import {
   AlertDialog,
   AlertDialogContent,

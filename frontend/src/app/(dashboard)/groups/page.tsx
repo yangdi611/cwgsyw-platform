@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/v2/Dialog'
 import { toast } from 'sonner'
 import GroupDialog from '@/components/group/GroupDialog'
 import MemberDialog from '@/components/group/MemberDialog'

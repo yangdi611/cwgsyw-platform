@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '@/lib/api'
-import { Textarea } from '@/components/ui/textarea'
+import { Textarea } from '@/components/v2/Textarea'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
 import { PageHeader, EmptyState } from '@/components/shared'

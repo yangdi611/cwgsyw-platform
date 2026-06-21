@@ -7,14 +7,14 @@ import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/v2/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/v2/Select'
 import { PageHeader, FilterBar } from '@/components/shared'
 import { JsonDiffView } from '@/components/cmdb/JsonDiffView'
 import { actionMeta, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'

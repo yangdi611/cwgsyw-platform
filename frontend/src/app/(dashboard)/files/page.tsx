@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
 import { PageHeader, DataTable, Pagination, EmptyState, type ColumnDef } from '@/components/shared'
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/v2/Dialog'
 import {
   FolderOpen,
   Folder,

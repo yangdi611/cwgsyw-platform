@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import {
   PageHeader,

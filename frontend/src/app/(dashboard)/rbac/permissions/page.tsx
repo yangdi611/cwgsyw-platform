@@ -6,7 +6,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
 import { PageHeader, EmptyState } from '@/components/shared'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/v2/Checkbox'
 import { toast } from 'sonner'
 import { ShieldCheck } from 'lucide-react'
 
