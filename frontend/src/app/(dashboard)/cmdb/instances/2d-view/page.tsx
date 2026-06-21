@@ -140,9 +140,9 @@ export default function TwoDViewPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-v2-fg">
           <Grid3x3 className="h-6 w-6" />
           2D 视图
         </h1>

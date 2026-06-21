@@ -131,21 +131,22 @@ export default function ImpactAnalysisPage() {
     })
 
   return (
-    <div className="max-w-5xl">
+    <div className="space-y-6">
       {/* 顶部工具栏 */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3">
         <Link
           href={data ? `/cmdb/instances/by-model/${data.root_model_id}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
-          className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />返回实例
+          <ArrowLeft className="h-4 w-4" />
+          返回实例
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-v2-fg">
             {data?.root_name ?? `#${instanceId}`}
-            <span className="text-sm font-normal text-muted-foreground ml-2">影响分析</span>
+            <span className="ml-2 text-sm font-normal text-v2-muted">影响分析</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-xs text-v2-muted">
             共 {totalNodes} 个节点，{data?.edges.length ?? 0} 条关联
           </p>
         </div>

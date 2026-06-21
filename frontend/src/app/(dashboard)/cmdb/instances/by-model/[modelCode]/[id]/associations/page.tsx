@@ -97,22 +97,24 @@ export default function AssociationsPage() {
   const kindOptions = relGroups.map(g => ({ value: g.kindId, label: g.kindName }))
 
   return (
-    <div className="max-w-5xl">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
         <Link href={`/cmdb/instances/by-model/${modelCode}/${id}`}
-          className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          <ArrowLeft className="h-4 w-4 mr-1" />返回详情
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          返回详情
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-v2-fg">
             {inst?.name ?? `#${id}`} — 关联管理
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">共 {allRelations.length} 条关联</p>
+          <p className="mt-0.5 text-xs text-v2-muted">共 {allRelations.length} 条关联</p>
         </div>
         {hasPermission('cmdb_relation', 'create') && (
           <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`}
-            className={buttonVariants({ variant: 'default', size: 'sm' })}>
-            <Plus className="h-4 w-4 mr-1" />新建关联
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md bg-v2-primary text-white text-sm font-semibold shadow-v2-sm hover:bg-v2-primary-hover">
+            <Plus className="h-4 w-4" />
+            新建关联
           </Link>
         )}
       </div>
