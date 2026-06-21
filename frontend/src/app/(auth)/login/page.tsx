@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/v2/Button'
+import { Input } from '@/components/v2/Input'
+import { Label } from '@/components/v2/Label'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -27,10 +27,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted">
+    <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">IT 运维平台</CardTitle>
+          <CardTitle className="text-center text-2xl text-v2-fg">CWGSYW 运维平台</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -53,9 +53,9 @@ export default function LoginPage() {
                 required
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '登录中...' : '登录'}
+            {error && <p className="text-sm text-v2-danger">{error}</p>}
+            <Button type="submit" variant="primary" className="w-full" disabled={loading}>
+              {loading ? '登录中…' : '登录'}
             </Button>
           </form>
         </CardContent>
