@@ -173,34 +173,34 @@ function NodeTooltip({ d, palette }: { d: TopologyNodeData; palette: Palette }) 
       </div>
       <dl className="space-y-1 text-xs">
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">模型</dt>
+          <dt className="text-v2-muted">模型</dt>
           <dd className="font-medium truncate">{d.modelName ?? d.modelId ?? '—'}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">状态</dt>
+          <dt className="text-v2-muted">状态</dt>
           <dd className="flex items-center gap-1.5 font-medium">
             {d.status && <StatusDot status={d.status} />}
             {statusLabel ?? '—'}
           </dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">负责人</dt>
+          <dt className="text-v2-muted">负责人</dt>
           <dd className="font-medium truncate">{d.owner ?? '—'}</dd>
         </div>
         {d.isRoot && (
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">根节点</dt>
+            <dt className="text-v2-muted">根节点</dt>
             <dd className="font-medium text-amber-500">是</dd>
           </div>
         )}
       </dl>
       {keyAttrEntries.length > 0 && (
         <div className="mt-2 pt-2 border-t">
-          <p className="text-[11px] text-muted-foreground mb-1">关键属性</p>
+          <p className="text-[11px] text-v2-muted mb-1">关键属性</p>
           <div className="grid grid-cols-1 gap-0.5 text-xs">
             {keyAttrEntries.map(([k, v]) => (
               <div key={k} className="flex justify-between gap-2">
-                <span className="text-muted-foreground font-mono text-[11px]">{k}</span>
+                <span className="text-v2-muted font-mono text-[11px]">{k}</span>
                 <span className="font-medium truncate">{String(v ?? '—')}</span>
               </div>
             ))}

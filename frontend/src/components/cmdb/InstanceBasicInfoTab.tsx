@@ -120,7 +120,7 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
                 const displayVal = rawVal != null ? String(rawVal) : '—'
                 return (
                   <div key={attr.fieldKey} className="grid grid-cols-3 gap-4 items-start">
-                    <div className="text-sm text-muted-foreground pt-2">
+                    <div className="text-sm text-v2-muted pt-2">
                       {attr.name}
                       {attr.unit && <span className="ml-1 text-xs">({attr.unit})</span>}
                     </div>

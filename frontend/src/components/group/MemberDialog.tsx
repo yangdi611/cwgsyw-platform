@@ -117,13 +117,13 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
               </div>
               <div className="flex-1 overflow-y-auto">
                 {members.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">暂无成员</p>
+                  <p className="text-sm text-v2-muted text-center py-8">暂无成员</p>
                 ) : (
                   members.map((m) => (
                     <div key={m.user_id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
                       <div>
                         <span className="text-sm font-medium">{m.real_name || m.username}</span>
-                        <span className="text-xs text-muted-foreground ml-1">@{m.username}</span>
+                        <span className="text-xs text-v2-muted ml-1">@{m.username}</span>
                       </div>
                       <Button
                         variant="ghost"
@@ -150,7 +150,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
               />
               <div className="flex-1 border rounded-md overflow-y-auto">
                 {searchResults.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
+                  <p className="text-sm text-v2-muted text-center py-8">
                     {searchKeyword ? '无匹配用户' : '输入关键词搜索'}
                   </p>
                 ) : (
@@ -158,7 +158,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
                     <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
                       <div>
                         <span className="text-sm font-medium">{u.real_name || u.username}</span>
-                        <span className="text-xs text-muted-foreground ml-1">@{u.username}</span>
+                        <span className="text-xs text-v2-muted ml-1">@{u.username}</span>
                       </div>
                       <Button
                         variant="ghost"
@@ -184,7 +184,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
           <DialogHeader>
             <DialogTitle>确认移除</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-v2-muted">
             确定要将 <strong>{removeTarget?.real_name || removeTarget?.username}</strong> 从 {groupName} 移除吗？
           </p>
           <div className="flex justify-end gap-2 mt-4">

@@ -86,7 +86,7 @@ const CELL_STYLE: Record<DiffKind, string> = {
   removed: 'bg-red-500/15 text-red-700 dark:text-red-300',
   added: 'bg-green-500/15 text-green-700 dark:text-green-300',
   modified: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  unchanged: 'bg-muted text-muted-foreground',
+  unchanged: 'bg-muted text-v2-muted',
 }
 
 const DOT_STYLE: Record<DiffKind, string> = {
@@ -109,7 +109,7 @@ export function JsonDiffView({ before, after, hideUnchanged = false, className }
   const entries = computeDiff(before, after).filter(e => !hideUnchanged || e.kind !== 'unchanged')
 
   if (entries.length === 0) {
-    return <p className={className ? `text-sm text-muted-foreground ${className}` : 'text-sm text-muted-foreground'}>无字段差异</p>
+    return <p className={className ? `text-sm text-v2-muted ${className}` : 'text-sm text-v2-muted'}>无字段差异</p>
   }
 
   return (
@@ -137,7 +137,7 @@ export function JsonDiffView({ before, after, hideUnchanged = false, className }
               <div className={`px-3 py-1.5 break-all min-w-0 ${CELL_STYLE[e.kind]} ${e.kind === 'unchanged' ? '' : 'font-medium'}`}>
                 {e.kind === 'added' ? '—' : formatValue(e.before)}
               </div>
-              <div className="px-1 py-1.5 flex items-center justify-center text-muted-foreground border-x">
+              <div className="px-1 py-1.5 flex items-center justify-center text-v2-muted border-x">
                 {e.kind === 'modified' ? '→' : e.kind === 'unchanged' ? '=' : ''}
               </div>
               <div className={`px-3 py-1.5 break-all min-w-0 ${CELL_STYLE[e.kind]} ${e.kind === 'unchanged' ? '' : 'font-medium'}`}>
@@ -147,7 +147,7 @@ export function JsonDiffView({ before, after, hideUnchanged = false, className }
           ))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-1.5">
+      <p className="text-xs text-v2-muted mt-1.5">
         共 {entries.length} 个字段
         {entries.some(e => e.kind !== 'unchanged') && (
           <>，其中{' '}

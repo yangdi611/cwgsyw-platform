@@ -52,11 +52,11 @@ export function NotificationItem({ notification: n, onMarkRead }: NotificationIt
             <span className="mt-1.5 inline-block w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
           )}
           <div className="min-w-0">
-            <p className={cn('font-medium text-sm', !n.is_read && 'text-foreground')}>{n.title}</p>
-            <p className="text-sm text-muted-foreground mt-0.5">{n.content}</p>
+            <p className={cn('font-medium text-sm', !n.is_read && 'text-v2-fg')}>{n.title}</p>
+            <p className="text-sm text-v2-muted mt-0.5">{n.content}</p>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+        <span className="text-xs text-v2-muted whitespace-nowrap flex-shrink-0">
           {new Date(n.created_at).toLocaleString('zh-CN', {
             month: 'numeric', day: 'numeric',
             hour: '2-digit', minute: '2-digit',

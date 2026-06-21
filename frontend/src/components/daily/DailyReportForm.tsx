@@ -45,13 +45,13 @@ export function DailyReportForm({ defaultValues, onSubmit, submitLabel = '保存
       <div className="space-y-2">
         <Label htmlFor="reportDate">日报日期</Label>
         <Input id="reportDate" type="date" {...register('reportDate', { required: '请选择日期' })} />
-        {errors.reportDate && <p className="text-sm text-destructive">{errors.reportDate.message}</p>}
+        {errors.reportDate && <p className="text-sm text-v2-danger">{errors.reportDate.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="completedItems">今日完成事项 *</Label>
         <Textarea id="completedItems" rows={5} placeholder="请描述今日完成的工作内容..."
           {...register('completedItems', { required: '请填写今日完成事项' })} />
-        {errors.completedItems && <p className="text-sm text-destructive">{errors.completedItems.message}</p>}
+        {errors.completedItems && <p className="text-sm text-v2-danger">{errors.completedItems.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="issues">遇到的问题及处理结果</Label>
@@ -62,7 +62,7 @@ export function DailyReportForm({ defaultValues, onSubmit, submitLabel = '保存
         <Label htmlFor="tomorrowPlan">明日工作计划 *</Label>
         <Textarea id="tomorrowPlan" rows={4} placeholder="请描述明日计划..."
           {...register('tomorrowPlan', { required: '请填写明日计划' })} />
-        {errors.tomorrowPlan && <p className="text-sm text-destructive">{errors.tomorrowPlan.message}</p>}
+        {errors.tomorrowPlan && <p className="text-sm text-v2-danger">{errors.tomorrowPlan.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="workHours">工时（小时）</Label>

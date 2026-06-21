@@ -78,7 +78,7 @@ export default function BpmnViewer({
 
   if (!xml) {
     return (
-      <div className="w-full min-h-[400px] border rounded-lg bg-muted/20 flex items-center justify-center text-muted-foreground">
+      <div className="w-full min-h-[400px] border rounded-lg bg-muted/20 flex items-center justify-center text-v2-muted">
         没有流程图数据
       </div>
     );

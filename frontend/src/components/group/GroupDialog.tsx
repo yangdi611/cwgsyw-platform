@@ -122,14 +122,14 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           <div className="space-y-2">
             <Label htmlFor="description">描述</Label>
             <textarea id="description" {...register('description')}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="w-full rounded-md border border-v2-border bg-background px-3 py-2 text-sm"
               rows={2} placeholder="请输入组描述" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="leader_id">组长</Label>
             <select id="leader_id" {...register('leader_id', { setValueAs: (v) => v === '' ? null : Number(v) })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              className="w-full rounded-md border border-v2-border bg-background px-3 py-2 text-sm">
               <option value="">-- 不指定组长 --</option>
               {sortedUsers.map(u => (
                 <option key={u.id} value={u.id}>
@@ -148,7 +148,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
                     <Checkbox checked={selectedMemberIds.includes(u.id)}
                       onCheckedChange={(c) => { if (c) { setValue('member_ids', [...selectedMemberIds, u.id]) } else { setValue('member_ids', selectedMemberIds.filter(id => id !== u.id)) } }} />
                     {u.real_name || u.username}
-                    {u.group_name && <span className="text-muted-foreground">（{u.group_name}）</span>}
+                    {u.group_name && <span className="text-v2-muted">（{u.group_name}）</span>}
                   </label>
                 ))}
               </div>

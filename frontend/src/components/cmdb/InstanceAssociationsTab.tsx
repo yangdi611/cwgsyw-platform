@@ -132,33 +132,33 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Link2 className="h-4 w-4" />
           关联关系
-          <span className="text-xs font-normal text-muted-foreground">（{totalRelations}）</span>
+          <span className="text-xs font-normal text-v2-muted">（{totalRelations}）</span>
         </div>
         <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
-          className="text-xs text-muted-foreground hover:text-foreground">
+          className="text-xs text-v2-muted hover:text-v2-fg">
           管理全部关联 →
         </Link>
       </div>
 
       <div className="px-5 py-4 space-y-4">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">加载中...</p>
+          <p className="text-sm text-v2-muted py-4 text-center">加载中...</p>
         ) : relGroups.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">暂无关联</p>
+          <p className="text-sm text-v2-muted py-4 text-center">暂无关联</p>
         ) : (
           relGroups.map(group => (
             <div key={group.kind_id}>
-              <p className="text-xs font-medium text-muted-foreground mb-2">[{group.kind_name}]</p>
+              <p className="text-xs font-medium text-v2-muted mb-2">[{group.kind_name}]</p>
               <div className="space-y-1">
                 {group.relations.map(rel => (
                   <div key={rel.id} className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-muted/30 text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{rel.direction_label}</span>
+                      <span className="text-xs text-v2-muted">{rel.direction_label}</span>
                       <span className="font-medium">{rel.peer_name}</span>
-                      <span className="text-xs text-muted-foreground">({rel.peer_model_name})</span>
+                      <span className="text-xs text-v2-muted">({rel.peer_model_name})</span>
                     </div>
                     {hasPermission('cmdb_instance', 'delete') && (
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive"
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-v2-danger"
                         onClick={() => { if (confirm('删除此关联?')) deleteRelMutation.mutate(rel.id) }}>
                         <XIcon className="h-3 w-3" />
                       </Button>
@@ -213,7 +213,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
               <div className="space-y-1.5">
                 <Label className="text-sm">
                   目标实例
-                  <span className="text-muted-foreground ml-1 font-normal">
+                  <span className="text-v2-muted ml-1 font-normal">
                     ({searchResult?.records?.[0]?.model_name ?? targetModelId})
                   </span>
                 </Label>
@@ -231,14 +231,14 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                     </button>
                   ))}
                   {(searchResult?.records ?? []).length === 0 && (
-                    <p className="text-center text-muted-foreground text-xs py-3">无匹配实例</p>
+                    <p className="text-center text-v2-muted text-xs py-3">无匹配实例</p>
                   )}
                 </div>
               </div>
             )}
 
             {addError && (
-              <p className="text-sm text-destructive">{addError}</p>
+              <p className="text-sm text-v2-danger">{addError}</p>
             )}
           </div>
 

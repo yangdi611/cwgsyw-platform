@@ -43,9 +43,9 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
   return (
     <div className="border rounded-lg p-5">
       {isLoading ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">加载中...</p>
+        <p className="text-sm text-v2-muted py-8 text-center">加载中...</p>
       ) : records.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">暂无变更记录</p>
+        <p className="text-sm text-v2-muted py-8 text-center">暂无变更记录</p>
       ) : (
         <div className="space-y-3">
           {records.map(record => (
@@ -55,7 +55,7 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
       )}
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t">
-        <span className="text-sm text-muted-foreground">共 {total} 条</span>
+        <span className="text-sm text-v2-muted">共 {total} 条</span>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
             <ChevronLeft className="h-4 w-4" />

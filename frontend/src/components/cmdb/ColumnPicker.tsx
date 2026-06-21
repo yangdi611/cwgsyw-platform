@@ -31,7 +31,7 @@ export function ColumnPicker({ allColumns, visibleKeys, onToggle }: ColumnPicker
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 top-full mt-1 z-20 bg-popover border rounded-lg shadow-lg p-2 min-w-36">
-            <p className="text-xs text-muted-foreground px-2 py-1 mb-1">显示列</p>
+            <p className="text-xs text-v2-muted px-2 py-1 mb-1">显示列</p>
             {allColumns.map(col => (
               <label
                 key={col.key}

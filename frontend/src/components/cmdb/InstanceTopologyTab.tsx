@@ -30,19 +30,19 @@ export function InstanceTopologyTab({ id }: Props) {
         </div>
         <div className="flex items-center gap-3">
           {/* AC10 (Issue #64): 对比模式已分离为独立子路由 /cmdb/topology/[id]/compare */}
-          <Link href={`/cmdb/topology/${id}/compare`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <Link href={`/cmdb/topology/${id}/compare`} className="text-xs text-v2-muted hover:text-v2-fg flex items-center gap-1">
             <GitCompare className="h-3 w-3" />对比模式
           </Link>
-          <Link href={`/cmdb/topology/${id}`} className="text-xs text-muted-foreground hover:text-foreground">
+          <Link href={`/cmdb/topology/${id}`} className="text-xs text-v2-muted hover:text-v2-fg">
             全屏展开 →
           </Link>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">加载中...</div>
+        <div className="flex items-center justify-center h-[280px] text-v2-muted text-sm">加载中...</div>
       ) : !topoData || topoData.nodes.length === 0 ? (
-        <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">暂无关联数据</div>
+        <div className="flex items-center justify-center h-[280px] text-v2-muted text-sm">暂无关联数据</div>
       ) : (
         <CiTopologyGraph
           nodes={topoData.nodes}

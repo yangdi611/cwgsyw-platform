@@ -78,7 +78,7 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
     <div className="flex items-center justify-between py-3 border-b last:border-0">
       <div>
         <span className="font-medium text-sm">{username}</span>
-        {description && <span className="text-xs text-muted-foreground ml-2">{description}</span>}
+        {description && <span className="text-xs text-v2-muted ml-2">{description}</span>}
       </div>
       <div className="flex items-center gap-1">
         {password ? (
@@ -86,7 +86,7 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
             <code className="text-sm bg-muted px-2 py-0.5 rounded select-all mr-1">{password}</code>
           </>
         ) : (
-          <span className="text-sm text-muted-foreground tracking-widest mr-2">••••••••</span>
+          <span className="text-sm text-v2-muted tracking-widest mr-2">••••••••</span>
         )}
         {/* Copy button — always visible, auto-reveals if needed */}
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copy} title="复制密码">
@@ -98,7 +98,7 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
           </Button>
         )}
         {canDelete && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={deleteCred} disabled={deleting} title="删除账号">
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-v2-danger hover:text-v2-danger" onClick={deleteCred} disabled={deleting} title="删除账号">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}

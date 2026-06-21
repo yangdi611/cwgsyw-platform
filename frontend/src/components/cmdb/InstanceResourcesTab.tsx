@@ -49,7 +49,7 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
   const isLoading = devices.isLoading || changeDocs.isLoading || dailyReports.isLoading
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">加载中...</p>
+    return <p className="text-sm text-v2-muted">加载中...</p>
   }
 
   return (
@@ -59,10 +59,10 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
         {devices.data?.map(d => (
           <div key={d.deviceId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3 min-w-0">
-              <Server className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Server className="h-4 w-4 text-v2-muted shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{d.name}</p>
-                <p className="text-xs text-muted-foreground">{d.ipAddr}</p>
+                <p className="text-xs text-v2-muted">{d.ipAddr}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -83,10 +83,10 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
         {changeDocs.data?.map(d => (
           <div key={d.docId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3 min-w-0">
-              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <FileText className="h-4 w-4 text-v2-muted shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{d.title}</p>
-                <p className="text-xs text-muted-foreground">{new Date(d.updatedAt).toLocaleString('zh-CN')}</p>
+                <p className="text-xs text-v2-muted">{new Date(d.updatedAt).toLocaleString('zh-CN')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -107,10 +107,10 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
         {dailyReports.data?.map(d => (
           <div key={d.reportId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Calendar className="h-4 w-4 text-v2-muted shrink-0" />
               <div>
                 <p className="text-sm font-medium">{d.date}</p>
-                <p className="text-xs text-muted-foreground">{d.authorName}</p>
+                <p className="text-xs text-v2-muted">{d.authorName}</p>
               </div>
             </div>
             <Link
@@ -147,7 +147,7 @@ function Section({
       </div>
       <div className="border rounded-lg divide-y">
         {hasContent ? children : (
-          <p className="text-sm text-muted-foreground text-center py-6">{emptyMsg}</p>
+          <p className="text-sm text-v2-muted text-center py-6">{emptyMsg}</p>
         )}
       </div>
     </div>

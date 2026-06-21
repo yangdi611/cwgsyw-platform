@@ -97,7 +97,7 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
         {open && debouncedKeyword.length >= 1 && (
           <div className="absolute z-50 w-full mt-1 border rounded-md bg-background shadow-lg max-h-48 overflow-auto">
             {searchResults.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">无匹配结果</p>
+              <p className="px-3 py-2 text-sm text-v2-muted">无匹配结果</p>
             ) : (
               (searchResults as { id: number; name: string; modelName: string }[]).map(inst => {
                 const alreadySelected = selectedIds.has(inst.id)
@@ -116,7 +116,7 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
                     <span>{inst.name}</span>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">{inst.modelName}</Badge>
-                      {alreadySelected && <span className="text-xs text-muted-foreground">已选</span>}
+                      {alreadySelected && <span className="text-xs text-v2-muted">已选</span>}
                     </div>
                   </button>
                 )
@@ -154,7 +154,7 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
                 <button
                   type="button"
                   onClick={() => handleRemove(item.instanceId)}
-                  className="text-muted-foreground hover:text-foreground ml-0.5"
+                  className="text-v2-muted hover:text-v2-fg ml-0.5"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

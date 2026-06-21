@@ -45,7 +45,7 @@ export const ACTION_META: Record<string, { label: string; cls: string }> = {
 }
 
 export function actionMeta(action: string) {
-  return ACTION_META[action] ?? { label: action || '操作', cls: 'border-border bg-muted text-muted-foreground' }
+  return ACTION_META[action] ?? { label: action || '操作', cls: 'border-border bg-muted text-v2-muted' }
 }
 
 interface ChangeRecordItemProps {
@@ -79,20 +79,20 @@ export function ChangeRecordItem({ record, compact = false, defaultOpen = false 
       >
         <div className="flex items-center gap-2 flex-wrap">
           {open ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <ChevronDown className="h-3.5 w-3.5 text-v2-muted flex-shrink-0" />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <ChevronRight className="h-3.5 w-3.5 text-v2-muted flex-shrink-0" />
           )}
           <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${meta.cls}`}>
             {meta.label}
           </span>
           <span className="text-sm font-medium">{record.operatorName ?? '系统'}</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-v2-muted">
             {new Date(record.createdAt).toLocaleString('zh-CN')}
           </span>
         </div>
         {record.summary && (
-          <p className={`mt-1 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground ${open ? '' : 'line-clamp-1'}`}>
+          <p className={`mt-1 ${compact ? 'text-xs' : 'text-sm'} text-v2-muted ${open ? '' : 'line-clamp-1'}`}>
             {record.summary}
           </p>
         )}
@@ -105,7 +105,7 @@ export function ChangeRecordItem({ record, compact = false, defaultOpen = false 
               {changedFields.map(f => (
                 <code
                   key={f}
-                  className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono"
+                  className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-v2-muted font-mono"
                 >
                   {f}
                 </code>
@@ -115,7 +115,7 @@ export function ChangeRecordItem({ record, compact = false, defaultOpen = false 
           {hasDiff ? (
             <JsonDiffView before={record.beforeJson} after={record.afterJson} />
           ) : (
-            <p className="text-xs text-muted-foreground">无变更快照数据</p>
+            <p className="text-xs text-v2-muted">无变更快照数据</p>
           )}
         </div>
       )}

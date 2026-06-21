@@ -39,10 +39,10 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
 }
 
 function severityMeta(s: string) {
-  return SEVERITY_META[s] ?? { label: s || '未知', cls: 'border-border bg-muted text-muted-foreground' }
+  return SEVERITY_META[s] ?? { label: s || '未知', cls: 'border-border bg-muted text-v2-muted' }
 }
 function statusMeta(s: string) {
-  return STATUS_META[s] ?? { label: s || '—', cls: 'border-border bg-muted text-muted-foreground' }
+  return STATUS_META[s] ?? { label: s || '—', cls: 'border-border bg-muted text-v2-muted' }
 }
 
 interface Props {
@@ -73,9 +73,9 @@ export function InstanceAlertsTab({ instanceId }: Props) {
   return (
     <div className="border rounded-lg p-5">
       {isLoading ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">加载中...</p>
+        <p className="text-sm text-v2-muted py-8 text-center">加载中...</p>
       ) : alerts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-10 text-v2-muted">
           <BellOff className="h-8 w-8 mb-2" />
           <p className="text-sm">该实例暂无告警</p>
         </div>
@@ -93,16 +93,16 @@ export function InstanceAlertsTab({ instanceId }: Props) {
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${st.cls}`}>{st.label}</span>
                       <span className="text-sm font-medium truncate">{a.alert_name}</span>
                       {a.acknowledged && (
-                        <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                        <span className="text-xs text-v2-muted inline-flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />已确认
                         </span>
                       )}
                     </div>
                     {a.summary && (
-                      <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{a.summary}</p>
+                      <p className="mt-1.5 text-sm text-v2-muted line-clamp-2">{a.summary}</p>
                     )}
                     {a.starts_at && (
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs text-v2-muted">
                         触发于 {new Date(a.starts_at).toLocaleString('zh-CN')}
                         {a.ends_at && ` · 恢复于 ${new Date(a.ends_at).toLocaleString('zh-CN')}`}
                       </p>
@@ -121,7 +121,7 @@ export function InstanceAlertsTab({ instanceId }: Props) {
       )}
 
       <div className="mt-4 pt-3 border-t text-right">
-        <Link href="/cmdb/alerts" className="text-xs text-muted-foreground hover:text-foreground">
+        <Link href="/cmdb/alerts" className="text-xs text-v2-muted hover:text-v2-fg">
           查看全部告警 →
         </Link>
       </div>

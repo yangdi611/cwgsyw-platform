@@ -132,8 +132,8 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
         <div className="flex items-center gap-2 text-sm mb-4">
           {['上传文件', '预览确认', '执行导入'].map((label, i) => (
             <div key={i} className="flex items-center gap-2">
-              {i > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              <span className={step === i ? 'font-medium text-foreground' : step > i ? 'text-green-600' : 'text-muted-foreground'}>
+              {i > 0 && <ChevronRight className="h-4 w-4 text-v2-muted" />}
+              <span className={step === i ? 'font-medium text-v2-fg' : step > i ? 'text-green-600' : 'text-v2-muted'}>
                 {step > i ? <CheckCircle className="inline h-4 w-4 mr-1" /> : `${i + 1}. `}{label}
               </span>
             </div>
@@ -196,14 +196,14 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
               ].map((s, i) => (
                 <div key={i} className="p-3 border rounded">
                   <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                  <div className="text-xs text-muted-foreground">{s.label}</div>
+                  <div className="text-xs text-v2-muted">{s.label}</div>
                 </div>
               ))}
             </div>
 
             {preview.failedRows.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-destructive mb-2">
+                <h4 className="text-sm font-medium text-v2-danger mb-2">
                   <XCircle className="inline h-4 w-4 mr-1" />失败行 ({preview.failedRows.length})
                 </h4>
                 <div className="max-h-32 overflow-auto border rounded">
@@ -270,15 +270,15 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                     { label: '总计', value: result.totalRows },
                     { label: '创建', value: result.created, color: 'text-green-600' },
                     { label: '更新', value: result.updated, color: 'text-blue-600' },
-                    { label: '失败', value: result.failed, color: 'text-destructive' },
+                    { label: '失败', value: result.failed, color: 'text-v2-danger' },
                   ].map((s, i) => (
                     <div key={i} className="p-3 border rounded">
                       <div className={`text-2xl font-bold ${s.color ?? ''}`}>{s.value}</div>
-                      <div className="text-xs text-muted-foreground">{s.label}</div>
+                      <div className="text-xs text-v2-muted">{s.label}</div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">耗时: {(result.durationMs / 1000).toFixed(1)}s</p>
+                <p className="text-xs text-v2-muted">耗时: {(result.durationMs / 1000).toFixed(1)}s</p>
 
                 {result.failed > 0 && (
                   <Button size="sm" variant="outline" onClick={downloadFailedRows}>

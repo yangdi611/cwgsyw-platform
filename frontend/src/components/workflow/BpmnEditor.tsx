@@ -189,7 +189,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       <div className="flex-1 relative">
         {!ready && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-            <span className="text-muted-foreground">加载编辑器中...</span>
+            <span className="text-v2-muted">加载编辑器中...</span>
           </div>
         )}
         <div ref={containerRef} className="w-full h-full" />
@@ -199,7 +199,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       <div className="w-72 border-l overflow-y-auto bg-gray-50 flex-shrink-0 flex flex-col">
         {/* Standard properties panel */}
         <div ref={panelRef}>
-          {!ready && <div className="p-4 text-sm text-muted-foreground">加载属性面板...</div>}
+          {!ready && <div className="p-4 text-sm text-v2-muted">加载属性面板...</div>}
         </div>
 
         {/* Flowable Assignment — rendered separately below the standard panel */}

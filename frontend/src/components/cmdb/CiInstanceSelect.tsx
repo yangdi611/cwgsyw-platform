@@ -81,7 +81,7 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
             <button
               type="button"
               onClick={handleClear}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-v2-muted hover:text-v2-fg"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -99,7 +99,7 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
       {open && keyword.length >= 1 && (
         <div className="absolute z-50 w-full mt-1 border rounded-md bg-background shadow-lg max-h-48 overflow-auto">
           {searchResults.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">无匹配结果</p>
+            <p className="px-3 py-2 text-sm text-v2-muted">无匹配结果</p>
           ) : (
             searchResults.map(inst => (
               <button
