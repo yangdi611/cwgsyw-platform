@@ -46,38 +46,51 @@ cwgsyw-platform/
 
 | 版本 | 内容                                                      |
 |------|-----------------------------------------------------------|
-| V1   | `sys_group`, `sys_user`, `audit_log`                      |
-| V2   | `sys_resource`, `sys_permission`, `sys_role_permission`, `sys_user_role` |
-| V3   | 种子数据：5个组、5个角色、superadmin (`Admin@123`)        |
-| V4   | `daily_report`, `daily_report_approval` + RBAC 权限      |
-| V5   | 修复 `sys_role` 缺少 BaseEntity 列                        |
-| V6   | `device`, `device_credential`, `password_access_log` + RBAC |
-| V7   | `sys_config`, `notification_message` + RBAC               |
-| V8   | `change_doc`, `change_doc_approval` + RBAC 权限           |
-| V9   | `change_doc` 添加 `doc_number`, `category`, `risk_level` 列 |
-| V10  | `change_doc` 添加 MinIO 附件字段 (`attachment_*`)         |
-| V11  | `change_doc` 添加 Word 模板导出字段 (`template_*`, `exported_*`) |
-| V12  | `change_doc` 添加 AI 摘要字段 (`ai_summary`, `ai_generated_at`) |
-| V13  | `change_doc` 双模板支持（`template2_*`, `exported2_*`）   |
-| V14  | `ci_model_group`, `ci_model` — CMDB 模型分组与模型定义  |
-| V15  | `ci_attribute_group`, `ci_attribute` — CMDB 属性分组与属性定义 |
-| V16  | `ci_instance` — CMDB 实例表（JSONB 动态字段）           |
-| V17  | `ci_association_kind`, `ci_association_def`, `ci_instance_rel` — CMDB 关联 |
-| V18  | CMDB 内置 seed 数据（5模型分组、2模型、18属性、5关联类型） |
-| V19  | CMDB 索引补充（含 GIN 索引、CMDB 审计索引）             |
-| V20  | 主机模型增加 `sn`（序列号）内置属性                      |
-| V23  | CMDB RBAC 权限 seed 数据（3资源 + 角色分配）             |
-| V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def` 关联扩展属性定义 |
-| V25  | CSV 导入权限 seed（`cmdb_instance:import`）              |
-| V26  | 影响分析权限 seed（`cmdb_instance:impact`）              |
-| V27  | `ci_model` 增加 `color` + `enable_2d_view` 可视化字段 |
-| V28  | `change_doc_ci_link` — 变更文档 ↔ CI 实例关联表         |
-| V29  | CMDB 变更历史/统计索引（`idx_audit_cmdb_instance_changes`, `idx_audit_cmdb_stats`）|
-| V30  | `ip_pool` + `ip_allocation` — IPAM 模块 + RBAC          |
-| V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                 |
-| V32  | `device.ci_instance_id` — 设备 ↔ CI 实例关联            |
-| V33  | `cmdb_change` 资源 + 权限 seed（变更历史查看权限）        |
-| V34  | `daily_report.ci_instance_ids` JSONB（日报 ↔ CI）        |
+| V1   | `sys_group`, `sys_user`, `audit_log` — 基础表                         |
+| V2   | `sys_resource`, `sys_permission`, `sys_role`, `sys_role_permission`, `sys_user_role` — RBAC |
+| V3   | 种子数据：5个组、5个角色、superadmin (`Admin@123`)                     |
+| V4   | `daily_report`, `daily_report_approval` + RBAC                          |
+| V5   | 修复 `sys_role` 缺少 BaseEntity 列                                      |
+| V6   | `device`, `device_credential`, `password_access_log` + RBAC             |
+| V7   | `sys_config`, `notification_message` + RBAC                             |
+| V8   | AI 表：`ai_call_log`, `ai_provider_config` + RBAC                       |
+| V9   | `change_doc`, `change_doc_snapshot` + RBAC                              |
+| V10  | `device_credential` 增加分组字段                                        |
+| V11  | `sys_config` 水印配置                                                   |
+| V12  | `change_doc_template`, `change_doc_field` — 变更文档模板 + RBAC          |
+| V13  | `change_doc` 双模板（`template2_*`, `exported2_*`）                     |
+| V14  | CMDB 元数据：`ci_model_group`/`ci_model`/`ci_attribute_group`/`ci_attribute`/`ci_association_kind`/`ci_association_def` + RBAC |
+| V15  | `ci_instance` — CMDB 实例表（JSONB 动态字段）                           |
+| V16  | `ci_instance_rel` — CMDB 实例关联                                       |
+| V17  | `shared_file`, `shared_folder` — 共享文件库 + RBAC（`shared_file` 资源）|
+| V18  | `daily_report` 增加 `group_leader_id`                                   |
+| V19  | `workflow:configure` 权限 seed（流程定义 CRUD 管理）                    |
+| V20  | 主机模型增加 `sn`（序列号）内置属性                                     |
+| V21  | `change_doc` 合并 legacy 字段                                           |
+| V22  | （版本号跳过，未使用）                                                   |
+| V23  | CMDB RBAC 权限 seed（3 资源 + 角色分配）                                |
+| V24  | `ci_instance_rel.metadata` JSONB + `ci_association_attr_def`            |
+| V25  | CSV 导入权限 seed（`cmdb_instance:import`）                             |
+| V26  | 影响分析权限 seed（`cmdb_instance:impact`）                             |
+| V27  | `ci_model` 增加 `color` + `enable_2d_view` 可视化字段                   |
+| V28  | `change_doc_ci_link` — 变更文档 ↔ CI 实例关联表                         |
+| V29  | CMDB 变更历史/统计索引                                                  |
+| V30  | `ip_pool`, `ip_allocation` — IPAM 模块 + RBAC                           |
+| V31  | `cmdb_alert` — Prometheus 告警表 + RBAC                                 |
+| V32  | `device.ci_instance_id` — 设备 ↔ CI 实例关联                            |
+| V33  | `cmdb_change` 资源 + 权限 seed（变更历史查看权限）                      |
+| V34  | `daily_report.ci_instance_ids` JSONB（日报 ↔ CI）                       |
+| V35  | `ci_model.display_name` 显示名                                          |
+| V36  | `ci_instance` 增加 `status`, `owner`, `description`                     |
+| V37  | `ci_attribute_group` 补齐缺失列                                         |
+| V38  | `ci_model` 回填 `color`                                                 |
+| V39  | CMDB 表补齐 BaseEntity 列（`created_by`/`updated_by` 等）              |
+| V40  | 修复权限 seed 冲突                                                       |
+| V41  | `ci_instance_rel.def_id` 回填 + `ci_association_def` 调整               |
+| V42  | `ci_attribute` 选项（option）数据迁移                                   |
+| V43  | `ci_change_record` — CMDB 变更记录表                                    |
+| V44  | CMDB 权限标准化（normalize）                                            |
+| V45  | 修复 `ci_model` model_id 对齐                                           |
 
 ---
 
@@ -142,7 +155,8 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `group`        | create, read, update, delete                         |
 | `role`         | create, read, update, delete, assign                 |
 | `daily_report` | create, read, update, delete, approve                |
-| `workflow`     | read, approve                                        |
+| `workflow`     | read, approve, configure                             |
+| `shared_file`  | read, upload, delete, manage                         |
 | `device`       | create, read, update, delete, view_password          |
 | `notification` | read, manage                                         |
 | `cmdb_model`    | create, read, update, delete                       |
@@ -359,8 +373,8 @@ docker compose build --no-cache backend && docker compose up -d backend
 # 重新构建前端
 docker compose build frontend && docker compose up -d frontend
 
-# 进入 DB
-docker compose exec postgres psql -U platform_user -d cwgsyw_platform
+# 进入 DB（注意：当前 .env 中 POSTGRES_DB=platform_user，DB 名与用户名同名；.env.example 中的 cwgsyw_platform 是预期名，切换需重建数据库卷）
+docker compose exec postgres psql -U platform_user -d platform_user
 
 # 当前 branch
 # feat/shared-files — 共享文件库开发分支
@@ -384,7 +398,7 @@ docker compose exec postgres psql -U platform_user -d cwgsyw_platform
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **cwgsyw-platform** (4258 symbols, 8091 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **cwgsyw-platform** (5405 symbols, 9664 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

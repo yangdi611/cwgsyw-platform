@@ -19,4 +19,13 @@ public class PageResult<T> {
         result.size = page.getSize();
         return result;
     }
+
+    public static <T> PageResult<T> empty(long page, long size) {
+        PageResult<T> result = new PageResult<>();
+        result.records = List.of();
+        result.total = 0;
+        result.page = page;
+        result.size = size;
+        return result;
+    }
 }

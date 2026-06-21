@@ -38,10 +38,13 @@ public class CiInstanceController {
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<PageResult<CiInstanceVO>> list(
-            @RequestParam String model, @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String model, @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
+        if (model == null || model.isBlank()) {
+            return R.ok(PageResult.empty(page, size));
+        }
         return R.ok(ciInstanceQueryService.list(model, keyword, status, page, size, cu.getTenantId()));
     }
 
