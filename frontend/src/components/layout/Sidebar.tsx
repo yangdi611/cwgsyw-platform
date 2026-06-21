@@ -5,29 +5,27 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import {
+  LayoutDashboard,
+  Database,
   FileText,
+  FolderOpen,
+  GitBranch,
+  BarChart2,
+  Shield,
+  Settings,
+  ServerCog,
+  Box,
+  History,
+  Bell,
+  Grid3x3,
+  KeyRound,
+  Globe,
   CheckSquare,
   Users,
   Building2,
-  Shield,
-  LayoutDashboard,
-  KeyRound,
-  Bell,
-  Settings,
-  Bot,
-  BarChart2,
-  ClipboardList,
   FileCode,
-  ServerCog,
-  Wrench,
-  Database,
-  History,
-  Globe,
-  Box,
-  Grid3x3,
-  GitBranch,
+  ClipboardList,
   Edit3,
-  FolderOpen,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -38,12 +36,13 @@ type NavItem = {
   icon: any
   resource: string | null
   action: string | null
+  badge?: number
 }
 
 type NavGroup = {
   label: string
   icon: any
-  children: (NavItem | NavGroup)[]
+  children: NavItem[]
   storageKey: string
   defaultOpen?: boolean
   resource: string | null
@@ -56,88 +55,130 @@ function isGroup(item: NavEntry): item is NavGroup {
   return 'children' in item
 }
 
+// V2 导航架构：8 大模块
 const navItems: NavEntry[] = [
-  // AC7.1: 首页保持顶层独立（不分组）
-  { href: '/', label: '首页', icon: LayoutDashboard, resource: null, action: null },
-  // AC7.2: 日常工作（默认展开）
+  // 1. 工作台
   {
-    label: '日常工作',
-    icon: ClipboardList,
-    resource: 'daily_report',
+    href: '/',
+    label: '工作台',
+    icon: LayoutDashboard,
+    resource: null,
+    action: null,
+    badge: 18, // 待办数量示例
+  },
+
+  // 2. CMDB
+  {
+    label: 'CMDB',
+    icon: ServerCog,
+    resource: 'cmdb_instance',
     action: 'read',
-    storageKey: 'sidebar_daily_open',
+    storageKey: 'sidebar_cmdb_v2',
     defaultOpen: true,
     children: [
-      { href: '/daily',          label: '我的日报', icon: FileText,   resource: 'daily_report',  action: 'read' },
-      { href: '/workflow/tasks', label: '待审批',   icon: CheckSquare, resource: 'workflow',     action: 'read' },
-      { href: '/notifications',  label: '通知中心', icon: Bell,       resource: 'notification',  action: 'read' },
+      { href: '/cmdb', label: '概览', icon: LayoutDashboard, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/instances', label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/models', label: '模型管理', icon: Box, resource: 'cmdb_model', action: 'read' },
+      { href: '/cmdb/changes', label: '变更记录', icon: History, resource: 'cmdb_change', action: 'read' },
+      { href: '/cmdb/alerts', label: '告警中心', icon: Bell, resource: 'cmdb_alert', action: 'read', badge: 7 },
+      { href: '/cmdb/instances/2d-view', label: '2D 视图', icon: Grid3x3, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/admin', label: '配置管理', icon: Settings, resource: 'cmdb_model', action: 'update' },
     ],
   },
+
+  // 3. 变更文档
   {
-    label: '流程引擎',
+    label: '变更文档',
+    icon: FileText,
+    resource: 'change_doc',
+    action: 'read',
+    storageKey: 'sidebar_changedoc_v2',
+    defaultOpen: false,
+    children: [
+      { href: '/change-docs', label: '文档列表', icon: FileText, resource: 'change_doc', action: 'read', badge: 42 },
+      { href: '/change-docs/new', label: '新建变更', icon: Edit3, resource: 'change_doc', action: 'create' },
+      { href: '/admin/change-doc-templates', label: '模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
+    ],
+  },
+
+  // 4. 资源管理
+  {
+    label: '资源管理',
+    icon: FolderOpen,
+    resource: 'device',
+    action: 'read',
+    storageKey: 'sidebar_resource_v2',
+    defaultOpen: false,
+    children: [
+      { href: '/devices', label: '设备密码库', icon: KeyRound, resource: 'device', action: 'read' },
+      { href: '/ipam', label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },
+      { href: '/files', label: '共享文档', icon: FolderOpen, resource: 'shared_file', action: 'read' },
+    ],
+  },
+
+  // 5. 流程中心
+  {
+    label: '流程中心',
     icon: GitBranch,
     resource: 'workflow',
     action: 'read',
-    storageKey: 'sidebar_workflow_open',
+    storageKey: 'sidebar_workflow_v2',
     defaultOpen: false,
     children: [
-      { href: '/workflow/admin',  label: '流程管理', icon: GitBranch, resource: 'workflow', action: 'read' },
-      { href: '/workflow/design', label: '流程设计', icon: Edit3,     resource: 'workflow', action: 'configure' },
+      { href: '/workflow/tasks', label: '我的任务', icon: CheckSquare, resource: 'workflow', action: 'read', badge: 12 },
+      { href: '/daily', label: '日报审批', icon: FileText, resource: 'daily_report', action: 'read' },
+      { href: '/workflow/instances', label: '流程实例', icon: GitBranch, resource: 'workflow', action: 'read' },
+      { href: '/workflow/design', label: '流程设计', icon: Edit3, resource: 'workflow', action: 'configure' },
+      { href: '/workflow/admin', label: '流程配置', icon: Settings, resource: 'workflow', action: 'configure' },
     ],
   },
-  // AC7.3: IT 运维工具（默认展开）
+
+  // 6. 报表分析
   {
-    label: 'IT 运维工具',
-    icon: Wrench,
-    resource: 'device',
-    action: 'read',
-    storageKey: 'sidebar_ops_open',
-    defaultOpen: true,
+    label: '报表分析',
+    icon: BarChart2,
+    resource: null,
+    action: null,
+    storageKey: 'sidebar_reports_v2',
+    defaultOpen: false,
     children: [
-      // AC7.5: CMDB 作为子分组，保持原有 7 个子项和 defaultOpen
-      {
-        label: 'CMDB',
-        icon: ServerCog,
-        resource: 'cmdb_model',
-        action: 'read',
-        storageKey: 'sidebar-cmdb',
-        defaultOpen: true,
-        children: [
-          // AC10: 浏览入口（只读目录），管理操作走 /cmdb/admin
-          { href: '/cmdb/models',            label: '模型浏览',  icon: Box,       resource: 'cmdb_model',    action: 'read' },
-          { href: '/cmdb/instances',         label: '实例浏览',  icon: Database,  resource: 'cmdb_instance', action: 'read' },
-          { href: '/cmdb/changes',           label: '变更历史',  icon: History,   resource: 'cmdb_instance', action: 'read' },
-          { href: '/cmdb/alerts',            label: 'CMDB 警告', icon: Bell,      resource: 'cmdb_alert',    action: 'read' },
-          { href: '/cmdb/changes/stats',     label: '统计看板',  icon: BarChart2, resource: 'cmdb_instance', action: 'read' },
-          { href: '/cmdb/instances/2d-view', label: '2D 视图',   icon: Grid3x3,   resource: 'cmdb_instance', action: 'read' },
-          { href: '/cmdb/admin',             label: '配置管理',  icon: Settings,  resource: 'cmdb_model',    action: 'update' },
-        ],
-      },
-      { href: '/devices',     label: '设备密码库', icon: KeyRound,  resource: 'device',       action: 'read' },
-      { href: '/files',       label: '共享文档',   icon: FolderOpen, resource: 'shared_file',  action: 'read' },
-      { href: '/change-docs', label: '变更文档',   icon: FileText,  resource: 'change_doc',   action: 'read' },
-      { href: '/reports',     label: '报表导出',   icon: BarChart2, resource: 'daily_report', action: 'export' },
+      { href: '/reports', label: '综合报表', icon: BarChart2, resource: null, action: null },
+      { href: '/cmdb/changes/stats', label: 'CMDB 统计', icon: BarChart2, resource: 'cmdb_change', action: 'read' },
+      { href: '/workflow/stats', label: '流程统计', icon: BarChart2, resource: 'workflow', action: 'read' },
     ],
   },
-  // AC7.4: 配置（默认折叠）
+
+  // 7. 身份与权限
   {
-    label: '配置',
-    icon: Settings,
+    label: '身份与权限',
+    icon: Shield,
     resource: 'user',
     action: 'read',
-    storageKey: 'sidebar_config_open',
+    storageKey: 'sidebar_identity_v2',
     defaultOpen: false,
     children: [
-      { href: '/users',                      label: '用户管理', icon: Users,        resource: 'user',                action: 'read' },
-      { href: '/groups',                     label: '组管理',   icon: Building2,    resource: 'group',               action: 'read' },
-      { href: '/rbac/roles',                 label: '角色权限', icon: Shield,       resource: 'role',                action: 'read' },
-      { href: '/admin/change-doc-templates', label: '变更模板', icon: FileCode,     resource: 'change_doc_template', action: 'read' },
-      { href: '/admin/config',               label: '系统配置', icon: Settings,     resource: 'notification',        action: 'manage' },
-      { href: '/admin/audit',                label: '审计日志', icon: ClipboardList, resource: 'audit',             action: 'read' },
+      { href: '/users', label: '用户管理', icon: Users, resource: 'user', action: 'read' },
+      { href: '/groups', label: '用户组', icon: Building2, resource: 'group', action: 'read' },
+      { href: '/rbac/roles', label: '角色管理', icon: Shield, resource: 'role', action: 'read' },
+      { href: '/rbac/permissions', label: '权限配置', icon: Shield, resource: 'role', action: 'assign' },
     ],
   },
-  // AC7.6: IP 地址池保持顶层独立（在 CMDB 之外）
-  { href: '/ipam', label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },
+
+  // 8. 系统管理
+  {
+    label: '系统管理',
+    icon: Settings,
+    resource: 'notification',
+    action: 'manage',
+    storageKey: 'sidebar_system_v2',
+    defaultOpen: false,
+    children: [
+      { href: '/admin/config', label: '系统配置', icon: Settings, resource: 'notification', action: 'manage' },
+      { href: '/admin/ai', label: 'AI 配置', icon: Settings, resource: 'notification', action: 'manage' },
+      { href: '/admin/audit', label: '审计日志', icon: ClipboardList, resource: null, action: null },
+      { href: '/notifications', label: '通知中心', icon: Bell, resource: 'notification', action: 'read' },
+    ],
+  },
 ]
 
 function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
@@ -153,11 +194,10 @@ function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) 
   return [value, set]
 }
 
-function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
+function NavGroupItem({ group, pathname, hasPermission }: {
   group: NavGroup
   pathname: string
   hasPermission: (r: string, a: string) => boolean
-  depth?: number
 }) {
   const visibleChildren = group.children.filter(c =>
     !c.resource || !c.action || hasPermission(c.resource, c.action)
@@ -165,65 +205,56 @@ function NavGroupItem({ group, pathname, hasPermission, depth = 0 }: {
   if (visibleChildren.length === 0) return null
 
   const isAnyChildActive = visibleChildren.some(c => {
-    if (isGroup(c)) {
-      return c.children.some(ch => {
-        if (isGroup(ch)) return false
-        const href = (ch as NavItem).href
-        return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?')
-      })
-    }
-    const href = (c as NavItem).href
-    return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?')
+    return pathname === c.href || pathname.startsWith(c.href + '/') || pathname.startsWith(c.href + '?')
   })
 
   const [open, setOpen] = usePersistState(group.storageKey, group.defaultOpen ?? isAnyChildActive)
 
   return (
-    <div>
+    <div className="mb-1">
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'w-full flex items-center gap-3 rounded-md text-sm transition-colors',
-          depth > 0 ? 'px-3 py-1.5' : 'px-3 py-2',
-          isAnyChildActive ? 'text-foreground font-medium hover:bg-muted' : 'hover:bg-muted text-muted-foreground'
+          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          isAnyChildActive
+            ? 'bg-white/10 text-v2-sidebar-fg'
+            : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-v2-sidebar-fg'
         )}
       >
-        <group.icon className={cn('shrink-0', depth > 0 ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+        <group.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
-        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
       </button>
 
       {open && (
-        <div className="ml-3 pl-3 border-l space-y-0.5 mt-0.5">
-          {visibleChildren.map((child) => {
-            if (isGroup(child)) {
-              return (
-                <NavGroupItem
-                  key={child.label}
-                  group={child}
-                  pathname={pathname}
-                  hasPermission={hasPermission}
-                  depth={depth + 1}
-                />
-              )
-            }
-            const item = child as NavItem
-            const isActive = item.href === '/cmdb'
-              ? pathname === '/cmdb'
-              : pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?')
+        <div className="mt-1 space-y-0.5">
+          {visibleChildren.map((item) => {
+            const isActive = pathname === item.href ||
+              pathname.startsWith(item.href + '/') ||
+              pathname.startsWith(item.href + '?')
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors',
+                  'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-3',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                    ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
+                    : 'text-slate-300 hover:bg-white/6 hover:text-white'
                 )}
               >
-                <item.icon className="h-3.5 w-3.5" />
-                {item.label}
+                <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -238,11 +269,22 @@ export function Sidebar() {
   const { hasPermission } = usePermission()
 
   return (
-    <aside className="w-56 border-r bg-background flex flex-col min-h-screen">
-      <div className="p-4 border-b">
-        <span className="font-bold text-lg">IT 运维平台</span>
+    <aside className="w-[280px] bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-hidden">
+      {/* Brand */}
+      <div className="h-[68px] px-5 flex items-center gap-3 border-b border-v2-sidebar-border shrink-0">
+        <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
+        <div className="min-w-0">
+          <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">
+            CWGSYW 平台
+          </div>
+          <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">
+            企业运维与 CMDB 工作台
+          </div>
+        </div>
       </div>
-      <nav className="flex-1 p-2 space-y-1">
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((entry) => {
           if (isGroup(entry)) {
             if (!entry.resource || !entry.action || !hasPermission(entry.resource, entry.action)) return null
@@ -255,23 +297,47 @@ export function Sidebar() {
               />
             )
           }
-          const { href, label, icon: Icon, resource, action } = entry
+
+          const { href, label, icon: Icon, resource, action, badge } = entry
           if (resource && action && !hasPermission(resource, action)) return null
+
+          const isActive = pathname === href
+
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                pathname === href ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
+                  : 'text-slate-300 hover:bg-white/6 hover:text-white'
               )}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <Icon className="h-[18px] w-[18px] shrink-0 opacity-85" />
+              <span className="flex-1 truncate">{label}</span>
+              {badge !== undefined && badge > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
+                  {badge}
+                </span>
+              )}
             </Link>
           )
         })}
       </nav>
+
+      {/* Footer: System Health Card */}
+      <div className="p-3 border-t border-v2-sidebar-border shrink-0">
+        <div className="px-3 py-3 rounded-[14px] bg-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[13px] font-bold text-slate-50">系统健康度</span>
+            <span className="text-[13px] font-mono font-bold text-emerald-300 tabular-nums">94%</span>
+          </div>
+          <p className="text-xs text-v2-sidebar-muted leading-relaxed">
+            设备、IP、CMDB 关系与流程节点均处于可控范围。
+          </p>
+        </div>
+      </div>
     </aside>
   )
 }
