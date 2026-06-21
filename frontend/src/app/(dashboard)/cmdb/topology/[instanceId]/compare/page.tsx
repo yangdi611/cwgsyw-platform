@@ -118,7 +118,7 @@ export default function TopologyComparePage() {
           <span className="font-semibold text-sm">
             {rootNode?.name ?? `#${instanceId}`} 的拓扑对比
           </span>
-          <span className="text-xs text-muted-foreground ml-2">
+          <span className="text-xs text-v2-muted ml-2">
             选择起止日期后开始对比
           </span>
         </div>
@@ -126,11 +126,11 @@ export default function TopologyComparePage() {
 
       {/* Compare controls */}
       <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30 flex-wrap">
-        <span className="text-xs text-muted-foreground">起始日期</span>
+        <span className="text-xs text-v2-muted">起始日期</span>
         <Input type="date" value={fromTime} onChange={e => setFromTime(e.target.value)} className="w-40 h-8" />
-        <span className="text-xs text-muted-foreground">截止日期</span>
+        <span className="text-xs text-v2-muted">截止日期</span>
         <Input type="date" value={toTime} onChange={e => setToTime(e.target.value)} className="w-40 h-8" />
-        <span className="text-xs text-muted-foreground">深度</span>
+        <span className="text-xs text-v2-muted">深度</span>
         <Input
           type="number"
           min={1}
@@ -167,15 +167,15 @@ export default function TopologyComparePage() {
       {/* Graph */}
       <div className="flex-1 overflow-hidden relative">
         {compareQuery.isFetching ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm gap-2">
+          <div className="flex items-center justify-center h-full text-v2-muted text-sm gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />加载中...
           </div>
         ) : compareQuery.isError ? (
-          <div className="flex items-center justify-center h-full text-destructive text-sm">
+          <div className="flex items-center justify-center h-full text-v2-danger text-sm">
             对比失败，请检查时间范围与深度
           </div>
         ) : !graphInput.nodes.length ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+          <div className="flex items-center justify-center h-full text-v2-muted text-sm">
             点击「开始对比」生成差异拓扑
           </div>
         ) : (

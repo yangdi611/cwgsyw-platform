@@ -154,7 +154,7 @@ export default function TopologyPage() {
           <span className="font-semibold text-sm">
             {rootNode?.name ?? `#${instanceId}`} 的拓扑图
           </span>
-          <span className="text-xs text-muted-foreground ml-2">
+          <span className="text-xs text-v2-muted ml-2">
             {nodes.length} 个节点，{edges.length} 条关联
           </span>
         </div>
@@ -174,14 +174,14 @@ export default function TopologyPage() {
 
         {/* Depth selector */}
         <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground mr-1">深度：</span>
+          <span className="text-xs text-v2-muted mr-1">深度：</span>
           {[1, 2, 3].map(d => (
             <button
               key={d}
               onClick={() => setDepth(d)}
               className={cn(
                 'w-7 h-7 rounded text-xs font-medium transition-colors',
-                depth === d ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground',
+                depth === d ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-v2-muted',
               )}
             >
               {d}
@@ -194,13 +194,13 @@ export default function TopologyPage() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-hidden relative">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            <div className="flex items-center justify-center h-full text-v2-muted text-sm">
               加载中...
             </div>
           ) : isError ? (
-            <div className="flex items-center justify-center h-full text-destructive text-sm">加载失败，请刷新重试</div>
+            <div className="flex items-center justify-center h-full text-v2-danger text-sm">加载失败，请刷新重试</div>
           ) : !nodes.length ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            <div className="flex items-center justify-center h-full text-v2-muted text-sm">
               暂无关联数据
             </div>
           ) : (
@@ -221,11 +221,11 @@ export default function TopologyPage() {
           {/* Filter panel */}
           <div className="p-4 border-b">
             <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Filter className="h-4 w-4 text-v2-muted" />
               <h3 className="font-semibold text-sm">过滤</h3>
               {(selectedModels || selectedStatuses) && (
                 <button
-                  className="text-xs text-muted-foreground hover:text-foreground ml-auto"
+                  className="text-xs text-v2-muted hover:text-v2-fg ml-auto"
                   onClick={() => { setSelectedModels(null); setSelectedStatuses(null) }}
                 >
                   重置
@@ -244,7 +244,7 @@ export default function TopologyPage() {
 
             {modelOptions.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs text-muted-foreground mb-1.5">模型类型</p>
+                <p className="text-xs text-v2-muted mb-1.5">模型类型</p>
                 <div className="space-y-1">
                   {modelOptions.map(m => {
                     const checked = (selectedModels ?? new Set(modelOptions.map(x => x.id))).has(m.id)
@@ -261,7 +261,7 @@ export default function TopologyPage() {
 
             {statusOptions.length > 0 && (
               <div>
-                <p className="text-xs text-muted-foreground mb-1.5">状态</p>
+                <p className="text-xs text-v2-muted mb-1.5">状态</p>
                 <div className="space-y-1">
                   {statusOptions.map(s => {
                     const checked = (selectedStatuses ?? new Set(statusOptions.map(x => x.value))).has(s.value)
@@ -276,7 +276,7 @@ export default function TopologyPage() {
               </div>
             )}
 
-            <p className="text-[11px] text-muted-foreground mt-3">
+            <p className="text-[11px] text-v2-muted mt-3">
               未选中的节点将半透明显示，保持拓扑连通性。
             </p>
           </div>
@@ -286,38 +286,38 @@ export default function TopologyPage() {
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm">节点详情</h3>
-                <button onClick={() => setSelectedNode(null)} className="text-muted-foreground hover:text-foreground">
+                <button onClick={() => setSelectedNode(null)} className="text-v2-muted hover:text-v2-fg">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-2 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground">名称</p>
+                  <p className="text-xs text-v2-muted">名称</p>
                   <p className="font-medium">{selectedNode.name}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">模型</p>
+                  <p className="text-xs text-v2-muted">模型</p>
                   <p>{selectedNode.model_name ?? selectedNode.model_id ?? '—'}</p>
                 </div>
                 {selectedNode.status && (
                   <div>
-                    <p className="text-xs text-muted-foreground">状态</p>
+                    <p className="text-xs text-v2-muted">状态</p>
                     <p>{selectedNode.status}</p>
                   </div>
                 )}
                 {selectedNode.owner && (
                   <div>
-                    <p className="text-xs text-muted-foreground">负责人</p>
+                    <p className="text-xs text-v2-muted">负责人</p>
                     <p>{selectedNode.owner}</p>
                   </div>
                 )}
                 {selectedNode.key_attrs && Object.keys(selectedNode.key_attrs).length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground">关键属性</p>
+                    <p className="text-xs text-v2-muted">关键属性</p>
                     <dl className="text-xs space-y-0.5 mt-1">
                       {Object.entries(selectedNode.key_attrs).map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-2">
-                          <dt className="text-muted-foreground font-mono">{k}</dt>
+                          <dt className="text-v2-muted font-mono">{k}</dt>
                           <dd className="truncate">{String(v ?? '—')}</dd>
                         </div>
                       ))}
