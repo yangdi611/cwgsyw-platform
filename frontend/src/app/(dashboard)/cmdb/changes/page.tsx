@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -14,18 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { PageHeader, FilterBar } from '@/components/shared'
 import { JsonDiffView } from '@/components/cmdb/JsonDiffView'
 import { actionMeta, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
-import { ChevronLeft, ChevronRight, ChevronDown, Filter, X, BarChart3 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, X, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+
+type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
 
 interface CiModelVO {
   id: number
@@ -49,7 +45,13 @@ const ACTION_OPTIONS = [
 
 const SIZE_OPTIONS = [20, 50, 100]
 
-/** `YYYY-MM-DD` (local) → ISO timestamp string accepted by the backend. */
+function actionVariant(a: string): StatusVariant {
+  if (a?.includes('create')) return 'ok'
+  if (a?.includes('delete')) return 'danger'
+  if (a?.includes('update')) return 'warn'
+  return 'neutral'
+}
+
 function toIso(date: string, endOfDay = false): string | undefined {
   if (!date) return undefined
   return endOfDay ? `${date}T23:59:59` : `${date}T00:00:00`
@@ -59,7 +61,6 @@ export default function CmdbChangesPage() {
   const router = useRouter()
   const { hasPermission, isHydrated } = usePermission()
 
-  // ── filter state ──
   const [model, setModel] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -107,18 +108,17 @@ export default function CmdbChangesPage() {
             size,
           },
         })
-        .then(r => r.data.data),
+        .then((r) => r.data.data),
     enabled: canRead,
   })
 
   const changes = data?.records ?? []
   const total = data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / size))
 
   const resetPage = () => setPage(1)
 
   const toggleExpand = (id: number) =>
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -137,36 +137,36 @@ export default function CmdbChangesPage() {
   const hasFilters = !!(model || startDate || endDate || operatorId || action)
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">CMDB 变更历史</h1>
-          <p className="text-sm text-muted-foreground mt-1">CI 实例变更审计与字段级 diff 追溯</p>
-        </div>
-        <Link
-          href="/cmdb/changes/stats"
-          className={buttonVariants({ variant: 'outline', size: 'sm' })}
-        >
-          <BarChart3 className="h-4 w-4 mr-1" />变更统计
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="CMDB"
+        title="变更历史"
+        subtitle="CI 实例变更审计与字段级 diff 追溯，点击行展开查看变更前后对比。"
+        actions={
+          <Link
+            href="/cmdb/changes/stats"
+            className="inline-flex items-center gap-2 h-10 px-4 text-sm font-semibold rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+          >
+            <BarChart3 className="h-4 w-4" />
+            变更统计
+          </Link>
+        }
+      />
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 border rounded-lg bg-card/50">
-        <Filter className="h-4 w-4 text-muted-foreground" />
+      <FilterBar>
         <Select
           value={model || '__all__'}
-          onValueChange={v => {
-            setModel(v === '__all__' ? '' : (v ?? ''))
+          onValueChange={(v) => {
+            setModel(v === '__all__' ? '' : v ?? '')
             resetPage()
           }}
         >
-          <SelectTrigger className="w-40 h-9">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="全部模型" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>
-            {(models ?? []).map(m => (
+            {(models ?? []).map((m) => (
               <SelectItem key={m.name} value={m.name}>
                 {m.displayName}
               </SelectItem>
@@ -177,21 +177,21 @@ export default function CmdbChangesPage() {
         <Input
           type="date"
           value={startDate}
-          onChange={e => {
+          onChange={(e) => {
             setStartDate(e.target.value)
             resetPage()
           }}
-          className="w-40 h-9"
+          className="w-40"
         />
-        <span className="text-sm text-muted-foreground">至</span>
+        <span className="text-sm text-v2-muted">至</span>
         <Input
           type="date"
           value={endDate}
-          onChange={e => {
+          onChange={(e) => {
             setEndDate(e.target.value)
             resetPage()
           }}
-          className="w-40 h-9"
+          className="w-40"
         />
 
         <Input
@@ -199,25 +199,25 @@ export default function CmdbChangesPage() {
           inputMode="numeric"
           placeholder="操作人 ID"
           value={operatorId}
-          onChange={e => {
+          onChange={(e) => {
             setOperatorId(e.target.value)
             resetPage()
           }}
-          className="w-32 h-9"
+          className="w-32"
         />
 
         <Select
           value={action || '__all__'}
-          onValueChange={v => {
-            setAction(v === '__all__' ? '' : (v ?? ''))
+          onValueChange={(v) => {
+            setAction(v === '__all__' ? '' : v ?? '')
             resetPage()
           }}
         >
-          <SelectTrigger className="w-32 h-9">
+          <SelectTrigger className="w-32">
             <SelectValue placeholder="全部动作" />
           </SelectTrigger>
           <SelectContent>
-            {ACTION_OPTIONS.map(o => (
+            {ACTION_OPTIONS.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
@@ -226,19 +226,26 @@ export default function CmdbChangesPage() {
         </Select>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-9" onClick={clearFilters}>
-            <X className="h-3.5 w-3.5 mr-1" />清除
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5" />
+            清除
           </Button>
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">每页</span>
-          <Select value={String(size)} onValueChange={v => { setSize(Number(v)); resetPage() }}>
-            <SelectTrigger className="w-20 h-9">
+          <span className="text-xs text-v2-muted">每页</span>
+          <Select
+            value={String(size)}
+            onValueChange={(v) => {
+              setSize(Number(v))
+              resetPage()
+            }}
+          >
+            <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SIZE_OPTIONS.map(s => (
+              {SIZE_OPTIONS.map((s) => (
                 <SelectItem key={s} value={String(s)}>
                   {s}
                 </SelectItem>
@@ -246,110 +253,126 @@ export default function CmdbChangesPage() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </FilterBar>
 
       {/* Table */}
       {isLoading ? (
-        <p className="text-muted-foreground text-sm py-12 text-center">加载中...</p>
+        <p className="py-12 text-center text-sm text-v2-muted">加载中…</p>
       ) : changes.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-12 text-center">暂无变更记录</p>
+        <p className="py-12 text-center text-sm text-v2-muted">暂无变更记录</p>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead className="w-24">操作类型</TableHead>
-                <TableHead className="w-32">操作人</TableHead>
-                <TableHead>变更摘要</TableHead>
-                <TableHead className="w-44">时间</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {changes.map(ch => {
-                const meta = actionMeta(ch.action)
-                const isOpen = expanded.has(ch.id)
-                const changedFields = ch.changedFields ?? []
-                const hasDiff = ch.beforeJson != null || ch.afterJson != null
-                return (
-                  <Fragment key={ch.id}>
-                    <TableRow
-                      className={cn('cursor-pointer hover:bg-muted/40', isOpen && 'border-b-0')}
-                      onClick={() => hasDiff && toggleExpand(ch.id)}
-                    >
-                      <TableCell className="w-10">
-                        {hasDiff ? (
-                          isOpen ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          )
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded border ${meta.cls}`}>
-                          {meta.label}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">{ch.operatorName ?? '系统'}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {ch.summary ?? (ch.afterJson ? JSON.stringify(ch.afterJson).slice(0, 80) : '—')}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(ch.createdAt).toLocaleString('zh-CN')}
-                      </TableCell>
-                    </TableRow>
-                    {isOpen && hasDiff && (
-                      <TableRow className="border-b">
-                        <TableCell colSpan={5} className="bg-muted/20 pt-4 pb-4">
-                          {changedFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              <span className="text-xs text-muted-foreground self-center mr-1">变更字段:</span>
-                              {changedFields.map(f => (
-                                <code
-                                  key={f}
-                                  className="text-[11px] px-1.5 py-0.5 rounded bg-background border text-foreground font-mono"
-                                >
-                                  {f}
-                                </code>
-                              ))}
-                            </div>
-                          )}
-                          <JsonDiffView before={ch.beforeJson} after={ch.afterJson} />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
-                )
-              })}
-            </TableBody>
-          </Table>
+        <div className="overflow-hidden rounded-lg border border-v2-border bg-v2-surface">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-v2-border bg-v2-surface-soft">
+                <tr>
+                  <th className="w-10 px-3 py-2.5" />
+                  <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-v2-muted">
+                    操作类型
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-v2-muted">
+                    操作人
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-v2-muted">
+                    变更摘要
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-v2-muted">
+                    时间
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-v2-border">
+                {changes.map((ch) => {
+                  const meta = actionMeta(ch.action)
+                  const isOpen = expanded.has(ch.id)
+                  const changedFields = ch.changedFields ?? []
+                  const hasDiff = ch.beforeJson != null || ch.afterJson != null
+                  return (
+                    <Fragment key={ch.id}>
+                      <tr
+                        className={cn(
+                          'cursor-pointer hover:bg-v2-surface-hover',
+                          isOpen && 'border-b-0',
+                        )}
+                        onClick={() => hasDiff && toggleExpand(ch.id)}
+                      >
+                        <td className="w-10 px-3 py-2.5">
+                          {hasDiff ? (
+                            isOpen ? (
+                              <ChevronDown className="h-4 w-4 text-v2-muted" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-v2-muted" />
+                            )
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <StatusBadge status={actionVariant(ch.action)}>{meta.label}</StatusBadge>
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-v2-fg">
+                          {ch.operatorName ?? '系统'}
+                        </td>
+                        <td className="px-3 py-2.5 text-v2-muted">
+                          {ch.summary ??
+                            (ch.afterJson ? JSON.stringify(ch.afterJson).slice(0, 80) : '-')}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-xs text-v2-muted">
+                          {new Date(ch.createdAt).toLocaleString('zh-CN')}
+                        </td>
+                      </tr>
+                      {isOpen && hasDiff && (
+                        <tr className="border-b border-v2-border">
+                          <td colSpan={5} className="bg-v2-surface-soft pb-4 pt-4">
+                            {changedFields.length > 0 && (
+                              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                <span className="mr-1 text-xs text-v2-muted">变更字段:</span>
+                                {changedFields.map((f) => (
+                                  <code
+                                    key={f}
+                                    className="rounded border border-v2-border bg-v2-surface px-1.5 py-0.5 font-v2-mono text-[11px] text-v2-fg"
+                                  >
+                                    {f}
+                                  </code>
+                                ))}
+                              </div>
+                            )}
+                            <JsonDiffView before={ch.beforeJson} after={ch.afterJson} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-4">
-        <span className="text-sm text-muted-foreground">
-          共 {total} 条{isFetching && !isLoading ? '（刷新中…）' : ''}
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-v2-muted">
+          共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 条
+          {isFetching && !isLoading ? '（刷新中…）' : ''}
         </span>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
+          <button
+            type="button"
             disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
+            onClick={() => setPage((p) => p - 1)}
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">{page} / {totalPages}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
+          </button>
+          <span className="tabular-nums text-sm text-v2-fg">
+            {page} / {Math.max(1, Math.ceil(total / size))}
+          </span>
+          <button
+            type="button"
+            disabled={page >= Math.ceil(total / size)}
+            onClick={() => setPage((p) => p + 1)}
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>
