@@ -10,6 +10,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("ci_model")
 public class CiModel extends BaseEntity {
+    /** Canonical model code, e.g. "host", "app" — stored in the {@code model_id} column. */
+    @TableField("model_id")
+    private String modelId;
     private String name;
     private String displayName;
     @TableField("group_code")
@@ -19,12 +22,8 @@ public class CiModel extends BaseEntity {
     @TableField("enable_2d_view")
     private Boolean enable2dView;
 
-    /**
-     * Canonical model code (AD-4): the model's {@code name} column carries the
-     * model-code semantics. {@code getModelId()} alias was removed; DTOs keep a
-     * {@code modelId} alias for the compatibility window.
-     */
+    /** Alias kept for callers that refer to the code as "model code". */
     public String getModelCode() {
-        return this.name;
+        return this.modelId;
     }
 }

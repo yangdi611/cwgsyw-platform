@@ -12,6 +12,7 @@ import java.util.List;
 @Data
 public class CiModelVO {
     private Long id;
+    private String modelId;
     private String name;
     private String displayName;
     private String group;

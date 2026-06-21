@@ -85,15 +85,16 @@ public class CiModelService {
 
     @Transactional
     public CiModelVO create(CreateModelRequest req, String tenantId, Long operatorId) {
-        ciModelMapper.findByName(req.getName(), tenantId).ifPresent(m -> {
-            throw new IllegalArgumentException("模型标识已存在: " + req.getName());
+        ciModelMapper.findByName(req.getModelId(), tenantId).ifPresent(m -> {
+            throw new IllegalArgumentException("模型标识已存在: " + req.getModelId());
         });
-        CiModelGroup modelGroup = findModelGroup(req.getGroup(), tenantId);
+        CiModelGroup modelGroup = findModelGroup(req.getGroupCode(), tenantId);
 
         CiModel model = new CiModel();
         model.setTenantId(tenantId);
+        model.setModelId(req.getModelId());
         model.setName(req.getName());
-        model.setDisplayName(req.getDisplayName());
+        model.setDisplayName(req.getName());
         model.setGroupCode(modelGroup.getCode());
         model.setIsBuiltIn(false);
         ciModelMapper.insert(model);
@@ -189,6 +190,7 @@ public class CiModelService {
                            Map<String, String> attrGroupNames, boolean withAttributes) {
         CiModelVO vo = new CiModelVO();
         vo.setId(m.getId());
+        vo.setModelId(m.getModelId());
         vo.setName(m.getName());
         vo.setDisplayName(m.getDisplayName());
         vo.setIsBuiltIn(m.getIsBuiltIn());
