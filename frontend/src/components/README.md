@@ -77,6 +77,12 @@ export function ExamplePage() {
 | `PageHeader` | `PageHeader.tsx` | 页面头部（标题/副标题/眼标/操作按钮） |
 | `FilterBar` | `FilterBar.tsx` | 筛选栏（搜索框 + 筛选标签） |
 | `EmptyState` | `EmptyState.tsx` | 空状态（图标 + 标题 + 描述 + 操作） |
+| `Toolbar` | `Toolbar.tsx` | 工具栏（左右操作组 + 选中提示条） |
+| `DataTable` | `DataTable.tsx` | 数据表格（排序/选择/分页/加载态/空态/错误态） |
+| `DetailDrawer` | `DetailDrawer.tsx` | 详情抽屉（右侧滑出面板，自定义宽度） |
+| `LoadingState` | `LoadingState.tsx` | 加载占位（骨架屏：表格/卡片/列表/详情） |
+| `ErrorState` | `ErrorState.tsx` | 错误展示（图标 + 标题 + 描述 + 重试） |
+| `MetricCard` | `MetricCard.tsx` | 指标卡（数值 + 趋势 + 描述，可交互） |
 
 ### 使用示例
 
@@ -116,13 +122,62 @@ export function ListPage() {
 - 响应式设计
 - 可组合性强
 
-### 待实现组件
+### 完整使用示例
 
-- [ ] `DetailDrawer` - 详情抽屉
-- [ ] `Toolbar` - 工具栏（批量操作）
-- [ ] `DataTable` - 数据表格（支持选择、排序、分页）
-- [ ] `LoadingState` - 加载态（骨架屏）
-- [ ] `ErrorState` - 错误态
+```tsx
+import {
+  PageHeader, FilterBar, FilterChip,
+  Toolbar, DataTable, DetailDrawer,
+  LoadingState, ErrorState, EmptyState,
+  MetricCard,
+} from '@/components/shared'
+import { Button, StatusBadge } from '@/components/v2'
+
+export function CmdbInstancesPage() {
+  const [selected, setSelected] = useState<string[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="CMDB"
+        title="实例管理"
+        actions={<Button variant="primary">新建实例</Button>}
+      />
+
+      <div className="grid grid-cols-4 gap-4">
+        <MetricCard label="总实例数" value="1,247" trend={{ label: "+12 本月", variant: "ok" }} />
+      </div>
+
+      <FilterBar>
+        <FilterChip active>全部</FilterChip>
+        <FilterChip>生产环境</FilterChip>
+      </FilterBar>
+
+      <Toolbar
+        selectedCount={selected.length}
+        onClearSelection={() => setSelected([])}
+        right={<Button variant="secondary">导出</Button>}
+      />
+
+      <DataTable
+        columns={[
+          { key: 'name', label: '名称' },
+          { key: 'status', label: '状态', render: (row) => <StatusBadge status="ok">在线</StatusBadge> },
+        ]}
+        data={instances}
+        selectable
+        onSelectionChange={setSelected}
+        onRowClick={() => setDrawerOpen(true)}
+      />
+
+      <DetailDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="实例详情">
+        {/* 详情内容 */}
+      </DetailDrawer>
+    </div>
+  )
+}
+```
 
 ---
 
