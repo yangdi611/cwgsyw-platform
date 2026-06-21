@@ -31,7 +31,7 @@ public class CiInstanceUniquenessValidator {
             LambdaQueryWrapper<CiInstance> q = new LambdaQueryWrapper<CiInstance>()
                     .eq(CiInstance::getTenantId, tenantId).eq(CiInstance::getModelId, modelId)
                     .eq(CiInstance::getIsDeleted, false)
-                    .apply("fields_data->>'" + attr.getFieldKey() + "' = {0}", value.toString());
+                    .apply("attrs->>'" + attr.getFieldKey() + "' = {0}", value.toString());
             if (excludeId != null) q.ne(CiInstance::getId, excludeId);
             if (ciInstanceMapper.selectCount(q) > 0)
                 throw new IllegalArgumentException("字段 " + attr.getName() + " 的值已存在: " + value);

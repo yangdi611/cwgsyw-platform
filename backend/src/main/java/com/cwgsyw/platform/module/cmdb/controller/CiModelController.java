@@ -31,6 +31,12 @@ public class CiModelController {
         return R.ok(ciModelService.list(keyword, group, page, size, cu.getTenantId()));
     }
 
+    @GetMapping("/code/{modelCode}")
+    @PreAuthorize("hasPermission('cmdb_model', 'read')")
+    public R<CiModelVO> getByCode(@PathVariable String modelCode, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciModelService.getByCode(modelCode, cu.getTenantId()));
+    }
+
     @GetMapping("/{idOrCode}")
     @PreAuthorize("hasPermission('cmdb_model', 'read')")
     public R<CiModelVO> getById(@PathVariable String idOrCode, @AuthenticationPrincipal SecurityUser cu) {

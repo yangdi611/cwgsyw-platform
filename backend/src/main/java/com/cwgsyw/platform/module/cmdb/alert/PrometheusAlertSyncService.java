@@ -176,7 +176,7 @@ public class PrometheusAlertSyncService {
         List<CiInstance> instances = ciInstanceMapper.selectList(
                 new LambdaQueryWrapper<CiInstance>()
                         .eq(CiInstance::getTenantId, tenantId)
-                        .apply("fields_data->>'ip' = {0}", ip));
+                        .apply("attrs->>'ip' = {0}", ip));
         if (!instances.isEmpty()) return instances.get(0).getId();
 
         // Also try matching by name (hostname)
