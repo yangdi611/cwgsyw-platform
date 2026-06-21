@@ -1,4 +1,5 @@
 'use client'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/v2/Card'
@@ -6,173 +7,178 @@ import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { FilterBar, FilterChip } from '@/components/shared/FilterBar'
 import { useState } from 'react'
+import api from '@/lib/api'
 import {
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  AlertTriangle,
+  Database,
   FileText,
   CheckSquare,
-  Activity,
-  Database,
-  Server,
   Shield,
-  Settings,
 } from 'lucide-react'
 
-// 模拟数据 - 实际应从 API 获取
-const metrics = [
-  {
-    label: '待处理审批',
-    value: 18,
-    trend: '+5 超时',
-    trendType: 'warn' as const,
-    description: '流程中心、变更文档和日报审批合计。',
-    href: '/workflow/tasks',
-  },
-  {
-    label: 'CMDB 告警',
-    value: 7,
-    trend: '2 高危',
-    trendType: 'danger' as const,
-    description: '包含模型缺失、关系异常和影响链路风险。',
-    href: '/cmdb/alerts',
-  },
-  {
-    label: '本周变更文档',
-    value: 42,
-    trend: '76% 完成',
-    trendType: 'ok' as const,
-    description: '16 项需要补充影响分析或回滚方案。',
-    href: '/change-docs',
-  },
-  {
-    label: '资源健康度',
-    value: '94%',
-    trend: '稳定',
-    trendType: 'ok' as const,
-    description: '设备凭证、IP 占用、文件关联完整性。',
-    href: '/reports',
-  },
-]
+// 轻量 API 包装：失败时返回空，避免首页因单个接口故障白屏
+async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined> {
+  try {
+    return (await p).data.data
+  } catch {
+    return undefined
+  }
+}
 
-const recentItems = [
-  {
-    id: 1,
-    name: '核心数据库实例依赖变更',
-    code: 'CI-DB-PRD-0821',
-    type: 'CMDB 影响分析',
-    owner: '运维组',
-    status: 'danger' as const,
-    statusLabel: '高风险',
-    time: '10 分钟前',
-    href: '/cmdb/instances/by-model/host/821',
-  },
-  {
-    id: 2,
-    name: '生产网络设备密码轮换',
-    code: 'DEV-NET-0094',
-    type: '设备密码库',
-    owner: '安全组',
-    status: 'warn' as const,
-    statusLabel: '待审批',
-    time: '36 分钟前',
-    href: '/devices/94',
-  },
-  {
-    id: 3,
-    name: '应用发布流程模板更新',
-    code: 'TPL-CHANGE-014',
-    type: '变更模板',
-    owner: '平台组',
-    status: 'ok' as const,
-    statusLabel: '已更新',
-    time: '2 小时前',
-    href: '/admin/change-doc-templates/14',
-  },
-  {
-    id: 4,
-    name: 'IP 地址池冲突确认',
-    code: 'IPAM-10.24.16.0/24',
-    type: '资源管理',
-    owner: '网络组',
-    status: 'warn' as const,
-    statusLabel: '需确认',
-    time: '3 小时前',
-    href: '/ipam/1',
-  },
-]
+interface TaskVO {
+  task_id: string
+  task_name: string
+  business_type: string
+  create_time: string
+}
+interface AlertVO {
+  id: number
+  severity: string
+  status: string
+  alert_name: string
+  ci_instance_name: string | null
+  starts_at: string | null
+  summary: string | null
+}
+interface ChangeDocVO {
+  id: number
+  changeNo: string
+  status: string
+  templateName: string
+  applicantName: string
+  createdAt: string
+}
+interface ChangeRecordVO {
+  id: number
+  action: string
+  summary: string | null
+  operatorName: string | null
+  createdAt: string
+}
 
-const myTasks = [
-  {
-    id: 1,
-    title: '审批：应用发布变更单',
-    description: '流程中心 · SLA 剩余 3 小时 · 关联 6 个 CI',
-    status: 'warn' as const,
-    statusLabel: '待处理',
-    progress: 72,
-    href: '/workflow/tasks',
-  },
-  {
-    id: 2,
-    title: '补充：CI 关联关系说明',
-    description: 'CMDB · 影响分析缺失 · 生产环境',
-    status: 'danger' as const,
-    statusLabel: '高优先级',
-    progress: 88,
-    href: '/cmdb/instances',
-  },
-  {
-    id: 3,
-    title: '确认：IP 地址池冲突处理',
-    description: '资源管理 · 2 个冲突段 · 网络组',
-    status: 'neutral' as const,
-    statusLabel: '待确认',
-    progress: 42,
-    href: '/ipam',
-  },
-]
+function timeAgo(iso: string): string {
+  if (!iso) return '-'
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return '刚刚'
+  if (m < 60) return `${m} 分钟前`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} 小时前`
+  return `${Math.floor(h / 24)} 天前`
+}
 
-const quickLinks = [
-  {
-    title: 'CMDB 实例管理',
-    description: '查询、筛选、维护实例，并从详情抽屉查看拓扑、告警和变更历史。',
-    icon: Database,
-    href: '/cmdb/instances',
-  },
-  {
-    title: '变更文档',
-    description: '基于模板新建变更，补充影响分析、审批记录和回滚方案。',
-    icon: FileText,
-    href: '/change-docs/new',
-  },
-  {
-    title: '流程任务',
-    description: '集中处理审批、转派、驳回、评论和流程实例追踪。',
-    icon: CheckSquare,
-    href: '/workflow/tasks',
-  },
-  {
-    title: '身份与权限',
-    description: '管理用户、用户组、角色和权限矩阵，降低配置分散感。',
-    icon: Shield,
-    href: '/users',
-  },
-]
+function actionLabel(a: string): string {
+  if (a?.includes('create')) return '创建'
+  if (a?.includes('delete')) return '删除'
+  if (a?.includes('update')) return '更新'
+  return a || '操作'
+}
 
 export default function DashboardPage() {
   const [filter, setFilter] = useState('all')
+
+  const { data: tasks } = useQuery<TaskVO[] | undefined>({
+    queryKey: ['workflow-tasks'],
+    queryFn: () => safe(api.get('/workflow/tasks/group')),
+  })
+  const { data: alertsData } = useQuery<{ records: AlertVO[]; total: number } | undefined>({
+    queryKey: ['cmdb-alerts-dashboard'],
+    queryFn: () => safe(api.get('/cmdb/alerts', { params: { page: 1, size: 5 } })),
+  })
+  const { data: docs } = useQuery<ChangeDocVO[] | undefined>({
+    queryKey: ['change-docs-dashboard'],
+    queryFn: () => safe(api.get('/change-docs')),
+  })
+  const { data: changesData } = useQuery<{ records: ChangeRecordVO[]; total: number } | undefined>({
+    queryKey: ['cmdb-changes-dashboard'],
+    queryFn: () => safe(api.get('/cmdb/changes', { params: { page: 1, size: 6 } })),
+  })
+
+  const pendingTasks = tasks ?? []
+  const alerts = alertsData?.records ?? []
+  const firingAlerts = alerts.filter((a) => a.status !== 'resolved')
+  const docsList = docs ?? []
+  const pendingDocs = docsList.filter((d) => d.status === 'pending')
+  const recentChanges = changesData?.records ?? []
+
+  const metrics = [
+    {
+      label: '待处理审批',
+      value: pendingTasks.length,
+      trend: pendingTasks.length > 0 ? '待处理' : '已清空',
+      trendType: pendingTasks.length > 0 ? ('warn' as const) : ('ok' as const),
+      description: '流程中心分配给你的审批任务。',
+      href: '/workflow/tasks',
+    },
+    {
+      label: 'CMDB 告警',
+      value: firingAlerts.length,
+      trend: firingAlerts.some((a) => a.severity === 'critical') ? '含严重' : '监控中',
+      trendType: firingAlerts.some((a) => a.severity === 'critical')
+        ? ('danger' as const)
+        : ('ok' as const),
+      description: 'Prometheus 同步的未恢复告警。',
+      href: '/cmdb/alerts',
+    },
+    {
+      label: '变更文档',
+      value: docsList.length,
+      trend: `${pendingDocs.length} 待审批`,
+      trendType: pendingDocs.length > 0 ? ('warn' as const) : ('ok' as const),
+      description: '全部变更申请单，含草稿与已归档。',
+      href: '/change-docs',
+    },
+    {
+      label: '近期变更',
+      value: changesData?.total ?? 0,
+      trend: 'CMDB 审计',
+      trendType: 'neutral' as const,
+      description: 'CI 实例的创建/更新/删除记录总数。',
+      href: '/cmdb/changes',
+    },
+  ]
+
+  const quickLinks = [
+    {
+      title: 'CMDB 实例管理',
+      description: '查询、筛选、维护实例，并从详情抽屉查看拓扑、告警和变更历史。',
+      icon: Database,
+      href: '/cmdb/instances',
+    },
+    {
+      title: '变更文档',
+      description: '基于模板新建变更，补充影响分析、审批记录和回滚方案。',
+      icon: FileText,
+      href: '/change-docs/new',
+    },
+    {
+      title: '流程任务',
+      description: '集中处理审批、转派、驳回、评论和流程实例追踪。',
+      icon: CheckSquare,
+      href: '/workflow/tasks',
+    },
+    {
+      title: '身份与权限',
+      description: '管理用户、用户组、角色和权限矩阵，降低配置分散感。',
+      icon: Shield,
+      href: '/users',
+    },
+  ]
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Operations Command Center"
         title="企业运维工作台"
-        subtitle="面向企业用户的统一入口：集中处理审批、CMDB 风险、变更文档、资源状态和系统通知；桌面端充分利用宽度，移动端保留核心任务闭环。"
+        subtitle="集中处理审批、CMDB 风险、变更文档与近期变更；数据来自后端实时接口。"
         actions={
           <>
-            <Button variant="secondary">查看全部待办</Button>
-            <Button variant="primary">发起流程</Button>
+            <Button variant="secondary" onClick={() => (window.location.href = '/workflow/tasks')}>
+              查看全部待办
+            </Button>
+            <Button variant="primary" onClick={() => (window.location.href = '/change-docs/new')}>
+              发起变更
+            </Button>
           </>
         }
       />
@@ -181,10 +187,7 @@ export default function DashboardPage() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((metric) => (
           <Link key={metric.label} href={metric.href}>
-            <Card
-              hover
-              className="h-full cursor-pointer"
-            >
+            <Card hover className="h-full cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-semibold text-v2-muted">{metric.label}</span>
@@ -193,136 +196,122 @@ export default function DashboardPage() {
                 <div className="text-3xl font-bold text-v2-fg font-v2-mono mb-2">
                   {metric.value}
                 </div>
-                <p className="text-xs text-v2-muted leading-relaxed">
-                  {metric.description}
-                </p>
+                <p className="text-xs text-v2-muted leading-relaxed">{metric.description}</p>
               </CardContent>
             </Card>
           </Link>
         ))}
       </section>
 
-      {/* 主工作区：近期关键事项 + 我的任务 */}
+      {/* 主工作区：近期变更 + 我的任务 */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_0.55fr] gap-4">
-        {/* 近期关键事项表格 */}
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle>近期关键事项</CardTitle>
-                <p className="text-sm text-v2-muted mt-1">
-                  优先展示需要企业用户立即判断或处理的事项。
-                </p>
+                <CardTitle>近期 CMDB 变更</CardTitle>
+                <p className="text-sm text-v2-muted mt-1">实例的创建、更新、删除审计记录。</p>
               </div>
               <FilterBar>
                 <FilterChip active={filter === 'all'} onClick={() => setFilter('all')}>
                   全部
                 </FilterChip>
-                <FilterChip active={filter === 'high'} onClick={() => setFilter('high')}>
-                  高风险
+                <FilterChip active={filter === 'create'} onClick={() => setFilter('create')}>
+                  创建
                 </FilterChip>
-                <FilterChip active={filter === 'approval'} onClick={() => setFilter('approval')}>
-                  待审批
+                <FilterChip active={filter === 'update'} onClick={() => setFilter('update')}>
+                  更新
                 </FilterChip>
-                <FilterChip active={filter === 'cmdb'} onClick={() => setFilter('cmdb')}>
-                  CMDB
+                <FilterChip active={filter === 'delete'} onClick={() => setFilter('delete')}>
+                  删除
                 </FilterChip>
               </FilterBar>
             </div>
           </CardHeader>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-v2-surface-soft">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    对象
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    类型
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    负责人
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    状态
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    更新时间
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-v2-border hover:bg-v2-surface-hover transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div>
-                        <div className="text-sm font-semibold text-v2-fg">{item.name}</div>
-                        <div className="text-xs text-v2-muted font-v2-mono mt-0.5">{item.code}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-v2-fg">{item.type}</td>
-                    <td className="px-4 py-3 text-sm text-v2-fg">{item.owner}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={item.status}>{item.statusLabel}</StatusBadge>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-v2-muted">{item.time}</td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={item.href}
-                        className="text-sm font-bold text-v2-primary hover:text-v2-primary-hover"
+            {recentChanges.length === 0 ? (
+              <p className="px-6 py-12 text-center text-sm text-v2-muted">暂无变更记录</p>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-v2-surface-soft">
+                  <tr>
+                    {['动作', '摘要', '操作人', '时间', '操作'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider"
                       >
-                        查看详情
-                      </Link>
-                    </td>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentChanges
+                    .filter((c) => filter === 'all' || c.action?.includes(filter))
+                    .map((c) => {
+                      const isCreate = c.action?.includes('create')
+                      const isDelete = c.action?.includes('delete')
+                      const variant = isCreate ? 'ok' : isDelete ? 'danger' : 'warn'
+                      return (
+                        <tr
+                          key={c.id}
+                          className="border-b border-v2-border hover:bg-v2-surface-hover transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <StatusBadge status={variant as 'ok' | 'warn' | 'danger'}>
+                              {actionLabel(c.action)}
+                            </StatusBadge>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-v2-fg max-w-xs truncate">
+                            {c.summary || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-v2-fg">{c.operatorName || '系统'}</td>
+                          <td className="px-4 py-3 text-sm text-v2-muted whitespace-nowrap">
+                            {timeAgo(c.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href="/cmdb/changes"
+                              className="text-sm font-bold text-v2-primary hover:text-v2-primary-hover"
+                            >
+                              查看
+                            </Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            )}
           </div>
         </Card>
 
-        {/* 我的任务面板 */}
+        {/* 待办任务面板 */}
         <Card>
           <CardHeader>
-            <CardTitle>我的任务</CardTitle>
-            <p className="text-sm text-v2-muted mt-1">按 SLA 和业务影响排序。</p>
+            <CardTitle>待处理审批</CardTitle>
+            <p className="text-sm text-v2-muted mt-1">来自流程中心的待办任务。</p>
           </CardHeader>
           <div className="divide-y divide-v2-border">
-            {myTasks.map((task) => (
-              <Link
-                key={task.id}
-                href={task.href}
-                className="block px-6 py-4 hover:bg-v2-surface-hover transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-v2-fg leading-snug mb-1">
-                      {task.title}
-                    </div>
-                    <div className="text-xs text-v2-muted leading-relaxed">
-                      {task.description}
-                    </div>
+            {pendingTasks.length === 0 ? (
+              <p className="px-6 py-12 text-center text-sm text-v2-muted">暂无待处理任务</p>
+            ) : (
+              pendingTasks.slice(0, 6).map((t) => (
+                <Link
+                  key={t.task_id}
+                  href="/workflow/tasks"
+                  className="block px-6 py-4 hover:bg-v2-surface-hover transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <div className="text-sm font-bold text-v2-fg leading-snug">{t.task_name}</div>
+                    <StatusBadge status="warn">待处理</StatusBadge>
                   </div>
-                  <StatusBadge status={task.status} className="shrink-0">
-                    {task.statusLabel}
-                  </StatusBadge>
-                </div>
-                {/* Progress Bar */}
-                <div className="h-1.5 rounded-full bg-v2-surface-soft overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-v2-primary to-teal-500"
-                    style={{ width: `${task.progress}%` }}
-                    aria-label={`SLA 剩余进度 ${task.progress}%`}
-                  />
-                </div>
-              </Link>
-            ))}
+                  <div className="text-xs text-v2-muted">
+                    {t.business_type} · {timeAgo(t.create_time)}
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </Card>
       </div>
@@ -331,9 +320,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>常用业务入口</CardTitle>
-          <p className="text-sm text-v2-muted mt-1">
-            不是装饰卡片，而是企业用户日常最高频的任务入口。
-          </p>
+          <p className="text-sm text-v2-muted mt-1">企业用户日常最高频的任务入口。</p>
         </CardHeader>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -345,9 +332,7 @@ export default function DashboardPage() {
               >
                 <link.icon className="h-5 w-5 text-v2-primary mb-2" />
                 <div className="text-sm font-bold text-v2-fg mb-1">{link.title}</div>
-                <p className="text-xs text-v2-muted leading-relaxed mb-3">
-                  {link.description}
-                </p>
+                <p className="text-xs text-v2-muted leading-relaxed mb-3">{link.description}</p>
                 <div className="text-xs font-bold text-v2-primary flex items-center gap-1 group-hover:gap-2 transition-all">
                   进入模块 <ArrowRight className="h-3 w-3" />
                 </div>
