@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CWGSYW 平台重构线框 - App Shell</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --fg: #172033;
+      --muted: #667085;
+      --border: #e4e7ec;
+      --primary: #2454d6;
+      --success: #079455;
+      --warning: #dc6803;
+      --danger: #d92d20;
+      --sidebar: #101828;
+      --sidebar-muted: #98a2b3;
+      --sidebar-active: #1d2939;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 272px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      color: white;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #14b8a6);
+    }
+
+    .nav-section {
+      display: grid;
+      gap: 4px;
+    }
+
+    .nav-title {
+      padding: 12px 10px 6px;
+      font-size: 11px;
+      color: var(--sidebar-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-item {
+      height: 36px;
+      border-radius: 8px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #d0d5dd;
+      font-size: 14px;
+    }
+
+    .nav-item.active {
+      background: var(--sidebar-active);
+      color: white;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: .8;
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 64px minmax(0, 1fr);
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      gap: 20px;
+    }
+
+    .breadcrumbs {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .search {
+      flex: 1;
+      max-width: 560px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .button {
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+
+    .button.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+    }
+
+    .content {
+      min-width: 0;
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) 380px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .table th,
+    .table td {
+      border-bottom: 1px solid var(--border);
+      padding: 12px 10px;
+      text-align: left;
+    }
+
+    .table th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--surface-2);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      border-radius: 999px;
+      padding: 0 8px;
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+
+    .status.ok { color: var(--success); background: #ecfdf3; border-color: #abefc6; }
+    .status.warn { color: var(--warning); background: #fffaeb; border-color: #fedf89; }
+    .status.danger { color: var(--danger); background: #fef3f2; border-color: #fecdca; }
+
+    .task {
+      display: grid;
+      gap: 6px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .task:last-child { border-bottom: 0; }
+
+    .task-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .task-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 76px minmax(0, 1fr); }
+      .brand span, .nav-title, .nav-item span { display: none; }
+      .nav-item { justify-content: center; }
+      .workspace { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .topbar { padding: 0 16px; }
+      .search { display: none; }
+      .content { padding: 18px; }
+      .page-header { display: grid; }
+      .metrics { grid-template-columns: 1fr; }
+      .table, .table tbody, .table tr, .table td { display: block; }
+      .table thead { display: none; }
+      .table tr { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: white; }
+      .table td { border: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <span>CWGSYW 平台</span>
+      </div>
+
+      <nav class="nav-section">
+        <div class="nav-title">核心工作</div>
+        <div class="nav-item active"><span class="dot"></span><span>工作台</span></div>
+        <div class="nav-item"><span class="dot"></span><span>CMDB</span></div>
+        <div class="nav-item"><span class="dot"></span><span>变更文档</span></div>
+        <div class="nav-item"><span class="dot"></span><span>流程中心</span></div>
+      </nav>
+
+      <nav class="nav-section">
+        <div class="nav-title">资源与分析</div>
+        <div class="nav-item"><span class="dot"></span><span>资源管理</span></div>
+        <div class="nav-item"><span class="dot"></span><span>报表分析</span></div>
+      </nav>
+
+      <nav class="nav-section">
+        <div class="nav-title">系统</div>
+        <div class="nav-item"><span class="dot"></span><span>身份与权限</span></div>
+        <div class="nav-item"><span class="dot"></span><span>系统管理</span></div>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumbs">工作台 / 运营总览</div>
+        <div class="search">搜索 CI、变更单、设备、流程实例…</div>
+        <div class="top-actions">
+          <button class="button">通知</button>
+          <button class="button primary">新建变更</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="page-header">
+          <div>
+            <h1>企业运维工作台</h1>
+            <div class="subtitle">集中查看 CMDB 风险、流程待办、变更文档和资源状态。</div>
+          </div>
+          <button class="button">导出今日概览</button>
+        </div>
+
+        <div class="metrics">
+          <div class="card">
+            <div class="metric-label">待处理审批</div>
+            <div class="metric-value">18</div>
+            <div class="metric-note">其中 5 项超过 24 小时</div>
+          </div>
+          <div class="card">
+            <div class="metric-label">CMDB 告警</div>
+            <div class="metric-value">7</div>
+            <div class="metric-note">2 项高风险关联影响</div>
+          </div>
+          <div class="card">
+            <div class="metric-label">本周变更文档</div>
+            <div class="metric-value">42</div>
+            <div class="metric-note">16 项待补充影响分析</div>
+          </div>
+          <div class="card">
+            <div class="metric-label">资源健康度</div>
+            <div class="metric-value">94%</div>
+            <div class="metric-note">设备、IP、文件关联完整性</div>
+          </div>
+        </div>
+
+        <div class="workspace">
+          <div class="card">
+            <div class="panel-title">近期关键事项</div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>对象</th>
+                  <th>类型</th>
+                  <th>负责人</th>
+                  <th>状态</th>
+                  <th>更新时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>核心数据库实例依赖变更</td>
+                  <td>CMDB 影响分析</td>
+                  <td>运维组</td>
+                  <td><span class="status danger">高风险</span></td>
+                  <td>10 分钟前</td>
+                </tr>
+                <tr>
+                  <td>生产网络设备密码轮换</td>
+                  <td>设备密码库</td>
+                  <td>安全组</td>
+                  <td><span class="status warn">待审批</span></td>
+                  <td>36 分钟前</td>
+                </tr>
+                <tr>
+                  <td>变更模板：应用发布流程</td>
+                  <td>变更文档</td>
+                  <td>平台组</td>
+                  <td><span class="status ok">已更新</span></td>
+                  <td>2 小时前</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <aside class="card">
+            <div class="panel-title">我的任务</div>
+            <div class="task">
+              <div class="task-title">审批：应用发布变更单</div>
+              <div class="task-meta">流程中心 · SLA 剩余 3 小时</div>
+            </div>
+            <div class="task">
+              <div class="task-title">补充：CI 关联关系说明</div>
+              <div class="task-meta">CMDB · 影响分析缺失</div>
+            </div>
+            <div class="task">
+              <div class="task-title">确认：IP 地址池冲突处理</div>
+              <div class="task-meta">资源管理 · 2 个冲突段</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
