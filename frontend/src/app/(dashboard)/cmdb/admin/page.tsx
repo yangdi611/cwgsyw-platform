@@ -121,7 +121,7 @@ function ModelsTab() {
     queryFn: async () => {
       try {
         const r = await api.get('/cmdb/models')
-        return r.data.data
+        return r.data.data.records
       } catch {
         return []
       }
@@ -237,7 +237,7 @@ function AssociationsTab() {
     queryFn: async () => {
       try {
         const r = await api.get('/cmdb/models')
-        return r.data.data
+        return r.data.data.records
       } catch {
         return []
       }
