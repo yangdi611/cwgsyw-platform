@@ -3,14 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/v2/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
+import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
-import { Download, Sparkles } from 'lucide-react'
+import { ArrowLeft, Download, Sparkles, Save, Send, Check, X } from 'lucide-react'
 import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
 
 interface FieldConfigVO {
@@ -50,11 +51,14 @@ interface LinkedCiInstanceVO {
   impactLevel?: string
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  draft:    { label: '草稿',   variant: 'secondary' },
-  pending:  { label: '待审批', variant: 'default' },
-  approved: { label: '已通过', variant: 'outline' },
-  rejected: { label: '已拒绝', variant: 'destructive' },
+type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
+
+function statusMeta(s: string): { variant: StatusVariant; label: string } {
+  if (s === 'draft') return { variant: 'neutral', label: '草稿' }
+  if (s === 'pending') return { variant: 'warn', label: '待审批' }
+  if (s === 'approved') return { variant: 'ok', label: '已通过' }
+  if (s === 'rejected') return { variant: 'danger', label: '已拒绝' }
+  return { variant: 'neutral', label: s || '未知' }
 }
 
 export default function ChangeDocDetailPage() {
@@ -65,7 +69,7 @@ export default function ChangeDocDetailPage() {
 
   const { data: doc, isLoading } = useQuery<ChangeDocVO>({
     queryKey: ['change-doc', id],
-    queryFn: () => api.get(`/change-docs/${id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/change-docs/${id}`).then((r) => r.data.data),
     enabled: hasPermission('change_doc', 'read'),
   })
 
@@ -85,10 +89,10 @@ export default function ChangeDocDetailPage() {
 
   const isDraft = doc?.status === 'draft'
   const isPending = doc?.status === 'pending'
-  const st = doc ? (STATUS_MAP[doc.status] ?? { label: doc.status, variant: 'secondary' as const }) : null
 
-  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setFieldsData(f => ({ ...f, [key]: e.target.value }))
+  const setField =
+    (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setFieldsData((f) => ({ ...f, [key]: e.target.value }))
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/change-docs/${id}`, { fieldsData }),
@@ -110,7 +114,8 @@ export default function ChangeDocDetailPage() {
   })
 
   const approveMutation = useMutation({
-    mutationFn: (approved: boolean) => api.post(`/change-docs/${id}/approve`, { approved, comment: approveComment }),
+    mutationFn: (approved: boolean) =>
+      api.post(`/change-docs/${id}/approve`, { approved, comment: approveComment }),
     onSuccess: (_data, approved) => {
       toast.success(approved ? '已审批通过' : '已拒绝')
       queryClient.invalidateQueries({ queryKey: ['change-doc', id] })
@@ -119,22 +124,23 @@ export default function ChangeDocDetailPage() {
     onError: () => toast.error('操作失败'),
   })
 
-  // ─── CI instance links ──────────────────────────────────────────────────
   const { data: ciLinksData } = useQuery<LinkedCiInstanceVO[]>({
     queryKey: ['change-doc-ci-links', id],
-    queryFn: () => api.get(`/change-docs/${id}/ci-links`).then(r => r.data.data),
+    queryFn: () => api.get(`/change-docs/${id}/ci-links`).then((r) => r.data.data),
     enabled: hasPermission('change_doc', 'read'),
   })
 
   const [linkedCiItems, setLinkedCiItems] = useState<Array<CiLinkItem>>([])
 
   useEffect(() => {
-    setLinkedCiItems((ciLinksData ?? []).map(c => ({
-      instanceId: c.id,
-      instanceName: c.name,
-      modelName: c.modelName,
-      impactLevel: c.impactLevel,
-    })))
+    setLinkedCiItems(
+      (ciLinksData ?? []).map((c) => ({
+        instanceId: c.id,
+        instanceName: c.name,
+        modelName: c.modelName,
+        impactLevel: c.impactLevel,
+      })),
+    )
   }, [ciLinksData])
 
   const addLinkMutation = useMutation({
@@ -160,7 +166,6 @@ export default function ChangeDocDetailPage() {
 
   const updateImpactMutation = useMutation({
     mutationFn: async (vars: { instanceId: number; impactLevel?: string }) => {
-      // Remove then re-add to persist the new impact level
       await api.delete(`/change-docs/${id}/ci-links/${vars.instanceId}`)
       await api.post(`/change-docs/${id}/ci-links`, {
         links: [{ instanceId: vars.instanceId, impactLevel: vars.impactLevel }],
@@ -176,20 +181,18 @@ export default function ChangeDocDetailPage() {
   const handleCiLinksChange = (newItems: Array<CiLinkItem>) => {
     const prev = linkedCiItems
     if (newItems.length > prev.length) {
-      // An item was added
-      const added = newItems.find(n => !prev.some(p => p.instanceId === n.instanceId))
+      const added = newItems.find((n) => !prev.some((p) => p.instanceId === n.instanceId))
       if (added) addLinkMutation.mutate({ instanceId: added.instanceId, impactLevel: added.impactLevel })
     } else if (newItems.length < prev.length) {
-      // An item was removed
-      const removed = prev.find(p => !newItems.some(n => n.instanceId === p.instanceId))
+      const removed = prev.find((p) => !newItems.some((n) => n.instanceId === p.instanceId))
       if (removed) removeLinkMutation.mutate(removed.instanceId)
     } else {
-      // Same length → an impact level changed
-      const changed = newItems.find(n => {
-        const p = prev.find(pp => pp.instanceId === n.instanceId)
+      const changed = newItems.find((n) => {
+        const p = prev.find((pp) => pp.instanceId === n.instanceId)
         return p && p.impactLevel !== n.impactLevel
       })
-      if (changed) updateImpactMutation.mutate({ instanceId: changed.instanceId, impactLevel: changed.impactLevel })
+      if (changed)
+        updateImpactMutation.mutate({ instanceId: changed.instanceId, impactLevel: changed.impactLevel })
     }
   }
 
@@ -198,7 +201,7 @@ export default function ChangeDocDetailPage() {
     try {
       const res = await api.post(`/change-docs/${id}/ai-generate`, { fieldKey })
       const generated = res.data.data as string
-      setFieldsData(f => ({ ...f, [fieldKey]: generated }))
+      setFieldsData((f) => ({ ...f, [fieldKey]: generated }))
       toast.success('AI 内容已生成，请审阅后保存')
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
@@ -225,144 +228,226 @@ export default function ChangeDocDetailPage() {
     }
   }
 
-  const visibleFields = (doc?.fieldConfig ?? []).filter(f => f.in_form).sort((a, b) => a.sort_order - b.sort_order)
+  const visibleFields = (doc?.fieldConfig ?? [])
+    .filter((f) => f.in_form)
+    .sort((a, b) => a.sort_order - b.sort_order)
 
-  if (isLoading) return <p className="text-muted-foreground text-sm">加载中...</p>
-  if (!doc) return <p className="text-muted-foreground text-sm">文档不存在</p>
+  if (isLoading) return <p className="text-sm text-v2-muted">加载中…</p>
+  if (!doc) return <p className="text-sm text-v2-muted">文档不存在</p>
+
+  const st = statusMeta(doc.status)
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>← 返回</Button>
-        <h1 className="text-xl font-bold flex-1">{doc.changeNo}</h1>
-        <span className="text-sm text-muted-foreground">{doc.templateName}</span>
-        {st && <Badge variant={st.variant}>{st.label}</Badge>}
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* Title bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回
+          </button>
+          <div>
+            <h1 className="font-v2-mono text-xl font-bold text-v2-fg">{doc.changeNo}</h1>
+            <p className="text-sm text-v2-muted">{doc.templateName}</p>
+          </div>
+        </div>
+        <StatusBadge status={st.variant}>{st.label}</StatusBadge>
       </div>
 
-      <div className="space-y-6">
-        {/* Meta info */}
-        <section className="border rounded-lg p-5">
-          <h2 className="font-semibold text-base mb-3">基本信息</h2>
+      {/* Meta info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">基本信息</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><span className="text-muted-foreground">申请人：</span>{doc.applicantName}</div>
-            <div><span className="text-muted-foreground">申请时间：</span>{doc.applyTime}</div>
+            <div>
+              <span className="text-v2-muted">申请人：</span>
+              <span className="text-v2-fg">{doc.applicantName}</span>
+            </div>
+            <div>
+              <span className="text-v2-muted">申请时间：</span>
+              <span className="text-v2-fg">{doc.applyTime}</span>
+            </div>
           </div>
-        </section>
+        </CardContent>
+      </Card>
 
-        {/* Dynamic fields */}
-        {visibleFields.length > 0 ? (
-          <section className="border rounded-lg p-5">
-            <h2 className="font-semibold text-base mb-4">变更内容</h2>
-            <div className="space-y-4">
-              {visibleFields.map(field => {
-                const value = fieldsData[field.field_key] ?? ''
-                const isTextarea = field.field_type === 'textarea'
-                return (
-                  <div key={field.field_key} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label>{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</Label>
-                      {isDraft && isTextarea && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={() => handleAiGenerate(field.field_key)}
-                          disabled={aiLoadingField === field.field_key}
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          {aiLoadingField === field.field_key ? 'AI 生成中...' : 'AI 生成'}
-                        </Button>
-                      )}
-                    </div>
-                    {isDraft ? (
-                      isTextarea ? (
-                        <Textarea
-                          value={value}
-                          onChange={setField(field.field_key)}
-                          placeholder={field.placeholder ?? undefined}
-                          rows={4}
-                        />
-                      ) : field.field_type === 'date' ? (
-                        <Input type="date" value={value} onChange={setField(field.field_key)} />
-                      ) : field.field_type === 'datetime' ? (
-                        <Input type="datetime-local" value={value} onChange={setField(field.field_key)} />
-                      ) : (
-                        <Input value={value} onChange={setField(field.field_key)} placeholder={field.placeholder ?? undefined} />
-                      )
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{value || '—'}</p>
+      {/* Dynamic fields */}
+      {visibleFields.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">变更内容</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {visibleFields.map((field) => {
+              const value = fieldsData[field.field_key] ?? ''
+              const isTextarea = field.field_type === 'textarea'
+              return (
+                <div key={field.field_key} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {field.label}
+                      {field.required && <span className="ml-1 text-v2-danger">*</span>}
+                    </Label>
+                    {isDraft && isTextarea && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleAiGenerate(field.field_key)}
+                        disabled={aiLoadingField === field.field_key}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        {aiLoadingField === field.field_key ? 'AI 生成中…' : 'AI 生成'}
+                      </Button>
                     )}
                   </div>
-                )
-              })}
-            </div>
-          </section>
-        ) : (
-          <section className="border rounded-lg p-5">
-            <p className="text-sm text-muted-foreground">此文档无字段配置（旧数据或模板未配置字段）</p>
-          </section>
-        )}
+                  {isDraft ? (
+                    isTextarea ? (
+                      <Textarea
+                        value={value}
+                        onChange={setField(field.field_key)}
+                        placeholder={field.placeholder ?? undefined}
+                        rows={4}
+                      />
+                    ) : field.field_type === 'date' ? (
+                      <Input type="date" value={value} onChange={setField(field.field_key)} />
+                    ) : field.field_type === 'datetime' ? (
+                      <Input type="datetime-local" value={value} onChange={setField(field.field_key)} />
+                    ) : (
+                      <Input
+                        value={value}
+                        onChange={setField(field.field_key)}
+                        placeholder={field.placeholder ?? undefined}
+                      />
+                    )
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm text-v2-fg">{value || '—'}</p>
+                  )}
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent>
+            <p className="text-sm text-v2-muted">此文档无字段配置（旧数据或模板未配置字段）</p>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Linked CI instances */}
-        <section className="border rounded-lg p-5">
-          <h2 className="font-semibold text-base mb-3">关联 CI 实例</h2>
+      {/* Linked CI instances */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">关联 CI 实例</CardTitle>
+        </CardHeader>
+        <CardContent>
           <CiLinkSelector
             value={linkedCiItems}
             onChange={handleCiLinksChange}
             disabled={!hasPermission('change_doc', 'update')}
           />
-        </section>
+        </CardContent>
+      </Card>
 
-        {/* Approval result */}
-        {(doc.status === 'approved' || doc.status === 'rejected') && (
-          <section className="border rounded-lg p-5">
-            <h2 className="font-semibold text-base mb-3">审批结果</h2>
+      {/* Approval result */}
+      {(doc.status === 'approved' || doc.status === 'rejected') && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">审批结果</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">审批人：</span>{doc.approverName}</div>
-              <div><span className="text-muted-foreground">审批时间：</span>{doc.approvedAt}</div>
+              <div>
+                <span className="text-v2-muted">审批人：</span>
+                <span className="text-v2-fg">{doc.approverName}</span>
+              </div>
+              <div>
+                <span className="text-v2-muted">审批时间：</span>
+                <span className="text-v2-fg">{doc.approvedAt}</span>
+              </div>
             </div>
             {doc.approverComment && (
-              <p className="text-sm mt-2"><span className="text-muted-foreground">意见：</span>{doc.approverComment}</p>
+              <p className="mt-2 text-sm">
+                <span className="text-v2-muted">意见：</span>
+                <span className="text-v2-fg">{doc.approverComment}</span>
+              </p>
             )}
-          </section>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Action bar */}
-        <div className="flex gap-2 flex-wrap">
+      {/* Action bar */}
+      <Card>
+        <CardContent className="flex flex-wrap gap-2">
           {isDraft && (
             <>
               {hasPermission('change_doc', 'update') && (
-                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
+                <Button
+                  variant="primary"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                >
+                  <Save className="h-4 w-4" />
+                  保存
+                </Button>
               )}
-              <Button variant="outline" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>提交审批</Button>
+              <Button
+                variant="secondary"
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+              >
+                <Send className="h-4 w-4" />
+                提交审批
+              </Button>
             </>
           )}
           {isPending && hasPermission('change_doc', 'approve') && (
             <>
-              <div className="flex items-center gap-2 w-full">
-                <Input
-                  placeholder="审批意见（可选）"
-                  value={approveComment}
-                  onChange={e => setApproveComment(e.target.value)}
-                  className="max-w-xs"
-                />
-              </div>
-              <Button onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending}>审批通过</Button>
-              <Button variant="destructive" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending}>拒绝</Button>
+              <Input
+                placeholder="审批意见（可选）"
+                value={approveComment}
+                onChange={(e) => setApproveComment(e.target.value)}
+                className="max-w-xs flex-1"
+              />
+              <Button
+                variant="primary"
+                onClick={() => approveMutation.mutate(true)}
+                disabled={approveMutation.isPending}
+              >
+                <Check className="h-4 w-4" />
+                审批通过
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => approveMutation.mutate(false)}
+                disabled={approveMutation.isPending}
+              >
+                <X className="h-4 w-4" />
+                拒绝
+              </Button>
             </>
           )}
           {doc.status === 'approved' && (
             <>
-              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} disabled={exporting}>
-                <Download className="h-4 w-4 mr-1" />导出 PDF
+              <Button variant="secondary" size="sm" onClick={() => handleExport('pdf')} disabled={exporting}>
+                <Download className="h-4 w-4" />
+                导出 PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExport('docx')} disabled={exporting}>
-                <Download className="h-4 w-4 mr-1" />导出 Word
+              <Button variant="secondary" size="sm" onClick={() => handleExport('docx')} disabled={exporting}>
+                <Download className="h-4 w-4" />
+                导出 Word
               </Button>
             </>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
