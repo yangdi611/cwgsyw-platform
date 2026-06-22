@@ -37,6 +37,9 @@ type NavItem = {
   resource: string | null
   action: string | null
   badge?: number
+  /** 精确匹配 pathname（不走 startsWith 前缀）。用于根路径项如 /cmdb 概览，
+   *  避免 /cmdb/* 任意子页都把它点亮。 */
+  exact?: boolean
 }
 
 type NavGroup = {
@@ -76,7 +79,7 @@ const navItems: NavEntry[] = [
     storageKey: 'sidebar_cmdb_v2',
     defaultOpen: true,
     children: [
-      { href: '/cmdb', label: '概览', icon: LayoutDashboard, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb', label: '概览', icon: LayoutDashboard, resource: 'cmdb_instance', action: 'read', exact: true },
       { href: '/cmdb/instances', label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
       { href: '/cmdb/models', label: '模型管理', icon: Box, resource: 'cmdb_model', action: 'read' },
       { href: '/cmdb/changes', label: '变更记录', icon: History, resource: 'cmdb_change', action: 'read' },
@@ -233,9 +236,11 @@ function NavGroupItem({ group, pathname, hasPermission }: {
       {open && (
         <div className="mt-1 space-y-0.5">
           {visibleChildren.map((item) => {
-            const isActive = pathname === item.href ||
-              pathname.startsWith(item.href + '/') ||
-              pathname.startsWith(item.href + '?')
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href ||
+                pathname.startsWith(item.href + '/') ||
+                pathname.startsWith(item.href + '?')
 
             return (
               <Link
