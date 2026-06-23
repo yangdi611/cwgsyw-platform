@@ -67,7 +67,7 @@ public class CiInstanceCommandService {
         inst.setName(req.getName());
         inst.setStatus(req.getStatus() != null ? req.getStatus() : "online");
         inst.setOwner(req.getOwner()); inst.setDescription(req.getDescription());
-        inst.setFieldsData(req.getFieldsData());
+        inst.setFieldsData(stripReservedKeys(req.getFieldsData()));
         ciInstanceMapper.insert(inst);
 
         writeAudit(tenantId, "create_instance", inst.getId(), "ci_instance",
@@ -93,7 +93,7 @@ public class CiInstanceCommandService {
             Map<String, Object> merged = new LinkedHashMap<>();
             if (inst.getFieldsData() != null) merged.putAll(inst.getFieldsData());
             merged.putAll(req.getFieldsData());
-            inst.setFieldsData(merged);
+            inst.setFieldsData(stripReservedKeys(merged));
 
             List<CiAttribute> attrs = ciAttributeMapper.listByModel(inst.getModelId(), tenantId);
             schemaValidator.validate(inst.getFieldsData(), attrs);
@@ -135,6 +135,24 @@ public class CiInstanceCommandService {
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Strip reserved keys (prefix '_') from a fieldsData map before persisting.
+     * These keys are reserved for server-computed derived fields injected by
+     * read-side aggregation (see CiInstanceQueryService); clients must not
+     * round-trip them on save. User-defined attribute keys cannot start with
+     * '_' (regex {@code ^[a-z][a-z0-9_]*$}), so this filter is safe.
+     */
+    private Map<String, Object> stripReservedKeys(Map<String, Object> data) {
+        if (data == null) return null;
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : data.entrySet()) {
+            if (e.getKey() != null && !e.getKey().startsWith("_")) {
+                out.put(e.getKey(), e.getValue());
+            }
+        }
+        return out;
+    }
 
     private CiModel loadModel(String modelCode, String tenantId) {
         return ciModelMapper.findByName(modelCode, tenantId)

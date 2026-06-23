@@ -12,6 +12,7 @@ import { InstanceTopologyTab } from '@/components/cmdb/InstanceTopologyTab'
 import { InstanceChangeHistoryTab } from '@/components/cmdb/InstanceChangeHistoryTab'
 import { InstanceAlertsTab } from '@/components/cmdb/InstanceAlertsTab'
 import { InstanceResourcesTab } from '@/components/cmdb/InstanceResourcesTab'
+import { ResourcePoolCapacityCard } from '@/components/cmdb/ResourcePoolCapacityCard'
 import { cn } from '@/lib/utils'
 
 interface CiAttributeVO {
@@ -145,8 +146,15 @@ export default function InstanceDetailPage() {
       </div>
 
       {/* Tab content */}
-      <div>
-        {tab === 'basic' && <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />}
+      <div className="space-y-6">
+        {tab === 'basic' && (
+          <>
+            {inst.modelId === 'resource_pool' && (
+              <ResourcePoolCapacityCard fieldsData={inst.fieldsData ?? {}} />
+            )}
+            <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />
+          </>
+        )}
         {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
         {tab === 'topology' && <InstanceTopologyTab id={id} />}
         {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}

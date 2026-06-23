@@ -17,7 +17,7 @@ import { PageHeader } from '@/components/shared'
 import Link from 'next/link'
 import {
   Plus, Settings, Server, Database, Network, Box, ArrowRight,
-  Trash2, PencilLine, RefreshCw,
+  Trash2, PencilLine, RefreshCw, ChevronDown,
 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -26,7 +26,8 @@ interface CiModelVO {
   modelId: string
   name: string
   icon: string
-  group_code: string
+  group: string
+  groupName?: string
   description: string
   isBuiltIn: boolean
   is_paused: boolean
@@ -71,12 +72,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_model', 'update')) router.replace('/cmdb')
+    if (!hasPermission('cmdb_model', 'read')) router.replace('/cmdb')
   }, [isHydrated, hasPermission, router])
 
   return (
     <div className="max-w-5xl space-y-6">
-      <PageHeader eyebrow="CMDB" title="配置管理" subtitle="管理 CI 模型、模型分类、属性分组与关联定义。" />
+      <PageHeader eyebrow="CMDB" title="模型管理" subtitle="管理 CI 模型、属性、关联定义与分类配置。" />
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b mb-6">
@@ -177,7 +178,7 @@ function ModelsTab() {
   })
 
   const grouped = models.reduce((acc, m) => {
-    const key = m.group_code || '未分类'
+    const key = m.group || '未分类'
     if (!acc[key]) acc[key] = []
     acc[key].push(m)
     return acc
@@ -232,7 +233,7 @@ function ModelsTab() {
         <div className="space-y-6">
           {Object.entries(grouped).map(([group, groupModels]) => (
             <div key={group}>
-              <h2 className="text-sm font-medium text-muted-foreground mb-3">{group}</h2>
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">{groupModels[0]?.groupName || group}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {groupModels.map(model => {
                   const Icon = ICON_MAP[model.icon] ?? Box
@@ -952,11 +953,22 @@ interface ModelGroupVO {
 }
 
 function ModelGroupsTab() {
+  const { hasPermission } = usePermission()
+  const canWrite = hasPermission('cmdb_model', 'update')
   const queryClient = useQueryClient()
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ code: '', name: '', icon: '', sortOrder: 0 })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState({ name: '', icon: '', sortOrder: 0 })
+  const [openGroupId, setOpenGroupId] = useState<number | null>(null)
+
+  const { data: models = [] } = useQuery<CiModelVO[]>({
+    queryKey: ['cmdb-models'],
+    queryFn: async () => {
+      try { return (await api.get('/cmdb/models')).data.data.records } catch { return [] }
+    },
+    enabled: typeof window !== 'undefined',
+  })
 
   const { data: groups = [], isLoading } = useQuery<ModelGroupVO[]>({
     queryKey: ['cmdb-model-groups'],
@@ -1005,9 +1017,11 @@ function ModelGroupsTab() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">管理模型分类（如 主机管理 / 应用管理）。新建模型时从这里选择所属分类。</p>
-        <Button size="sm" onClick={() => setCreating(c => !c)}>
-          <Plus className="h-4 w-4 mr-1" />新建分类
-        </Button>
+        {canWrite && (
+          <Button size="sm" onClick={() => setCreating(c => !c)}>
+            <Plus className="h-4 w-4 mr-1" />新建分类
+          </Button>
+        )}
       </div>
 
       {creating && (
@@ -1065,25 +1079,80 @@ function ModelGroupsTab() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                <>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOpenGroupId(id => id === g.id ? null : g.id)}
+                      className="flex-1 min-w-0 flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                          openGroupId === g.id && 'rotate-180'
+                        )}
+                      />
                       <span className="font-medium text-sm">{g.name}</span>
                       <code className="text-xs text-muted-foreground">{g.code}</code>
                       {g.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
                       <Badge variant="outline" className="text-xs">{g.modelCount} 模型</Badge>
+                    </button>
+                    {canWrite && (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, icon: g.icon ?? '', sortOrder: g.sortOrder }) }}>
+                          <PencilLine className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost"
+                          disabled={g.isBuiltIn || g.modelCount > 0}
+                          title={g.isBuiltIn ? '内置不可删除' : g.modelCount > 0 ? '分组下尚有模型' : ''}
+                          onClick={() => { if (confirm(`确认删除分类 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateRows: openGroupId === g.id ? '1fr' : '0fr',
+                      transition: 'grid-template-rows 200ms ease',
+                    }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="pt-3 pl-6">
+                        {(() => {
+                          const groupModels = models.filter(m => (m.group || '') === g.code)
+                          if (groupModels.length === 0) return <p className="text-xs text-muted-foreground py-2">该分类下暂无模型</p>
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                              {groupModels.map(m => {
+                                const Icon = ICON_MAP[m.icon] ?? Box
+                                return (
+                                  <Link
+                                    key={m.modelId}
+                                    href={`/cmdb/instances/by-model/${m.modelId}`}
+                                    className="border rounded-md p-2.5 flex items-center gap-2 hover:bg-muted/50 transition-colors min-w-0"
+                                  >
+                                    <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
+                                      <Icon className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-medium truncate">{m.name}</span>
+                                        {m.isBuiltIn && <Badge variant="secondary" className="text-[10px] px-1 py-0">内置</Badge>}
+                                      </div>
+                                      <p className="text-[11px] text-muted-foreground font-mono truncate">{m.modelId}</p>
+                                    </div>
+                                  </Link>
+                                )
+                              })}
+                            </div>
+                          )
+                        })()}
+                      </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, icon: g.icon ?? '', sortOrder: g.sortOrder }) }}>
-                    <PencilLine className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost"
-                    disabled={g.isBuiltIn || g.modelCount > 0}
-                    title={g.isBuiltIn ? '内置不可删除' : g.modelCount > 0 ? '分组下尚有模型' : ''}
-                    onClick={() => { if (confirm(`确认删除分类 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+                </>
               )}
             </div>
           ))}
@@ -1107,6 +1176,8 @@ interface AttributeGroupVO {
 }
 
 function AttributeGroupsTab() {
+  const { hasPermission } = usePermission()
+  const canWrite = hasPermission('cmdb_model', 'update')
   const queryClient = useQueryClient()
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [creating, setCreating] = useState(false)
@@ -1183,7 +1254,7 @@ function AttributeGroupsTab() {
             ))}
           </SelectContent>
         </Select>
-        {selectedModel && (
+        {selectedModel && canWrite && (
           <Button size="sm" onClick={() => setCreating(c => !c)} className="ml-auto">
             <Plus className="h-4 w-4 mr-1" />新建分组
           </Button>
@@ -1254,15 +1325,19 @@ function AttributeGroupsTab() {
                           <Badge variant="outline" className="text-xs">{g.attributeCount} 属性</Badge>
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder }) }}>
-                        <PencilLine className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost"
-                        disabled={g.attributeCount > 0}
-                        title={g.attributeCount > 0 ? '分组下尚有属性' : ''}
-                        onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {canWrite && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                            <PencilLine className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost"
+                            disabled={g.attributeCount > 0}
+                            title={g.attributeCount > 0 ? '分组下尚有属性' : ''}
+                            onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
