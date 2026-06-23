@@ -51,19 +51,19 @@ public class CiInstanceCommandService {
 
         LambdaQueryWrapper<CiInstance> nameCheck = new LambdaQueryWrapper<CiInstance>()
                 .eq(CiInstance::getTenantId, tenantId)
-                .eq(CiInstance::getModelId, model.getName())
+                .eq(CiInstance::getModelId, model.getModelId())
                 .eq(CiInstance::getName, req.getName())
                 .eq(CiInstance::getIsDeleted, false);
         if (ciInstanceMapper.selectCount(nameCheck) > 0) {
             throw new IllegalArgumentException("同模型下实例名称已存在: " + req.getName());
         }
 
-        List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getName(), tenantId);
+        List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getModelId(), tenantId);
         schemaValidator.validate(req.getFieldsData(), attrs);
-        uniquenessValidator.validate(req.getFieldsData(), attrs, tenantId, model.getName(), null);
+        uniquenessValidator.validate(req.getFieldsData(), attrs, tenantId, model.getModelId(), null);
 
         CiInstance inst = new CiInstance();
-        inst.setTenantId(tenantId); inst.setModelId(model.getName());
+        inst.setTenantId(tenantId); inst.setModelId(model.getModelId());
         inst.setName(req.getName());
         inst.setStatus(req.getStatus() != null ? req.getStatus() : "online");
         inst.setOwner(req.getOwner()); inst.setDescription(req.getDescription());

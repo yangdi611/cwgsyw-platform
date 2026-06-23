@@ -24,6 +24,7 @@ import { Search, Grid3x3, ArrowRight, GitBranch, FileText } from 'lucide-react'
 // 浏览页 /cmdb/instances/by-model/[modelCode]。
 interface CiModelVO {
   id: number
+  modelId: string
   name: string
   displayName: string
   group: string
@@ -149,7 +150,7 @@ export default function CmdbInstancesPage() {
 
   // Translate field key → label via model attributes
   const getAttrLabel = (modelId: string, key: string): string => {
-    const m = models.find((x) => x.name === modelId)
+    const m = models.find((x) => x.modelId === modelId)
     const attr = m?.attributes?.find((a: any) => (a.property ?? a.id) === key)
     return attr?.displayName ?? attr?.name ?? key
   }
@@ -221,12 +222,14 @@ export default function CmdbInstancesPage() {
           }}
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="全部模型" />
+            <SelectValue>
+              {model ? models.find((m) => m.modelId === model)?.displayName ?? model : '全部模型'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>
             {models.map((m) => (
-              <SelectItem key={m.name} value={m.name}>
+              <SelectItem key={m.modelId} value={m.modelId}>
                 {m.displayName}
               </SelectItem>
             ))}
@@ -254,7 +257,11 @@ export default function CmdbInstancesPage() {
           }}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="全部状态" />
+            <SelectValue>
+              {status
+                ? statusMeta(status).label
+                : '全部状态'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部状态</SelectItem>

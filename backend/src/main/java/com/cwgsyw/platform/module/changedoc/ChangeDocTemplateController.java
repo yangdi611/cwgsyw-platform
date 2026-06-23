@@ -21,8 +21,10 @@ public class ChangeDocTemplateController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('change_doc_template:read')")
-    public R<List<TemplateVO>> list(@AuthenticationPrincipal SecurityUser user) {
-        return R.ok(templateService.listTemplates(user.getTenantId()));
+    public R<List<TemplateVO>> list(
+            @RequestParam(required = false) String docType,
+            @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(templateService.listTemplates(user.getTenantId(), docType));
     }
 
     @GetMapping("/{id}")
@@ -36,8 +38,18 @@ public class ChangeDocTemplateController {
     public R<TemplateVO> create(
             @RequestParam String name,
             @RequestParam(required = false) String description,
+            @RequestParam(required = false, defaultValue = "general") String docType,
             @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(templateService.createTemplate(user.getTenantId(), user.getUserId(), name, description));
+        return R.ok(templateService.createTemplate(user.getTenantId(), user.getUserId(), name, description, docType));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('change_doc_template:write')")
+    public R<TemplateVO> updateMeta(
+            @PathVariable Long id,
+            @RequestBody UpdateTemplateRequest req,
+            @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(templateService.updateMeta(user.getTenantId(), id, req));
     }
 
     @PostMapping(value = "/{id}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

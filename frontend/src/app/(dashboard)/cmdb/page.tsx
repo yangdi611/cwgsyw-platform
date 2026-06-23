@@ -18,6 +18,7 @@ async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined
 }
 
 interface CiModelVO {
+  modelId: string
   name: string
   displayName: string
   groupName: string
@@ -28,6 +29,8 @@ interface SearchHitVO {
   name: string
   model_id: string
   model_name: string
+  /** 后端返回的命中片段（属性值匹配时，如 "inner_ip: 10.0.0.1"）。 */
+  snippet?: string | null
 }
 interface RecentInstanceVO {
   id: number
@@ -52,9 +55,9 @@ function timeAgo(iso: string): string {
 export default function CmdbOverviewPage() {
   const [keyword, setKeyword] = useState('')
 
-  const { data: models } = useQuery<CiModelVO[] | undefined>({
+  const { data: modelsData } = useQuery<{ records: CiModelVO[]; total: number } | undefined>({
     queryKey: ['cmdb-models-overview'],
-    queryFn: () => safe(api.get('/cmdb/models')),
+    queryFn: () => safe(api.get('/cmdb/models', { params: { size: 100 } })),
   })
   const { data: searchRes } = useQuery<{ records: SearchHitVO[] } | undefined>({
     queryKey: ['cmdb-instances-search-overview', keyword],
@@ -66,7 +69,7 @@ export default function CmdbOverviewPage() {
     queryFn: () => safe(api.get('/cmdb/instances', { params: { page: 1, size: 20 } })),
   })
 
-  const modelList = models ?? []
+  const modelList = modelsData?.records ?? []
   const searchHits = searchRes?.records ?? []
   const recent = (recentData?.records ?? [])
     .slice()
@@ -88,7 +91,7 @@ export default function CmdbOverviewPage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-v2-muted" />
             <Input
               className="pl-9"
-              placeholder="搜索 CI 名称（跨全部模型）…"
+              placeholder="搜索 CI 名称、IP 或属性…"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
@@ -108,7 +111,14 @@ export default function CmdbOverviewPage() {
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-v2-fg">{hit.name}</div>
-                        <div className="truncate text-xs text-v2-muted">{hit.model_name}</div>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span className="truncate text-xs text-v2-muted">{hit.model_name}</span>
+                          {hit.snippet && (
+                            <span className="shrink-0 truncate rounded bg-v2-primary/10 px-1.5 py-0.5 text-[11px] font-mono text-v2-primary font-v2-mono">
+                              {hit.snippet}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <ArrowRight className="h-4 w-4 shrink-0 text-v2-muted" />
                     </Link>
@@ -131,8 +141,8 @@ export default function CmdbOverviewPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {modelList.map((m) => (
               <Link
-                key={m.name}
-                href={`/cmdb/instances/by-model/${m.name}`}
+                key={m.modelId}
+                href={`/cmdb/instances/by-model/${m.modelId}`}
                 className="group rounded-v2-md border border-v2-border bg-v2-surface p-4 hover:border-v2-primary-border hover:shadow-v2-md transition-all"
               >
                 <div className="text-3xl font-bold tabular-nums text-v2-fg font-v2-mono">

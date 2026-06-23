@@ -25,6 +25,7 @@ type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
 
 interface CiModelVO {
   id: number
+  modelId: string
   name: string
   displayName: string
 }
@@ -167,7 +168,7 @@ export default function CmdbChangesPage() {
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>
             {(models ?? []).map((m) => (
-              <SelectItem key={m.name} value={m.name}>
+              <SelectItem key={m.modelId} value={m.modelId}>
                 {m.displayName}
               </SelectItem>
             ))}

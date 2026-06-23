@@ -34,6 +34,7 @@ public class CiFieldSchemaValidator {
                 throw new IllegalArgumentException("必填字段缺失: " + attr.getName());
             }
             if (value == null) continue;
+            if (value instanceof String s && s.isBlank()) continue;
             validateFieldType(attr.getName(), attr.getFieldType(), attr.getOption(), value);
         }
     }
@@ -77,12 +78,20 @@ public class CiFieldSchemaValidator {
                     throw new IllegalArgumentException("字段 " + name + " 应为字符串类型");
             }
             case "int" -> {
-                if (!(value instanceof Number))
-                    throw new IllegalArgumentException("字段 " + name + " 应为整数类型");
+                if (value instanceof Number) break;
+                if (value instanceof String s) {
+                    try { Long.parseLong(s.trim()); break; }
+                    catch (NumberFormatException ignored) {}
+                }
+                throw new IllegalArgumentException("字段 " + name + " 应为整数");
             }
             case "float" -> {
-                if (!(value instanceof Number))
-                    throw new IllegalArgumentException("字段 " + name + " 应为浮点类型");
+                if (value instanceof Number) break;
+                if (value instanceof String s) {
+                    try { Double.parseDouble(s.trim()); break; }
+                    catch (NumberFormatException ignored) {}
+                }
+                throw new IllegalArgumentException("字段 " + name + " 应为浮点数");
             }
             case "bool" -> {
                 if (!(value instanceof Boolean))

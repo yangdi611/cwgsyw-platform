@@ -4,10 +4,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/v2/Button'
-import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
+import { PageHeader, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Plus, Trash2, Eye, Upload, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 
@@ -17,8 +17,12 @@ interface CiInstanceVO {
   modelCode?: string
   displayName?: string
   name: string
+  status?: string
+  owner?: string
+  description?: string
   fieldsData: Record<string, unknown>
   createdAt: string
+  updatedAt?: string
 }
 
 interface PageResult {
@@ -30,7 +34,7 @@ interface PageResult {
 
 interface CiModelVO {
   name: string
-  attributes: { fieldKey: string; name: string; isListShow: boolean; fieldType: string }[]
+  attributes: { fieldKey: string; name: string; isListShow: boolean; isDrawerShow: boolean; fieldType: string }[]
 }
 
 export default function InstanceListPage() {
@@ -40,6 +44,7 @@ export default function InstanceListPage() {
   const queryClient = useQueryClient()
 
   const [csvOpen, setCsvOpen] = useState(false)
+  const [selected, setSelected] = useState<CiInstanceVO | null>(null)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -76,6 +81,7 @@ export default function InstanceListPage() {
   })
 
   const listColumns = (model?.attributes ?? []).filter((a) => a.isListShow).slice(0, 5)
+  const drawerColumns = (model?.attributes ?? []).filter((a) => a.isDrawerShow)
   const instances = result?.records ?? []
 
   const columns = useMemo<ColumnDef<CiInstanceVO>[]>(() => {
@@ -111,20 +117,14 @@ export default function InstanceListPage() {
         align: 'right' as const,
         render: (r) => (
           <div className="flex items-center justify-end gap-1">
-            <Link
-              href={`/cmdb/instances/by-model/${modelCode}/${r.id}`}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-              title="查看"
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Link>
             {hasPermission('cmdb_instance', 'delete') && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 px-0 text-v2-danger"
                 title="删除"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   if (confirm('删除此实例?')) deleteMutation.mutate(r.id)
                 }}
               >
@@ -148,11 +148,11 @@ export default function InstanceListPage() {
         actions={
           <>
             <Link
-              href={`/cmdb/admin/models/${modelCode}`}
+              href="/cmdb/instances"
               className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              返回模型
+              返回 CI 资源
             </Link>
             {hasPermission('cmdb_instance', 'import') && (
               <Button variant="secondary" onClick={() => setCsvOpen(true)}>
@@ -175,10 +175,120 @@ export default function InstanceListPage() {
         data={instances}
         rowKey={(r) => r.id}
         loading={isLoading}
+        onRowClick={(r) => setSelected(r)}
         empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
       />
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={modelCode} />
+
+      {/* Detail Drawer — click a row to preview */}
+      <DetailDrawer
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        width={640}
+        title={selected?.name ?? (selected ? `#${selected.id}` : '')}
+        subtitle={
+          selected ? (
+            <span className="text-xs text-v2-muted font-mono">{selected.modelId}</span>
+          ) : undefined
+        }
+        footer={
+          selected ? (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
+              >
+                <GitBranch className="h-4 w-4" />
+                查看拓扑
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() =>
+                  router.push(`/cmdb/instances/by-model/${modelCode}/${selected.id}`)
+                }
+              >
+                <FileText className="h-4 w-4" />
+                完整详情
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : undefined
+        }
+      >
+        {selected && (
+          <div className="space-y-5">
+            {selected.description && (
+              <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
+                <div className="text-xs font-semibold text-v2-muted mb-1">描述</div>
+                <p className="text-sm text-v2-fg leading-relaxed">{selected.description}</p>
+              </div>
+            )}
+
+            <div>
+              <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
+                基本信息
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <InfoItem label="实例 ID" value={String(selected.id)} mono />
+                <InfoItem label="状态" value={selected.status ?? '-'} />
+                <InfoItem label="负责人" value={selected.owner || '-'} />
+                <InfoItem
+                  label="创建时间"
+                  value={new Date(selected.createdAt).toLocaleString('zh-CN')}
+                />
+                {selected.updatedAt && (
+                  <InfoItem
+                    label="更新时间"
+                    value={new Date(selected.updatedAt).toLocaleString('zh-CN')}
+                  />
+                )}
+              </dl>
+            </div>
+
+            {drawerColumns.length > 0 && (
+              <div>
+                <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
+                  关键属性
+                </div>
+                <dl className="space-y-2.5">
+                  {drawerColumns.map((col) => {
+                    const v = selected.fieldsData?.[col.fieldKey]
+                    const display =
+                      v === null || v === undefined || v === ''
+                        ? '-'
+                        : Array.isArray(v)
+                          ? v.join(', ')
+                          : typeof v === 'object'
+                            ? JSON.stringify(v)
+                            : String(v)
+                    return (
+                      <div
+                        key={col.fieldKey}
+                        className="flex items-start justify-between gap-3 text-sm"
+                      >
+                        <dt className="shrink-0 text-v2-muted">{col.name}</dt>
+                        <dd className="text-right break-all text-v2-fg">{display}</dd>
+                      </div>
+                    )
+                  })}
+                </dl>
+              </div>
+            )}
+          </div>
+        )}
+      </DetailDrawer>
+    </div>
+  )
+}
+
+function InfoItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs text-v2-muted mb-0.5">{label}</dt>
+      <dd className={`text-sm text-v2-fg ${mono ? 'font-mono' : ''}`}>{value}</dd>
     </div>
   )
 }

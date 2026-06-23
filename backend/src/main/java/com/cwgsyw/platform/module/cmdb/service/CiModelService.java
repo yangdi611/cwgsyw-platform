@@ -33,6 +33,7 @@ public class CiModelService {
     private final CiAttributeGroupMapper ciAttributeGroupMapper;
     private final CiInstanceMapper ciInstanceMapper;
     private final AuditLogMapper auditLogMapper;
+    private final CiAssociationDefService ciAssociationDefService;
     private final ObjectMapper objectMapper;
 
     public PageResult<CiModelVO> list(String keyword, String group, int page, int size,
@@ -128,7 +129,7 @@ public class CiModelService {
         if (Boolean.TRUE.equals(model.getIsBuiltIn())) {
             throw new IllegalStateException("内置模型不可删除");
         }
-        long instanceCount = ciInstanceMapper.countByModel(model.getName(), tenantId);
+        long instanceCount = ciInstanceMapper.countByModel(model.getModelId(), tenantId);
         if (instanceCount > 0) {
             throw new IllegalStateException("模型下存在 " + instanceCount + " 个实例，无法删除");
         }
@@ -140,7 +141,7 @@ public class CiModelService {
         // @TableLogic fields are skipped by updateById — deleteById flips is_deleted
         ciModelMapper.deleteById(id);
 
-        List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getName(), tenantId);
+        List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getModelId(), tenantId);
         for (CiAttribute attr : attrs) {
             attr.setDeletedAt(LocalDateTime.now());
             attr.setDeletedBy(operatorId);
@@ -212,17 +213,17 @@ public class CiModelService {
             }
         }
 
-        long count = ciInstanceMapper.countByModel(m.getName(), m.getTenantId());
+        long count = ciInstanceMapper.countByModel(m.getModelId(), m.getTenantId());
         vo.setInstanceCount((int) count);
 
         if (withAttributes) {
-            List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getName(), m.getTenantId());
+            List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getModelId(), m.getTenantId());
             vo.setAttributes(attrs.stream().map(a -> toAttributeVO(a, attrGroupNames)).collect(Collectors.toList()));
 
             // Attribute group metadata for the new-instance form to render section headers
             LambdaQueryWrapper<CiAttributeGroup> agq = new LambdaQueryWrapper<CiAttributeGroup>()
                     .eq(CiAttributeGroup::getTenantId, m.getTenantId())
-                    .eq(CiAttributeGroup::getModelId, m.getName())
+                    .eq(CiAttributeGroup::getModelId, m.getModelId())
                     .eq(CiAttributeGroup::getIsDeleted, false)
                     .orderByAsc(CiAttributeGroup::getSortOrder);
             vo.setAttributeGroups(ciAttributeGroupMapper.selectList(agq).stream().map(g -> {
@@ -233,6 +234,9 @@ public class CiModelService {
                 gvo.setSortOrder(g.getSortOrder());
                 return gvo;
             }).collect(Collectors.toList()));
+
+            // 关联定义：本模型作为 src 或 dst 涉及的所有关联定义（供"添加关联"对话框使用）
+            vo.setAssociationDefs(ciAssociationDefService.listByModel(m.getModelId(), m.getTenantId()));
         }
         return vo;
     }

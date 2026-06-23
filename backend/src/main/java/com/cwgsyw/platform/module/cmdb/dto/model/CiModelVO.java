@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.cmdb.dto.model;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.cwgsyw.platform.module.cmdb.dto.association.CiAssociationDefVO;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import lombok.Data;
 
@@ -23,6 +24,8 @@ public class CiModelVO {
     private Integer instanceCount;
     private List<CiAttributeVO> attributes;
     private List<CiAttributeGroupVO> attributeGroups;
+    /** 与本模型相关（作为 src 或 dst）的关联定义。仅在模型详情接口中填充。 */
+    private List<CiAssociationDefVO> associationDefs;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

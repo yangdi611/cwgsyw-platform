@@ -38,10 +38,15 @@ public class ChangeDocService {
     private final ChangeDocSnapshotMapper changeDocSnapshotMapper;
     private final ChangeDocFieldMapper changeDocFieldMapper;
     private final ChangeDocTemplateMapper changeDocTemplateMapper;
+    private final ChangeDocCiLinkMapper changeDocCiLinkMapper;
+    private final com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper ciInstanceMapper;
+    private final com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper ciModelMapper;
     private final AuditLogMapper auditLogMapper;
     private final AiGatewayService aiGatewayService;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final ExportService exportService;
+    private final com.cwgsyw.platform.module.sharedfile.SharedFileService sharedFileService;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -66,6 +71,7 @@ public class ChangeDocService {
         ChangeDocVO vo = new ChangeDocVO();
         vo.setId(doc.getId());
         vo.setChangeNo(doc.getChangeNo());
+        vo.setTitle(doc.getTitle());
         vo.setStatus(doc.getStatus());
         vo.setApplicantId(doc.getApplicantId());
         vo.setApplyTime(doc.getApplyTime());
@@ -162,10 +168,16 @@ public class ChangeDocService {
         doc.setPlanTemplateId(req.getPlanTemplateId());
         doc.setFieldsData(req.getFieldsData());
 
-        // Derive legacy title column from fieldsData; fall back to changeNo to satisfy NOT NULL
+        // Title 一阶字段优先，兜底从 fieldsData["title"] 或 changeNo 派生
         Map<String, String> fd = req.getFieldsData();
-        String title = (fd != null && fd.containsKey("title") && !fd.get("title").isBlank())
-                ? fd.get("title") : doc.getChangeNo();
+        String title;
+        if (StringUtils.hasText(req.getTitle())) {
+            title = req.getTitle();
+        } else if (fd != null && fd.containsKey("title") && !fd.get("title").isBlank()) {
+            title = fd.get("title");
+        } else {
+            title = doc.getChangeNo();
+        }
         doc.setTitle(title);
 
         doc.setStatus("draft");
@@ -188,11 +200,20 @@ public class ChangeDocService {
         if (doc == null || !tenantId.equals(doc.getTenantId())) {
             throw new IllegalArgumentException("变更文档不存在");
         }
-        if (!"draft".equals(doc.getStatus())) {
-            throw new IllegalStateException("只有草稿状态的文档可以编辑");
+        boolean isDraft = "draft".equals(doc.getStatus());
+        boolean isPlanPending = "plan_pending".equals(doc.getStatus());
+        boolean isApproved = "approved".equals(doc.getStatus());
+        boolean isRejected = "rejected".equals(doc.getStatus());
+        if (!isDraft && !isPlanPending && !isApproved && !isRejected) {
+            throw new IllegalStateException("当前状态不允许编辑");
         }
 
         String beforeJson = toJson(doc);
+
+        // Title 优先取 req.title
+        if (StringUtils.hasText(req.getTitle())) {
+            doc.setTitle(req.getTitle());
+        }
 
         if (req.getFieldsData() != null && !req.getFieldsData().isEmpty()) {
             Map<String, String> merged = new HashMap<>();
@@ -200,10 +221,29 @@ public class ChangeDocService {
             merged.putAll(req.getFieldsData());
             doc.setFieldsData(merged);
 
-            // Sync legacy title column if changed
-            if (merged.containsKey("title")) {
+            // 兼容老数据：fieldsData["title"] 也同步到一阶字段
+            if (!StringUtils.hasText(req.getTitle()) && merged.containsKey("title")
+                    && StringUtils.hasText(merged.get("title"))) {
                 doc.setTitle(merged.get("title"));
             }
+        }
+
+        // 模板 ID 修改规则：
+        // - draft / approved / rejected → 两个模板都可改
+        // - plan_pending → 仅可补填 plan_template_id
+        if ((isDraft || isApproved || isRejected) && req.getApplicationTemplateId() != null) {
+            doc.setApplicationTemplateId(req.getApplicationTemplateId());
+        }
+        if ((isDraft || isPlanPending || isApproved || isRejected) && req.getPlanTemplateId() != null) {
+            doc.setPlanTemplateId(req.getPlanTemplateId());
+        }
+
+        // approved / rejected 状态编辑后回到 draft 重审，清空审批结果
+        if (isApproved || isRejected) {
+            doc.setStatus("draft");
+            doc.setApprovedAt(null);
+            doc.setApproverId(null);
+            doc.setApproverComment(null);
         }
 
         doc.setUpdatedAt(LocalDateTime.now());
@@ -224,14 +264,44 @@ public class ChangeDocService {
         if (!"draft".equals(doc.getStatus())) {
             throw new IllegalStateException("只有草稿状态的文档可以提交");
         }
+        if (doc.getApplicationTemplateId() == null && doc.getPlanTemplateId() == null) {
+            throw new IllegalStateException("至少要选择一个模板才能提交");
+        }
+
+        String beforeJson = toJson(doc);
+        // 只填了 application 没填 plan → plan_pending；其他情况 → pending
+        boolean planPending = doc.getApplicationTemplateId() != null && doc.getPlanTemplateId() == null;
+        doc.setStatus(planPending ? "plan_pending" : "pending");
+        doc.setUpdatedAt(LocalDateTime.now());
+
+        changeDocMapper.updateById(doc);
+        saveSnapshot(doc, operatorId, "submit");
+        writeAuditLog(tenantId, "submit", id, operatorId, beforeJson, toJson(doc),
+                planPending ? "提交申请单（待补填方案）" : "提交变更文档审批");
+
+        return toVO(doc);
+    }
+
+    @Transactional
+    public ChangeDocVO submitPlan(String tenantId, Long id, Long operatorId) {
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+        if (!"plan_pending".equals(doc.getStatus())) {
+            throw new IllegalStateException("只有待补填方案状态的文档可以提交方案");
+        }
+        if (doc.getPlanTemplateId() == null) {
+            throw new IllegalStateException("请先选择方案模板");
+        }
 
         String beforeJson = toJson(doc);
         doc.setStatus("pending");
         doc.setUpdatedAt(LocalDateTime.now());
 
         changeDocMapper.updateById(doc);
-        saveSnapshot(doc, operatorId, "submit");
-        writeAuditLog(tenantId, "submit", id, operatorId, beforeJson, toJson(doc), "提交变更文档审批");
+        saveSnapshot(doc, operatorId, "submit_plan");
+        writeAuditLog(tenantId, "submit_plan", id, operatorId, beforeJson, toJson(doc), "补填方案并提交审批");
 
         return toVO(doc);
     }
@@ -258,6 +328,30 @@ public class ChangeDocService {
         saveSnapshot(doc, approverId, action);
         writeAuditLog(tenantId, action, id, approverId, beforeJson, toJson(doc),
                 approved ? "审批通过" : "审批拒绝：" + comment);
+
+        // Approved → 自动归档到共享文件库（按选了的模板各归档一份）
+        if (approved) {
+            try {
+                ChangeDocVO vo = toVO(doc);
+                String changeNo = doc.getChangeNo();
+                if (doc.getApplicationTemplateId() != null) {
+                    byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getApplicationTemplateId());
+                    byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                    sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
+                            changeNo + "_申请单", "application");
+                }
+                if (doc.getPlanTemplateId() != null) {
+                    byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getPlanTemplateId());
+                    byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                    sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
+                            changeNo + "_方案", "plan");
+                }
+                writeAuditLog(tenantId, "archive", id, approverId, null, null, "审批通过自动归档");
+            } catch (Exception e) {
+                // 归档失败不阻断审批通过，只记日志
+                log.error("审批归档失败 changeDocId={}: {}", id, e.getMessage(), e);
+            }
+        }
 
         return toVO(doc);
     }
@@ -400,5 +494,109 @@ public class ChangeDocService {
         changeDocMapper.updateById(doc);
         changeDocMapper.deleteById(id);
         writeAuditLog(tenantId, "delete", id, operatorId, beforeJson, null, "软删除变更文档");
+    }
+
+    // ─── CI Links ─────────────────────────────────────────────────────────
+
+    public List<com.cwgsyw.platform.module.changedoc.dto.LinkedCiInstanceVO> listCiLinks(String tenantId, Long changeDocId) {
+        // 文档存在性校验（顺便做 tenant 隔离）
+        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+
+        List<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink> links = changeDocCiLinkMapper.selectList(
+                new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
+                        .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getTenantId, tenantId)
+                        .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, changeDocId)
+                        .orderByAsc(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getCreatedAt));
+
+        if (links.isEmpty()) return List.of();
+
+        // 批量取 instance + model
+        Set<Long> instanceIds = links.stream()
+                .map(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getInstanceId)
+                .collect(Collectors.toSet());
+
+        Map<Long, com.cwgsyw.platform.module.cmdb.entity.CiInstance> instMap =
+                ciInstanceMapper.selectBatchIds(instanceIds).stream()
+                        .collect(Collectors.toMap(com.cwgsyw.platform.module.cmdb.entity.CiInstance::getId, x -> x));
+
+        Set<String> modelIds = instMap.values().stream()
+                .map(com.cwgsyw.platform.module.cmdb.entity.CiInstance::getModelId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, String> modelNames = new HashMap<>();
+        if (!modelIds.isEmpty()) {
+            ciModelMapper.selectList(new LambdaQueryWrapper<com.cwgsyw.platform.module.cmdb.entity.CiModel>()
+                            .in(com.cwgsyw.platform.module.cmdb.entity.CiModel::getModelId, modelIds))
+                    .forEach(m -> modelNames.put(m.getModelId(), m.getName()));
+        }
+
+        return links.stream().map(link -> {
+            com.cwgsyw.platform.module.changedoc.dto.LinkedCiInstanceVO vo =
+                    new com.cwgsyw.platform.module.changedoc.dto.LinkedCiInstanceVO();
+            com.cwgsyw.platform.module.cmdb.entity.CiInstance ci = instMap.get(link.getInstanceId());
+            if (ci == null) return null;
+            vo.setId(ci.getId());
+            vo.setName(ci.getName());
+            vo.setModelId(ci.getModelId());
+            vo.setModelName(modelNames.get(ci.getModelId()));
+            vo.setOwner(ci.getOwner());
+            vo.setStatus(ci.getStatus());
+            vo.setImpactLevel(link.getImpactLevel());
+            vo.setLinkCreatedAt(link.getCreatedAt());
+            return vo;
+        }).filter(java.util.Objects::nonNull).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void addCiLinks(String tenantId, Long changeDocId, Long operatorId,
+                           List<com.cwgsyw.platform.module.changedoc.dto.AddCiLinkRequest.Item> items) {
+        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+        if (items == null || items.isEmpty()) return;
+
+        LocalDateTime now = LocalDateTime.now();
+        for (var item : items) {
+            if (item.getInstanceId() == null) continue;
+
+            // 已有同 (changeDocId, instanceId) 且未删除 → 跳过（unique index 保护）
+            Long existing = changeDocCiLinkMapper.selectCount(
+                    new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
+                            .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, changeDocId)
+                            .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getInstanceId, item.getInstanceId()));
+            if (existing != null && existing > 0) continue;
+
+            com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink link =
+                    new com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink();
+            link.setTenantId(tenantId);
+            link.setChangeDocId(changeDocId);
+            link.setInstanceId(item.getInstanceId());
+            link.setImpactLevel(item.getImpactLevel());
+            link.setCreatedBy(operatorId);
+            link.setUpdatedBy(operatorId == null ? 0L : operatorId);
+            link.setCreatedAt(now);
+            link.setUpdatedAt(now);
+            changeDocCiLinkMapper.insert(link);
+        }
+        writeAuditLog(tenantId, "link_ci", changeDocId, operatorId, null, toJson(items), "关联 CI 实例");
+    }
+
+    @Transactional
+    public void removeCiLink(String tenantId, Long changeDocId, Long instanceId, Long operatorId) {
+        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+        changeDocCiLinkMapper.delete(
+                new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
+                        .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, changeDocId)
+                        .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getInstanceId, instanceId));
+        writeAuditLog(tenantId, "unlink_ci", changeDocId, operatorId, null,
+                "{\"instanceId\":" + instanceId + "}", "取消 CI 关联");
     }
 }

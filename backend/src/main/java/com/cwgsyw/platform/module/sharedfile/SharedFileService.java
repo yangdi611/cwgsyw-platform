@@ -208,16 +208,28 @@ public class SharedFileService {
 
     public SharedFileVO archiveFromChangeDoc(String tenantId, Long operatorId, Long changeDocId,
                                               byte[] wordBytes, byte[] pdfBytes, String docTitle) {
+        return archiveDocPart(tenantId, operatorId, changeDocId, wordBytes, pdfBytes, docTitle, null);
+    }
+
+    /**
+     * 双模板归档：每个 part（application / plan）调用一次。docTitle 通常会带后缀如
+     * "{changeNo}_申请单"、"{changeNo}_方案"。{@code partLabel} 用作返回 VO 的辨识。
+     */
+    public SharedFileVO archiveDocPart(String tenantId, Long operatorId, Long changeDocId,
+                                        byte[] wordBytes, byte[] pdfBytes, String docTitle, String partLabel) {
         String monthFolder = "变更文档/" + java.time.YearMonth.now().toString();
         var folder = folderService.getOrCreateFolder(tenantId, operatorId, monthFolder);
 
+        // partLabel 计入 minio key 路径，避免不同 part 写到同一个 key 互相覆盖
+        String pathSuffix = (partLabel != null && !partLabel.isBlank()) ? "/" + partLabel : "";
+
         // Upload Word
-        String wordKey = "shared/changedoc/" + changeDocId + "/" + docTitle + ".docx";
+        String wordKey = "shared/changedoc/" + changeDocId + pathSuffix + "/" + docTitle + ".docx";
         storageService.upload(wordKey, new ByteArrayInputStream(wordBytes), wordBytes.length,
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
         // Upload PDF
-        String pdfKey = "shared/changedoc/" + changeDocId + "/" + docTitle + ".pdf";
+        String pdfKey = "shared/changedoc/" + changeDocId + pathSuffix + "/" + docTitle + ".pdf";
         storageService.upload(pdfKey, new ByteArrayInputStream(pdfBytes), pdfBytes.length, "application/pdf");
 
         // Save Word file record

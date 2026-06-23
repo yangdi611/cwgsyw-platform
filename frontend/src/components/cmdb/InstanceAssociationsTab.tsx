@@ -33,12 +33,23 @@ interface CiRelGroupVO {
 }
 
 interface CiAssociationDefVO {
-  def_id: string
-  kind_id: string
+  defId: string
+  kindId: string
   name: string
   srcModelId: string
   dstModelId: string
   mapping: string
+}
+
+interface AssociationAttrVO {
+  id: number
+  fieldKey: string
+  name: string
+  fieldType: string
+  isRequired: boolean
+  enumOptions: string | null
+  defaultValue: string | null
+  sortOrder: number
 }
 
 interface InstanceSearchVO {
@@ -85,10 +96,20 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
     d => d.srcModelId === modelCode || d.dstModelId === modelCode
   )
 
-  const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
+  const selectedDef = applicableDefs.find(d => d.defId === selectedDefId)
   const targetModelId = selectedDef
     ? (selectedDef.srcModelId === modelCode ? selectedDef.dstModelId : selectedDef.srcModelId)
     : null
+
+  // 拉取所选关联种类的扩展属性 schema
+  const { data: kindAttrs = [] } = useQuery<AssociationAttrVO[]>({
+    queryKey: ['cmdb-asst-attrs', selectedDef?.kindId],
+    queryFn: () => api.get(`/cmdb/association-kinds/${selectedDef!.kindId}/attributes`).then(r => r.data.data),
+    enabled: !!selectedDef && addDialogOpen,
+  })
+
+  // 关联扩展属性表单值；切换关联定义时清空
+  const [metadata, setMetadata] = useState<Record<string, unknown>>({})
 
   const { data: searchResult } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, peerSearch],
@@ -108,8 +129,9 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
     mutationFn: () => {
       if (!selectedDef || !selectedPeerId) throw new Error('请选择关联定义和目标实例')
       return api.post(`/cmdb/instances/${id}/relations`, {
+        defId: selectedDef.defId,
         dstInstanceId: selectedPeerId,
-        associationKind: selectedDef.kind_id,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       })
     },
     onSuccess: () => {
@@ -118,6 +140,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
       setSelectedDefId('')
       setSelectedPeerId(null)
       setPeerSearch('')
+      setMetadata({})
       setAddError('')
       queryClient.invalidateQueries({ queryKey: ['cmdb-rel', id] })
     },
@@ -183,7 +206,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
       {/* Add Relation Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={open => {
         setAddDialogOpen(open)
-        if (!open) { setAddError(''); setSelectedDefId(''); setSelectedPeerId(null); setPeerSearch('') }
+        if (!open) { setAddError(''); setSelectedDefId(''); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}) }
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -194,14 +217,14 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
             <div className="space-y-1.5">
               <Label className="text-sm">关联定义</Label>
               <Select value={selectedDefId} onValueChange={v => {
-                setSelectedDefId(v ?? ''); setSelectedPeerId(null); setPeerSearch(''); setAddError('')
+                setSelectedDefId(v ?? ''); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}); setAddError('')
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择关联定义..." />
                 </SelectTrigger>
                 <SelectContent>
                   {applicableDefs.map(d => (
-                    <SelectItem key={d.def_id} value={d.def_id}>
+                    <SelectItem key={d.defId} value={d.defId}>
                       {d.name} ({d.mapping})
                     </SelectItem>
                   ))}
@@ -237,6 +260,25 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
               </div>
             )}
 
+            {selectedDef && kindAttrs.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-sm text-v2-muted">关联属性</Label>
+                {[...kindAttrs].sort((a, b) => a.sortOrder - b.sortOrder).map(attr => (
+                  <RelationAttrField
+                    key={attr.id}
+                    attr={attr}
+                    value={metadata[attr.fieldKey]}
+                    onChange={(v) => setMetadata(m => {
+                      const next = { ...m }
+                      if (v === undefined || v === '' || v === null) delete next[attr.fieldKey]
+                      else next[attr.fieldKey] = v
+                      return next
+                    })}
+                  />
+                ))}
+              </div>
+            )}
+
             {addError && (
               <p className="text-sm text-v2-danger">{addError}</p>
             )}
@@ -252,6 +294,106 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+/**
+ * 单个关联扩展属性输入控件。按后端 fieldType 分派：
+ * singlechar/int/date → input；enum → select；bool → checkbox。
+ * 其他未识别类型回退到 input（不阻塞用户填，由后端校验兜底）。
+ */
+function RelationAttrField({ attr, value, onChange }: {
+  attr: AssociationAttrVO
+  value: unknown
+  onChange: (v: unknown) => void
+}) {
+  const label = (
+    <Label className="text-xs">
+      {attr.name}
+      {attr.isRequired && <span className="text-v2-danger ml-0.5">*</span>}
+      <span className="text-v2-muted ml-1 font-mono">({attr.fieldKey})</span>
+    </Label>
+  )
+
+  // bool
+  if (attr.fieldType === 'bool') {
+    const checked = value === true || value === 'true'
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={e => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-v2-border"
+        />
+        {label}
+      </div>
+    )
+  }
+
+  // enum
+  if (attr.fieldType === 'enum') {
+    const options = (attr.enumOptions ?? '')
+      .split(/[\n,]/).map(s => s.trim()).filter(Boolean)
+    const current = (value ?? attr.defaultValue ?? '') as string
+    return (
+      <div className="space-y-1">
+        {label}
+        <Select value={current || '__none__'} onValueChange={v => onChange(v === '__none__' ? undefined : v)}>
+          <SelectTrigger><SelectValue placeholder="请选择..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">（未设置）</SelectItem>
+            {options.map(o => (
+              <SelectItem key={o} value={o}>{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    )
+  }
+
+  // int
+  if (attr.fieldType === 'int') {
+    return (
+      <div className="space-y-1">
+        {label}
+        <Input
+          type="number"
+          value={(value as string | number | undefined) ?? ''}
+          placeholder={attr.defaultValue ?? ''}
+          onChange={e => {
+            const v = e.target.value
+            onChange(v === '' ? undefined : Number(v))
+          }}
+        />
+      </div>
+    )
+  }
+
+  // date — 使用 <input type="date"> 简化（HTML 原生）
+  if (attr.fieldType === 'date') {
+    return (
+      <div className="space-y-1">
+        {label}
+        <Input
+          type="date"
+          value={(value as string | undefined) ?? ''}
+          onChange={e => onChange(e.target.value || undefined)}
+        />
+      </div>
+    )
+  }
+
+  // singlechar / list / user / 默认
+  return (
+    <div className="space-y-1">
+      {label}
+      <Input
+        value={(value as string | undefined) ?? ''}
+        placeholder={attr.defaultValue ?? ''}
+        onChange={e => onChange(e.target.value || undefined)}
+      />
     </div>
   )
 }

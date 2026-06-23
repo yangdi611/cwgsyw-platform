@@ -63,15 +63,15 @@ public class CiTopologyService {
             if (!modelDisplayNames.containsKey(inst.getModelId())) {
                 ciModelMapper.findByName(inst.getModelId(), tenantId)
                         .ifPresent(m -> {
-                            modelDisplayNames.put(m.getName(), m.getDisplayName());
-                            modelColors.put(m.getName(), m.getColor());
+                            modelDisplayNames.put(m.getModelId(), m.getDisplayName());
+                            modelColors.put(m.getModelId(), m.getColor());
                             // Collect is_list_show=true attribute keys for this model
-                            List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getName(), tenantId);
+                            List<CiAttribute> attrs = ciAttributeMapper.listByModel(m.getModelId(), tenantId);
                             Set<String> listShowKeys = attrs.stream()
                                     .filter(a -> Boolean.TRUE.equals(a.getIsListShow()))
                                     .map(CiAttribute::getFieldKey)
                                     .collect(Collectors.toSet());
-                            modelListShowKeys.put(m.getName(), listShowKeys);
+                            modelListShowKeys.put(m.getModelId(), listShowKeys);
                         });
             }
         }

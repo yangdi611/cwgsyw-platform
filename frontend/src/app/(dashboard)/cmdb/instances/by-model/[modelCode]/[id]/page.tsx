@@ -81,43 +81,48 @@ export default function InstanceDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/cmdb/instances/by-model/${modelCode}`}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回列表
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-v2-fg">{inst.name ?? `#${inst.id}`}</h1>
-            <p className="mt-0.5 text-xs text-v2-muted">
-              <span className="font-v2-mono">{inst.modelId}</span> · 创建于{' '}
-              {new Date(inst.createdAt).toLocaleString('zh-CN')}
-              {inst.createdByName && ` · ${inst.createdByName}`}
-            </p>
+      <div className="rounded-xl border border-v2-border bg-v2-surface-soft px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Link
+              href={`/cmdb/instances/by-model/${modelCode}`}
+              className="mt-1 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-v2-fg">{inst.name ?? `#${inst.id}`}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-v2-muted">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-v2-border bg-v2-surface font-v2-mono text-v2-fg">
+                  {inst.modelId}
+                </span>
+                <span>·</span>
+                <span>创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}</span>
+                {inst.createdByName && (<><span>·</span><span>{inst.createdByName}</span></>)}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasPermission('cmdb_instance', 'impact') && (
-            <Link
-              href={`/cmdb/impact/${id}`}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
-            >
-              <Activity className="h-4 w-4" />
-              影响分析
-            </Link>
-          )}
-          {hasPermission('cmdb_instance', 'read') && (
-            <Link
-              href={`/cmdb/topology/${id}/compare`}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
-            >
-              <GitCompare className="h-4 w-4" />
-              拓扑对比
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {hasPermission('cmdb_instance', 'impact') && (
+              <Link
+                href={`/cmdb/impact/${id}`}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+              >
+                <Activity className="h-4 w-4" />
+                影响分析
+              </Link>
+            )}
+            {hasPermission('cmdb_instance', 'read') && (
+              <Link
+                href={`/cmdb/topology/${id}/compare`}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+              >
+                <GitCompare className="h-4 w-4" />
+                拓扑对比
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 

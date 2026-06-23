@@ -22,12 +22,21 @@ interface FieldConfigVO {
   placeholder: string
 }
 
+type DocType = 'application' | 'plan' | 'general'
+
 interface TemplateVO {
   id: number
   name: string
   description: string
   has_docx: boolean
+  doc_type: DocType
   fields: FieldConfigVO[]
+}
+
+const DOC_TYPE_LABEL: Record<DocType, string> = {
+  application: '申请单',
+  plan: '方案',
+  general: '通用',
 }
 
 const FIELD_TYPES = [
@@ -43,6 +52,12 @@ export default function TemplateFieldsPage() {
   const queryClient = useQueryClient()
   const [fields, setFields] = useState<FieldConfigVO[]>([])
   const [dirty, setDirty] = useState(false)
+  const [meta, setMeta] = useState<{ name: string; description: string; doc_type: DocType }>({
+    name: '',
+    description: '',
+    doc_type: 'general',
+  })
+  const [metaDirty, setMetaDirty] = useState(false)
 
   const { data: tpl, isLoading } = useQuery<TemplateVO>({
     queryKey: ['change-doc-template', id],
@@ -52,6 +67,32 @@ export default function TemplateFieldsPage() {
   useEffect(() => {
     if (tpl && !dirty) setFields(tpl.fields ?? [])
   }, [tpl, dirty])
+
+  useEffect(() => {
+    if (tpl && !metaDirty) {
+      setMeta({
+        name: tpl.name ?? '',
+        description: tpl.description ?? '',
+        doc_type: tpl.doc_type ?? 'general',
+      })
+    }
+  }, [tpl, metaDirty])
+
+  const saveMetaMutation = useMutation({
+    mutationFn: () =>
+      api.put(`/admin/change-doc-templates/${id}`, {
+        name: meta.name,
+        description: meta.description,
+        doc_type: meta.doc_type,
+      }),
+    onSuccess: () => {
+      toast.success('基本信息已保存')
+      setMetaDirty(false)
+      queryClient.invalidateQueries({ queryKey: ['change-doc-template', id] })
+      queryClient.invalidateQueries({ queryKey: ['change-doc-templates'] })
+    },
+    onError: () => toast.error('保存失败'),
+  })
 
   const saveMutation = useMutation({
     mutationFn: () => api.put(`/admin/change-doc-templates/${id}/fields`, { fields }),
@@ -137,6 +178,62 @@ export default function TemplateFieldsPage() {
           尚未上传 Word 模板文件。可先配置字段，上传后点「解析书签」自动识别占位符。
         </div>
       )}
+
+      {/* 基本信息 */}
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-v2-fg">基本信息</h2>
+            {metaDirty && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => saveMetaMutation.mutate()}
+                disabled={saveMetaMutation.isPending || !meta.name}
+              >
+                {saveMetaMutation.isPending ? '保存中…' : '保存基本信息'}
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-v2-muted">名称</label>
+              <Input
+                value={meta.name}
+                onChange={(e) => {
+                  setMeta((m) => ({ ...m, name: e.target.value }))
+                  setMetaDirty(true)
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-v2-muted">描述</label>
+              <Input
+                value={meta.description}
+                onChange={(e) => {
+                  setMeta((m) => ({ ...m, description: e.target.value }))
+                  setMetaDirty(true)
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-v2-muted">类型</label>
+              <select
+                value={meta.doc_type}
+                onChange={(e) => {
+                  setMeta((m) => ({ ...m, doc_type: e.target.value as DocType }))
+                  setMetaDirty(true)
+                }}
+                className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg focus:border-v2-primary focus:outline-none"
+              >
+                <option value="general">{DOC_TYPE_LABEL.general}</option>
+                <option value="application">{DOC_TYPE_LABEL.application}</option>
+                <option value="plan">{DOC_TYPE_LABEL.plan}</option>
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="space-y-2">
         {fields.map((field, idx) => (

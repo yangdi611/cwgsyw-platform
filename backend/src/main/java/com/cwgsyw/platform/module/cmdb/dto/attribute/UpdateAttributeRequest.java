@@ -11,6 +11,7 @@ public class UpdateAttributeRequest {
     private Boolean isRequired;
     private Boolean isEditable;
     private Boolean isListShow;
+    private Boolean isDrawerShow;
     private String defaultValue;
 
     /**

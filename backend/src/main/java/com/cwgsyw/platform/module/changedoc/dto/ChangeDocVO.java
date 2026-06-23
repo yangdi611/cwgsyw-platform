@@ -9,6 +9,7 @@ import java.util.Map;
 public class ChangeDocVO {
     private Long id;
     private String changeNo;
+    private String title;
     private String status;
     private Long applicantId;
     private String applicantName;

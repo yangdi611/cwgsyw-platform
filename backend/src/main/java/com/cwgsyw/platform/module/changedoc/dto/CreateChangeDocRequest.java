@@ -6,6 +6,7 @@ import java.util.Map;
 @Data
 public class CreateChangeDocRequest {
     private String changeNo;
+    private String title;
     private Long applicationTemplateId;
     private Long planTemplateId;
     private Map<String, String> fieldsData;

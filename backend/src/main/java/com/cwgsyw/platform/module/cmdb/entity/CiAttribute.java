@@ -24,6 +24,7 @@ public class CiAttribute extends BaseEntity {
     private Boolean isUnique;
     private Boolean isBuiltIn;
     private Boolean isListShow;
+    private Boolean isDrawerShow;
     @TableField("default_val")
     private String defaultValue;
 

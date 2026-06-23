@@ -27,24 +27,54 @@ public class ChangeDocTemplateService {
     private final MinioStorageService storage;
 
     @Transactional
-    public TemplateVO createTemplate(String tenantId, Long operatorId, String name, String description) {
+    public TemplateVO createTemplate(String tenantId, Long operatorId, String name, String description, String docType) {
         ChangeDocTemplate tpl = new ChangeDocTemplate();
         tpl.setTenantId(tenantId);
         tpl.setName(name);
         tpl.setDescription(description);
         tpl.setVersion(1);
         tpl.setIsActive(true);
+        tpl.setDocType(normalizeDocType(docType));
         tpl.setCreatedAt(LocalDateTime.now());
         tpl.setUpdatedAt(LocalDateTime.now());
         templateMapper.insert(tpl);
         return toTemplateVO(tpl, List.of());
     }
 
+    @Transactional
+    public TemplateVO updateMeta(String tenantId, Long id, UpdateTemplateRequest req) {
+        ChangeDocTemplate tpl = getOrThrow(tenantId, id);
+        if (req.getName() != null && !req.getName().isBlank()) tpl.setName(req.getName());
+        if (req.getDescription() != null) tpl.setDescription(req.getDescription());
+        if (req.getDocType() != null) tpl.setDocType(normalizeDocType(req.getDocType()));
+        tpl.setUpdatedAt(LocalDateTime.now());
+        templateMapper.updateById(tpl);
+        return toTemplateVO(tpl, fieldMapper.findByTemplate(id));
+    }
+
+    private String normalizeDocType(String dt) {
+        if (dt == null) return "general";
+        String v = dt.trim().toLowerCase();
+        return switch (v) {
+            case "application", "plan", "general" -> v;
+            default -> "general";
+        };
+    }
+
+    public List<TemplateVO> listTemplates(String tenantId, String docType) {
+        return templateMapper.findByTenant(tenantId).stream()
+                .filter(t -> docType == null || docType.isBlank()
+                        || docType.equalsIgnoreCase(t.getDocType())
+                        || ("application".equalsIgnoreCase(docType) && "general".equalsIgnoreCase(t.getDocType()))
+                        || ("plan".equalsIgnoreCase(docType) && "general".equalsIgnoreCase(t.getDocType())))
+                .map(t -> {
+                    List<ChangeDocField> fields = fieldMapper.findByTemplate(t.getId());
+                    return toTemplateVO(t, fields);
+                }).collect(Collectors.toList());
+    }
+
     public List<TemplateVO> listTemplates(String tenantId) {
-        return templateMapper.findByTenant(tenantId).stream().map(t -> {
-            List<ChangeDocField> fields = fieldMapper.findByTemplate(t.getId());
-            return toTemplateVO(t, fields);
-        }).collect(Collectors.toList());
+        return listTemplates(tenantId, null);
     }
 
     public TemplateVO getTemplate(String tenantId, Long id) {
@@ -196,7 +226,20 @@ public class ChangeDocTemplateService {
         if (replaced.equals(full)) return;
         List<XWPFRun> runs = para.getRuns();
         if (runs.isEmpty()) return;
-        runs.get(0).setText(replaced, 0);
+
+        // 把换行符 \r\n / \r / \n 规整为 \n，再按行写入并 addBreak
+        // —— Word 的 setText 不会处理换行，所以要手动 addBreak(TEXT_WRAPPING) 软换行
+        String normalized = replaced.replace("\r\n", "\n").replace('\r', '\n');
+        String[] lines = normalized.split("\n", -1);
+
+        XWPFRun first = runs.get(0);
+        first.setText(lines[0], 0);
+        for (int i = 1; i < lines.length; i++) {
+            first.addBreak(org.apache.poi.xwpf.usermodel.BreakType.TEXT_WRAPPING);
+            // setText 不指定 pos 会追加到 run 末尾，但仍属于同一 run（继承样式）
+            first.setText(lines[i]);
+        }
+        // 清空原 paragraph 里其他 run（它们的文本已经合并进 first 了）
         for (int i = 1; i < runs.size(); i++) runs.get(i).setText("", 0);
     }
 
@@ -216,6 +259,7 @@ public class ChangeDocTemplateService {
         vo.setVersion(t.getVersion());
         vo.setActive(t.getIsActive());
         vo.setHasDocx(t.getDocxKey() != null);
+        vo.setDocType(t.getDocType() != null ? t.getDocType() : "general");
         vo.setCreatedAt(t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
         vo.setFields(fields.stream().map(this::toFieldVO).collect(Collectors.toList()));
         return vo;

@@ -30,6 +30,7 @@ public class CreateAttributeRequest {
     private Boolean isEditable = true;
     private Boolean isUnique = false;
     private Boolean isListShow = false;
+    private Boolean isDrawerShow = false;
     private String defaultValue;
 
     /**

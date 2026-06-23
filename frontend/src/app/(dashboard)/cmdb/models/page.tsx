@@ -15,6 +15,7 @@ import { Search, Grid3x3, Settings, Boxes } from 'lucide-react'
 // AC10 (Issue #64): 本页为纯浏览目录（只读）。模型/属性的管理操作统一走 /cmdb/admin。
 interface CiModelVO {
   id: number
+  modelId: string
   name: string
   displayName: string
   group: string
@@ -26,13 +27,13 @@ interface CiModelVO {
   updatedAt: string
 }
 
-const MODEL_GROUPS = [
-  { code: 'infra', name: '基础设施' },
-  { code: 'biz', name: '业务应用' },
-  { code: 'network', name: '网络设备' },
-  { code: 'security', name: '安全设备' },
-  { code: 'cloud', name: '云资源' },
-]
+interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  sortOrder: number
+  isBuiltIn: boolean
+}
 
 function Chip({ children, tone = 'default' }: { children: React.ReactNode; tone?: 'default' | 'primary' }) {
   const cls =
@@ -59,6 +60,12 @@ export default function CmdbModelsPage() {
     if (!hasPermission('cmdb_model', 'read')) router.replace('/')
   }, [hasPermission, router])
 
+  const { data: groups = [] } = useQuery<ModelGroupVO[]>({
+    queryKey: ['cmdb-model-groups'],
+    queryFn: () => api.get('/cmdb/model-groups').then((r) => r.data.data),
+    enabled: hasPermission('cmdb_model', 'read'),
+  })
+
   const { data, isLoading } = useQuery({
     queryKey: ['cmdb-models', search, groupFilter, page],
     queryFn: () =>
@@ -79,10 +86,10 @@ export default function CmdbModelsPage() {
       title: '标识',
       render: (r) => (
         <Link
-          href={`/cmdb/instances/by-model/${r.name}`}
+          href={`/cmdb/instances/by-model/${r.modelId}`}
           className="font-v2-mono text-sm font-semibold text-v2-primary hover:text-v2-primary-hover"
         >
-          {r.name}
+          {r.modelId}
         </Link>
       ),
     },
@@ -112,7 +119,7 @@ export default function CmdbModelsPage() {
       align: 'right',
       render: (r) => (
         <Link
-          href={`/cmdb/instances/by-model/${r.name}`}
+          href={`/cmdb/instances/by-model/${r.modelId}`}
           className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-v2-sm border border-v2-border bg-v2-surface text-v2-fg transition-colors hover:bg-v2-surface-hover"
         >
           <Boxes className="h-3.5 w-3.5" />
@@ -169,7 +176,7 @@ export default function CmdbModelsPage() {
             >
               全部
             </button>
-            {MODEL_GROUPS.map((g) => (
+            {groups.map((g) => (
               <button
                 key={g.code}
                 onClick={() => {

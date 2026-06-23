@@ -162,7 +162,7 @@ export default function AdminConfigPage() {
   }, [config])
 
   const smtpMutation = useMutation({
-    mutationFn: () => api.put('/admin/config/smtp', { enabled: smtpEnabled, host, port: Number(port), username, password, from, from_name: fromName, ssl }),
+    mutationFn: () => api.put('/admin/config/smtp', { enabled: smtpEnabled, host, port: Number(port), username, password, from, fromName, ssl }),
     onSuccess: () => { toast.success('SMTP 配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
     onError: () => toast.error('保存失败'),
   })

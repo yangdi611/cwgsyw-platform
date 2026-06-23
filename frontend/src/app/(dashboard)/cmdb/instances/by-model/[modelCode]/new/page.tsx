@@ -160,7 +160,9 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
     return (
       <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
         <SelectTrigger>
-          <SelectValue placeholder="请选择" />
+          <SelectValue placeholder="请选择">
+            {(v: string) => opts.find((o) => o.id === v)?.name ?? '请选择'}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {opts.map((o) => (

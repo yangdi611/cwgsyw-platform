@@ -15,7 +15,7 @@ import { Grid3x3, RefreshCw, Layers } from 'lucide-react'
 /* ---------- Types ---------- */
 
 interface CiModelVO {
-  id: number; name: string; displayName: string; group: string; groupName: string
+  id: number; modelId: string; name: string; displayName: string; group: string; groupName: string
   isBuiltIn: boolean; instanceCount: number; attributes: any[]; createdAt: string; updatedAt: string
 }
 
@@ -78,7 +78,7 @@ export default function TwoDViewPage() {
   })
 
   // Fetch model attributes when model selected
-  const selectedModel = models.find(m => m.name === model)
+  const selectedModel = models.find(m => m.modelId === model)
   const { data: modelAttrs = [] } = useQuery<CiAttributeVO[]>({
     queryKey: ['cmdb-model-attrs', selectedModel?.id],
     queryFn: () => api.get(`/cmdb/models/${selectedModel!.id}/attributes`).then(r => r.data.data),
@@ -162,7 +162,7 @@ export default function TwoDViewPage() {
             <SelectTrigger className="w-44"><SelectValue placeholder="选择模型" /></SelectTrigger>
             <SelectContent>
               {models.map(m => (
-                <SelectItem key={m.name} value={m.name}>{m.displayName}</SelectItem>
+                <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
               ))}
             </SelectContent>
           </Select>

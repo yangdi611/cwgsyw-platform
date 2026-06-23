@@ -22,6 +22,7 @@ public class CiAttributeVO {
     private Boolean isUnique;
     private Boolean isBuiltIn;
     private Boolean isListShow;
+    private Boolean isDrawerShow;
     private String defaultValue;
 
     /**

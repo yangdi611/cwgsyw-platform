@@ -39,7 +39,7 @@ public class CiAttributeGroupService {
         List<CiAttributeGroup> groups = ciAttributeGroupMapper.selectList(
                 new LambdaQueryWrapper<CiAttributeGroup>()
                         .eq(CiAttributeGroup::getTenantId, tenantId)
-                        .eq(CiAttributeGroup::getModelId, model.getName())
+                        .eq(CiAttributeGroup::getModelId, model.getModelId())
                         .eq(CiAttributeGroup::getIsDeleted, false)
                         .orderByAsc(CiAttributeGroup::getSortOrder)
                         .orderByAsc(CiAttributeGroup::getId));
@@ -47,7 +47,7 @@ public class CiAttributeGroupService {
         List<CiAttribute> attrs = ciAttributeMapper.selectList(
                 new LambdaQueryWrapper<CiAttribute>()
                         .eq(CiAttribute::getTenantId, tenantId)
-                        .eq(CiAttribute::getModelId, model.getName())
+                        .eq(CiAttribute::getModelId, model.getModelId())
                         .eq(CiAttribute::getIsDeleted, false));
         Map<String, Long> countByGroupId = attrs.stream()
                 .filter(a -> a.getGroupId() != null)
@@ -65,7 +65,7 @@ public class CiAttributeGroupService {
 
         long dup = ciAttributeGroupMapper.selectCount(new LambdaQueryWrapper<CiAttributeGroup>()
                 .eq(CiAttributeGroup::getTenantId, tenantId)
-                .eq(CiAttributeGroup::getModelId, model.getName())
+                .eq(CiAttributeGroup::getModelId, model.getModelId())
                 .eq(CiAttributeGroup::getCode, req.getGroupId())
                 .eq(CiAttributeGroup::getIsDeleted, false));
         if (dup > 0) {
@@ -74,7 +74,7 @@ public class CiAttributeGroupService {
 
         CiAttributeGroup g = new CiAttributeGroup();
         g.setTenantId(tenantId);
-        g.setModelId(model.getName());
+        g.setModelId(model.getModelId());
         g.setCode(req.getGroupId());
         g.setName(req.getName());
         g.setSortOrder(req.getSortOrder() != null ? req.getSortOrder() : 0);
@@ -88,7 +88,7 @@ public class CiAttributeGroupService {
     public AttributeGroupVO update(String modelCode, Long id, UpdateAttributeGroupRequest req,
                                     String tenantId, Long operatorId) {
         CiModel model = loadModel(modelCode, tenantId);
-        CiAttributeGroup g = loadGroup(id, tenantId, model.getName());
+        CiAttributeGroup g = loadGroup(id, tenantId, model.getModelId());
 
         String before = snapshot(g);
         if (req.getName() != null) g.setName(req.getName());
@@ -98,7 +98,7 @@ public class CiAttributeGroupService {
         writeAudit(tenantId, "update_attribute_group", id, operatorId, before, snapshot(g));
         long count = ciAttributeMapper.selectCount(new LambdaQueryWrapper<CiAttribute>()
                 .eq(CiAttribute::getTenantId, tenantId)
-                .eq(CiAttribute::getModelId, model.getName())
+                .eq(CiAttribute::getModelId, model.getModelId())
                 .eq(CiAttribute::getGroupId, g.getCode())
                 .eq(CiAttribute::getIsDeleted, false));
         return toVO(g, (int) count);
@@ -107,11 +107,11 @@ public class CiAttributeGroupService {
     @Transactional
     public void delete(String modelCode, Long id, String tenantId, Long operatorId) {
         CiModel model = loadModel(modelCode, tenantId);
-        CiAttributeGroup g = loadGroup(id, tenantId, model.getName());
+        CiAttributeGroup g = loadGroup(id, tenantId, model.getModelId());
 
         long attrCount = ciAttributeMapper.selectCount(new LambdaQueryWrapper<CiAttribute>()
                 .eq(CiAttribute::getTenantId, tenantId)
-                .eq(CiAttribute::getModelId, model.getName())
+                .eq(CiAttribute::getModelId, model.getModelId())
                 .eq(CiAttribute::getGroupId, g.getCode())
                 .eq(CiAttribute::getIsDeleted, false));
         if (attrCount > 0) {

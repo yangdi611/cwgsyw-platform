@@ -303,7 +303,7 @@ public class ImpactAnalysisService {
         for (CiInstance inst : instanceMap.values()) {
             if (!modelDisplayNames.containsKey(inst.getModelId())) {
                 ciModelMapper.findByName(inst.getModelId(), tenantId)
-                        .ifPresent(m -> modelDisplayNames.put(m.getName(), m.getDisplayName()));
+                        .ifPresent(m -> modelDisplayNames.put(m.getModelId(), m.getDisplayName()));
             }
         }
 

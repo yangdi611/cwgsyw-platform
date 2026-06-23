@@ -43,14 +43,15 @@ public class CiInstanceQueryService {
 
     public PageResult<CiInstanceVO> list(String model, String keyword, String status,
                                          int page, int size, String tenantId) {
-        CiModel ciModel = loadModel(model, tenantId);
-
+        // 跨模型查询：model 为空时返回所有模型的实例
         LambdaQueryWrapper<CiInstance> query = new LambdaQueryWrapper<CiInstance>()
                 .eq(CiInstance::getTenantId, tenantId)
-                .eq(CiInstance::getModelId, ciModel.getName())
                 .eq(CiInstance::getIsDeleted, false)
                 .orderByDesc(CiInstance::getUpdatedAt);
 
+        if (model != null && !model.isBlank()) {
+            query.eq(CiInstance::getModelId, model);
+        }
         if (keyword != null && !keyword.isBlank()) {
             query.and(w -> w.like(CiInstance::getName, keyword));
         }
@@ -60,11 +61,28 @@ public class CiInstanceQueryService {
 
         Page<CiInstance> p = ciInstanceMapper.selectPage(new Page<>(page, size), query);
 
-        Set<String> listShowKeys = ciAttributeMapper.listByModel(ciModel.getName(), tenantId).stream()
-                .filter(a -> Boolean.TRUE.equals(a.getIsListShow()))
-                .map(CiAttribute::getFieldKey).collect(Collectors.toSet());
+        // 批量加载 model displayName
+        Map<String, String> modelDisplayNames = new HashMap<>();
+        Set<String> modelIds = p.getRecords().stream().map(CiInstance::getModelId).collect(Collectors.toSet());
+        for (String modelId : modelIds) {
+            ciModelMapper.findByName(modelId, tenantId)
+                    .ifPresent(m -> modelDisplayNames.put(m.getModelId(), m.getDisplayName()));
+        }
 
-        return PageResult.of(p.convert(inst -> toListVO(inst, ciModel.getDisplayName(), listShowKeys)));
+        // 按模型分组加载 listShowKeys（跨模型时每个模型的 listShowKeys 不同）
+        Map<String, Set<String>> listShowKeysByModel = new HashMap<>();
+        for (String modelId : modelIds) {
+            Set<String> keys = ciAttributeMapper.listByModel(modelId, tenantId).stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getIsListShow()))
+                    .map(CiAttribute::getFieldKey).collect(Collectors.toSet());
+            listShowKeysByModel.put(modelId, keys);
+        }
+
+        return PageResult.of(p.convert(inst -> toListVO(
+                inst,
+                modelDisplayNames.getOrDefault(inst.getModelId(), inst.getModelId()),
+                listShowKeysByModel.getOrDefault(inst.getModelId(), Set.of())
+        )));
     }
 
     public CiInstanceDetailVO getDetail(Long id, String tenantId) {
@@ -72,7 +90,7 @@ public class CiInstanceQueryService {
         CiModel model = loadModel(inst.getModelId(), tenantId);
         Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
 
-        List<CiAttributeVO> attrVOs = ciAttributeMapper.listByModel(model.getName(), tenantId).stream()
+        List<CiAttributeVO> attrVOs = ciAttributeMapper.listByModel(model.getModelId(), tenantId).stream()
                 .map(a -> toAttributeVO(a, attrGroupNames)).collect(Collectors.toList());
 
         CiInstanceDetailVO vo = new CiInstanceDetailVO();
@@ -86,9 +104,15 @@ public class CiInstanceQueryService {
     }
 
     public PageResult<CiInstanceSearchVO> search(String keyword, int size, String tenantId) {
+        // 跨模型搜索：匹配实例名 或 JSONB attrs 文本（覆盖 inner_ip 等 IP 属性）。
+        // attrs::text ILIKE 用参数绑定（{0}），keyword 作为字面量，无注入风险。
+        String kw = "%" + keyword + "%";
         LambdaQueryWrapper<CiInstance> query = new LambdaQueryWrapper<CiInstance>()
                 .eq(CiInstance::getTenantId, tenantId).eq(CiInstance::getIsDeleted, false)
-                .like(CiInstance::getName, keyword).orderByDesc(CiInstance::getUpdatedAt)
+                .and(w -> w.like(CiInstance::getName, keyword)
+                        .or()
+                        .apply("attrs::text ILIKE {0}", kw))
+                .orderByDesc(CiInstance::getUpdatedAt)
                 .last("LIMIT " + size);
 
         List<CiInstance> records = ciInstanceMapper.selectList(query);
@@ -96,7 +120,7 @@ public class CiInstanceQueryService {
         for (CiInstance inst : records) {
             if (!modelNames.containsKey(inst.getModelId())) {
                 ciModelMapper.findByName(inst.getModelId(), tenantId)
-                        .ifPresent(m -> modelNames.put(m.getName(), m.getDisplayName()));
+                        .ifPresent(m -> modelNames.put(m.getModelId(), m.getDisplayName()));
             }
         }
 
@@ -106,6 +130,7 @@ public class CiInstanceQueryService {
             vo.setModelCode(inst.getModelId());
             vo.setModelId(inst.getModelId());
             vo.setModelName(modelNames.getOrDefault(inst.getModelId(), inst.getModelId()));
+            vo.setSnippet(matchSnippet(inst.getFieldsData(), keyword));
             return vo;
         }).collect(Collectors.toList());
 
@@ -163,6 +188,22 @@ public class CiInstanceQueryService {
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
+    /**
+     * 当搜索关键词匹配到 attrs 内的属性值（而非实例名）时，返回第一个命中属性的
+     * {@code key: value} 字符串（大小写不敏感），用于展示命中原因（如 IP 命中
+     * 返回 {@code "inner_ip: 10.0.0.1"}）。按名称命中或无命中时返回 {@code null}。
+     */
+    private String matchSnippet(Map<String, Object> attrs, String keyword) {
+        if (attrs == null || attrs.isEmpty() || keyword == null) return null;
+        String kw = keyword.toLowerCase();
+        for (Map.Entry<String, Object> e : attrs.entrySet()) {
+            if (e.getValue() == null) continue;
+            String v = e.getValue().toString();
+            if (v.toLowerCase().contains(kw)) return e.getKey() + ": " + v;
+        }
+        return null;
+    }
+
     private CiModel loadModel(String modelCode, String tenantId) {
         return ciModelMapper.findByName(modelCode, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelCode));
@@ -197,6 +238,7 @@ public class CiInstanceQueryService {
         vo.setIsEditable(a.getIsEditable()); vo.setIsUnique(a.getIsUnique());
         vo.setIsBuiltIn(a.getIsBuiltIn()); vo.setIsListShow(a.getIsListShow());
         vo.setDefaultValue(a.getDefaultValue()); vo.setEnumOptions(a.getEnumOptions());
+        vo.setOption(a.getOption());
         vo.setSortOrder(a.getSortOrder());
         return vo;
     }

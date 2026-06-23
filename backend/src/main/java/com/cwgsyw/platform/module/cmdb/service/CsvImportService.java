@@ -50,7 +50,7 @@ public class CsvImportService {
      */
     public String generateTemplate(String model, String tenantId) {
         CiModel ciModel = loadModel(model, tenantId);
-        List<CiAttribute> attrs = ciAttributeMapper.listByModel(ciModel.getName(), tenantId);
+        List<CiAttribute> attrs = ciAttributeMapper.listByModel(ciModel.getModelId(), tenantId);
 
         List<String> headers = new ArrayList<>();
         for (CiAttribute attr : attrs) {
@@ -79,7 +79,7 @@ public class CsvImportService {
                                        String uniqueKeyFields, String encoding, String tenantId) {
         validateFile(file);
         CiModel ciModel = loadModel(model, tenantId);
-        List<CiAttribute> attrs = ciAttributeMapper.listByModel(ciModel.getName(), tenantId);
+        List<CiAttribute> attrs = ciAttributeMapper.listByModel(ciModel.getModelId(), tenantId);
 
         try {
             byte[] data = file.getBytes();
@@ -111,7 +111,7 @@ public class CsvImportService {
                     .collect(Collectors.toMap(CiAttribute::getFieldKey, a -> a, (a, b) -> a));
 
             // Pre-load existing instances by unique key
-            Map<String, CiInstance> existingMap = loadExistingInstances(ciModel.getName(), uniqueFields, tenantId);
+            Map<String, CiInstance> existingMap = loadExistingInstances(ciModel.getModelId(), uniqueFields, tenantId);
 
             // Validate each row
             List<Map<String, Object>> toCreate = new ArrayList<>();
@@ -135,6 +135,8 @@ public class CsvImportService {
                 if (existing == null) {
                     Map<String, Object> rowData = convertRow(row, attrMap);
                     rowData.put("_action", "create");
+                    // 导入固定归属当前模型，写入 ASCII model_id（与 V47 迁移后的子表 FK 一致）
+                    rowData.put("_modelId", ciModel.getModelId());
                     toCreate.add(rowData);
                 } else {
                     if ("skip".equals(conflictStrategy)) {

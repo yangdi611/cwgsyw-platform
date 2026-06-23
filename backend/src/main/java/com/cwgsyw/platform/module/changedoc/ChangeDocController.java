@@ -59,6 +59,12 @@ public class ChangeDocController {
         return R.ok(changeDocService.submit(user.getTenantId(), id, user.getUserId()));
     }
 
+    @PostMapping("/{id}/submit-plan")
+    @PreAuthorize("hasAuthority('change_doc:update')")
+    public R<ChangeDocVO> submitPlan(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(changeDocService.submitPlan(user.getTenantId(), id, user.getUserId()));
+    }
+
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('change_doc:approve')")
     public R<ChangeDocVO> approve(@PathVariable Long id,
@@ -94,13 +100,29 @@ public class ChangeDocController {
     public ResponseEntity<byte[]> export(
             @PathVariable Long id,
             @RequestParam(defaultValue = "pdf") String format,
+            @RequestParam(required = false) String which,
             @AuthenticationPrincipal SecurityUser user) {
         ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
-        String filename = doc.getChangeNo() + (format.equals("docx") ? ".docx" : ".pdf");
+
+        // which = "application" | "plan" | null（兼容旧调用，默认走 application 优先回退 plan）
+        Long templateId;
+        String partLabel;
+        if ("plan".equals(which)) {
+            templateId = doc.getPlanTemplateId();
+            partLabel = "方案";
+        } else if ("application".equals(which)) {
+            templateId = doc.getApplicationTemplateId();
+            partLabel = "申请单";
+        } else {
+            templateId = doc.getApplicationTemplateId() != null ? doc.getApplicationTemplateId() : doc.getPlanTemplateId();
+            partLabel = doc.getApplicationTemplateId() != null ? "申请单" : "方案";
+        }
+
+        String filename = doc.getChangeNo() + "_" + partLabel + (format.equals("docx") ? ".docx" : ".pdf");
         byte[] bytes;
         MediaType mediaType;
         if ("docx".equals(format)) {
-            bytes = exportService.exportDocx(doc, user.getTenantId());
+            bytes = exportService.exportDocxFor(doc, user.getTenantId(), templateId);
             mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         } else {
             bytes = exportService.exportPdfDirect(doc, user.getTenantId());
@@ -118,5 +140,30 @@ public class ChangeDocController {
                                     @AuthenticationPrincipal SecurityUser user) {
         ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
         return R.ok(emailTemplateService.buildEmailBody(EmailTemplateService.EmailType.CHANGE_DOC_EXPORTED, doc, null));
+    }
+
+    @GetMapping("/{id}/ci-links")
+    @PreAuthorize("hasAuthority('change_doc:read')")
+    public R<List<LinkedCiInstanceVO>> listCiLinks(@PathVariable Long id,
+                                                    @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(changeDocService.listCiLinks(user.getTenantId(), id));
+    }
+
+    @PostMapping("/{id}/ci-links")
+    @PreAuthorize("hasAuthority('change_doc:update')")
+    public R<Void> addCiLinks(@PathVariable Long id,
+                              @RequestBody AddCiLinkRequest req,
+                              @AuthenticationPrincipal SecurityUser user) {
+        changeDocService.addCiLinks(user.getTenantId(), id, user.getUserId(), req.getLinks());
+        return R.ok(null);
+    }
+
+    @DeleteMapping("/{id}/ci-links/{instanceId}")
+    @PreAuthorize("hasAuthority('change_doc:update')")
+    public R<Void> removeCiLink(@PathVariable Long id,
+                                @PathVariable Long instanceId,
+                                @AuthenticationPrincipal SecurityUser user) {
+        changeDocService.removeCiLink(user.getTenantId(), id, instanceId, user.getUserId());
+        return R.ok(null);
     }
 }

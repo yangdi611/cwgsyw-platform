@@ -39,7 +39,7 @@ public class CiAttributeService {
     public List<CiAttributeVO> list(String modelId, String tenantId) {
         CiModel model = loadModel(modelId, tenantId);
         Map<String, String> attrGroupNames = resolveAttrGroupNames(tenantId);
-        return ciAttributeMapper.listByModel(model.getName(), tenantId).stream()
+        return ciAttributeMapper.listByModel(model.getModelId(), tenantId).stream()
                 .map(a -> toVO(a, attrGroupNames)).collect(Collectors.toList());
     }
 
@@ -54,7 +54,7 @@ public class CiAttributeService {
 
         LambdaQueryWrapper<CiAttribute> dupCheck = new LambdaQueryWrapper<CiAttribute>()
                 .eq(CiAttribute::getTenantId, tenantId)
-                .eq(CiAttribute::getModelId, model.getName())
+                .eq(CiAttribute::getModelId, model.getModelId())
                 .eq(CiAttribute::getFieldKey, req.getFieldKey())
                 .eq(CiAttribute::getIsDeleted, false);
         if (ciAttributeMapper.selectCount(dupCheck) > 0) {
@@ -65,11 +65,11 @@ public class CiAttributeService {
             throw new IllegalArgumentException("enum 类型字段必须提供 enumOptions");
         }
 
-        validateAttrGroup(model.getName(), req.getGroupId(), tenantId);
+        validateAttrGroup(model.getModelId(), req.getGroupId(), tenantId);
 
         CiAttribute attr = new CiAttribute();
         attr.setTenantId(tenantId);
-        attr.setModelId(model.getName());
+        attr.setModelId(model.getModelId());
         attr.setFieldKey(req.getFieldKey());
         attr.setName(req.getName());
         attr.setGroupId(req.getGroupId());
@@ -79,6 +79,7 @@ public class CiAttributeService {
         attr.setIsUnique(req.getIsUnique());
         attr.setIsBuiltIn(false);
         attr.setIsListShow(req.getIsListShow());
+        attr.setIsDrawerShow(req.getIsDrawerShow());
         attr.setDefaultValue(req.getDefaultValue());
         attr.setEnumOptions(req.getEnumOptions());
         // Parse enumOptions to option JSONB format
@@ -109,21 +110,18 @@ public class CiAttributeService {
     public CiAttributeVO update(String modelId, Long attrId, UpdateAttributeRequest req,
                                 String tenantId, Long operatorId) {
         CiModel model = loadModel(modelId, tenantId);
-        CiAttribute attr = loadAttribute(attrId, tenantId, model.getName());
+        CiAttribute attr = loadAttribute(attrId, tenantId, model.getModelId());
         String before = snapshot(attr);
 
-        if (Boolean.TRUE.equals(attr.getIsBuiltIn())) {
-            if (req.getName() != null || req.getIsRequired() != null || req.getIsEditable() != null
-                    || req.getDefaultValue() != null || req.getEnumOptions() != null || req.getSortOrder() != null
-                    || req.getOption() != null) {
-                throw new IllegalArgumentException("内置字段仅允许修改 isListShow");
-            }
-        }
+        // 内置字段的 fieldKey / fieldType / isUnique 由代码常量依赖（如 PrometheusAlertSyncService 按 inner_ip
+        // 匹配主机），UpdateAttributeRequest 本身不暴露这些字段，因此其余字段（name/isRequired/isEditable/
+        // isListShow/defaultValue/enumOptions/option/sortOrder）允许自由修改。
 
         if (req.getName() != null) attr.setName(req.getName());
         if (req.getIsRequired() != null) attr.setIsRequired(req.getIsRequired());
         if (req.getIsEditable() != null) attr.setIsEditable(req.getIsEditable());
         if (req.getIsListShow() != null) attr.setIsListShow(req.getIsListShow());
+        if (req.getIsDrawerShow() != null) attr.setIsDrawerShow(req.getIsDrawerShow());
         if (req.getDefaultValue() != null) attr.setDefaultValue(req.getDefaultValue());
         if (req.getEnumOptions() != null) attr.setEnumOptions(req.getEnumOptions());
         if (req.getOption() != null) attr.setOption(req.getOption());
@@ -140,7 +138,7 @@ public class CiAttributeService {
     @Transactional
     public void delete(String modelId, Long attrId, String tenantId, Long operatorId) {
         CiModel model = loadModel(modelId, tenantId);
-        CiAttribute attr = loadAttribute(attrId, tenantId, model.getName());
+        CiAttribute attr = loadAttribute(attrId, tenantId, model.getModelId());
 
         if (Boolean.TRUE.equals(attr.getIsBuiltIn())) {
             throw new IllegalStateException("内置字段不可删除");
@@ -196,6 +194,7 @@ public class CiAttributeService {
         vo.setFieldType(a.getFieldType()); vo.setIsRequired(a.getIsRequired());
         vo.setIsEditable(a.getIsEditable()); vo.setIsUnique(a.getIsUnique());
         vo.setIsBuiltIn(a.getIsBuiltIn()); vo.setIsListShow(a.getIsListShow());
+        vo.setIsDrawerShow(a.getIsDrawerShow());
         vo.setDefaultValue(a.getDefaultValue()); vo.setEnumOptions(a.getEnumOptions());
         vo.setOption(a.getOption());
         vo.setSortOrder(a.getSortOrder());

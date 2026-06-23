@@ -32,9 +32,17 @@ public class ExportService {
         Long templateIdForExport = doc.getApplicationTemplateId() != null
                 ? doc.getApplicationTemplateId()
                 : doc.getPlanTemplateId();
-        if (templateIdForExport != null) {
+        return exportDocxFor(doc, tenantId, templateIdForExport);
+    }
+
+    /**
+     * 用指定模板导出。如果模板有 .docx 文件就用模板填充；否则回退到程序化生成。
+     * 双导出场景下，{@code templateId} 必须明确传入（application 或 plan 之一）。
+     */
+    public byte[] exportDocxFor(ChangeDocVO doc, String tenantId, Long templateId) {
+        if (templateId != null) {
             try {
-                return templateService.fillDocx(tenantId, templateIdForExport,
+                return templateService.fillDocx(tenantId, templateId,
                         doc.getFieldsData() != null ? doc.getFieldsData() : Map.of());
             } catch (IllegalStateException e) {
                 // Template has no .docx file yet — fall through to programmatic generation
@@ -175,9 +183,9 @@ public class ExportService {
         labelRun.setFontFamily("宋体");
         labelRun.setFontSize(11);
         XWPFRun valueRun = p.createRun();
-        valueRun.setText(value != null ? stripHtml(value) : "");
         valueRun.setFontFamily("宋体");
         valueRun.setFontSize(11);
+        writeMultiline(valueRun, value != null ? stripHtml(value) : "");
     }
 
     private void addSection(XWPFDocument xdoc, String heading, String content) {
@@ -192,9 +200,20 @@ public class ExportService {
         XWPFParagraph cp = xdoc.createParagraph();
         cp.setSpacingAfter(100);
         XWPFRun cr = cp.createRun();
-        cr.setText(content != null ? stripHtml(content) : "（暂无内容）");
         cr.setFontFamily("宋体");
         cr.setFontSize(11);
+        writeMultiline(cr, content != null ? stripHtml(content) : "（暂无内容）");
+    }
+
+    /** 把多行文本写入单个 XWPFRun：第一行 setText，后续每行 addBreak + setText。保留 run 的字体/字号样式。 */
+    private void writeMultiline(XWPFRun run, String text) {
+        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+        String[] lines = normalized.split("\n", -1);
+        run.setText(lines[0], 0);
+        for (int i = 1; i < lines.length; i++) {
+            run.addBreak(BreakType.TEXT_WRAPPING);
+            run.setText(lines[i]);
+        }
     }
 
     private void addPageBreak(XWPFDocument xdoc) {
@@ -206,7 +225,7 @@ public class ExportService {
                               com.lowagie.text.Font labelFont, com.lowagie.text.Font bodyFont) throws DocumentException {
         Paragraph p = new Paragraph();
         p.add(new Chunk(label + "：", labelFont));
-        p.add(new Chunk(value != null ? stripHtml(value) : "", bodyFont));
+        addMultilineChunks(p, value != null ? stripHtml(value) : "", bodyFont);
         p.setSpacingAfter(6);
         pdf.add(p);
     }
@@ -217,7 +236,8 @@ public class ExportService {
         h.setSpacingBefore(10);
         h.setSpacingAfter(4);
         pdf.add(h);
-        Paragraph c = new Paragraph(content != null ? stripHtml(content) : "（暂无内容）", bodyFont);
+        Paragraph c = new Paragraph();
+        addMultilineChunks(c, content != null ? stripHtml(content) : "（暂无内容）", bodyFont);
         c.setSpacingAfter(8);
         pdf.add(c);
     }
@@ -303,9 +323,24 @@ public class ExportService {
         return v != null ? v : "";
     }
 
+    /** PDF：把多行文本按 \n 切分成 Chunk + Chunk.NEWLINE，保留 paragraph 已有的样式属性。 */
+    private void addMultilineChunks(Paragraph para, String text, com.lowagie.text.Font font) {
+        if (text == null) text = "";
+        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+        String[] lines = normalized.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) para.add(Chunk.NEWLINE);
+            para.add(new Chunk(lines[i], font));
+        }
+    }
+
     private String stripHtml(String html) {
         if (html == null) return "";
-        return html.replaceAll("<[^>]+>", "").replaceAll("&nbsp;", " ")
+        // 先把 <br> / <p> 等块级换行转成 \n，再剥其他标签
+        return html.replaceAll("(?i)<br\\s*/?>", "\n")
+                   .replaceAll("(?i)</p\\s*>", "\n")
+                   .replaceAll("<[^>]+>", "")
+                   .replaceAll("&nbsp;", " ")
                    .replaceAll("&lt;", "<").replaceAll("&gt;", ">")
                    .replaceAll("&amp;", "&").trim();
     }

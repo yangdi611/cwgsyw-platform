@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,6 @@ import {
   ClipboardList,
   Edit3,
   ChevronDown,
-  ChevronRight,
 } from 'lucide-react'
 
 type NavItem = {
@@ -58,6 +57,21 @@ function isGroup(item: NavEntry): item is NavGroup {
   return 'children' in item
 }
 
+/** 某个一级菜单（权限过滤后）是否存在子项命中当前路由。 */
+function groupActiveChild(
+  group: NavGroup,
+  pathname: string,
+  hasPermission: (r: string, a: string) => boolean,
+): boolean {
+  const visibleChildren = group.children.filter(
+    c => !c.resource || !c.action || hasPermission(c.resource, c.action),
+  )
+  if (visibleChildren.length === 0) return false
+  return visibleChildren.some(
+    c => pathname === c.href || pathname.startsWith(c.href + '/') || pathname.startsWith(c.href + '?'),
+  )
+}
+
 // V2 导航架构：8 大模块
 const navItems: NavEntry[] = [
   // 1. 工作台
@@ -80,7 +94,7 @@ const navItems: NavEntry[] = [
     defaultOpen: true,
     children: [
       { href: '/cmdb', label: '概览', icon: LayoutDashboard, resource: 'cmdb_instance', action: 'read', exact: true },
-      { href: '/cmdb/instances', label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read' },
+      { href: '/cmdb/instances', label: '实例管理', icon: Database, resource: 'cmdb_instance', action: 'read', exact: true },
       { href: '/cmdb/models', label: '模型管理', icon: Box, resource: 'cmdb_model', action: 'read' },
       { href: '/cmdb/changes', label: '变更记录', icon: History, resource: 'cmdb_change', action: 'read' },
       { href: '/cmdb/alerts', label: '告警中心', icon: Bell, resource: 'cmdb_alert', action: 'read', badge: 7 },
@@ -98,7 +112,7 @@ const navItems: NavEntry[] = [
     storageKey: 'sidebar_changedoc_v2',
     defaultOpen: false,
     children: [
-      { href: '/change-docs', label: '文档列表', icon: FileText, resource: 'change_doc', action: 'read', badge: 42 },
+      { href: '/change-docs', label: '文档列表', icon: FileText, resource: 'change_doc', action: 'read', badge: 42, exact: true },
       { href: '/change-docs/new', label: '新建变更', icon: Edit3, resource: 'change_doc', action: 'create' },
       { href: '/admin/change-doc-templates', label: '模板管理', icon: FileCode, resource: 'change_doc_template', action: 'read' },
     ],
@@ -184,39 +198,54 @@ const navItems: NavEntry[] = [
   },
 ]
 
-function usePersistState(key: string, initial: boolean): [boolean, (v: boolean) => void] {
-  const [value, setValue] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return initial
-    const saved = localStorage.getItem(key)
-    return saved !== null ? saved === 'true' : initial
+const OPEN_GROUP_KEY = 'sidebar_open_group_v2'
+
+/**
+ * 手风琴式展开状态：同一时刻只允许一个一级菜单展开。
+ * 返回当前展开组的 storageKey（全部折叠时为 null）与切换函数。
+ * - localStorage 无值 → 使用传入的 initialKey（当前页所属组 / defaultOpen）
+ * - localStorage 为 '' → 用户已主动全部折叠，保持全部关闭
+ * - localStorage 为某 storageKey → 展开该组
+ */
+function useOpenGroup(initialKey: string | null): [string | null, (key: string) => void] {
+  const [openKey, setOpenKey] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return initialKey
+    const saved = localStorage.getItem(OPEN_GROUP_KEY)
+    if (saved === null) return initialKey
+    return saved || null
   })
-  const set = (v: boolean) => {
-    setValue(v)
-    try { localStorage.setItem(key, String(v)) } catch {}
+  const toggle = (key: string) => {
+    setOpenKey(prev => {
+      const next = prev === key ? null : key
+      try {
+        localStorage.setItem(OPEN_GROUP_KEY, next ?? '')
+      } catch {}
+      return next
+    })
   }
-  return [value, set]
+  return [openKey, toggle]
 }
 
-function NavGroupItem({ group, pathname, hasPermission }: {
+function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle }: {
   group: NavGroup
   pathname: string
   hasPermission: (r: string, a: string) => boolean
+  isOpen: boolean
+  onToggle: () => void
 }) {
   const visibleChildren = group.children.filter(c =>
     !c.resource || !c.action || hasPermission(c.resource, c.action)
   )
   if (visibleChildren.length === 0) return null
 
-  const isAnyChildActive = visibleChildren.some(c => {
-    return pathname === c.href || pathname.startsWith(c.href + '/') || pathname.startsWith(c.href + '?')
-  })
+  const isAnyChildActive = groupActiveChild(group, pathname, hasPermission)
 
-  const [open, setOpen] = usePersistState(group.storageKey, group.defaultOpen ?? isAnyChildActive)
+  const open = isOpen
 
   return (
     <div className="mb-1">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         className={cn(
           'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
           isAnyChildActive
@@ -226,45 +255,53 @@ function NavGroupItem({ group, pathname, hasPermission }: {
       >
         <group.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
-        {open ? (
-          <ChevronDown className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
-        )}
+        <ChevronDown
+          className={cn(
+            'h-3.5 w-3.5 transition-transform duration-200 ease-out motion-reduce:transition-none',
+            open ? 'rotate-0' : '-rotate-90',
+          )}
+        />
       </button>
 
-      {open && (
-        <div className="mt-1 space-y-0.5">
-          {visibleChildren.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname === item.href ||
-                pathname.startsWith(item.href + '/') ||
-                pathname.startsWith(item.href + '?')
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none',
+          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
+      >
+        <div className="overflow-hidden min-h-0">
+          <div className="mt-1 space-y-0.5">
+            {visibleChildren.map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname === item.href ||
+                  pathname.startsWith(item.href + '/') ||
+                  pathname.startsWith(item.href + '?')
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-3',
-                  isActive
-                    ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                    : 'text-slate-300 hover:bg-white/6 hover:text-white'
-                )}
-              >
-                <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
-                <span className="flex-1 truncate">{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-3',
+                    isActive
+                      ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
+                      : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                  )}
+                >
+                  <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -272,6 +309,30 @@ function NavGroupItem({ group, pathname, hasPermission }: {
 export function Sidebar() {
   const pathname = usePathname()
   const { hasPermission } = usePermission()
+
+  // 默认展开的一级菜单：优先「当前页所属组」，其次「defaultOpen」的组。
+  const groups = navItems.filter(isGroup) as NavGroup[]
+  const isGroupVisible = (g: NavGroup) =>
+    !g.resource || !g.action || hasPermission(g.resource, g.action)
+  const initialOpenKey =
+    groups.find(g => isGroupVisible(g) && groupActiveChild(g, pathname, hasPermission))?.storageKey ??
+    groups.find(g => isGroupVisible(g) && g.defaultOpen)?.storageKey ??
+    null
+
+  const [openKey, toggleGroup] = useOpenGroup(initialOpenKey)
+
+  // 一次性迁移清理：移除旧版（每个一级菜单独立持久化）遗留的 localStorage key。
+  // 新版只使用 OPEN_GROUP_KEY 单个 key，这些旧 key 不再被读写。
+  // removeItem 对不存在的 key 是安全空操作，且这里不会触及 OPEN_GROUP_KEY。
+  useEffect(() => {
+    navItems.forEach(entry => {
+      if (isGroup(entry)) {
+        try {
+          localStorage.removeItem(entry.storageKey)
+        } catch {}
+      }
+    })
+  }, [])
 
   return (
     <aside className="w-[280px] bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-hidden">
@@ -299,6 +360,8 @@ export function Sidebar() {
                 group={entry}
                 pathname={pathname}
                 hasPermission={hasPermission}
+                isOpen={openKey === entry.storageKey}
+                onToggle={() => toggleGroup(entry.storageKey)}
               />
             )
           }

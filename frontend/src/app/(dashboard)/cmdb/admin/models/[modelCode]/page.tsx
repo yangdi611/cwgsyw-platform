@@ -9,9 +9,16 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Checkbox } from '@/components/v2/Checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/v2/Dialog'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiAttributeVO {
@@ -21,12 +28,15 @@ interface CiAttributeVO {
   groupId: string
   fieldType: string
   isRequired: boolean
+  isEditable: boolean
   isUnique: boolean
   isBuiltIn: boolean
   isListShow: boolean
+  isDrawerShow: boolean
   sortOrder: number
   placeholder: string
   unit: string
+  defaultValue?: string
   option: Array<{ id: string; name: string; isDefault?: boolean }>
 }
 interface CiAttributeGroupVO {
@@ -83,6 +93,17 @@ export default function ModelDetailPage() {
   const queryClient = useQueryClient()
   const canWrite = hasPermission('cmdb_model', 'update')
   const [addingAttr, setAddingAttr] = useState(false)
+  const [editingAttr, setEditingAttr] = useState<CiAttributeVO | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    isRequired: false,
+    isEditable: true,
+    isListShow: false,
+    isDrawerShow: false,
+    sortOrder: 0,
+    defaultValue: '',
+    optionJson: '',
+  })
   const [newAttr, setNewAttr] = useState({
     fieldKey: '',
     name: '',
@@ -91,6 +112,7 @@ export default function ModelDetailPage() {
     isRequired: false,
     isUnique: false,
     isListShow: true,
+    isDrawerShow: true,
     placeholder: '',
     unit: '',
   })
@@ -111,13 +133,14 @@ export default function ModelDetailPage() {
   const addAttrMutation = useMutation({
     mutationFn: () =>
       api.post(`/cmdb/models/${modelCode}/attributes`, {
-        fieldKey: newAttr.fieldKey,
+        field_key: newAttr.fieldKey,
         name: newAttr.name,
-        fieldType: newAttr.fieldType,
-        groupId: newAttr.groupId,
-        isRequired: newAttr.isRequired,
-        isUnique: newAttr.isUnique,
-        isListShow: newAttr.isListShow,
+        field_type: newAttr.fieldType,
+        group_id: newAttr.groupId,
+        is_required: newAttr.isRequired,
+        is_unique: newAttr.isUnique,
+        is_list_show: newAttr.isListShow,
+        is_drawer_show: newAttr.isDrawerShow,
         placeholder: newAttr.placeholder || undefined,
         unit: newAttr.unit || undefined,
       }),
@@ -133,6 +156,7 @@ export default function ModelDetailPage() {
         isRequired: false,
         isUnique: false,
         isListShow: true,
+        isDrawerShow: true,
         placeholder: '',
         unit: '',
       })
@@ -148,6 +172,54 @@ export default function ModelDetailPage() {
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
+
+  const updateAttrMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingAttr) return
+      let option: Array<Record<string, unknown>> | undefined
+      const isEnum = editingAttr.fieldType === 'enum' || editingAttr.fieldType === 'enummulti'
+      if (isEnum && editForm.optionJson.trim()) {
+        try {
+          const parsed = JSON.parse(editForm.optionJson)
+          if (!Array.isArray(parsed)) throw new Error('not array')
+          option = parsed
+        } catch {
+          throw new Error('选项 JSON 格式无效，需要是数组')
+        }
+      }
+      await api.put(`/cmdb/models/${modelCode}/attributes/${editingAttr.id}`, {
+        name: editForm.name,
+        is_required: editForm.isRequired,
+        is_editable: editForm.isEditable,
+        is_list_show: editForm.isListShow,
+        is_drawer_show: editForm.isDrawerShow,
+        sort_order: editForm.sortOrder,
+        default_value: editForm.defaultValue || null,
+        option,
+      })
+    },
+    onSuccess: () => {
+      toast.success('已保存')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelCode] })
+      setEditingAttr(null)
+    },
+    onError: (e: any) => toast.error(e?.message ?? e?.response?.data?.message ?? '保存失败'),
+  })
+
+  function openEdit(attr: CiAttributeVO) {
+    setEditingAttr(attr)
+    setEditForm({
+      name: attr.name,
+      isRequired: !!attr.isRequired,
+      isEditable: attr.isEditable !== false,
+      isListShow: !!attr.isListShow,
+      isDrawerShow: !!attr.isDrawerShow,
+      sortOrder: attr.sortOrder ?? 0,
+      defaultValue: attr.defaultValue ?? '',
+      optionJson:
+        attr.option && attr.option.length > 0 ? JSON.stringify(attr.option, null, 2) : '',
+    })
+  }
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
   if (!model) return <p className="text-v2-danger">模型不存在</p>
@@ -287,6 +359,13 @@ export default function ModelDetailPage() {
                 />
                 列表显示
               </label>
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <Checkbox
+                  checked={newAttr.isDrawerShow}
+                  onCheckedChange={(v) => setNewAttr((f) => ({ ...f, isDrawerShow: !!v }))}
+                />
+                详情显示
+              </label>
             </div>
             <div className="flex gap-2">
               <Button
@@ -348,20 +427,32 @@ export default function ModelDetailPage() {
                           </td>
                           {canWrite && (
                             <td className="px-4 py-2.5 text-right">
-                              {!attr.isBuiltIn && (
+                              <div className="inline-flex items-center gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 w-7 p-0 text-v2-danger"
-                                  disabled={deleteAttrMutation.isPending}
-                                  onClick={() => {
-                                    if (confirm(`删除属性 "${attr.name}"?`))
-                                      deleteAttrMutation.mutate(attr.id)
-                                  }}
+                                  className="h-7 w-7 p-0 text-v2-muted hover:text-v2-fg"
+                                  title="编辑"
+                                  onClick={() => openEdit(attr)}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Pencil className="h-3.5 w-3.5" />
                                 </Button>
-                              )}
+                                {!attr.isBuiltIn && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-v2-danger"
+                                    disabled={deleteAttrMutation.isPending}
+                                    title="删除"
+                                    onClick={() => {
+                                      if (confirm(`删除属性 "${attr.name}"?`))
+                                        deleteAttrMutation.mutate(attr.id)
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           )}
                         </tr>
@@ -374,6 +465,121 @@ export default function ModelDetailPage() {
           )
         })}
       </div>
+
+      <Dialog open={!!editingAttr} onOpenChange={(o) => !o && setEditingAttr(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              编辑属性
+              {editingAttr && (
+                <span className="ml-2 font-v2-mono text-xs font-normal text-v2-muted">
+                  {editingAttr.fieldKey}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {editingAttr && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label className="text-xs">显示名称</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">排序</Label>
+                  <Input
+                    type="number"
+                    value={editForm.sortOrder}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, sortOrder: Number(e.target.value) || 0 }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">默认值</Label>
+                  <Input
+                    value={editForm.defaultValue}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, defaultValue: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-v2-fg">
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <Checkbox
+                    checked={editForm.isRequired}
+                    onCheckedChange={(v) =>
+                      setEditForm((f) => ({ ...f, isRequired: !!v }))
+                    }
+                  />
+                  必填
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <Checkbox
+                    checked={editForm.isEditable}
+                    onCheckedChange={(v) =>
+                      setEditForm((f) => ({ ...f, isEditable: !!v }))
+                    }
+                  />
+                  可编辑
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <Checkbox
+                    checked={editForm.isListShow}
+                    onCheckedChange={(v) =>
+                      setEditForm((f) => ({ ...f, isListShow: !!v }))
+                    }
+                  />
+                  列表显示
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <Checkbox
+                    checked={editForm.isDrawerShow}
+                    onCheckedChange={(v) =>
+                      setEditForm((f) => ({ ...f, isDrawerShow: !!v }))
+                    }
+                  />
+                  详情显示
+                </label>
+              </div>
+              {(editingAttr.fieldType === 'enum' || editingAttr.fieldType === 'enummulti') && (
+                <div className="space-y-1">
+                  <Label className="text-xs">枚举选项（JSON）</Label>
+                  <textarea
+                    className="w-full min-h-[120px] rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 font-v2-mono text-xs text-v2-fg"
+                    value={editForm.optionJson}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, optionJson: e.target.value }))
+                    }
+                    placeholder='[{"id":"linux","name":"Linux","isDefault":true}]'
+                  />
+                </div>
+              )}
+              {editingAttr.isBuiltIn && (
+                <p className="rounded-v2-md border border-v2-primary-border bg-v2-primary-soft px-3 py-2 text-xs text-v2-primary">
+                  这是内置属性。字段标识 (<code className="font-v2-mono">{editingAttr.fieldKey}</code>) 和类型不可修改 —— 它们被后端代码常量级引用（如告警同步按 inner_ip 匹配主机），修改会让相关功能静默失效。
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingAttr(null)}>
+              取消
+            </Button>
+            <Button
+              variant="primary"
+              disabled={updateAttrMutation.isPending}
+              onClick={() => updateAttrMutation.mutate()}
+            >
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
