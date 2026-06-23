@@ -52,4 +52,34 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
     List<CiInstanceRel> findTopologyEdges(@Param("rootId") Long rootInstanceId,
                                           @Param("tenantId") String tenantId,
                                           @Param("maxDepth") int maxDepth);
+
+    /**
+     * Aggregate worker-node capacity for a resource_pool instance.
+     *
+     * Counts and sums host CIs reachable through `host belong resource_pool`
+     * relations, filtered by host.attrs.node_role='worker'. CPU/memory totals
+     * come from host.attrs.cpu_cores and host.attrs.mem_gb (host built-in
+     * attributes). Returns columns:
+     *   worker_count            BIGINT — all workers in pool
+     *   schedulable_worker_count BIGINT — workers with scheduling_state='schedulable' (or unset)
+     *   worker_cpu_cores        BIGINT — sum of cpu_cores across all workers
+     *   worker_memory_gb        BIGINT — sum of mem_gb across all workers
+     */
+    @Select("""
+        SELECT
+          COUNT(*) FILTER (WHERE COALESCE(h.attrs->>'node_role','worker') = 'worker') AS worker_count,
+          COUNT(*) FILTER (WHERE COALESCE(h.attrs->>'node_role','worker') = 'worker'
+                             AND COALESCE(h.attrs->>'scheduling_state','schedulable') = 'schedulable') AS schedulable_worker_count,
+          COALESCE(SUM((h.attrs->>'cpu_cores')::int) FILTER (WHERE COALESCE(h.attrs->>'node_role','worker') = 'worker'), 0) AS worker_cpu_cores,
+          COALESCE(SUM((h.attrs->>'mem_gb')::int) FILTER (WHERE COALESCE(h.attrs->>'node_role','worker') = 'worker'), 0) AS worker_memory_gb
+        FROM ci_instance_rel r
+        JOIN ci_association_def d ON d.def_id = r.def_id AND NOT d.is_deleted
+        JOIN ci_instance h ON h.id = r.src_id AND NOT h.is_deleted
+        WHERE r.dst_id = #{poolId}
+          AND r.tenant_id = #{tenantId}
+          AND NOT r.is_deleted
+          AND d.def_id = 'host_belong_resource_pool'
+        """)
+    java.util.Map<String, Object> aggregateResourcePoolWorkers(@Param("poolId") Long poolId,
+                                                               @Param("tenantId") String tenantId);
 }

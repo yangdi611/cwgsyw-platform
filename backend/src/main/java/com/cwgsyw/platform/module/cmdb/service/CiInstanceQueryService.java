@@ -37,6 +37,7 @@ public class CiInstanceQueryService {
     private final CiModelMapper ciModelMapper;
     private final CiAttributeMapper ciAttributeMapper;
     private final CiAttributeGroupMapper ciAttributeGroupMapper;
+    private final CiInstanceRelMapper ciInstanceRelMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
@@ -93,14 +94,39 @@ public class CiInstanceQueryService {
         List<CiAttributeVO> attrVOs = ciAttributeMapper.listByModel(model.getModelId(), tenantId).stream()
                 .map(a -> toAttributeVO(a, attrGroupNames)).collect(Collectors.toList());
 
+        Map<String, Object> fieldsData = inst.getFieldsData();
+        if ("resource_pool".equals(inst.getModelId())) {
+            fieldsData = injectResourcePoolDerivedFields(inst.getId(), fieldsData, tenantId);
+        }
+
         CiInstanceDetailVO vo = new CiInstanceDetailVO();
         vo.setId(inst.getId()); vo.setName(inst.getName());
         vo.setModelCode(inst.getModelId()); vo.setModelId(inst.getModelId());
         vo.setDisplayName(model.getDisplayName()); vo.setModelName(model.getDisplayName());
         vo.setStatus(inst.getStatus()); vo.setOwner(inst.getOwner());
-        vo.setDescription(inst.getDescription()); vo.setFieldsData(inst.getFieldsData());
+        vo.setDescription(inst.getDescription()); vo.setFieldsData(fieldsData);
         vo.setAttributes(attrVOs); vo.setCreatedAt(inst.getCreatedAt()); vo.setUpdatedAt(inst.getUpdatedAt());
         return vo;
+    }
+
+    /**
+     * Aggregate worker host capacity for a resource_pool and overlay the result
+     * onto the pool's fieldsData under reserved keys (`_worker_count`, etc.).
+     * Reserved keys are surfaced read-only by the frontend; they cannot collide
+     * with user-defined attribute keys (which must match {@code ^[a-z][a-z0-9_]*$}).
+     */
+    private Map<String, Object> injectResourcePoolDerivedFields(Long poolId,
+                                                                Map<String, Object> fieldsData,
+                                                                String tenantId) {
+        Map<String, Object> agg = ciInstanceRelMapper.aggregateResourcePoolWorkers(poolId, tenantId);
+        Map<String, Object> merged = fieldsData == null ? new LinkedHashMap<>() : new LinkedHashMap<>(fieldsData);
+        if (agg != null) {
+            merged.put("_worker_count", agg.getOrDefault("worker_count", 0L));
+            merged.put("_schedulable_worker_count", agg.getOrDefault("schedulable_worker_count", 0L));
+            merged.put("_worker_cpu_cores", agg.getOrDefault("worker_cpu_cores", 0L));
+            merged.put("_worker_memory_gb", agg.getOrDefault("worker_memory_gb", 0L));
+        }
+        return merged;
     }
 
     public PageResult<CiInstanceSearchVO> search(String keyword, int size, String tenantId) {
