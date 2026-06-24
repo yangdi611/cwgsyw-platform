@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.98.0",
-    "bpmn-js": "^18.16.1",
-    "bpmn-js-properties-panel": "^5.58.0"
-  }
-}
