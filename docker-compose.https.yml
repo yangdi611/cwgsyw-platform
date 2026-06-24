@@ -1,0 +1,13 @@
+# 仅启用 HTTPS（开发机场景）：让 nginx 监听 443 + 用 Cloudflare Origin 证书，
+# 其余 dev 端口（backend:8081 / db:5433 等）保持不变，便于本地调试。
+# 生产加固（关闭对外端口）请改用 docker-compose.prod.yml。
+# 用法：docker compose -f docker-compose.yml -f docker-compose.https.yml up -d nginx
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    restart: always
