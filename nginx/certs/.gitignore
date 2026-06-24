@@ -1,0 +1,5 @@
+# 真实证书绝不进仓库
+*.pem
+*.key
+*.crt
+!README.md
