@@ -1,33 +1,30 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { ArrowLeft, Trash2, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
 
-interface CiInstanceRelVO {
+/**
+ * GET /api/cmdb/instances/{id}/relations 返回的扁平关联列表（camelCase）。
+ * 对端/方向由前端按 srcInstanceId/dstInstanceId 与当前 id 派生。
+ */
+interface CiRelationVO {
   id: number
-  defId: string
-  isSrc: boolean
-  peerId: number
-  peerName: string
-  peerModelId: string
-  peerModelName: string
-  directionLabel: string
-  fieldsData: Record<string, unknown>
+  srcInstanceId: number
+  srcInstanceName: string
+  dstInstanceId: number
+  dstInstanceName: string
+  associationKind: string
+  metadata: Record<string, unknown> | null
   createdAt: string
-}
-
-interface CiRelGroupVO {
-  kindId: string
-  kindName: string
-  relations: CiInstanceRelVO[]
 }
 
 interface CiInstanceSummary {
@@ -35,6 +32,8 @@ interface CiInstanceSummary {
   modelId: string
   modelCode?: string
 }
+
+interface CiAssociationDefListVO { defId: string; name: string }
 
 export default function AssociationsPage() {
   const { modelCode, id } = useParams<{ modelCode: string; id: string }>()
@@ -64,12 +63,12 @@ export default function AssociationsPage() {
     enabled: typeof window !== 'undefined',
   })
 
-  const { data: relGroups = [], isLoading } = useQuery<CiRelGroupVO[]>({
+  const { data: relations = [], isLoading } = useQuery<CiRelationVO[]>({
     queryKey: ['cmdb-rel', id],
     queryFn: async () => {
       try {
         const r = await api.get(`/cmdb/instances/${id}/relations`)
-        return r.data.data
+        return r.data.data ?? []
       } catch {
         return []
       }
@@ -83,18 +82,38 @@ export default function AssociationsPage() {
       toast.success('关联已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-rel', id] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: { response?: { data?: { message?: string } } }) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
 
-  // Flatten all relations for table display
-  const allRelations = relGroups.flatMap(g =>
-    g.relations.map(r => ({ ...r, kindName: g.kindName, kindId: g.kindId }))
-  )
+  const { data: defs = [] } = useQuery<CiAssociationDefListVO[]>({
+    queryKey: ['cmdb-association-defs'],
+    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data ?? []),
+    staleTime: 600_000,
+  })
+  const kindMap = useMemo(() => new Map(defs.map(d => [d.defId, d.name])), [defs])
+
+  const [drawerInstId, setDrawerInstId] = useState<number | null>(null)
+
+  // 当前实例在每条关联中可能是 src 或 dst；据此派生对端与方向。
+  const currentId = Number(id)
+  const allRelations = relations.map(rel => {
+    const isSrc = rel.srcInstanceId === currentId
+    return {
+      id: rel.id,
+      kindId: rel.associationKind,
+      directionLabel: isSrc ? '→' : '←',
+      peerName: isSrc ? rel.dstInstanceName : rel.srcInstanceName,
+      peerId: isSrc ? rel.dstInstanceId : rel.srcInstanceId,
+      metadata: rel.metadata,
+      createdAt: rel.createdAt,
+    }
+  })
   const filtered = filterKind === 'all'
     ? allRelations
     : allRelations.filter(r => r.kindId === filterKind)
 
-  const kindOptions = relGroups.map(g => ({ value: g.kindId, label: g.kindName }))
+  const kindOptions = Array.from(new Set(allRelations.map(r => r.kindId)))
+    .map(k => ({ value: k, label: kindMap.get(k) ?? k }))
 
   return (
     <div className="space-y-6">
@@ -144,7 +163,6 @@ export default function AssociationsPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">种类</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">方向</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">对端 CI</th>
-                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">模型</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">创建时间</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">关联属性</th>
                 <th className="px-4 py-2.5 w-16"></th>
@@ -153,33 +171,34 @@ export default function AssociationsPage() {
             <tbody className="divide-y">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
+                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
                     暂无关联
                   </td>
                 </tr>
               ) : (
                 filtered.map(rel => (
                   <tr key={rel.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 text-muted-foreground">{rel.kindName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{kindMap.get(rel.kindId) ?? rel.kindId}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
                         {rel.directionLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium">
-                      <Link href={`/cmdb/instances/by-model/${rel.peerModelId}/${rel.peerId}`}
-                        className="hover:underline">
+                      <button
+                        className="text-v2-primary hover:underline"
+                        onClick={() => setDrawerInstId(rel.peerId)}
+                      >
                         {rel.peerName}
-                      </Link>
+                      </button>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{rel.peerModelName}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(rel.createdAt).toLocaleDateString('zh-CN')}
                     </td>
                     <td className="px-4 py-3">
-                      {rel.fieldsData && Object.keys(rel.fieldsData).length > 0 ? (
+                      {rel.metadata && Object.keys(rel.metadata).length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {Object.entries(rel.fieldsData).map(([k, v]) => (
+                          {Object.entries(rel.metadata).map(([k, v]) => (
                             <Badge key={k} variant="secondary" className="text-xs">
                               {k}={String(v)}
                             </Badge>
@@ -205,6 +224,11 @@ export default function AssociationsPage() {
           </table>
         </div>
       )}
+
+      <CiInstanceDrawer
+        instanceId={drawerInstId}
+        onClose={() => setDrawerInstId(null)}
+      />
     </div>
   )
 }

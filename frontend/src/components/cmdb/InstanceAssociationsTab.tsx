@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,24 +12,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner'
 import { Link2, X as XIcon } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
 
-interface CiInstanceRelVO {
+/**
+ * GET /api/cmdb/instances/{id}/relations 返回的扁平关联列表。
+ * 后端 CiRelationVO 经 @JsonNaming(LowerCamelCaseStrategy) 序列化，字段为 camelCase。
+ * 当前实例在每条关联中可能是 src 或 dst，对端/方向由前端派生。
+ */
+interface CiRelationVO {
   id: number
-  def_id: string
-  is_src: boolean
-  peer_id: number
-  peer_name: string
-  peerModelId: string
-  peer_model_name: string
-  direction_label: string
-  attrs: Record<string, unknown>
+  srcInstanceId: number
+  srcInstanceName: string
+  dstInstanceId: number
+  dstInstanceName: string
+  associationKind: string
+  metadata: Record<string, unknown> | null
   createdAt: string
-}
-
-interface CiRelGroupVO {
-  kind_id: string
-  kind_name: string
-  relations: CiInstanceRelVO[]
 }
 
 interface CiAssociationDefVO {
@@ -39,6 +37,12 @@ interface CiAssociationDefVO {
   srcModelId: string
   dstModelId: string
   mapping: string
+}
+
+interface CiAssociationDefListVO {
+  defId: string
+  name: string
+  kindName: string
 }
 
 interface AssociationAttrVO {
@@ -78,11 +82,62 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
   const [peerSearch, setPeerSearch] = useState('')
   const [selectedPeerId, setSelectedPeerId] = useState<number | null>(null)
   const [addError, setAddError] = useState('')
+  const [drawerInstId, setDrawerInstId] = useState<number | null>(null)
 
-  const { data: relGroups = [], isLoading } = useQuery<CiRelGroupVO[]>({
-    queryKey: ['cmdb-rel', id],
-    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data),
+  const { data: defs = [] } = useQuery<CiAssociationDefListVO[]>({
+    queryKey: ['cmdb-association-defs'],
+    queryFn: () => api.get('/cmdb/association-defs').then(r => r.data.data ?? []),
+    staleTime: 600_000,
   })
+  const kindMap = useMemo(() => new Map(defs.map(d => [d.defId, d.name])), [defs])
+
+  const { data: relations = [], isLoading } = useQuery<CiRelationVO[]>({
+    queryKey: ['cmdb-rel', id],
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then(r => r.data.data ?? []),
+  })
+
+  // 按 associationKind 分组，保留原有「[种类] 分组」展示。
+  const currentId = Number(id)
+  const groups = useMemo(() => {
+    const map = new Map<string, CiRelationVO[]>()
+    for (const rel of relations) {
+      const k = rel.associationKind || '(未分类)'
+      if (!map.has(k)) map.set(k, [])
+      map.get(k)!.push(rel)
+    }
+    return Array.from(map, ([kind, rels]) => ({ kind, rels }))
+  }, [relations])
+
+  const needsNodeRole = groups.some(g => g.kind === 'host_belong_resource_pool')
+  const hostPeerIds = useMemo(() => {
+    if (!needsNodeRole) return []
+    const ids = new Set<number>()
+    for (const g of groups) {
+      if (g.kind === 'host_belong_resource_pool') {
+        for (const rel of g.rels) {
+          ids.add(rel.srcInstanceId === currentId ? rel.dstInstanceId : rel.srcInstanceId)
+        }
+      }
+    }
+    return Array.from(ids)
+  }, [groups, needsNodeRole, currentId])
+
+  const hostResults = useQueries({
+    queries: hostPeerIds.map(hostId => ({
+      queryKey: ['cmdb-instance-drawer', hostId],
+      queryFn: () => api.get(`/cmdb/instances/${hostId}`).then(r => r.data.data),
+      staleTime: 600_000,
+    })),
+  })
+  const hostRoleMap = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const q of hostResults) {
+      if (q.data) map.set(q.data.id, (q.data.fieldsData?.node_role as string) ?? '')
+    }
+    return map
+  }, [hostResults])
+  const roleOrder = (r: string) => r === 'master' ? 0 : r === 'worker' ? 1 : r ? 2 : 3
+  const roleLabel: Record<string, string> = { master: '控制节点', worker: '工作节点', storage: '存储节点', network: '网络节点' }
 
   // 从模型详情获取关联定义（后端未暴露独立 association-defs 端点）
   const { data: modelDetail } = useQuery<{ associationDefs?: CiAssociationDefVO[] }>({
@@ -147,7 +202,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
     onError: (e: { response?: { data?: { message?: string } } }) => setAddError(e?.response?.data?.message ?? '创建失败'),
   })
 
-  const totalRelations = relGroups.reduce((n, g) => n + g.relations.length, 0)
+  const totalRelations = relations.length
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -163,38 +218,97 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         </Link>
       </div>
 
-      <div className="px-5 py-4 space-y-4">
+      <div className="p-4 space-y-3">
         {isLoading ? (
           <p className="text-sm text-v2-muted py-4 text-center">加载中...</p>
-        ) : relGroups.length === 0 ? (
+        ) : groups.length === 0 ? (
           <p className="text-sm text-v2-muted py-4 text-center">暂无关联</p>
         ) : (
-          relGroups.map(group => (
-            <div key={group.kind_id}>
-              <p className="text-xs font-medium text-v2-muted mb-2">[{group.kind_name}]</p>
-              <div className="space-y-1">
-                {group.relations.map(rel => (
-                  <div key={rel.id} className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-muted/30 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-v2-muted">{rel.direction_label}</span>
-                      <span className="font-medium">{rel.peer_name}</span>
-                      <span className="text-xs text-v2-muted">({rel.peer_model_name})</span>
-                    </div>
-                    {hasPermission('cmdb_instance', 'delete') && (
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-v2-danger"
-                        onClick={() => { if (confirm('删除此关联?')) deleteRelMutation.mutate(rel.id) }}>
-                        <XIcon className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+          groups.map(group => {
+            const isHostPool = group.kind === 'host_belong_resource_pool'
+            const sortedRels = isHostPool
+              ? [...group.rels].sort((a, b) => {
+                  const peerA = a.srcInstanceId === currentId ? a.dstInstanceId : a.srcInstanceId
+                  const peerB = b.srcInstanceId === currentId ? b.dstInstanceId : b.srcInstanceId
+                  return roleOrder(hostRoleMap.get(peerA) ?? '') - roleOrder(hostRoleMap.get(peerB) ?? '')
+                })
+              : group.rels
+            return (
+            <div key={group.kind} className="overflow-hidden rounded-lg border border-v2-border bg-v2-surface">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-v2-border bg-v2-surface-soft">
+                <span className="text-xs font-semibold text-v2-fg">{kindMap.get(group.kind) ?? group.kind}</span>
+                <span className="text-xs text-v2-muted">({group.rels.length})</span>
               </div>
+              <table className="w-full text-sm">
+                <thead className="border-b border-v2-border text-v2-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">对端 CI</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide w-14">方向</th>
+                    {isHostPool && <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide w-24">节点角色</th>}
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">关联属性</th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-v2-border">
+                  {sortedRels.map(rel => {
+                    const isSrc = rel.srcInstanceId === currentId
+                    const peerName = isSrc ? rel.dstInstanceName : rel.srcInstanceName
+                    const peerId = isSrc ? rel.dstInstanceId : rel.srcInstanceId
+                    const metaEntries = rel.metadata ? Object.entries(rel.metadata) : []
+                    const nodeRole = isHostPool ? (hostRoleMap.get(peerId) ?? '') : ''
+                    return (
+                      <tr key={rel.id}
+                        className="cursor-pointer hover:bg-v2-surface-hover transition-colors"
+                        onClick={() => setDrawerInstId(peerId)}>
+                        <td className="px-3 py-2.5">
+                          <span className="font-semibold text-v2-fg">{peerName}</span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-xs border border-v2-border rounded px-1.5 py-0.5 text-v2-muted">
+                            {isSrc ? '→' : '←'}
+                          </span>
+                        </td>
+                        {isHostPool && (
+                          <td className="px-3 py-2.5">
+                            {nodeRole ? (
+                              <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
+                                nodeRole === 'master'
+                                  ? 'border-v2-primary/40 bg-v2-primary-soft text-v2-primary'
+                                  : 'border-v2-border bg-v2-surface-soft text-v2-muted'
+                              }`}>
+                                {roleLabel[nodeRole] ?? nodeRole}
+                              </span>
+                            ) : (
+                              <span className="text-v2-subtle">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-3 py-2.5 text-xs text-v2-muted">
+                          {metaEntries.length > 0
+                            ? metaEntries.map(([k, v]) => `${k}=${String(v)}`).join('，')
+                            : <span className="text-v2-subtle">—</span>
+                          }
+                        </td>
+                        <td className="px-2 py-2.5 text-right" onClick={e => e.stopPropagation()}>
+                          {hasPermission('cmdb_instance', 'delete') && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-v2-danger"
+                              onClick={() => { if (confirm('删除此关联?')) deleteRelMutation.mutate(rel.id) }}>
+                              <XIcon className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))
+            )
+          })
         )}
 
         {hasPermission('cmdb_instance', 'create') && (
-          <div className="pt-2 border-t">
+          <div className="pt-1">
             <Button size="sm" variant="outline"
               onClick={() => { setAddDialogOpen(true); setAddError('') }}>
               + 添加关联
@@ -202,6 +316,12 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
           </div>
         )}
       </div>
+
+      {/* CI Instance Drawer */}
+      <CiInstanceDrawer
+        instanceId={drawerInstId}
+        onClose={() => setDrawerInstId(null)}
+      />
 
       {/* Add Relation Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={open => {
