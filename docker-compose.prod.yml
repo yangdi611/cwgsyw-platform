@@ -22,5 +22,4 @@ services:
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
-      - ./nginx/certbot-webroot:/var/www/certbot:ro
     restart: always

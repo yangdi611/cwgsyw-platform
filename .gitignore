@@ -1,6 +1,7 @@
 .env
 .DS_Store
 target/
+node_modules/
 frontend/node_modules/
 frontend/.next/
 *.class
@@ -8,7 +9,28 @@ frontend/.next/
 data/
 test/
 .worktrees/
-.claude/settings.local.json
+
+# 根目录误建的 Node 依赖（真正的前端依赖在 frontend/）
+/package.json
+/package-lock.json
+
+# AI / Agent 工具本地目录与产物
+.claude/
+.superpowers/
+.hermes/
+.hermes_company/
+.hermes_prompts/
+specs/
+plans/
+*.rej
+AGENTS.md
+CLAUDE.md
+
+# 散落的分析文档（按需保留在 docs/）
+/CMDB_API_AUDIT.md
+/changedoc-cmdb-coupling-analysis.md
+docs/superpowers/
+docs/当 Agent 学会了修改自己的说明书.md
 
 # macOS Finder conflict duplicates
 * 2.*
