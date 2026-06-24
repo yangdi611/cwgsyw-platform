@@ -33,6 +33,12 @@ public class GlobalExceptionHandler {
         return R.fail(400, ex.getMessage());
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public R<Void> handleIllegalState(IllegalStateException ex) {
+        return R.fail(409, ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R<Void> handleGeneral(Exception ex) {

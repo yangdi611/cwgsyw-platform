@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.sharedfile;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.module.sharedfile.dto.FolderAclDTO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -21,6 +22,7 @@ public class SharedFileController {
 
     private final SharedFileService fileService;
     private final SharedFolderService folderService;
+    private final SharedFolderAclService aclService;
 
     @GetMapping("/folders")
     @PreAuthorize("hasAuthority('shared_file:read')")
@@ -45,6 +47,20 @@ public class SharedFileController {
         return R.ok(null);
     }
 
+    @GetMapping("/folders/{id}/acl")
+    @PreAuthorize("hasAuthority('shared_file:manage_acl')")
+    public R<FolderAclDTO> getFolderAcl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(aclService.getAcl(user.getTenantId(), id));
+    }
+
+    @PutMapping("/folders/{id}/acl")
+    @PreAuthorize("hasAuthority('shared_file:manage_acl')")
+    public R<Void> setFolderAcl(@PathVariable Long id, @RequestBody FolderAclDTO body,
+                                @AuthenticationPrincipal SecurityUser user) {
+        aclService.setAcl(user.getTenantId(), id, user.getUserId(), body);
+        return R.ok(null);
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<PageResult<SharedFileVO>> listFiles(
@@ -54,7 +70,7 @@ public class SharedFileController {
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser user) {
         return R.ok(fileService.listFiles(user.getTenantId(), folderId, keyword,
-                user.getGroupId(), user.getGroupScope(), page, size));
+                user.getUserId(), user.getGroupId(), user.getGroupScope(), page, size));
     }
 
     @PostMapping("/upload")
@@ -64,7 +80,8 @@ public class SharedFileController {
             @RequestParam(value = "folder_id", required = false) Long folderId,
             @RequestParam(value = "visible_groups", required = false) List<Long> visibleGroups,
             @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(fileService.uploadFile(user.getTenantId(), user.getUserId(), file, folderId, visibleGroups));
+        return R.ok(fileService.uploadFile(user.getTenantId(), user.getUserId(), file, folderId, visibleGroups,
+                user.getGroupId(), user.getGroupScope()));
     }
 
     @GetMapping("/{id}/download-url")
@@ -82,7 +99,7 @@ public class SharedFileController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('shared_file:delete')")
     public R<Void> deleteFile(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        fileService.deleteFile(user.getTenantId(), id, user.getUserId());
+        fileService.deleteFile(user.getTenantId(), id, user.getUserId(), user.getGroupId(), user.getGroupScope());
         return R.ok(null);
     }
 

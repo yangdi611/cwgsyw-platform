@@ -4,11 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
+import { StatusBadge } from '@/components/v2/StatusBadge'
 import { PageHeader, DataTable, Pagination, EmptyState, type ColumnDef } from '@/components/shared'
 import {
   Dialog,
@@ -28,13 +30,17 @@ import {
   Trash2,
   File,
   ChevronRight,
+  Lock,
+  ScrollText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FolderAclDialog } from './FolderAclDialog'
 
 interface FolderNode {
   id: number
   name: string
   parent_id: number | null
+  acl_custom?: boolean
   children?: FolderNode[]
 }
 
@@ -83,44 +89,83 @@ function FolderTreeNode({
   selectedId,
   onSelect,
   depth,
+  canManage,
+  canManageAcl,
+  onDelete,
+  onEditAcl,
 }: {
   node: FolderNode
   selectedId: number | null
   onSelect: (id: number | null) => void
   depth: number
+  canManage: boolean
+  canManageAcl: boolean
+  onDelete: (node: FolderNode) => void
+  onEditAcl: (node: FolderNode) => void
 }) {
   const [expanded, setExpanded] = useState(depth === 0)
   const hasChildren = node.children && node.children.length > 0
 
   return (
     <div>
-      <button
-        onClick={() => {
-          onSelect(node.id)
-          if (hasChildren) setExpanded((v) => !v)
-        }}
+      <div
         className={cn(
-          'flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm transition-colors',
+          'group flex w-full items-center gap-1.5 rounded-md pr-1 text-sm transition-colors',
           selectedId === node.id
             ? 'bg-v2-primary-soft font-semibold text-v2-primary'
             : 'text-v2-fg hover:bg-v2-surface-hover',
         )}
-        style={{ paddingLeft: `${8 + depth * 16}px` }}
       >
-        {hasChildren ? (
-          <ChevronRight
-            className={cn('h-3 w-3 shrink-0 transition-transform', expanded && 'rotate-90')}
-          />
-        ) : (
-          <span className="w-3" />
+        <button
+          onClick={() => {
+            onSelect(node.id)
+            if (hasChildren) setExpanded((v) => !v)
+          }}
+          className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left"
+          style={{ paddingLeft: `${8 + depth * 16}px` }}
+        >
+          {hasChildren ? (
+            <ChevronRight
+              className={cn('h-3 w-3 shrink-0 transition-transform', expanded && 'rotate-90')}
+            />
+          ) : (
+            <span className="w-3" />
+          )}
+          {selectedId === node.id ? (
+            <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <Folder className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <span className="truncate">{node.name}</span>
+          {node.acl_custom && (
+            <Lock className="h-3 w-3 shrink-0 text-v2-warn" aria-label="自定义权限" />
+          )}
+        </button>
+        {canManageAcl && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditAcl(node)
+            }}
+            title="权限设置"
+            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded text-v2-muted hover:bg-v2-surface hover:text-v2-fg group-hover:flex"
+          >
+            <Lock className="h-3.5 w-3.5" />
+          </button>
         )}
-        {selectedId === node.id ? (
-          <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-        ) : (
-          <Folder className="h-3.5 w-3.5 shrink-0" />
+        {canManage && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(node)
+            }}
+            title="删除文件夹"
+            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded text-v2-muted hover:bg-v2-surface hover:text-v2-danger group-hover:flex"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         )}
-        <span className="truncate">{node.name}</span>
-      </button>
+      </div>
       {expanded && hasChildren && (
         <div>
           {node.children!.map((child) => (
@@ -130,6 +175,10 @@ function FolderTreeNode({
               selectedId={selectedId}
               onSelect={onSelect}
               depth={depth + 1}
+              canManage={canManage}
+              canManageAcl={canManageAcl}
+              onDelete={onDelete}
+              onEditAcl={onEditAcl}
             />
           ))}
         </div>
@@ -150,6 +199,8 @@ export default function FilesPage() {
 
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+
+  const [aclTarget, setAclTarget] = useState<FolderNode | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -202,6 +253,21 @@ export default function FilesPage() {
     },
   })
 
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/files/folders/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['file-folders'] })
+      if (selectedFolderId === deleteFolderMutation.variables) setSelectedFolderId(null)
+      toast.success('文件夹已删除')
+    },
+    onError: (e: unknown) => {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        '删除失败'
+      toast.error(msg)
+    },
+  })
+
   const createFolderMutation = useMutation({
     mutationFn: (name: string) =>
       api.post('/files/folders', { name, parent_id: selectedFolderId ?? null }),
@@ -246,6 +312,16 @@ export default function FilesPage() {
   const canUpload = hasPermission('shared_file', 'upload')
   const canDelete = hasPermission('shared_file', 'delete')
   const canManage = hasPermission('shared_file', 'manage')
+  const canManageAcl = hasPermission('shared_file', 'manage_acl')
+
+  const handleDeleteFolder = useCallback(
+    (node: FolderNode) => {
+      if (confirm(`确认删除文件夹「${node.name}」？（仅当文件夹为空时可删除）`)) {
+        deleteFolderMutation.mutate(node.id)
+      }
+    },
+    [deleteFolderMutation],
+  )
 
   const columns: ColumnDef<SharedFile>[] = [
     {
@@ -381,6 +457,10 @@ export default function FilesPage() {
                 selectedId={selectedFolderId}
                 onSelect={setSelectedFolderId}
                 depth={0}
+                canManage={canManage}
+                canManageAcl={canManageAcl}
+                onDelete={handleDeleteFolder}
+                onEditAcl={setAclTarget}
               />
             ))}
           </div>
@@ -414,6 +494,9 @@ export default function FilesPage() {
           )}
 
           <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
+
+          {/* Audit log panel */}
+          <AuditPanel />
         </div>
       </div>
 
@@ -449,6 +532,119 @@ export default function FilesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Folder ACL Dialog */}
+      {aclTarget && (
+        <FolderAclDialog
+          folderId={aclTarget.id}
+          folderName={aclTarget.name}
+          open={!!aclTarget}
+          onOpenChange={(v) => {
+            if (!v) setAclTarget(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+interface SharedFileAuditLog {
+  id: number
+  action: string
+  targetType: string
+  targetId: number
+  operatorName: string
+  remark: string
+  createdAt: string
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  upload: '上传',
+  delete: '删除文件',
+  create_folder: '新建文件夹',
+  delete_folder: '删除文件夹',
+  acl_update: '修改权限',
+}
+const AUDIT_ACTION_VARIANT: Record<string, 'ok' | 'warn' | 'danger' | 'neutral'> = {
+  upload: 'ok',
+  create_folder: 'ok',
+  delete: 'danger',
+  delete_folder: 'danger',
+  acl_update: 'warn',
+}
+
+function AuditPanel() {
+  const [open, setOpen] = useState(false)
+
+  const { data } = useQuery<{ data: { records: SharedFileAuditLog[] } }>({
+    queryKey: ['shared-file-audit'],
+    queryFn: () =>
+      api.get('/audit-logs', { params: { module: 'shared_file', page: 1, size: 10 } }).then((r) => r.data),
+    enabled: open,
+  })
+
+  const records = data?.data?.records ?? []
+
+  return (
+    <Card className="p-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-v2-fg">
+          <ScrollText className="h-4 w-4 text-v2-muted" />
+          操作日志
+        </span>
+        <span className="flex items-center gap-3">
+          <Link
+            href="/admin/audit?module=shared_file"
+            className="text-xs text-v2-primary hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            查看全部 →
+          </Link>
+          <ChevronRight className={cn('h-4 w-4 text-v2-muted transition-transform', open && 'rotate-90')} />
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-v2-border px-4 py-2">
+          {records.length === 0 ? (
+            <p className="py-4 text-center text-xs text-v2-muted">暂无操作记录</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-v2-muted">
+                  <th className="py-1.5 text-left font-medium">时间</th>
+                  <th className="py-1.5 text-left font-medium">操作</th>
+                  <th className="py-1.5 text-left font-medium">对象</th>
+                  <th className="py-1.5 text-left font-medium">操作人</th>
+                  <th className="py-1.5 text-left font-medium">备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r) => (
+                  <tr key={r.id} className="border-t border-v2-border/50">
+                    <td className="whitespace-nowrap py-1.5 text-v2-muted">
+                      {new Date(r.createdAt).toLocaleString('zh-CN')}
+                    </td>
+                    <td className="py-1.5">
+                      <StatusBadge status={AUDIT_ACTION_VARIANT[r.action] ?? 'neutral'}>
+                        {AUDIT_ACTION_LABELS[r.action] ?? r.action}
+                      </StatusBadge>
+                    </td>
+                    <td className="py-1.5 text-v2-muted">
+                      {r.targetType}
+                      {r.targetId ? ` #${r.targetId}` : ''}
+                    </td>
+                    <td className="py-1.5 text-v2-fg">{r.operatorName}</td>
+                    <td className="max-w-[200px] truncate py-1.5 text-v2-muted">{r.remark}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </Card>
   )
 }

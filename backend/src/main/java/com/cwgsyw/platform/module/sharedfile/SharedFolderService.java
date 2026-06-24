@@ -25,11 +25,7 @@ public class SharedFolderService {
         List<SharedFolder> all = folderMapper.findAllByTenant(tenantId);
         Map<Long, SharedFolderVO> voMap = new LinkedHashMap<>();
         for (SharedFolder f : all) {
-            SharedFolderVO vo = new SharedFolderVO();
-            vo.setId(f.getId());
-            vo.setName(f.getName());
-            vo.setParentId(f.getParentId());
-            vo.setChildren(new ArrayList<>());
+            SharedFolderVO vo = toVO(f);
             voMap.put(f.getId(), vo);
         }
         List<SharedFolderVO> roots = new ArrayList<>();
@@ -38,11 +34,8 @@ public class SharedFolderService {
                 roots.add(vo);
             } else {
                 SharedFolderVO parent = voMap.get(vo.getParentId());
-                if (parent != null) {
-                    parent.getChildren().add(vo);
-                } else {
-                    roots.add(vo);
-                }
+                if (parent != null) parent.getChildren().add(vo);
+                else roots.add(vo);
             }
         }
         return roots;
@@ -54,6 +47,7 @@ public class SharedFolderService {
         folder.setTenantId(tenantId);
         folder.setName(name);
         folder.setParentId(parentId);
+        folder.setAclInherited(true);
         folder.setCreatedBy(operatorId);
         folder.setCreatedAt(LocalDateTime.now());
         folder.setUpdatedAt(LocalDateTime.now());
@@ -65,12 +59,7 @@ public class SharedFolderService {
                 .operatorId(operatorId).remark("name=" + name)
                 .createdAt(LocalDateTime.now()).build());
 
-        SharedFolderVO vo = new SharedFolderVO();
-        vo.setId(folder.getId());
-        vo.setName(folder.getName());
-        vo.setParentId(folder.getParentId());
-        vo.setChildren(new ArrayList<>());
-        return vo;
+        return toVO(folder);
     }
 
     @Transactional
@@ -80,27 +69,18 @@ public class SharedFolderService {
             throw new IllegalArgumentException("文件夹不存在: " + folderId);
         }
 
-        // Soft-delete the folder itself
-        folder.setIsDeleted(true);
-        folder.setDeletedAt(LocalDateTime.now());
-        folder.setDeletedBy(operatorId);
-        folderMapper.deleteById(folderId);
-
-        // Soft-delete all files in this folder
-        List<SharedFile> files = fileMapper.selectList(new LambdaQueryWrapper<SharedFile>()
+        // 非空校验：有文件或子文件夹时拒绝删除
+        long fileCount = fileMapper.selectCount(new LambdaQueryWrapper<SharedFile>()
                 .eq(SharedFile::getTenantId, tenantId)
                 .eq(SharedFile::getFolderId, folderId));
-        for (SharedFile file : files) {
-            fileMapper.deleteById(file.getId());
-        }
-
-        // Recursively soft-delete child folders
-        List<SharedFolder> children = folderMapper.selectList(new LambdaQueryWrapper<SharedFolder>()
+        long childCount = folderMapper.selectCount(new LambdaQueryWrapper<SharedFolder>()
                 .eq(SharedFolder::getTenantId, tenantId)
                 .eq(SharedFolder::getParentId, folderId));
-        for (SharedFolder child : children) {
-            deleteFolder(tenantId, child.getId(), operatorId);
+        if (fileCount > 0 || childCount > 0) {
+            throw new IllegalStateException("文件夹非空，请先删除内部文件和子文件夹后再删除");
         }
+
+        folderMapper.deleteById(folderId);
 
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("shared_file").action("delete_folder")
@@ -118,11 +98,8 @@ public class SharedFolderService {
             LambdaQueryWrapper<SharedFolder> qw = new LambdaQueryWrapper<SharedFolder>()
                     .eq(SharedFolder::getTenantId, tenantId)
                     .eq(SharedFolder::getName, part);
-            if (parentId != null) {
-                qw.eq(SharedFolder::getParentId, parentId);
-            } else {
-                qw.isNull(SharedFolder::getParentId);
-            }
+            if (parentId != null) qw.eq(SharedFolder::getParentId, parentId);
+            else qw.isNull(SharedFolder::getParentId);
             SharedFolder existing = folderMapper.selectOne(qw);
             if (existing != null) {
                 current = existing;
@@ -132,6 +109,7 @@ public class SharedFolderService {
                 newFolder.setTenantId(tenantId);
                 newFolder.setName(part);
                 newFolder.setParentId(parentId);
+                newFolder.setAclInherited(true);
                 newFolder.setCreatedBy(operatorId);
                 newFolder.setCreatedAt(LocalDateTime.now());
                 newFolder.setUpdatedAt(LocalDateTime.now());
@@ -141,5 +119,15 @@ public class SharedFolderService {
             }
         }
         return current;
+    }
+
+    private SharedFolderVO toVO(SharedFolder f) {
+        SharedFolderVO vo = new SharedFolderVO();
+        vo.setId(f.getId());
+        vo.setName(f.getName());
+        vo.setParentId(f.getParentId());
+        vo.setAclCustom(Boolean.FALSE.equals(f.getAclInherited()));
+        vo.setChildren(new ArrayList<>());
+        return vo;
     }
 }

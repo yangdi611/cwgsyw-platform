@@ -1,22 +1,26 @@
 package com.cwgsyw.platform.module.sharedfile.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-@TableName("shared_folder")
-public class SharedFolder {
+@TableName(value = "shared_folder_acl", autoResultMap = true)
+public class SharedFolderAcl {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String tenantId;
-    private String name;
-    private Long parentId;
+    private Long folderId;
+    /** 'role' | 'group' | 'user' */
+    private String subjectType;
+    private Long subjectId;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> permissions; // ["read","write","update","delete"]
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    /** TRUE = 继承父文件夹 ACL（默认）；FALSE = 使用自定义 ACL */
-    private Boolean aclInherited;
     @TableLogic
     private Boolean isDeleted;
     private LocalDateTime deletedAt;

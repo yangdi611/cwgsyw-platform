@@ -35,6 +35,7 @@ public class SharedFileService {
 
     private final SharedFileMapper fileMapper;
     private final SharedFolderService folderService;
+    private final SharedFolderAclService aclService;
     private final MinioStorageService storageService;
     private final MinioClient minioClient;
     private final AuditLogMapper auditLogMapper;
@@ -44,7 +45,16 @@ public class SharedFileService {
     private String bucket;
 
     public PageResult<SharedFileVO> listFiles(String tenantId, Long folderId, String keyword,
-                                               Long userGroupId, String groupScope, int page, int size) {
+                                               Long userId, Long userGroupId, String groupScope, int page, int size) {
+        // 文件夹 ACL：无 read 权限直接返回空列表（搜索为全局，folderId 为空时不限制）
+        if (folderId != null && !aclService.hasPermission(tenantId, folderId, userId, userGroupId, groupScope, "read")) {
+            PageResult<SharedFileVO> empty = new PageResult<>();
+            empty.setRecords(List.of());
+            empty.setTotal(0);
+            empty.setPage(page);
+            empty.setSize(size);
+            return empty;
+        }
         Page<SharedFile> result;
         long total;
 
@@ -94,7 +104,11 @@ public class SharedFileService {
 
     @Transactional
     public SharedFileVO uploadFile(String tenantId, Long operatorId, MultipartFile file,
-                                    Long folderId, List<Long> visibleGroups) {
+                                    Long folderId, List<Long> visibleGroups,
+                                    Long groupId, String groupScope) {
+        if (folderId != null && !aclService.hasPermission(tenantId, folderId, operatorId, groupId, groupScope, "write")) {
+            throw new IllegalStateException("无权在该文件夹上传文件");
+        }
         String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
         String fileType = detectFileType(originalName);
         String objectKey = "shared/" + UUID.randomUUID() + "/" + originalName;
@@ -143,11 +157,16 @@ public class SharedFileService {
     }
 
     @Transactional
-    public void deleteFile(String tenantId, Long fileId, Long operatorId) {
+    public void deleteFile(String tenantId, Long fileId, Long operatorId, Long groupId, String groupScope) {
         SharedFile sf = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
                 .eq(SharedFile::getTenantId, tenantId)
                 .eq(SharedFile::getId, fileId));
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
+
+        if (sf.getFolderId() != null
+                && !aclService.hasPermission(tenantId, sf.getFolderId(), operatorId, groupId, groupScope, "delete")) {
+            throw new IllegalStateException("无权删除该文件夹下的文件");
+        }
 
         fileMapper.deleteById(fileId);
 

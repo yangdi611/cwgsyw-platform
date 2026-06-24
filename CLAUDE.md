@@ -96,6 +96,7 @@ cwgsyw-platform/
 | V48  | `ci_attribute.is_drawer_show` — 属性抽屉显示标志                                    |
 | V49  | `change_doc` 双模板后续修复                                                          |
 | V50  | `backup_record` — 备份/恢复记录表 + RBAC seed（`backup` 资源，仅 super_admin/admin） |
+| V51  | `shared_folder_acl` 文件夹 ACL 表 + `shared_folder.acl_inherited` 列 + `shared_file:manage_acl` 权限 seed（仅 super_admin/admin）|
 
 ---
 
@@ -161,7 +162,7 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `role`         | create, read, update, delete, assign                 |
 | `daily_report` | create, read, update, delete, approve                |
 | `workflow`     | read, approve, configure                             |
-| `shared_file`  | read, upload, delete, manage                         |
+| `shared_file`  | read, upload, delete, manage, manage_acl             |
 | `device`       | create, read, update, delete, view_password          |
 | `notification` | read, manage                                         |
 | `cmdb_model`    | create, read, update, delete                       |
@@ -212,6 +213,7 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `IpPoolService`         | `module/ipam/`                          | IP 地址池管理（Phase 4E）      |
 | `PrometheusAlertSyncService` | `module/cmdb/alert/`               | Prometheus 告警同步（Phase 4F）|
 | `BackupService`         | `module/backup/`                        | PG + MinIO 备份/恢复（pg_dump/psql/tar via ProcessBuilder）|
+| `SharedFolderAclService`| `module/sharedfile/`                    | 文件夹 ACL 覆盖式继承校验 + get/set（递归 CTE 找最近自定义祖先）|
 
 ---
 
@@ -227,6 +229,7 @@ user.getPermissions() // Collection<GrantedAuthority>
 - **Button asChild 不可用**：项目使用 `@base-ui/react/button`，不支持 Radix 风格 `asChild`。需要链接按钮时用 `<Link className={buttonVariants({...})}>` 替代
 - **分页 total 问题**：MyBatis-Plus `selectPage` 对 `Boolean @TableLogic` 字段自动 count 有 bug（返回 0）。统一用 `selectCount` + `new Page<>(p, s, false)` + `result.setTotal(total)` 三步分页
 - **JSONB 更新**：`LambdaUpdateWrapper.set(entity::getAttrs, map)` 会绕过 `JacksonTypeHandler` 触发 hstore 错误。更新含 JSONB 字段的记录必须用 `updateById(entity)` 方式
+- **JSONB 查询（@Select 陷阱）**：自定义 `@Select` 注解的 SQL 方法会绕过 MyBatis-Plus `autoResultMap`，导致所有 `@TableField(typeHandler = JacksonTypeHandler.class)` 字段读取为 `null`。含 JSONB 字段的查询必须用 `BaseMapper.selectList(LambdaQueryWrapper)` 而非自定义 `@Select`
 - **useColumnConfig**：`useColumnConfig(modelId, defaultKeys)` - storageKey = `cmdb_col_config_{modelId}`。切换 modelId 时会自动从 localStorage 重新读取（内部有 useEffect）。`defaultKeys` 若每次传新数组引用会导致 reset() 不稳定，建议在组件外定义为常量
 - **useSearchParams Suspense**：Next.js 15 App Router 中使用 `useSearchParams()` 的组件必须被 `<Suspense>` 包裹，否则会产生构建警告
 - **@RequestParam vs FormData**：GET 请求使用 camelCase（`@RequestParam Long folderId`），POST FormData 使用 snake_case（`folder_id`）。前端调用必须匹配后端参数名
@@ -235,30 +238,46 @@ user.getPermissions() // Collection<GrantedAuthority>
 
 ## 共享文件模块
 
-独立文件库，支持文件夹树、文件上传/下载/预览/搜索、按组可见性控制、pandoc Word→Markdown 转换、变更文档审批后自动归档。
+独立文件库，支持文件夹树、文件上传/下载/预览/搜索、按组可见性控制、**文件夹级 ACL（覆盖式继承）**、pandoc Word→Markdown 转换、变更文档审批后自动归档。所有写操作（含 ACL 变更）写 `audit_log`，`module=shared_file`。
 
 ### 数据模型
 
-- **SharedFolder**：`id, tenant_id, name, parent_id, sort_order, created_by`，通过 `parent_id` 构建递归树
+- **SharedFolder**：`id, tenant_id, name, parent_id, acl_inherited, created_by`，通过 `parent_id` 构建递归树。`acl_inherited`：TRUE=继承父级 ACL（默认），FALSE=使用自定义 ACL
 - **SharedFile**：`id, tenant_id, name, original_name, file_type, size_bytes, minio_path, folder_id, created_by, visible_groups (JSONB List<Long>), is_archived, archive_source_type, archive_source_id`，`@TableName(autoResultMap = true)` + `JacksonTypeHandler` 处理 JSONB
+- **SharedFolderAcl**：`id, tenant_id, folder_id, subject_type (role|group|user), subject_id, permissions (JSONB List<String> = read|write|update|delete), created_by`，`autoResultMap=true` + `JacksonTypeHandler`
 
 ### API 路由
 
-- `GET /api/files/folders` — 文件夹树
-- `POST /api/files/folders` — 创建文件夹（body: `{name, parent_id}`）
-- `DELETE /api/files/folders/{id}` — 软删除（含子文件夹递归）
-- `GET /api/files` — 文件列表（params: `folderId, keyword, page, size`，按组可见性过滤）
-- `POST /api/files/upload` — 上传（multipart: `file + folder_id`，异步触发 pandoc 预览图生成）
+- `GET /api/files/folders` — 文件夹树（VO 含 `acl_custom`：true 时界面显示锁标记）
+- `POST /api/files/folders` — 创建文件夹（body: `{name, parent_id}`，默认 `acl_inherited=true`）
+- `DELETE /api/files/folders/{id}` — 软删除，**仅当文件夹为空（无文件且无子文件夹）时可删**，非空抛 409
+- `GET /api/files/folders/{id}/acl` — 读取文件夹 ACL（`shared_file:manage_acl`，返回 `{inherited, entries:[{subject_type, subject_id, subject_name, permissions}]}`）
+- `PUT /api/files/folders/{id}/acl` — 全量替换文件夹 ACL（`shared_file:manage_acl`，body: `{inherited, entries}`，写 before/after 审计快照）
+- `GET /api/files` — 文件列表（params: `folderId, keyword, page, size`，先过 ACL `read` 再过组可见性）
+- `POST /api/files/upload` — 上传（multipart: `file + folder_id`，校验 ACL `write`，异步触发 pandoc 预览图生成）
 - `GET /api/files/{id}/download-url` — 预签名下载 URL（5 分钟有效）
 - `GET /api/files/{id}/preview-url` — 预签名预览 URL（30 分钟有效）
-- `DELETE /api/files/{id}` — 软删除
+- `DELETE /api/files/{id}` — 软删除（校验 ACL `delete`）
+
+### 文件夹 ACL（覆盖式继承，NTFS 风格）
+
+`SharedFolderAclService` 实现，关键语义：
+
+- **生效 ACL**：自下而上（递归 CTE `findAncestorChain`）找第一个 `acl_inherited=false` 的祖先，用其 ACL 行；整条链都继承 → 视为无 ACL 限制（仅受 RBAC 控制，向后兼容）
+- **覆盖能力**：子文件夹设为「自定义」可比父级更严（移除条目）或更松（增加条目），互不影响兄弟节点
+- **subject_type**：`role`（按角色 ID，`SecurityUser` 不带 roleId，用 `RbacService.getUserRoleIds()` 解析）/ `group`（按 groupId）/ `user`（按 userId）
+- **admin 绕过**：`groupScope ∈ {tenant, platform}` 始终通过 ACL 检查
+- **权限动词**：`read`=浏览查看 / `write`=上传+建子文件夹 / `update`=重命名 / `delete`=删文件+删空文件夹
+- **谁能配置 ACL**：`shared_file:manage_acl` 权限（默认仅 super_admin/admin，可在 `/rbac/permissions` 分配给任意角色），前端 🔒 图标据此显示
 
 ### 前端页面
 
 | 路径 | 说明 |
 |------|------|
-| `/files` | 文件管理页（左侧文件夹树 + 右侧表格，搜索/分页/新建文件夹/上传/下载/删除） |
+| `/files` | 文件管理页（左侧文件夹树 + 右侧表格，搜索/分页/新建文件夹/上传/下载/删除/文件夹删除/ACL 设置 + 底部可折叠操作日志面板） |
 | `/files/preview/[id]` | 文件预览页（PDF iframe / Word docx-preview / Excel SheetJS） |
+
+文件夹 ACL 编辑弹窗组件：`files/FolderAclDialog.tsx`（继承开关 + 角色/组/人员三 Tab + 读/写/改/删勾选）。
 
 ### 前后端字段映射注意
 

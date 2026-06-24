@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Input } from '@/components/v2/Input'
@@ -37,6 +37,7 @@ const MODULE_LABELS: Record<string, string> = {
   user: '用户管理',
   group: '组管理',
   backup: '备份与恢复',
+  shared_file: '共享文档',
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -53,15 +54,24 @@ const ACTION_VARIANT: Record<string, StatusVariant> = {
 }
 
 export default function AuditLogPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuditLogPageInner />
+    </Suspense>
+  )
+}
+
+function AuditLogPageInner() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     if (!isHydrated) return
     if (!hasPermission('audit', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const [module, setModule] = useState('')
+  const [module, setModule] = useState(searchParams.get('module') ?? '')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [page, setPage] = useState(1)

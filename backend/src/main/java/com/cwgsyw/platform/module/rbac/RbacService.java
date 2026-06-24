@@ -27,6 +27,11 @@ public class RbacService {
             .collect(Collectors.toSet());
     }
 
+    /** 返回用户的所有角色 ID（用于按角色匹配的 ACL 校验） */
+    public List<Long> getUserRoleIds(Long userId) {
+        return userRoleMapper.findRoleIdsByUserId(userId);
+    }
+
     /** 返回用户所有角色中优先级最高的 scope：platform > tenant > group */
     public String getHighestScope(Long userId) {
         List<Long> roleIds = userRoleMapper.findRoleIdsByUserId(userId);
