@@ -1,0 +1,26 @@
+# 生产环境覆盖：只暴露 nginx 80/443，其余服务走 Docker 内部网络
+# 用法：docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  minio:
+    # 先清空原 0.0.0.0 映射，再仅绑本机；需要时通过 SSH 隧道访问控制台
+    ports: !reset []
+    expose:
+      - "9000"
+      - "9001"
+  backend:
+    ports: !reset []
+  frontend:
+    ports: !reset []
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/certbot-webroot:/var/www/certbot:ro
+    restart: always
