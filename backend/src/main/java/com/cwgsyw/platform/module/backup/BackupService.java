@@ -209,6 +209,8 @@ public class BackupService {
         ProcessBuilder pb = new ProcessBuilder(
                 "pg_dump", "-h", pgHost(), "-p", pgPort(), "-U", dbUser,
                 "--clean", "--if-exists", "--no-owner", "--no-acl",
+                // backup_record 是备份目录自身，不参与备份/恢复，否则恢复会回滚目录
+                "--exclude-table=backup_record",
                 "-f", target.toString(), pgDb());
         pb.environment().put("PGPASSWORD", dbPassword);
         runProcess(pb, "pg_dump");
@@ -246,6 +248,12 @@ public class BackupService {
         }
 
         Path work = null;
+        // 恢复前快照当前备份目录（含本次操作的备份），用于恢复后重建——
+        // 因为旧 dump 可能含 backup_record 表，psql 回放会把目录覆盖回备份时状态
+        List<BackupRecord> catalogSnapshot = backupMapper.selectList(
+                new LambdaQueryWrapper<BackupRecord>()
+                        .eq(BackupRecord::getTenantId, tenantId)
+                        .eq(BackupRecord::getIsDeleted, false));
         try {
             work = Files.createTempDirectory(Paths.get(backupDir), "restore-");
             // 1) extract
@@ -264,12 +272,12 @@ public class BackupService {
             if (Files.isDirectory(minioRoot)) {
                 restoreMinio(minioRoot);
             }
-            // 恢复后，将遗留的 running 记录标记为 failed（被中断的旧备份）
-            backupMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<BackupRecord>()
-                    .eq(BackupRecord::getTenantId, tenantId)
-                    .eq(BackupRecord::getStatus, "running")
-                    .set(BackupRecord::getStatus, "failed")
-                    .set(BackupRecord::getErrorMessage, "进程被中断（已通过恢复操作自动清理）"));
+            // 4) 重建备份目录：清空 psql 可能回滚出来的旧目录，重放快照（保留真实文件列表）
+            backupMapper.truncate();
+            for (BackupRecord r : catalogSnapshot) {
+                r.setId(null); // 让数据库重新分配自增 ID
+                backupMapper.insert(r);
+            }
             writeAudit(tenantId, "restore", id, operatorId, operatorIp,
                     "从备份恢复 " + record.getFileName());
         } catch (Exception e) {
