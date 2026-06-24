@@ -36,6 +36,7 @@ const MODULE_LABELS: Record<string, string> = {
   sys_config: '系统配置',
   user: '用户管理',
   group: '组管理',
+  backup: '备份与恢复',
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'

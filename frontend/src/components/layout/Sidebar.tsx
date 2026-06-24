@@ -27,6 +27,7 @@ import {
   ClipboardList,
   Edit3,
   ChevronDown,
+  DatabaseBackup,
 } from 'lucide-react'
 
 type NavItem = {
@@ -192,6 +193,7 @@ const navItems: NavEntry[] = [
       { href: '/admin/config', label: '系统配置', icon: Settings, resource: 'notification', action: 'manage' },
       { href: '/admin/ai', label: 'AI 配置', icon: Settings, resource: 'notification', action: 'manage' },
       { href: '/admin/audit', label: '审计日志', icon: ClipboardList, resource: null, action: null },
+      { href: '/admin/backup', label: '备份与恢复', icon: DatabaseBackup, resource: 'backup', action: 'read' },
       { href: '/notifications', label: '通知中心', icon: Bell, resource: 'notification', action: 'read' },
     ],
   },
@@ -393,16 +395,26 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: System Health Card */}
-      <div className="p-3 border-t border-v2-sidebar-border shrink-0">
-        <div className="px-3 py-3 rounded-[14px] bg-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[13px] font-bold text-slate-50">系统健康度</span>
-            <span className="text-[13px] font-mono font-bold text-emerald-300 tabular-nums">94%</span>
-          </div>
-          <p className="text-xs text-v2-sidebar-muted leading-relaxed">
-            设备、IP、CMDB 关系与流程节点均处于可控范围。
-          </p>
+      {/* Footer: Version Info */}
+      <div className="px-4 py-3 border-t border-v2-sidebar-border shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
+          <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">v0.1</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono text-v2-sidebar-muted">Schema</span>
+          <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">V50</span>
+        </div>
+        <div className="pt-1 border-t border-white/8 flex items-center justify-between">
+          <span className="text-[10px] text-v2-sidebar-muted">© 2026 All rights reserved</span>
+          <a
+            href="https://github.com/cwgsyw/platform"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            GitHub ↗
+          </a>
         </div>
       </div>
     </aside>

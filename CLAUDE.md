@@ -92,6 +92,10 @@ cwgsyw-platform/
 | V44  | CMDB 权限标准化（normalize）                                            |
 | V45  | 修复 `ci_model` model_id 对齐                                           |
 | V46  | 补齐 changedoc/sharedfile 表缺失的 `updated_by` 列（修 500 column does not exist）|
+| V47  | `ci_model` / 子表 model FK 规范化为 ASCII code（model_id="host"），禁止用 name 做 FK   |
+| V48  | `ci_attribute.is_drawer_show` — 属性抽屉显示标志                                    |
+| V49  | `change_doc` 双模板后续修复                                                          |
+| V50  | `backup_record` — 备份/恢复记录表 + RBAC seed（`backup` 资源，仅 super_admin/admin） |
 
 ---
 
@@ -166,6 +170,7 @@ Resource (资源) → Permission (权限=resource:action) → Role → User
 | `cmdb_relation` | create, read, update, delete                       |
 | `ip_pool`       | create, read, update, delete                       |
 | `cmdb_alert`    | create, read, acknowledge                          |
+| `backup`        | create, read, restore, delete（仅 super_admin/admin）|
 
 ---
 
@@ -206,6 +211,7 @@ user.getPermissions() // Collection<GrantedAuthority>
 | `ChangeDocLinkService`  | `module/changedoc/`                     | 变更文档 ↔ CI 实例关联（4C）    |
 | `IpPoolService`         | `module/ipam/`                          | IP 地址池管理（Phase 4E）      |
 | `PrometheusAlertSyncService` | `module/cmdb/alert/`               | Prometheus 告警同步（Phase 4F）|
+| `BackupService`         | `module/backup/`                        | PG + MinIO 备份/恢复（pg_dump/psql/tar via ProcessBuilder）|
 
 ---
 
@@ -268,6 +274,44 @@ GET 请求使用 camelCase（`@RequestParam folderId`），POST FormData 使用 
 2. 上传到 MinIO（路径：`shared/archived/<year>/<month>/<docId>_<title>.docx/.pdf`）
 3. 通过 `getOrCreateFolder` 递归创建文件夹路径（如 `变更文档 / 2026 / 05`）
 4. 写入 `SharedFile` 记录，`is_archived=true`，`archive_source_type=CHANGE_DOC`，`visible_groups` 继承变更文档的审批组
+
+---
+
+## 备份与恢复模块
+
+平台内置的 PostgreSQL + MinIO 全量备份/恢复，admin-only。备份产物为单个 `.tar.gz`，存于宿主机 `./data/backups/`（docker-compose 挂载到 backend 容器 `/backups`）。
+
+### 实现要点
+
+- **依赖工具**：backend 镜像（Dockerfile）已装 `postgresql16-client`（pg_dump/psql）+ `tar`，通过 `ProcessBuilder` 调用
+- **备份**：`pg_dump --clean --if-exists --no-owner --no-acl` → `dump.sql`；MinIO SDK 遍历所有 bucket 下载对象 → `minio/<bucket>/<key>`；打包成 `backup_<时间戳>.tar.gz`
+- **恢复**：解包 → `psql -f dump.sql` 回放 → 清空 MinIO bucket 后重新上传；恢复后建议 `docker compose restart backend` 清缓存
+- **JDBC URL 解析**：从 `spring.datasource.url`（`jdbc:postgresql://postgres:5432/<db>?...`）解析 host/port/db，密码经 `PGPASSWORD` 环境变量传给子进程
+- **自动轮转**：每次备份后删除超过 `backup.retention-days`（默认 30 天）的旧备份（物理删文件 + 逻辑删记录）
+- **恢复后自动清理**：恢复会把 `backup_record` 表回滚到备份时状态，遗留的 `running` 记录在恢复结尾被标记为 `failed`
+
+### API 路由
+
+- `GET /api/backups` — 备份列表（分页）
+- `POST /api/backups` — 立即备份（同步，权限 `backup:create`）
+- `POST /api/backups/upload` — 上传本地 `.tar.gz` 入库（multipart `file`，权限 `backup:create`）
+- `GET /api/backups/{id}/download` — 流式下载备份文件（`backup:read`）
+- `POST /api/backups/{id}/restore` — 恢复（`backup:restore`）
+- `DELETE /api/backups/{id}` — 软删记录 + 物理删文件（`backup:delete`）
+
+### 长耗时操作的超时坑（重要）
+
+备份/恢复是**同步**操作，可能远超普通请求耗时。三层超时都需放宽，否则前端会卡在"进行中"：
+
+1. **nginx**：`/api/backups` 单独 location 配 `proxy_read_timeout 600s` + `client_max_body_size 2g`（默认 60s 超时会切断恢复请求）
+2. **前端 axios**：默认 30s，restore 调用单独传 `{ timeout: 600_000 }`
+3. **Spring multipart**：`spring.servlet.multipart.max-file-size/max-request-size: 2GB`（默认 1MB，上传大备份会失败）
+
+### 前端页面
+
+| 路径 | 说明 |
+|------|------|
+| `/admin/backup` | 备份列表 + 立即备份 + 上传备份 + 下载 + 恢复（三态确认框：进行中/✅完成/❌失败）+ 删除 |
 
 ---
 
@@ -350,6 +394,7 @@ CMDB（配置管理数据库）是自建的，不依赖 bk-cmdb，基于 Postgre
 | 4D    | CMDB ↔ 日报关联 | ✅ |
 | 4E    | IP 地址池管理 (IPAM) | ✅ |
 | 4F    | Prometheus 告警集成 | ✅ |
+| —     | 备份与恢复（PostgreSQL + MinIO 全量备份/恢复，admin-only） | ✅ |
 
 ## 计划中的功能模块
 
@@ -373,6 +418,12 @@ docker compose build --no-cache backend && docker compose up -d backend
 
 # 重新构建前端
 docker compose build frontend && docker compose up -d frontend
+
+# 改了 nginx/nginx.conf 后重载（无需 rebuild，nginx 用 bind mount）
+docker compose restart nginx
+
+# 注意：backend 镜像已内置 postgresql16-client + tar（备份/恢复依赖 pg_dump/psql）
+# 备份文件存于宿主机 ./data/backups/
 
 # 进入 DB（注意：当前 .env 中 POSTGRES_DB=platform_user，DB 名与用户名同名；.env.example 中的 cwgsyw_platform 是预期名，切换需重建数据库卷）
 docker compose exec postgres psql -U platform_user -d platform_user
