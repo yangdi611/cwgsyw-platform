@@ -35,10 +35,16 @@ cd cwgsyw-platform
 `./data/` 已被 .gitignore 忽略，clone 下来没有，需手动建（避免 Docker 自动建成 root 属主）：
 
 ```bash
-mkdir -p data/redis data/minio data/backups
+mkdir -p data/postgres data/redis data/minio data/backups
 ```
 
-> PostgreSQL 用 Docker 命名卷（`pgdata_*`），自动创建，无需手动建目录。
+> PostgreSQL 数据已改为绑定挂载到 `./data/postgres`（便于备份和迁移）。
+> ⚠️ postgres:16-alpine 容器内 postgres 用户是 UID 70。全新部署通常自动设好属主；
+> 若启动报 `data directory has wrong ownership` 或权限错误，执行：
+> ```bash
+> sudo chown -R 70:70 data/postgres
+> ```
+> 想放到独立数据盘时，把 docker-compose.prod.yml 里 `./data/postgres` 改成绝对路径（如 `/mnt/data/postgres`），其余 `./data/*` 同理。
 
 ---
 
@@ -126,15 +132,15 @@ $C ps                                             # 看状态
 
 ## 8. 数据与备份
 
-- 数据落盘：PG 在命名卷 `pgdata_*`，Redis/MinIO 在 `./data/`，平台备份在 `./data/backups/`
+- 数据落盘：PG、Redis、MinIO 均在 `./data/`（postgres/redis/minio 子目录），平台备份在 `./data/backups/`
 - 平台自带备份模块 `/admin/backup`（admin-only，PG dump + MinIO 全量打包）
-- 宿主机层面也建议定期 `tar` 打包 `./data/` 异地存放
+- 宿主机层面也建议定期 `tar` 打包 `./data/` 异地存放（含 PG 数据，停容器后打包最稳妥）
 
 ---
 
 ## 9. 上线前安全清单
 
-- [ ] `data/redis`、`data/minio`、`data/backups` 已建好
+- [ ] `data/postgres`、`data/redis`、`data/minio`、`data/backups` 已建好（postgres 如有权限报错 `chown -R 70:70 data/postgres`）
 - [ ] `.env` 所有 `change_me_*` 已替换为强随机值
 - [ ] `ENCRYPT_KEY` 已单独备份（不可再改）
 - [ ] Origin 证书已放入 `nginx/certs/`，私钥 `chmod 600`
