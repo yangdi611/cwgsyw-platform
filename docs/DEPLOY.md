@@ -149,3 +149,36 @@ $C ps                                             # 看状态
 - [ ] `$C ps` 确认 PG/Redis/backend/frontend/MinIO 无对外端口映射
 - [ ] superadmin 默认密码 `Admin@123` 已修改
 - [ ] 公网 `https://your-uat-domain.com` 绿锁正常
+
+---
+
+## 10. 清空数据 / 恢复全新系统
+
+⚠️ **不可逆操作**：会删除所有数据库记录、上传文件、备份。执行前务必确认。
+dev 与 prod 的 PostgreSQL 数据存放位置不同，清理方式不一样：
+
+### prod（云服务器，postgres 已 bind 到 ./data/postgres）
+
+所有数据都在 `./data/` 下，清空它即可：
+
+```bash
+docker compose -f docker-compose.prod.yml down          # 停容器
+rm -rf data/*                                            # 删全部数据（postgres/redis/minio/backups）
+mkdir -p data/postgres data/redis data/minio data/backups
+docker compose -f docker-compose.prod.yml up -d          # 全新初始化（Flyway 重新建表、重灌种子数据）
+```
+
+### dev（本机，postgres 用 Docker 命名卷）
+
+dev 的 postgres 数据**不在** `./data/`，而在命名卷 `pgdata_t942c4356`，需额外删卷：
+
+```bash
+docker compose -f docker-compose.dev.yml down            # 停容器
+rm -rf data/redis data/minio data/backups                # 删 ./data 下的数据
+docker volume rm cwgsyw-platform_pgdata_t942c4356        # 删 postgres 命名卷（关键）
+mkdir -p data/redis data/minio data/backups
+docker compose -f docker-compose.dev.yml up -d           # 全新初始化
+```
+
+> 恢复后是全新系统：superadmin / Admin@123，所有业务数据清空。
+> 只想清单一服务（如只重置数据库）：prod 删 `data/postgres`、dev 删对应命名卷即可，其余保留。
