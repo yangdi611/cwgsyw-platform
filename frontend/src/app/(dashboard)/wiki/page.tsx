@@ -183,7 +183,12 @@ export default function WikiSpacesPage() {
     const sortable = idx !== undefined
     const writable = canWriteSpace(s, groupScope)
     return (
-      <Card key={s.id} hover className="flex flex-col p-5">
+      <Card
+        key={s.id}
+        hover
+        onClick={() => router.push(`/wiki/${s.id}`)}
+        className="flex cursor-pointer flex-col p-5"
+      >
         <div className="mb-3 flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md bg-v2-primary-soft text-v2-primary">
             {s.system ? <Library className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
@@ -200,7 +205,7 @@ export default function WikiSpacesPage() {
               <button
                 title="上移"
                 disabled={idx === 0}
-                onClick={() => move(idx, -1)}
+                onClick={(e) => { e.stopPropagation(); move(idx, -1) }}
                 className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -208,7 +213,7 @@ export default function WikiSpacesPage() {
               <button
                 title="下移"
                 disabled={idx === teamSpaces.length - 1}
-                onClick={() => move(idx, 1)}
+                onClick={(e) => { e.stopPropagation(); move(idx, 1) }}
                 className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -228,7 +233,7 @@ export default function WikiSpacesPage() {
             {canUpdate && writable && (
               <button
                 title="重命名"
-                onClick={() => openEdit(s)}
+                onClick={(e) => { e.stopPropagation(); openEdit(s) }}
                 className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -237,13 +242,13 @@ export default function WikiSpacesPage() {
             {canDelete && writable && (
               <button
                 title="删除"
-                onClick={() => setDeleting(s)}
+                onClick={(e) => { e.stopPropagation(); setDeleting(s) }}
                 className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
-            <Button variant="secondary" size="sm" onClick={() => router.push(`/wiki/${s.id}`)}>
+            <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); router.push(`/wiki/${s.id}`) }}>
               进入
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>

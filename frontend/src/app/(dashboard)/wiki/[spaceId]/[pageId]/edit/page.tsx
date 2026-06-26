@@ -13,9 +13,19 @@ import { Button } from '@/components/v2/Button'
 import { ArrowLeft, Save } from 'lucide-react'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
+import { WikiImage } from '@/components/wiki/WikiImage'
 import '@uiw/react-md-editor/markdown-editor.css'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
+
+// 图片上传约束
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB
+const ALLOWED_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] as const
+const ALLOWED_IMAGE_MIMES = [
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+]
+// file input 的 accept 属性
+const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp,.svg,image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
 
 const FMT = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
@@ -73,6 +83,7 @@ export default function WikiEditorPage() {
   const [acPos, setAcPos] = useState<{ top: number; left: number } | null>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: spaces } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
@@ -141,30 +152,65 @@ export default function WikiEditorPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [saveMutation])
 
-  // Image paste/drop → upload attachment → insert ![](url)
+  // 校验 + 上传 + 在光标处插入 ![](url)；粘贴和工具栏按钮共用
+  const uploadAndInsert = useCallback(
+    async (file: File) => {
+      const name = file.name?.toLowerCase() ?? ''
+      const ext = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1) : ''
+      const okType =
+        (ALLOWED_IMAGE_EXTS as readonly string[]).includes(ext) ||
+        ALLOWED_IMAGE_MIMES.includes(file.type)
+      if (!okType) {
+        toast.error('仅支持 PNG / JPG / GIF / WEBP / SVG 图片')
+        return
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error('图片不能超过 5 MB')
+        return
+      }
+      try {
+        const { url } = await wikiApi.uploadAttachment(pid, file)
+        const insertText = `\n![](${url})\n`
+        const ta = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
+        if (ta) {
+          const start = ta.selectionStart
+          setContent((c) => c.slice(0, start) + insertText + c.slice(start))
+        } else {
+          setContent((c) => c + insertText)
+        }
+      } catch {
+        toast.error('图片上传失败')
+      }
+    },
+    [pid],
+  )
+
+  // 图片粘贴 → 上传附件 → 插入 ![](url)
   const handlePaste = useCallback(
-    async (e: React.ClipboardEvent | ClipboardEvent) => {
-      const clipEvent = e as ClipboardEvent
-      const items = clipEvent.clipboardData?.items
+    async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
       if (!items) return
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
         if (item.type.startsWith('image/')) {
           e.preventDefault?.()
           const file = item.getAsFile()
-          if (!file) return
-          try {
-            const { url } = await wikiApi.uploadAttachment(pid, file)
-            const insertText = `\n![](${url})\n`
-            setContent((c) => c + insertText)
-          } catch {
-            toast.error('图片上传失败')
-          }
+          if (file) await uploadAndInsert(file)
           break
         }
       }
     },
-    [pid],
+    [uploadAndInsert],
+  )
+
+  // 工具栏图片按钮 → 选本地图片 → 上传插入
+  const handleFileInputChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) await uploadAndInsert(file)
+      e.target.value = '' // 允许重复选同一文件
+    },
+    [uploadAndInsert],
   )
 
   useEffect(() => {
@@ -230,7 +276,9 @@ export default function WikiEditorPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-3 bg-v2-bg p-4">
+      {/* 卡片：工具栏 + 编辑器统一在一个 surface 容器内，与阅读页风格一致 */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface shadow-v2-sm">
       {/* Toolbar */}
       <div className="flex shrink-0 items-center gap-3 border-b border-v2-border bg-v2-surface px-4 py-2.5">
         <button
@@ -260,8 +308,17 @@ export default function WikiEditorPage() {
         </Button>
       </div>
 
+      {/* 隐藏 file input：由工具栏图片按钮触发 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+
       {/* Editor */}
-      <div className="relative min-h-0 flex-1" ref={editorRef} data-color-mode="light">
+      <div className="wiki-editor relative min-h-0 flex-1" ref={editorRef} data-color-mode="light">
         <MDEditor
           value={content}
           onChange={handleContentChange}
@@ -269,6 +326,23 @@ export default function WikiEditorPage() {
           height="100%"
           style={{ borderRadius: 0, border: 'none', height: '100%' }}
           visibleDragbar={false}
+          commandsFilter={(cmd) => {
+            // 拦截 image 命令：改为打开本地文件选择框
+            if (cmd.name === 'image') {
+              return {
+                ...cmd,
+                execute: () => fileInputRef.current?.click(),
+              }
+            }
+            return cmd
+          }}
+          previewOptions={{
+            components: {
+              img: ({ src, alt }: { src?: string | Blob; alt?: string }) => (
+                <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} />
+              ),
+            },
+          }}
         />
 
         {/* [[ autocomplete popover —— 跟随光标定位 */}
@@ -292,6 +366,7 @@ export default function WikiEditorPage() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

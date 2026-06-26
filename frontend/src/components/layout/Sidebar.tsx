@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,8 @@ import {
   ChevronDown,
   DatabaseBackup,
   BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 
 type NavItem = {
@@ -238,6 +240,26 @@ function useOpenGroup(initialKey: string | null): [string | null, (key: string) 
   return [openKey, toggle]
 }
 
+const COLLAPSE_KEY = 'sidebar_collapsed_v2'
+
+/** 折叠状态（localStorage 持久化）。收起后侧栏只显示 logo + 一级图标。 */
+function useCollapsed(): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(COLLAPSE_KEY) === '1'
+  })
+  const toggle = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0')
+      } catch {}
+      return next
+    })
+  }
+  return [collapsed, toggle]
+}
+
 function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle }: {
   group: NavGroup
   pathname: string
@@ -318,6 +340,166 @@ function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle }: {
   )
 }
 
+/**
+ * 折叠态下的一级条目：只显示图标。
+ * - 单项（NavItem）：hover 显示标题 tooltip，点击直接跳转
+ * - 分组（NavGroup）：hover 在右侧弹出 flyout 二级菜单
+ * flyout 用 fixed 定位（按图标 rect 计算），避免被侧栏 overflow 裁切。
+ *
+ * 交互：
+ * - 鼠标移出后延时 200ms 才收起（grace 期），期间移入 flyout 可取消收起
+ * - flyout 左侧有透明 bridge（pl-2）桥接侧栏与浮层之间的间隙，鼠标可平滑移过去
+ * - 弹出/收回为 scale + opacity 过渡（origin-left），类似 macOS Dock 的 zoom 效果
+ */
+const CLOSE_DELAY = 200 // ms，鼠标移出后的宽限时间
+const ANIM_MS = 200 // ms，与 CSS duration-200 对齐
+
+function CollapsedEntry({ entry, pathname, hasPermission }: {
+  entry: NavEntry
+  pathname: string
+  hasPermission: (r: string, a: string) => boolean
+}) {
+  const [mounted, setMounted] = useState(false) // 是否在 DOM 中
+  const [entered, setEntered] = useState(false) // 是否处于完整 scale/opacity（驱动过渡）
+  const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const ref = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const open = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    if (unmountTimer.current) clearTimeout(unmountTimer.current)
+    const rect = ref.current?.getBoundingClientRect()
+    if (rect) setCoords({ top: rect.top, left: rect.right })
+    setMounted(true)
+    // 双 rAF 确保挂载后下一帧再触发过渡，动画才会生效
+    requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)))
+  }
+
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => {
+      setEntered(false) // 先播放收回动画
+      unmountTimer.current = setTimeout(() => setMounted(false), ANIM_MS) // 动画结束再卸载
+    }, CLOSE_DELAY)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      if (unmountTimer.current) clearTimeout(unmountTimer.current)
+    }
+  }, [])
+
+  if (isGroup(entry)) {
+    const visibleChildren = entry.children.filter(
+      c => !c.resource || !c.action || hasPermission(c.resource, c.action),
+    )
+    if (visibleChildren.length === 0) return null
+    const isActive = groupActiveChild(entry, pathname, hasPermission)
+    const Icon = entry.icon
+
+    return (
+      <div ref={ref} className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
+        <button
+          className={cn(
+            'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
+            isActive || mounted
+              ? 'bg-white/10 text-white'
+              : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-white',
+          )}
+        >
+          <Icon className="h-[22px] w-[22px]" />
+        </button>
+
+        {mounted && (
+          <div
+            className="fixed z-50 pl-2"
+            style={{ top: coords.top, left: coords.left }}
+            onMouseEnter={open}
+            onMouseLeave={scheduleClose}
+          >
+            <div
+              className={cn(
+                'w-56 origin-left overflow-hidden rounded-xl border border-white/10 bg-v2-sidebar-2 shadow-2xl ring-1 ring-black/20',
+                'transition-all duration-200 ease-out motion-reduce:transition-none',
+                entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
+              )}
+            >
+              <div className="border-b border-white/8 px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-v2-sidebar-muted">
+                {entry.label}
+              </div>
+              <div className="space-y-0.5 p-1.5">
+                {visibleChildren.map((item) => {
+                  const childActive = item.exact
+                    ? pathname === item.href
+                    : pathname === item.href ||
+                      pathname.startsWith(item.href + '/') ||
+                      pathname.startsWith(item.href + '?')
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                        childActive
+                          ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
+                          : 'text-slate-300 hover:bg-white/8 hover:text-white',
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0 opacity-85" />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-white/10 px-1.5 font-mono text-[11px] tabular-nums text-blue-200">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // 单项
+  const { href, label, icon: Icon, resource, action } = entry
+  if (resource && action && !hasPermission(resource, action)) return null
+  const isActive = pathname === href
+
+  return (
+    <div ref={ref} className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
+      <Link
+        href={href}
+        className={cn(
+          'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
+          isActive
+            ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
+            : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-white',
+        )}
+      >
+        <Icon className="h-[22px] w-[22px]" />
+      </Link>
+      {mounted && (
+        <div className="fixed z-50 pl-2" style={{ top: coords.top + 8, left: coords.left }}>
+          <div
+            className={cn(
+              'origin-left whitespace-nowrap rounded-lg border border-white/10 bg-v2-sidebar-2 px-3 py-1.5 text-sm text-white shadow-2xl ring-1 ring-black/20',
+              'transition-all duration-200 ease-out motion-reduce:transition-none',
+              entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
+            )}
+          >
+            {label}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const { hasPermission } = usePermission()
@@ -332,6 +514,7 @@ export function Sidebar() {
     null
 
   const [openKey, toggleGroup] = useOpenGroup(initialOpenKey)
+  const [collapsed, toggleCollapsed] = useCollapsed()
 
   // 实际 schema 版本：从后端动态读取 flyway_schema_history 最新成功版本
   const [schemaVersion, setSchemaVersion] = useState<string | null>(null)
@@ -359,21 +542,71 @@ export function Sidebar() {
   }, [])
 
   return (
-    <aside className="w-[280px] bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-hidden">
+    <aside
+      className={cn(
+        'bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
+        collapsed ? 'w-[76px]' : 'w-[280px]',
+      )}
+    >
       {/* Brand */}
-      <div className="h-14 px-5 flex items-center gap-3 border-b border-v2-sidebar-border shrink-0">
+      <div
+        className={cn(
+          'h-14 flex items-center border-b border-v2-sidebar-border shrink-0',
+          collapsed ? 'justify-center px-2' : 'gap-3 px-5',
+        )}
+      >
         <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
-        <div className="min-w-0">
-          <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">
-            CWGSYW 平台
-          </div>
-          <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">
-            企业运维与 CMDB 工作台
-          </div>
-        </div>
+        {!collapsed && (
+          <>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">
+                CWGSYW 平台
+              </div>
+              <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">
+                企业运维与 CMDB 工作台
+              </div>
+            </div>
+            <button
+              onClick={toggleCollapsed}
+              title="收起侧栏"
+              className="shrink-0 rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
+            >
+              <PanelLeftClose className="h-[18px] w-[18px]" />
+            </button>
+          </>
+        )}
       </div>
 
+      {collapsed && (
+        <div className="flex justify-center py-2 shrink-0">
+          <button
+            onClick={toggleCollapsed}
+            title="展开侧栏"
+            className="rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
+          >
+            <PanelLeftOpen className="h-[18px] w-[18px]" />
+          </button>
+        </div>
+      )}
+
       {/* Navigation */}
+      {collapsed ? (
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-visible">
+          {navItems.map((entry) => {
+            if (isGroup(entry) && (!entry.resource || !entry.action || !hasPermission(entry.resource, entry.action))) {
+              return null
+            }
+            return (
+              <CollapsedEntry
+                key={isGroup(entry) ? entry.label : entry.href}
+                entry={entry}
+                pathname={pathname}
+                hasPermission={hasPermission}
+              />
+            )
+          })}
+        </nav>
+      ) : (
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((entry) => {
           if (isGroup(entry)) {
@@ -417,8 +650,10 @@ export function Sidebar() {
           )
         })}
       </nav>
+      )}
 
-      {/* Footer: Version Info */}
+      {/* Footer: Version Info（折叠态隐藏） */}
+      {!collapsed && (
       <div className="px-4 py-3 border-t border-v2-sidebar-border shrink-0 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
@@ -448,6 +683,7 @@ export function Sidebar() {
           </a>
         </div>
       </div>
+      )}
     </aside>
   )
 }

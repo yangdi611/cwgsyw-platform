@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/v2/StatusBadge'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
+import { WikiImage } from '@/components/wiki/WikiImage'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock } from 'lucide-react'
 import { useState } from 'react'
 import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
@@ -194,6 +195,7 @@ export default function WikiPageReader() {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}
                 rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+                components={{ img: ({ src, alt }) => <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} /> }}
               >
                 {rendered}
               </ReactMarkdown>

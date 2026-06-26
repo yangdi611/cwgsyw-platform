@@ -237,3 +237,66 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   Wiki Markdown 编辑器（@uiw/react-md-editor）主题统一
+   作用域 .wiki-editor：让编辑器的背景/工具栏/预览/边框沿用 v2 主题色，
+   与阅读页一致；同时放大工具栏图标。
+   ============================================================ */
+.wiki-editor .w-md-editor {
+  background-color: var(--v2-surface) !important;
+  color: var(--v2-fg);
+  box-shadow: none;
+  --color-border-default: var(--v2-border);
+}
+/* 工具栏 */
+.wiki-editor .w-md-editor-toolbar {
+  background-color: var(--v2-surface-soft);
+  border-bottom: 1px solid var(--v2-border);
+  padding: 6px 8px;
+}
+.wiki-editor .w-md-editor-toolbar ul > li > button {
+  height: 30px;
+  min-width: 30px;
+}
+/* 工具栏图标放大 */
+.wiki-editor .w-md-editor-toolbar svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+.wiki-editor .w-md-editor-toolbar li > button:hover,
+.wiki-editor .w-md-editor-toolbar li > button.active {
+  background-color: var(--v2-primary-soft);
+  color: var(--v2-primary);
+}
+.wiki-editor .w-md-editor-toolbar-divider {
+  background-color: var(--v2-border);
+}
+/* 输入区 + 文本框 */
+.wiki-editor .w-md-editor-content,
+.wiki-editor .w-md-editor-area,
+.wiki-editor .w-md-editor-text,
+.wiki-editor .w-md-editor-input,
+.wiki-editor .w-md-editor-text-pre,
+.wiki-editor .w-md-editor-text-input {
+  background-color: var(--v2-surface) !important;
+  color: var(--v2-fg);
+}
+.wiki-editor .w-md-editor-text-input,
+.wiki-editor .w-md-editor-text-pre > code {
+  font-size: 14px;
+  line-height: 1.7;
+}
+/* 编辑区与预览区分隔线 */
+.wiki-editor .w-md-editor-bar {
+  background-color: var(--v2-border);
+}
+/* 实时预览区 */
+.wiki-editor .w-md-editor-preview {
+  background-color: var(--v2-surface) !important;
+  box-shadow: inset 1px 0 0 0 var(--v2-border);
+}
+.wiki-editor .w-md-editor-preview .wmde-markdown {
+  background-color: var(--v2-surface) !important;
+  color: var(--v2-fg);
+}

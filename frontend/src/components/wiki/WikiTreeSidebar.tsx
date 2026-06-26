@@ -200,6 +200,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const canDelete = hasPermission('wiki', 'delete') && writable
 
   const [renameTarget, setRenameTarget] = useState<WikiPageTree | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<WikiPageTree | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newParent, setNewParent] = useState<number | null>(null)
@@ -256,6 +257,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
     mutationFn: (id: number) => wikiApi.deletePage(id),
     onSuccess: () => {
       invalidate()
+      setDeleteTarget(null)
       toast.success('页面已删除')
     },
     onError: (e: unknown) => {
@@ -287,9 +289,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
       setRenameValue(node.title)
     },
     onDelete: (node) => {
-      const desc = countDescendants(node)
-      const extra = desc > 0 ? `（包含 ${desc} 个子页面，将一并删除）` : ''
-      if (confirm(`确认删除页面「${node.title}」？${extra}`)) deleteMutation.mutate(node.id)
+      setDeleteTarget(node)
     },
     onMove: (node, siblings, parentId, dir) => {
       const idx = siblings.findIndex((s) => s.id === node.id)
@@ -407,6 +407,35 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
               onClick={() => renameTarget && renameMutation.mutate(renameTarget)}
             >
               保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-sm text-v2-fg">
+            确定要删除页面「{deleteTarget?.title}」吗？
+            {deleteTarget && countDescendants(deleteTarget) > 0 && (
+              <span className="mt-1 block text-v2-muted">
+                包含 {countDescendants(deleteTarget)} 个子页面，将一并删除。
+              </span>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              取消
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              {deleteMutation.isPending ? '删除中…' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>
