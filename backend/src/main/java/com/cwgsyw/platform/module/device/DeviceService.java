@@ -6,10 +6,11 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.CryptoService;
+import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.device.dto.*;
 import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.device.entity.DeviceCredential;
-import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,6 @@ public class DeviceService {
         if (category != null) query.eq(Device::getCategory, category);
         Page<Device> p = deviceMapper.selectPage(new Page<>(page, size), query);
 
-        // Batch fetch group names to avoid N+1
         Set<Long> groupIds = p.getRecords().stream()
             .filter(d -> d.getGroupId() != null)
             .map(Device::getGroupId)
@@ -65,24 +65,34 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
-        // group scope members only see their own group's credentials
         Long filterGroupId = "group".equals(callerGroupScope) ? callerGroupId : null;
         return toVO(device, true, filterGroupId);
     }
 
     @Transactional
     public Device create(CreateDeviceRequest req, String tenantId, Long operatorId) {
+        if (req.getCiInstanceId() == null) {
+            throw new IllegalArgumentException("必须关联 CMDB 实例");
+        }
+        CiInstance ci = ciInstanceMapper.selectById(req.getCiInstanceId());
+        if (ci == null || ci.getIsDeleted() || !ci.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("CMDB 实例不存在");
+        }
+
         Device device = new Device();
         device.setTenantId(tenantId);
         device.setGroupId(req.getGroupId());
-        device.setName(req.getName());
-        device.setIp(req.getIp());
-        device.setDeviceType(req.getDeviceType() != null ? req.getDeviceType() : "server");
+        device.setCiInstanceId(req.getCiInstanceId());
+        // 从 CI 派生 name/IP/type 并快照存储（供 fallback）
+        device.setName(ci.getName());
+        device.setIp(extractIp(ci));
+        device.setDeviceType(mapModelToDeviceType(ci.getModelId()));
         device.setCategory(req.getCategory());
         device.setDescription(req.getDescription());
-        device.setCiInstanceId(req.getCiInstanceId());
+
         deviceMapper.insert(device);
-        writeAudit(tenantId, "create", device.getId(), operatorId, "name=" + device.getName());
+        writeAudit(tenantId, "create", device.getId(), operatorId,
+            "ci_instance_id=" + req.getCiInstanceId() + " name=" + device.getName());
         return device;
     }
 
@@ -92,13 +102,10 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
-        if (req.getName() != null) device.setName(req.getName());
-        if (req.getIp() != null) device.setIp(req.getIp());
-        if (req.getDeviceType() != null) device.setDeviceType(req.getDeviceType());
+        // name/ip/deviceType/ciInstanceId 不可修改（由 CI 派生）；只允许 category/description/groupId
         if (req.getCategory() != null) device.setCategory(req.getCategory());
         if (req.getDescription() != null) device.setDescription(req.getDescription());
         if (req.getGroupId() != null) device.setGroupId(req.getGroupId());
-        if (req.getCiInstanceId() != null) device.setCiInstanceId(req.getCiInstanceId());
         deviceMapper.updateById(device);
         writeAudit(tenantId, "update", id, operatorId, "name=" + device.getName());
     }
@@ -123,7 +130,6 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
-        // Use explicitly provided groupId, or fall back to caller's group
         Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
         DeviceCredential cred = new DeviceCredential();
         cred.setDeviceId(deviceId);
@@ -133,7 +139,8 @@ public class DeviceService {
         cred.setPasswordEnc(crypto.encrypt(req.getPassword()));
         cred.setDescription(req.getDescription());
         credentialMapper.insert(cred);
-        writeAudit(tenantId, "add_credential", deviceId, operatorId, "username=" + req.getUsername() + " group_id=" + groupId);
+        writeAudit(tenantId, "add_credential", deviceId, operatorId,
+            "username=" + req.getUsername() + " group_id=" + groupId);
         return cred;
     }
 
@@ -141,7 +148,6 @@ public class DeviceService {
     public void deleteCredential(Long credentialId, String tenantId, Long operatorId) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
         if (cred == null || cred.getIsDeleted()) throw new IllegalArgumentException("账号不存在");
-        // Fix 1: verify parent device belongs to caller's tenant
         Device device = deviceMapper.selectById(cred.getDeviceId());
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
@@ -153,59 +159,83 @@ public class DeviceService {
         writeAudit(tenantId, "delete_credential", cred.getDeviceId(), operatorId, null);
     }
 
-    // Fix 2: @Transactional removed — audit is written first and committed independently;
-    // a decrypt failure will not roll back the audit record.
-    public String revealPassword(Long credentialId, String tenantId, Long operatorId, String operatorIp) {
+    // @Transactional deliberately omitted: audit committed independently so a decrypt failure
+    // cannot roll back the audit record.
+    public String revealPassword(Long credentialId, String tenantId, Long operatorId,
+                                 Long callerGroupId, String callerGroupScope,
+                                 String operatorIp, String clientPublicKey) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
         if (cred == null || cred.getIsDeleted()) throw new IllegalArgumentException("账号不存在");
-        // Fix 1: verify parent device belongs to caller's tenant
         Device device = deviceMapper.selectById(cred.getDeviceId());
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
         }
-        // Audit is written (and auto-committed) before decrypt is attempted
+        // Group-level authorization: members may only reveal their own group's credentials
+        if ("group".equals(callerGroupScope)) {
+            if (cred.getGroupId() == null || !cred.getGroupId().equals(callerGroupId)) {
+                throw new IllegalArgumentException("无权查看该凭据");
+            }
+        }
         auditLogMapper.insert(AuditLog.builder()
-            .tenantId(tenantId)
-            .module("device")
-            .action("view_password")
-            .targetId(credentialId)
-            .targetType("device_credential")
-            .operatorId(operatorId)
-            .operatorIp(operatorIp)
+            .tenantId(tenantId).module("device").action("view_password")
+            .targetId(credentialId).targetType("device_credential")
+            .operatorId(operatorId).operatorIp(operatorIp)
             .remark("credential_id=" + credentialId + " device_id=" + cred.getDeviceId())
-            .createdAt(LocalDateTime.now())
-            .build());
-        return crypto.decrypt(cred.getPasswordEnc());
+            .createdAt(LocalDateTime.now()).build());
+
+        String plaintext = crypto.decrypt(cred.getPasswordEnc());
+        // Envelope encryption: if client supplied a public key, encrypt the plaintext with it
+        // so plaintext never travels over the wire. Falls back to plaintext when no key is given
+        // (e.g. dev/HTTP environments where Web Crypto is unavailable).
+        if (clientPublicKey != null && !clientPublicKey.isBlank()) {
+            return crypto.encryptForClient(plaintext, clientPublicKey);
+        }
+        return plaintext;
     }
 
-    // toVO for list path (no credentials)
+    // ── private helpers ──────────────────────────────────────────────────────
+
     private DeviceVO toVO(Device d, boolean includeCredentials) {
         return toVO(d, includeCredentials, null);
     }
 
-    // toVO with optional group filter for credentials (null = show all groups)
     private DeviceVO toVO(Device d, boolean includeCredentials, Long filterGroupId) {
         DeviceVO vo = new DeviceVO();
         vo.setId(d.getId());
         vo.setGroupId(d.getGroupId());
-        vo.setName(d.getName());
-        vo.setIp(d.getIp());
-        vo.setDeviceType(d.getDeviceType());
+        vo.setCiInstanceId(d.getCiInstanceId());
         vo.setCategory(d.getCategory());
         vo.setDescription(d.getDescription());
-        vo.setCiInstanceId(d.getCiInstanceId());
-        if (d.getCiInstanceId() != null) {
-            vo.setCiInstanceName(deviceMapper.findCiInstanceName(d.getCiInstanceId()));
-        }
         vo.setCreatedAt(d.getCreatedAt());
         vo.setUpdatedAt(d.getUpdatedAt());
+
+        if (d.getCiInstanceId() != null) {
+            CiInstance ci = ciInstanceMapper.selectById(d.getCiInstanceId());
+            if (ci != null && !ci.getIsDeleted()) {
+                // CMDB is the single source of truth for name/IP/type
+                vo.setName(ci.getName());
+                vo.setCiInstanceName(ci.getName());
+                vo.setIp(extractIp(ci));
+                vo.setDeviceType(mapModelToDeviceType(ci.getModelId()));
+            } else {
+                // Fallback: CI was deleted — show stored snapshot and warn
+                vo.setName(d.getName());
+                vo.setIp(d.getIp());
+                vo.setDeviceType(d.getDeviceType());
+                vo.setCiInstanceName("(CI 已删除)");
+            }
+        } else {
+            // Legacy device without CI link — show stored values
+            vo.setName(d.getName());
+            vo.setIp(d.getIp());
+            vo.setDeviceType(d.getDeviceType());
+        }
+
         if (includeCredentials) {
-            // Single group lookup is fine for getById (single device)
             if (d.getGroupId() != null) {
                 var group = groupMapper.selectById(d.getGroupId());
                 if (group != null) vo.setGroupName(group.getName());
             }
-            // Batch-fetch all groups once for credential group names
             List<DeviceCredential> allCreds = credentialMapper.findByDeviceId(d.getId());
             Set<Long> credGroupIds = allCreds.stream()
                 .filter(c -> c.getGroupId() != null)
@@ -236,18 +266,30 @@ public class DeviceService {
         return vo;
     }
 
-    // Fix 3: remark-based audit — no JSON string concatenation, no malformed-JSON risk
+    /** Extract inner_ip from CI attrs (host model); returns null for models without this attr. */
+    private static String extractIp(CiInstance ci) {
+        if (ci.getFieldsData() == null) return null;
+        Object v = ci.getFieldsData().get("inner_ip");
+        return v != null ? String.valueOf(v) : null;
+    }
+
+    /** Map CMDB modelId to the device_type enum used by the password vault. */
+    private static String mapModelToDeviceType(String modelId) {
+        if (modelId == null) return "other";
+        return switch (modelId) {
+            case "host", "app" -> "server";
+            case "switch", "router" -> "network";
+            case "firewall" -> "security";
+            default -> "other";
+        };
+    }
+
     private void writeAudit(String tenantId, String action, Long targetId,
                             Long operatorId, String remark) {
         auditLogMapper.insert(AuditLog.builder()
-            .tenantId(tenantId)
-            .module("device")
-            .action(action)
-            .targetId(targetId)
-            .targetType("device")
-            .operatorId(operatorId)
-            .remark(remark)
-            .createdAt(LocalDateTime.now())
-            .build());
+            .tenantId(tenantId).module("device").action(action)
+            .targetId(targetId).targetType("device")
+            .operatorId(operatorId).remark(remark)
+            .createdAt(LocalDateTime.now()).build());
     }
 }

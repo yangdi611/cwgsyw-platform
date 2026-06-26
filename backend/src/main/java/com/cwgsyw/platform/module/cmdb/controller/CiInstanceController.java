@@ -11,8 +11,6 @@ import com.cwgsyw.platform.module.cmdb.service.CiInstanceCommandService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceQueryService;
 import com.cwgsyw.platform.module.cmdb.service.CiRelatedResourceService;
 import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
-import com.cwgsyw.platform.module.device.DeviceCredentialMapper;
-import com.cwgsyw.platform.module.device.dto.CredentialVO;
 import com.cwgsyw.platform.module.device.dto.DeviceVO;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -33,7 +31,6 @@ public class CiInstanceController {
     private final CiRelatedResourceService ciRelatedResourceService;
     private final CiChangeService ciChangeService;
     private final Ci2DViewService ci2DViewService;
-    private final DeviceCredentialMapper deviceCredentialMapper;
 
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
@@ -136,10 +133,4 @@ public class CiInstanceController {
         return R.ok(ciRelatedResourceService.getRelatedDailyReports(id, cu.getTenantId()));
     }
 
-    @GetMapping("/{id}/credentials")
-    @PreAuthorize("hasAuthority('device:view_password')")
-    public R<List<CredentialVO>> getRelatedCredentials(@PathVariable Long id,
-                                                       @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(deviceCredentialMapper.findCredentialVOsByCiInstanceId(id, cu.getTenantId()));
-    }
 }

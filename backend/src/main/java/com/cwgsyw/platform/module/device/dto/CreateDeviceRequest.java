@@ -1,15 +1,18 @@
 package com.cwgsyw.platform.module.device.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class CreateDeviceRequest {
-    @NotBlank private String name;
-    private String ip;
-    private String deviceType;
-    private String category;
-    private String description;
-    private Long groupId;
+    // 必须关联一个 CMDB CI 实例；name/ip/deviceType 由 CI 派生，create 时无需传
+    @NotNull(message = "必须关联 CMDB 实例")
     private Long ciInstanceId;
+
+    private String name;        // 派生自 CI（兼容旧前端可传，但以 CI 为准）
+    private String ip;          // 派生自 CI
+    private String deviceType;  // 派生自 CI modelId
+    private String category;    // 用户可补充的分类标签
+    private String description; // 用户可补充的备注
+    private Long groupId;
 }

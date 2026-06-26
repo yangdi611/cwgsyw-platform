@@ -1,32 +1,54 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/v2/Button'
 import { Card, CardContent } from '@/components/v2/Card'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Textarea } from '@/components/v2/Textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 
+interface CiDetail {
+  id: number
+  name: string
+  modelId: string
+  modelName: string
+  fieldsData: Record<string, any>
+}
+
+// CMDB modelId → 设备类型中文（与后端 mapModelToDeviceType 对齐）
+function deviceTypeName(modelId?: string): string {
+  if (!modelId) return '其他'
+  if (['host', 'app'].includes(modelId)) return '服务器'
+  if (['switch', 'router'].includes(modelId)) return '网络设备'
+  if (modelId === 'firewall') return '安全设备'
+  return '其他'
+}
+
 export default function NewDevicePage() {
   const router = useRouter()
-  const [form, setForm] = useState({
-    name: '',
-    ip: '',
-    device_type: 'server',
-    category: '',
-    description: '',
-    ci_instance_id: null as number | null,
+  const [ciId, setCiId] = useState<number | null>(null)
+  const [form, setForm] = useState({ category: '', description: '' })
+
+  // 选中 CI 后拉详情，派生只读字段
+  const { data: ci } = useQuery<CiDetail>({
+    queryKey: ['ci-detail-for-device', ciId],
+    queryFn: () => api.get(`/cmdb/instances/${ciId}`).then((r) => r.data.data),
+    enabled: !!ciId,
   })
 
   const createMutation = useMutation({
-    mutationFn: () => api.post('/devices', form),
+    mutationFn: () =>
+      api.post('/devices', {
+        ci_instance_id: ciId,
+        category: form.category || null,
+        description: form.description || null,
+      }),
     onSuccess: (res) => {
       toast.success('设备已创建')
       router.push(`/devices/${res.data.data.id}`)
@@ -44,82 +66,83 @@ export default function NewDevicePage() {
           <ArrowLeft className="h-4 w-4" />
           返回
         </Link>
-        <h1 className="text-2xl font-bold text-v2-fg">新增设备</h1>
+        <h1 className="text-2xl font-bold text-v2-fg">新增设备凭证</h1>
       </div>
 
       <Card>
         <CardContent className="space-y-4 p-6">
+          {/* CI 选择（必填） */}
           <div className="space-y-1.5">
-            <Label>设备名称 *</Label>
-            <Input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="例：数据库服务器-01"
-            />
+            <Label>选择 CMDB 资产 *</Label>
+            <CiInstanceSelect value={ciId} onChange={setCiId} />
+            {!ciId && (
+              <p className="text-xs text-v2-muted">
+                密码必须关联到已存在的 CMDB 资产。找不到？{' '}
+                <Link href="/cmdb/instances" className="text-v2-primary hover:underline">
+                  去 CMDB 创建
+                </Link>
+              </p>
+            )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label>IP 地址</Label>
-            <Input
-              value={form.ip}
-              onChange={(e) => setForm((f) => ({ ...f, ip: e.target.value }))}
-              placeholder="例：192.168.1.100"
-            />
-          </div>
+          {ci && (
+            <>
+              {/* 只读字段：来自 CMDB */}
+              <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-v2-muted uppercase tracking-wider">
+                  <Lock className="h-3.5 w-3.5" />
+                  以下信息来自 CMDB（只读）
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                    <dt className="text-xs text-v2-muted">设备名称</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-v2-fg">{ci.name}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-v2-muted">IP 地址</dt>
+                    <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">
+                      {ci.fieldsData?.inner_ip || '-'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-v2-muted">设备类型</dt>
+                    <dd className="mt-0.5 text-sm text-v2-fg">{deviceTypeName(ci.modelId)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-v2-muted">模型</dt>
+                    <dd className="mt-0.5 text-sm text-v2-fg">{ci.modelName}</dd>
+                  </div>
+                </dl>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>设备类型</Label>
-              <Select
-                value={form.device_type}
-                onValueChange={(v) => setForm((f) => ({ ...f, device_type: v ?? 'server' }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="server">服务器</SelectItem>
-                  <SelectItem value="network">网络设备</SelectItem>
-                  <SelectItem value="security">安全设备</SelectItem>
-                  <SelectItem value="cloud">云资源</SelectItem>
-                  <SelectItem value="other">其他</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* 可编辑字段 */}
+              <div className="space-y-1.5">
+                <Label>分类标签</Label>
+                <Input
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  placeholder="例：生产环境、MySQL 主库"
+                />
+                <p className="text-xs text-v2-muted">可选，用于进一步分类筛选</p>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label>分类标签</Label>
-              <Input
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                placeholder="例：生产环境、MySQL"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>备注</Label>
-            <Textarea
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="设备用途、位置等备注信息"
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>关联 CMDB 实例</Label>
-            <CiInstanceSelect
-              value={form.ci_instance_id}
-              onChange={(cid) => setForm((f) => ({ ...f, ci_instance_id: cid }))}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <Label>备注</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="用途、注意事项等补充说明"
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex gap-2 pt-2">
             <Button
               variant="primary"
               onClick={() => createMutation.mutate()}
-              disabled={!form.name || createMutation.isPending}
+              disabled={!ciId || createMutation.isPending}
             >
               {createMutation.isPending ? '创建中…' : '创建设备'}
             </Button>

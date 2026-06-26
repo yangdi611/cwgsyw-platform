@@ -7,12 +7,10 @@ import { Button } from '@/components/v2/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { CredentialRow } from '@/components/device/CredentialRow'
-import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
@@ -174,7 +172,11 @@ export default function DeviceDetailPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => api.put(`/devices/${id}`, editForm),
+    mutationFn: () =>
+      api.put(`/devices/${id}`, {
+        category: editForm.category ?? null,
+        description: editForm.description ?? null,
+      }),
     onSuccess: () => {
       toast.success('设备信息已更新')
       queryClient.invalidateQueries({ queryKey: ['device', id] })
@@ -196,12 +198,8 @@ export default function DeviceDetailPage() {
   const startEdit = () => {
     if (!device) return
     setEditForm({
-      name: device.name,
-      ip: device.ip,
-      device_type: device.device_type,
       category: device.category,
       description: device.description,
-      ci_instance_id: device.ci_instance_id,
     })
     setEditing(true)
   }
@@ -273,50 +271,44 @@ export default function DeviceDetailPage() {
             <CardTitle className="text-base">编辑设备信息</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>设备名称 *</Label>
-                <Input
-                  value={editForm.name ?? ''}
-                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                />
+            {/* 只读字段：来自 CMDB */}
+            <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-v2-muted uppercase tracking-wider">
+                <Lock className="h-3.5 w-3.5" />
+                以下信息来自 CMDB（只读，如需修改请在 CMDB 编辑对应实例）
               </div>
-              <div className="space-y-1.5">
-                <Label>IP 地址</Label>
-                <Input
-                  value={editForm.ip ?? ''}
-                  onChange={(e) => setEditForm((f) => ({ ...f, ip: e.target.value }))}
-                  placeholder="192.168.1.1"
-                />
-              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div>
+                  <dt className="text-xs text-v2-muted">设备名称</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-v2-fg">{device.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-v2-muted">IP 地址</dt>
+                  <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">{device.ip || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-v2-muted">设备类型</dt>
+                  <dd className="mt-0.5 text-sm text-v2-fg">
+                    {DEVICE_TYPES.find((t) => t.value === device.device_type)?.label ?? '其他'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-v2-muted">关联 CMDB 实例</dt>
+                  <dd className="mt-0.5 text-sm text-v2-fg">
+                    {device.ci_instance_name ?? (device.ci_instance_id ? `实例 #${device.ci_instance_id}` : '-')}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>设备类型</Label>
-                <Select
-                  value={editForm.device_type ?? 'server'}
-                  onValueChange={(v) => setEditForm((f) => ({ ...f, device_type: v ?? 'server' }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEVICE_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>分类标签</Label>
-                <Input
-                  value={editForm.category ?? ''}
-                  onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                  placeholder="生产/测试/开发"
-                />
-              </div>
+
+            {/* 可编辑字段 */}
+            <div className="space-y-1.5">
+              <Label>分类标签</Label>
+              <Input
+                value={editForm.category ?? ''}
+                onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                placeholder="生产/测试/开发"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>备注</Label>
@@ -325,19 +317,12 @@ export default function DeviceDetailPage() {
                 onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>关联 CMDB 实例</Label>
-              <CiInstanceSelect
-                value={editForm.ci_instance_id ?? null}
-                onChange={(cid) => setEditForm((f) => ({ ...f, ci_instance_id: cid }))}
-              />
-            </div>
             <div className="flex gap-2">
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => updateMutation.mutate()}
-                disabled={!editForm.name || updateMutation.isPending}
+                disabled={updateMutation.isPending}
               >
                 保存
               </Button>

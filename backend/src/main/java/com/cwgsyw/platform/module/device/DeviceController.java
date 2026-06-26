@@ -81,10 +81,12 @@ public class DeviceController {
     @GetMapping("/credentials/{credentialId}/reveal")
     @PreAuthorize("hasPermission('device', 'view_password')")
     public R<String> revealPassword(@PathVariable Long credentialId,
+                                    @RequestParam(required = false) String clientPublicKey,
                                     @AuthenticationPrincipal SecurityUser cu,
                                     HttpServletRequest request) {
-        String password = deviceService.revealPassword(credentialId, cu.getTenantId(),
-            cu.getUserId(), request.getRemoteAddr());
-        return R.ok(password);
+        String result = deviceService.revealPassword(credentialId, cu.getTenantId(),
+            cu.getUserId(), cu.getGroupId(), cu.getGroupScope(),
+            request.getRemoteAddr(), clientPublicKey);
+        return R.ok(result);
     }
 }
