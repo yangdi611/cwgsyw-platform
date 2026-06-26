@@ -385,8 +385,18 @@ public class ChangeDocService {
         return result;
     }
 
-    public List<ChangeDocVO> list(String tenantId, String status) {
-        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
+    /** 全局搜索：按变更单号或标题模糊匹配，限制返回条数。供统一搜索（/api/search）复用。 */
+    public List<ChangeDocVO> searchByTitle(String tenantId, String keyword, int limit) {
+        if (!StringUtils.hasText(keyword)) return List.of();
+        List<ChangeDoc> docs = changeDocMapper.selectList(new LambdaQueryWrapper<ChangeDoc>()
+                .eq(ChangeDoc::getTenantId, tenantId)
+                .and(w -> w.like(ChangeDoc::getTitle, keyword).or().like(ChangeDoc::getChangeNo, keyword))
+                .orderByDesc(ChangeDoc::getCreatedAt)
+                .last("LIMIT " + limit));
+        return docs.stream().map(this::toVO).collect(Collectors.toList());
+    }
+
+    public List<ChangeDocVO> list(String tenantId, String status) {        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
                 .eq(ChangeDoc::getTenantId, tenantId)
                 .orderByDesc(ChangeDoc::getCreatedAt);
 

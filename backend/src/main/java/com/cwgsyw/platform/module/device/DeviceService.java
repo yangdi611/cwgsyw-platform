@@ -60,8 +60,30 @@ public class DeviceService {
         }));
     }
 
-    public DeviceVO getById(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {
-        Device device = deviceMapper.selectById(id);
+    /**
+     * 全局搜索：按设备名/IP/分类模糊匹配，限制返回条数。供统一搜索（/api/search）复用。
+     * 组级越权校验：groupScope=group 的用户只能搜本组设备（与 getById 一致）。
+     */
+    public List<DeviceVO> searchByKeyword(String keyword, int limit, String tenantId,
+                                          Long callerGroupId, String callerGroupScope) {
+        if (!org.springframework.util.StringUtils.hasText(keyword)) return List.of();
+        LambdaQueryWrapper<Device> query = new LambdaQueryWrapper<Device>()
+            .eq(Device::getTenantId, tenantId)
+            .eq(Device::getIsDeleted, false)
+            .and(w -> w.like(Device::getName, keyword)
+                .or().like(Device::getIp, keyword)
+                .or().like(Device::getCategory, keyword))
+            .orderByDesc(Device::getCreatedAt)
+            .last("LIMIT " + limit);
+        if ("group".equals(callerGroupScope) && callerGroupId != null) {
+            query.eq(Device::getGroupId, callerGroupId);
+        }
+        return deviceMapper.selectList(query).stream()
+            .map(d -> toVO(d, false))
+            .collect(Collectors.toList());
+    }
+
+    public DeviceVO getById(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {        Device device = deviceMapper.selectById(id);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }

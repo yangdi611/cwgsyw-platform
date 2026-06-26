@@ -25,6 +25,15 @@ public class UserService {
         return PageResult.of(p);
     }
 
+    /** 全局搜索：按用户名或姓名模糊匹配，限制返回条数。供统一搜索（/api/search）复用。 */
+    public java.util.List<User> searchByName(String keyword, int limit, String tenantId) {
+        if (!org.springframework.util.StringUtils.hasText(keyword)) return java.util.List.of();
+        return userMapper.selectList(new LambdaQueryWrapper<User>()
+            .eq(User::getTenantId, tenantId)
+            .and(w -> w.like(User::getUsername, keyword).or().like(User::getRealName, keyword))
+            .last("LIMIT " + limit));
+    }
+
     @Transactional
     public User create(CreateUserRequest req, String tenantId) {
         if (userMapper.findByUsername(req.getUsername()).isPresent()) {

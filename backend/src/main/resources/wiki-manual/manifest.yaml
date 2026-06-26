@@ -123,6 +123,10 @@ spaces:
         title: v0.17.0 — 2026年6月27日
         file: release-notes/v0.17.0.md
         sort: 997
+      - key: rn-v0-18-0
+        title: v0.18.0 — 2026年6月27日
+        file: release-notes/v0.18.0.md
+        sort: 996
 
   # ──────────────────────────────────────────
   # 3. Bug 反馈（所有人可读写，模板页只读）
