@@ -29,8 +29,12 @@ CLAUDE.md
 # 散落的分析文档（按需保留在 docs/）
 /CMDB_API_AUDIT.md
 /changedoc-cmdb-coupling-analysis.md
-docs/superpowers/
-docs/当 Agent 学会了修改自己的说明书.md
+
+# docs/ 全部忽略，仅保留 docs/guide/wiki/
+docs/*
+!docs/guide/
+docs/guide/*
+!docs/guide/wiki/
 
 # macOS Finder conflict duplicates
 * 2.*
