@@ -35,7 +35,9 @@ services:
       - "9001"
 
   backend:
-    build: ./backend
+    image: ghcr.io/yangdi611/cwgsyw-platform-backend:latest
+    build: ./backend          # 本地 fallback；服务器走 pull，不 --build
+    pull_policy: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?stringtype=unspecified
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -64,7 +66,9 @@ services:
       start_period: 30s
 
   frontend:
-    build: ./frontend
+    image: ghcr.io/yangdi611/cwgsyw-platform-frontend:latest
+    build: ./frontend         # 本地 fallback；服务器走 pull，不 --build
+    pull_policy: always
     depends_on:
       - backend
 
