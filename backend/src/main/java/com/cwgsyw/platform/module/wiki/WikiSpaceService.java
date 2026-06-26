@@ -103,7 +103,10 @@ public class WikiSpaceService {
         vo.setUpdatedAt(s.getUpdatedAt());
         vo.setCreatedByName(creator != null ?
                 (creator.getRealName() != null ? creator.getRealName() : creator.getUsername()) : null);
-        vo.setReadOnly(s.getSeedKey() != null);
+        vo.setSystem(s.getSeedKey() != null);
+        vo.setWriteScope(s.getWriteScope());
+        // 只读：系统空间且写范围为 none（仅 admin 可改，普通用户只读）
+        vo.setReadOnly("none".equals(s.getWriteScope()));
         return vo;
     }
 

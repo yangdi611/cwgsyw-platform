@@ -21,6 +21,7 @@ import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock } from 'lucide-react'
 import { useState } from 'react'
 import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
+import { canWriteSpace } from '@/types/wiki'
 import 'highlight.js/styles/github.css'
 
 const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 'neutral' }> = {

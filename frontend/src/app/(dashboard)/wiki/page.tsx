@@ -21,6 +21,7 @@ import {
 } from '@/components/v2/Dialog'
 import {
   BookOpen,
+  Library,
   Plus,
   FileText,
   ArrowRight,
@@ -30,6 +31,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
+import { canWriteSpace } from '@/types/wiki'
 
 /** 个人空间排序：按当前用户 username 隔离存 localStorage（非全局，每人各自的顺序）。 */
 function orderStorageKey(username: string | undefined): string {
@@ -96,25 +98,28 @@ export default function WikiSpacesPage() {
   const canUpdate = hasPermission('wiki', 'update')
   const canDelete = hasPermission('wiki', 'delete')
   const groupScope = useAuthStore((s) => s.groupScope)
-  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
-  // 应用个人顺序后的展示列表
-  const list = useMemo(
-    () => applyPersonalOrder(spaces ?? [], order),
+  // 两层：官方手册（system seed 空间，置顶固定）+ 团队空间（用户创建，可个人排序）
+  const manualSpaces = useMemo(
+    () => (spaces ?? []).filter((s) => s.system),
+    [spaces],
+  )
+  const teamSpaces = useMemo(
+    () => applyPersonalOrder((spaces ?? []).filter((s) => !s.system), order),
     [spaces, order],
   )
 
-  // 上移/下移：更新个人顺序并持久化（仅本人 localStorage，不动后端）
+  // 上移/下移：仅作用于团队空间，更新个人顺序并持久化（仅本人 localStorage，不动后端）
   const move = useCallback(
     (index: number, dir: -1 | 1) => {
-      const ids = list.map((s) => s.id)
+      const ids = teamSpaces.map((s) => s.id)
       const target = index + dir
       if (target < 0 || target >= ids.length) return
       ;[ids[index], ids[target]] = [ids[target], ids[index]]
       setOrder(ids)
       savePersonalOrder(username, ids)
     },
-    [list, username],
+    [teamSpaces, username],
   )
 
   const saveMutation = useMutation({
@@ -173,6 +178,81 @@ export default function WikiSpacesPage() {
     setCreateOpen(true)
   }
 
+  // 渲染单个空间卡片。idx 仅团队空间传入（带上移/下移）；手册卡不传，无排序。
+  function renderSpaceCard(s: WikiSpace, idx?: number) {
+    const sortable = idx !== undefined
+    const writable = canWriteSpace(s, groupScope)
+    return (
+      <Card key={s.id} hover className="flex flex-col p-5">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md bg-v2-primary-soft text-v2-primary">
+            {s.system ? <Library className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-bold text-v2-fg">{s.name}</h3>
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-v2-muted">
+              <FileText className="h-3 w-3" />
+              {s.page_count} 篇文档
+            </p>
+          </div>
+          {sortable && (
+            <div className="flex shrink-0 flex-col">
+              <button
+                title="上移"
+                disabled={idx === 0}
+                onClick={() => move(idx, -1)}
+                className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </button>
+              <button
+                title="下移"
+                disabled={idx === teamSpaces.length - 1}
+                onClick={() => move(idx, 1)}
+                className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+        <p className="mb-4 line-clamp-2 min-h-[2.5rem] flex-1 text-sm text-v2-muted">
+          {s.description || '暂无描述'}
+        </p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="min-w-0 truncate text-xs text-v2-subtle">
+            {s.updated_at ? new Date(s.updated_at).toLocaleDateString('zh-CN') : '—'}
+            {s.created_by_name ? ` · ${s.created_by_name}` : ''}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            {canUpdate && writable && (
+              <button
+                title="重命名"
+                onClick={() => openEdit(s)}
+                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {canDelete && writable && (
+              <button
+                title="删除"
+                onClick={() => setDeleting(s)}
+                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => router.push(`/wiki/${s.id}`)}>
+              进入
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -189,7 +269,7 @@ export default function WikiSpacesPage() {
         }
       />
 
-      {isLoading ? null : list.length === 0 ? (
+      {isLoading ? null : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
         <Card>
           <EmptyState
             icon={<BookOpen className="h-5 w-5 text-v2-muted" />}
@@ -206,77 +286,37 @@ export default function WikiSpacesPage() {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((s, idx) => (
-            <Card key={s.id} hover className="flex flex-col p-5">
-              <div className="mb-3 flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md bg-v2-primary-soft text-v2-primary">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-base font-bold text-v2-fg">{s.name}</h3>
-                  <p className="mt-0.5 flex items-center gap-1 text-xs text-v2-muted">
-                    <FileText className="h-3 w-3" />
-                    {s.page_count} 篇文档
-                  </p>
-                </div>
-                {/* 个人排序：上移/下移（仅本人 localStorage，非全局） */}
-                <div className="flex shrink-0 flex-col">
-                  <button
-                    title="上移"
-                    disabled={idx === 0}
-                    onClick={() => move(idx, -1)}
-                    className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    title="下移"
-                    disabled={idx === list.length - 1}
-                    onClick={() => move(idx, 1)}
-                    className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-              <p className="mb-4 line-clamp-2 min-h-[2.5rem] flex-1 text-sm text-v2-muted">
-                {s.description || '暂无描述'}
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-xs text-v2-subtle">
-                  {s.updated_at
-                    ? new Date(s.updated_at).toLocaleDateString('zh-CN')
-                    : '—'}
-                  {s.created_by_name ? ` · ${s.created_by_name}` : ''}
+        <div className="space-y-8">
+          {/* 第一层：官方手册（系统维护，置顶固定） */}
+          {manualSpaces.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">
+                <Library className="h-3.5 w-3.5 text-v2-primary" />
+                官方手册
+                <span className="rounded-full bg-v2-primary-soft px-2 py-0.5 text-[10px] font-medium normal-case text-v2-primary">
+                  系统维护
                 </span>
-                <div className="flex shrink-0 items-center gap-1">
-                  {canUpdate && (!s.read_only || isAdmin) && (
-                    <button
-                      title="重命名"
-                      onClick={() => openEdit(s)}
-                      className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  {canDelete && (!s.read_only || isAdmin) && (
-                    <button
-                      title="删除"
-                      onClick={() => setDeleting(s)}
-                      className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  <Button variant="secondary" size="sm" onClick={() => router.push(`/wiki/${s.id}`)}>
-                    进入
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <span className="h-px flex-1 bg-v2-border" />
               </div>
-            </Card>
-          ))}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {manualSpaces.map((s) => renderSpaceCard(s))}
+              </div>
+            </section>
+          )}
+
+          {/* 第二层：团队空间（用户创建，可个人排序） */}
+          {teamSpaces.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">
+                <BookOpen className="h-3.5 w-3.5" />
+                团队空间
+                <span className="h-px flex-1 bg-v2-border" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {teamSpaces.map((s, idx) => renderSpaceCard(s, idx))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

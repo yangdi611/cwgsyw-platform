@@ -25,4 +25,6 @@ public class WikiSpace {
     private String seedKey;
     /** Seeder 内容 hash（预留，目前 space 级不用）*/
     private String seedHash;
+    /** 写权限范围：null=用户空间 / none / super_admin_only / all，见 V55 */
+    private String writeScope;
 }

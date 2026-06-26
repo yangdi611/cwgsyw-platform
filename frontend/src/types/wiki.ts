@@ -15,6 +15,10 @@ export interface WikiSpace {
   updated_at: string
   created_by_name: string
   read_only: boolean
+  /** true = seed 系统空间，前端据此置于「官方手册」层 */
+  system: boolean
+  /** null=用户空间 / 'none' / 'super_admin_only' / 'all' */
+  write_scope: string | null
 }
 
 export interface WikiPageTree {
@@ -98,4 +102,30 @@ export interface PageResult<T> {
   total: number
   page: number
   size: number
+}
+
+/**
+ * 当前用户是否可写某空间（前端按钮可见性；后端 ACL 是最终裁判）。
+ * @param space 空间（可能 undefined，加载中视为不可写）
+ * @param groupScope 当前用户范围：'platform'=超管 / 'tenant'=管理员 / 'group'=普通
+ */
+export function canWriteSpace(
+  space: WikiSpace | undefined,
+  groupScope: string | null | undefined,
+): boolean {
+  if (!space) return false
+  const isSuper = groupScope === 'platform'
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
+  switch (space.write_scope) {
+    case null:
+    case undefined:
+      return true // 用户自建空间，由 RBAC + 页面 ACL 控制
+    case 'all':
+      return true // Bug 反馈：所有登录用户可写
+    case 'super_admin_only':
+      return isSuper // Release Notes：仅超管
+    case 'none':
+    default:
+      return isAdmin // 平台手册：仅管理员
+  }
 }

@@ -28,6 +28,7 @@ import {
   Home,
 } from 'lucide-react'
 import type { WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
+import { canWriteSpace } from '@/types/wiki'
 
 const STATUS_DOT: Record<WikiStatus, string> = {
   draft: 'bg-v2-muted',
@@ -188,14 +189,12 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const queryClient = useQueryClient()
   const { hasPermission } = usePermission()
   const groupScope = useAuthStore((s) => s.groupScope)
-  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   const { data: spaces } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
     queryFn: () => wikiApi.listSpaces(),
   })
-  const readOnly = spaces?.find((s) => s.id === spaceId)?.read_only ?? false
-  const writable = !readOnly || isAdmin
+  const writable = canWriteSpace(spaces?.find((s) => s.id === spaceId), groupScope)
 
   const canWrite = hasPermission('wiki', 'update') && writable
   const canDelete = hasPermission('wiki', 'delete') && writable

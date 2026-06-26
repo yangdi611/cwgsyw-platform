@@ -22,12 +22,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * 平台使用手册 seed 导入器。
- * 启动时（Flyway 迁移之后）读 classpath:wiki-manual/manifest.yaml + md 文件，
- * 幂等导入到「平台使用手册」空间：
+ * Wiki seed 导入器。启动时（Flyway 迁移之后）读 classpath:wiki-manual/manifest.yaml + md 文件，
+ * 幂等导入多个系统空间（平台使用手册 / Release Notes / Bug 反馈）：
  *   - 空间/页面用 seed_key 定位；页面内容 SHA-256 存 seed_hash，仅当 hash 变化才更新（覆盖式+保留 version 历史）
- *   - 仅对新建根页面设置只读 ACL（admin 可改、众人只读）
- * 详见 docs/guide/wiki（gitignore 仅保留此目录）与 CLAUDE.md。
+ *   - 每个空间有 write_scope（none/super_admin_only/all），决定根页面 ACL
+ *   - 单页可标 read_only: true 强制只读（如 Bug 反馈空间的模板页）
+ * 详见 docs/guide/wiki 与 CLAUDE.md。
  */
 @Component
 @Order(100)
@@ -36,7 +36,6 @@ import java.util.*;
 public class WikiManualSeeder implements ApplicationRunner {
 
     private static final String MANIFEST = "wiki-manual/manifest.yaml";
-    private static final String SEED_SPACE_KEY = "platform-manual";
     private static final String TENANT = "default";
     private static final Long SYSTEM_USER = 0L;
 
@@ -53,67 +52,90 @@ public class WikiManualSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         try (InputStream in = getClass().getClassLoader().getResourceAsStream(MANIFEST)) {
             if (in == null) {
-                log.info("[WikiManualSeeder] 未找到 {}，跳过", MANIFEST);
+                log.info("[WikiSeeder] 未找到 {}，跳过", MANIFEST);
                 return;
             }
             Map<String, Object> manifest = new Yaml().load(in);
-            WikiSpace space = findOrCreateSpace((Map<String, Object>) manifest.get("space"));
-
-            List<Map<String, Object>> pages = (List<Map<String, Object>>) manifest.get("pages");
-            Map<String, Long> keyToId = new HashMap<>();
-            List<Long> changedIds = new ArrayList<>();
-
-            for (Map<String, Object> entry : pages) {
-                upsertPage(space, entry, keyToId, changedIds);
+            List<Map<String, Object>> spaces = (List<Map<String, Object>>) manifest.get("spaces");
+            if (spaces == null) {
+                log.warn("[WikiSeeder] manifest 缺少 spaces，跳过");
+                return;
             }
-            // 二次遍历：所有页面已存在后再重建变更页的 backlinks（解析 [[标题]] 跨页引用）
-            for (Long pid : changedIds) {
-                WikiPage p = pageMapper.selectById(pid);
-                if (p != null) backlinkService.rebuild(TENANT, pid, p.getContent());
+            int totalPages = 0, totalChanged = 0;
+            for (Map<String, Object> spaceCfg : spaces) {
+                WikiSpace space = findOrCreateSpace(spaceCfg);
+                List<Map<String, Object>> pages = (List<Map<String, Object>>) spaceCfg.get("pages");
+                if (pages == null) continue;
+                String writeScope = str(spaceCfg.get("write_scope"), "none");
+                Map<String, Long> keyToId = new HashMap<>();
+                List<Long> changedIds = new ArrayList<>();
+                for (Map<String, Object> entry : pages) {
+                    upsertPage(space, writeScope, entry, keyToId, changedIds);
+                }
+                // 二次遍历：所有页面已存在后再重建变更页的 backlinks（解析 [[标题]] 跨页引用）
+                for (Long pid : changedIds) {
+                    WikiPage p = pageMapper.selectById(pid);
+                    if (p != null) backlinkService.rebuild(TENANT, pid, p.getContent());
+                }
+                totalPages += pages.size();
+                totalChanged += changedIds.size();
+                log.info("[WikiSeeder] 空间「{}」: {} 页，{} 页有更新", space.getName(), pages.size(), changedIds.size());
             }
-            log.info("[WikiManualSeeder] 完成：共 {} 页，{} 页有更新", pages.size(), changedIds.size());
+            log.info("[WikiSeeder] 完成：{} 个空间，共 {} 页，{} 页有更新", spaces.size(), totalPages, totalChanged);
         } catch (Exception e) {
             // seed 失败不应阻断应用启动，记录后继续
-            log.error("[WikiManualSeeder] 导入失败：{}", e.getMessage(), e);
+            log.error("[WikiSeeder] 导入失败：{}", e.getMessage(), e);
         }
     }
 
     // PLACEHOLDER_HELPERS
 
-    /** 查 seed_key 对应空间，没有则建 */
+    /** 按 seed_key 查找或创建空间（泛化：不再硬编码 SEED_SPACE_KEY） */
     private WikiSpace findOrCreateSpace(Map<String, Object> spaceCfg) {
+        String key = str(spaceCfg.get("key"), "");
+        String writeScope = str(spaceCfg.get("write_scope"), "none");
         WikiSpace existing = spaceMapper.selectOne(new LambdaQueryWrapper<WikiSpace>()
                 .eq(WikiSpace::getTenantId, TENANT)
-                .eq(WikiSpace::getSeedKey, SEED_SPACE_KEY)
+                .eq(WikiSpace::getSeedKey, key)
                 .last("LIMIT 1"));
-        if (existing != null) return existing;
-
+        if (existing != null) {
+            // 确保 write_scope 是最新值（允许 manifest 修改策略后生效）
+            if (!writeScope.equals(existing.getWriteScope())) {
+                existing.setWriteScope(writeScope);
+                spaceMapper.updateById(existing);
+            }
+            return existing;
+        }
         WikiSpace s = new WikiSpace();
         s.setTenantId(TENANT);
-        s.setName(str(spaceCfg.get("name"), "平台使用手册"));
+        s.setName(str(spaceCfg.get("name"), key));
         s.setDescription(str(spaceCfg.get("description"), ""));
-        s.setSeedKey(SEED_SPACE_KEY);
+        s.setSeedKey(key);
+        s.setWriteScope(writeScope);
         s.setCreatedBy(SYSTEM_USER);
         s.setCreatedAt(LocalDateTime.now());
         s.setUpdatedAt(LocalDateTime.now());
         spaceMapper.insert(s);
-        log.info("[WikiManualSeeder] 创建手册空间 id={}", s.getId());
+        log.info("[WikiSeeder] 创建空间「{}」id={}", s.getName(), s.getId());
         return s;
     }
 
-    /** 幂等 upsert 单页：新建 / hash 变化则更新 / 不变跳过。返回是否有改动。 */
+    /** 幂等 upsert 单页：新建 / hash 变化则更新 / 不变跳过。 */
     @SuppressWarnings("unchecked")
-    private void upsertPage(WikiSpace space, Map<String, Object> entry,
+    private void upsertPage(WikiSpace space, String writeScope, Map<String, Object> entry,
                             Map<String, Long> keyToId, List<Long> changedIds) {
         String key = (String) entry.get("key");
         String title = str(entry.get("title"), key);
         String file = (String) entry.get("file");
         String parentKey = (String) entry.get("parent_key");
         int sort = entry.get("sort") instanceof Number n ? n.intValue() : 0;
+        boolean pageReadOnly = Boolean.TRUE.equals(entry.get("read_only"));
 
         String content = loadMd(file);
         String hash = sha256(content);
         Long parentId = parentKey == null ? null : keyToId.get(parentKey);
+        // 是否需要自定义 ACL：根页面按 write_scope，或单页强制只读
+        boolean customAcl = (parentId == null) || pageReadOnly;
 
         WikiPage existing = pageMapper.selectOne(new LambdaQueryWrapper<WikiPage>()
                 .eq(WikiPage::getTenantId, TENANT)
@@ -132,7 +154,7 @@ public class WikiManualSeeder implements ApplicationRunner {
             p.setStatus("published");              // seeder 静默发布，不走审批、不发通知
             p.setCurrentVersion(1);
             p.setSortOrder(sort);
-            p.setAclInherited(parentId != null);   // 根页面自定义 ACL，子页面继承
+            p.setAclInherited(!customAcl);         // 自定义 ACL 的页面不继承
             p.setSeedKey(key);
             p.setSeedHash(hash);
             p.setCreatedBy(SYSTEM_USER);
@@ -142,7 +164,7 @@ public class WikiManualSeeder implements ApplicationRunner {
             insertVersion(p.getId(), 1, title, content, "seed 初始导入");
             keyToId.put(key, p.getId());
             changedIds.add(p.getId());
-            if (parentId == null) applyReadOnlyAcl(p.getId());
+            if (customAcl) applyAcl(p.getId(), pageReadOnly ? "none" : writeScope);
             return;
         }
 
@@ -178,16 +200,21 @@ public class WikiManualSeeder implements ApplicationRunner {
         versionMapper.insert(v);
     }
 
-    /** 根页面设只读 ACL：admin/super_admin 全权（实际靠 isAdmin 绕过），其余角色仅 read */
-    private void applyReadOnlyAcl(Long pageId) {
+    /**
+     * 按 write_scope 设置页面 ACL（acl_inherited=false）。
+     * 注意权限动词以 WikiAclService.ALL_PERMS 为准：read/write/delete/publish（编辑用 write，无 update）。
+     *   none             → 所有角色仅 read（admin/super_admin 靠 isAdmin 绕过写入）
+     *   super_admin_only → super_admin 全权，其余角色仅 read
+     *   all              → 所有角色 read+write（可建/可改，不含 delete/publish，防误删他人反馈）
+     */
+    private void applyAcl(Long pageId, String writeScope) {
         List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<>());
         List<AclEntryDTO> entries = new ArrayList<>();
         for (SysRole r : roles) {
             AclEntryDTO e = new AclEntryDTO();
             e.setSubjectType("role");
             e.setSubjectId(r.getId());
-            boolean admin = "super_admin".equals(r.getCode()) || "admin".equals(r.getCode());
-            e.setPermissions(admin ? List.of("read", "write", "delete", "publish") : List.of("read"));
+            e.setPermissions(permsFor(writeScope, r.getCode()));
             entries.add(e);
         }
         WikiAclDTO dto = new WikiAclDTO();
@@ -195,6 +222,21 @@ public class WikiManualSeeder implements ApplicationRunner {
         dto.setInherited(false);
         dto.setEntries(entries);
         aclService.setAcl(TENANT, pageId, SYSTEM_USER, dto);
+    }
+
+    private List<String> permsFor(String writeScope, String roleCode) {
+        boolean isSuper = "super_admin".equals(roleCode);
+        boolean isAdmin = isSuper || "admin".equals(roleCode);
+        return switch (writeScope) {
+            case "all" -> List.of("read", "write");
+            case "super_admin_only" -> isSuper
+                    ? List.of("read", "write", "delete", "publish")
+                    : List.of("read");
+            // none：admin 全权（也靠 isAdmin 绕过），其余只读
+            default -> isAdmin
+                    ? List.of("read", "write", "delete", "publish")
+                    : List.of("read");
+        };
     }
 
     private String loadMd(String file) {

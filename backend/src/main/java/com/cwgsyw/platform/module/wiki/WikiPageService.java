@@ -269,7 +269,9 @@ public class WikiPageService {
         WikiPage page = requirePage(tenantId, pageId);
         if (!"draft".equals(page.getStatus())) throw new IllegalStateException("仅草稿可提交审批");
         WikiSpace space = spaceMapper.selectById(page.getSpaceId());
-        if (space != null && space.getSeedKey() != null) {
+        // 只读型系统空间（手册/Release Notes）不可提交审批；Bug 反馈（write_scope=all）放行
+        if (space != null && space.getSeedKey() != null
+                && !"all".equals(space.getWriteScope())) {
             throw new IllegalStateException("系统手册页面由平台维护，不可提交审批");
         }
         String before = toJson(page);
