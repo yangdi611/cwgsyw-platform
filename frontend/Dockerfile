@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# CI 传入的 commit 短号，烘焙进前端静态产物供 Sidebar 展示
+ARG NEXT_PUBLIC_GIT_COMMIT=dev
+ENV NEXT_PUBLIC_GIT_COMMIT=$NEXT_PUBLIC_GIT_COMMIT
 RUN npx next build --webpack
 
 FROM node:22-alpine

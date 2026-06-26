@@ -51,6 +51,8 @@ jobs:
           context: ./frontend
           platforms: ${{ env.PLATFORM }}
           push: true
+          build-args: |
+            NEXT_PUBLIC_GIT_COMMIT=${{ github.sha }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}

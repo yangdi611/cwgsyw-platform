@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
+import api from '@/lib/api'
 import {
   LayoutDashboard,
   Database,
@@ -332,6 +333,18 @@ export function Sidebar() {
 
   const [openKey, toggleGroup] = useOpenGroup(initialOpenKey)
 
+  // 实际 schema 版本：从后端动态读取 flyway_schema_history 最新成功版本
+  const [schemaVersion, setSchemaVersion] = useState<string | null>(null)
+  useEffect(() => {
+    api.get('/system/info')
+      .then(res => setSchemaVersion(res.data?.data?.schema_version ?? null))
+      .catch(() => {})
+  }, [])
+
+  // 构建期注入：app 版本（package.json）+ commit 短号（CI 传入）
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0'
+  const gitCommit = (process.env.NEXT_PUBLIC_GIT_COMMIT ?? 'dev').slice(0, 7)
+
   // 一次性迁移清理：移除旧版（每个一级菜单独立持久化）遗留的 localStorage key。
   // 新版只使用 OPEN_GROUP_KEY 单个 key，这些旧 key 不再被读写。
   // removeItem 对不存在的 key 是安全空操作，且这里不会触及 OPEN_GROUP_KEY。
@@ -409,11 +422,19 @@ export function Sidebar() {
       <div className="px-4 py-3 border-t border-v2-sidebar-border shrink-0 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
-          <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">v0.1</span>
+          <span
+            className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded"
+            title={`build ${gitCommit}`}
+          >
+            v{appVersion}
+            <span className="text-slate-500 ml-1">·{gitCommit}</span>
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono text-v2-sidebar-muted">Schema</span>
-          <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">V50</span>
+          <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">
+            {schemaVersion ? `V${schemaVersion}` : '—'}
+          </span>
         </div>
         <div className="pt-1 border-t border-white/8 flex items-center justify-between">
           <span className="text-[10px] text-v2-sidebar-muted">© 2026 All rights reserved</span>
