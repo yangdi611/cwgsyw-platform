@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { Button } from '@/components/v2/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
@@ -97,6 +98,8 @@ export default function IpamDetailPage() {
     queryFn: () => api.get(`/ip-pools/${id}`).then((r) => r.data.data as IpPoolDetailVO),
     enabled: hasPermission('ip_pool', 'read'),
   })
+
+  useBreadcrumbLabel(pool?.name)
 
   const allocateMutation = useMutation({
     mutationFn: (body: typeof allocateForm) => api.post(`/ip-pools/${id}/allocate`, body),

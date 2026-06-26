@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Card } from '@/components/v2/Card'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { EmptyState } from '@/components/shared'
@@ -42,6 +43,8 @@ export default function WikiSpaceHomePage() {
 
   const space = spaces?.find((s) => s.id === sid)
   const pages = useMemo(() => flatten(tree ?? []), [tree])
+
+  useBreadcrumbLabel(space?.name)
 
   return (
     <div className="space-y-6">

@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Activity, GitCompare } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { InstanceBasicInfoTab } from '@/components/cmdb/InstanceBasicInfoTab'
 import { InstanceAssociationsTab } from '@/components/cmdb/InstanceAssociationsTab'
 import { InstanceTopologyTab } from '@/components/cmdb/InstanceTopologyTab'
@@ -75,6 +76,8 @@ export default function InstanceDetailPage() {
     },
     enabled: typeof window !== 'undefined',
   })
+
+  useBreadcrumbLabel(inst?.name ?? inst?.displayName)
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
   if (!inst) return <p className="text-v2-danger">实例不存在</p>

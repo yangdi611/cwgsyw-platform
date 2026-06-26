@@ -15,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ArrowLeft } from 'lucide-react'
 import type { WikiGraph } from '@/types/wiki'
 
@@ -37,6 +38,9 @@ export default function WikiGraphPage() {
     queryKey: ['wiki-graph', sid],
     queryFn: () => wikiApi.getGraph(sid),
   })
+
+  const { data: spaces } = useQuery({ queryKey: ['wiki-spaces'], queryFn: wikiApi.listSpaces })
+  useBreadcrumbLabel(spaces?.find((s) => s.id === sid)?.name)
 
   const nodes: Node[] = useMemo(() => {
     return (data?.nodes ?? []).map((n, i) => ({

@@ -11,6 +11,7 @@ import { Label } from '@/components/v2/Label'
 import { Textarea } from '@/components/v2/Textarea'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ArrowLeft, Download, Sparkles, Save, Send, Check, X, FileText, FilePlus2 } from 'lucide-react'
 import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
 
@@ -99,6 +100,8 @@ export default function ChangeDocDetailPage() {
     queryFn: () => api.get(`/change-docs/${id}`).then((r) => r.data.data),
     enabled: hasPermission('change_doc', 'read'),
   })
+
+  useBreadcrumbLabel(doc?.title)
 
   const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
   const [title, setTitle] = useState('')

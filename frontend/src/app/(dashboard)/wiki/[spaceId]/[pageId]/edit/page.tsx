@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { useAuthStore } from '@/store/authStore'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
@@ -106,6 +107,8 @@ export default function WikiEditorPage() {
     queryKey: ['wiki-page', pid],
     queryFn: () => wikiApi.getPage(pid),
   })
+
+  useBreadcrumbLabel([currentSpace?.name, page?.title])
 
   useEffect(() => {
     if (!page) return

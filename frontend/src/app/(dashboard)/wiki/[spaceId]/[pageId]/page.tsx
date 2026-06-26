@@ -13,6 +13,7 @@ import { useTheme } from 'next-themes'
 import { wikiApi } from '@/lib/wiki-api'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
@@ -93,6 +94,8 @@ export default function WikiPageReader() {
 
   const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
   const readOnly = currentSpace?.read_only ?? false
+
+  useBreadcrumbLabel([currentSpace?.name, page?.title])
 
   const titleMap = useMemo(() => buildTitleMap(tree ?? []), [tree])
   const rendered = useMemo(

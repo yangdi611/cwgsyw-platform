@@ -9,6 +9,7 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { CredentialRow } from '@/components/device/CredentialRow'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { toast } from 'sonner'
 import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import Link from 'next/link'
@@ -152,6 +153,8 @@ export default function DeviceDetailPage() {
     queryKey: ['device', id],
     queryFn: () => api.get(`/devices/${id}`).then((r) => r.data.data as DeviceDetail),
   })
+
+  useBreadcrumbLabel(device?.name)
 
   const { data: allGroups = [] } = useQuery<Group[]>({
     queryKey: ['groups'],
