@@ -21,4 +21,8 @@ public class WikiSpace {
     private Boolean isDeleted;
     private LocalDateTime deletedAt;
     private Long deletedBy;
+    /** Seeder 标识：由 WikiManualSeeder 写入，用于幂等查找；用户手建空间为 null */
+    private String seedKey;
+    /** Seeder 内容 hash（预留，目前 space 级不用）*/
+    private String seedHash;
 }

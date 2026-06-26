@@ -11,6 +11,7 @@ import com.cwgsyw.platform.module.wiki.dto.*;
 import com.cwgsyw.platform.module.wiki.entity.WikiBacklink;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
+import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -267,6 +268,10 @@ public class WikiPageService {
     public void submitForReview(String tenantId, Long pageId, Long userId) {
         WikiPage page = requirePage(tenantId, pageId);
         if (!"draft".equals(page.getStatus())) throw new IllegalStateException("仅草稿可提交审批");
+        WikiSpace space = spaceMapper.selectById(page.getSpaceId());
+        if (space != null && space.getSeedKey() != null) {
+            throw new IllegalStateException("系统手册页面由平台维护，不可提交审批");
+        }
         String before = toJson(page);
         Map<String, Object> vars = new HashMap<>();
         vars.put("pageId", pageId);

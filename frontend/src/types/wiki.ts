@@ -14,6 +14,7 @@ export interface WikiSpace {
   page_count: number
   updated_at: string
   created_by_name: string
+  read_only: boolean
 }
 
 export interface WikiPageTree {

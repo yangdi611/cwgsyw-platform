@@ -7,10 +7,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { ArrowLeft, Save } from 'lucide-react'
-import type { WikiPage, WikiSearchResult } from '@/types/wiki'
+import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import '@uiw/react-md-editor/markdown-editor.css'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
@@ -57,6 +58,8 @@ export default function WikiEditorPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { hasPermission, isHydrated } = usePermission()
+  const groupScope = useAuthStore((s) => s.groupScope)
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   const sid = Number(spaceId)
   const pid = Number(pageId)
@@ -71,10 +74,21 @@ export default function WikiEditorPage() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
 
+  const { data: spaces } = useQuery<WikiSpace[]>({
+    queryKey: ['wiki-spaces'],
+    queryFn: () => wikiApi.listSpaces(),
+  })
+  const readOnly = spaces?.find((s) => s.id === sid)?.read_only ?? false
+
   useEffect(() => {
     if (!isHydrated) return
     if (!hasPermission('wiki', 'update')) router.replace(`/wiki/${sid}/${pid}`)
   }, [isHydrated, hasPermission, router, sid, pid])
+
+  // 手册空间（read_only）对非 admin 不可编辑，跳回阅读页
+  useEffect(() => {
+    if (spaces && readOnly && !isAdmin) router.replace(`/wiki/${sid}/${pid}`)
+  }, [spaces, readOnly, isAdmin, router, sid, pid])
 
   const { data: page } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],

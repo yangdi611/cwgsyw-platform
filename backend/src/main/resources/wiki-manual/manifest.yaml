@@ -1,0 +1,92 @@
+# 平台使用手册 seed 清单
+# WikiManualSeeder 启动时读取本文件，把 md 导入「平台使用手册」Wiki 空间。
+# - key: 同空间内唯一标识（seed_key），决定幂等；改 key 会被当成新页
+# - parent_key: 父页面的 key，省略=根页面（根页面会被设为只读 ACL）
+# - file: 相对 wiki-manual/ 的 md 路径
+# - sort: 同级排序
+# 新增功能手册：加 md + 在此追加条目，bump 版本号 push 即可随发版自动导入。
+
+space:
+  name: 平台使用手册
+  description: IT 基础设施运维运营管理平台 - 各功能模块使用说明
+
+pages:
+  - key: intro
+    title: 平台简介与快速上手
+    file: 00-intro.md
+    sort: 0
+
+  - key: dashboard
+    title: 工作台
+    file: 10-dashboard.md
+    sort: 10
+
+  - key: cmdb
+    title: CMDB 配置管理
+    file: 20-cmdb/index.md
+    sort: 20
+  - key: cmdb-instances
+    title: CI 实例管理
+    file: 20-cmdb/instances.md
+    parent_key: cmdb
+    sort: 1
+  - key: cmdb-topology
+    title: 关联与拓扑视图
+    file: 20-cmdb/topology.md
+    parent_key: cmdb
+    sort: 2
+  - key: cmdb-changes
+    title: 变更历史与统计
+    file: 20-cmdb/changes.md
+    parent_key: cmdb
+    sort: 3
+  - key: cmdb-alerts
+    title: 告警中心
+    file: 20-cmdb/alerts.md
+    parent_key: cmdb
+    sort: 4
+  - key: cmdb-ipam
+    title: IP 地址池管理
+    file: 20-cmdb/ipam.md
+    parent_key: cmdb
+    sort: 5
+
+  - key: devices
+    title: 设备密码库
+    file: 30-devices.md
+    sort: 30
+
+  - key: daily-report
+    title: 日报系统
+    file: 40-daily-report.md
+    sort: 40
+
+  - key: change-doc
+    title: 变更文档
+    file: 50-change-doc.md
+    sort: 50
+
+  - key: shared-files
+    title: 共享文件库
+    file: 60-shared-files.md
+    sort: 60
+
+  - key: wiki
+    title: Wiki 知识库使用说明
+    file: 70-wiki.md
+    sort: 70
+
+  - key: admin
+    title: 系统管理
+    file: 80-admin/index.md
+    sort: 80
+  - key: admin-rbac
+    title: 用户与权限管理
+    file: 80-admin/rbac.md
+    parent_key: admin
+    sort: 1
+  - key: admin-config-backup
+    title: 系统配置与备份
+    file: 80-admin/config-backup.md
+    parent_key: admin
+    sort: 2

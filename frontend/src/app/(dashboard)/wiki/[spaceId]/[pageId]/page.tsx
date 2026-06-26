@@ -11,6 +11,7 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import { wikiApi } from '@/lib/wiki-api'
+import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
@@ -19,7 +20,7 @@ import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock } from 'lucide-react'
 import { useState } from 'react'
-import type { WikiPage, WikiPageTree, WikiStatus } from '@/types/wiki'
+import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
 import 'highlight.js/styles/github.css'
 
 const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 'neutral' }> = {
@@ -83,6 +84,14 @@ export default function WikiPageReader() {
     queryFn: () => wikiApi.getTree(sid),
   })
 
+  const { data: spaces } = useQuery<WikiSpace[]>({
+    queryKey: ['wiki-spaces'],
+    queryFn: () => wikiApi.listSpaces(),
+  })
+
+  const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
+  const readOnly = currentSpace?.read_only ?? false
+
   const titleMap = useMemo(() => buildTitleMap(tree ?? []), [tree])
   const rendered = useMemo(
     () => preprocessWikiLinks(page?.content ?? '', titleMap),
@@ -115,9 +124,13 @@ export default function WikiPageReader() {
     },
   })
 
-  const canWrite = hasPermission('wiki', 'update')
-  const canPublish = hasPermission('wiki', 'publish')
-  const canManageAcl = hasPermission('wiki', 'manage_acl')
+  const groupScope = useAuthStore((s) => s.groupScope)
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
+  // 手册空间（read_only）对非 admin 隐藏一切写操作；admin 仍可改（后端 ACL 同步放行）
+  const writable = !readOnly || isAdmin
+  const canWrite = hasPermission('wiki', 'update') && writable
+  const canPublish = hasPermission('wiki', 'publish') && writable
+  const canManageAcl = hasPermission('wiki', 'manage_acl') && writable
 
   if (isLoading) {
     return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>
@@ -152,7 +165,7 @@ export default function WikiPageReader() {
                 发布
               </Button>
             ) : (
-              canWrite && (
+              canWrite && !readOnly && (
                 <Button
                   variant="primary"
                   size="sm"

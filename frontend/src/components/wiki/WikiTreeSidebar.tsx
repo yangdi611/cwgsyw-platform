@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -26,7 +27,7 @@ import {
   ArrowDown,
   Home,
 } from 'lucide-react'
-import type { WikiPageTree, WikiStatus } from '@/types/wiki'
+import type { WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
 
 const STATUS_DOT: Record<WikiStatus, string> = {
   draft: 'bg-v2-muted',
@@ -186,9 +187,18 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const activeId = params.pageId ? Number(params.pageId) : null
   const queryClient = useQueryClient()
   const { hasPermission } = usePermission()
+  const groupScope = useAuthStore((s) => s.groupScope)
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
-  const canWrite = hasPermission('wiki', 'update')
-  const canDelete = hasPermission('wiki', 'delete')
+  const { data: spaces } = useQuery<WikiSpace[]>({
+    queryKey: ['wiki-spaces'],
+    queryFn: () => wikiApi.listSpaces(),
+  })
+  const readOnly = spaces?.find((s) => s.id === spaceId)?.read_only ?? false
+  const writable = !readOnly || isAdmin
+
+  const canWrite = hasPermission('wiki', 'update') && writable
+  const canDelete = hasPermission('wiki', 'delete') && writable
 
   const [renameTarget, setRenameTarget] = useState<WikiPageTree | null>(null)
   const [renameValue, setRenameValue] = useState('')

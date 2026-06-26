@@ -95,6 +95,8 @@ export default function WikiSpacesPage() {
   const canCreate = hasPermission('wiki', 'create')
   const canUpdate = hasPermission('wiki', 'update')
   const canDelete = hasPermission('wiki', 'delete')
+  const groupScope = useAuthStore((s) => s.groupScope)
+  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   // 应用个人顺序后的展示列表
   const list = useMemo(
@@ -249,7 +251,7 @@ export default function WikiSpacesPage() {
                   {s.created_by_name ? ` · ${s.created_by_name}` : ''}
                 </span>
                 <div className="flex shrink-0 items-center gap-1">
-                  {canUpdate && (
+                  {canUpdate && (!s.read_only || isAdmin) && (
                     <button
                       title="重命名"
                       onClick={() => openEdit(s)}
@@ -258,7 +260,7 @@ export default function WikiSpacesPage() {
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   )}
-                  {canDelete && (
+                  {canDelete && (!s.read_only || isAdmin) && (
                     <button
                       title="删除"
                       onClick={() => setDeleting(s)}

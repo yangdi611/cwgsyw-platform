@@ -30,4 +30,8 @@ public class WikiPage {
     private Boolean isDeleted;
     private LocalDateTime deletedAt;
     private Long deletedBy;
+    /** Seeder 标识（同 space 内唯一），用于幂等查找；用户手建页面为 null */
+    private String seedKey;
+    /** md 内容 SHA-256 hex，seeder 据此判断是否需要更新 */
+    private String seedHash;
 }

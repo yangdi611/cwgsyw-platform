@@ -103,6 +103,7 @@ public class WikiSpaceService {
         vo.setUpdatedAt(s.getUpdatedAt());
         vo.setCreatedByName(creator != null ?
                 (creator.getRealName() != null ? creator.getRealName() : creator.getUsername()) : null);
+        vo.setReadOnly(s.getSeedKey() != null);
         return vo;
     }
 
