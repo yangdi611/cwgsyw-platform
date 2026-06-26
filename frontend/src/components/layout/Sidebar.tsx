@@ -28,6 +28,7 @@ import {
   Edit3,
   ChevronDown,
   DatabaseBackup,
+  BookOpen,
 } from 'lucide-react'
 
 type NavItem = {
@@ -131,6 +132,15 @@ const navItems: NavEntry[] = [
       { href: '/ipam', label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },
       { href: '/files', label: '共享文档', icon: FolderOpen, resource: 'shared_file', action: 'read' },
     ],
+  },
+
+  // 知识库
+  {
+    href: '/wiki',
+    label: '知识库',
+    icon: BookOpen,
+    resource: 'wiki',
+    action: 'read',
   },
 
   // 5. 流程中心
@@ -338,7 +348,7 @@ export function Sidebar() {
   return (
     <aside className="w-[280px] bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-hidden">
       {/* Brand */}
-      <div className="h-[68px] px-5 flex items-center gap-3 border-b border-v2-sidebar-border shrink-0">
+      <div className="h-14 px-5 flex items-center gap-3 border-b border-v2-sidebar-border shrink-0">
         <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
         <div className="min-w-0">
           <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">
