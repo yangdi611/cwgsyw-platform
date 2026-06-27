@@ -11,10 +11,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.scheduling.support.PeriodicTrigger;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -25,7 +28,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PrometheusAlertSyncService {
+public class PrometheusAlertSyncService implements SchedulingConfigurer {
 
     private final SysConfigService configService;
     private final CmdbAlertMapper alertMapper;
@@ -39,7 +42,34 @@ public class PrometheusAlertSyncService {
     private static final DateTimeFormatter PROM_TS_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSSSSSXXX]");
 
-    @Scheduled(fixedDelay = 30_000)
+    /** 抓取间隔下限/默认值（秒），防止配置过小压垮 Prometheus */
+    private static final int MIN_INTERVAL_SEC = 10;
+    private static final int DEFAULT_INTERVAL_SEC = 60;
+
+    /**
+     * 动态调度：每轮执行后用 PeriodicTrigger 重新读取 sys_config 中的
+     * prometheus.scrape_interval，使前端 /admin/config 配置真正生效（取代旧的硬编码 30s）。
+     */
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar registrar) {
+        registrar.addTriggerTask(this::syncAlerts, triggerContext -> {
+            // 每次执行后重算下次间隔，配置改了无需重启
+            PeriodicTrigger pt = new PeriodicTrigger(Duration.ofSeconds(resolveIntervalSeconds()));
+            return pt.nextExecution(triggerContext);
+        });
+    }
+
+    private int resolveIntervalSeconds() {
+        try {
+            String raw = configService.get("default", "prometheus.scrape_interval");
+            if (raw == null || raw.isBlank()) return DEFAULT_INTERVAL_SEC;
+            int sec = Integer.parseInt(raw.trim());
+            return Math.max(sec, MIN_INTERVAL_SEC);
+        } catch (Exception e) {
+            return DEFAULT_INTERVAL_SEC;
+        }
+    }
+
     public void syncAlerts() {
         try {
             String tenantId = "default";
@@ -173,10 +203,11 @@ public class PrometheusAlertSyncService {
     }
 
     private Long findInstanceByIp(String ip, String tenantId) {
+        // 主机模型（V14）内置内网 IP 属性 key 为 inner_ip，不是 ip
         List<CiInstance> instances = ciInstanceMapper.selectList(
                 new LambdaQueryWrapper<CiInstance>()
                         .eq(CiInstance::getTenantId, tenantId)
-                        .apply("attrs->>'ip' = {0}", ip));
+                        .apply("attrs->>'inner_ip' = {0}", ip));
         if (!instances.isEmpty()) return instances.get(0).getId();
 
         // Also try matching by name (hostname)
