@@ -17,8 +17,13 @@ import { PageHeader } from '@/components/shared'
 import Link from 'next/link'
 import {
   Plus, Settings, Server, Database, Network, Box, ArrowRight,
-  Trash2, PencilLine, RefreshCw, ChevronDown,
+  Trash2, PencilLine, RefreshCw, ChevronDown, MoreVertical, FolderInput, Check,
 } from 'lucide-react'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger,
+  DropdownMenuSubContent, DropdownMenuLabel, DropdownMenuGroup,
+} from '@/components/ui/dropdown-menu'
 import { usePermission } from '@/hooks/usePermission'
 
 interface CiModelVO {
@@ -68,7 +73,7 @@ const DEFAULT_KINDS_DEPRECATED: string[] = []   // legacy placeholder; kind list
 export default function AdminPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
-  const [tab, setTab] = useState<'models' | 'model-groups' | 'attribute-groups' | 'associations'>('models')
+  const [tab, setTab] = useState<'catalog' | 'attribute-groups' | 'associations'>('catalog')
 
   useEffect(() => {
     if (!isHydrated) return
@@ -82,24 +87,14 @@ export default function AdminPage() {
       {/* Tab switcher */}
       <div className="flex gap-1 border-b mb-6">
         <button
-          onClick={() => setTab('models')}
+          onClick={() => setTab('catalog')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === 'models'
+            tab === 'catalog'
               ? 'border-v2-primary text-v2-primary'
               : 'border-transparent text-v2-muted hover:text-v2-fg'
           }`}
         >
-          模型管理
-        </button>
-        <button
-          onClick={() => setTab('model-groups')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === 'model-groups'
-              ? 'border-v2-primary text-v2-primary'
-              : 'border-transparent text-v2-muted hover:text-v2-fg'
-          }`}
-        >
-          模型分类
+          模型目录
         </button>
         <button
           onClick={() => setTab('attribute-groups')}
@@ -123,35 +118,54 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {tab === 'models' && <ModelsTab />}
-      {tab === 'model-groups' && <ModelGroupsTab />}
+      {tab === 'catalog' && <ModelCatalogTab />}
       {tab === 'attribute-groups' && <AttributeGroupsTab />}
       {tab === 'associations' && <AssociationsTab />}
     </div>
   )
 }
 
-function ModelsTab() {
+// ─────────────────────────────────────────────────────────────────────────
+// Model Catalog Tab — unified view of model groups + models within
+// ─────────────────────────────────────────────────────────────────────────
+
+interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  isBuiltIn: boolean
+  modelCount: number
+}
+
+function ModelCatalogTab() {
   const { hasPermission } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
+  const canWrite = hasPermission('cmdb_model', 'update')
 
-  const { data: models = [], isLoading } = useQuery<CiModelVO[]>({
+  const [creatingModel, setCreatingModel] = useState(false)
+  const [creatingGroup, setCreatingGroup] = useState(false)
+  const [modelForm, setModelForm] = useState({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
+  const [groupForm, setGroupForm] = useState({ code: '', name: '', icon: 'folder', sortOrder: 100 })
+  const [movedModelId, setMovedModelId] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null)
+  const [editGroupForm, setEditGroupForm] = useState({ name: '', sortOrder: 0 })
+
+  const { data: models = [], isLoading: modelsLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models'],
     queryFn: async () => {
       try {
         const r = await api.get('/cmdb/models')
         return r.data.data.records
-      } catch {
-        return []
-      }
+      } catch { return [] }
     },
     enabled: typeof window !== 'undefined',
   })
 
-  const { data: modelGroups = [] } = useQuery<{ code: string; name: string }[]>({
+  const { data: modelGroups = [], isLoading: groupsLoading } = useQuery<ModelGroupVO[]>({
     queryKey: ['cmdb-model-groups'],
     queryFn: async () => {
       try {
@@ -162,19 +176,90 @@ function ModelsTab() {
     enabled: typeof window !== 'undefined',
   })
 
-  const createMutation = useMutation({
+  const createModelMutation = useMutation({
     mutationFn: () => api.post('/cmdb/models', {
-      modelId: form.modelId, name: form.name, icon: form.icon,
-      groupCode: form.groupCode || undefined, description: form.description || undefined,
+      modelId: modelForm.modelId, name: modelForm.name, icon: modelForm.icon,
+      groupCode: modelForm.groupCode || undefined, description: modelForm.description || undefined,
     }),
-    onSuccess: (res) => {
+    onSuccess: (r) => {
       toast.success('模型已创建')
+      setCreatingModel(false)
+      setModelForm({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
       queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
-      setCreating(false)
-      setForm({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
-      router.push(`/cmdb/admin/models/${res.data.data.modelId}`)
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      // 自动展开目标分类
+      if (modelForm.groupCode) setExpandedGroups(s => new Set([...s, modelForm.groupCode]))
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+  })
+
+  const createGroupMutation = useMutation({
+    mutationFn: () => api.post('/cmdb/model-groups', groupForm),
+    onSuccess: (r) => {
+      toast.success('分类已创建')
+      setCreatingGroup(false)
+      setGroupForm({ code: '', name: '', icon: 'folder', sortOrder: 100 })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      // 自动展开新分类
+      setExpandedGroups(s => new Set([...s, groupForm.code]))
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+  })
+
+  const moveModelMutation = useMutation({
+    mutationFn: ({ model, toCode }: { model: CiModelVO; toCode: string }) =>
+      api.put(`/cmdb/models/${model.id}`, { group: toCode }),
+    onMutate: async ({ model, toCode }) => {
+      await queryClient.cancelQueries({ queryKey: ['cmdb-models'] })
+      const prev = queryClient.getQueryData<CiModelVO[]>(['cmdb-models'])
+      const toName = modelGroups.find(g => g.code === toCode)?.name ?? toCode
+      queryClient.setQueryData<CiModelVO[]>(['cmdb-models'], (old = []) =>
+        old.map(m => m.modelId === model.modelId ? { ...m, group: toCode, groupName: toName } : m))
+      setMovedModelId(model.modelId)
+      // 展开目标分类以显示刚移入的模型
+      setExpandedGroups(s => new Set([...s, toCode]))
+      return { prev }
+    },
+    onError: (e: any, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['cmdb-models'], ctx.prev)
+      setMovedModelId(null)
+      toast.error(e?.response?.data?.message ?? '移动失败，已还原')
+    },
+    onSuccess: (_data, { model, toCode }) => {
+      const fromCode = model.group || ''
+      const toName = modelGroups.find(g => g.code === toCode)?.name ?? toCode
+      toast.success(`已移到「${toName}」`, {
+        action: fromCode === toCode ? undefined : {
+          label: '撤销',
+          onClick: () => moveModelMutation.mutate({ model: { ...model, group: toCode }, toCode: fromCode }),
+        },
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      window.setTimeout(() => setMovedModelId(null), 1200)
+    },
+  })
+
+  const updateGroupMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: typeof editGroupForm }) =>
+      api.put(`/cmdb/model-groups/${id}`, body),
+    onSuccess: () => {
+      toast.success('分类已更新')
+      setEditingGroupId(null)
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+  })
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/cmdb/model-groups/${id}`),
+    onSuccess: () => {
+      toast.success('分类已删除')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
   })
 
   const grouped = models.reduce((acc, m) => {
@@ -184,31 +269,71 @@ function ModelsTab() {
     return acc
   }, {} as Record<string, CiModelVO[]>)
 
+  const toggleGroup = (code: string) => {
+    setExpandedGroups(s => {
+      const next = new Set(s)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">管理 CI 模型和属性定义</p>
-        {hasPermission('cmdb_model', 'update') && (
-          <Button size="sm" onClick={() => setCreating(v => !v)}>
-            <Plus className="h-4 w-4 mr-1" />新建模型
-          </Button>
+      {/* Top bar with both create buttons */}
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">按分类组织的 CI 模型目录</p>
+        {canWrite && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCreatingGroup(v => !v)}>
+              <Plus className="mr-1 h-4 w-4" />新建分类
+            </Button>
+            <Button size="sm" onClick={() => setCreatingModel(v => !v)}>
+              <Plus className="mr-1 h-4 w-4" />新建模型
+            </Button>
+          </div>
         )}
       </div>
 
-      {creating && (
-        <div className="border rounded-lg p-4 mb-6 bg-muted/30 space-y-3">
+      {/* Create group form */}
+      {creatingGroup && (
+        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">分类代码 * <span className="text-muted-foreground">(英文/下划线)</span></Label>
+              <Input value={groupForm.code} onChange={e => setGroupForm(f => ({ ...f, code: e.target.value }))} placeholder="如: middleware" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">分类名称 *</Label>
+              <Input value={groupForm.name} onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))} placeholder="如: 中间件" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">排序</Label>
+              <Input type="number" value={groupForm.sortOrder} onChange={e => setGroupForm(f => ({ ...f, sortOrder: +e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => createGroupMutation.mutate()} disabled={!groupForm.code || !groupForm.name || createGroupMutation.isPending}>创建</Button>
+            <Button size="sm" variant="ghost" onClick={() => setCreatingGroup(false)}>取消</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Create model form */}
+      {creatingModel && (
+        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">模型ID * <span className="text-muted-foreground">(英文/下划线)</span></Label>
-              <Input value={form.modelId} onChange={e => setForm(f => ({ ...f, modelId: e.target.value }))} placeholder="如: mysql_instance" />
+              <Input value={modelForm.modelId} onChange={e => setModelForm(f => ({ ...f, modelId: e.target.value }))} placeholder="如: mysql_instance" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">模型名称 *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="如: MySQL实例" />
+              <Input value={modelForm.name} onChange={e => setModelForm(f => ({ ...f, name: e.target.value }))} placeholder="如: MySQL实例" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">所属分类</Label>
-              <Select value={form.groupCode} onValueChange={v => setForm(f => ({ ...f, groupCode: v ?? '' }))}>
+              <Select value={modelForm.groupCode} onValueChange={v => setModelForm(f => ({ ...f, groupCode: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder="请选择分类" /></SelectTrigger>
                 <SelectContent>
                   {modelGroups.map(g => (
@@ -219,48 +344,217 @@ function ModelsTab() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">描述</Label>
-              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+              <Input value={modelForm.description} onChange={e => setModelForm(f => ({ ...f, description: e.target.value }))} />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => createMutation.mutate()} disabled={!form.modelId || !form.name || createMutation.isPending}>创建</Button>
-            <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
+            <Button size="sm" onClick={() => createModelMutation.mutate()} disabled={!modelForm.modelId || !modelForm.name || createModelMutation.isPending}>创建</Button>
+            <Button size="sm" variant="ghost" onClick={() => setCreatingModel(false)}>取消</Button>
           </div>
         </div>
       )}
 
-      {isLoading ? <p className="text-muted-foreground text-sm">加载中...</p> : (
-        <div className="space-y-6">
-          {Object.entries(grouped).map(([group, groupModels]) => (
-            <div key={group}>
-              <h2 className="text-sm font-medium text-muted-foreground mb-3">{groupModels[0]?.groupName || group}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {groupModels.map(model => {
-                  const Icon = ICON_MAP[model.icon] ?? Box
-                  return (
-                    <Link key={model.modelId} href={`/cmdb/admin/models/${model.modelId}`}
-                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors block">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-md">
-                          <Icon className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{model.name}</span>
-                            {model.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.modelId}</p>
-                        </div>
-                        <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
+      {/* Group accordion list */}
+      {modelsLoading || groupsLoading ? (
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      ) : (
+        <div className="space-y-2">
+          {modelGroups.map(g => {
+            const groupModels = grouped[g.code] ?? []
+            const isExpanded = expandedGroups.has(g.code)
+            const isEditing = editingGroupId === g.id
+            return (
+              <div key={g.code} className="overflow-hidden rounded-lg border">
+                {/* Group header row */}
+                <div
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 transition-colors',
+                    isExpanded ? 'bg-muted/40' : 'hover:bg-muted/30 cursor-pointer'
+                  )}
+                  onClick={() => !isEditing && toggleGroup(g.code)}
+                >
+                  <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isExpanded && 'rotate-180')} />
+                  {isEditing ? (
+                    <>
+                      <Input className="h-8" value={editGroupForm.name} onChange={e => setEditGroupForm(f => ({ ...f, name: e.target.value }))} />
+                      <Input className="h-8 w-20" type="number" value={editGroupForm.sortOrder} onChange={e => setEditGroupForm(f => ({ ...f, sortOrder: +e.target.value }))} />
+                      <Button size="sm" onClick={(e) => { e.stopPropagation(); updateGroupMutation.mutate({ id: g.id, body: editGroupForm }) }}>保存</Button>
+                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingGroupId(null) }}>取消</Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                        <span className="truncate text-sm font-medium">{g.name}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{groupModels.length} 个模型</span>
+                        {g.isBuiltIn && <Badge variant="secondary" className="shrink-0 text-xs">内置</Badge>}
                       </div>
-                    </Link>
-                  )
-                })}
+                      {canWrite && (
+                        <div className="flex shrink-0 gap-1" onClick={e => e.stopPropagation()}>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                            <PencilLine className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={groupModels.length > 0}
+                            title={groupModels.length > 0 ? '分类下尚有模型' : ''}
+                            onClick={() => { if (confirm(`确认删除分类「${g.name}」？`)) deleteGroupMutation.mutate(g.id) }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div className="border-t bg-background p-4">
+                    {groupModels.length === 0 ? (
+                      <p className="rounded-lg border border-dashed px-4 py-3 text-xs text-muted-foreground/70">
+                        该分类暂无模型 · 新建模型时选择此分类，或用「移动到分类」功能将模型移入
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        {groupModels.map(model => (
+                          <ModelCard
+                            key={model.modelId}
+                            model={model}
+                            groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
+                            canWrite={canWrite}
+                            justMoved={movedModelId === model.modelId}
+                            onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-          {models.length === 0 && <p className="text-muted-foreground text-sm text-center py-12">暂无模型</p>}
+            )
+          })}
+
+          {/* Orphan models (no group or unknown group) */}
+          {Object.entries(grouped)
+            .filter(([code]) => !modelGroups.some(g => g.code === code))
+            .map(([code, groupModels]) => {
+              const isExpanded = expandedGroups.has(code)
+              return (
+                <div key={code} className="overflow-hidden rounded-lg border">
+                  <div
+                    className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+                    onClick={() => toggleGroup(code)}
+                  >
+                    <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isExpanded && 'rotate-180')} />
+                    <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                      <span className="truncate text-sm font-medium text-muted-foreground">{groupModels[0]?.groupName || '未分类'}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{groupModels.length} 个模型</span>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div className="border-t bg-background p-4">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        {groupModels.map(model => (
+                          <ModelCard
+                            key={model.modelId}
+                            model={model}
+                            groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
+                            canWrite={canWrite}
+                            justMoved={movedModelId === model.modelId}
+                            onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+          {models.length === 0 && modelGroups.length === 0 && (
+            <p className="py-12 text-center text-sm text-muted-foreground">暂无分类与模型 · 点击上方按钮开始创建</p>
+          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function ModelCard({
+  model, groups, canWrite, justMoved, onMove,
+}: {
+  model: CiModelVO
+  groups: { code: string; name: string }[]
+  canWrite: boolean
+  justMoved: boolean
+  onMove: (toCode: string) => void
+}) {
+  const Icon = ICON_MAP[model.icon] ?? Box
+  const router = useRouter()
+  return (
+    <div
+      className={cn(
+        'group relative rounded-lg border transition-all',
+        justMoved
+          ? 'border-primary ring-2 ring-primary/30 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95'
+          : 'hover:bg-muted/50',
+      )}
+    >
+      <Link href={`/cmdb/admin/models/${model.modelId}`} className="block p-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-md bg-primary/10 p-2">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{model.name}</span>
+              {model.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
+            </div>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">{model.modelId}</p>
+          </div>
+          {/* 给菜单按钮留出空位，避免与图标重叠 */}
+          <span className="h-7 w-7 shrink-0" aria-hidden />
+        </div>
+      </Link>
+      {canWrite && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={`${model.name} 操作`}
+            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-60 transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover:opacity-100"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
+              <Settings className="mr-2 h-4 w-4" />打开设置
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <FolderInput className="mr-2 h-4 w-4" />移动到分类
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">选择目标分类</DropdownMenuLabel>
+                  {groups.map(g => {
+                    const current = g.code === model.group
+                    return (
+                      <DropdownMenuItem
+                        key={g.code}
+                        disabled={current}
+                        onClick={() => { if (!current) onMove(g.code) }}
+                      >
+                        <span className="flex-1 truncate">{g.name}</span>
+                        {current && <Check className="ml-2 h-4 w-4 text-primary" />}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   )
@@ -639,12 +933,15 @@ function AssociationDefsSection({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState({ name: '', mapping: '1:n', onDelete: 'none' })
 
-  const { data: defs = [], isLoading } = useQuery<CiAssociationDefVO[]>({
+  const { data: defs = [], isLoading, isError, error, refetch } = useQuery<CiAssociationDefVO[]>({
     queryKey: ['cmdb-association-defs'],
-    queryFn: async () => {
-      try { return (await api.get('/cmdb/association-defs')).data.data } catch { return [] }
-    },
+    queryFn: async () => (await api.get('/cmdb/association-defs')).data.data,
     enabled: typeof window !== 'undefined',
+    retry: (failureCount, err: any) => {
+      const status = err?.response?.status
+      if (status === 403 || status === 401) return false
+      return failureCount < 2
+    },
   })
 
   const createMutation = useMutation({
@@ -821,6 +1118,17 @@ function AssociationDefsSection({
       <div className="border rounded-lg overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-sm text-muted-foreground">加载中...</div>
+        ) : isError ? (
+          <div className="p-6 text-center space-y-3">
+            <p className="text-sm text-destructive">
+              {(error as any)?.response?.status === 403
+                ? '无 cmdb_relation:read 权限，请联系管理员'
+                : `加载失败：${(error as any)?.response?.data?.message || (error as any)?.message || '未知错误'}`}
+            </p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-1" />重试
+            </Button>
+          </div>
         ) : defs.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             暂无关联定义。{canWrite && '点击右上角"新建关联定义"开始配置。'}
@@ -934,230 +1242,6 @@ function AssociationDefsSection({
           </table>
         )}
       </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Model Groups Tab — manages ci_model_group (categories like 主机管理 / 应用管理)
-// ─────────────────────────────────────────────────────────────────────────
-
-interface ModelGroupVO {
-  id: number
-  code: string
-  name: string
-  icon: string | null
-  sortOrder: number
-  isBuiltIn: boolean
-  modelCount: number
-}
-
-function ModelGroupsTab() {
-  const { hasPermission } = usePermission()
-  const canWrite = hasPermission('cmdb_model', 'update')
-  const queryClient = useQueryClient()
-  const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ code: '', name: '', icon: '', sortOrder: 0 })
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', icon: '', sortOrder: 0 })
-  const [openGroupId, setOpenGroupId] = useState<number | null>(null)
-
-  const { data: models = [] } = useQuery<CiModelVO[]>({
-    queryKey: ['cmdb-models'],
-    queryFn: async () => {
-      try { return (await api.get('/cmdb/models')).data.data.records } catch { return [] }
-    },
-    enabled: typeof window !== 'undefined',
-  })
-
-  const { data: groups = [], isLoading } = useQuery<ModelGroupVO[]>({
-    queryKey: ['cmdb-model-groups'],
-    queryFn: async () => {
-      try {
-        const r = await api.get('/cmdb/model-groups')
-        return r.data.data
-      } catch { return [] }
-    },
-    enabled: typeof window !== 'undefined',
-  })
-
-  const createMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/model-groups', form),
-    onSuccess: () => {
-      toast.success('分类已创建')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
-      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
-      setCreating(false)
-      setForm({ code: '', name: '', icon: '', sortOrder: 0 })
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: typeof editForm }) =>
-      api.put(`/cmdb/model-groups/${id}`, body),
-    onSuccess: () => {
-      toast.success('已更新')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
-      setEditingId(null)
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/cmdb/model-groups/${id}`),
-    onSuccess: () => {
-      toast.success('已删除')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
-  })
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">管理模型分类（如 主机管理 / 应用管理）。新建模型时从这里选择所属分类。</p>
-        {canWrite && (
-          <Button size="sm" onClick={() => setCreating(c => !c)}>
-            <Plus className="h-4 w-4 mr-1" />新建分类
-          </Button>
-        )}
-      </div>
-
-      {creating && (
-        <div className="border rounded-lg p-4 mb-6 bg-muted/30 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">编码 * <span className="text-muted-foreground">(英文/下划线)</span></Label>
-              <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="如: middleware" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">名称 *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="如: 中间件" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">图标 <span className="text-muted-foreground">(可选)</span></Label>
-              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="如: server / database / network" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">排序</Label>
-              <Input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => createMutation.mutate()} disabled={!form.code || !form.name || createMutation.isPending}>创建</Button>
-            <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
-          </div>
-        </div>
-      )}
-
-      {isLoading ? <p className="text-muted-foreground text-sm">加载中...</p> : groups.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-12">暂无分类</p>
-      ) : (
-        <div className="border rounded-lg divide-y">
-          {groups.map(g => (
-            <div key={g.id} className="p-4">
-              {editingId === g.id ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">编码（不可改）</Label>
-                      <Input disabled value={g.code} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">名称</Label>
-                      <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">排序</Label>
-                      <Input type="number" value={editForm.sortOrder} onChange={e => setEditForm(f => ({ ...f, sortOrder: Number(e.target.value || 0) }))} />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenGroupId(id => id === g.id ? null : g.id)}
-                      className="flex-1 min-w-0 flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
-                    >
-                      <ChevronDown
-                        className={cn(
-                          'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
-                          openGroupId === g.id && 'rotate-180'
-                        )}
-                      />
-                      <span className="font-medium text-sm">{g.name}</span>
-                      <code className="text-xs text-muted-foreground">{g.code}</code>
-                      {g.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
-                      <Badge variant="outline" className="text-xs">{g.modelCount} 模型</Badge>
-                    </button>
-                    {canWrite && (
-                      <>
-                        <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, icon: g.icon ?? '', sortOrder: g.sortOrder }) }}>
-                          <PencilLine className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost"
-                          disabled={g.isBuiltIn || g.modelCount > 0}
-                          title={g.isBuiltIn ? '内置不可删除' : g.modelCount > 0 ? '分组下尚有模型' : ''}
-                          onClick={() => { if (confirm(`确认删除分类 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateRows: openGroupId === g.id ? '1fr' : '0fr',
-                      transition: 'grid-template-rows 200ms ease',
-                    }}
-                  >
-                    <div className="overflow-hidden">
-                      <div className="pt-3 pl-6">
-                        {(() => {
-                          const groupModels = models.filter(m => (m.group || '') === g.code)
-                          if (groupModels.length === 0) return <p className="text-xs text-muted-foreground py-2">该分类下暂无模型</p>
-                          return (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                              {groupModels.map(m => {
-                                const Icon = ICON_MAP[m.icon] ?? Box
-                                return (
-                                  <Link
-                                    key={m.modelId}
-                                    href={`/cmdb/instances/by-model/${m.modelId}`}
-                                    className="border rounded-md p-2.5 flex items-center gap-2 hover:bg-muted/50 transition-colors min-w-0"
-                                  >
-                                    <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
-                                      <Icon className="h-3.5 w-3.5 text-primary" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-sm font-medium truncate">{m.name}</span>
-                                        {m.isBuiltIn && <Badge variant="secondary" className="text-[10px] px-1 py-0">内置</Badge>}
-                                      </div>
-                                      <p className="text-[11px] text-muted-foreground font-mono truncate">{m.modelId}</p>
-                                    </div>
-                                  </Link>
-                                )
-                              })}
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
