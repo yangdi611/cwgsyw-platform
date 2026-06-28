@@ -68,22 +68,40 @@ export default function InstanceDetailPage() {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: inst, isLoading } = useQuery<CiInstanceVO>({
+  const { data: inst, isLoading, isError, error, refetch } = useQuery<CiInstanceVO>({
     queryKey: ['cmdb-instance', modelCode, id],
     queryFn: async () => {
-      try {
-        const r = await api.get(`/cmdb/instances/${id}`)
-        return r.data.data
-      } catch {
-        return undefined
-      }
+      const r = await api.get(`/cmdb/instances/${id}`)
+      return r.data.data
     },
     enabled: typeof window !== 'undefined',
+    retry: (failureCount, err: any) => {
+      // 404 视为实例真不存在，不重试；其余（超时/5xx/网络）重试 2 次
+      if (err?.response?.status === 404) return false
+      return failureCount < 2
+    },
   })
 
   useBreadcrumbLabel(inst?.name ?? inst?.displayName)
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isError) {
+    const status = (error as any)?.response?.status
+    if (status === 404) return <p className="text-v2-danger">实例不存在</p>
+    const msg = (error as any)?.response?.data?.message ?? (error as any)?.message ?? '未知错误'
+    return (
+      <div className="space-y-3">
+        <p className="text-v2-danger">加载实例失败{status ? `（${status}）` : ''}：{msg}</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="rounded-md border border-v2-border px-3 py-1.5 text-sm hover:bg-v2-surface-soft"
+        >
+          重试
+        </button>
+      </div>
+    )
+  }
   if (!inst) return <p className="text-v2-danger">实例不存在</p>
 
   const isRack = inst.modelId === 'rack'

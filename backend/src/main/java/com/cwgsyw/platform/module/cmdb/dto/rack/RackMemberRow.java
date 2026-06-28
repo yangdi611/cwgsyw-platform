@@ -18,4 +18,8 @@ public class RackMemberRow {
     private Integer uStart;
     private Integer uEnd;
     private String assetNo;
+    /** 内网 IP（host 类设备 attrs.inner_ip），悬停浮卡展示。 */
+    private String innerIp;
+    /** 序列号（attrs.sn），悬停浮卡展示。 */
+    private String sn;
 }

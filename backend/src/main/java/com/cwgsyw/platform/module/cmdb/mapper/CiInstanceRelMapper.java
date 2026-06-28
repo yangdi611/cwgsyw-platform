@@ -99,7 +99,9 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
                m.display_name                             AS modelName,
                NULLIF(i.attrs->>'u_start','')::int        AS uStart,
                NULLIF(i.attrs->>'u_end','')::int          AS uEnd,
-               i.attrs->>'asset_no'                       AS assetNo
+               i.attrs->>'asset_no'                       AS assetNo,
+               i.attrs->>'inner_ip'                       AS innerIp,
+               i.attrs->>'sn'                             AS sn
         FROM ci_instance_rel r
         JOIN ci_instance i ON i.id = r.dst_id AND NOT i.is_deleted
         JOIN ci_model m ON m.tenant_id = r.tenant_id AND m.model_id = i.model_id AND NOT m.is_deleted

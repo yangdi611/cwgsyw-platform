@@ -24,6 +24,10 @@ public class RackDeviceVO {
     private Integer uEnd;
     /** 模型配色（ci_model.color），机柜块底色。 */
     private String modelColor;
+    /** 内网 IP（host 类设备 attrs.inner_ip），悬停浮卡展示。 */
+    private String innerIp;
+    /** 序列号（attrs.sn），悬停浮卡展示。 */
+    private String sn;
 
     @JsonProperty("uStart")
     public Integer getUStart() {

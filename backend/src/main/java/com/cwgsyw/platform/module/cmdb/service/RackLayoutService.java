@@ -60,6 +60,8 @@ public class RackLayoutService {
             d.setModelColor(row.getModelColor());
             d.setUStart(row.getUStart());
             d.setUEnd(row.getUEnd());
+            d.setInnerIp(row.getInnerIp());
+            d.setSn(row.getSn());
             devices.add(d);
 
             Integer us = row.getUStart(), ue = row.getUEnd();
