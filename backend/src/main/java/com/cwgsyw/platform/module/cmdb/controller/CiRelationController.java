@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.cmdb.controller;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CiRelationVO;
 import com.cwgsyw.platform.module.cmdb.dto.relation.CreateRelationRequest;
+import com.cwgsyw.platform.module.cmdb.dto.relation.CreateReverseRelationRequest;
 import com.cwgsyw.platform.module.cmdb.dto.relation.UpdateRelationRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.service.CiRelationService;
@@ -37,6 +38,28 @@ public class CiRelationController {
     public R<List<CiAssociationDef>> applicableDefs(@PathVariable Long id,
                                                      @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciRelationService.listApplicableDefs(id, cu.getTenantId()));
+    }
+
+    /**
+     * 当前实例可作为 dst（被关联方）的关联定义列表（§5.5 P2 反向建边）。
+     * 例：host 详情页"所在机柜"入口的 def 数据源（rack_contains_host 等）。
+     */
+    @GetMapping("/reverse-defs")
+    @PreAuthorize("hasPermission('cmdb_relation', 'read')")
+    public R<List<CiAssociationDef>> reverseDefs(@PathVariable Long id,
+                                                  @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciRelationService.listReverseDefs(id, cu.getTenantId()));
+    }
+
+    /**
+     * 反向建边（§5.5 P2）：当前实例作为 dst，由 body.srcInstanceId 指向它。
+     */
+    @PostMapping("/reverse")
+    @PreAuthorize("hasPermission('cmdb_relation', 'create')")
+    public R<CiRelationVO> createReverse(@PathVariable Long id, @Valid @RequestBody CreateReverseRelationRequest req,
+                                          @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciRelationService.createReverse(id, req.getSrcInstanceId(), req.getDefId(),
+                req.getMetadata(), cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{relationId}")

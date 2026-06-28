@@ -93,7 +93,9 @@ public class CiAttributeService {
                 throw new IllegalArgumentException("enumOptions 格式无效，应为 JSON 数组: " + req.getEnumOptions());
             }
         }
-        if (req.getOption() != null && !req.getOption().isEmpty()) {
+        // option 现为 Object（enum 数组 / table 对象 schema）。非空即原样落库；
+        // 空数组/空对象也视为无效跳过，避免覆盖上面 enumOptions 解析的结果。
+        if (isNonEmptyOption(req.getOption())) {
             attr.setOption(req.getOption());
         }
         attr.setSortOrder(req.getSortOrder());
@@ -221,5 +223,13 @@ public class CiAttributeService {
                 .operatorId(operatorId != null ? operatorId : 0L)
                 .beforeJson(beforeJson).afterJson(afterJson)
                 .createdAt(LocalDateTime.now()).build());
+    }
+
+    /** option 现为 Object：List（enum 数组）非空、Map（table 对象 schema）非空均视为有效。 */
+    private boolean isNonEmptyOption(Object option) {
+        if (option == null) return false;
+        if (option instanceof Collection<?> c) return !c.isEmpty();
+        if (option instanceof Map<?, ?> m) return !m.isEmpty();
+        return true;
     }
 }

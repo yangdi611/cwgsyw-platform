@@ -14,17 +14,17 @@ import { toast } from 'sonner'
 
 interface AlertVO {
   id: number
-  ci_instance_id: number | null
-  ci_instance_name: string | null
-  alert_name: string
+  ciInstanceId: number | null
+  ciInstanceName: string | null
+  alertName: string
   severity: string
   status: string
   summary: string | null
   description: string | null
-  starts_at: string | null
-  ends_at: string | null
+  startsAt: string | null
+  endsAt: string | null
   acknowledged: boolean
-  created_at: string
+  createdAt: string
 }
 
 interface PageData {
@@ -131,7 +131,7 @@ export default function CmdbAlertsPage() {
       title: '告警名称',
       render: (r) => (
         <div>
-          <div className="font-medium text-v2-fg">{r.alert_name}</div>
+          <div className="font-medium text-v2-fg">{r.alertName}</div>
           {r.description && (
             <div className="mt-0.5 line-clamp-1 text-xs text-v2-muted">{r.description}</div>
           )}
@@ -143,7 +143,7 @@ export default function CmdbAlertsPage() {
       title: '关联实例',
       render: (r) => (
         <span className="text-sm text-v2-fg">
-          {r.ci_instance_id ? r.ci_instance_name ?? `#${r.ci_instance_id}` : '-'}
+          {r.ciInstanceId ? r.ciInstanceName ?? `#${r.ciInstanceId}` : '-'}
         </span>
       ),
     },
@@ -157,7 +157,7 @@ export default function CmdbAlertsPage() {
       title: '触发时间',
       render: (r) => (
         <span className="whitespace-nowrap text-xs text-v2-muted">
-          {r.starts_at ? new Date(r.starts_at).toLocaleString('zh-CN') : '-'}
+          {r.startsAt ? new Date(r.startsAt).toLocaleString('zh-CN') : '-'}
         </span>
       ),
     },

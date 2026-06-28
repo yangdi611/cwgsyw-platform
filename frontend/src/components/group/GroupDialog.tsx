@@ -14,29 +14,29 @@ import { toast } from 'sonner'
 interface GroupFormData {
   name: string
   description: string
-  leader_id: number | null
-  member_ids: number[]
+  leaderId: number | null
+  memberIds: number[]
 }
 
 interface UserOption {
   id: number
   username: string
-  real_name: string
-  group_id: number | null
-  group_name?: string
+  realName: string
+  groupId: number | null
+  groupName?: string
 }
 
 interface GroupDialogProps {
   open: boolean
   mode: 'create' | 'edit'
-  group?: { id: number; name: string; description?: string; leader_id?: number | null } | null
+  group?: { id: number; name: string; description?: string; leaderId?: number | null } | null
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function GroupDialog({ open, mode, group, onClose, onSuccess }: GroupDialogProps) {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<GroupFormData>({
-    defaultValues: { name: '', description: '', leader_id: null, member_ids: [] }
+    defaultValues: { name: '', description: '', leaderId: null, memberIds: [] }
   })
 
   const { data: usersData } = useQuery({
@@ -58,24 +58,24 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
     if (!usersData) return []
     const groupMap = new Map((groupsData || []).map((g: any) => [g.id, g.name]))
     return [...usersData].sort((a, b) => {
-      const aHasGroup = a.group_id != null ? 1 : 0
-      const bHasGroup = b.group_id != null ? 1 : 0
+      const aHasGroup = a.groupId != null ? 1 : 0
+      const bHasGroup = b.groupId != null ? 1 : 0
       if (aHasGroup !== bHasGroup) return aHasGroup - bHasGroup
-      return (a.real_name || a.username).localeCompare(b.real_name || b.username, 'zh-CN')
-    }).map(u => ({ ...u, group_name: u.group_id ? groupMap.get(u.group_id) : undefined }))
+      return (a.realName || a.username).localeCompare(b.realName || b.username, 'zh-CN')
+    }).map(u => ({ ...u, groupName: u.groupId ? groupMap.get(u.groupId) : undefined }))
   }, [usersData, groupsData])
 
   useEffect(() => {
     if (open) {
       if (mode === 'edit' && group) {
-        reset({ name: group.name, description: group.description || '', leader_id: (group as any).leader_id ?? null, member_ids: [] })
+        reset({ name: group.name, description: group.description || '', leaderId: (group as any).leaderId ?? null, memberIds: [] })
       } else {
-        reset({ name: '', description: '', leader_id: null, member_ids: [] })
+        reset({ name: '', description: '', leaderId: null, memberIds: [] })
       }
     }
   }, [open, mode, group, reset])
 
-  const selectedMemberIds = watch('member_ids')
+  const selectedMemberIds = watch('memberIds')
 
   const onSubmit = async (data: GroupFormData) => {
     try {
@@ -83,15 +83,15 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
         await api.post('/groups', {
           name: data.name,
           description: data.description,
-          leader_id: data.leader_id || undefined,
-          member_ids: data.member_ids.length > 0 ? data.member_ids : undefined,
+          leaderId: data.leaderId || undefined,
+          memberIds: data.memberIds.length > 0 ? data.memberIds : undefined,
         })
         toast.success('组创建成功')
       } else {
         await api.put(`/groups/${group!.id}`, {
           name: data.name,
           description: data.description,
-          leader_id: data.leader_id,
+          leaderId: data.leaderId,
         })
         toast.success('组更新成功')
       }
@@ -127,13 +127,13 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="leader_id">组长</Label>
-            <select id="leader_id" {...register('leader_id', { setValueAs: (v) => v === '' ? null : Number(v) })}
+            <Label htmlFor="leaderId">组长</Label>
+            <select id="leaderId" {...register('leaderId', { setValueAs: (v) => v === '' ? null : Number(v) })}
               className="w-full rounded-md border border-v2-border bg-background px-3 py-2 text-sm">
               <option value="">-- 不指定组长 --</option>
               {sortedUsers.map(u => (
                 <option key={u.id} value={u.id}>
-                  {u.real_name || u.username}{u.group_name ? ' (' + u.group_name + ')' : ''}
+                  {u.realName || u.username}{u.groupName ? ' (' + u.groupName + ')' : ''}
                 </option>
               ))}
             </select>
@@ -146,9 +146,9 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
                 {sortedUsers.map(u => (
                   <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox checked={selectedMemberIds.includes(u.id)}
-                      onCheckedChange={(c) => { if (c) { setValue('member_ids', [...selectedMemberIds, u.id]) } else { setValue('member_ids', selectedMemberIds.filter(id => id !== u.id)) } }} />
-                    {u.real_name || u.username}
-                    {u.group_name && <span className="text-v2-muted">（{u.group_name}）</span>}
+                      onCheckedChange={(c) => { if (c) { setValue('memberIds', [...selectedMemberIds, u.id]) } else { setValue('memberIds', selectedMemberIds.filter(id => id !== u.id)) } }} />
+                    {u.realName || u.username}
+                    {u.groupName && <span className="text-v2-muted">（{u.groupName}）</span>}
                   </label>
                 ))}
               </div>

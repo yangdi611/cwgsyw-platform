@@ -357,7 +357,7 @@ export default function WikiEditorPage() {
             <div className="px-3 py-1.5 text-xs font-semibold text-v2-muted">插入 Wiki 链接</div>
             {acResults.map((r) => (
               <button
-                key={r.page_id}
+                key={r.pageId}
                 onClick={() => insertWikiLink(r)}
                 className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-v2-surface-hover"
               >

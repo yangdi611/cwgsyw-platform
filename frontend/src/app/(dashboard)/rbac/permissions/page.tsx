@@ -21,7 +21,7 @@ interface Permission {
   id: number
   code: string
   name: string
-  resource_id: number
+  resourceId: number
   action: string
 }
 
@@ -55,7 +55,7 @@ function PermissionsContent() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      api.put(`/rbac/roles/${roleId}/permissions`, { permission_ids: [...selected] }),
+      api.put(`/rbac/roles/${roleId}/permissions`, { permissionIds: [...selected] }),
     onSuccess: () => {
       toast.success('权限已保存')
       queryClient.invalidateQueries({ queryKey: ['role-permissions', roleId] })
@@ -98,7 +98,7 @@ function PermissionsContent() {
 
       <div className="space-y-4">
         {(resources ?? []).map((resource) => {
-          const perms = (allPerms ?? []).filter((p) => p.resource_id === resource.id)
+          const perms = (allPerms ?? []).filter((p) => p.resourceId === resource.id)
           return (
             <Card key={resource.id} className="p-4">
               <h3 className="mb-3 font-semibold text-v2-fg">{resource.name}</h3>

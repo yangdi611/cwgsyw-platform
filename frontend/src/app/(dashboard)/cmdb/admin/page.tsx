@@ -30,7 +30,7 @@ interface CiModelVO {
   groupName?: string
   description: string
   isBuiltIn: boolean
-  is_paused: boolean
+  isPaused: boolean
 }
 
 interface AssociationAttrVO {
@@ -165,7 +165,7 @@ function ModelsTab() {
   const createMutation = useMutation({
     mutationFn: () => api.post('/cmdb/models', {
       modelId: form.modelId, name: form.name, icon: form.icon,
-      group_code: form.groupCode || undefined, description: form.description || undefined,
+      groupCode: form.groupCode || undefined, description: form.description || undefined,
     }),
     onSuccess: (res) => {
       toast.success('模型已创建')
@@ -316,10 +316,10 @@ function AssociationsTab() {
       fieldKey: form.fieldKey,
       name: form.name,
       fieldType: form.fieldType,
-      is_required: form.isRequired,
-      enum_options: form.fieldType === 'enum' ? form.enumOptions : undefined,
-      default_value: form.defaultValue || undefined,
-      sort_order: form.sortOrder,
+      isRequired: form.isRequired,
+      enumOptions: form.fieldType === 'enum' ? form.enumOptions : undefined,
+      defaultValue: form.defaultValue || undefined,
+      sortOrder: form.sortOrder,
     }),
     onSuccess: () => {
       toast.success('关联扩展属性已创建')
@@ -332,10 +332,10 @@ function AssociationsTab() {
   const updateAttrMutation = useMutation({
     mutationFn: (attr: AssociationAttrVO) => api.put(`/cmdb/association-kinds/${activeKind}/attributes/${attr.id}`, {
       name: form.name,
-      is_required: form.isRequired,
-      enum_options: form.fieldType === 'enum' ? form.enumOptions : undefined,
-      default_value: form.defaultValue || undefined,
-      sort_order: form.sortOrder,
+      isRequired: form.isRequired,
+      enumOptions: form.fieldType === 'enum' ? form.enumOptions : undefined,
+      defaultValue: form.defaultValue || undefined,
+      sortOrder: form.sortOrder,
     }),
     onSuccess: () => {
       toast.success('关联扩展属性已更新')

@@ -27,8 +27,8 @@ interface CiModelVO {
 interface SearchHitVO {
   id: number
   name: string
-  model_id: string
-  model_name: string
+  modelId: string
+  modelName: string
   /** 后端返回的命中片段（属性值匹配时，如 "inner_ip: 10.0.0.1"）。 */
   snippet?: string | null
 }
@@ -106,13 +106,13 @@ export default function CmdbOverviewPage() {
                   {searchHits.map((hit) => (
                     <Link
                       key={hit.id}
-                      href={`/cmdb/instances/by-model/${hit.model_id}/${hit.id}`}
+                      href={`/cmdb/instances/by-model/${hit.modelId}/${hit.id}`}
                       className="flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-v2-surface-hover transition-colors"
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-v2-fg">{hit.name}</div>
                         <div className="mt-0.5 flex items-center gap-1.5">
-                          <span className="truncate text-xs text-v2-muted">{hit.model_name}</span>
+                          <span className="truncate text-xs text-v2-muted">{hit.modelName}</span>
                           {hit.snippet && (
                             <span className="shrink-0 truncate rounded bg-v2-primary/10 px-1.5 py-0.5 text-[11px] font-mono text-v2-primary font-v2-mono">
                               {hit.snippet}

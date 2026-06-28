@@ -20,28 +20,28 @@ interface Role {
 
 interface UserFormData {
   username: string
-  real_name: string
+  realName: string
   email: string
   password: string
   status: number
-  role_ids: number[]
+  roleIds: number[]
 }
 
 interface UserDialogProps {
   open: boolean
   mode: 'create' | 'edit'
-  user?: { id: number; username: string; real_name: string; email: string; status: number } | null
+  user?: { id: number; username: string; realName: string; email: string; status: number } | null
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function UserDialog({ open, mode, user, onClose, onSuccess }: UserDialogProps) {
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<UserFormData>({
-    defaultValues: { username: '', real_name: '', email: '', password: '', status: 1, role_ids: [] }
+    defaultValues: { username: '', realName: '', email: '', password: '', status: 1, roleIds: [] }
   })
 
   const status = watch('status')
-  const selectedRoles = watch('role_ids')
+  const selectedRoles = watch('roleIds')
 
   const { data: rolesData } = useQuery({
     queryKey: ['roles'],
@@ -60,14 +60,14 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
       if (mode === 'edit' && user) {
         reset({
           username: user.username,
-          real_name: user.real_name || '',
+          realName: user.realName || '',
           email: user.email || '',
           password: '',
           status: user.status,
-          role_ids: userDetail?.role_ids ?? []
+          roleIds: userDetail?.roleIds ?? []
         })
       } else {
-        reset({ username: '', real_name: '', email: '', password: '', status: 1, role_ids: [] })
+        reset({ username: '', realName: '', email: '', password: '', status: 1, roleIds: [] })
       }
     }
   }, [open, mode, user, userDetail, reset])
@@ -77,18 +77,18 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
       if (mode === 'create') {
         await api.post('/users', {
           username: data.username,
-          real_name: data.real_name,
+          realName: data.realName,
           email: data.email,
           password: data.password,
-          role_ids: data.role_ids
+          roleIds: data.roleIds
         })
         toast.success('用户创建成功')
       } else {
         const body: Record<string, any> = {
-          real_name: data.real_name,
+          realName: data.realName,
           email: data.email,
           status: data.status,
-          role_ids: data.role_ids
+          roleIds: data.roleIds
         }
         if (data.password) body.password = data.password
         await api.put(`/users/${user!.id}`, body)
@@ -122,7 +122,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
 
           <div className="space-y-2">
             <Label htmlFor="real_name">真实姓名</Label>
-            <Input id="real_name" {...register('real_name')} placeholder="请输入真实姓名" />
+            <Input id="real_name" {...register('realName')} placeholder="请输入真实姓名" />
           </div>
 
           <div className="space-y-2">
@@ -166,9 +166,9 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
                     checked={selectedRoles.includes(role.id)}
                     onCheckedChange={(c) => {
                       if (c) {
-                        setValue('role_ids', [...selectedRoles, role.id])
+                        setValue('roleIds', [...selectedRoles, role.id])
                       } else {
-                        setValue('role_ids', selectedRoles.filter(id => id !== role.id))
+                        setValue('roleIds', selectedRoles.filter(id => id !== role.id))
                       }
                     }}
                   />

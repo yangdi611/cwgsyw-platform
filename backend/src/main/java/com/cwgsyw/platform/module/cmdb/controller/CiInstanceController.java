@@ -77,6 +77,19 @@ public class CiInstanceController {
         return R.ok(ciInstanceCommandService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
 
+    @PostMapping("/batch-update")
+    @PreAuthorize("hasPermission('cmdb_instance', 'update')")
+    public R<BatchUpdateResultVO> batchUpdate(@Valid @RequestBody BatchUpdateInstanceRequest req,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceCommandService.batchUpdate(req, cu.getTenantId(), cu.getUserId()));
+    }
+
+    @PostMapping("/{id}/clone")
+    @PreAuthorize("hasPermission('cmdb_instance', 'create')")
+    public R<CiInstanceDetailVO> clone(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(ciInstanceCommandService.clone(id, cu.getTenantId(), cu.getUserId()));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_instance', 'delete')")
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {

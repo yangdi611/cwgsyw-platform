@@ -8,12 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Pencil, Save, X } from 'lucide-react'
+import { Pencil, Save, X, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
+interface TableColumn { key: string; name: string; type: string; system?: boolean; required?: boolean; options?: { id: string; name: string }[] }
+interface TableSchema { schema_version?: number; row_key?: string; display_key?: string; columns: TableColumn[] }
 interface CiAttributeVO {
   id: number; fieldKey: string; name: string; fieldType: string
-  isRequired: boolean; isEditable: boolean; option: { id: string; name: string; isDefault?: boolean }[] | null
+  // option：enum 为数组 [{id,name}]；table 为对象 schema {columns:[...]}（§4.1）。
+  isRequired: boolean; isEditable: boolean; option: { id: string; name: string; isDefault?: boolean }[] | TableSchema | null
   placeholder: string; unit: string; sortOrder: number; groupId: string
 }
 interface CiAttributeGroupVO { groupId: string; name: string; sortOrder: number }
@@ -41,7 +44,8 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [prevInstId, setPrevInstId] = useState(inst.id)
-  const [editAttrs, setEditAttrs] = useState<Record<string, string>>({})
+  // 值类型放宽为 unknown：标量保持 string，table 字段保留对象数组（§4.3b，避免 §0.12 的 String() 损坏数组）。
+  const [editAttrs, setEditAttrs] = useState<Record<string, unknown>>({})
 
   const modelRes = useQuery({
     queryKey: ['cmdb-model', modelCode],
@@ -49,9 +53,16 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
     staleTime: 600_000, // models rarely change during a session
   })
   const model: CiModelVO | undefined = modelRes.data
+  // 进入编辑时按字段类型分流：table 保留原数组，其余 String 化（沿用原标量路径）。
+  const tableKeys = useMemo(
+    () => new Set((inst.attributes ?? []).filter(a => a.fieldType === 'table').map(a => a.fieldKey)),
+    [inst],
+  )
   const freshAttrs = useMemo(() => Object.fromEntries(
-    Object.entries(inst.fieldsData ?? {}).map(([k, v]) => [k, String(v ?? '')])
-  ), [inst])
+    Object.entries(inst.fieldsData ?? {}).map(([k, v]) =>
+      tableKeys.has(k) ? [k, Array.isArray(v) ? v : []] : [k, String(v ?? '')],
+    )
+  ), [inst, tableKeys])
 
   // Reset editAttrs when instance changes (render-time conditional setState,
   // avoids set-state-in-effect that triggers inside useEffect).
@@ -128,6 +139,10 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <MaintStatusBadge value={inst.fieldsData?.['_maint_status_derived']} expire={inst.fieldsData?.['maint_expire']} />
+        <BaselineBadge value={inst.fieldsData?.['_baseline_completeness']} />
+      </div>
       {canEdit && (
         <div className="flex justify-end gap-2">
           {!editing ? (
@@ -192,8 +207,20 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
                       {attr.isRequired && <span className="ml-0.5 text-v2-danger">*</span>}
                     </dt>
                     <dd className={isEditing || isWide ? '' : 'min-w-0 flex-1'}>
-                      {isEditing ? (
-                        renderEditField(attr, editAttrs[attr.fieldKey] ?? editVal,
+                      {attr.fieldType === 'table' ? (
+                        isEditing ? (
+                          <TableFieldEditor
+                            schema={attr.option}
+                            rows={Array.isArray(editAttrs[attr.fieldKey])
+                              ? (editAttrs[attr.fieldKey] as Record<string, unknown>[])
+                              : (Array.isArray(rawVal) ? (rawVal as Record<string, unknown>[]) : [])}
+                            onChange={rows => setEditAttrs(a => ({ ...a, [attr.fieldKey]: rows }))}
+                          />
+                        ) : (
+                          <TableFieldDisplay schema={attr.option} rows={Array.isArray(rawVal) ? rawVal as Record<string, unknown>[] : []} />
+                        )
+                      ) : isEditing ? (
+                        renderEditField(attr, String(editAttrs[attr.fieldKey] ?? editVal),
                           val => setEditAttrs(a => ({ ...a, [attr.fieldKey]: val })))
                       ) : (
                         renderDisplayValue(attr, rawVal)
@@ -298,4 +325,177 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
   if (fieldType === 'date') return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />
   if (fieldType === 'int' || fieldType === 'float') return <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
   return <Input value={value} onChange={e => onChange(e.target.value)} placeholder={ph} />
+}
+
+/**
+ * 维保状态徽章（spec §6）。读后端注入的只读派生键 `_maint_status_derived`（active/expiring/expired），
+ * 红黄绿标色。无该键（实例未填 maint_expire）则不渲染。
+ */
+function MaintStatusBadge({ value, expire }: { value: unknown; expire: unknown }) {
+  if (typeof value !== 'string' || !value) return null
+  const map: Record<string, { label: string; cls: string }> = {
+    active: { label: '维保在保', cls: 'border-v2-success-border bg-v2-success-soft text-v2-success' },
+    expiring: { label: '即将到期', cls: 'border-v2-warning-border bg-v2-warning-soft text-v2-warning' },
+    expired: { label: '已过保', cls: 'border-v2-danger-border bg-v2-danger-soft text-v2-danger' },
+  }
+  const m = map[value]
+  if (!m) return null
+  const expireStr = typeof expire === 'string' && expire ? expire.slice(0, 10) : null
+  return (
+    <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold ${m.cls}`}>
+      {m.label}
+      {expireStr && <span className="font-normal opacity-80">· 到期 {expireStr}</span>}
+    </div>
+  )
+}
+
+/**
+ * 基线完整度徽章（§6 P2）。读后端注入的 `_baseline_completeness`（0-100 必填字段填充率）。
+ * ≥90 绿 / ≥60 黄 / 否则红。无该键（模型无必填字段）则不渲染。
+ */
+function BaselineBadge({ value }: { value: unknown }) {
+  if (typeof value !== 'number') return null
+  const cls = value >= 90
+    ? 'border-v2-success-border bg-v2-success-soft text-v2-success'
+    : value >= 60
+      ? 'border-v2-warning-border bg-v2-warning-soft text-v2-warning'
+      : 'border-v2-danger-border bg-v2-danger-soft text-v2-danger'
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold ${cls}`}>
+      基线完整度 {value}%
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// table 字段（§4.3b）：结构化多值，绕过 §0.12 的 String() 路径，值始终保持对象数组。
+// ─────────────────────────────────────────────────────────────
+type TableCol = { key: string; name: string; type: string; system?: boolean; required?: boolean; options?: { id: string; name: string }[] }
+type TableSchemaT = { row_key?: string; columns?: TableCol[] }
+
+function schemaCols(schema: unknown): TableCol[] {
+  if (schema && typeof schema === 'object' && !Array.isArray(schema)) {
+    const cols = (schema as TableSchemaT).columns
+    if (Array.isArray(cols)) return cols
+  }
+  return []
+}
+function rowKeyOf(schema: unknown): string {
+  if (schema && typeof schema === 'object' && !Array.isArray(schema)) {
+    const rk = (schema as TableSchemaT).row_key
+    if (typeof rk === 'string' && rk) return rk
+  }
+  return 'row_id'
+}
+function genRowId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `r_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** table 只读渲染：表格展示非系统列。 */
+function TableFieldDisplay({ schema, rows }: { schema: unknown; rows: Record<string, unknown>[] }) {
+  const cols = schemaCols(schema).filter(c => !c.system)
+  if (!rows || rows.length === 0) return <span className="text-sm text-v2-subtle">—</span>
+  if (cols.length === 0) return <span className="text-sm text-v2-muted">{rows.length} 项</span>
+  return (
+    <div className="overflow-x-auto rounded-md border border-v2-border">
+      <table className="w-full text-xs">
+        <thead className="bg-v2-surface-soft">
+          <tr>{cols.map(c => <th key={c.key} className="px-2 py-1 text-left font-medium text-v2-muted">{c.name}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-t border-v2-border">
+              {cols.map(c => {
+                const v = row[c.key]
+                const disp = c.type === 'enum' && Array.isArray(c.options)
+                  ? (c.options.find(o => o.id === String(v))?.name ?? (v == null ? '—' : String(v)))
+                  : (v == null || v === '' ? '—' : String(v))
+                return <td key={c.key} className="px-2 py-1 text-v2-fg">{disp}</td>
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** table 编辑：加行/删行，每行隐藏维护 row_id（新行自动生成）。子列仅标量输入（P2）。 */
+function TableFieldEditor({
+  schema, rows, onChange,
+}: { schema: unknown; rows: Record<string, unknown>[]; onChange: (rows: Record<string, unknown>[]) => void }) {
+  const cols = schemaCols(schema)
+  const rowKey = rowKeyOf(schema)
+  const visibleCols = cols.filter(c => !c.system)
+
+  const updateCell = (rowIdx: number, key: string, val: unknown) => {
+    const next = rows.map((r, i) => (i === rowIdx ? { ...r, [key]: val } : r))
+    onChange(next)
+  }
+  const addRow = () => {
+    const blank: Record<string, unknown> = { [rowKey]: genRowId() }
+    for (const c of visibleCols) blank[c.key] = ''
+    onChange([...rows, blank])
+  }
+  const removeRow = (rowIdx: number) => onChange(rows.filter((_, i) => i !== rowIdx))
+
+  if (visibleCols.length === 0) {
+    return <p className="text-xs text-v2-danger">该表格字段尚未配置子列 schema（请在模型属性编辑里设置）。</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-x-auto rounded-md border border-v2-border">
+        <table className="w-full text-xs">
+          <thead className="bg-v2-surface-soft">
+            <tr>
+              {visibleCols.map(c => (
+                <th key={c.key} className="px-2 py-1 text-left font-medium text-v2-muted">
+                  {c.name}{c.required && <span className="text-v2-danger">*</span>}
+                </th>
+              ))}
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={String(row[rowKey] ?? i)} className="border-t border-v2-border">
+                {visibleCols.map(c => (
+                  <td key={c.key} className="px-1 py-1">
+                    {c.type === 'enum' && Array.isArray(c.options) ? (
+                      <Select value={String(row[c.key] ?? '')} onValueChange={v => updateCell(i, c.key, v ?? '')}>
+                        <SelectTrigger className="h-8"><SelectValue placeholder="选择">{(v: string) => c.options?.find(o => o.id === v)?.name ?? '选择'}</SelectValue></SelectTrigger>
+                        <SelectContent>{c.options.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    ) : c.type === 'bool' ? (
+                      <Select value={String(row[c.key] ?? '')} onValueChange={v => updateCell(i, c.key, v === 'true')}>
+                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent><SelectItem value="true">是</SelectItem><SelectItem value="false">否</SelectItem></SelectContent>
+                      </Select>
+                    ) : c.type === 'int' || c.type === 'float' ? (
+                      <Input className="h-8" type="number" value={String(row[c.key] ?? '')} onChange={e => updateCell(i, c.key, e.target.value)} />
+                    ) : (
+                      <Input className="h-8" value={String(row[c.key] ?? '')} onChange={e => updateCell(i, c.key, e.target.value)} />
+                    )}
+                  </td>
+                ))}
+                <td className="px-1 py-1 text-center">
+                  <button type="button" onClick={() => removeRow(i)} className="text-v2-danger hover:opacity-70" title="删除行">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr><td colSpan={visibleCols.length + 1} className="px-2 py-3 text-center text-v2-subtle">暂无数据，点击下方添加行</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <Button type="button" size="sm" variant="outline" onClick={addRow}>
+        <Plus className="h-3.5 w-3.5 mr-1" />添加行
+      </Button>
+    </div>
+  )
 }

@@ -168,7 +168,7 @@ export default function AdminConfigPage() {
   })
 
   const notifyMutation = useMutation({
-    mutationFn: () => api.put('/admin/config/notification', { reminder_enabled: reminderEnabled, reminder_cron: reminderCron, reminder_template: reminderTemplate }),
+    mutationFn: () => api.put('/admin/config/notification', { reminderEnabled: reminderEnabled, reminderCron: reminderCron, reminderTemplate: reminderTemplate }),
     onSuccess: () => { toast.success('提醒配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
     onError: () => toast.error('保存失败'),
   })

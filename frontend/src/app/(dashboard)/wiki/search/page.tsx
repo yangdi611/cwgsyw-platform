@@ -83,10 +83,10 @@ function SearchResults() {
           <div className="space-y-2">
             {records.map((r) => (
               <Card
-                key={r.page_id}
+                key={r.pageId}
                 hover
                 className="cursor-pointer p-4"
-                onClick={() => router.push(`/wiki/${r.space_id}/${r.page_id}`)}
+                onClick={() => router.push(`/wiki/${r.spaceId}/${r.pageId}`)}
               >
                 <div className="flex items-start gap-3">
                   <FileText className="mt-0.5 h-4 w-4 shrink-0 text-v2-muted" />
@@ -96,7 +96,7 @@ function SearchResults() {
                       <p className="mt-1 line-clamp-2 text-sm text-v2-muted">{r.highlight}</p>
                     )}
                     <p className="mt-1 text-xs text-v2-subtle">
-                      {r.updated_at ? new Date(r.updated_at).toLocaleDateString('zh-CN') : ''}
+                      {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : ''}
                     </p>
                   </div>
                 </div>

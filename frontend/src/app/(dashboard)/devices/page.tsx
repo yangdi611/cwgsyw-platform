@@ -21,9 +21,9 @@ interface Device {
   id: number
   name: string
   ip: string
-  device_type: string
+  deviceType: string
   category: string
-  group_name: string
+  groupName: string
   description: string
 }
 
@@ -66,15 +66,15 @@ export default function DevicesPage() {
   })
 
   const filtered = (data ?? []).filter((d) => {
-    if (typeFilter !== 'all' && d.device_type !== typeFilter) return false
+    if (typeFilter !== 'all' && d.deviceType !== typeFilter) return false
     if (!search.trim()) return true
     const q = search.toLowerCase()
     return (
       d.name?.toLowerCase().includes(q) ||
       d.ip?.toLowerCase().includes(q) ||
       d.category?.toLowerCase().includes(q) ||
-      d.group_name?.toLowerCase().includes(q) ||
-      (typeConfig[d.device_type]?.label ?? '').includes(q)
+      d.groupName?.toLowerCase().includes(q) ||
+      (typeConfig[d.deviceType]?.label ?? '').includes(q)
     )
   })
 
@@ -91,9 +91,9 @@ export default function DevicesPage() {
         r.ip ? <span className="font-v2-mono text-sm text-v2-fg">{r.ip}</span> : <span className="text-v2-subtle">-</span>,
     },
     {
-      key: 'device_type',
+      key: 'deviceType',
       title: '类型',
-      render: (r) => <TypeBadge type={r.device_type} />,
+      render: (r) => <TypeBadge type={r.deviceType} />,
     },
     {
       key: 'category',
@@ -101,9 +101,9 @@ export default function DevicesPage() {
       render: (r) => (r.category ? <Chip>{r.category}</Chip> : <span className="text-v2-subtle">-</span>),
     },
     {
-      key: 'group_name',
+      key: 'groupName',
       title: '所属组',
-      render: (r) => <span className="text-v2-fg">{r.group_name || '-'}</span>,
+      render: (r) => <span className="text-v2-fg">{r.groupName || '-'}</span>,
     },
   ]
 
@@ -168,7 +168,7 @@ export default function DevicesPage() {
         open={!!selected}
         onClose={() => setSelected(null)}
         title={selected?.name}
-        subtitle={selected ? <TypeBadge type={selected.device_type} /> : undefined}
+        subtitle={selected ? <TypeBadge type={selected.deviceType} /> : undefined}
         footer={
           selected ? (
             <div className="flex items-center justify-end">
@@ -199,7 +199,7 @@ export default function DevicesPage() {
                 <div>
                   <dt className="text-xs text-v2-muted">类型</dt>
                   <dd className="mt-0.5">
-                    <TypeBadge type={selected.device_type} />
+                    <TypeBadge type={selected.deviceType} />
                   </dd>
                 </div>
                 <div>
@@ -208,7 +208,7 @@ export default function DevicesPage() {
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">所属组</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.group_name || '-'}</dd>
+                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.groupName || '-'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">设备 ID</dt>

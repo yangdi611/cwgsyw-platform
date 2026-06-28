@@ -144,7 +144,7 @@ export function CommandPalette() {
   // 按 group_label 聚合，并按固定顺序排列
   const grouped = GROUP_ORDER.map((label) => ({
     label,
-    items: results.filter((r) => r.group_label === label),
+    items: results.filter((r) => r.groupLabel === label),
   })).filter((g) => g.items.length > 0)
 
   const hasQuery = keyword.trim().length > 0

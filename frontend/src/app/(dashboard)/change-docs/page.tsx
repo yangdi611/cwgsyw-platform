@@ -18,15 +18,15 @@ import { ArrowRight, FileText } from 'lucide-react'
 
 interface ChangeDocListItem {
   id: number
-  change_no: string
+  changeNo: string
   title: string
   status: string
-  application_template_id: number | null
-  application_template_name: string | null
-  plan_template_id: number | null
-  plan_template_name: string | null
-  applicant_name: string
-  created_at: string
+  applicationTemplateId: number | null
+  applicationTemplateName: string | null
+  planTemplateId: number | null
+  planTemplateName: string | null
+  applicantName: string
+  createdAt: string
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -45,8 +45,8 @@ function statusMeta(s: string) {
 
 function templateSummary(d: ChangeDocListItem): string {
   const parts: string[] = []
-  if (d.application_template_name) parts.push(`申请：${d.application_template_name}`)
-  if (d.plan_template_name) parts.push(`方案：${d.plan_template_name}`)
+  if (d.applicationTemplateName) parts.push(`申请：${d.applicationTemplateName}`)
+  if (d.planTemplateName) parts.push(`方案：${d.planTemplateName}`)
   return parts.join(' / ')
 }
 
@@ -93,7 +93,7 @@ export default function ChangeDocsPage() {
         const summary = templateSummary(r)
         return (
           <div className="flex flex-col">
-            <span className="font-v2-mono text-sm text-v2-fg">{r.change_no}</span>
+            <span className="font-v2-mono text-sm text-v2-fg">{r.changeNo}</span>
             {summary && <span className="text-xs text-v2-muted">{summary}</span>}
           </div>
         )
@@ -107,12 +107,12 @@ export default function ChangeDocsPage() {
     {
       key: 'applicant_name',
       title: '申请人',
-      render: (r) => <span className="text-v2-fg">{r.applicant_name || '-'}</span>,
+      render: (r) => <span className="text-v2-fg">{r.applicantName || '-'}</span>,
     },
     {
       key: 'created_at',
       title: '创建时间',
-      render: (r) => <span className="text-sm text-v2-muted whitespace-nowrap">{formatDay(r.created_at)}</span>,
+      render: (r) => <span className="text-sm text-v2-muted whitespace-nowrap">{formatDay(r.createdAt)}</span>,
     },
   ]
 
@@ -165,7 +165,7 @@ export default function ChangeDocsPage() {
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelected(null)}
-        title={selected?.title || selected?.change_no}
+        title={selected?.title || selected?.changeNo}
         subtitle={
           selected ? (
             <StatusBadge status={statusMeta(selected.status).variant}>
@@ -196,7 +196,7 @@ export default function ChangeDocsPage() {
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">变更单号</dt>
-                  <dd className="mt-0.5 break-all font-v2-mono text-sm text-v2-fg">{selected.change_no}</dd>
+                  <dd className="mt-0.5 break-all font-v2-mono text-sm text-v2-fg">{selected.changeNo}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">状态</dt>
@@ -208,19 +208,19 @@ export default function ChangeDocsPage() {
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">申请单模板</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.application_template_name || '-'}</dd>
+                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.applicationTemplateName || '-'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">方案模板</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.plan_template_name || '-'}</dd>
+                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.planTemplateName || '-'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">申请人</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.applicant_name || '-'}</dd>
+                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.applicantName || '-'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">创建时间</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{formatDay(selected.created_at)}</dd>
+                  <dd className="mt-0.5 text-sm text-v2-fg">{formatDay(selected.createdAt)}</dd>
                 </div>
               </dl>
             </div>

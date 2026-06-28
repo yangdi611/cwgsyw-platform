@@ -45,13 +45,13 @@ function NewDailyReportContent() {
       return
     }
     await api.post('/daily-reports', {
-      report_date: data.reportDate,
-      completed_items: data.completedItems,
+      reportDate: data.reportDate,
+      completedItems: data.completedItems,
       issues: data.issues,
-      tomorrow_plan: data.tomorrowPlan,
-      work_hours: data.workHours ? parseFloat(data.workHours) : null,
-      group_id: effectiveGroupId,
-      ci_instance_ids: data.ciInstances.map((ci) => ci.id),
+      tomorrowPlan: data.tomorrowPlan,
+      workHours: data.workHours ? parseFloat(data.workHours) : null,
+      groupId: effectiveGroupId,
+      ciInstanceIds: data.ciInstances.map((ci) => ci.id),
     })
     toast.success('日报已保存')
     router.push('/daily')

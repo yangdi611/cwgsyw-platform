@@ -19,27 +19,27 @@ interface TemplateVO {
   id: number
   name: string
   description: string
-  has_docx: boolean
+  hasDocx: boolean
   active: boolean
-  doc_type: DocType
+  docType: DocType
 }
 
 interface FieldConfigVO {
   id: number
-  field_key: string
+  fieldKey: string
   label: string
-  field_type: string
+  fieldType: string
   required: boolean
-  in_form: boolean
+  inForm: boolean
   placeholder: string | null
-  sort_order: number
+  sortOrder: number
 }
 
 interface CiSnapshot {
   id: number
   name: string
-  model_name: string
-  model_id: string
+  modelName: string
+  modelId: string
 }
 
 const DOC_TYPE_LABEL: Record<DocType, string> = {
@@ -83,8 +83,8 @@ export default function NewChangeDocPage() {
   })
 
   const activeTemplates = templates.filter((t) => t.active)
-  const appTemplates = activeTemplates.filter((t) => t.doc_type === 'application' || t.doc_type === 'general')
-  const planTemplates = activeTemplates.filter((t) => t.doc_type === 'plan' || t.doc_type === 'general')
+  const appTemplates = activeTemplates.filter((t) => t.docType === 'application' || t.docType === 'general')
+  const planTemplates = activeTemplates.filter((t) => t.docType === 'plan' || t.docType === 'general')
 
   // 拉两个模板的字段配置
   const { data: appDetail } = useQuery<{ fields: FieldConfigVO[] }>({
@@ -100,23 +100,23 @@ export default function NewChangeDocPage() {
   })
 
   const appFields: FieldConfigVO[] = useMemo(
-    () => (appDetail?.fields ?? []).filter((f) => f.in_form).sort((a, b) => a.sort_order - b.sort_order),
+    () => (appDetail?.fields ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
     [appDetail],
   )
   const planFields: FieldConfigVO[] = useMemo(
-    () => (planDetail?.fields ?? []).filter((f) => f.in_form).sort((a, b) => a.sort_order - b.sort_order),
+    () => (planDetail?.fields ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
     [planDetail],
   )
 
   const allRequiredFieldKeys = useMemo(() => {
     const keys: { fieldKey: string; label: string }[] = []
-    appFields.forEach((f) => f.required && keys.push({ fieldKey: f.field_key, label: f.label }))
-    planFields.forEach((f) => f.required && keys.push({ fieldKey: f.field_key, label: f.label }))
+    appFields.forEach((f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label }))
+    planFields.forEach((f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label }))
     return keys
   }, [appFields, planFields])
 
   const { data: ciSearchResult } = useQuery<{
-    records: { id: number; name: string; model_id: string; model_name: string }[]
+    records: { id: number; name: string; modelId: string; modelName: string }[]
   }>({
     queryKey: ['ci-selector-search', ciSearch],
     queryFn: () =>
@@ -125,7 +125,7 @@ export default function NewChangeDocPage() {
   })
 
   const { data: ciTopoResult } = useQuery<{
-    nodes: { id: number; name: string; model_id: string | null; model_name: string | null; is_root: boolean }[]
+    nodes: { id: number; name: string; modelId: string | null; modelName: string | null; isRoot: boolean }[]
   }>({
     queryKey: ['ci-selector-topo', ciTopoInstanceId],
     queryFn: () =>
@@ -170,11 +170,11 @@ export default function NewChangeDocPage() {
     setSubmitting(true)
     try {
       const createRes = await api.post('/change-docs', {
-        application_template_id: appTemplate?.id ?? null,
-        plan_template_id: planTemplate?.id ?? null,
+        applicationTemplateId: appTemplate?.id ?? null,
+        planTemplateId: planTemplate?.id ?? null,
         title: title.trim(),
-        change_no: changeNo.trim() || undefined,
-        fields_data: fieldsData,
+        changeNo: changeNo.trim() || undefined,
+        fieldsData: fieldsData,
       })
       const newId = createRes.data.data.id as number
       // 立刻 submit
@@ -194,14 +194,14 @@ export default function NewChangeDocPage() {
   }
 
   const renderField = (f: FieldConfigVO) => {
-    const value = fieldsData[f.field_key] ?? ''
+    const value = fieldsData[f.fieldKey] ?? ''
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setFieldsData((prev) => ({ ...prev, [f.field_key]: e.target.value }))
+      setFieldsData((prev) => ({ ...prev, [f.fieldKey]: e.target.value }))
 
-    if (f.field_type === 'ci_selector') {
-      const selected = selectedCis[f.field_key] ?? []
+    if (f.fieldType === 'ci_selector') {
+      const selected = selectedCis[f.fieldKey] ?? []
       return (
-        <div key={f.field_key} className="space-y-1.5">
+        <div key={f.fieldKey} className="space-y-1.5">
           <Label>
             {f.label}
             {f.required && <span className="ml-1 text-v2-danger">*</span>}
@@ -215,10 +215,10 @@ export default function NewChangeDocPage() {
                 >
                   <span className="font-medium">{ci.name}</span>
                   <span className="text-v2-muted">·</span>
-                  <span className="text-v2-muted">{ci.model_name}</span>
+                  <span className="text-v2-muted">{ci.modelName}</span>
                   <button
                     type="button"
-                    onClick={() => toggleCiSelection(f.field_key, ci)}
+                    onClick={() => toggleCiSelection(f.fieldKey, ci)}
                     className="ml-1 hover:text-v2-danger"
                   >
                     ×
@@ -229,7 +229,7 @@ export default function NewChangeDocPage() {
           )}
           <button
             onClick={() => {
-              setCiSelectorOpen(f.field_key)
+              setCiSelectorOpen(f.fieldKey)
               setCiSearch('')
               setCiTopoInstanceId(null)
             }}
@@ -242,12 +242,12 @@ export default function NewChangeDocPage() {
     }
 
     return (
-      <div key={f.field_key} className="space-y-1.5">
+      <div key={f.fieldKey} className="space-y-1.5">
         <Label>
           {f.label}
           {f.required && <span className="ml-1 text-v2-danger">*</span>}
         </Label>
-        {f.field_type === 'textarea' ? (
+        {f.fieldType === 'textarea' ? (
           <div className="relative">
             <Textarea
               value={value}
@@ -266,9 +266,9 @@ export default function NewChangeDocPage() {
               <Sparkles className="h-3.5 w-3.5" />
             </Button>
           </div>
-        ) : f.field_type === 'date' ? (
+        ) : f.fieldType === 'date' ? (
           <Input type="date" value={value} onChange={onChange} />
-        ) : f.field_type === 'datetime' ? (
+        ) : f.fieldType === 'datetime' ? (
           <Input type="datetime-local" value={value} onChange={onChange} />
         ) : (
           <Input value={value} onChange={onChange} placeholder={f.placeholder ?? undefined} />
@@ -322,10 +322,10 @@ export default function NewChangeDocPage() {
                         <div className="flex flex-1 items-center gap-2">
                           <FileText className="h-4 w-4 text-v2-muted" />
                           <span className="font-semibold text-v2-fg">{t.name}</span>
-                          <StatusBadge status={DOC_TYPE_TONE[t.doc_type]}>
-                            {DOC_TYPE_LABEL[t.doc_type]}
+                          <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
+                            {DOC_TYPE_LABEL[t.docType]}
                           </StatusBadge>
-                          {!t.has_docx && (
+                          {!t.hasDocx && (
                             <span className="text-xs text-v2-muted">纯文字</span>
                           )}
                         </div>
@@ -366,10 +366,10 @@ export default function NewChangeDocPage() {
                         <div className="flex flex-1 items-center gap-2">
                           <FileText className="h-4 w-4 text-v2-muted" />
                           <span className="font-semibold text-v2-fg">{t.name}</span>
-                          <StatusBadge status={DOC_TYPE_TONE[t.doc_type]}>
-                            {DOC_TYPE_LABEL[t.doc_type]}
+                          <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
+                            {DOC_TYPE_LABEL[t.docType]}
                           </StatusBadge>
-                          {!t.has_docx && (
+                          {!t.hasDocx && (
                             <span className="text-xs text-v2-muted">纯文字</span>
                           )}
                         </div>
@@ -519,8 +519,8 @@ export default function NewChangeDocPage() {
                       toggleCiSelection(ciSelectorOpen, {
                         id: ci.id,
                         name: ci.name,
-                        model_name: ci.model_name,
-                        model_id: ci.model_id,
+                        modelName: ci.modelName,
+                        modelId: ci.modelId,
                       })
                     }
                     className={
@@ -531,7 +531,7 @@ export default function NewChangeDocPage() {
                     }
                   >
                     <span className="font-medium">{ci.name}</span>
-                    <span className="text-xs text-v2-muted">{ci.model_name}</span>
+                    <span className="text-xs text-v2-muted">{ci.modelName}</span>
                   </button>
                 )
               })}

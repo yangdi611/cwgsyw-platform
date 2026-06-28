@@ -23,13 +23,13 @@ type Perm = (typeof PERMS)[number]
 const PERM_LABELS: Record<Perm, string> = { read: '读', write: '写', update: '改', delete: '删' }
 
 interface AclEntry {
-  subject_type: SubjectType
-  subject_id: number
-  subject_name?: string
+  subjectType: SubjectType
+  subjectId: number
+  subjectName?: string
   permissions: Perm[]
 }
 interface FolderAcl {
-  folder_id: number
+  folderId: number
   inherited: boolean
   entries: AclEntry[]
 }
@@ -77,7 +77,7 @@ export function FolderAclDialog({
     queryFn: () => api.get('/groups').then((r) => r.data),
     enabled: open,
   })
-  const { data: usersData } = useQuery<{ data: { records: { id: number; real_name?: string; username: string }[] } }>({
+  const { data: usersData } = useQuery<{ data: { records: { id: number; realName?: string; username: string }[] } }>({
     queryKey: ['acl-users'],
     queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((r) => r.data),
     enabled: open,
@@ -89,7 +89,7 @@ export function FolderAclDialog({
     setInherited(aclData.data.inherited)
     const m = new Map<string, Set<Perm>>()
     for (const e of aclData.data.entries ?? []) {
-      m.set(`${e.subject_type}:${e.subject_id}`, new Set(e.permissions))
+      m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions))
     }
     setGrants(m)
   }, [aclData])
@@ -99,7 +99,7 @@ export function FolderAclDialog({
     if (tab === 'group') return groupsData?.data ?? []
     return (usersData?.data?.records ?? []).map((u) => ({
       id: u.id,
-      name: u.real_name || u.username,
+      name: u.realName || u.username,
     }))
   }, [tab, rolesData, groupsData, usersData])
 
@@ -122,8 +122,8 @@ export function FolderAclDialog({
       for (const [key, perms] of grants.entries()) {
         const [type, idStr] = key.split(':')
         entries.push({
-          subject_type: type as SubjectType,
-          subject_id: Number(idStr),
+          subjectType: type as SubjectType,
+          subjectId: Number(idStr),
           permissions: [...perms],
         })
       }

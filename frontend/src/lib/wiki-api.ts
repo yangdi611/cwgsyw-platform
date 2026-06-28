@@ -72,8 +72,8 @@ export const wikiApi = {
     api.get(`/wiki/pages/${id}`).then((r) => r.data.data),
 
   createPage: (body: {
-    space_id: number
-    parent_id: number | null
+    spaceId: number
+    parentId: number | null
     title: string
   }): Promise<WikiPage> => api.post('/wiki/pages', body).then((r) => r.data.data),
 
@@ -85,7 +85,7 @@ export const wikiApi = {
   deletePage: (id: number): Promise<void> =>
     api.delete(`/wiki/pages/${id}`).then(() => undefined),
 
-  movePage: (id: number, body: { parent_id: number | null; sort_order: number }): Promise<void> =>
+  movePage: (id: number, body: { parentId: number | null; sortOrder: number }): Promise<void> =>
     api.post(`/wiki/pages/${id}/move`, body).then(() => undefined),
 
   submitPage: (id: number): Promise<void> =>
@@ -113,7 +113,7 @@ export const wikiApi = {
     api.put(`/wiki/pages/${id}/acl`, body).then((r) => r.data.data),
 
   // ── Attachments ─────────────────────────────────────────────────────────────
-  uploadAttachment: (pageId: number, file: File): Promise<{ file_id: string; url: string }> => {
+  uploadAttachment: (pageId: number, file: File): Promise<{ fileId: string; url: string }> => {
     const form = new FormData()
     form.append('file', file)
     form.append('page_id', String(pageId))

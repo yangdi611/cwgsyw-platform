@@ -37,7 +37,8 @@ interface CiAttributeVO {
   placeholder: string
   unit: string
   defaultValue?: string
-  option: Array<{ id: string; name: string; isDefault?: boolean }>
+  // option：enum/enummulti 为数组 [{id,name}]；table 为对象 schema {schema_version,row_key,columns}（§4.1）
+  option?: Array<{ id: string; name: string; isDefault?: boolean }> | Record<string, unknown> | null
 }
 interface CiAttributeGroupVO {
   id: number
@@ -68,7 +69,30 @@ const FIELD_TYPES = [
   { value: 'date', label: '日期' },
   { value: 'bool', label: '是/否' },
   { value: 'objuser', label: '用户' },
+  { value: 'table', label: '表格' },
 ]
+
+/** table 子列 schema 模板（§4.1，含系统列 row_id）。 */
+const TABLE_SCHEMA_TEMPLATE = {
+  schema_version: 1,
+  row_key: 'row_id',
+  display_key: 'name',
+  columns: [
+    { key: 'row_id', name: '行ID', type: 'singlechar', system: true, required: true },
+    { key: 'name', name: '名称', type: 'singlechar', required: true },
+    { key: 'value', name: '值', type: 'singlechar' },
+  ],
+}
+
+/** option 可能是 enum 数组或 table 对象 schema，统一转 JSON 字符串供文本框编辑（空则空串）。 */
+function optionToJson(option: unknown): string {
+  if (option == null) return ''
+  if (Array.isArray(option)) return option.length > 0 ? JSON.stringify(option, null, 2) : ''
+  if (typeof option === 'object' && Object.keys(option as object).length > 0) {
+    return JSON.stringify(option, null, 2)
+  }
+  return ''
+}
 
 type ChipTone = 'default' | 'primary' | 'success' | 'danger' | 'neutral'
 
@@ -133,14 +157,14 @@ export default function ModelDetailPage() {
   const addAttrMutation = useMutation({
     mutationFn: () =>
       api.post(`/cmdb/models/${modelCode}/attributes`, {
-        field_key: newAttr.fieldKey,
+        fieldKey: newAttr.fieldKey,
         name: newAttr.name,
-        field_type: newAttr.fieldType,
-        group_id: newAttr.groupId,
-        is_required: newAttr.isRequired,
-        is_unique: newAttr.isUnique,
-        is_list_show: newAttr.isListShow,
-        is_drawer_show: newAttr.isDrawerShow,
+        fieldType: newAttr.fieldType,
+        groupId: newAttr.groupId,
+        isRequired: newAttr.isRequired,
+        isUnique: newAttr.isUnique,
+        isListShow: newAttr.isListShow,
+        isDrawerShow: newAttr.isDrawerShow,
         placeholder: newAttr.placeholder || undefined,
         unit: newAttr.unit || undefined,
       }),
@@ -176,25 +200,33 @@ export default function ModelDetailPage() {
   const updateAttrMutation = useMutation({
     mutationFn: async () => {
       if (!editingAttr) return
-      let option: Array<Record<string, unknown>> | undefined
+      let option: unknown
       const isEnum = editingAttr.fieldType === 'enum' || editingAttr.fieldType === 'enummulti'
-      if (isEnum && editForm.optionJson.trim()) {
+      const isTable = editingAttr.fieldType === 'table'
+      if ((isEnum || isTable) && editForm.optionJson.trim()) {
         try {
           const parsed = JSON.parse(editForm.optionJson)
-          if (!Array.isArray(parsed)) throw new Error('not array')
+          if (isEnum && !Array.isArray(parsed)) throw new Error('not array')
+          if (isTable && (Array.isArray(parsed) || typeof parsed !== 'object')) {
+            throw new Error('table schema 应为对象')
+          }
           option = parsed
-        } catch {
-          throw new Error('选项 JSON 格式无效，需要是数组')
+        } catch (err) {
+          throw new Error(
+            isTable
+              ? '表格 schema JSON 无效，需要是对象 {schema_version,row_key,columns:[...]}'
+              : '选项 JSON 格式无效，需要是数组',
+          )
         }
       }
       await api.put(`/cmdb/models/${modelCode}/attributes/${editingAttr.id}`, {
         name: editForm.name,
-        is_required: editForm.isRequired,
-        is_editable: editForm.isEditable,
-        is_list_show: editForm.isListShow,
-        is_drawer_show: editForm.isDrawerShow,
-        sort_order: editForm.sortOrder,
-        default_value: editForm.defaultValue || null,
+        isRequired: editForm.isRequired,
+        isEditable: editForm.isEditable,
+        isListShow: editForm.isListShow,
+        isDrawerShow: editForm.isDrawerShow,
+        sortOrder: editForm.sortOrder,
+        defaultValue: editForm.defaultValue || null,
         option,
       })
     },
@@ -216,8 +248,7 @@ export default function ModelDetailPage() {
       isDrawerShow: !!attr.isDrawerShow,
       sortOrder: attr.sortOrder ?? 0,
       defaultValue: attr.defaultValue ?? '',
-      optionJson:
-        attr.option && attr.option.length > 0 ? JSON.stringify(attr.option, null, 2) : '',
+      optionJson: optionToJson(attr.option),
     })
   }
 
@@ -557,6 +588,36 @@ export default function ModelDetailPage() {
                     }
                     placeholder='[{"id":"linux","name":"Linux","isDefault":true}]'
                   />
+                </div>
+              )}
+              {editingAttr.fieldType === 'table' && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">表格子列 Schema（JSON 对象）</Label>
+                    <button
+                      type="button"
+                      className="text-xs text-v2-primary hover:underline"
+                      onClick={() =>
+                        setEditForm((f) => ({
+                          ...f,
+                          optionJson: JSON.stringify(TABLE_SCHEMA_TEMPLATE, null, 2),
+                        }))
+                      }
+                    >
+                      插入模板
+                    </button>
+                  </div>
+                  <textarea
+                    className="w-full min-h-[200px] rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 font-v2-mono text-xs text-v2-fg"
+                    value={editForm.optionJson}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, optionJson: e.target.value }))
+                    }
+                    placeholder='{"schema_version":1,"row_key":"row_id","columns":[...]}'
+                  />
+                  <p className="text-[11px] text-v2-muted">
+                    columns 每列含 key/name/type（singlechar/int/bool/enum）。系统列 row_id（system:true）会自动维护，可不写。
+                  </p>
                 </div>
               )}
               {editingAttr.isBuiltIn && (

@@ -9,14 +9,14 @@ import { PageHeader, EmptyState } from '@/components/shared'
 import { BarChart3 } from 'lucide-react'
 
 interface ProcessStat {
-  process_definition_key: string
+  processDefinitionKey: string
   name: string
   version: number
-  total_started: number
-  running_count: number
-  finished_count: number
-  success_rate: number
-  avg_duration_seconds: number
+  totalStarted: number
+  runningCount: number
+  finishedCount: number
+  successRate: number
+  avgDurationSeconds: number
 }
 
 function rateVariant(r: number): 'ok' | 'warn' | 'danger' {
@@ -78,23 +78,23 @@ export default function WorkflowStatsPage() {
       ) : (
         <div className="grid gap-4">
           {stats.map((s) => (
-            <Card key={s.process_definition_key} className="p-6">
+            <Card key={s.processDefinitionKey} className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-v2-fg">{s.name}</h2>
                   <p className="font-v2-mono text-sm text-v2-muted">
-                    {s.process_definition_key} · v{s.version}
+                    {s.processDefinitionKey} · v{s.version}
                   </p>
                 </div>
-                <StatusBadge status={rateVariant(s.success_rate)}>
-                  {s.success_rate}% 通过率
+                <StatusBadge status={rateVariant(s.successRate)}>
+                  {s.successRate}% 通过率
                 </StatusBadge>
               </div>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <StatCell value={s.total_started} label="总实例数" />
-                <StatCell value={s.running_count} label="运行中" tone="primary" />
-                <StatCell value={s.finished_count} label="已完成" tone="success" />
-                <StatCell value={formatDuration(s.avg_duration_seconds)} label="平均审批时长" />
+                <StatCell value={s.totalStarted} label="总实例数" />
+                <StatCell value={s.runningCount} label="运行中" tone="primary" />
+                <StatCell value={s.finishedCount} label="已完成" tone="success" />
+                <StatCell value={formatDuration(s.avgDurationSeconds)} label="平均审批时长" />
               </div>
             </Card>
           ))}

@@ -215,7 +215,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      wikiApi.createPage({ space_id: spaceId, parent_id: newParent, title: newTitle.trim() }),
+      wikiApi.createPage({ spaceId: spaceId, parentId: newParent, title: newTitle.trim() }),
     onSuccess: (page) => {
       invalidate()
       setCreateOpen(false)
@@ -268,8 +268,8 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   })
 
   const moveMutation = useMutation({
-    mutationFn: ({ id, sort_order, parent_id }: { id: number; sort_order: number; parent_id: number | null }) =>
-      wikiApi.movePage(id, { parent_id, sort_order }),
+    mutationFn: ({ id, sortOrder, parentId }: { id: number; sortOrder: number; parentId: number | null }) =>
+      wikiApi.movePage(id, { parentId, sortOrder }),
     onSuccess: invalidate,
     onError: (e: unknown) => {
       const msg =
@@ -296,7 +296,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
       const swapIdx = idx + dir
       if (swapIdx < 0 || swapIdx >= siblings.length) return
       const target = siblings[swapIdx]
-      moveMutation.mutate({ id: node.id, parent_id: parentId, sort_order: target.sort_order })
+      moveMutation.mutate({ id: node.id, parentId: parentId, sortOrder: target.sortOrder })
     },
   }
 

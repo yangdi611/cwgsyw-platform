@@ -120,7 +120,106 @@ public class CiFieldSchemaValidator {
                     throw new IllegalArgumentException("字段 " + name + " 应为JSON数组格式: " + value);
                 }
             }
+            case "table" -> validateTable(name, optionOrEnumOptions, value);
             default -> {}
         }
+    }
+
+    /**
+     * table 字段校验（§4.2a）。value 为对象数组（每行 Map）；optionOrEnumOptions 为子列 schema：
+     * 对象格式 {"columns":[{key,name,type,required,options}]} 或兼容旧裸数组（直接当 columns）。
+     * 逐行逐列：必填子列缺失报错；int/float 数字校验；enum 值域校验（子列自带 options）。
+     * row_id 不强制必填——缺失由 CiInstanceCommandService 补生成（§4.2a"补生成更友好"）。
+     * P2 仅校验标量子列（singlechar/longchar/int/float/bool/enum）；ref/ref_subitem 为 P3。
+     */
+    @SuppressWarnings("unchecked")
+    private void validateTable(String name, Object schema, Object value) {
+        if (!(value instanceof List<?> rows)) {
+            throw new IllegalArgumentException("字段 " + name + " 应为表格(数组)类型");
+        }
+        List<Map<String, Object>> columns = extractColumns(schema);
+        if (columns.isEmpty()) return; // 无 schema 不校验子列（容忍）
+
+        for (Object rowObj : rows) {
+            if (!(rowObj instanceof Map<?, ?> row)) {
+                throw new IllegalArgumentException("字段 " + name + " 的每行应为对象");
+            }
+            for (Map<String, Object> col : columns) {
+                String colKey = String.valueOf(col.get("key"));
+                String colType = String.valueOf(col.getOrDefault("type", "singlechar"));
+                boolean colRequired = Boolean.TRUE.equals(col.get("required"));
+                boolean isSystem = Boolean.TRUE.equals(col.get("system"));
+                Object cellVal = ((Map<String, Object>) row).get(colKey);
+
+                // row_id 等系统列不强制（缺失后端补生成）
+                if (cellVal == null || (cellVal instanceof String cs && cs.isBlank())) {
+                    if (colRequired && !isSystem) {
+                        throw new IllegalArgumentException(
+                                "字段 " + name + " 的必填子列「" + col.getOrDefault("name", colKey) + "」缺失");
+                    }
+                    continue;
+                }
+                validateTableCell(name, col, colKey, colType, cellVal);
+            }
+        }
+    }
+
+    /** 校验单个表格单元格。enum 子列的 options 内嵌在列定义里。 */
+    @SuppressWarnings("unchecked")
+    private void validateTableCell(String fieldName, Map<String, Object> col,
+                                   String colKey, String colType, Object cellVal) {
+        switch (colType) {
+            case "int" -> {
+                if (cellVal instanceof Number) return;
+                if (cellVal instanceof String s) {
+                    try { Long.parseLong(s.trim()); return; } catch (NumberFormatException ignored) {}
+                }
+                throw new IllegalArgumentException("字段 " + fieldName + " 子列「" + colKey + "」应为整数");
+            }
+            case "float" -> {
+                if (cellVal instanceof Number) return;
+                if (cellVal instanceof String s) {
+                    try { Double.parseDouble(s.trim()); return; } catch (NumberFormatException ignored) {}
+                }
+                throw new IllegalArgumentException("字段 " + fieldName + " 子列「" + colKey + "」应为浮点数");
+            }
+            case "bool" -> {
+                if (!(cellVal instanceof Boolean) && !(cellVal instanceof String s
+                        && ("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s)))) {
+                    throw new IllegalArgumentException("字段 " + fieldName + " 子列「" + colKey + "」应为布尔");
+                }
+            }
+            case "enum" -> {
+                Object opts = col.get("options");
+                if (opts instanceof List<?> optList && !optList.isEmpty()) {
+                    Set<String> ids = optList.stream()
+                            .filter(Map.class::isInstance)
+                            .map(o -> String.valueOf(((Map<String, Object>) o).get("id")))
+                            .collect(Collectors.toSet());
+                    if (!ids.contains(String.valueOf(cellVal))) {
+                        throw new IllegalArgumentException(
+                                "字段 " + fieldName + " 子列「" + colKey + "」的值不在可选范围内: " + cellVal);
+                    }
+                }
+            }
+            default -> { /* singlechar/longchar：任意值放行 */ }
+        }
+    }
+
+    /** 从 table schema 提取 columns：对象格式取 "columns"，旧裸数组直接当 columns。 */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractColumns(Object schema) {
+        Object cols = schema;
+        if (schema instanceof Map<?, ?> m) {
+            cols = ((Map<String, Object>) m).get("columns");
+        }
+        if (cols instanceof List<?> list) {
+            List<Map<String, Object>> out = new java.util.ArrayList<>();
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> mm) out.add((Map<String, Object>) mm);
+            }
+            return out;
+        }
+        return List.of();
     }
 }

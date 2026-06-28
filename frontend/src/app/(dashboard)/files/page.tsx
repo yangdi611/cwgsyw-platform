@@ -39,20 +39,20 @@ import { FolderAclDialog } from './FolderAclDialog'
 interface FolderNode {
   id: number
   name: string
-  parent_id: number | null
-  acl_custom?: boolean
+  parentId: number | null
+  aclCustom?: boolean
   children?: FolderNode[]
 }
 
 interface SharedFile {
   id: number
   name: string
-  original_name: string
-  file_type: string
-  size_bytes: number
-  folder_id: number | null
-  created_by_name: string
-  created_at: string
+  originalName: string
+  fileType: string
+  sizeBytes: number
+  folderId: number | null
+  createdByName: string
+  createdAt: string
 }
 
 function formatBytes(bytes: number): string {
@@ -137,7 +137,7 @@ function FolderTreeNode({
             <Folder className="h-3.5 w-3.5 shrink-0" />
           )}
           <span className="truncate">{node.name}</span>
-          {node.acl_custom && (
+          {node.aclCustom && (
             <Lock className="h-3 w-3 shrink-0 text-v2-warn" aria-label="自定义权限" />
           )}
         </button>
@@ -270,7 +270,7 @@ export default function FilesPage() {
 
   const createFolderMutation = useMutation({
     mutationFn: (name: string) =>
-      api.post('/files/folders', { name, parent_id: selectedFolderId ?? null }),
+      api.post('/files/folders', { name, parentId: selectedFolderId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['file-folders'] })
       setNewFolderOpen(false)
@@ -335,28 +335,28 @@ export default function FilesPage() {
       ),
     },
     {
-      key: 'file_type',
+      key: 'fileType',
       title: '类型',
-      render: (r) => <span className="text-sm text-v2-muted">{fileTypeLabel(r.file_type)}</span>,
+      render: (r) => <span className="text-sm text-v2-muted">{fileTypeLabel(r.fileType)}</span>,
     },
     {
       key: 'size',
       title: '大小',
       render: (r) => (
-        <span className="tabular-nums text-sm text-v2-muted">{formatBytes(r.size_bytes)}</span>
+        <span className="tabular-nums text-sm text-v2-muted">{formatBytes(r.sizeBytes)}</span>
       ),
     },
     {
-      key: 'created_by_name',
+      key: 'createdByName',
       title: '上传者',
-      render: (r) => <span className="text-sm text-v2-fg">{r.created_by_name}</span>,
+      render: (r) => <span className="text-sm text-v2-fg">{r.createdByName}</span>,
     },
     {
-      key: 'created_at',
+      key: 'createdAt',
       title: '上传时间',
       render: (r) => (
         <span className="whitespace-nowrap text-sm text-v2-muted">
-          {new Date(r.created_at).toLocaleString('zh-CN', {
+          {new Date(r.createdAt).toLocaleString('zh-CN', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',

@@ -19,13 +19,13 @@ export type DiffStatus = 'added' | 'removed' | 'modified' | 'unchanged'
 export interface TopologyNode {
   id: number
   name: string
-  model_id: string | null
-  model_name: string | null
-  model_color: string | null
+  modelId: string | null
+  modelName: string | null
+  modelColor: string | null
   status: string | null
   owner: string | null
-  is_root: boolean
-  key_attrs: Record<string, unknown> | null
+  isRoot: boolean
+  keyAttrs: Record<string, unknown> | null
 }
 
 /** Backend `TopologyEdgeVO`: directed `src → dst` with a semantic `kind`. */
@@ -380,13 +380,13 @@ function toRFNodes(
       position: positions.get(n.id) ?? { x: 0, y: 0 },
       data: {
         name: n.name,
-        modelId: n.model_id,
-        modelName: n.model_name,
-        modelColor: n.model_color,
+        modelId: n.modelId,
+        modelName: n.modelName,
+        modelColor: n.modelColor,
         status: n.status,
         owner: n.owner,
-        isRoot: n.is_root,
-        keyAttrs: n.key_attrs,
+        isRoot: n.isRoot,
+        keyAttrs: n.keyAttrs,
         collapsed: collapsed.has(n.id),
         hasDownstream: (down.get(n.id)?.length ?? 0) > 0,
         dimmed: filterNodeIds ? !filterNodeIds.has(n.id) : false,

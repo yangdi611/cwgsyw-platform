@@ -21,20 +21,20 @@ interface Credential {
   id: number
   username: string
   description: string
-  group_id: number | null
-  group_name: string | null
+  groupId: number | null
+  groupName: string | null
 }
 
 interface DeviceDetail {
   id: number
   name: string
   ip: string
-  device_type: string
+  deviceType: string
   category: string
-  group_name: string
+  groupName: string
   description: string
-  ci_instance_id: number | null
-  ci_instance_name: string | null
+  ciInstanceId: number | null
+  ciInstanceName: string | null
   credentials: Credential[]
 }
 
@@ -164,7 +164,7 @@ export default function DeviceDetailPage() {
 
   const addCredMutation = useMutation({
     mutationFn: (groupId: number | null) =>
-      api.post(`/devices/${id}/credentials`, { ...newCred, group_id: groupId }),
+      api.post(`/devices/${id}/credentials`, { ...newCred, groupId: groupId }),
     onSuccess: () => {
       toast.success('账号已添加')
       queryClient.invalidateQueries({ queryKey: ['device', id] })
@@ -227,7 +227,7 @@ export default function DeviceDetailPage() {
   const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
 
   const visibleGroups = isAdmin ? ORG_GROUPS : ORG_GROUPS.filter((g) => g.id === userGroupId)
-  const ungroupedCreds = credentials.filter((c) => c.group_id == null)
+  const ungroupedCreds = credentials.filter((c) => c.groupId == null)
   const invalidateDevice = () => queryClient.invalidateQueries({ queryKey: ['device', id] })
 
   return (
@@ -245,9 +245,9 @@ export default function DeviceDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-v2-fg">{device.name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <Chip tone="primary">{typeLabels[device.device_type] ?? device.device_type}</Chip>
+              <Chip tone="primary">{typeLabels[device.deviceType] ?? device.deviceType}</Chip>
               {device.category && <Chip>{device.category}</Chip>}
-              {device.group_name && <span className="text-sm text-v2-muted">{device.group_name}</span>}
+              {device.groupName && <span className="text-sm text-v2-muted">{device.groupName}</span>}
             </div>
           </div>
         </div>
@@ -292,13 +292,13 @@ export default function DeviceDetailPage() {
                 <div>
                   <dt className="text-xs text-v2-muted">设备类型</dt>
                   <dd className="mt-0.5 text-sm text-v2-fg">
-                    {DEVICE_TYPES.find((t) => t.value === device.device_type)?.label ?? '其他'}
+                    {DEVICE_TYPES.find((t) => t.value === device.deviceType)?.label ?? '其他'}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-v2-muted">关联 CMDB 实例</dt>
                   <dd className="mt-0.5 text-sm text-v2-fg">
-                    {device.ci_instance_name ?? (device.ci_instance_id ? `实例 #${device.ci_instance_id}` : '-')}
+                    {device.ciInstanceName ?? (device.ciInstanceId ? `实例 #${device.ciInstanceId}` : '-')}
                   </dd>
                 </div>
               </dl>
@@ -338,7 +338,7 @@ export default function DeviceDetailPage() {
       )}
 
       {/* Device Info */}
-      {!editing && (device.ip || device.description || device.ci_instance_id) && (
+      {!editing && (device.ip || device.description || device.ciInstanceId) && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {device.ip && (
             <Card>
@@ -348,17 +348,17 @@ export default function DeviceDetailPage() {
               <CardContent className="font-v2-mono text-sm text-v2-fg">{device.ip}</CardContent>
             </Card>
           )}
-          {device.ci_instance_id && (
+          {device.ciInstanceId && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">关联 CMDB 实例</CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 <Link
-                  href={`/cmdb/instances/by-model/host/${device.ci_instance_id}`}
+                  href={`/cmdb/instances/by-model/host/${device.ciInstanceId}`}
                   className="font-semibold text-v2-primary hover:text-v2-primary-hover"
                 >
-                  {device.ci_instance_name ?? `实例 #${device.ci_instance_id}`}
+                  {device.ciInstanceName ?? `实例 #${device.ciInstanceId}`}
                 </Link>
               </CardContent>
             </Card>
@@ -435,7 +435,7 @@ export default function DeviceDetailPage() {
         <h2 className="text-base font-bold text-v2-fg">账号密码</h2>
 
         {visibleGroups.map((group) => {
-          const groupCreds = credentials.filter((c) => c.group_id === group.id)
+          const groupCreds = credentials.filter((c) => c.groupId === group.id)
           const canAdd = hasPermission('device', 'create') && (isAdmin || userGroupId === group.id)
           return (
             <CredentialSection

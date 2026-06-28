@@ -18,7 +18,7 @@ export function ApprovalActions({ taskId, onDone }: Props) {
 
   const mutation = useMutation({
     mutationFn: (approved: boolean) =>
-      api.post('/workflow/approve', { task_id: taskId, approved, comment }),
+      api.post('/workflow/approve', { taskId, approved, comment }),
     onSuccess: (_data, approved) => {
       toast.success(approved ? '已通过审批' : '已拒绝')
       queryClient.invalidateQueries({ queryKey: ['workflow-tasks'] })

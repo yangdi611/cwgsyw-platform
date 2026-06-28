@@ -33,12 +33,12 @@ const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 
   archived: { label: '已归档', variant: 'neutral' },
 }
 
-/** 扁平化目录，建立 title → {id, space_id} 映射，用于解析 [[wiki link]] */
-function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; space_id: number }> {
-  const map = new Map<string, { id: number; space_id: number }>()
+/** 扁平化目录，建立 title → {id, spaceId} 映射，用于解析 [[wiki link]] */
+function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; spaceId: number }> {
+  const map = new Map<string, { id: number; spaceId: number }>()
   const walk = (list: WikiPageTree[]) => {
     for (const n of list) {
-      if (!map.has(n.title)) map.set(n.title, { id: n.id, space_id: n.space_id })
+      if (!map.has(n.title)) map.set(n.title, { id: n.id, spaceId: n.spaceId })
       if (n.children?.length) walk(n.children)
     }
   }
@@ -52,14 +52,14 @@ function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; space_i
  */
 function preprocessWikiLinks(
   content: string,
-  titleMap: Map<string, { id: number; space_id: number }>,
+  titleMap: Map<string, { id: number; spaceId: number }>,
 ): string {
   return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, rawTitle: string, alias?: string) => {
     const title = rawTitle.trim()
     const display = (alias ?? title).trim()
     const target = titleMap.get(title)
     if (target) {
-      return `[${display}](/wiki/${target.space_id}/${target.id})`
+      return `[${display}](/wiki/${target.spaceId}/${target.id})`
     }
     return `\`${display}\`<sup title="该页面尚未创建">待创建</sup>`
   })
@@ -93,7 +93,7 @@ export default function WikiPageReader() {
   })
 
   const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
-  const readOnly = currentSpace?.read_only ?? false
+  const readOnly = currentSpace?.readOnly ?? false
 
   useBreadcrumbLabel([currentSpace?.name, page?.title])
 
@@ -220,23 +220,23 @@ export default function WikiPageReader() {
             </div>
             <div className="flex items-center gap-1.5 text-v2-muted">
               <User className="h-3.5 w-3.5" />
-              <span>{page.updated_by_name || '—'}</span>
+              <span>{page.updatedByName || '—'}</span>
             </div>
             <div className="flex items-center gap-1.5 text-v2-muted">
               <Clock className="h-3.5 w-3.5" />
               <span>
-                {page.updated_at ? new Date(page.updated_at).toLocaleString('zh-CN') : '—'}
+                {page.updatedAt ? new Date(page.updatedAt).toLocaleString('zh-CN') : '—'}
               </span>
             </div>
             <div className="flex items-center justify-between text-v2-muted">
               <span>版本</span>
-              <span className="font-mono">v{page.current_version}</span>
+              <span className="font-mono">v{page.currentVersion}</span>
             </div>
             {canManageAcl && (
               <Button variant="secondary" size="sm" className="w-full" onClick={() => setAclOpen(true)}>
                 <Lock className="h-3.5 w-3.5" />
                 权限设置
-                {page.acl_custom && <span className="text-v2-warn">（自定义）</span>}
+                {page.aclCustom && <span className="text-v2-warn">（自定义）</span>}
               </Button>
             )}
           </div>

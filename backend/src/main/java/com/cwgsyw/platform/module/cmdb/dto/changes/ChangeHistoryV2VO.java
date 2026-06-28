@@ -1,14 +1,11 @@
 package com.cwgsyw.platform.module.cmdb.dto.changes;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 public class ChangeHistoryV2VO {
     private Long id;

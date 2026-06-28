@@ -15,12 +15,12 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface DailyReport {
   id: number
-  report_date: string
-  completed_items: string
+  reportDate: string
+  completedItems: string
   status: string
-  work_hours: number
-  reporter_name?: string
-  group_name?: string
+  workHours: number
+  reporterName?: string
+  groupName?: string
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -88,9 +88,9 @@ export default function DailyReportsPage() {
 
   const reportsByDate = new Map<string, DailyReport[]>()
   ;(data ?? []).forEach((r) => {
-    const list = reportsByDate.get(r.report_date) ?? []
+    const list = reportsByDate.get(r.reportDate) ?? []
     list.push(r)
-    reportsByDate.set(r.report_date, list)
+    reportsByDate.set(r.reportDate, list)
   })
 
   const cells = buildCalendar(viewYear, viewMonth)
@@ -215,7 +215,7 @@ export default function DailyReportsPage() {
                                 )}
                               />
                               <span className="truncate text-xs text-v2-muted">
-                                {canViewOthers && r.reporter_name ? r.reporter_name : cfg?.label}
+                                {canViewOthers && r.reporterName ? r.reporterName : cfg?.label}
                               </span>
                             </div>
                           )
@@ -256,17 +256,17 @@ export default function DailyReportsPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-bold text-v2-fg tabular-nums">{selectedDate}</span>
-                    {canViewOthers && report.reporter_name && (
+                    {canViewOthers && report.reporterName && (
                       <span className="text-sm font-medium text-v2-fg">
-                        {report.reporter_name}
-                        {report.group_name && (
-                          <span className="font-normal text-v2-muted"> · {report.group_name}</span>
+                        {report.reporterName}
+                        {report.groupName && (
+                          <span className="font-normal text-v2-muted"> · {report.groupName}</span>
                         )}
                       </span>
                     )}
                     {cfg && <StatusBadge status={cfg.badge}>{cfg.label}</StatusBadge>}
-                    {report.work_hours && (
-                      <span className="text-sm text-v2-muted tabular-nums">{report.work_hours}h</span>
+                    {report.workHours && (
+                      <span className="text-sm text-v2-muted tabular-nums">{report.workHours}h</span>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -288,7 +288,7 @@ export default function DailyReportsPage() {
                     )}
                   </div>
                 </div>
-                <p className="line-clamp-2 text-sm text-v2-muted">{report.completed_items}</p>
+                <p className="line-clamp-2 text-sm text-v2-muted">{report.completedItems}</p>
               </Card>
             )
           })}

@@ -82,4 +82,34 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
         """)
     java.util.Map<String, Object> aggregateResourcePoolWorkers(@Param("poolId") Long poolId,
                                                                @Param("tenantId") String tenantId);
+
+    /**
+     * 机柜成员查询（spec §5.1）：返回 rack 实例通过 {@code rack_contains_*} 边直连的所有设备，
+     * 含设备 U 位（attrs.u_start/u_end）、资产编号、模型配色/显示名。
+     *
+     * <p>U 位用 {@code NULLIF(...,'')::int} 防空串转换异常；未登记 U 位的设备 u_start/u_end 为 null，
+     * 由 Service 归入「未定位」并产生 missing_u 告警。仅取 rack 作为 src 的边（方向天然匹配，§5.5）。
+     */
+    @Select("""
+        SELECT i.id                                       AS id,
+               i.model_id                                 AS modelId,
+               i.name                                     AS name,
+               i.status                                   AS status,
+               m.color                                    AS modelColor,
+               m.display_name                             AS modelName,
+               NULLIF(i.attrs->>'u_start','')::int        AS uStart,
+               NULLIF(i.attrs->>'u_end','')::int          AS uEnd,
+               i.attrs->>'asset_no'                       AS assetNo
+        FROM ci_instance_rel r
+        JOIN ci_instance i ON i.id = r.dst_id AND NOT i.is_deleted
+        JOIN ci_model m ON m.tenant_id = r.tenant_id AND m.model_id = i.model_id AND NOT m.is_deleted
+        WHERE r.src_id = #{rackId}
+          AND r.tenant_id = #{tenantId}
+          AND NOT r.is_deleted
+          AND r.def_id LIKE 'rack_contains_%'
+        ORDER BY uStart NULLS LAST, i.name
+        """)
+    List<com.cwgsyw.platform.module.cmdb.dto.rack.RackMemberRow> findRackMembers(
+            @Param("rackId") Long rackId, @Param("tenantId") String tenantId);
 }
+

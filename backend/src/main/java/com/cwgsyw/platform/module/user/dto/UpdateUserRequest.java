@@ -1,14 +1,15 @@
 package com.cwgsyw.platform.module.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import java.util.List;
 
 @Data
 public class UpdateUserRequest {
-    private String realName;
+    @JsonAlias("real_name") private String realName;
     private String email;
     private String password;
-    private Long groupId;
+    @JsonAlias("group_id")  private Long groupId;
     private Integer status;
-    private List<Long> roleIds;
+    @JsonAlias("role_ids")  private List<Long> roleIds;
 }

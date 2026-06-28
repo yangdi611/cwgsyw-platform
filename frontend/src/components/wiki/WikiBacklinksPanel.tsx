@@ -28,9 +28,9 @@ export function WikiBacklinksPanel({ pageId }: { pageId: number }) {
           <p className="mb-2 text-xs text-v2-muted">{links.length} 个页面引用了本文</p>
           <ul className="space-y-1">
             {links.map((l) => (
-              <li key={l.page_id}>
+              <li key={l.pageId}>
                 <button
-                  onClick={() => router.push(`/wiki/${l.space_id}/${l.page_id}`)}
+                  onClick={() => router.push(`/wiki/${l.spaceId}/${l.pageId}`)}
                   className="w-full truncate text-left text-sm text-v2-primary hover:underline"
                 >
                   {l.title}

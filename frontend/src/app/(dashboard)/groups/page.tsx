@@ -22,10 +22,10 @@ interface Group {
   id: number
   name: string
   description: string
-  leader_id: number | null
-  leader_real_name: string | null
-  member_count: number
-  member_preview: string[]
+  leaderId: number | null
+  leaderRealName: string | null
+  memberCount: number
+  memberPreview: string[]
 }
 
 export default function GroupsPage() {
@@ -85,20 +85,20 @@ export default function GroupsPage() {
       render: (r) => <span className="text-v2-muted">{r.description || '-'}</span>,
     },
     {
-      key: 'leader_real_name',
+      key: 'leaderRealName',
       title: '组长',
-      render: (r) => <span className="text-v2-fg">{r.leader_real_name || '-'}</span>,
+      render: (r) => <span className="text-v2-fg">{r.leaderRealName || '-'}</span>,
     },
     {
-      key: 'member_count',
+      key: 'memberCount',
       title: '组员',
       render: (r) => (
         <div className="text-v2-muted">
-          <span className="font-semibold text-v2-fg tabular-nums">{r.member_count ?? 0}</span> 人
-          {r.member_preview && r.member_preview.length > 0 && (
+          <span className="font-semibold text-v2-fg tabular-nums">{r.memberCount ?? 0}</span> 人
+          {r.memberPreview && r.memberPreview.length > 0 && (
             <span className="ml-2 text-xs">
-              {r.member_preview.join(', ')}
-              {(r.member_count ?? 0) > 3 ? ', …' : ''}
+              {r.memberPreview.join(', ')}
+              {(r.memberCount ?? 0) > 3 ? ', …' : ''}
             </span>
           )}
         </div>

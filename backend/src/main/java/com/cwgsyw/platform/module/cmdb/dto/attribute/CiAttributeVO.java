@@ -1,13 +1,10 @@
 package com.cwgsyw.platform.module.cmdb.dto.attribute;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
 
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 public class CiAttributeVO {
     private Long id;
@@ -26,10 +23,9 @@ public class CiAttributeVO {
     private String defaultValue;
 
     /**
-     * Option JSONB field for enum/enummulti field types.
-     * Format: [{"id":"linux","name":"Linux","isDefault":true}]
+     * Option JSONB. enum/enummulti 为数组；table 为对象 schema（§4.1）。类型放宽为 Object。
      */
-    private List<Map<String, Object>> option;
+    private Object option;
 
     /**
      * @deprecated Use {@link #option} instead. This field returns the old enumOptions string.

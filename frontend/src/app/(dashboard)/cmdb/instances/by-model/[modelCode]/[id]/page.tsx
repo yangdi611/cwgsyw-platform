@@ -14,6 +14,9 @@ import { InstanceChangeHistoryTab } from '@/components/cmdb/InstanceChangeHistor
 import { InstanceAlertsTab } from '@/components/cmdb/InstanceAlertsTab'
 import { InstanceResourcesTab } from '@/components/cmdb/InstanceResourcesTab'
 import { ResourcePoolCapacityCard } from '@/components/cmdb/ResourcePoolCapacityCard'
+import { RackElevationView } from '@/components/cmdb/RackElevationView'
+import { RackAssignmentCard } from '@/components/cmdb/RackAssignmentCard'
+import { EndpointLinksCard } from '@/components/cmdb/EndpointLinksCard'
 import { cn } from '@/lib/utils'
 
 interface CiAttributeVO {
@@ -43,15 +46,16 @@ interface CiInstanceVO {
   createdByName: string
 }
 
-const TABS = [
+const BASE_TABS = [
   { key: 'basic', label: '基本信息' },
+  { key: 'rack', label: '机柜视图' },
   { key: 'associations', label: '关联关系' },
   { key: 'topology', label: '拓扑图' },
   { key: 'changes', label: '变更历史' },
   { key: 'alerts', label: '告警' },
   { key: 'resources', label: '关联资源' },
 ] as const
-type TabKey = (typeof TABS)[number]['key']
+type TabKey = (typeof BASE_TABS)[number]['key']
 
 export default function InstanceDetailPage() {
   const { modelCode, id } = useParams<{ modelCode: string; id: string }>()
@@ -81,6 +85,9 @@ export default function InstanceDetailPage() {
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
   if (!inst) return <p className="text-v2-danger">实例不存在</p>
+
+  const isRack = inst.modelId === 'rack'
+  const tabs = BASE_TABS.filter((t) => t.key !== 'rack' || isRack)
 
   return (
     <div className="space-y-6">
@@ -132,7 +139,7 @@ export default function InstanceDetailPage() {
 
       {/* Tab navigation */}
       <div className="flex flex-wrap items-center gap-1 border-b border-v2-border">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -155,9 +162,12 @@ export default function InstanceDetailPage() {
             {inst.modelId === 'resource_pool' && (
               <ResourcePoolCapacityCard fieldsData={inst.fieldsData ?? {}} />
             )}
+            {!isRack && <RackAssignmentCard instanceId={id} />}
+            {!isRack && <EndpointLinksCard instanceId={id} />}
             <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />
           </>
         )}
+        {tab === 'rack' && isRack && <RackElevationView rackId={id} />}
         {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
         {tab === 'topology' && <InstanceTopologyTab id={id} />}
         {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}

@@ -13,10 +13,10 @@ interface NotificationVO {
   title: string
   content: string
   type: string
-  ref_type: string | null
-  ref_id: number | null
-  is_read: boolean
-  created_at: string
+  refType: string | null
+  refId: number | null
+  isRead: boolean
+  createdAt: string
 }
 
 interface PageResult {
@@ -51,7 +51,7 @@ export default function NotificationsPage() {
   })
 
   const records = data?.records ?? []
-  const unreadCount = records.filter((n) => !n.is_read).length
+  const unreadCount = records.filter((n) => !n.isRead).length
 
   return (
     <div className="space-y-6">

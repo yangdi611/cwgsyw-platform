@@ -12,7 +12,7 @@ export interface SearchResultItem {
   title: string
   subtitle: string | null
   url: string
-  group_label: string
+  groupLabel: string
 }
 
 /** 调 /api/search，size 为每类返回上限。 */

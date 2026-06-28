@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.changedoc.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 import java.util.List;
@@ -10,7 +11,7 @@ public class LinkCiRequest {
 
     @Data
     public static class LinkItem {
-        private Long instanceId;
-        private String impactLevel;
+        @JsonAlias("instance_id")  private Long instanceId;
+        @JsonAlias("impact_level") private String impactLevel;
     }
 }

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface CompareNodeV2 extends TopologyNode {
-  fields_data?: Record<string, unknown> | null
+  fieldsData?: Record<string, unknown> | null
 }
 interface CompareEdge {
   src: number
@@ -48,9 +48,9 @@ function mergeCompare(vo: TopologyCompareVO) {
   ;(['added', 'removed', 'modified', 'unchanged'] as DiffStatus[]).forEach(status => {
     vo[status].forEach(n => {
       nodes.push({
-        id: n.id, name: n.name, model_id: n.model_id, model_name: n.model_name,
-        model_color: n.model_color, status: n.status, owner: n.owner,
-        is_root: n.is_root, key_attrs: n.key_attrs,
+        id: n.id, name: n.name, modelId: n.modelId, modelName: n.modelName,
+        modelColor: n.modelColor, status: n.status, owner: n.owner,
+        isRoot: n.isRoot, keyAttrs: n.keyAttrs,
       })
       nodeDiffMap.set(n.id, status)
     })
@@ -102,7 +102,7 @@ export default function TopologyComparePage() {
     return { nodes: [], edges: [], nodeDiffMap: null, edgeDiffMap: null }
   }, [compareQuery.data])
 
-  const rootNode = graphInput.nodes.find(n => n.is_root)
+  const rootNode = graphInput.nodes.find(n => n.isRoot)
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] -m-6">

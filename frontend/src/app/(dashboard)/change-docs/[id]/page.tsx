@@ -19,51 +19,51 @@ type DocType = 'application' | 'plan' | 'general'
 
 interface FieldConfigVO {
   id: number
-  field_key: string
+  fieldKey: string
   label: string
-  field_type: string
+  fieldType: string
   required: boolean
-  in_form: boolean
+  inForm: boolean
   placeholder: string | null
-  sort_order: number
+  sortOrder: number
 }
 
 interface ChangeDocVO {
   id: number
-  change_no: string
+  changeNo: string
   title: string
   status: string
-  application_template_id: number | null
-  application_template_name: string | null
-  plan_template_id: number | null
-  plan_template_name: string | null
-  applicant_id: number
-  applicant_name: string
-  apply_time: string
-  approved_at: string | null
-  approver_id: number | null
-  approver_name: string | null
-  approver_comment: string | null
-  created_at: string
-  updated_at: string
-  fields_data: Record<string, string>
-  application_field_config: FieldConfigVO[] | null
-  plan_field_config: FieldConfigVO[] | null
+  applicationTemplateId: number | null
+  applicationTemplateName: string | null
+  planTemplateId: number | null
+  planTemplateName: string | null
+  applicantId: number
+  applicantName: string
+  applyTime: string
+  approvedAt: string | null
+  approverId: number | null
+  approverName: string | null
+  approverComment: string | null
+  createdAt: string
+  updatedAt: string
+  fieldsData: Record<string, string>
+  applicationFieldConfig: FieldConfigVO[] | null
+  planFieldConfig: FieldConfigVO[] | null
 }
 
 interface TemplateVO {
   id: number
   name: string
-  doc_type: DocType
+  docType: DocType
   active: boolean
-  has_docx: boolean
+  hasDocx: boolean
 }
 
 interface LinkedCiInstanceVO {
   id: number
   name: string
-  model_name: string
-  impact_level?: string
+  modelName: string
+  impactLevel?: string
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -117,7 +117,7 @@ export default function ChangeDocDetailPage() {
 
   useEffect(() => {
     if (doc) {
-      setFieldsData(doc.fields_data ?? {})
+      setFieldsData(doc.fieldsData ?? {})
       setTitle(doc.title ?? '')
     }
   }, [doc])
@@ -142,7 +142,7 @@ export default function ChangeDocDetailPage() {
     mutationFn: () =>
       api.put(`/change-docs/${id}`, {
         title: title.trim() || undefined,
-        fields_data: fieldsData,
+        fieldsData: fieldsData,
       }),
     onSuccess: () => {
       toast.success('已保存')
@@ -193,7 +193,7 @@ export default function ChangeDocDetailPage() {
 
   const setPlanTemplateMutation = useMutation({
     mutationFn: (planTemplateId: number) =>
-      api.put(`/change-docs/${id}`, { plan_template_id: planTemplateId }),
+      api.put(`/change-docs/${id}`, { planTemplateId: planTemplateId }),
     onSuccess: () => {
       toast.success('方案模板已设置')
       setPlanTemplatePickerOpen(false)
@@ -213,7 +213,7 @@ export default function ChangeDocDetailPage() {
   })
 
   const planTemplateCandidates = useMemo(
-    () => allTemplates.filter((t) => t.active && (t.doc_type === 'plan' || t.doc_type === 'general')),
+    () => allTemplates.filter((t) => t.active && (t.docType === 'plan' || t.docType === 'general')),
     [allTemplates],
   )
 
@@ -230,8 +230,8 @@ export default function ChangeDocDetailPage() {
       (ciLinksData ?? []).map((c) => ({
         instanceId: c.id,
         instanceName: c.name,
-        modelName: c.model_name,
-        impactLevel: c.impact_level,
+        modelName: c.modelName,
+        impactLevel: c.impactLevel,
       })),
     )
   }, [ciLinksData])
@@ -239,7 +239,7 @@ export default function ChangeDocDetailPage() {
   const addLinkMutation = useMutation({
     mutationFn: (vars: { instanceId: number; impactLevel?: string }) =>
       api.post(`/change-docs/${id}/ci-links`, {
-        links: [{ instance_id: vars.instanceId, impact_level: vars.impactLevel }],
+        links: [{ instanceId: vars.instanceId, impactLevel: vars.impactLevel }],
       }),
     onSuccess: () => {
       toast.success('已关联 CI 实例')
@@ -261,7 +261,7 @@ export default function ChangeDocDetailPage() {
     mutationFn: async (vars: { instanceId: number; impactLevel?: string }) => {
       await api.delete(`/change-docs/${id}/ci-links/${vars.instanceId}`)
       await api.post(`/change-docs/${id}/ci-links`, {
-        links: [{ instance_id: vars.instanceId, impact_level: vars.impactLevel }],
+        links: [{ instanceId: vars.instanceId, impactLevel: vars.impactLevel }],
       })
     },
     onSuccess: () => {
@@ -315,7 +315,7 @@ export default function ChangeDocDetailPage() {
       const a = document.createElement('a')
       a.href = url
       const partLabel = which === 'application' ? '申请单' : '方案'
-      a.download = `${doc?.change_no ?? 'change-doc'}_${partLabel}.${format}`
+      a.download = `${doc?.changeNo ?? 'change-doc'}_${partLabel}.${format}`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -326,15 +326,15 @@ export default function ChangeDocDetailPage() {
   }
 
   const visibleAppFields = useMemo(
-    () => (doc?.application_field_config ?? [])
-      .filter((f) => f.in_form)
-      .sort((a, b) => a.sort_order - b.sort_order),
+    () => (doc?.applicationFieldConfig ?? [])
+      .filter((f) => f.inForm)
+      .sort((a, b) => a.sortOrder - b.sortOrder),
     [doc],
   )
   const visiblePlanFields = useMemo(
-    () => (doc?.plan_field_config ?? [])
-      .filter((f) => f.in_form)
-      .sort((a, b) => a.sort_order - b.sort_order),
+    () => (doc?.planFieldConfig ?? [])
+      .filter((f) => f.inForm)
+      .sort((a, b) => a.sortOrder - b.sortOrder),
     [doc],
   )
 
@@ -345,10 +345,10 @@ export default function ChangeDocDetailPage() {
 
   const renderFieldList = (fields: FieldConfigVO[], editable: boolean) =>
     fields.map((field) => {
-      const value = fieldsData[field.field_key] ?? ''
-      const isTextarea = field.field_type === 'textarea'
+      const value = fieldsData[field.fieldKey] ?? ''
+      const isTextarea = field.fieldType === 'textarea'
       return (
-        <div key={field.field_key} className="space-y-1.5">
+        <div key={field.fieldKey} className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label>
               {field.label}
@@ -359,11 +359,11 @@ export default function ChangeDocDetailPage() {
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs"
-                onClick={() => handleAiGenerate(field.field_key)}
-                disabled={aiLoadingField === field.field_key}
+                onClick={() => handleAiGenerate(field.fieldKey)}
+                disabled={aiLoadingField === field.fieldKey}
               >
                 <Sparkles className="h-3 w-3" />
-                {aiLoadingField === field.field_key ? 'AI 生成中…' : 'AI 生成'}
+                {aiLoadingField === field.fieldKey ? 'AI 生成中…' : 'AI 生成'}
               </Button>
             )}
           </div>
@@ -371,18 +371,18 @@ export default function ChangeDocDetailPage() {
             isTextarea ? (
               <Textarea
                 value={value}
-                onChange={setField(field.field_key)}
+                onChange={setField(field.fieldKey)}
                 placeholder={field.placeholder ?? undefined}
                 rows={4}
               />
-            ) : field.field_type === 'date' ? (
-              <Input type="date" value={value} onChange={setField(field.field_key)} />
-            ) : field.field_type === 'datetime' ? (
-              <Input type="datetime-local" value={value} onChange={setField(field.field_key)} />
+            ) : field.fieldType === 'date' ? (
+              <Input type="date" value={value} onChange={setField(field.fieldKey)} />
+            ) : field.fieldType === 'datetime' ? (
+              <Input type="datetime-local" value={value} onChange={setField(field.fieldKey)} />
             ) : (
               <Input
                 value={value}
-                onChange={setField(field.field_key)}
+                onChange={setField(field.fieldKey)}
                 placeholder={field.placeholder ?? undefined}
               />
             )
@@ -407,8 +407,8 @@ export default function ChangeDocDetailPage() {
             返回
           </button>
           <div>
-            <h1 className="text-xl font-bold text-v2-fg">{doc.title || doc.change_no}</h1>
-            <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{doc.change_no}</p>
+            <h1 className="text-xl font-bold text-v2-fg">{doc.title || doc.changeNo}</h1>
+            <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{doc.changeNo}</p>
           </div>
         </div>
         <StatusBadge status={st.variant}>{st.label}</StatusBadge>
@@ -435,27 +435,27 @@ export default function ChangeDocDetailPage() {
           <div className="grid grid-cols-2 gap-4 border-t border-v2-border pt-3 text-sm">
             <div>
               <span className="text-v2-muted">申请人：</span>
-              <span className="text-v2-fg">{doc.applicant_name}</span>
+              <span className="text-v2-fg">{doc.applicantName}</span>
             </div>
             <div>
               <span className="text-v2-muted">申请时间：</span>
-              <span className="text-v2-fg">{doc.apply_time}</span>
+              <span className="text-v2-fg">{doc.applyTime}</span>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t border-v2-border pt-3 text-sm">
             <span className="text-v2-muted">模板：</span>
-            {doc.application_template_id ? (
+            {doc.applicationTemplateId ? (
               <span className="inline-flex items-center gap-1 rounded-md border border-v2-border bg-v2-surface-soft px-2 py-1 text-xs">
                 <FileText className="h-3 w-3" />
                 <StatusBadge status={DOC_TYPE_TONE.application}>{DOC_TYPE_LABEL.application}</StatusBadge>
-                {doc.application_template_name}
+                {doc.applicationTemplateName}
               </span>
             ) : null}
-            {doc.plan_template_id ? (
+            {doc.planTemplateId ? (
               <span className="inline-flex items-center gap-1 rounded-md border border-v2-border bg-v2-surface-soft px-2 py-1 text-xs">
                 <FileText className="h-3 w-3" />
                 <StatusBadge status={DOC_TYPE_TONE.plan}>{DOC_TYPE_LABEL.plan}</StatusBadge>
-                {doc.plan_template_name}
+                {doc.planTemplateName}
               </span>
             ) : isPlanPending && hasPermission('change_doc', 'update') ? (
               <Button variant="secondary" size="sm" onClick={() => setPlanTemplatePickerOpen(true)}>
@@ -470,7 +470,7 @@ export default function ChangeDocDetailPage() {
       </Card>
 
       {/* 申请单 Card */}
-      {doc.application_template_id && (
+      {doc.applicationTemplateId && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -489,7 +489,7 @@ export default function ChangeDocDetailPage() {
       )}
 
       {/* 方案 Card */}
-      {doc.plan_template_id && (
+      {doc.planTemplateId && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -531,17 +531,17 @@ export default function ChangeDocDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-v2-muted">审批人：</span>
-                <span className="text-v2-fg">{doc.approver_name}</span>
+                <span className="text-v2-fg">{doc.approverName}</span>
               </div>
               <div>
                 <span className="text-v2-muted">审批时间：</span>
-                <span className="text-v2-fg">{doc.approved_at}</span>
+                <span className="text-v2-fg">{doc.approvedAt}</span>
               </div>
             </div>
-            {doc.approver_comment && (
+            {doc.approverComment && (
               <p className="mt-2 text-sm">
                 <span className="text-v2-muted">意见：</span>
-                <span className="text-v2-fg">{doc.approver_comment}</span>
+                <span className="text-v2-fg">{doc.approverComment}</span>
               </p>
             )}
           </CardContent>
@@ -589,7 +589,7 @@ export default function ChangeDocDetailPage() {
                 disabled={submitMutation.isPending}
               >
                 <Send className="h-4 w-4" />
-                {doc.application_template_id && !doc.plan_template_id
+                {doc.applicationTemplateId && !doc.planTemplateId
                   ? '提交申请单（稍后补填方案）'
                   : '提交审批'}
               </Button>
@@ -610,7 +610,7 @@ export default function ChangeDocDetailPage() {
               <Button
                 variant="secondary"
                 onClick={() => submitPlanMutation.mutate()}
-                disabled={submitPlanMutation.isPending || !doc.plan_template_id}
+                disabled={submitPlanMutation.isPending || !doc.planTemplateId}
               >
                 <Send className="h-4 w-4" />
                 提交方案
@@ -649,7 +649,7 @@ export default function ChangeDocDetailPage() {
           {/* approved：分别导出申请单 / 方案 */}
           {doc.status === 'approved' && (
             <>
-              {doc.application_template_id && (
+              {doc.applicationTemplateId && (
                 <>
                   <Button
                     variant="secondary"
@@ -671,7 +671,7 @@ export default function ChangeDocDetailPage() {
                   </Button>
                 </>
               )}
-              {doc.plan_template_id && (
+              {doc.planTemplateId && (
                 <>
                   <Button
                     variant="secondary"
@@ -728,8 +728,8 @@ export default function ChangeDocDetailPage() {
                 >
                   <FileText className="h-4 w-4 text-v2-muted" />
                   <span className="font-semibold text-v2-fg">{t.name}</span>
-                  <StatusBadge status={DOC_TYPE_TONE[t.doc_type]}>
-                    {DOC_TYPE_LABEL[t.doc_type]}
+                  <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
+                    {DOC_TYPE_LABEL[t.docType]}
                   </StatusBadge>
                 </button>
               ))}

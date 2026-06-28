@@ -26,18 +26,18 @@ async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined
 }
 
 interface TaskVO {
-  task_id: string
-  task_name: string
-  business_type: string
-  create_time: string
+  taskId: string
+  taskName: string
+  businessType: string
+  createTime: string
 }
 interface AlertVO {
   id: number
   severity: string
   status: string
-  alert_name: string
-  ci_instance_name: string | null
-  starts_at: string | null
+  alertName: string
+  ciInstanceName: string | null
+  startsAt: string | null
   summary: string | null
 }
 interface ChangeDocVO {
@@ -298,16 +298,16 @@ export default function DashboardPage() {
             ) : (
               pendingTasks.slice(0, 6).map((t) => (
                 <Link
-                  key={t.task_id}
+                  key={t.taskId}
                   href="/workflow/tasks"
                   className="block px-6 py-4 hover:bg-v2-surface-hover transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-1">
-                    <div className="text-sm font-bold text-v2-fg leading-snug">{t.task_name}</div>
+                    <div className="text-sm font-bold text-v2-fg leading-snug">{t.taskName}</div>
                     <StatusBadge status="warn">待处理</StatusBadge>
                   </div>
                   <div className="text-xs text-v2-muted">
-                    {t.business_type} · {timeAgo(t.create_time)}
+                    {t.businessType} · {timeAgo(t.createTime)}
                   </div>
                 </Link>
               ))

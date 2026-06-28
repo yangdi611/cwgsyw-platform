@@ -35,16 +35,20 @@ interface CsvImportResultVO {
 
 export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogProps) {
   const [step, setStep] = useState(0) // 0=upload, 1=preview, 2=progress/done
+  const [format, setFormat] = useState<'csv' | 'json'>('csv') // csv | json/ndjson（§7）
   const [file, setFile] = useState<File | null>(null)
   const [conflictStrategy, setConflictStrategy] = useState('override')
   const [encoding, setEncoding] = useState('UTF-8')
+  const [importMode, setImportMode] = useState('merge') // JSON 导入模式（§7.2）
+  const [uniqueKeyFields, setUniqueKeyFields] = useState('') // JSON 唯一键（逗号分隔，空=按 name）
   const [batchId, setBatchId] = useState('')
   const [preview, setPreview] = useState<CsvImportPreviewVO | null>(null)
   const [result, setResult] = useState<CsvImportResultVO | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const reset = useCallback(() => {
-    setStep(0); setFile(null); setConflictStrategy('override'); setEncoding('UTF-8')
+    setStep(0); setFormat('csv'); setFile(null); setConflictStrategy('override'); setEncoding('UTF-8')
+    setImportMode('merge'); setUniqueKeyFields('')
     setBatchId(''); setPreview(null); setResult(null)
   }, [])
 
@@ -76,6 +80,14 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
       const fd = new FormData()
       fd.append('file', file)
       fd.append('model', model)
+      if (format === 'json') {
+        fd.append('mode', importMode)
+        if (uniqueKeyFields.trim()) fd.append('uniqueKeyFields', uniqueKeyFields.trim())
+        const res = await api.post('/cmdb/instances/import/json/preview', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return res.data.data as CsvImportPreviewVO
+      }
       fd.append('conflictStrategy', conflictStrategy)
       if (encoding) fd.append('encoding', encoding)
       const res = await api.post('/cmdb/instances/import/preview', fd, {
@@ -93,7 +105,12 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
 
   // Execute mutation
   const executeMutation = useMutation({
-    mutationFn: () => api.post('/cmdb/instances/import/execute', { batchId }).then(r => r.data.data as CsvImportResultVO),
+    mutationFn: () => {
+      const url = format === 'json'
+        ? '/cmdb/instances/import/json/execute'
+        : '/cmdb/instances/import/execute'
+      return api.post(url, { batchId }).then(r => r.data.data as CsvImportResultVO)
+    },
     onSuccess: (data) => {
       setResult(data)
       setStep(2)
@@ -107,7 +124,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   const { data: progress } = useQuery<CsvImportProgressVO>({
     queryKey: ['csv-import-progress', batchId],
     queryFn: () => api.get(`/cmdb/instances/import/${batchId}/progress`).then(r => r.data.data),
-    enabled: step === 2 && executeMutation.isPending,
+    enabled: step === 2 && executeMutation.isPending && format === 'csv',
     refetchInterval: 1500,
   })
 
@@ -125,7 +142,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>CSV 导入 — 模型: {model}</DialogTitle>
+          <DialogTitle>批量导入 — 模型: {model}</DialogTitle>
         </DialogHeader>
 
         {/* Step indicators */}
@@ -143,38 +160,76 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
         {/* Step 0: Upload */}
         {step === 0 && (
           <div className="space-y-4">
-            <Button size="sm" variant="outline" onClick={downloadTemplate}>
-              <Download className="h-4 w-4 mr-1" />下载 CSV 模板
-            </Button>
             <div className="space-y-1.5">
-              <Label>选择 CSV 文件 *</Label>
-              <Input type="file" accept=".csv" ref={fileInputRef}
+              <Label>导入格式</Label>
+              <Select value={format} onValueChange={v => { setFormat((v as 'csv' | 'json') ?? 'csv'); setFile(null) }}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV（标量字段）</SelectItem>
+                  <SelectItem value="json">JSON / NDJSON（含 table 结构化字段）</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {format === 'csv' && (
+              <Button size="sm" variant="outline" onClick={downloadTemplate}>
+                <Download className="h-4 w-4 mr-1" />下载 CSV 模板
+              </Button>
+            )}
+            <div className="space-y-1.5">
+              <Label>选择{format === 'json' ? ' JSON / NDJSON ' : ' CSV '}文件 *</Label>
+              <Input type="file" accept={format === 'json' ? '.json,.ndjson,.jsonl,.txt' : '.csv'} ref={fileInputRef}
                 onChange={e => setFile(e.target.files?.[0] ?? null)} />
+              {format === 'json' && (
+                <p className="text-xs text-v2-muted">支持 JSON 数组或 NDJSON（一行一对象）。顶层 name 为实例名，其余键含 table 数组（每行带 row_id）进入字段数据。</p>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>冲突策略</Label>
-                <Select value={conflictStrategy} onValueChange={v => setConflictStrategy(v ?? 'override')}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="override">覆盖更新</SelectItem>
-                    <SelectItem value="skip">跳过</SelectItem>
-                    <SelectItem value="error">报错</SelectItem>
-                  </SelectContent>
-                </Select>
+
+            {format === 'csv' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>冲突策略</Label>
+                  <Select value={conflictStrategy} onValueChange={v => setConflictStrategy(v ?? 'override')}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="override">覆盖更新</SelectItem>
+                      <SelectItem value="skip">跳过</SelectItem>
+                      <SelectItem value="error">报错</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>文件编码</Label>
+                  <Select value={encoding} onValueChange={v => setEncoding(v ?? 'UTF-8')}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTF-8">UTF-8</SelectItem>
+                      <SelectItem value="GBK">GBK</SelectItem>
+                      <SelectItem value="GB2312">GB2312</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>文件编码</Label>
-                <Select value={encoding} onValueChange={v => setEncoding(v ?? 'UTF-8')}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UTF-8">UTF-8</SelectItem>
-                    <SelectItem value="GBK">GBK</SelectItem>
-                    <SelectItem value="GB2312">GB2312</SelectItem>
-                  </SelectContent>
-                </Select>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>导入模式</Label>
+                  <Select value={importMode} onValueChange={v => setImportMode(v ?? 'merge')}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="merge">合并（只更新出现的字段）</SelectItem>
+                      <SelectItem value="replace_fields">字段替换（出现即覆盖）</SelectItem>
+                      <SelectItem value="baseline_replace">基线重导（table 按 row_id 全量对齐）</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>唯一键字段（可选）</Label>
+                  <Input value={uniqueKeyFields} onChange={e => setUniqueKeyFields(e.target.value)}
+                    placeholder="如 asset_no（留空按 name 匹配）" />
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="outline" onClick={() => handleClose(false)}>取消</Button>
               <Button size="sm" onClick={() => previewMutation.mutate()} disabled={!file || previewMutation.isPending}>
@@ -280,7 +335,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 </div>
                 <p className="text-xs text-v2-muted">耗时: {(result.durationMs / 1000).toFixed(1)}s</p>
 
-                {result.failed > 0 && (
+                {result.failed > 0 && format === 'csv' && (
                   <Button size="sm" variant="outline" onClick={downloadFailedRows}>
                     <Download className="h-4 w-4 mr-1" />下载失败行
                   </Button>

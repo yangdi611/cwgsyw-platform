@@ -59,6 +59,7 @@ public class CiInstanceCommandService {
         }
 
         List<CiAttribute> attrs = ciAttributeMapper.listByModel(model.getModelId(), tenantId);
+        ensureTableRowIds(req.getFieldsData(), attrs);
         schemaValidator.validate(req.getFieldsData(), attrs);
         uniquenessValidator.validate(req.getFieldsData(), attrs, tenantId, model.getModelId(), null);
 
@@ -76,6 +77,66 @@ public class CiInstanceCommandService {
                 diffSnapshots(Map.of(), buildChangeSnapshot(inst)));
         ciChangeService.invalidateStatsCache();
         return ciInstanceQueryService.getDetail(inst.getId(), tenantId);
+    }
+
+    /**
+     * 克隆实例（spec §9.2）。复制源实例 fieldsData 并创建新实例：
+     *   - name 追加「-副本」（重名则递增后缀），避免同模型名冲突；
+     *   - 清空 unique 标量字段（如 asset_no/sn），避免唯一性冲突，由用户克隆后补填；
+     *   - table 字段清空每行 row_id（克隆出的是新行，row_id 须重新生成以免与源行/端点链冲突）；
+     *   - 剥离 `_` 前缀派生键（getDetail 注入的，不应入库）。
+     * 走标准 create 流程复用全部校验与审计。
+     */
+    @Transactional
+    public CiInstanceDetailVO clone(Long id, String tenantId, Long operatorId) {
+        CiInstance src = loadInstance(id, tenantId);
+        List<CiAttribute> attrs = ciAttributeMapper.listByModel(src.getModelId(), tenantId);
+
+        Map<String, Object> fields = src.getFieldsData() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(src.getFieldsData());
+        // 去派生键
+        fields.keySet().removeIf(k -> k.startsWith("_"));
+        // 清 unique 标量 + 重置 table row_id
+        for (CiAttribute a : attrs) {
+            if (Boolean.TRUE.equals(a.getIsUnique())) {
+                fields.remove(a.getFieldKey());
+            } else if ("table".equals(a.getFieldType())) {
+                Object v = fields.get(a.getFieldKey());
+                if (v instanceof List<?> rows) {
+                    String rowKey = tableRowKey(a.getOption());
+                    for (Object rowObj : rows) {
+                        if (rowObj instanceof Map<?, ?> row) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> r = (Map<String, Object>) row;
+                            r.remove(rowKey); // ensureTableRowIds 会补新 id
+                        }
+                    }
+                }
+            }
+        }
+
+        CreateInstanceRequest req = new CreateInstanceRequest();
+        req.setModelId(src.getModelId());
+        req.setName(uniqueCloneName(src.getName(), src.getModelId(), tenantId));
+        req.setStatus(src.getStatus());
+        req.setOwner(src.getOwner());
+        req.setDescription(src.getDescription());
+        req.setFieldsData(fields);
+        return create(req, tenantId, operatorId);
+    }
+
+    /** 生成克隆实例不重名的名称：base-副本 / base-副本2 / base-副本3 … */
+    private String uniqueCloneName(String base, String modelId, String tenantId) {
+        for (int i = 1; i <= 1000; i++) {
+            String candidate = base + "-副本" + (i == 1 ? "" : String.valueOf(i));
+            LambdaQueryWrapper<CiInstance> w = new LambdaQueryWrapper<CiInstance>()
+                    .eq(CiInstance::getTenantId, tenantId)
+                    .eq(CiInstance::getModelId, modelId)
+                    .eq(CiInstance::getName, candidate)
+                    .eq(CiInstance::getIsDeleted, false);
+            if (ciInstanceMapper.selectCount(w) == 0) return candidate;
+        }
+        return base + "-副本-" + System.currentTimeMillis();
     }
 
     @Transactional
@@ -96,6 +157,7 @@ public class CiInstanceCommandService {
             inst.setFieldsData(stripReservedKeys(merged));
 
             List<CiAttribute> attrs = ciAttributeMapper.listByModel(inst.getModelId(), tenantId);
+            ensureTableRowIds(inst.getFieldsData(), attrs);
             schemaValidator.validate(inst.getFieldsData(), attrs);
             uniquenessValidator.validate(inst.getFieldsData(), attrs, tenantId, inst.getModelId(), id);
         }
@@ -106,6 +168,80 @@ public class CiInstanceCommandService {
                 diffSnapshots(beforeSnap, buildChangeSnapshot(inst)));
         ciChangeService.invalidateStatsCache();
         return ciInstanceQueryService.getDetail(id, tenantId);
+    }
+
+    /**
+     * 批量编辑（spec §9.1）。对每个 id 构造单条 {@link UpdateInstanceRequest} 并复用 {@link #update}，
+     * 每条独立审计/变更记录。fields 中的 name/status/owner/description 提升为顶层列，其余键并入 fieldsData。
+     * 逐条 try-catch：单条失败（如唯一冲突/校验失败）记入 failures，不阻断其余。
+     */
+    public BatchUpdateResultVO batchUpdate(BatchUpdateInstanceRequest req, String tenantId, Long operatorId) {
+        BatchUpdateResultVO result = new BatchUpdateResultVO();
+        List<Long> ids = req.getIds();
+        Map<String, Object> fields = req.getFields();
+        result.setTotal(ids.size());
+
+        for (Long id : ids) {
+            try {
+                UpdateInstanceRequest single = new UpdateInstanceRequest();
+                Map<String, Object> attrFields = new LinkedHashMap<>();
+                for (Map.Entry<String, Object> e : fields.entrySet()) {
+                    switch (e.getKey()) {
+                        case "name" -> single.setName(asString(e.getValue()));
+                        case "status" -> single.setStatus(asString(e.getValue()));
+                        case "owner" -> single.setOwner(asString(e.getValue()));
+                        case "description" -> single.setDescription(asString(e.getValue()));
+                        default -> attrFields.put(e.getKey(), e.getValue());
+                    }
+                }
+                if (!attrFields.isEmpty()) single.setFieldsData(attrFields);
+                update(id, single, tenantId, operatorId);
+                result.setSucceeded(result.getSucceeded() + 1);
+            } catch (Exception ex) {
+                result.setFailed(result.getFailed() + 1);
+                result.getFailures().add(new BatchUpdateResultVO.FailItem(id, ex.getMessage()));
+            }
+        }
+        return result;
+    }
+
+    private static String asString(Object v) {
+        return v == null ? null : v.toString();
+    }
+
+    /**
+     * 给 table 字段的每行补稳定 row_id（§4.2a"补生成更友好"）。在 schema 校验前调用。
+     * row_key 取自子列 schema（默认 "row_id"）。已有非空 row_id 的行保持不变（稳定性，
+     * P3 的 ci_endpoint_link 以 row_id 作端点外键）。非 table 字段跳过。
+     */
+    @SuppressWarnings("unchecked")
+    private void ensureTableRowIds(Map<String, Object> fieldsData, List<CiAttribute> attrs) {
+        if (fieldsData == null || fieldsData.isEmpty()) return;
+        for (CiAttribute attr : attrs) {
+            if (!"table".equals(attr.getFieldType())) continue;
+            Object val = fieldsData.get(attr.getFieldKey());
+            if (!(val instanceof List<?> rows)) continue;
+            String rowKey = tableRowKey(attr.getOption());
+            for (Object rowObj : rows) {
+                if (rowObj instanceof Map<?, ?> row) {
+                    Map<String, Object> r = (Map<String, Object>) row;
+                    Object cur = r.get(rowKey);
+                    if (cur == null || (cur instanceof String s && s.isBlank())) {
+                        r.put(rowKey, java.util.UUID.randomUUID().toString());
+                    }
+                }
+            }
+        }
+    }
+
+    /** 从 table schema 读 row_key，默认 "row_id"。 */
+    @SuppressWarnings("unchecked")
+    private String tableRowKey(Object schema) {
+        if (schema instanceof Map<?, ?> m) {
+            Object rk = ((Map<String, Object>) m).get("row_key");
+            if (rk instanceof String s && !s.isBlank()) return s;
+        }
+        return "row_id";
     }
 
     @Transactional

@@ -29,21 +29,21 @@ const BpmnViewer = dynamic(() => import('@/components/workflow/BpmnViewer'), {
 
 interface InstanceVO {
   id: string
-  process_definition_name: string
-  process_definition_key: string
-  business_key: string
-  start_time: string
-  end_time: string | null
+  processDefinitionName: string
+  processDefinitionKey: string
+  businessKey: string
+  startTime: string
+  endTime: string | null
   ended: boolean
   suspended: boolean
 }
 
 interface ActivityVO {
-  activity_id: string
-  activity_name: string
-  activity_type: string
-  start_time: string
-  end_time: string | null
+  activityId: string
+  activityName: string
+  activityType: string
+  startTime: string
+  endTime: string | null
   assignee: string
 }
 
@@ -83,7 +83,7 @@ export default function InstancesPage() {
       const [detailRes, activityRes] = await Promise.all([
         api.get('/workflow/definitions').then((r) => {
           const defs = r.data.data?.records ?? []
-          const match = defs.find((d: any) => d.key === inst.process_definition_key)
+          const match = defs.find((d: any) => d.key === inst.processDefinitionKey)
           if (match) return api.get(`/workflow/definitions/${match.id}`)
           return null
         }),
@@ -127,8 +127,8 @@ export default function InstancesPage() {
     }
   }
 
-  const completedIds = activities.filter((a) => a.end_time).map((a) => a.activity_id)
-  const currentIds = activities.filter((a) => !a.end_time).map((a) => a.activity_id)
+  const completedIds = activities.filter((a) => a.endTime).map((a) => a.activityId)
+  const currentIds = activities.filter((a) => !a.endTime).map((a) => a.activityId)
 
   const formatDate = (s: string) => new Date(s).toLocaleString('zh-CN')
 
@@ -136,20 +136,20 @@ export default function InstancesPage() {
     {
       key: 'name',
       title: '流程名称',
-      render: (r) => <span className="font-medium text-v2-fg">{r.process_definition_name}</span>,
+      render: (r) => <span className="font-medium text-v2-fg">{r.processDefinitionName}</span>,
     },
     {
       key: 'business_key',
       title: '业务标识',
       render: (r) => (
-        <span className="font-v2-mono text-xs text-v2-muted">{r.business_key || '-'}</span>
+        <span className="font-v2-mono text-xs text-v2-muted">{r.businessKey || '-'}</span>
       ),
     },
     {
       key: 'start_time',
       title: '开始时间',
       render: (r) => (
-        <span className="whitespace-nowrap text-sm text-v2-muted">{formatDate(r.start_time)}</span>
+        <span className="whitespace-nowrap text-sm text-v2-muted">{formatDate(r.startTime)}</span>
       ),
     },
     ...(tab === 'finished'
@@ -159,7 +159,7 @@ export default function InstancesPage() {
             title: '结束时间',
             render: (r: InstanceVO) => (
               <span className="whitespace-nowrap text-sm text-v2-muted">
-                {r.end_time ? formatDate(r.end_time) : '-'}
+                {r.endTime ? formatDate(r.endTime) : '-'}
               </span>
             ),
           },
@@ -255,9 +255,9 @@ export default function InstancesPage() {
         <Card className="p-4">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <h2 className="font-bold text-v2-fg">{selectedInstance.process_definition_name}</h2>
+              <h2 className="font-bold text-v2-fg">{selectedInstance.processDefinitionName}</h2>
               <p className="text-sm text-v2-muted">
-                Business Key: {selectedInstance.business_key || '-'} · ID:{' '}
+                Business Key: {selectedInstance.businessKey || '-'} · ID:{' '}
                 <span className="font-v2-mono">{selectedInstance.id}</span>
               </p>
             </div>
@@ -300,10 +300,10 @@ export default function InstancesPage() {
                     key={i}
                     className="flex items-center gap-2 border-b border-v2-border py-1.5 text-sm last:border-0"
                   >
-                    <StatusBadge status={a.end_time ? 'ok' : 'neutral'}>
-                      {a.end_time ? '已完成' : '进行中'}
+                    <StatusBadge status={a.endTime ? 'ok' : 'neutral'}>
+                      {a.endTime ? '已完成' : '进行中'}
                     </StatusBadge>
-                    <span className="text-v2-fg">{a.activity_name}</span>
+                    <span className="text-v2-fg">{a.activityName}</span>
                     {a.assignee && (
                       <span className="ml-auto text-xs text-v2-muted">负责人: {a.assignee}</span>
                     )}

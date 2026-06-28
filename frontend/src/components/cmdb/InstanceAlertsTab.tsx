@@ -14,17 +14,17 @@ import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAle
  */
 interface AlertVO {
   id: number
-  ci_instance_id: number | null
-  ci_instance_name: string | null
-  alert_name: string
+  ciInstanceId: number | null
+  ciInstanceName: string | null
+  alertName: string
   severity: string
   status: string
   summary: string | null
   description: string | null
-  starts_at: string | null
-  ends_at: string | null
+  startsAt: string | null
+  endsAt: string | null
   acknowledged: boolean
-  created_at: string
+  createdAt: string
 }
 
 const SEVERITY_META: Record<string, { label: string; cls: string }> = {
@@ -91,7 +91,7 @@ export function InstanceAlertsTab({ instanceId }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${sev.cls}`}>{sev.label}</span>
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${st.cls}`}>{st.label}</span>
-                      <span className="text-sm font-medium truncate">{a.alert_name}</span>
+                      <span className="text-sm font-medium truncate">{a.alertName}</span>
                       {a.acknowledged && (
                         <span className="text-xs text-v2-muted inline-flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />已确认
@@ -101,10 +101,10 @@ export function InstanceAlertsTab({ instanceId }: Props) {
                     {a.summary && (
                       <p className="mt-1.5 text-sm text-v2-muted line-clamp-2">{a.summary}</p>
                     )}
-                    {a.starts_at && (
+                    {a.startsAt && (
                       <p className="mt-1 text-xs text-v2-muted">
-                        触发于 {new Date(a.starts_at).toLocaleString('zh-CN')}
-                        {a.ends_at && ` · 恢复于 ${new Date(a.ends_at).toLocaleString('zh-CN')}`}
+                        触发于 {new Date(a.startsAt).toLocaleString('zh-CN')}
+                        {a.endsAt && ` · 恢复于 ${new Date(a.endsAt).toLocaleString('zh-CN')}`}
                       </p>
                     )}
                   </div>

@@ -15,10 +15,9 @@ public class UpdateAttributeRequest {
     private String defaultValue;
 
     /**
-     * Option JSONB field for enum/enummulti field types.
-     * Format: [{"id":"linux","name":"Linux","isDefault":true}]
+     * Option JSONB. enum/enummulti 为数组；table 为对象 schema（§4.1）。类型放宽为 Object。
      */
-    private List<Map<String, Object>> option;
+    private Object option;
 
     /**
      * @deprecated Use {@link #option} instead. This field accepts the old enumOptions string.

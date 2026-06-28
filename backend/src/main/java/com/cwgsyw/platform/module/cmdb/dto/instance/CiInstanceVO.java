@@ -1,14 +1,11 @@
 package com.cwgsyw.platform.module.cmdb.dto.instance;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CiInstanceVO {

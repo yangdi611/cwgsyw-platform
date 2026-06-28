@@ -45,7 +45,7 @@ export default function NewDevicePage() {
   const createMutation = useMutation({
     mutationFn: () =>
       api.post('/devices', {
-        ci_instance_id: ciId,
+        ciInstanceId: ciId,
         category: form.category || null,
         description: form.description || null,
       }),

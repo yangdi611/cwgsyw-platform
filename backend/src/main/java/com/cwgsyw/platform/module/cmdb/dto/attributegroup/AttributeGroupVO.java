@@ -1,12 +1,9 @@
 package com.cwgsyw.platform.module.cmdb.dto.attributegroup;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 public class AttributeGroupVO {
     private Long id;

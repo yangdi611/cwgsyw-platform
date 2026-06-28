@@ -22,10 +22,10 @@ interface TemplateVO {
   description: string
   version: number
   active: boolean
-  has_docx: boolean
-  doc_type: DocType
-  fields: { id: number; field_key: string; label: string }[]
-  created_at: string
+  hasDocx: boolean
+  docType: DocType
+  fields: { id: number; fieldKey: string; label: string }[]
+  createdAt: string
 }
 
 const DOC_TYPE_LABEL: Record<DocType, string> = {
@@ -64,7 +64,7 @@ export default function ChangeDocTemplatesPage() {
 
   const filteredTemplates = filter === 'all'
     ? templates
-    : templates.filter((t) => t.doc_type === filter)
+    : templates.filter((t) => t.docType === filter)
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -139,7 +139,7 @@ export default function ChangeDocTemplatesPage() {
             }
           >
             {k === 'all' ? `全部 (${templates.length})` :
-              `${DOC_TYPE_LABEL[k]} (${templates.filter((t) => t.doc_type === k).length})`}
+              `${DOC_TYPE_LABEL[k]} (${templates.filter((t) => t.docType === k).length})`}
           </button>
         ))}
       </div>
@@ -208,13 +208,13 @@ export default function ChangeDocTemplatesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-v2-fg">{tpl.name}</span>
-                    <StatusBadge status={DOC_TYPE_TONE[tpl.doc_type ?? 'general']}>
-                      {DOC_TYPE_LABEL[tpl.doc_type ?? 'general']}
+                    <StatusBadge status={DOC_TYPE_TONE[tpl.docType ?? 'general']}>
+                      {DOC_TYPE_LABEL[tpl.docType ?? 'general']}
                     </StatusBadge>
                     <StatusBadge status={tpl.active ? 'ok' : 'neutral'}>
                       {tpl.active ? '启用中' : '已禁用'}
                     </StatusBadge>
-                    {tpl.has_docx && (
+                    {tpl.hasDocx && (
                       <span className="inline-flex items-center rounded-md border border-v2-success-border bg-v2-success-soft px-2 py-0.5 text-xs font-medium text-v2-success">
                         已上传 .docx
                       </span>

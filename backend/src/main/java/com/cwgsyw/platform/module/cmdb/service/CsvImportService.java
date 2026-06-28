@@ -55,9 +55,10 @@ public class CsvImportService {
         List<String> headers = new ArrayList<>();
         for (CiAttribute attr : attrs) {
             if (Boolean.TRUE.equals(attr.getIsRequired()) || Boolean.TRUE.equals(attr.getIsListShow())) {
-                if ("enum".equals(attr.getFieldType()) && attr.getOption() != null && !attr.getOption().isEmpty()) {
-                    String options = attr.getOption().stream()
-                            .map(opt -> opt.get("name").toString())
+                List<Map<String, Object>> enumOpts = enumOptionList(attr.getOption());
+                if ("enum".equals(attr.getFieldType()) && !enumOpts.isEmpty()) {
+                    String options = enumOpts.stream()
+                            .map(opt -> String.valueOf(opt.get("name")))
                             .collect(java.util.stream.Collectors.joining(","));
                     headers.add(attr.getFieldKey() + " (" + options + ")");
                 } else {
@@ -454,8 +455,9 @@ public class CsvImportService {
                     }
                 }
                 case "enum" -> {
-                    if (attr.getOption() != null && !attr.getOption().isEmpty()) {
-                        boolean valid = attr.getOption().stream().anyMatch(opt -> value.equals(opt.get("id")));
+                    List<Map<String, Object>> enumOpts = enumOptionList(attr.getOption());
+                    if (!enumOpts.isEmpty()) {
+                        boolean valid = enumOpts.stream().anyMatch(opt -> value.equals(opt.get("id")));
                         if (!valid) {
                             errors.add("字段 " + attr.getName() + " 的值不在可选范围内: " + value);
                         }
@@ -611,5 +613,21 @@ public class CsvImportService {
     private int getInt(Map<Object, Object> hash, String field) {
         Object v = hash.get(field);
         return v != null ? Integer.parseInt(v.toString()) : 0;
+    }
+
+    /**
+     * option 现为 Object（§4.1.1）：enum/enummulti 是 List&lt;Map&gt; 数组，table 是对象 schema。
+     * 此处仅消费 enum 数组语义，非 List（如 table 对象）一律返回空列表。
+     */
+    @SuppressWarnings("unchecked")
+    static List<Map<String, Object>> enumOptionList(Object option) {
+        if (option instanceof List<?> list) {
+            List<Map<String, Object>> out = new ArrayList<>();
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> m) out.add((Map<String, Object>) m);
+            }
+            return out;
+        }
+        return List.of();
     }
 }

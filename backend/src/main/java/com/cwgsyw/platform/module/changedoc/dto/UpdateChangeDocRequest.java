@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.changedoc.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import java.util.Map;
 
@@ -15,9 +16,9 @@ import java.util.Map;
 @Data
 public class UpdateChangeDocRequest {
     private String title;
-    private Map<String, String> fieldsData;
+    @JsonAlias("fields_data")             private Map<String, String> fieldsData;
     /** 仅 draft 状态可修改 */
-    private Long applicationTemplateId;
+    @JsonAlias("application_template_id") private Long applicationTemplateId;
     /** draft / plan_pending 都可修改（plan_pending 用于补填方案模板） */
-    private Long planTemplateId;
+    @JsonAlias("plan_template_id")        private Long planTemplateId;
 }

@@ -34,11 +34,11 @@ public class CreateAttributeRequest {
     private String defaultValue;
 
     /**
-     * Option JSONB field for enum/enummulti field types.
-     * Format: [{"id":"linux","name":"Linux","isDefault":true}]
+     * Option JSONB. enum/enummulti 为数组 [{"id","name","is_default"}]；
+     * table 为对象 {"schema_version","row_key","columns":[...]}（§4.1）。类型放宽为 Object。
      */
     @JsonProperty("option")
-    private List<Map<String, Object>> option;
+    private Object option;
 
     /**
      * @deprecated Use {@link #option} instead. This field accepts the old enumOptions string.

@@ -60,7 +60,7 @@ interface InstanceSearchVO {
   id: number
   name: string
   modelId: string
-  model_name: string
+  modelName: string
 }
 
 interface Props {
@@ -357,7 +357,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                 <Label className="text-sm">
                   目标实例
                   <span className="text-v2-muted ml-1 font-normal">
-                    ({searchResult?.records?.[0]?.model_name ?? targetModelId})
+                    ({searchResult?.records?.[0]?.modelName ?? targetModelId})
                   </span>
                 </Label>
                 <Input

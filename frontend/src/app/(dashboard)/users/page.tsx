@@ -22,11 +22,11 @@ import { Plus, Search, Trash2, Pencil } from 'lucide-react'
 interface User {
   id: number
   username: string
-  real_name: string
+  realName: string
   email: string
   phone?: string
-  group_id?: number
-  group_name?: string
+  groupId?: number
+  groupName?: string
   status: number
 }
 
@@ -88,9 +88,9 @@ export default function UsersPage() {
       render: (r) => <span className="font-semibold text-v2-fg">@{r.username}</span>,
     },
     {
-      key: 'real_name',
+      key: 'realName',
       title: '真实姓名',
-      render: (r) => <span className="text-v2-fg">{r.real_name || '-'}</span>,
+      render: (r) => <span className="text-v2-fg">{r.realName || '-'}</span>,
     },
     {
       key: 'email',
@@ -98,9 +98,9 @@ export default function UsersPage() {
       render: (r) => <span className="text-v2-muted">{r.email || '-'}</span>,
     },
     {
-      key: 'group_name',
+      key: 'groupName',
       title: '所属组',
-      render: (r) => <span className="text-v2-fg">{r.group_name || '-'}</span>,
+      render: (r) => <span className="text-v2-fg">{r.groupName || '-'}</span>,
     },
     {
       key: 'status',

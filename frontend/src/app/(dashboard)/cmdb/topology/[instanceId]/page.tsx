@@ -71,7 +71,7 @@ export default function TopologyPage() {
   const modelOptions = useMemo(() => {
     const map = new Map<string, string>()
     nodes.forEach(n => {
-      if (n.model_id) map.set(n.model_id, n.model_name ?? n.model_id)
+      if (n.modelId) map.set(n.modelId, n.modelName ?? n.modelId)
     })
     return [...map.entries()].map(([id, name]) => ({ id, name }))
   }, [nodes])
@@ -89,7 +89,7 @@ export default function TopologyPage() {
     const ss = selectedStatuses
     const ids = new Set<number>()
     nodes.forEach(n => {
-      const modelOk = !sm || sm.has(n.model_id ?? '')
+      const modelOk = !sm || sm.has(n.modelId ?? '')
       const statusOk = !ss || !n.status || ss.has(n.status)
       if (modelOk && statusOk) ids.add(n.id)
     })
@@ -111,7 +111,7 @@ export default function TopologyPage() {
       return next
     })
 
-  const rootNode = nodes.find(n => n.is_root)
+  const rootNode = nodes.find(n => n.isRoot)
 
   const handleExport = async () => {
     if (!graphRef.current) return
@@ -140,7 +140,7 @@ export default function TopologyPage() {
       <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-background flex-shrink-0 flex-wrap">
         {rootNode ? (
           <Link
-            href={`/cmdb/instances/by-model/${rootNode.model_id}/${instanceId}`}
+            href={`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`}
             className={buttonVariants({ variant: 'ghost', size: 'sm' })}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />返回实例
@@ -235,7 +235,7 @@ export default function TopologyPage() {
 
             {selectedNode && (
               <Link
-                href={`/cmdb/instances/by-model/${selectedNode.model_id}/${selectedNode.id}`}
+                href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
               >
                 <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
@@ -297,7 +297,7 @@ export default function TopologyPage() {
                 </div>
                 <div>
                   <p className="text-xs text-v2-muted">模型</p>
-                  <p>{selectedNode.model_name ?? selectedNode.model_id ?? '—'}</p>
+                  <p>{selectedNode.modelName ?? selectedNode.modelId ?? '—'}</p>
                 </div>
                 {selectedNode.status && (
                   <div>
@@ -311,11 +311,11 @@ export default function TopologyPage() {
                     <p>{selectedNode.owner}</p>
                   </div>
                 )}
-                {selectedNode.key_attrs && Object.keys(selectedNode.key_attrs).length > 0 && (
+                {selectedNode.keyAttrs && Object.keys(selectedNode.keyAttrs).length > 0 && (
                   <div>
                     <p className="text-xs text-v2-muted">关键属性</p>
                     <dl className="text-xs space-y-0.5 mt-1">
-                      {Object.entries(selectedNode.key_attrs).map(([k, v]) => (
+                      {Object.entries(selectedNode.keyAttrs).map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-2">
                           <dt className="text-v2-muted font-mono">{k}</dt>
                           <dd className="truncate">{String(v ?? '—')}</dd>
@@ -324,13 +324,13 @@ export default function TopologyPage() {
                     </dl>
                   </div>
                 )}
-                {selectedNode.is_root && (
+                {selectedNode.isRoot && (
                   <div className="px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-600 dark:text-amber-400">
                     当前根节点
                   </div>
                 )}
                 <Link
-                  href={`/cmdb/instances/by-model/${selectedNode.model_id}/${selectedNode.id}`}
+                  href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
                   className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例

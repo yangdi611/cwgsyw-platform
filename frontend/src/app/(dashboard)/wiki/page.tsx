@@ -197,7 +197,7 @@ export default function WikiSpacesPage() {
             <h3 className="truncate text-base font-bold text-v2-fg">{s.name}</h3>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-v2-muted">
               <FileText className="h-3 w-3" />
-              {s.page_count} 篇文档
+              {s.pageCount} 篇文档
             </p>
           </div>
           {sortable && (
@@ -226,8 +226,8 @@ export default function WikiSpacesPage() {
         </p>
         <div className="flex items-center justify-between gap-2">
           <span className="min-w-0 truncate text-xs text-v2-subtle">
-            {s.updated_at ? new Date(s.updated_at).toLocaleDateString('zh-CN') : '—'}
-            {s.created_by_name ? ` · ${s.created_by_name}` : ''}
+            {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString('zh-CN') : '—'}
+            {s.createdByName ? ` · ${s.createdByName}` : ''}
           </span>
           <div className="flex shrink-0 items-center gap-1">
             {canUpdate && writable && (
@@ -365,9 +365,9 @@ export default function WikiSpacesPage() {
           </DialogHeader>
           <div className="py-2 text-sm text-v2-fg">
             确定删除空间「{deleting?.name}」吗？
-            {(deleting?.page_count ?? 0) > 0 && (
+            {(deleting?.pageCount ?? 0) > 0 && (
               <p className="mt-2 text-xs text-amber-600">
-                该空间下还有 {deleting?.page_count} 篇文档，需先删除全部页面才能删除空间。
+                该空间下还有 {deleting?.pageCount} 篇文档，需先删除全部页面才能删除空间。
               </p>
             )}
           </div>

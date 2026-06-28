@@ -98,6 +98,8 @@ public class CiInstanceQueryService {
         if ("resource_pool".equals(inst.getModelId())) {
             fieldsData = injectResourcePoolDerivedFields(inst.getId(), fieldsData, tenantId);
         }
+        fieldsData = injectMaintStatusDerived(fieldsData);
+        fieldsData = injectBaselineCompleteness(fieldsData, attrVOs);
 
         CiInstanceDetailVO vo = new CiInstanceDetailVO();
         vo.setId(inst.getId()); vo.setName(inst.getName());
@@ -127,6 +129,77 @@ public class CiInstanceQueryService {
             merged.put("_worker_memory_gb", agg.getOrDefault("worker_memory_gb", 0L));
         }
         return merged;
+    }
+
+    /**
+     * 维保状态派生字段（spec §6）。读 {@code maint_expire}（date，ISO yyyy-MM-dd）与今天比较：
+     * 已到期 → expired；30 天内到期 → expiring；否则 active。无 maint_expire 或无法解析 → 不注入。
+     * 注入只读键 {@code _maint_status_derived}（`_` 前缀，与用户 field_key 天然隔离，§0.7），
+     * 全模型统一，供详情/列表标色与未来维保看板复用。
+     */
+    private Map<String, Object> injectMaintStatusDerived(Map<String, Object> fieldsData) {
+        if (fieldsData == null || !fieldsData.containsKey("maint_expire")) {
+            return fieldsData;
+        }
+        Object raw = fieldsData.get("maint_expire");
+        if (raw == null) return fieldsData;
+        String s = raw.toString().trim();
+        if (s.isEmpty()) return fieldsData;
+        java.time.LocalDate expire;
+        try {
+            // 容忍 "yyyy-MM-dd" 及带时间戳的 "yyyy-MM-ddTHH:mm:ss" 前缀
+            expire = java.time.LocalDate.parse(s.length() >= 10 ? s.substring(0, 10) : s);
+        } catch (Exception e) {
+            return fieldsData;
+        }
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String status;
+        if (expire.isBefore(today)) {
+            status = "expired";
+        } else if (!expire.isAfter(today.plusDays(30))) {
+            status = "expiring";
+        } else {
+            status = "active";
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(fieldsData);
+        merged.put("_maint_status_derived", status);
+        return merged;
+    }
+
+    /**
+     * 基线完整度派生字段（spec §6 P2）。以模型的 {@code is_required} 属性作为基线核心字段集，
+     * 计算已填充比例，注入只读键 {@code _baseline_completeness}（0-100 整数百分比）。
+     * 无任何必填字段时不注入（无基线概念）。表格类型字段以"非空数组"判已填。
+     * 全模型统一，供详情/列表健康度展示与未来基线巡检看板复用。
+     */
+    private Map<String, Object> injectBaselineCompleteness(Map<String, Object> fieldsData,
+                                                           List<CiAttributeVO> attrs) {
+        if (attrs == null || attrs.isEmpty()) return fieldsData;
+        List<CiAttributeVO> core = attrs.stream()
+                .filter(a -> Boolean.TRUE.equals(a.getIsRequired()))
+                .collect(Collectors.toList());
+        if (core.isEmpty()) return fieldsData;
+
+        Map<String, Object> data = fieldsData == null ? Map.of() : fieldsData;
+        int filled = 0;
+        for (CiAttributeVO a : core) {
+            if (isFieldFilled(data.get(a.getFieldKey()))) filled++;
+        }
+        int pct = (int) Math.round(filled * 100.0 / core.size());
+
+        Map<String, Object> merged = fieldsData == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(fieldsData);
+        merged.put("_baseline_completeness", pct);
+        return merged;
+    }
+
+    /** 字段是否视为已填：null/空串/空数组/空对象均为未填。 */
+    private boolean isFieldFilled(Object v) {
+        if (v == null) return false;
+        if (v instanceof String s) return !s.isBlank();
+        if (v instanceof java.util.Collection<?> c) return !c.isEmpty();
+        if (v instanceof Map<?, ?> m) return !m.isEmpty();
+        return true;
     }
 
     public PageResult<CiInstanceSearchVO> search(String keyword, int size, String tenantId) {

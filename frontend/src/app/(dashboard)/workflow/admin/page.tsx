@@ -24,7 +24,7 @@ interface ProcessDef {
   description: string
   category: string
   suspended: boolean
-  deployment_time: string
+  deploymentTime: string
   activeVersion?: number | null
 }
 
@@ -285,8 +285,8 @@ export default function WorkflowAdminPage() {
                                             <td className="px-3 py-2.5 font-v2-mono text-v2-fg tabular-nums">v{v.version}</td>
                                             <td className="px-3 py-2.5 text-v2-fg">{v.name}</td>
                                             <td className="px-3 py-2.5 text-v2-muted">
-                                              {v.deployment_time
-                                                ? new Date(v.deployment_time).toLocaleString('zh-CN')
+                                              {v.deploymentTime
+                                                ? new Date(v.deploymentTime).toLocaleString('zh-CN')
                                                 : '-'}
                                             </td>
                                             <td className="px-3 py-2.5">
@@ -418,7 +418,7 @@ export default function WorkflowAdminPage() {
                 if (!deleteVersionTarget) return
                 try {
                   await api.post(`/workflow/definitions/delete-version`, {
-                    definition_id: deleteVersionTarget.version.id,
+                    definitionId: deleteVersionTarget.version.id,
                   })
                   toast.success(`v${deleteVersionTarget.version.version} 已删除`)
                   const t = deleteVersionTarget

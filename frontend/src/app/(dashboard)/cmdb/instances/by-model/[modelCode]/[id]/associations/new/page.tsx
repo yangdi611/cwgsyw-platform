@@ -17,20 +17,20 @@ interface CiInstanceSummary { name: string; modelId: string; modelCode?: string 
 
 // 后端返回 ci_association_def 实体（全局 SNAKE_CASE 序列化）
 interface CiAssociationDefVO {
-  def_id: string
-  kind_id: string
+  defId: string
+  kindId: string
   name: string
-  src_model_id: string
-  dst_model_id: string
+  srcModelId: string
+  dstModelId: string
   mapping: string
-  on_delete: string
+  onDelete: string
 }
 interface InstanceSearchVO {
   id: number
   name: string
   modelId: string
   modelCode?: string
-  model_name: string
+  modelName: string
 }
 
 const STEPS = ['选择关联定义', '选择目标实例', '确认提交'] as const
@@ -77,9 +77,9 @@ export default function NewAssociationPage() {
     enabled: typeof window !== 'undefined',
   })
 
-  const selectedDef = applicableDefs.find(d => d.def_id === selectedDefId)
+  const selectedDef = applicableDefs.find(d => d.defId === selectedDefId)
   // applicable-defs 仅返回 src 端 = 当前模型 的 def，故目标恒为 dst 端
-  const targetModelId = selectedDef ? selectedDef.dst_model_id : null
+  const targetModelId = selectedDef ? selectedDef.dstModelId : null
 
   const { data: searchResult, isFetching: searching } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, keyword],
@@ -93,7 +93,7 @@ export default function NewAssociationPage() {
     mutationFn: () => {
       if (!selectedDef || !selectedPeer) throw new Error('请选择关联定义和目标实例')
       return api.post(`/cmdb/instances/${id}/relations`, {
-        defId: selectedDef.def_id,
+        defId: selectedDef.defId,
         dstInstanceId: selectedPeer.id,
         metadata: assocAttrs,
       })
@@ -169,11 +169,11 @@ export default function NewAssociationPage() {
             ) : (
               <div className="space-y-2">
                 {applicableDefs.map(d => {
-                  const isSelected = selectedDefId === d.def_id
+                  const isSelected = selectedDefId === d.defId
                   return (
                     <button
-                      key={d.def_id}
-                      onClick={() => { setSelectedDefId(d.def_id); resetPeer() }}
+                      key={d.defId}
+                      onClick={() => { setSelectedDefId(d.defId); resetPeer() }}
                       className={cn(
                         'w-full text-left p-3 rounded-md border transition-colors',
                         isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'
@@ -182,15 +182,15 @@ export default function NewAssociationPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Check className={cn('h-4 w-4', isSelected ? 'text-primary' : 'opacity-0')} />
-                          <span className="font-medium text-sm">{d.name ?? d.def_id}</span>
-                          <Badge variant="outline" className="text-xs">{d.kind_id}</Badge>
+                          <span className="font-medium text-sm">{d.name ?? d.defId}</span>
+                          <Badge variant="outline" className="text-xs">{d.kindId}</Badge>
                         </div>
                         <Badge variant="secondary" className="text-xs">{d.mapping}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1.5 ml-6 flex items-center gap-1">
-                        <span>{d.src_model_id}</span>
+                        <span>{d.srcModelId}</span>
                         <ArrowRight className="h-3 w-3" />
-                        <span>{d.dst_model_id}</span>
+                        <span>{d.dstModelId}</span>
                       </div>
                     </button>
                   )
@@ -245,7 +245,7 @@ export default function NewAssociationPage() {
                         <Check className={cn('h-3.5 w-3.5', isSelected ? 'text-primary' : 'opacity-0')} />
                         {rec.name}
                       </div>
-                      <Badge variant="secondary" className="text-xs">{rec.model_name}</Badge>
+                      <Badge variant="secondary" className="text-xs">{rec.modelName}</Badge>
                     </button>
                   )
                 })
@@ -269,16 +269,16 @@ export default function NewAssociationPage() {
               <div className="grid grid-cols-3 gap-2 text-sm items-center">
                 <span className="text-muted-foreground">关联定义</span>
                 <span className="col-span-2 flex items-center gap-1.5">
-                  <Badge variant="outline">{selectedDef?.kind_id}</Badge>
+                  <Badge variant="outline">{selectedDef?.kindId}</Badge>
                   <Badge variant="secondary" className="text-xs">{selectedDef?.mapping}</Badge>
-                  <span>{selectedDef?.name ?? selectedDef?.def_id}</span>
+                  <span>{selectedDef?.name ?? selectedDef?.defId}</span>
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm items-center">
                 <span className="text-muted-foreground">目标实例</span>
                 <span className="col-span-2 font-medium">
                   {selectedPeer?.name}
-                  <span className="text-muted-foreground ml-1.5">({selectedPeer?.model_name})</span>
+                  <span className="text-muted-foreground ml-1.5">({selectedPeer?.modelName})</span>
                 </span>
               </div>
               <div className="pt-2 border-t flex items-center justify-center gap-3 text-sm">

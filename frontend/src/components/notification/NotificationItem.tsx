@@ -8,10 +8,10 @@ interface NotificationVO {
   title: string
   content: string
   type: string
-  ref_type: string | null
-  ref_id: number | null
-  is_read: boolean
-  created_at: string
+  refType: string | null
+  refId: number | null
+  isRead: boolean
+  createdAt: string
 }
 
 interface NotificationItemProps {
@@ -34,30 +34,30 @@ function getHref(refType: string | null, refId: number | null): string | null {
 }
 
 export function NotificationItem({ notification: n, onMarkRead }: NotificationItemProps) {
-  const href = getHref(n.ref_type, n.ref_id)
+  const href = getHref(n.refType, n.refId)
 
   const inner = (
     <div
-      onClick={() => !n.is_read && onMarkRead(n.id)}
+      onClick={() => !n.isRead && onMarkRead(n.id)}
       className={cn(
         'p-4 border rounded-lg transition-colors',
-        n.is_read
+        n.isRead
           ? 'bg-card cursor-default'
           : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/30'
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2 min-w-0">
-          {!n.is_read && (
+          {!n.isRead && (
             <span className="mt-1.5 inline-block w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
           )}
           <div className="min-w-0">
-            <p className={cn('font-medium text-sm', !n.is_read && 'text-v2-fg')}>{n.title}</p>
+            <p className={cn('font-medium text-sm', !n.isRead && 'text-v2-fg')}>{n.title}</p>
             <p className="text-sm text-v2-muted mt-0.5">{n.content}</p>
           </div>
         </div>
         <span className="text-xs text-v2-muted whitespace-nowrap flex-shrink-0">
-          {new Date(n.created_at).toLocaleString('zh-CN', {
+          {new Date(n.createdAt).toLocaleString('zh-CN', {
             month: 'numeric', day: 'numeric',
             hour: '2-digit', minute: '2-digit',
           })}

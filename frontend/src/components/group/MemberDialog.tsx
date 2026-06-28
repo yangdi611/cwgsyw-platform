@@ -8,18 +8,18 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 
 interface GroupMember {
-  user_id: number
+  userId: number
   username: string
-  real_name: string
+  realName: string
   email: string
-  role_names: string[]
+  roleNames: string[]
 }
 
 interface SearchUser {
   id: number
   username: string
-  real_name: string
-  group_id: number | null
+  realName: string
+  groupId: number | null
 }
 
 interface MemberDialogProps {
@@ -53,7 +53,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
     try {
       const res = await api.get('/users', { params: { keyword, page: 1, size: 20 } })
       const allUsers = res.data.data?.records ?? []
-      const memberIds = new Set(members.map(m => m.user_id))
+      const memberIds = new Set(members.map(m => m.userId))
       const available = (allUsers as SearchUser[]).filter(u => !memberIds.has(u.id))
       setSearchResults(available)
     } catch (err) {
@@ -90,7 +90,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
     if (!removeTarget) return
     setLoading(true)
     try {
-      await api.delete(`/groups/${groupId}/members/${removeTarget.user_id}`)
+      await api.delete(`/groups/${groupId}/members/${removeTarget.userId}`)
       toast.success('成员已移除')
       setRemoveTarget(null)
       loadMembers()
@@ -120,9 +120,9 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
                   <p className="text-sm text-v2-muted text-center py-8">暂无成员</p>
                 ) : (
                   members.map((m) => (
-                    <div key={m.user_id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
+                    <div key={m.userId} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
                       <div>
-                        <span className="text-sm font-medium">{m.real_name || m.username}</span>
+                        <span className="text-sm font-medium">{m.realName || m.username}</span>
                         <span className="text-xs text-v2-muted ml-1">@{m.username}</span>
                       </div>
                       <Button
@@ -157,7 +157,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
                   searchResults.map((u) => (
                     <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
                       <div>
-                        <span className="text-sm font-medium">{u.real_name || u.username}</span>
+                        <span className="text-sm font-medium">{u.realName || u.username}</span>
                         <span className="text-xs text-v2-muted ml-1">@{u.username}</span>
                       </div>
                       <Button
@@ -185,7 +185,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
             <DialogTitle>确认移除</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-v2-muted">
-            确定要将 <strong>{removeTarget?.real_name || removeTarget?.username}</strong> 从 {groupName} 移除吗？
+            确定要将 <strong>{removeTarget?.realName || removeTarget?.username}</strong> 从 {groupName} 移除吗？
           </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setRemoveTarget(null)}>取消</Button>

@@ -11,14 +11,14 @@ export interface WikiSpace {
   id: number
   name: string
   description: string
-  page_count: number
-  updated_at: string
-  created_by_name: string
-  read_only: boolean
+  pageCount: number
+  updatedAt: string
+  createdByName: string
+  readOnly: boolean
   /** true = seed 系统空间，前端据此置于「官方手册」层 */
   system: boolean
   /** null=用户空间 / 'none' / 'super_admin_only' / 'all' */
-  write_scope: string | null
+  writeScope: string | null
 }
 
 export interface WikiPageTree {
@@ -26,46 +26,46 @@ export interface WikiPageTree {
   title: string
   slug: string
   status: WikiStatus
-  sort_order: number
-  space_id: number
+  sortOrder: number
+  spaceId: number
   children: WikiPageTree[]
 }
 
 export interface WikiPage {
   id: number
-  space_id: number
-  parent_id: number | null
+  spaceId: number
+  parentId: number | null
   title: string
   slug: string
   content: string
   status: WikiStatus
-  current_version: number
-  acl_custom: boolean
-  updated_at: string
-  updated_by_name: string
-  backlink_count: number
+  currentVersion: number
+  aclCustom: boolean
+  updatedAt: string
+  updatedByName: string
+  backlinkCount: number
 }
 
 export interface WikiBacklink {
-  page_id: number
+  pageId: number
   title: string
-  space_id: number
+  spaceId: number
 }
 
 export interface WikiVersion {
   version: number
   title: string
   comment: string
-  created_by_name: string
-  created_at: string
+  createdByName: string
+  createdAt: string
 }
 
 export interface WikiSearchResult {
-  page_id: number
-  space_id: number
+  pageId: number
+  spaceId: number
   title: string
   highlight: string
-  updated_at: string
+  updatedAt: string
 }
 
 export interface WikiGraphNode {
@@ -85,14 +85,14 @@ export interface WikiGraph {
 }
 
 export interface WikiAclEntry {
-  subject_type: string
-  subject_id: number
-  subject_name: string
+  subjectType: string
+  subjectId: number
+  subjectName: string
   permissions: string[]
 }
 
 export interface WikiAcl {
-  page_id: number
+  pageId: number
   inherited: boolean
   entries: WikiAclEntry[]
 }
@@ -116,7 +116,7 @@ export function canWriteSpace(
   if (!space) return false
   const isSuper = groupScope === 'platform'
   const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
-  switch (space.write_scope) {
+  switch (space.writeScope) {
     case null:
     case undefined:
       return true // 用户自建空间，由 RBAC + 页面 ACL 控制

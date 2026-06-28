@@ -1,13 +1,10 @@
 package com.cwgsyw.platform.module.cmdb.dto.relation;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 @Data
 public class CiRelationVO {
     private Long id;
@@ -15,6 +12,8 @@ public class CiRelationVO {
     private String srcInstanceName;
     private Long dstInstanceId;
     private String dstInstanceName;
+    /** 关联定义 def_id（与 associationKind 同值，新代码用此键，语义更准）。 */
+    private String defId;
     private String associationKind;
     private Map<String, Object> metadata;
     private LocalDateTime createdAt;

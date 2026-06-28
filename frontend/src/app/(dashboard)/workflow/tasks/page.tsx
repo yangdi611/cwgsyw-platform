@@ -11,13 +11,13 @@ import Link from 'next/link'
 import { Check, X, ClipboardList } from 'lucide-react'
 
 interface TaskVO {
-  task_id: string
-  process_instance_id: string
-  task_name: string
-  business_type: string
-  business_id: number
-  business_key: string
-  create_time: string
+  taskId: string
+  processInstanceId: string
+  taskName: string
+  businessType: string
+  businessId: number
+  businessKey: string
+  createTime: string
   assignee: string | null
 }
 
@@ -72,7 +72,7 @@ export default function WorkflowTasksPage() {
     const state = getApprovalState(taskId)
     try {
       await api.post('/workflow/approve', {
-        task_id: taskId,
+        taskId: taskId,
         approved,
         comment: state.comment || undefined,
       })
@@ -85,17 +85,17 @@ export default function WorkflowTasksPage() {
   }
 
   const renderBusinessLink = (task: TaskVO) => {
-    if (task.business_type === 'daily_report' && task.business_id) {
+    if (task.businessType === 'daily_report' && task.businessId) {
       return (
         <Link
-          href={`/daily/${task.business_id}`}
+          href={`/daily/${task.businessId}`}
           className="text-sm font-semibold text-v2-primary hover:text-v2-primary-hover"
         >
           查看日报
         </Link>
       )
     }
-    if (task.business_key) return <span className="text-xs text-v2-muted">{task.business_key}</span>
+    if (task.businessKey) return <span className="text-xs text-v2-muted">{task.businessKey}</span>
     return null
   }
 
@@ -118,21 +118,21 @@ export default function WorkflowTasksPage() {
       ) : (
         <div className="space-y-3">
           {tasks.map((task) => {
-            const state = getApprovalState(task.task_id)
-            const isExpanded = expandedTask === task.task_id
+            const state = getApprovalState(task.taskId)
+            const isExpanded = expandedTask === task.taskId
             return (
-              <Card key={task.task_id} className="p-4">
+              <Card key={task.taskId} className="p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-v2-fg">{task.task_name}</span>
+                      <span className="font-semibold text-v2-fg">{task.taskName}</span>
                       <Chip tone="primary">
-                        {(businessTypeLabels[task.business_type] ?? task.business_type) || '审批'}
+                        {(businessTypeLabels[task.businessType] ?? task.businessType) || '审批'}
                       </Chip>
                       {task.assignee && <Chip tone="success">已认领</Chip>}
                     </div>
                     <p className="mt-1 text-sm text-v2-muted">
-                      {new Date(task.create_time).toLocaleString('zh-CN')}
+                      {new Date(task.createTime).toLocaleString('zh-CN')}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -140,7 +140,7 @@ export default function WorkflowTasksPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setExpandedTask(isExpanded ? null : task.task_id)}
+                      onClick={() => setExpandedTask(isExpanded ? null : task.taskId)}
                     >
                       {isExpanded ? '收起' : '审批'}
                     </Button>
@@ -154,16 +154,16 @@ export default function WorkflowTasksPage() {
                       <Textarea
                         rows={2}
                         value={state.comment}
-                        onChange={(e) => updateApprovalState(task.task_id, { comment: e.target.value })}
+                        onChange={(e) => updateApprovalState(task.taskId, { comment: e.target.value })}
                         placeholder="填写审批意见…"
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="primary" size="sm" onClick={() => handleApprove(task.task_id, true)}>
+                      <Button variant="primary" size="sm" onClick={() => handleApprove(task.taskId, true)}>
                         <Check className="h-4 w-4" />
                         通过
                       </Button>
-                      <Button variant="danger" size="sm" onClick={() => handleApprove(task.task_id, false)}>
+                      <Button variant="danger" size="sm" onClick={() => handleApprove(task.taskId, false)}>
                         <X className="h-4 w-4" />
                         拒绝
                       </Button>

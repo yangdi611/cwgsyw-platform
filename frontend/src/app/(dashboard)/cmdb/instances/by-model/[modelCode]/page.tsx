@@ -7,9 +7,10 @@ import { Button } from '@/components/v2/Button'
 import { PageHeader, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch } from 'lucide-react'
+import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch, Pencil, Copy } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
+import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
 
 interface CiInstanceVO {
   id: number
@@ -34,7 +35,7 @@ interface PageResult {
 
 interface CiModelVO {
   name: string
-  attributes: { fieldKey: string; name: string; isListShow: boolean; isDrawerShow: boolean; fieldType: string }[]
+  attributes: { fieldKey: string; name: string; isListShow: boolean; isDrawerShow: boolean; fieldType: string; isEditable?: boolean; option?: { id: string; name: string }[] | null }[]
 }
 
 export default function InstanceListPage() {
@@ -45,6 +46,8 @@ export default function InstanceListPage() {
 
   const [csvOpen, setCsvOpen] = useState(false)
   const [selected, setSelected] = useState<CiInstanceVO | null>(null)
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
+  const [batchOpen, setBatchOpen] = useState(false)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -78,6 +81,17 @@ export default function InstanceListPage() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+  })
+
+  const cloneMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/cmdb/instances/${id}/clone`).then((r) => r.data.data),
+    onSuccess: (created: CiInstanceVO) => {
+      toast.success('已克隆，跳转到副本')
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
+      setSelected(null)
+      router.push(`/cmdb/instances/by-model/${modelCode}/${created.id}`)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? '克隆失败'),
   })
 
   const listColumns = (model?.attributes ?? []).filter((a) => a.isListShow).slice(0, 5)
@@ -154,6 +168,12 @@ export default function InstanceListPage() {
               <ArrowLeft className="h-4 w-4" />
               返回 CI 资源
             </Link>
+            {hasPermission('cmdb_instance', 'update') && selectedIds.length > 0 && (
+              <Button variant="secondary" onClick={() => setBatchOpen(true)}>
+                <Pencil className="h-4 w-4" />
+                批量编辑（{selectedIds.length}）
+              </Button>
+            )}
             {hasPermission('cmdb_instance', 'import') && (
               <Button variant="secondary" onClick={() => setCsvOpen(true)}>
                 <Upload className="h-4 w-4" />
@@ -176,10 +196,24 @@ export default function InstanceListPage() {
         rowKey={(r) => r.id}
         loading={isLoading}
         onRowClick={(r) => setSelected(r)}
+        selectedKeys={hasPermission('cmdb_instance', 'update') ? selectedIds : undefined}
+        onSelectionChange={hasPermission('cmdb_instance', 'update') ? setSelectedIds : undefined}
         empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
       />
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={modelCode} />
+
+      <BatchEditDialog
+        open={batchOpen}
+        onClose={() => setBatchOpen(false)}
+        modelCode={modelCode}
+        attributes={model?.attributes ?? []}
+        selectedIds={selectedIds.map(Number)}
+        onDone={() => {
+          setBatchOpen(false)
+          setSelectedIds([])
+        }}
+      />
 
       {/* Detail Drawer — click a row to preview */}
       <DetailDrawer
@@ -195,6 +229,17 @@ export default function InstanceListPage() {
         footer={
           selected ? (
             <div className="flex items-center justify-end gap-2">
+              {hasPermission('cmdb_instance', 'create') && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={cloneMutation.isPending}
+                  onClick={() => cloneMutation.mutate(selected.id)}
+                >
+                  <Copy className="h-4 w-4" />
+                  克隆
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 size="sm"

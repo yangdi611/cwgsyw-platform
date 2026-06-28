@@ -10,13 +10,13 @@ import { Database, Download, RotateCcw, Trash2, AlertTriangle, Loader2, Upload }
 
 interface BackupRecordVO {
   id: number
-  file_name: string
-  file_size_bytes: number | null
+  fileName: string
+  fileSizeBytes: number | null
   status: string
-  backup_type: string
-  error_message: string | null
-  created_by_name: string | null
-  created_at: string
+  backupType: string
+  errorMessage: string | null
+  createdByName: string | null
+  createdAt: string
 }
 
 interface PageResult {
@@ -69,7 +69,7 @@ function RestoreDialog({
               <div>
                 <h3 className="font-semibold text-v2-fg">恢复完成</h3>
                 <p className="text-sm text-v2-muted mt-1">
-                  数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.file_name}</span>。
+                  数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span>。
                 </p>
                 <p className="text-sm text-yellow-500 mt-2 font-medium">
                   建议执行：<span className="font-mono text-xs">docker compose restart backend</span> 以清除内存缓存。
@@ -93,7 +93,7 @@ function RestoreDialog({
             <div className="flex-1">
               <h3 className="font-semibold text-v2-fg">确认恢复数据库？</h3>
               <p className="text-sm text-v2-muted mt-1">
-                将使用备份 <span className="font-mono text-xs text-v2-fg">{target.file_name}</span> 覆盖当前所有数据。
+                将使用备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span> 覆盖当前所有数据。
               </p>
               <p className="text-sm text-red-500 mt-2 font-medium">
                 ⚠ 此操作不可撤销。
@@ -212,7 +212,7 @@ export default function BackupPage() {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
-      a.download = record.file_name
+      a.download = record.fileName
       a.click()
       URL.revokeObjectURL(url)
     })
@@ -220,14 +220,14 @@ export default function BackupPage() {
 
   const columns: ColumnDef<BackupRecordVO>[] = [
     {
-      key: 'file_name',
+      key: 'fileName',
       title: '文件名',
-      render: r => <span className="font-mono text-xs text-v2-fg">{r.file_name}</span>,
+      render: r => <span className="font-mono text-xs text-v2-fg">{r.fileName}</span>,
     },
     {
-      key: 'file_size_bytes',
+      key: 'fileSizeBytes',
       title: '大小',
-      render: r => <span className="text-xs text-v2-muted">{formatBytes(r.file_size_bytes)}</span>,
+      render: r => <span className="text-xs text-v2-muted">{formatBytes(r.fileSizeBytes)}</span>,
     },
     {
       key: 'status',
@@ -238,26 +238,26 @@ export default function BackupPage() {
       },
     },
     {
-      key: 'created_at',
+      key: 'createdAt',
       title: '创建时间',
       render: r => (
         <span className="text-xs text-v2-muted whitespace-nowrap">
-          {new Date(r.created_at).toLocaleString('zh-CN')}
+          {new Date(r.createdAt).toLocaleString('zh-CN')}
         </span>
       ),
     },
     {
-      key: 'created_by_name',
+      key: 'createdByName',
       title: '操作人',
-      render: r => <span className="text-xs text-v2-muted">{r.created_by_name ?? '—'}</span>,
+      render: r => <span className="text-xs text-v2-muted">{r.createdByName ?? '—'}</span>,
     },
     {
-      key: 'error_message',
+      key: 'errorMessage',
       title: '错误信息',
       render: r =>
-        r.error_message ? (
-          <span className="max-w-xs truncate text-xs text-red-400" title={r.error_message}>
-            {r.error_message}
+        r.errorMessage ? (
+          <span className="max-w-xs truncate text-xs text-red-400" title={r.errorMessage}>
+            {r.errorMessage}
           </span>
         ) : null,
     },
@@ -291,7 +291,7 @@ export default function BackupPage() {
               type="button"
               title="删除"
               onClick={() => {
-                if (confirm(`确认删除备份 ${r.file_name}？此操作将同时删除备份文件。`))
+                if (confirm(`确认删除备份 ${r.fileName}？此操作将同时删除备份文件。`))
                   deleteMutation.mutate(r.id)
               }}
               className="inline-flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:text-red-500 hover:bg-v2-surface-hover"

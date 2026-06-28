@@ -16,19 +16,19 @@ type Direction = 'bidirectional' | 'upstream' | 'downstream'
 interface ImpactNode {
   id: number
   name: string
-  model_id: string
-  model_name?: string
+  modelId: string
+  modelName?: string
   status?: string
-  business_level?: string
+  businessLevel?: string
 }
 interface ImpactLayer { depth: number; nodes: ImpactNode[] }
 interface ImpactEdge { src: number; dst: number; kind: string; label?: string }
 interface ImpactResult {
-  root_id: number
-  root_name: string
-  root_model_id: string
+  rootId: number
+  rootName: string
+  rootModelId: string
   direction: string
-  max_depth: number
+  maxDepth: number
   truncated: boolean
   layers: ImpactLayer[]
   edges: ImpactEdge[]
@@ -77,7 +77,7 @@ export default function ImpactAnalysisPage() {
       try {
         const r = await api.post(`/cmdb/instances/${instanceId}/impact`, {
           direction,
-          max_depth: maxDepth,
+          maxDepth: maxDepth,
         })
         return r.data.data
       } catch {
@@ -97,7 +97,7 @@ export default function ImpactAnalysisPage() {
   // For each node, the edge labels connecting it to a shallower node (how it was reached)
   const incomingByNode = useMemo(() => {
     const m = new Map<number, ImpactEdge[]>()
-    const rootId = data?.root_id
+    const rootId = data?.rootId
     data?.edges.forEach(e => {
       // edges touching root are attributed to the non-root endpoint
       if (e.src === rootId || e.dst === rootId) {
@@ -135,7 +135,7 @@ export default function ImpactAnalysisPage() {
       {/* 顶部工具栏 */}
       <div className="flex items-center gap-3">
         <Link
-          href={data ? `/cmdb/instances/by-model/${data.root_model_id}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
+          href={data ? `/cmdb/instances/by-model/${data.rootModelId}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
           className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -143,7 +143,7 @@ export default function ImpactAnalysisPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-v2-fg">
-            {data?.root_name ?? `#${instanceId}`}
+            {data?.rootName ?? `#${instanceId}`}
             <span className="ml-2 text-sm font-normal text-v2-muted">影响分析</span>
           </h1>
           <p className="mt-0.5 text-xs text-v2-muted">
@@ -195,7 +195,7 @@ export default function ImpactAnalysisPage() {
 
           {/* 其余层（过滤掉根节点自身，跳过剩余节点为空的层） */}
           {data.layers.map(layer => {
-            const nodes = layer.nodes.filter(n => n.id !== data.root_id)
+            const nodes = layer.nodes.filter(n => n.id !== data.rootId)
             if (nodes.length === 0) return null
             const isCollapsed = collapsed.has(layer.depth)
             const dirLabel = direction === 'upstream' ? '上游' : direction === 'downstream' ? '下游' : '关联'
@@ -252,17 +252,17 @@ function ImpactRootCard({ data }: { data: ImpactResult }) {
       <div className="flex items-center gap-2 mb-1">
         <Layers className="h-4 w-4 text-primary" />
         <Badge variant="default">根节点</Badge>
-        {data.root_model_id && <Badge variant="secondary">{data.root_model_id}</Badge>}
+        {data.rootModelId && <Badge variant="secondary">{data.rootModelId}</Badge>}
       </div>
       <div className="flex items-center justify-between">
         <Link
-          href={`/cmdb/instances/by-model/${data.root_model_id}/${data.root_id}`}
+          href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
           className="text-lg font-semibold hover:underline"
         >
-          {data.root_name}
+          {data.rootName}
         </Link>
         <Link
-          href={`/cmdb/instances/by-model/${data.root_model_id}/${data.root_id}`}
+          href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
           className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
         >
           <ExternalLink className="h-3.5 w-3.5 mr-1" />查看详情
@@ -288,7 +288,7 @@ function ImpactNodeCard({ node, edges }: { node: ImpactNode; edges: ImpactEdge[]
       )}
       <div className="flex items-center justify-between gap-2">
         <Link
-          href={`/cmdb/instances/by-model/${node.model_id}/${node.id}`}
+          href={`/cmdb/instances/by-model/${node.modelId}/${node.id}`}
           className="font-medium text-sm hover:underline truncate"
         >
           {node.name}
@@ -300,13 +300,13 @@ function ImpactNodeCard({ node, edges }: { node: ImpactNode; edges: ImpactEdge[]
         )}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 mt-2">
-        {node.model_name && <Badge variant="secondary" className="text-[10px]">{node.model_name}</Badge>}
-        {node.business_level && BIZ_LEVEL_LABELS[node.business_level] && (
+        {node.modelName && <Badge variant="secondary" className="text-[10px]">{node.modelName}</Badge>}
+        {node.businessLevel && BIZ_LEVEL_LABELS[node.businessLevel] && (
           <Badge
-            variant={node.business_level === 'core' ? 'destructive' : node.business_level === 'important' ? 'default' : 'outline'}
+            variant={node.businessLevel === 'core' ? 'destructive' : node.businessLevel === 'important' ? 'default' : 'outline'}
             className="text-[10px]"
           >
-            {BIZ_LEVEL_LABELS[node.business_level]}
+            {BIZ_LEVEL_LABELS[node.businessLevel]}
           </Badge>
         )}
       </div>

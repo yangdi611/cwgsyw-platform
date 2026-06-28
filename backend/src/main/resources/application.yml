@@ -24,7 +24,6 @@ spring:
       port: 6379
       password: ${SPRING_REDIS_PASSWORD:}
   jackson:
-    property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
   mail:
     host: localhost

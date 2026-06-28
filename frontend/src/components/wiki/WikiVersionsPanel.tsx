@@ -60,8 +60,8 @@ export function WikiVersionsPanel({ pageId }: { pageId: number }) {
                         <p className="truncate text-v2-muted">{v.comment}</p>
                       )}
                       <p className="text-v2-subtle">
-                        {v.created_by_name} ·{' '}
-                        {new Date(v.created_at).toLocaleString('zh-CN', {
+                        {v.createdByName} ·{' '}
+                        {new Date(v.createdAt).toLocaleString('zh-CN', {
                           month: '2-digit',
                           day: '2-digit',
                           hour: '2-digit',

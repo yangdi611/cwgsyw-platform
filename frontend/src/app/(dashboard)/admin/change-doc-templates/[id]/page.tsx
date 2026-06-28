@@ -13,12 +13,12 @@ import { ArrowLeft, Trash2, Plus, GripVertical } from 'lucide-react'
 
 interface FieldConfigVO {
   id: number
-  field_key: string
+  fieldKey: string
   label: string
-  field_type: string
-  sort_order: number
+  fieldType: string
+  sortOrder: number
   required: boolean
-  in_form: boolean
+  inForm: boolean
   placeholder: string
 }
 
@@ -28,8 +28,8 @@ interface TemplateVO {
   id: number
   name: string
   description: string
-  has_docx: boolean
-  doc_type: DocType
+  hasDocx: boolean
+  docType: DocType
   fields: FieldConfigVO[]
 }
 
@@ -52,10 +52,10 @@ export default function TemplateFieldsPage() {
   const queryClient = useQueryClient()
   const [fields, setFields] = useState<FieldConfigVO[]>([])
   const [dirty, setDirty] = useState(false)
-  const [meta, setMeta] = useState<{ name: string; description: string; doc_type: DocType }>({
+  const [meta, setMeta] = useState<{ name: string; description: string; docType: DocType }>({
     name: '',
     description: '',
-    doc_type: 'general',
+    docType: 'general',
   })
   const [metaDirty, setMetaDirty] = useState(false)
 
@@ -73,7 +73,7 @@ export default function TemplateFieldsPage() {
       setMeta({
         name: tpl.name ?? '',
         description: tpl.description ?? '',
-        doc_type: tpl.doc_type ?? 'general',
+        docType: tpl.docType ?? 'general',
       })
     }
   }, [tpl, metaDirty])
@@ -83,7 +83,7 @@ export default function TemplateFieldsPage() {
       api.put(`/admin/change-doc-templates/${id}`, {
         name: meta.name,
         description: meta.description,
-        doc_type: meta.doc_type,
+        docType: meta.docType,
       }),
     onSuccess: () => {
       toast.success('基本信息已保存')
@@ -122,17 +122,17 @@ export default function TemplateFieldsPage() {
 
   const addField = () => {
     setDirty(true)
-    const maxOrder = fields.reduce((m, f) => Math.max(m, f.sort_order ?? 0), 0)
+    const maxOrder = fields.reduce((m, f) => Math.max(m, f.sortOrder ?? 0), 0)
     setFields((f) => [
       ...f,
       {
         id: 0,
-        field_key: '',
+        fieldKey: '',
         label: '新字段',
-        field_type: 'textarea',
-        sort_order: maxOrder + 10,
+        fieldType: 'textarea',
+        sortOrder: maxOrder + 10,
         required: false,
-        in_form: true,
+        inForm: true,
         placeholder: '',
       },
     ])
@@ -166,14 +166,14 @@ export default function TemplateFieldsPage() {
             与此处 field_key 对应
           </p>
         </div>
-        {tpl?.has_docx && (
+        {tpl?.hasDocx && (
           <span className="inline-flex items-center rounded-md border border-v2-success-border bg-v2-success-soft px-2 py-1 text-xs font-medium text-v2-success">
             已上传 .docx
           </span>
         )}
       </div>
 
-      {!tpl?.has_docx && (
+      {!tpl?.hasDocx && (
         <div className="rounded-v2-md border border-v2-warning-border bg-v2-warning-soft p-3 text-sm text-v2-warning">
           尚未上传 Word 模板文件。可先配置字段，上传后点「解析书签」自动识别占位符。
         </div>
@@ -219,9 +219,9 @@ export default function TemplateFieldsPage() {
             <div className="space-y-1">
               <label className="text-xs text-v2-muted">类型</label>
               <select
-                value={meta.doc_type}
+                value={meta.docType}
                 onChange={(e) => {
-                  setMeta((m) => ({ ...m, doc_type: e.target.value as DocType }))
+                  setMeta((m) => ({ ...m, docType: e.target.value as DocType }))
                   setMetaDirty(true)
                 }}
                 className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg focus:border-v2-primary focus:outline-none"
@@ -245,10 +245,10 @@ export default function TemplateFieldsPage() {
                   <div className="space-y-1">
                     <label className="text-xs text-v2-muted">书签 Key</label>
                     <Input
-                      value={field.field_key}
+                      value={field.fieldKey}
                       className="h-8 font-v2-mono text-xs"
                       placeholder="例：change_desc"
-                      onChange={(e) => update(idx, 'field_key', e.target.value)}
+                      onChange={(e) => update(idx, 'fieldKey', e.target.value)}
                     />
                   </div>
                   <div className="space-y-1">
@@ -262,8 +262,8 @@ export default function TemplateFieldsPage() {
                   <div className="space-y-1">
                     <label className="text-xs text-v2-muted">字段类型</label>
                     <Select
-                      value={field.field_type}
-                      onValueChange={(v) => update(idx, 'field_type', v ?? 'textarea')}
+                      value={field.fieldType}
+                      onValueChange={(v) => update(idx, 'fieldType', v ?? 'textarea')}
                     >
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
@@ -286,7 +286,7 @@ export default function TemplateFieldsPage() {
                       onChange={(e) => update(idx, 'placeholder', e.target.value)}
                     />
                   </div>
-                  {field.field_type === 'ci_selector' && (
+                  {field.fieldType === 'ci_selector' && (
                     <div className="col-span-2 mt-1 space-y-1 rounded-v2-md border border-v2-primary-border bg-v2-primary-soft p-3 text-xs text-v2-primary">
                       <p className="font-semibold">CI 选择器用法说明</p>
                       <p>允许填写人在变更文档中搜索并选择受影响的 CI 实例。</p>
@@ -311,8 +311,8 @@ export default function TemplateFieldsPage() {
                   <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
                     <input
                       type="checkbox"
-                      checked={!!field.in_form}
-                      onChange={(e) => update(idx, 'in_form', e.target.checked)}
+                      checked={!!field.inForm}
+                      onChange={(e) => update(idx, 'inForm', e.target.checked)}
                       className="rounded"
                     />
                     表单可见

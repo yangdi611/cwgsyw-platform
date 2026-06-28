@@ -29,11 +29,13 @@ public class CiAttribute extends BaseEntity {
     private String defaultValue;
 
     /**
-     * Option JSONB field for enum/enummulti field types.
-     * Format: [{"id":"linux","name":"Linux","isDefault":true}]
+     * Option JSONB field. Two shapes by field_type:
+     *   - enum/enummulti: List<Map> 数组 [{"id":"linux","name":"Linux","is_default":true}]
+     *   - table: Map 对象 {"schema_version":1,"row_key":"row_id","columns":[...]}（§4.1）
+     * 故类型放宽为 Object（JacksonTypeHandler 可序列化任意 JSON），消费方据 field_type 分流解读。
      */
     @TableField(value = "option", typeHandler = JacksonTypeHandler.class)
-    private List<Map<String, Object>> option;
+    private Object option;
 
     /**
      * @deprecated Use {@link #option} instead. The DB column was dropped after the migration,

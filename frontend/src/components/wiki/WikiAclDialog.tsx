@@ -68,7 +68,7 @@ export function WikiAclDialog({
     queryFn: () => api.get('/groups').then((r) => r.data),
     enabled: open,
   })
-  const { data: usersData } = useQuery<{ data: { records: { id: number; real_name?: string; username: string }[] } }>({
+  const { data: usersData } = useQuery<{ data: { records: { id: number; realName?: string; username: string }[] } }>({
     queryKey: ['acl-users'],
     queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((r) => r.data),
     enabled: open,
@@ -79,7 +79,7 @@ export function WikiAclDialog({
     setInherited(acl.inherited)
     const m = new Map<string, Set<Perm>>()
     for (const e of acl.entries ?? []) {
-      m.set(`${e.subject_type}:${e.subject_id}`, new Set(e.permissions as Perm[]))
+      m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions as Perm[]))
     }
     setGrants(m)
   }, [acl])
@@ -89,7 +89,7 @@ export function WikiAclDialog({
     if (tab === 'group') return groupsData?.data ?? []
     return (usersData?.data?.records ?? []).map((u) => ({
       id: u.id,
-      name: u.real_name || u.username,
+      name: u.realName || u.username,
     }))
   }, [tab, rolesData, groupsData, usersData])
 
@@ -112,13 +112,13 @@ export function WikiAclDialog({
       for (const [key, perms] of grants.entries()) {
         const [type, idStr] = key.split(':')
         entries.push({
-          subject_type: type,
-          subject_id: Number(idStr),
-          subject_name: '',
+          subjectType: type,
+          subjectId: Number(idStr),
+          subjectName: '',
           permissions: [...perms],
         })
       }
-      return wikiApi.setAcl(pageId, { page_id: pageId, inherited, entries })
+      return wikiApi.setAcl(pageId, { pageId: pageId, inherited, entries })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wiki-page', pageId] })
