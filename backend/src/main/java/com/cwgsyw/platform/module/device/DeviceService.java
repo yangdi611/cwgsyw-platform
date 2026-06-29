@@ -7,7 +7,11 @@ import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.CryptoService;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
+import com.cwgsyw.platform.module.cmdb.entity.CiModel;
+import com.cwgsyw.platform.module.cmdb.entity.CiModelGroup;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiModelGroupMapper;
 import com.cwgsyw.platform.module.device.dto.*;
 import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.device.entity.DeviceCredential;
@@ -16,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +34,8 @@ public class DeviceService {
     private final CryptoService crypto;
     private final AuditLogMapper auditLogMapper;
     private final CiInstanceMapper ciInstanceMapper;
+    private final CiModelMapper ciModelMapper;
+    private final CiModelGroupMapper ciModelGroupMapper;
     private final GroupMapper groupMapper;
 
     public PageResult<DeviceVO> list(Long groupId, String deviceType, String category,
@@ -147,12 +154,19 @@ public class DeviceService {
 
     @Transactional
     public DeviceCredential addCredential(Long deviceId, CreateCredentialRequest req,
-                                          String tenantId, Long operatorId, Long callerGroupId) {
+                                          String tenantId, Long operatorId,
+                                          Long callerGroupId, String callerGroupScope) {
         Device device = deviceMapper.selectById(deviceId);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
         Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
+        // 组级越权校验：group scope 用户只能往本组创建凭据（admin/super_admin 绕过）
+        if ("group".equals(callerGroupScope)) {
+            if (callerGroupId == null || !callerGroupId.equals(groupId)) {
+                throw new IllegalArgumentException("无权在该组下创建凭据");
+            }
+        }
         DeviceCredential cred = new DeviceCredential();
         cred.setDeviceId(deviceId);
         cred.setTenantId(tenantId);
@@ -167,12 +181,19 @@ public class DeviceService {
     }
 
     @Transactional
-    public void deleteCredential(Long credentialId, String tenantId, Long operatorId) {
+    public void deleteCredential(Long credentialId, String tenantId, Long operatorId,
+                                 Long callerGroupId, String callerGroupScope) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
         if (cred == null || cred.getIsDeleted()) throw new IllegalArgumentException("账号不存在");
         Device device = deviceMapper.selectById(cred.getDeviceId());
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
+        }
+        // 组级越权校验：group scope 用户只能删本组凭据（admin/super_admin 绕过，与 reveal 一致）
+        if ("group".equals(callerGroupScope)) {
+            if (cred.getGroupId() == null || !cred.getGroupId().equals(callerGroupId)) {
+                throw new IllegalArgumentException("无权删除该凭据");
+            }
         }
         cred.setDeletedAt(LocalDateTime.now());
         cred.setDeletedBy(operatorId);
@@ -239,6 +260,7 @@ public class DeviceService {
                 vo.setCiInstanceName(ci.getName());
                 vo.setIp(extractIp(ci));
                 vo.setDeviceType(mapModelToDeviceType(ci.getModelId()));
+                applyModelGroup(vo, ci.getModelId(), d.getTenantId());
             } else {
                 // Fallback: CI was deleted — show stored snapshot and warn
                 vo.setName(d.getName());
@@ -304,6 +326,27 @@ public class DeviceService {
             case "firewall" -> "security";
             default -> "other";
         };
+    }
+
+    /**
+     * 由 CI 的 modelId 派生 CMDB 模型分组 code/name 并写入 VO（设备库按 CMDB 分组筛选用）。
+     * modelId 为空、模型查不到、模型无分组或分组查不到时，两字段保持 null（前端归入「未分类」）。
+     */
+    private void applyModelGroup(DeviceVO vo, String modelId, String tenantId) {
+        if (modelId == null) return;
+        CiModel model = ciModelMapper.selectOne(new LambdaQueryWrapper<CiModel>()
+            .eq(CiModel::getModelId, modelId)
+            .eq(CiModel::getTenantId, tenantId)
+            .eq(CiModel::getIsDeleted, false)
+            .last("LIMIT 1"));
+        if (model == null || model.getGroupCode() == null) return;
+        vo.setModelGroupCode(model.getGroupCode());
+        CiModelGroup group = ciModelGroupMapper.selectOne(new LambdaQueryWrapper<CiModelGroup>()
+            .eq(CiModelGroup::getCode, model.getGroupCode())
+            .eq(CiModelGroup::getTenantId, tenantId)
+            .eq(CiModelGroup::getIsDeleted, false)
+            .last("LIMIT 1"));
+        vo.setModelGroupName(group != null ? group.getName() : model.getGroupCode());
     }
 
     private void writeAudit(String tenantId, String action, Long targetId,

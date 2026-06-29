@@ -10,9 +10,9 @@ export function useAuth() {
 
   const login = async (username: string, password: string) => {
     const res = await api.post('/auth/login', { username, password })
-    const { token, username: u, real_name, group_scope, group_id, permissions } = res.data.data
+    const { token, username: u, realName, groupScope, groupId, permissions } = res.data.data
     setToken(token)
-    setAuth({ username: u, realName: real_name }, group_scope ?? 'group', group_id ?? null, permissions)
+    setAuth({ username: u, realName: realName ?? '' }, groupScope ?? 'group', groupId ?? null, permissions)
     await new Promise((r) => setTimeout(r, 50))
     router.push('/')
   }

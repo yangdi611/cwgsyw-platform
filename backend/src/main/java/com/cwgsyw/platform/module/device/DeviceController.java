@@ -66,7 +66,7 @@ public class DeviceController {
     public R<Void> addCredential(@PathVariable Long deviceId,
                                  @Valid @RequestBody CreateCredentialRequest req,
                                  @AuthenticationPrincipal SecurityUser cu) {
-        deviceService.addCredential(deviceId, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId());
+        deviceService.addCredential(deviceId, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -74,7 +74,7 @@ public class DeviceController {
     @PreAuthorize("hasPermission('device', 'delete')")
     public R<Void> deleteCredential(@PathVariable Long credentialId,
                                     @AuthenticationPrincipal SecurityUser cu) {
-        deviceService.deleteCredential(credentialId, cu.getTenantId(), cu.getUserId());
+        deviceService.deleteCredential(credentialId, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 

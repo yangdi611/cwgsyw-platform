@@ -25,7 +25,11 @@ interface Device {
   category: string
   groupName: string
   description: string
+  modelGroupCode: string | null
+  modelGroupName: string | null
 }
+
+const UNGROUPED = '__ungrouped__'
 
 const typeConfig: Record<string, { label: string; icon: React.ElementType }> = {
   server: { label: '服务器', icon: Server },
@@ -57,7 +61,7 @@ function Chip({ children }: { children: React.ReactNode }) {
 export default function DevicesPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [groupFilter, setGroupFilter] = useState('all')
   const [selected, setSelected] = useState<Device | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -65,8 +69,28 @@ export default function DevicesPage() {
     queryFn: () => api.get('/devices').then((r) => r.data.data.records as Device[]),
   })
 
+  // 动态聚合设备里出现过的 CMDB 模型分组，作为筛选项（只显示真正有设备的分组）
+  const groupOptions = (() => {
+    const seen = new Map<string, string>()
+    let hasUngrouped = false
+    for (const d of data ?? []) {
+      if (d.modelGroupCode) {
+        if (!seen.has(d.modelGroupCode)) seen.set(d.modelGroupCode, d.modelGroupName || d.modelGroupCode)
+      } else {
+        hasUngrouped = true
+      }
+    }
+    const opts = [...seen.entries()].map(([code, name]) => ({ code, name }))
+    opts.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    if (hasUngrouped) opts.push({ code: UNGROUPED, name: '未分类' })
+    return opts
+  })()
+
   const filtered = (data ?? []).filter((d) => {
-    if (typeFilter !== 'all' && d.deviceType !== typeFilter) return false
+    if (groupFilter !== 'all') {
+      const code = d.modelGroupCode ?? UNGROUPED
+      if (code !== groupFilter) return false
+    }
     if (!search.trim()) return true
     const q = search.toLowerCase()
     return (
@@ -74,6 +98,7 @@ export default function DevicesPage() {
       d.ip?.toLowerCase().includes(q) ||
       d.category?.toLowerCase().includes(q) ||
       d.groupName?.toLowerCase().includes(q) ||
+      d.modelGroupName?.toLowerCase().includes(q) ||
       (typeConfig[d.deviceType]?.label ?? '').includes(q)
     )
   })
@@ -94,6 +119,12 @@ export default function DevicesPage() {
       key: 'deviceType',
       title: '类型',
       render: (r) => <TypeBadge type={r.deviceType} />,
+    },
+    {
+      key: 'modelGroupName',
+      title: '模型分组',
+      render: (r) =>
+        r.modelGroupName ? <Chip>{r.modelGroupName}</Chip> : <span className="text-v2-subtle">未分类</span>,
     },
     {
       key: 'category',
@@ -133,21 +164,14 @@ export default function DevicesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <FilterChip active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
+        <FilterChip active={groupFilter === 'all'} onClick={() => setGroupFilter('all')}>
           全部
         </FilterChip>
-        <FilterChip active={typeFilter === 'server'} onClick={() => setTypeFilter('server')}>
-          服务器
-        </FilterChip>
-        <FilterChip active={typeFilter === 'network'} onClick={() => setTypeFilter('network')}>
-          网络设备
-        </FilterChip>
-        <FilterChip active={typeFilter === 'security'} onClick={() => setTypeFilter('security')}>
-          安全设备
-        </FilterChip>
-        <FilterChip active={typeFilter === 'cloud'} onClick={() => setTypeFilter('cloud')}>
-          云资源
-        </FilterChip>
+        {groupOptions.map((g) => (
+          <FilterChip key={g.code} active={groupFilter === g.code} onClick={() => setGroupFilter(g.code)}>
+            {g.name}
+          </FilterChip>
+        ))}
       </FilterBar>
 
       <DataTable
