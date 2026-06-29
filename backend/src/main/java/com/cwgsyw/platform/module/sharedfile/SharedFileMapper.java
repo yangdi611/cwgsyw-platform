@@ -36,7 +36,7 @@ public interface SharedFileMapper extends BaseMapper<SharedFile> {
                                    @Param("tenantId") String tenantId,
                                    @Param("folderId") Long folderId);
 
-    @Select("SELECT * FROM shared_file WHERE tenant_id = #{tenantId} AND is_deleted = FALSE AND to_tsvector('simple', name) @@ plainto_tsquery('simple', #{keyword}) ORDER BY created_at DESC")
+    @Select("SELECT * FROM shared_file WHERE tenant_id = #{tenantId} AND is_deleted = FALSE AND (source_type IS NULL OR source_type <> 'wiki_page') AND to_tsvector('simple', name) @@ plainto_tsquery('simple', #{keyword}) ORDER BY created_at DESC")
     @ResultMap("sharedFileMap")
     Page<SharedFile> searchByKeyword(Page<SharedFile> page,
                                       @Param("tenantId") String tenantId,

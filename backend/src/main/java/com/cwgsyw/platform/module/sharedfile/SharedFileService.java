@@ -61,6 +61,7 @@ public class SharedFileService {
         if (StringUtils.hasText(keyword)) {
             total = fileMapper.selectCount(new LambdaQueryWrapper<SharedFile>()
                     .eq(SharedFile::getTenantId, tenantId)
+                    .and(w -> w.isNull(SharedFile::getSourceType).or().ne(SharedFile::getSourceType, "wiki_page"))
                     .apply("to_tsvector('simple', name) @@ plainto_tsquery('simple', {0})", keyword));
             result = fileMapper.searchByKeyword(new Page<>(page, size, false), tenantId, keyword);
         } else {
@@ -68,11 +69,14 @@ public class SharedFileService {
                     .eq(SharedFile::getTenantId, tenantId)
                     .eq(folderId != null, SharedFile::getFolderId, folderId)
                     .isNull(folderId == null, SharedFile::getFolderId)
+                    // 排除 wiki 页面内嵌附件（无 folder，否则会堆在根目录显示）
+                    .and(w -> w.isNull(SharedFile::getSourceType).or().ne(SharedFile::getSourceType, "wiki_page"))
                     .orderByDesc(SharedFile::getCreatedAt);
             total = fileMapper.selectCount(new LambdaQueryWrapper<SharedFile>()
                     .eq(SharedFile::getTenantId, tenantId)
                     .eq(folderId != null, SharedFile::getFolderId, folderId)
-                    .isNull(folderId == null, SharedFile::getFolderId));
+                    .isNull(folderId == null, SharedFile::getFolderId)
+                    .and(w -> w.isNull(SharedFile::getSourceType).or().ne(SharedFile::getSourceType, "wiki_page")));
             result = fileMapper.selectPage(new Page<>(page, size, false), qw);
         }
         result.setTotal(total);
