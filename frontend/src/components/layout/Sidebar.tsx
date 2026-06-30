@@ -32,6 +32,7 @@ import {
   BookOpen,
   PanelLeftClose,
   PanelLeftOpen,
+  CalendarDays,
 } from 'lucide-react'
 
 type NavItem = {
@@ -87,6 +88,15 @@ const navItems: NavEntry[] = [
     resource: null,
     action: null,
     badge: 18, // 待办数量示例
+  },
+
+  // 1.5 运维日历
+  {
+    href: '/ops-calendar',
+    label: '运维日历',
+    icon: CalendarDays,
+    resource: 'ops_calendar',
+    action: 'read',
   },
 
   // 2. CMDB

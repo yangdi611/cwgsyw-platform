@@ -26,8 +26,12 @@ public class DailyReportReminderScheduler {
     private final DailyReportMapper reportMapper;
     private final NotificationService notificationService;
 
-    // Runs every minute; actual send is gated by config cron check
-    @Scheduled(cron = "0 * * * * *")
+    // DISABLED 2026-06-30: 日报提醒已迁移至运维日历内置规则「日报未提交提醒」
+    // （ops_schedule_rule, task_type=daily_report，由 OpsCalendarScheduler 驱动，
+    //  DailyReportReminderHandler 扇出未提交用户，幂等见 ops_schedule_notification_log）。
+    // 保留本类与历史 notify.reminder.* 配置仅作迁移读取来源，不再定时触发，避免重复提醒。
+    // 见 docs/scheduler spec 9.2。
+    // @Scheduled(cron = "0 * * * * *")
     public void checkAndSendReminders() {
         String tenantId = "default";
         if (!configService.getBoolean(tenantId, "notify.reminder.enabled")) return;

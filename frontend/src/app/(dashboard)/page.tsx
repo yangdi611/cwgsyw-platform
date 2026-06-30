@@ -5,8 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/v2/Card'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
-import { FilterBar, FilterChip } from '@/components/shared/FilterBar'
-import { useState } from 'react'
+import { DashboardOpsCalendarCard } from '@/components/ops-calendar/DashboardOpsCalendarCard'
 import api from '@/lib/api'
 import {
   ArrowRight,
@@ -67,16 +66,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)} 天前`
 }
 
-function actionLabel(a: string): string {
-  if (a?.includes('create')) return '创建'
-  if (a?.includes('delete')) return '删除'
-  if (a?.includes('update')) return '更新'
-  return a || '操作'
-}
-
 export default function DashboardPage() {
-  const [filter, setFilter] = useState('all')
-
   const { data: tasks } = useQuery<TaskVO[] | undefined>({
     queryKey: ['workflow-tasks'],
     queryFn: () => safe(api.get('/workflow/tasks/group')),
@@ -99,7 +89,6 @@ export default function DashboardPage() {
   const firingAlerts = alerts.filter((a) => a.status !== 'resolved')
   const docsList = docs ?? []
   const pendingDocs = docsList.filter((d) => d.status === 'pending')
-  const recentChanges = changesData?.records ?? []
 
   const metrics = [
     {
@@ -203,88 +192,9 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      {/* 主工作区：近期变更 + 我的任务 */}
+      {/* 主工作区：运维日历 + 我的任务 */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_0.55fr] gap-4">
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle>近期 CMDB 变更</CardTitle>
-                <p className="text-sm text-v2-muted mt-1">实例的创建、更新、删除审计记录。</p>
-              </div>
-              <FilterBar>
-                <FilterChip active={filter === 'all'} onClick={() => setFilter('all')}>
-                  全部
-                </FilterChip>
-                <FilterChip active={filter === 'create'} onClick={() => setFilter('create')}>
-                  创建
-                </FilterChip>
-                <FilterChip active={filter === 'update'} onClick={() => setFilter('update')}>
-                  更新
-                </FilterChip>
-                <FilterChip active={filter === 'delete'} onClick={() => setFilter('delete')}>
-                  删除
-                </FilterChip>
-              </FilterBar>
-            </div>
-          </CardHeader>
-          <div className="overflow-x-auto">
-            {recentChanges.length === 0 ? (
-              <p className="px-6 py-12 text-center text-sm text-v2-muted">暂无变更记录</p>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-v2-surface-soft">
-                  <tr>
-                    {['动作', '摘要', '操作人', '时间', '操作'].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-bold text-v2-muted uppercase tracking-wider"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentChanges
-                    .filter((c) => filter === 'all' || c.action?.includes(filter))
-                    .map((c) => {
-                      const isCreate = c.action?.includes('create')
-                      const isDelete = c.action?.includes('delete')
-                      const variant = isCreate ? 'ok' : isDelete ? 'danger' : 'warn'
-                      return (
-                        <tr
-                          key={c.id}
-                          className="border-b border-v2-border hover:bg-v2-surface-hover transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <StatusBadge status={variant as 'ok' | 'warn' | 'danger'}>
-                              {actionLabel(c.action)}
-                            </StatusBadge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-v2-fg max-w-xs truncate">
-                            {c.summary || '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-v2-fg">{c.operatorName || '系统'}</td>
-                          <td className="px-4 py-3 text-sm text-v2-muted whitespace-nowrap">
-                            {timeAgo(c.createdAt)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Link
-                              href="/cmdb/changes"
-                              className="text-sm font-bold text-v2-primary hover:text-v2-primary-hover"
-                            >
-                              查看
-                            </Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </Card>
+        <DashboardOpsCalendarCard />
 
         {/* 待办任务面板 */}
         <Card>
