@@ -9,7 +9,7 @@ import { Textarea } from '@/components/v2/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { toast } from 'sonner'
 import { TaskTypeBadge, TaskStatusBadge } from './TaskBadges'
-import { type TaskDetailVO, fmtTime, taskTypeLabel } from '@/lib/opsCalendar'
+import { type TaskDetailVO, fmtTime, taskTypeLabel, errMsg } from '@/lib/opsCalendar'
 
 interface Props {
   taskId: number | null
@@ -58,7 +58,7 @@ export function TaskDetailDrawer({ taskId, onClose }: Props) {
       if (vars.action === 'complete') { setCompleting(false); onClose() }
       if (vars.action === 'cancel' || vars.action === 'close-exception') onClose()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '操作失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '操作失败')),
   })
 
   function submitComplete() {

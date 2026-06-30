@@ -121,6 +121,7 @@ public class OpsCalendarRuleService {
         r.setTenantId(user.getTenantId());
         applyRequest(r, req);
         r.setEnabled(req.getEnabled() == null || req.getEnabled());
+        if (Boolean.TRUE.equals(r.getEnabled())) validateAssignable(r);
         // 首轮立即扫描
         r.setNextGenerateAt(null);
         ruleMapper.insert(r);
@@ -163,10 +164,28 @@ public class OpsCalendarRuleService {
     public void setEnabled(SecurityUser user, Long id, boolean enabled) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        if (enabled) validateAssignable(r);
         r.setEnabled(enabled);
         if (enabled) r.setNextGenerateAt(null); // 重新启用立即扫描
         ruleMapper.updateById(r);
         writeAudit(user.getTenantId(), "update", id, user.getUserId(), enabled ? "enable" : "disable");
+    }
+
+    /**
+     * 启用前校验：规则必须能解析出负责人或通知对象，否则会生成"无负责人、无通知"的死任务。
+     * - group_leader：必须配置 groupId（否则找不到组长）。
+     * - fixed：必须配置 userId。
+     * 其余类型（creator/roster_next_week/unsubmitted_daily_report/assignee）由运行期兜底，不在此拦截。
+     */
+    private void validateAssignable(OpsScheduleRule r) {
+        Map<String, Object> ar = fromJson(r.getAssigneeRule());
+        String type = ar.get("type") != null ? String.valueOf(ar.get("type")) : "creator";
+        if ("group_leader".equals(type) && ar.get("groupId") == null) {
+            throw new IllegalArgumentException("该规则负责人为「组长」，启用前必须在负责人规则中指定 groupId，否则无法解析负责人与通知对象");
+        }
+        if ("fixed".equals(type) && ar.get("userId") == null) {
+            throw new IllegalArgumentException("该规则负责人为「指定用户」，启用前必须指定 userId");
+        }
     }
 
     @Transactional

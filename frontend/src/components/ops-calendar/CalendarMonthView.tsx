@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import {
   type TaskVO, monthGrid, isToday, ymd, taskDateKey,
-  taskTypeColor, taskTypeLabel, WEEK_LABELS,
+  taskTypeColor, WEEK_LABELS,
 } from '@/lib/opsCalendar'
 
 interface Props {

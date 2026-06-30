@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import api from '@/lib/api'
@@ -11,7 +11,7 @@ import { Label } from '@/components/v2/Label'
 import { Textarea } from '@/components/v2/Textarea'
 import { Switch } from '@/components/v2/Switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { type RuleVO, type RulePreviewVO, TASK_TYPE_META, fmtTime } from '@/lib/opsCalendar'
+import { type RuleVO, type RulePreviewVO, TASK_TYPE_META, fmtTime, errMsg } from '@/lib/opsCalendar'
 
 interface Props {
   open: boolean
@@ -58,12 +58,16 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
   const [enabled, setEnabled] = useState(true)
   const [preview, setPreview] = useState<RulePreviewVO[]>([])
 
-  useEffect(() => {
-    if (!open) return
+  // 打开时 / 切换编辑目标时，render 期同步表单（避免 effect 内 setState 触发级联渲染）
+  const formKey = open ? (rule ? `edit-${rule.id}` : 'create') : 'closed'
+  const [prevKey, setPrevKey] = useState<string | null>(null)
+  if (open && formKey !== prevKey) {
+    setPrevKey(formKey)
     if (rule) {
+      const tc = rule.triggerConfig || {}
+      const ar = rule.assigneeRule || {}
       setName(rule.name); setDescription(rule.description ?? '')
       setTaskType(rule.taskType); setTriggerType(rule.triggerType)
-      const tc = rule.triggerConfig || {}
       setTime(String(tc.time ?? '09:00'))
       setWeekday(String(tc.weekday ?? 'FRI'))
       setDayOfMonth(String(tc.dayOfMonth ?? '1'))
@@ -71,8 +75,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       setOffsetDays(String(tc.offsetDays ?? '-5'))
       setCronExpr(String(tc.expression ?? '0 0 9 * * MON-FRI'))
       setGenerateDaysAhead(String(rule.generateDaysAhead ?? 7))
-      setDueOffsetDays(String((rule.dueConfig as any)?.offsetDays ?? 5))
-      const ar = rule.assigneeRule || {}
+      setDueOffsetDays(String((rule.dueConfig as Record<string, unknown>)?.offsetDays ?? 5))
       setAssigneeType(String(ar.type ?? 'group_leader'))
       setAssigneeGroupId(ar.groupId != null ? String(ar.groupId) : '')
       setAssigneeUserId(ar.userId != null ? String(ar.userId) : '')
@@ -85,7 +88,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       setAssigneeUserId(''); setVisibility('group'); setSensitive(false); setEnabled(true)
     }
     setPreview([])
-  }, [open, rule])
+  }
 
   function buildTriggerConfig(): Record<string, unknown> {
     switch (triggerType) {
@@ -120,7 +123,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
   const previewMutation = useMutation({
     mutationFn: () => api.post('/ops-calendar/rules/preview', buildPayload()).then((r) => r.data.data as RulePreviewVO[]),
     onSuccess: (data) => setPreview(data),
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '预览失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '预览失败')),
   })
 
   const saveMutation = useMutation({
@@ -132,7 +135,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ['ops-calendar-rules'] })
       onOpenChange(false)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '保存失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '保存失败')),
   })
 
   function save() {

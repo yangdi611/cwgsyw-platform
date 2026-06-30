@@ -14,7 +14,7 @@ import { Switch } from '@/components/v2/Switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { StatusBadge } from '@/components/v2/StatusBadge'
-import { type HolidayVO } from '@/lib/opsCalendar'
+import { type HolidayVO, errMsg } from '@/lib/opsCalendar'
 import { Plus, ArrowLeft } from 'lucide-react'
 
 const TYPE_LABEL: Record<string, string> = { legal: '法定节假日', company: '公司假期', campaign: '重大保障期' }
@@ -74,7 +74,7 @@ export default function HolidaysPage() {
       qc.invalidateQueries({ queryKey: ['ops-holidays'] })
       setOpen(false)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '保存失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '保存失败')),
   })
 
   const columns: ColumnDef<HolidayVO>[] = useMemo(() => [

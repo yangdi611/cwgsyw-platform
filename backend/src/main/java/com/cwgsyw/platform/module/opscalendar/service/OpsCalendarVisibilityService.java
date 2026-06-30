@@ -93,15 +93,16 @@ public class OpsCalendarVisibilityService {
         return !Boolean.TRUE.equals(task.getSensitive()) && "public".equals(task.getVisibility()) && false;
     }
 
-    /** 是否能操作（确认/开始/完成）。 */
-    public boolean canOperate(OpsScheduleTask task, SecurityUser user, List<Long> participantUserIds) {
+    /**
+     * 是否能执行（确认/开始/完成）。按 spec 7.2 仅限：负责人、协同人、管理员。
+     * 组长（read_group）不得默认代替执行人闭环任务，避免越权。
+     * @param operableUserIds 仅含 assignee/collaborator 角色的参与人（不含 recipient/escalation）
+     */
+    public boolean canOperate(OpsScheduleTask task, SecurityUser user, List<Long> operableUserIds) {
         if (isAdmin(user)) return true;
         Long uid = user.getUserId();
         if (uid.equals(task.getAssigneeId())) return true;
-        if (participantUserIds != null && participantUserIds.contains(uid)) return true;
-        if (has(user, "read_group") && user.getGroupId() != null
-                && user.getGroupId().equals(task.getGroupId())) return true;
-        return false;
+        return operableUserIds != null && operableUserIds.contains(uid);
     }
 
     /** 是否能取消（创建者/组长/管理员）。 */

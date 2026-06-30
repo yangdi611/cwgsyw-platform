@@ -11,7 +11,7 @@ import { DataTable, type ColumnDef } from '@/components/shared'
 import { Button } from '@/components/v2/Button'
 import { TaskTypeBadge } from '@/components/ops-calendar/TaskBadges'
 import { RuleFormDialog } from '@/components/ops-calendar/RuleFormDialog'
-import { type RuleVO, fmtTime } from '@/lib/opsCalendar'
+import { type RuleVO, fmtTime, errMsg } from '@/lib/opsCalendar'
 import { Plus, ArrowLeft } from 'lucide-react'
 
 const TRIGGER_LABEL: Record<string, string> = {
@@ -43,7 +43,7 @@ export default function OpsCalendarRulesPage() {
       toast.success('已更新')
       queryClient.invalidateQueries({ queryKey: ['ops-calendar-rules'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '操作失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '操作失败')),
   })
 
   const columns: ColumnDef<RuleVO>[] = [

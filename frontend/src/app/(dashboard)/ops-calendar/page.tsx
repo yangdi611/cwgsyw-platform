@@ -51,17 +51,14 @@ function OpsCalendarInner() {
   const [cursor, setCursor] = useState(new Date())
   const [taskType, setTaskType] = useState<string>('')
   const [status, setStatus] = useState<string>('')
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
+  // 从工作台跳转的 query 参数（?taskId / ?date / ?dayDialog）作为初始值惰性读取
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    () => (searchParams.get('date') && searchParams.get('dayDialog')) ? searchParams.get('date') : null
+  )
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(
+    () => { const t = searchParams.get('taskId'); return t ? Number(t) : null }
+  )
   const [createOpen, setCreateOpen] = useState(false)
-
-  // Open from dashboard query params (?taskId / ?date / ?dayDialog)
-  useEffect(() => {
-    const t = searchParams.get('taskId')
-    if (t) setSelectedTaskId(Number(t))
-    const d = searchParams.get('date')
-    if (d && searchParams.get('dayDialog')) setSelectedDate(d)
-  }, [searchParams])
 
   // Compute query range from view
   const range = useMemo(() => {

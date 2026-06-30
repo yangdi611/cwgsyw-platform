@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import api from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
 import { Button } from '@/components/v2/Button'
@@ -19,8 +19,12 @@ interface Props {
 
 export function DayWorkItemsDialog({ date, scope, open, onOpenChange, onTaskClick }: Props) {
   const [activeDate, setActiveDate] = useState<string | null>(date)
-
-  useEffect(() => { setActiveDate(date) }, [date])
+  // 当外部传入的 date 变化时，同步重置内部步进状态（render 期重置，避免 effect 内 setState）
+  const [prevDate, setPrevDate] = useState<string | null>(date)
+  if (date !== prevDate) {
+    setPrevDate(date)
+    setActiveDate(date)
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['ops-calendar-day', activeDate, scope],

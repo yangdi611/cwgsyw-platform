@@ -12,7 +12,7 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Textarea } from '@/components/v2/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { TASK_TYPE_META } from '@/lib/opsCalendar'
+import { TASK_TYPE_META, errMsg } from '@/lib/opsCalendar'
 
 interface UserOpt { id: number; realName: string | null; username: string }
 
@@ -59,7 +59,7 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
       setForm({ ...EMPTY })
       onOpenChange(false)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(errMsg(e, '创建失败')),
   })
 
   function submit() {

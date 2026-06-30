@@ -11,7 +11,7 @@ import { Button } from '@/components/v2/Button'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
-import { type RosterVO, ymd } from '@/lib/opsCalendar'
+import { type RosterVO, ymd, errMsg } from '@/lib/opsCalendar'
 import { Plus, ArrowLeft } from 'lucide-react'
 
 interface UserOpt { id: number; realName: string | null; username: string }
@@ -84,13 +84,13 @@ export default function RostersPage() {
       qc.invalidateQueries({ queryKey: ['ops-rosters'] })
       setOpen(false)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '保存失败'),
+    onError: (e) => toast.error(errMsg(e, '保存失败')),
   })
 
   async function checkConflicts() {
     try {
       const { data } = await api.post('/ops-calendar/rosters/check-conflicts', buildBody())
-      const msgs = [...(data.data.conflicts ?? []), ...(data.data.warnings ?? [])].map((c: any) => c.message)
+      const msgs = [...(data.data.conflicts ?? []), ...(data.data.warnings ?? [])].map((c: { message: string }) => c.message)
       setConflictMsg(msgs.length ? msgs : ['无冲突'])
     } catch { setConflictMsg(['检测失败']) }
   }

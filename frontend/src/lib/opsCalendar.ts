@@ -218,3 +218,9 @@ export function fmtTime(iso: string | null): string {
 }
 
 export const WEEK_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+
+/** 从 axios/未知异常中提取后端错误消息，避免在 catch 中用 any。 */
+export function errMsg(e: unknown, fallback = '操作失败'): string {
+  const resp = (e as { response?: { data?: { message?: string } } })?.response
+  return resp?.data?.message ?? fallback
+}

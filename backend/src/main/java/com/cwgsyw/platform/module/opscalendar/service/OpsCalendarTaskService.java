@@ -80,6 +80,14 @@ public class OpsCalendarTaskService {
                 .stream().map(OpsScheduleTaskParticipant::getUserId).distinct().collect(Collectors.toList());
     }
 
+    /** 可执行参与人：仅 assignee/collaborator（用于 canOperate，不含 recipient/escalation）。 */
+    private List<Long> operableUserIds(Long taskId) {
+        return participantMapper.selectList(new LambdaQueryWrapper<OpsScheduleTaskParticipant>()
+                        .eq(OpsScheduleTaskParticipant::getTaskId, taskId)
+                        .in(OpsScheduleTaskParticipant::getRole, "assignee", "collaborator"))
+                .stream().map(OpsScheduleTaskParticipant::getUserId).distinct().collect(Collectors.toList());
+    }
+
     // ============ VO building ============
 
     public TaskVO toVO(OpsScheduleTask t, SecurityUser user, Map<Long, User> userCache, Map<Long, Group> groupCache) {
@@ -102,7 +110,7 @@ public class OpsCalendarTaskService {
 
         List<Long> pids = participantUserIds(t.getId());
         boolean canView = visibilityService.canViewDetail(t, user, pids);
-        boolean canOp = visibilityService.canOperate(t, user, pids);
+        boolean canOp = visibilityService.canOperate(t, user, operableUserIds(t.getId()));
         vo.setCanViewDetail(canView);
         vo.setCanOperate(canOp);
 
@@ -142,9 +150,24 @@ public class OpsCalendarTaskService {
 
         LambdaQueryWrapper<OpsScheduleTask> qw = new LambdaQueryWrapper<OpsScheduleTask>()
                 .eq(OpsScheduleTask::getTenantId, user.getTenantId())
-                // 落在日历范围内：planned_start 或 due 任一在区间内
-                .and(w -> w.between(OpsScheduleTask::getPlannedStartAt, from, to)
-                        .or().between(OpsScheduleTask::getDueAt, from, to))
+                // 区间重叠：任务 [start, due] 与窗口 [from, to) 有交集即命中，
+                // 兼容跨区间任务（start<from 且 due>=to）及只有一端时间的全天/无截止任务。
+                .and(w -> w
+                        // 两端都有：start < to AND due >= from（标准区间重叠）
+                        .and(a -> a.isNotNull(OpsScheduleTask::getPlannedStartAt)
+                                .isNotNull(OpsScheduleTask::getDueAt)
+                                .lt(OpsScheduleTask::getPlannedStartAt, to)
+                                .ge(OpsScheduleTask::getDueAt, from))
+                        // 仅 start（无截止，全天/点事件）：from <= start < to
+                        .or(b -> b.isNotNull(OpsScheduleTask::getPlannedStartAt)
+                                .isNull(OpsScheduleTask::getDueAt)
+                                .ge(OpsScheduleTask::getPlannedStartAt, from)
+                                .lt(OpsScheduleTask::getPlannedStartAt, to))
+                        // 仅 due（无计划开始）：from <= due < to
+                        .or(c -> c.isNull(OpsScheduleTask::getPlannedStartAt)
+                                .isNotNull(OpsScheduleTask::getDueAt)
+                                .ge(OpsScheduleTask::getDueAt, from)
+                                .lt(OpsScheduleTask::getDueAt, to)))
                 .eq(notBlank(taskType), OpsScheduleTask::getTaskType, taskType)
                 .eq(notBlank(status), OpsScheduleTask::getStatus, status)
                 .eq(assigneeId != null, OpsScheduleTask::getAssigneeId, assigneeId)
@@ -210,7 +233,7 @@ public class OpsCalendarTaskService {
 
         List<Long> pids = participantUserIds(id);
         boolean canView = visibilityService.canViewDetail(t, user, pids);
-        boolean canOp = visibilityService.canOperate(t, user, pids);
+        boolean canOp = visibilityService.canOperate(t, user, operableUserIds(id));
 
         TaskDetailVO d = new TaskDetailVO();
         d.setTask(toVO(t, user, null, null));
@@ -299,7 +322,7 @@ public class OpsCalendarTaskService {
         d.setCanComplete(canOp && Set.of("in_progress", "overdue", "not_started").contains(s));
         d.setCanCancel(visibilityService.canCancel(t, user)
                 && Set.of("pending_confirm", "not_started", "in_progress").contains(s));
-        d.setCanCloseException(canOp
+        d.setCanCloseException((canOp || visibilityService.canCancel(t, user))
                 && Set.of("pending_confirm", "not_started", "in_progress", "overdue").contains(s));
         d.setCanEdit((visibilityService.canCancel(t, user))
                 && Set.of("pending_confirm", "not_started").contains(s));
@@ -439,7 +462,7 @@ public class OpsCalendarTaskService {
     // ============ 5.6 状态操作 ============
 
     private void requireOperate(SecurityUser user, OpsScheduleTask t) {
-        if (!visibilityService.canOperate(t, user, participantUserIds(t.getId())))
+        if (!visibilityService.canOperate(t, user, operableUserIds(t.getId())))
             throw new IllegalArgumentException("无权操作该任务");
     }
 
@@ -545,7 +568,9 @@ public class OpsCalendarTaskService {
     @Transactional
     public void closeException(SecurityUser user, Long id, TaskCloseExceptionRequest req) {
         OpsScheduleTask t = loadOwned(user, id);
-        requireOperate(user, t);
+        // 异常关闭 = 负责人/协同人/管理员 或 创建者/组长（spec 7.2）
+        if (!visibilityService.canOperate(t, user, operableUserIds(id)) && !visibilityService.canCancel(t, user))
+            throw new IllegalArgumentException("无权异常关闭该任务");
         if (!Set.of("pending_confirm", "not_started", "in_progress", "overdue").contains(t.getStatus()))
             throw new IllegalArgumentException("当前状态不可异常关闭");
         if (!notBlank(req.getReason())) throw new IllegalArgumentException("异常原因必填");
@@ -577,7 +602,7 @@ public class OpsCalendarTaskService {
     @Transactional
     public void remind(SecurityUser user, Long id) {
         OpsScheduleTask t = loadOwned(user, id);
-        if (!visibilityService.canCancel(t, user) && !visibilityService.canOperate(t, user, participantUserIds(id)))
+        if (!visibilityService.canCancel(t, user) && !visibilityService.canOperate(t, user, operableUserIds(id)))
             throw new IllegalArgumentException("无权重发提醒");
         Set<Long> targets = new LinkedHashSet<>();
         if (t.getAssigneeId() != null) targets.add(t.getAssigneeId());
