@@ -9,11 +9,12 @@ import {
 interface Props {
   currentDate: Date
   tasks: TaskVO[]
+  holidayMap?: Map<string, string>
   onDateClick: (date: string) => void
   onTaskClick: (taskId: number) => void
 }
 
-export function CalendarWeekView({ currentDate, tasks, onDateClick, onTaskClick }: Props) {
+export function CalendarWeekView({ currentDate, tasks, holidayMap, onDateClick, onTaskClick }: Props) {
   const days = weekDays(currentDate)
   const byDate = new Map<string, TaskVO[]>()
   for (const t of tasks) {
@@ -29,6 +30,7 @@ export function CalendarWeekView({ currentDate, tasks, onDateClick, onTaskClick 
         const key = ymd(d)
         const dayTasks = byDate.get(key) ?? []
         const today = isToday(d)
+        const holiday = holidayMap?.get(key)
         return (
           <div key={key} className={cn(
             'rounded-lg border border-v2-border bg-v2-surface',
@@ -43,6 +45,11 @@ export function CalendarWeekView({ currentDate, tasks, onDateClick, onTaskClick 
                 {d.getMonth() + 1}/{d.getDate()}
               </span>
             </button>
+            {holiday && (
+              <div className="px-3 py-1 text-[10px] text-red-600 bg-red-50 border-b border-v2-border truncate" title={holiday}>
+                {holiday}
+              </div>
+            )}
             <div className="space-y-1.5 p-2 min-h-[80px]">
               {dayTasks.length === 0 && (
                 <p className="px-1 py-2 text-center text-[11px] text-v2-subtle">无任务</p>

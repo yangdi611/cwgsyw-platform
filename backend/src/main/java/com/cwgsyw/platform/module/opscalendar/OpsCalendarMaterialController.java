@@ -6,6 +6,10 @@ import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarMaterialService
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -31,5 +35,22 @@ public class OpsCalendarMaterialController {
             @RequestParam(required = false) Long groupId,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(materialService.collect(cu.getTenantId(), periodType, startDate, endDate, groupId));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasPermission('ops_calendar', 'export')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(required = false) String periodType,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long groupId,
+            @AuthenticationPrincipal SecurityUser cu) {
+        byte[] bytes = materialService.exportExcel(cu.getTenantId(), periodType, startDate, endDate, groupId);
+        String filename = "运维素材_" + startDate + "_" + endDate + ".xlsx";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        return ResponseEntity.ok().headers(headers).body(bytes);
     }
 }

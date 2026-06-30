@@ -9,11 +9,12 @@ import {
 interface Props {
   currentDate: Date
   tasks: TaskVO[]
+  holidayMap?: Map<string, string>
   onDateClick: (date: string) => void
   onTaskClick: (taskId: number) => void
 }
 
-export function CalendarMonthView({ currentDate, tasks, onDateClick, onTaskClick }: Props) {
+export function CalendarMonthView({ currentDate, tasks, holidayMap, onDateClick, onTaskClick }: Props) {
   const grid = monthGrid(currentDate)
   const month = currentDate.getMonth()
 
@@ -46,6 +47,7 @@ export function CalendarMonthView({ currentDate, tasks, onDateClick, onTaskClick
           const dayTasks = byDate.get(key) ?? []
           const inMonth = d.getMonth() === month
           const today = isToday(d)
+          const holiday = holidayMap?.get(key) ?? null
           const visible = dayTasks.slice(0, 3)
           const more = dayTasks.length - visible.length
           return (
@@ -70,6 +72,9 @@ export function CalendarMonthView({ currentDate, tasks, onDateClick, onTaskClick
                   <span className="text-[10px] text-v2-muted">{dayTasks.length}</span>
                 )}
               </div>
+              {holiday && (
+                <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>
+              )}
               <div className="mt-1 space-y-1">
                 {visible.map((t) => {
                   const overdue = t.status === 'overdue'

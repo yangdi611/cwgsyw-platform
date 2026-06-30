@@ -64,6 +64,44 @@ public class OpsCalendarHolidayService {
         return toVO(h);
     }
 
+    @Transactional
+    public void delete(Long id, String tenantId, Long operatorId) {
+        OpsHolidayCalendar h = holidayMapper.selectById(id);
+        if (h == null || !h.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("节假日不存在");
+        }
+        h.setDeletedAt(LocalDateTime.now());
+        h.setDeletedBy(operatorId);
+        holidayMapper.updateById(h);
+        holidayMapper.deleteById(id);
+        writeAudit(tenantId, "delete", id, operatorId, "name=" + h.getName());
+    }
+
+    /**
+     * 一键导入指定年份的中国法定节假日（静态数据，不依赖外部 API）。
+     * 幂等：同名+同起始日已存在则跳过。返回新增条数。
+     */
+    @Transactional
+    public int importChinaHolidays(int year, String tenantId, Long operatorId) {
+        List<HolidayRequest> presets = ChinaHolidayPresets.of(year);
+        if (presets.isEmpty()) throw new IllegalArgumentException("暂无 " + year + " 年的内置节假日数据（当前支持 2026）");
+        int created = 0;
+        for (HolidayRequest req : presets) {
+            Long exist = holidayMapper.selectCount(new LambdaQueryWrapper<OpsHolidayCalendar>()
+                    .eq(OpsHolidayCalendar::getTenantId, tenantId)
+                    .eq(OpsHolidayCalendar::getName, req.getName())
+                    .eq(OpsHolidayCalendar::getStartDate, req.getStartDate()));
+            if (exist != null && exist > 0) continue;
+            OpsHolidayCalendar h = new OpsHolidayCalendar();
+            h.setTenantId(tenantId);
+            applyRequest(h, req);
+            holidayMapper.insert(h);
+            created++;
+        }
+        writeAudit(tenantId, "import", null, operatorId, "china_holidays_" + year + " 新增" + created + "条");
+        return created;
+    }
+
     private void applyRequest(OpsHolidayCalendar h, HolidayRequest req) {
         h.setName(req.getName());
         h.setStartDate(req.getStartDate());
@@ -112,6 +150,17 @@ public class OpsCalendarHolidayService {
             if (isWorkday(tenantId, cursor)) remaining--;
         }
         return cursor;
+    }
+
+    /** 返回与 [from, to] 有交集的启用节假日（供 holiday_relative occurrence 计算）。 */
+    public List<OpsHolidayCalendar> holidaysInRange(String tenantId, LocalDate from, LocalDate to) {
+        return holidayMapper.selectList(new LambdaQueryWrapper<OpsHolidayCalendar>()
+                .eq(OpsHolidayCalendar::getTenantId, tenantId)
+                .eq(OpsHolidayCalendar::getEnabled, true)
+                // 交集：start <= to AND end >= from
+                .le(OpsHolidayCalendar::getStartDate, to)
+                .ge(OpsHolidayCalendar::getEndDate, from)
+                .orderByAsc(OpsHolidayCalendar::getStartDate));
     }
 
     /** 返回某日的节假日名称（若有）。 */

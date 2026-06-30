@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import api from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
@@ -27,6 +27,7 @@ const TRIGGER_TYPES = [
   { value: 'semiannual', label: '每半年' },
   { value: 'yearly', label: '每年' },
   { value: 'cron', label: 'Cron 高级' },
+  { value: 'holiday_relative', label: '节假日相对' },
 ]
 
 const WEEKDAYS = [
@@ -56,7 +57,20 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
   const [visibility, setVisibility] = useState('group')
   const [sensitive, setSensitive] = useState(false)
   const [enabled, setEnabled] = useState(true)
+  const [checklistTemplateId, setChecklistTemplateId] = useState('')
+  // holiday_relative 配置
+  const [hrRelative, setHrRelative] = useState('before')
+  const [hrOffsetWorkdays, setHrOffsetWorkdays] = useState('2')
   const [preview, setPreview] = useState<RulePreviewVO[]>([])
+
+  // 检查项模板列表（供规则关联 SOP 模板）
+  const { data: templates = [] } = useQuery({
+    queryKey: ['ops-templates-for-rule'],
+    queryFn: () => api.get('/ops-calendar/templates', { params: { templateType: 'checklist' } })
+      .then((r) => (r.data.data ?? []) as { id: number; name: string }[])
+      .catch(() => [] as { id: number; name: string }[]),
+    enabled: open,
+  })
 
   // 打开时 / 切换编辑目标时，render 期同步表单（避免 effect 内 setState 触发级联渲染）
   const formKey = open ? (rule ? `edit-${rule.id}` : 'create') : 'closed'
@@ -80,12 +94,17 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       setAssigneeGroupId(ar.groupId != null ? String(ar.groupId) : '')
       setAssigneeUserId(ar.userId != null ? String(ar.userId) : '')
       setVisibility(rule.visibility); setSensitive(rule.sensitive); setEnabled(rule.enabled)
+      setChecklistTemplateId((rule as { checklistTemplateId?: number }).checklistTemplateId != null
+        ? String((rule as { checklistTemplateId?: number }).checklistTemplateId) : '')
+      setHrRelative(String(tc.relative ?? 'before'))
+      setHrOffsetWorkdays(String(tc.offsetWorkdays ?? '2'))
     } else {
       setName(''); setDescription(''); setTaskType('inspection'); setTriggerType('weekly')
       setTime('09:00'); setWeekday('FRI'); setDayOfMonth('1'); setQuarterPosition('last_day')
       setOffsetDays('-5'); setCronExpr('0 0 9 * * MON-FRI'); setGenerateDaysAhead('7')
       setDueOffsetDays('5'); setAssigneeType('group_leader'); setAssigneeGroupId('')
       setAssigneeUserId(''); setVisibility('group'); setSensitive(false); setEnabled(true)
+      setChecklistTemplateId(''); setHrRelative('before'); setHrOffsetWorkdays('2')
     }
     setPreview([])
   }
@@ -99,6 +118,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       case 'semiannual': return { position: quarterPosition, offsetDays: Number(offsetDays), time }
       case 'yearly': return { month: 1, day: Number(dayOfMonth), time }
       case 'cron': return { expression: cronExpr }
+      case 'holiday_relative': return { relative: hrRelative, offsetWorkdays: Number(hrOffsetWorkdays), time }
       default: return { time }
     }
   }
@@ -116,6 +136,7 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
       assigneeRule,
       recipientRule: { type: 'assignee' },
       escalationRule: { overdueHours: 24 },
+      checklistTemplateId: checklistTemplateId ? Number(checklistTemplateId) : null,
       visibility, sensitive, enabled,
     }
   }
@@ -221,6 +242,24 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
                 <Input value={cronExpr} onChange={(e) => setCronExpr(e.target.value)} className="font-v2-mono" />
               </div>
             )}
+            {triggerType === 'holiday_relative' && (
+              <>
+                <div>
+                  <Label>相对节假日</Label>
+                  <Select value={hrRelative} onValueChange={(v) => setHrRelative(v ?? 'before')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="before">节前</SelectItem>
+                      <SelectItem value="after">节后</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>第 N 个工作日</Label>
+                  <Input type="number" value={hrOffsetWorkdays} onChange={(e) => setHrOffsetWorkdays(e.target.value)} />
+                </div>
+              </>
+            )}
             {triggerType !== 'cron' && (
               <div>
                 <Label>触发时间</Label>
@@ -268,6 +307,16 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
                   <SelectItem value="private">私有</SelectItem>
                   <SelectItem value="group">本组</SelectItem>
                   <SelectItem value="public">公共</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>SOP 检查项模板（可选）</Label>
+              <Select value={checklistTemplateId || 'none'} onValueChange={(v) => setChecklistTemplateId(v === 'none' ? '' : (v ?? ''))}>
+                <SelectTrigger><SelectValue placeholder="不绑定" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">不绑定</SelectItem>
+                  {templates.map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

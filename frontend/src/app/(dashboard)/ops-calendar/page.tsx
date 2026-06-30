@@ -19,10 +19,10 @@ import { DayWorkItemsDialog } from '@/components/ops-calendar/DayWorkItemsDialog
 import { TaskDetailDrawer } from '@/components/ops-calendar/TaskDetailDrawer'
 import { TaskFormDialog } from '@/components/ops-calendar/TaskFormDialog'
 import {
-  type CalendarScope, type CalendarView, type TaskVO,
+  type CalendarScope, type CalendarView, type TaskVO, type HolidayVO,
   startOfMonth, endOfMonth, weekDays, ymd, TASK_TYPE_META, STATUS_META,
 } from '@/lib/opsCalendar'
-import { ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Settings2, CalendarClock, CalendarOff, FileText, BarChart2, FolderArchive } from 'lucide-react'
 
 export default function OpsCalendarPage() {
   return (
@@ -89,6 +89,29 @@ function OpsCalendarInner() {
     enabled: hasPermission('ops_calendar', 'read'),
   })
 
+  // 节假日（用于月历/周历格子红标）
+  const { data: holidays = [] } = useQuery({
+    queryKey: ['ops-calendar-holidays-mark'],
+    queryFn: () => api.get('/ops-calendar/holidays')
+      .then((r) => r.data.data as HolidayVO[])
+      .catch(() => [] as HolidayVO[]),
+    enabled: hasPermission('ops_calendar', 'read'),
+  })
+
+  // date(yyyy-MM-dd) -> 节假日名称
+  const holidayMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const h of holidays) {
+      if (!h.enabled) continue
+      const start = new Date(h.startDate + 'T00:00:00')
+      const end = new Date(h.endDate + 'T00:00:00')
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        m.set(ymd(d), h.name)
+      }
+    }
+    return m
+  }, [holidays])
+
   const title = useMemo(() => {
     if (view === 'week') {
       const days = weekDays(cursor)
@@ -124,7 +147,32 @@ function OpsCalendarInner() {
           <div className="flex items-center gap-2">
             <PermissionGuard resource="ops_calendar" action="manage">
               <Button variant="ghost" onClick={() => router.push('/ops-calendar/rules')}>
-                <Settings2 className="h-4 w-4" />规则管理
+                <Settings2 className="h-4 w-4" />规则
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard resource="ops_calendar" action="manage">
+              <Button variant="ghost" onClick={() => router.push('/ops-calendar/rosters')}>
+                <CalendarClock className="h-4 w-4" />排班
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard resource="ops_calendar" action="manage">
+              <Button variant="ghost" onClick={() => router.push('/ops-calendar/holidays')}>
+                <CalendarOff className="h-4 w-4" />节假日
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard resource="ops_calendar" action="manage">
+              <Button variant="ghost" onClick={() => router.push('/ops-calendar/templates')}>
+                <FileText className="h-4 w-4" />模板
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard resource="ops_calendar" action="export">
+              <Button variant="ghost" onClick={() => router.push('/ops-calendar/stats')}>
+                <BarChart2 className="h-4 w-4" />统计
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard resource="ops_calendar" action="export">
+              <Button variant="ghost" onClick={() => router.push('/ops-calendar/materials')}>
+                <FolderArchive className="h-4 w-4" />素材
               </Button>
             </PermissionGuard>
             <PermissionGuard resource="ops_calendar" action="create">
@@ -178,14 +226,14 @@ function OpsCalendarInner() {
 
       {view === 'month' && (
         <CalendarMonthView
-          currentDate={cursor} tasks={tasks}
+          currentDate={cursor} tasks={tasks} holidayMap={holidayMap}
           onDateClick={(d) => setSelectedDate(d)}
           onTaskClick={(id) => setSelectedTaskId(id)}
         />
       )}
       {view === 'week' && (
         <CalendarWeekView
-          currentDate={cursor} tasks={tasks}
+          currentDate={cursor} tasks={tasks} holidayMap={holidayMap}
           onDateClick={(d) => setSelectedDate(d)}
           onTaskClick={(id) => setSelectedTaskId(id)}
         />

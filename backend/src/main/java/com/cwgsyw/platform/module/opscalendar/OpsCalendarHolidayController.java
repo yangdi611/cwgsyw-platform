@@ -40,4 +40,17 @@ public class OpsCalendarHolidayController {
                                @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(holidayService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        holidayService.delete(id, cu.getTenantId(), cu.getUserId());
+        return R.ok();
+    }
+
+    @PostMapping("/import-cn")
+    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    public R<Integer> importCn(@RequestParam int year, @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(holidayService.importChinaHolidays(year, cu.getTenantId(), cu.getUserId()));
+    }
 }

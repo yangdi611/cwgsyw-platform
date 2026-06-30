@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.opscalendar.service;
 
+import com.cwgsyw.platform.module.opscalendar.entity.OpsHolidayCalendar;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleRule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,21 +28,23 @@ import java.util.Map;
 public class OccurrenceCalculator {
 
     private final ObjectMapper objectMapper;
+    private final OpsCalendarHolidayService holidayService;
 
     public List<LocalDateTime> calculate(OpsScheduleRule rule, LocalDateTime windowStart, LocalDateTime windowEnd) {
         Map<String, Object> cfg = parseConfig(rule.getTriggerConfig());
         String type = rule.getTriggerType();
+        String tenantId = rule.getTenantId() != null ? rule.getTenantId() : "default";
         try {
             return switch (type) {
                 case "once" -> once(cfg, windowStart, windowEnd);
                 case "daily" -> daily(cfg, windowStart, windowEnd);
                 case "weekly" -> weekly(cfg, windowStart, windowEnd);
                 case "monthly" -> monthly(cfg, windowStart, windowEnd);
-                case "quarterly" -> quarterly(cfg, windowStart, windowEnd);
-                case "semiannual" -> semiannual(cfg, windowStart, windowEnd);
+                case "quarterly" -> quarterly(tenantId, cfg, windowStart, windowEnd);
+                case "semiannual" -> semiannual(tenantId, cfg, windowStart, windowEnd);
                 case "yearly" -> yearly(cfg, windowStart, windowEnd);
                 case "cron" -> cron(cfg, windowStart, windowEnd);
-                case "holiday_relative" -> List.of(); // Phase 4
+                case "holiday_relative" -> holidayRelative(tenantId, cfg, windowStart, windowEnd);
                 default -> List.of();
             };
         } catch (Exception e) {
@@ -109,10 +112,12 @@ public class OccurrenceCalculator {
         return ym.atDay(dom);
     }
 
-    // ---- quarterly: first_day / last_day of quarter + natural-day offset ----
-    private List<LocalDateTime> quarterly(Map<String, Object> cfg, LocalDateTime ws, LocalDateTime we) {
+    // ---- quarterly: first_day / last_day of quarter + offset ----
+    // offsetWorkdays（按工作日推算，依赖节假日历）优先；否则用 offsetDays（自然日）。
+    private List<LocalDateTime> quarterly(String tenantId, Map<String, Object> cfg, LocalDateTime ws, LocalDateTime we) {
         LocalTime time = time(cfg, "09:00");
         String position = str(cfg, "quarterPosition", "last_day"); // first_day | last_day
+        Integer offsetWorkdays = intVal(cfg, "offsetWorkdays", null);
         int offsetDays = intVal(cfg, "offsetDays", 0);
         List<LocalDateTime> out = new ArrayList<>();
         int year = ws.getYear();
@@ -120,7 +125,9 @@ public class OccurrenceCalculator {
             for (int q = 1; q <= 4; q++) {
                 LocalDate anchor = "first_day".equals(position)
                         ? quarterFirstDay(y, q) : quarterLastDay(y, q);
-                LocalDate d = anchor.plusDays(offsetDays);
+                LocalDate d = offsetWorkdays != null
+                        ? holidayService.moveWorkdays(tenantId, anchor, offsetWorkdays)
+                        : anchor.plusDays(offsetDays);
                 LocalDateTime t = LocalDateTime.of(d, time);
                 if (inWindow(t, ws, we)) out.add(t);
             }
@@ -128,10 +135,11 @@ public class OccurrenceCalculator {
         return out;
     }
 
-    // ---- semiannual: first/last day of half-year + natural-day offset ----
-    private List<LocalDateTime> semiannual(Map<String, Object> cfg, LocalDateTime ws, LocalDateTime we) {
+    // ---- semiannual: first/last day of half-year + offset (workday or natural) ----
+    private List<LocalDateTime> semiannual(String tenantId, Map<String, Object> cfg, LocalDateTime ws, LocalDateTime we) {
         LocalTime time = time(cfg, "09:00");
         String position = str(cfg, "position", "last_day");
+        Integer offsetWorkdays = intVal(cfg, "offsetWorkdays", null);
         int offsetDays = intVal(cfg, "offsetDays", 0);
         List<LocalDateTime> out = new ArrayList<>();
         for (int y = ws.getYear(); y <= we.getYear(); y++) {
@@ -139,10 +147,36 @@ public class OccurrenceCalculator {
                     ? new LocalDate[]{ LocalDate.of(y,1,1), LocalDate.of(y,7,1) }
                     : new LocalDate[]{ LocalDate.of(y,6,30), LocalDate.of(y,12,31) };
             for (LocalDate anchor : anchors) {
-                LocalDate d = anchor.plusDays(offsetDays);
+                LocalDate d = offsetWorkdays != null
+                        ? holidayService.moveWorkdays(tenantId, anchor, offsetWorkdays)
+                        : anchor.plusDays(offsetDays);
                 LocalDateTime t = LocalDateTime.of(d, time);
                 if (inWindow(t, ws, we)) out.add(t);
             }
+        }
+        return out;
+    }
+
+    // ---- holiday_relative: 节前/节后第 N 个工作日（spec 6.3，Phase 4）----
+    // cfg: { relative: "before"|"after", offsetWorkdays: N, time: "09:00", holidayType?: "legal" }
+    private List<LocalDateTime> holidayRelative(String tenantId, Map<String, Object> cfg,
+                                                LocalDateTime ws, LocalDateTime we) {
+        LocalTime time = time(cfg, "09:00");
+        String relative = str(cfg, "relative", "before"); // before | after
+        int offsetWorkdays = intVal(cfg, "offsetWorkdays", 1);
+        String holidayType = str(cfg, "holidayType", null); // 可选，限定类型
+        // 在 [ws-30, we+30] 内取节假日，覆盖跨边界推算
+        List<OpsHolidayCalendar> holidays = holidayService.holidaysInRange(
+                tenantId, ws.toLocalDate().minusDays(30), we.toLocalDate().plusDays(30));
+        List<LocalDateTime> out = new ArrayList<>();
+        for (OpsHolidayCalendar h : holidays) {
+            if (holidayType != null && !holidayType.equals(h.getHolidayType())) continue;
+            LocalDate base = "after".equals(relative) ? h.getEndDate() : h.getStartDate();
+            // before：从假期开始往前 N 个工作日；after：从假期结束往后 N 个工作日
+            int signed = "after".equals(relative) ? Math.abs(offsetWorkdays) : -Math.abs(offsetWorkdays);
+            LocalDate d = holidayService.moveWorkdays(tenantId, base, signed);
+            LocalDateTime t = LocalDateTime.of(d, time);
+            if (inWindow(t, ws, we)) out.add(t);
         }
         return out;
     }

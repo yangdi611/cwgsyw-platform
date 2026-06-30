@@ -25,6 +25,17 @@
 9. **规则启用前校验负责人可解析**：`group_leader` 类型规则启用前必须配置 `assigneeRule.groupId`，`fixed` 类型必须配置 `userId`，否则拒绝启用——防止生成「无负责人、无通知对象」的死任务。内置 seed 规则默认停用，管理员启用前需补 `groupId`。
 10. **日历区间查询改为区间重叠**：跨区间任务（`planned_start_at < windowEnd AND due_at >= windowStart`）正确命中；兼容仅有 start（全天/点事件）或仅有 due 的任务，避免「6/28 起、7/5 止」的任务在查 7/1 时漏查。
 
+### 2026-06-30 补齐至终态
+
+11. **本规格全部功能已实现**（含原 Phase 3/4 项）：
+    - **统计看板**：`GET /api/ops-calendar/stats`（完成率/逾期率/类型·状态分布/每日趋势/负责人负载 Top10/逾期排行）+ 前端 `/ops-calendar/stats`。
+    - **模板管理**：`GET/POST/PUT/DELETE /api/ops-calendar/templates`（通知/SOP 检查项模板）+ 前端 `/ops-calendar/templates`，规则表单可关联检查项模板。
+    - **素材归集导出**：`GET /api/ops-calendar/report-materials/export`（Excel 双 Sheet：概览+任务明细）+ 前端 `/ops-calendar/materials`。
+    - **节假日相对触发（holiday_relative）+ 工作日相对推算**：`OccurrenceCalculator` 注入 `OpsCalendarHolidayService`，实现节前/节后第 N 个工作日、季末/半年末前 N 个工作日（`offsetWorkdays`，跳过周末+节假日，调休补班日计为工作日）。
+    - **中国法定节假日一键导入**：`POST /api/ops-calendar/holidays/import-cn?year=2026`（静态预置，幂等，导入后可手动按国务院公告校正）+ 节假日页「导入2026法定节假日」按钮。
+    - **管理入口补全**：主日历页 actions 区按权限暴露 规则/排班/节假日/模板/统计/素材 六个入口；月历·周历格子显示节假日红标。
+    - 节假日支持删除（软删，`DELETE /holidays/{id}`）。
+
 ---
 
 ## 1. 范围

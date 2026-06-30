@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { type HolidayVO, errMsg } from '@/lib/opsCalendar'
-import { Plus, ArrowLeft } from 'lucide-react'
+import { Plus, ArrowLeft, Download } from 'lucide-react'
 
 const TYPE_LABEL: Record<string, string> = { legal: '法定节假日', company: '公司假期', campaign: '重大保障期' }
 
@@ -77,6 +77,24 @@ export default function HolidaysPage() {
     onError: (e: unknown) => toast.error(errMsg(e, '保存失败')),
   })
 
+  const importMutation = useMutation({
+    mutationFn: (year: number) => api.post(`/ops-calendar/holidays/import-cn?year=${year}`).then((r) => r.data),
+    onSuccess: (r) => {
+      toast.success(`已导入 ${r?.data ?? 0} 条 ${new Date().getFullYear()} 年法定节假日`)
+      qc.invalidateQueries({ queryKey: ['ops-holidays'] })
+    },
+    onError: (e: unknown) => toast.error(errMsg(e, '导入失败')),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/ops-calendar/holidays/${id}`),
+    onSuccess: () => {
+      toast.success('节假日已删除')
+      qc.invalidateQueries({ queryKey: ['ops-holidays'] })
+    },
+    onError: (e: unknown) => toast.error(errMsg(e, '删除失败')),
+  })
+
   const columns: ColumnDef<HolidayVO>[] = useMemo(() => [
     { key: 'name', title: '名称', render: (h) => <span className="font-semibold text-v2-fg">{h.name}</span> },
     { key: 'range', title: '日期范围', render: (h) => <span className="font-v2-mono text-sm">{h.startDate} ~ {h.endDate}</span> },
@@ -84,9 +102,15 @@ export default function HolidaysPage() {
     { key: 'overrides', title: '调休补班', render: (h) => <span className="text-v2-muted text-sm">{h.workdayOverrides && h.workdayOverrides !== '[]' ? h.workdayOverrides : '-'}</span> },
     { key: 'enabled', title: '状态', render: (h) => <StatusBadge status={h.enabled ? 'ok' : 'neutral'}>{h.enabled ? '启用' : '停用'}</StatusBadge> },
     { key: 'ops', title: '操作', align: 'right' as const, render: (h) => (
-        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(h) }}>编辑</Button>
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(h) }}>编辑</Button>
+          <Button variant="ghost" size="sm" onClick={(e) => {
+            e.stopPropagation()
+            if (window.confirm(`确认删除「${h.name}」？`)) deleteMutation.mutate(h.id)
+          }}>删除</Button>
+        </div>
       ) },
-  ], [])
+  ], [deleteMutation])
 
   return (
     <div className="space-y-6">
@@ -97,6 +121,11 @@ export default function HolidaysPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => router.push('/ops-calendar')}><ArrowLeft className="h-4 w-4" />返回</Button>
+            <Button variant="secondary" onClick={() => {
+              if (window.confirm('导入 2026 年中国法定节假日（估算值，可后续按公告调整）？')) importMutation.mutate(2026)
+            }} disabled={importMutation.isPending}>
+              <Download className="h-4 w-4" />导入2026法定节假日
+            </Button>
             <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建节假日</Button>
           </div>
         }
