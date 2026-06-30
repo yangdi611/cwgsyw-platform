@@ -7,9 +7,12 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { PageHeader, FilterBar, FilterChip } from '@/components/shared'
-import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { Button } from '@/components/v2/Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   CalendarMonthView,
 } from '@/components/ops-calendar/CalendarMonthView'
@@ -22,7 +25,10 @@ import {
   type CalendarScope, type CalendarView, type TaskVO, type HolidayVO,
   startOfMonth, endOfMonth, weekDays, ymd, TASK_TYPE_META, STATUS_META,
 } from '@/lib/opsCalendar'
-import { ChevronLeft, ChevronRight, Plus, Settings2, CalendarClock, CalendarOff, FileText, BarChart2, FolderArchive } from 'lucide-react'
+import {
+  BarChart2, CalendarClock, CalendarOff, ChevronDown, ChevronLeft, ChevronRight,
+  FileText, FolderArchive, Plus, Settings2,
+} from 'lucide-react'
 
 export default function OpsCalendarPage() {
   return (
@@ -137,6 +143,20 @@ function OpsCalendarInner() {
     { value: 'public', label: '公共' },
   ]
 
+  const managementItems = [
+    ...(hasPermission('ops_calendar', 'manage') ? [
+      { label: '周期规则', path: '/ops-calendar/rules', icon: Settings2 },
+      { label: '排班管理', path: '/ops-calendar/rosters', icon: CalendarClock },
+      { label: '节假日历', path: '/ops-calendar/holidays', icon: CalendarOff },
+      { label: '模板管理', path: '/ops-calendar/templates', icon: FileText },
+    ] : []),
+    ...(hasPermission('ops_calendar', 'manage') && hasPermission('ops_calendar', 'export') ? ['separator' as const] : []),
+    ...(hasPermission('ops_calendar', 'export') ? [
+      { label: '统计复盘', path: '/ops-calendar/stats', icon: BarChart2 },
+      { label: '素材归集', path: '/ops-calendar/materials', icon: FolderArchive },
+    ] : []),
+  ]
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -145,41 +165,33 @@ function OpsCalendarInner() {
         subtitle="统一管理周期巡检、排班值守、报表归集与合规核查的计划与执行闭环。"
         actions={
           <div className="flex items-center gap-2">
-            <PermissionGuard resource="ops_calendar" action="manage">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/rules')}>
-                <Settings2 className="h-4 w-4" />规则
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="manage">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/rosters')}>
-                <CalendarClock className="h-4 w-4" />排班
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="manage">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/holidays')}>
-                <CalendarOff className="h-4 w-4" />节假日
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="manage">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/templates')}>
-                <FileText className="h-4 w-4" />模板
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="export">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/stats')}>
-                <BarChart2 className="h-4 w-4" />统计
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="export">
-              <Button variant="ghost" onClick={() => router.push('/ops-calendar/materials')}>
-                <FolderArchive className="h-4 w-4" />素材
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard resource="ops_calendar" action="create">
+            {managementItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex h-10 items-center justify-center gap-1.5 rounded-v2-md border border-v2-border bg-v2-surface px-4 text-sm font-semibold text-v2-fg shadow-v2-sm transition-all hover:border-v2-border-strong hover:bg-v2-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-v2-primary/40">
+                  <Settings2 className="h-4 w-4" />
+                  管理
+                  <ChevronDown className="h-4 w-4 text-v2-muted" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>运维日历</DropdownMenuLabel>
+                  {managementItems.map((item, index) => {
+                    if (item === 'separator') return <DropdownMenuSeparator key={`separator-${index}`} />
+                    const Icon = item.icon
+                    return (
+                      <DropdownMenuItem key={item.path} onClick={() => router.push(item.path)} className="gap-2">
+                        <Icon className="h-4 w-4 text-v2-muted" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {hasPermission('ops_calendar', 'create') && (
               <Button variant="primary" onClick={() => setCreateOpen(true)}>
                 <Plus className="h-4 w-4" />新建任务
               </Button>
-            </PermissionGuard>
+            )}
           </div>
         }
       />
