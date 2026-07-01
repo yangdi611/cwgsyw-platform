@@ -95,7 +95,10 @@ const ROUTES: RouteDef[] = [
   { pattern: '/wiki', trail: [ROOT.wiki] },
 
   // ── 流程中心 ──
+  { pattern: '/workflow/todo', trail: [ROOT.workflow, { label: '待办中心' }] },
   { pattern: '/workflow/tasks', trail: [ROOT.workflow, { label: '我的任务' }] },
+  { pattern: '/workflow/templates', trail: [ROOT.workflow, { label: '流程模板' }] },
+  { pattern: '/workflow/bindings', trail: [ROOT.workflow, { label: '流程绑定' }] },
   { pattern: '/workflow/instances', trail: [ROOT.workflow, { label: '流程实例' }] },
   { pattern: '/workflow/design/:id', trail: [ROOT.workflow, { label: '流程设计', href: '/workflow/design' }, { ...DYN }] },
   { pattern: '/workflow/design', trail: [ROOT.workflow, { label: '流程设计' }] },

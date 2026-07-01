@@ -331,29 +331,73 @@ public class ChangeDocService {
 
         // Approved → 自动归档到共享文件库（按选了的模板各归档一份）
         if (approved) {
-            try {
-                ChangeDocVO vo = toVO(doc);
-                String changeNo = doc.getChangeNo();
-                if (doc.getApplicationTemplateId() != null) {
-                    byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getApplicationTemplateId());
-                    byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
-                    sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
-                            changeNo + "_申请单", "application");
-                }
-                if (doc.getPlanTemplateId() != null) {
-                    byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getPlanTemplateId());
-                    byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
-                    sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
-                            changeNo + "_方案", "plan");
-                }
-                writeAuditLog(tenantId, "archive", id, approverId, null, null, "审批通过自动归档");
-            } catch (Exception e) {
-                // 归档失败不阻断审批通过，只记日志
-                log.error("审批归档失败 changeDocId={}: {}", id, e.getMessage(), e);
-            }
+            archiveApprovedDoc(doc, tenantId, approverId, id);
         }
 
         return toVO(doc);
+    }
+
+    /** 审批通过后自动归档到共享文件库。归档失败不阻断审批，只记日志。 */
+    private void archiveApprovedDoc(ChangeDoc doc, String tenantId, Long approverId, Long id) {
+        try {
+            ChangeDocVO vo = toVO(doc);
+            String changeNo = doc.getChangeNo();
+            if (doc.getApplicationTemplateId() != null) {
+                byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getApplicationTemplateId());
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
+                        changeNo + "_申请单", "application");
+            }
+            if (doc.getPlanTemplateId() != null) {
+                byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getPlanTemplateId());
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
+                        changeNo + "_方案", "plan");
+            }
+            writeAuditLog(tenantId, "archive", id, approverId, null, null, "审批通过自动归档");
+        } catch (Exception e) {
+            // 归档失败不阻断审批通过，只记日志
+            log.error("审批归档失败 changeDocId={}: {}", id, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 提交变更文档进入 Flowable 审批（可选流程）。
+     * 由 ChangeDocWorkflowAdapter.canSubmit 前置校验后调用；返回业务状态是否成功流转。
+     */
+    public ChangeDoc getForWorkflow(String tenantId, Long id) {
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) return null;
+        return doc;
+    }
+
+    /**
+     * 流程结束后回写变更文档状态（供 ChangeDocWorkflowAdapter 调用）。
+     * 按状态幂等：非 pending 状态不再重复回写。
+     */
+    @Transactional
+    public void handleWorkflowApproval(Long id, boolean approved, Long approverId, String comment) {
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null) return;
+        if (!"pending".equals(doc.getStatus())) {
+            // 幂等：已终态或未在审批中，跳过
+            return;
+        }
+        String tenantId = doc.getTenantId();
+        String beforeJson = toJson(doc);
+        doc.setStatus(approved ? "approved" : "rejected");
+        doc.setApproverId(approverId);
+        doc.setApproverComment(comment);
+        doc.setApprovedAt(LocalDateTime.now());
+        doc.setUpdatedAt(LocalDateTime.now());
+        changeDocMapper.updateById(doc);
+        String action = approved ? "approve" : "reject";
+        saveSnapshot(doc, approverId, action);
+        writeAuditLog(tenantId, action, id, approverId, beforeJson, toJson(doc),
+                approved ? "流程审批通过" : "流程审批拒绝：" + comment);
+        if (approved) {
+            archiveApprovedDoc(doc, tenantId, approverId, id);
+        }
     }
 
     public String generateAiContent(String tenantId, Long id, Long operatorId, AiGenerateRequest req) {

@@ -246,6 +246,9 @@
 .wiki-editor .w-md-editor {
   background-color: var(--v2-surface) !important;
   color: var(--v2-fg);
+  display: flex;
+  height: 100% !important;
+  min-height: 0;
   box-shadow: none;
   --color-border-default: var(--v2-border);
 }
@@ -284,6 +287,29 @@
   /* 某处全局样式把 -webkit-text-fill-color 置为透明（WebKit 下优先级高于 color），
      导致编辑区文字不可见；这里显式设回前景色。预览区非 textarea 不受影响。 */
   -webkit-text-fill-color: var(--v2-fg);
+}
+.wiki-editor .w-md-editor-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.wiki-editor .w-md-editor-input {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.wiki-editor .w-md-editor-area,
+.wiki-editor .w-md-editor-preview {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+.wiki-editor .w-md-editor-text {
+  min-height: 100%;
+}
+.wiki-editor .w-md-editor-text-input {
+  min-height: 100%;
+  overflow-y: hidden;
 }
 .wiki-editor .w-md-editor-text-pre > code,
 .wiki-editor .w-md-editor-text-pre > code *,

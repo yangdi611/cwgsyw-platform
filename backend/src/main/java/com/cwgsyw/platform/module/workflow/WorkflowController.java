@@ -213,9 +213,13 @@ public class WorkflowController {
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<Void> deleteVersion(@RequestBody Map<String, String> body,
                                   @AuthenticationPrincipal SecurityUser cu) {
-        String definitionId = body.get("definition_id");
+        // 前后端统一使用 definitionId（camelCase）；兼容历史 definition_id 字段
+        String definitionId = body.get("definitionId");
         if (definitionId == null || definitionId.isBlank()) {
-            return R.fail("缺少 definition_id 参数");
+            definitionId = body.get("definition_id");
+        }
+        if (definitionId == null || definitionId.isBlank()) {
+            return R.fail("缺少 definitionId 参数");
         }
         // Check if this version is bound to any business module via sys_config
         Map<String, String> cfg = configService.getAll(cu.getTenantId());

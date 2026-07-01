@@ -33,6 +33,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   CalendarDays,
+  LayoutTemplate,
+  Link2,
 } from 'lucide-react'
 
 type NavItem = {
@@ -165,10 +167,13 @@ const navItems: NavEntry[] = [
     storageKey: 'sidebar_workflow_v2',
     defaultOpen: false,
     children: [
+      { href: '/workflow/todo', label: '待办中心', icon: CheckSquare, resource: 'workflow', action: 'read' },
       { href: '/workflow/tasks', label: '我的任务', icon: CheckSquare, resource: 'workflow', action: 'read', badge: 12 },
       { href: '/daily', label: '日报审批', icon: FileText, resource: 'daily_report', action: 'read' },
       { href: '/workflow/instances', label: '流程实例', icon: GitBranch, resource: 'workflow', action: 'read' },
+      { href: '/workflow/templates', label: '流程模板', icon: LayoutTemplate, resource: 'workflow', action: 'configure' },
       { href: '/workflow/design', label: '流程设计', icon: Edit3, resource: 'workflow', action: 'configure' },
+      { href: '/workflow/bindings', label: '流程绑定', icon: Link2, resource: 'workflow', action: 'configure' },
       { href: '/workflow/admin', label: '流程配置', icon: Settings, resource: 'workflow', action: 'configure' },
     ],
   },

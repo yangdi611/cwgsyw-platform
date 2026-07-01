@@ -279,7 +279,7 @@ export default function WikiEditorPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-3 bg-v2-bg p-4">
+    <div className="flex h-full min-h-0 flex-col bg-v2-bg p-4">
       {/* 卡片：工具栏 + 编辑器统一在一个 surface 容器内，与阅读页风格一致 */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface shadow-v2-sm">
       {/* Toolbar */}
@@ -321,7 +321,7 @@ export default function WikiEditorPage() {
       />
 
       {/* Editor */}
-      <div className="wiki-editor relative min-h-0 flex-1" ref={editorRef} data-color-mode="light">
+      <div className="wiki-editor relative min-h-0 flex-1 overflow-hidden" ref={editorRef} data-color-mode="light">
         <MDEditor
           value={content}
           onChange={handleContentChange}

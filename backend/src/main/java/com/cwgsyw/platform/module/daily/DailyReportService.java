@@ -14,7 +14,6 @@ import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.user.UserMapper;
-import com.cwgsyw.platform.module.workflow.WorkflowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DailyReportService {
     private final DailyReportMapper reportMapper;
-    private final WorkflowService workflowService;
+    private final com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade workflowRuntimeFacade;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
@@ -104,9 +103,17 @@ public class DailyReportService {
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
-        String processInstId = workflowService.startDailyReportApproval(id, report.getGroupId());
+        // 通过统一流程门面启动（daily_report 已全量迁移）。绑定缺失时门面抛异常，
+        // 事务回滚，日报保持原状态，提交失败可重试。
+        var instance = workflowRuntimeFacade.startBusinessProcess(
+            com.cwgsyw.platform.module.workflow.runtime.WorkflowStartCommand.builder()
+                .tenantId(report.getTenantId())
+                .businessType("daily_report")
+                .businessId(String.valueOf(id))
+                .submitterId(userId)
+                .build());
         report.setStatus("SUBMITTED");
-        report.setProcessInstId(processInstId);
+        report.setProcessInstId(instance.getProcessInstanceId());
         reportMapper.updateById(report);
         // Notify all other users in the group that a report awaits approval
         var allInGroup = userMapper.selectList(
