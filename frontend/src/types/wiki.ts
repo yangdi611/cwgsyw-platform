@@ -105,6 +105,24 @@ export interface PageResult<T> {
 }
 
 /**
+ * Wiki 页面评论。
+ * 轻量反馈，不进入正文/版本历史/发布审批。内容 ≤ 300 字符。
+ * canDelete 由后端按「本人 或 管理员」计算，前端据此显示删除按钮。
+ */
+export interface WikiComment {
+  id: number
+  pageId: number
+  content: string
+  createdBy: number | null
+  createdByName: string | null
+  createdAt: string
+  canDelete: boolean
+}
+
+/** 评论内容最大长度（字符），与后端 WikiCommentService.MAX_CONTENT_LENGTH 一致。 */
+export const WIKI_COMMENT_MAX_LENGTH = 300
+
+/**
  * 当前用户是否可写某空间（前端按钮可见性；后端 ACL 是最终裁判）。
  * @param space 空间（可能 undefined，加载中视为不可写）
  * @param groupScope 当前用户范围：'platform'=超管 / 'tenant'=管理员 / 'group'=普通

@@ -15,6 +15,7 @@ import type {
   WikiSearchResult,
   WikiGraph,
   WikiAcl,
+  WikiComment,
   PageResult,
 } from '@/types/wiki'
 
@@ -105,6 +106,26 @@ export const wikiApi = {
 
   getBacklinks: (id: number): Promise<WikiBacklink[]> =>
     api.get(`/wiki/pages/${id}/backlinks`).then((r) => r.data.data),
+
+  // ── Comments ──────────────────────────────────────────────────────────────
+  listComments: (
+    pageId: number,
+    params?: { page?: number; size?: number },
+  ): Promise<PageResult<WikiComment>> =>
+    api
+      .get(`/wiki/pages/${pageId}/comments`, {
+        params: {
+          page: params?.page ?? 1,
+          size: params?.size ?? 20,
+        },
+      })
+      .then((r) => r.data.data),
+
+  createComment: (pageId: number, body: { content: string }): Promise<WikiComment> =>
+    api.post(`/wiki/pages/${pageId}/comments`, body).then((r) => r.data.data),
+
+  deleteComment: (pageId: number, commentId: number): Promise<void> =>
+    api.delete(`/wiki/pages/${pageId}/comments/${commentId}`).then(() => undefined),
 
   getAcl: (id: number): Promise<WikiAcl> =>
     api.get(`/wiki/pages/${id}/acl`).then((r) => r.data.data),

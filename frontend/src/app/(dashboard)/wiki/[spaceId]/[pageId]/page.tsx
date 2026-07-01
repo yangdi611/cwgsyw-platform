@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
@@ -19,11 +19,11 @@ import { StatusBadge } from '@/components/v2/StatusBadge'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
+import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiImage } from '@/components/wiki/WikiImage'
-import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock } from 'lucide-react'
+import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
-import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
-import { canWriteSpace } from '@/types/wiki'
+import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace, WikiComment, PageResult } from '@/types/wiki'
 import 'highlight.js/styles/github.css'
 
 const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 'neutral' }> = {
@@ -76,6 +76,13 @@ export default function WikiPageReader() {
   const pid = Number(pageId)
 
   const [aclOpen, setAclOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
+
+  const { data: commentsFirstPage } = useQuery<PageResult<WikiComment>>({
+    queryKey: ['wiki-comments-count', pid],
+    queryFn: () => wikiApi.listComments(pid, { page: 1, size: 1 }),
+    enabled: Boolean(pid),
+  })
 
   const { data: page, isLoading } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],
@@ -249,6 +256,21 @@ export default function WikiPageReader() {
       {canManageAcl && (
         <WikiAclDialog pageId={pid} pageTitle={page.title} open={aclOpen} onOpenChange={setAclOpen} />
       )}
+
+      {/* 右下角评论入口 —— 复用页面 read 权限，无需 wiki:update */}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40 h-10 rounded-full shadow-v2-sm"
+        onClick={() => setCommentsOpen(true)}
+        title="查看评论"
+      >
+        <MessageCircle className="h-4 w-4" />
+        评论 {commentsFirstPage?.total ?? 0}
+      </Button>
+
+      <WikiCommentsDrawer key={pid} pageId={pid} open={commentsOpen} onOpenChange={setCommentsOpen} />
     </div>
   )
 }

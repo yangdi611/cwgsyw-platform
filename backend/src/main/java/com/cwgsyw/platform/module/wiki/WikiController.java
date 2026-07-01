@@ -28,6 +28,7 @@ public class WikiController {
     private final WikiBacklinkService backlinkService;
     private final WikiAttachmentService attachmentService;
     private final WikiExportService exportService;
+    private final WikiCommentService commentService;
 
     private void checkAcl(SecurityUser u, Long pageId, String perm) {
         if (!aclService.hasPermission(u.getTenantId(), pageId, u.getUserId(), u.getGroupId(),
@@ -165,6 +166,39 @@ public class WikiController {
     @PreAuthorize("hasAuthority('wiki:read')")
     public R<List<WikiBacklinkVO>> getBacklinks(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
         return R.ok(backlinkService.getBacklinks(u.getTenantId(), id));
+    }
+
+    // ===== Comments =====
+
+    @GetMapping("/pages/{id}/comments")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public R<PageResult<WikiCommentVO>> listComments(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal SecurityUser u) {
+        checkAcl(u, id, "read");
+        return R.ok(commentService.listComments(u.getTenantId(), id, u.getUserId(),
+                u.getGroupScope(), page, size));
+    }
+
+    @PostMapping("/pages/{id}/comments")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public R<WikiCommentVO> createComment(@PathVariable Long id,
+                                          @RequestBody CreateWikiCommentRequest req,
+                                          @AuthenticationPrincipal SecurityUser u) {
+        checkAcl(u, id, "read");
+        return R.ok(commentService.createComment(u.getTenantId(), id, u.getUserId(),
+                req.getContent(), u.getGroupScope()));
+    }
+
+    @DeleteMapping("/pages/{id}/comments/{commentId}")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public R<Void> deleteComment(@PathVariable Long id, @PathVariable Long commentId,
+                                 @AuthenticationPrincipal SecurityUser u) {
+        checkAcl(u, id, "read");
+        commentService.deleteComment(u.getTenantId(), id, commentId, u.getUserId(), u.getGroupScope());
+        return R.ok(null);
     }
 
     @GetMapping("/pages/{id}/acl")
