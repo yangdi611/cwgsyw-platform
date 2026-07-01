@@ -299,11 +299,6 @@
   caret-color: var(--v2-fg);
   -webkit-text-fill-color: transparent;
 }
-.wiki-editor .w-md-editor-text-input,
-.wiki-editor .w-md-editor-text-pre > code {
-  font-size: 14px;
-  line-height: 1.7;
-}
 /* 编辑区与预览区分隔线 */
 .wiki-editor .w-md-editor-bar {
   background-color: var(--v2-border);
