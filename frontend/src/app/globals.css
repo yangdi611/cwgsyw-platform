@@ -284,8 +284,7 @@
 .wiki-editor .w-md-editor-text-input {
   background-color: var(--v2-surface) !important;
   color: var(--v2-fg);
-  /* 某处全局样式把 -webkit-text-fill-color 置为透明（WebKit 下优先级高于 color），
-     导致编辑区文字不可见；这里显式设回前景色。预览区非 textarea 不受影响。 */
+  /* 让高亮镜像层显示文字；textarea 本体在后续规则中保持透明，只负责输入与光标。 */
   -webkit-text-fill-color: var(--v2-fg);
 }
 .wiki-editor .w-md-editor-content {
@@ -308,8 +307,10 @@
   min-height: 100%;
 }
 .wiki-editor .w-md-editor-text-input {
+  caret-color: var(--v2-fg);
   min-height: 100%;
   overflow-y: hidden;
+  -webkit-text-fill-color: transparent;
 }
 .wiki-editor .w-md-editor-text-pre > code,
 .wiki-editor .w-md-editor-text-pre > code *,
