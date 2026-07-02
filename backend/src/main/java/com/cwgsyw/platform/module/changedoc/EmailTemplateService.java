@@ -195,11 +195,17 @@ public class EmailTemplateService {
                 """.formatted(esc(title), esc(title), bodyHtml);
     }
 
-    /** 从 fieldsData 安全读取一个字段值，找不到时返回空字符串 */
+    /**
+     * 从 fieldsData 安全读取一个普通字段值，找不到或是表格数组/对象时返回空字符串。
+     * 邮件正文只展示普通字段摘要，不渲染表格内容。
+     */
     private String fieldOf(ChangeDocVO doc, String key) {
         if (doc.getFieldsData() == null) return "";
-        String v = doc.getFieldsData().get(key);
-        return v != null ? v : "";
+        Object v = doc.getFieldsData().get(key);
+        if (v == null) return "";
+        if (v instanceof String s) return s;
+        if (v instanceof java.util.List || v instanceof java.util.Map) return "";
+        return v.toString();
     }
 
     /** 简单 HTML 转义（防止内容注入） */

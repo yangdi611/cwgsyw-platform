@@ -21,10 +21,13 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -47,6 +50,7 @@ public class ChangeDocService {
     private final ObjectMapper objectMapper;
     private final ExportService exportService;
     private final com.cwgsyw.platform.module.sharedfile.SharedFileService sharedFileService;
+    private final TableFieldSupport tableFieldSupport;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -128,6 +132,14 @@ public class ChangeDocService {
         }
     }
 
+    /** 将 fieldsData 中的普通字段值格式化为字符串；表格数组/对象值返回空字符串。 */
+    private String stringOf(Object v) {
+        if (v == null) return "";
+        if (v instanceof String s) return s;
+        if (v instanceof List || v instanceof Map) return "";
+        return v.toString();
+    }
+
     // ─── Snapshot & audit ────────────────────────────────────────────────────
 
     private void saveSnapshot(ChangeDoc doc, Long operatorId, String remark) {
@@ -159,6 +171,14 @@ public class ChangeDocService {
 
     // ─── CRUD operations ─────────────────────────────────────────────────────
 
+    /** 汇总 application + plan 两个模板的字段配置，供 fieldsData 校验使用。 */
+    private List<ChangeDocField> loadFieldsForTemplates(Long applicationTemplateId, Long planTemplateId) {
+        List<ChangeDocField> fields = new ArrayList<>();
+        if (applicationTemplateId != null) fields.addAll(changeDocFieldMapper.findByTemplate(applicationTemplateId));
+        if (planTemplateId != null) fields.addAll(changeDocFieldMapper.findByTemplate(planTemplateId));
+        return fields;
+    }
+
     @Transactional
     public ChangeDocVO create(String tenantId, Long operatorId, CreateChangeDocRequest req) {
         ChangeDoc doc = new ChangeDoc();
@@ -166,15 +186,18 @@ public class ChangeDocService {
         doc.setChangeNo(StringUtils.hasText(req.getChangeNo()) ? req.getChangeNo() : generateChangeNo(tenantId));
         doc.setApplicationTemplateId(req.getApplicationTemplateId());
         doc.setPlanTemplateId(req.getPlanTemplateId());
-        doc.setFieldsData(req.getFieldsData());
+
+        // 创建时只做结构性/类型校验，必填校验推迟到 submit
+        List<ChangeDocField> fields = loadFieldsForTemplates(req.getApplicationTemplateId(), req.getPlanTemplateId());
+        Map<String, Object> fieldsData = tableFieldSupport.validateAndNormalize(fields, req.getFieldsData(), false);
+        doc.setFieldsData(fieldsData);
 
         // Title 一阶字段优先，兜底从 fieldsData["title"] 或 changeNo 派生
-        Map<String, String> fd = req.getFieldsData();
         String title;
         if (StringUtils.hasText(req.getTitle())) {
             title = req.getTitle();
-        } else if (fd != null && fd.containsKey("title") && !fd.get("title").isBlank()) {
-            title = fd.get("title");
+        } else if (fieldsData.get("title") instanceof String s && StringUtils.hasText(s)) {
+            title = s;
         } else {
             title = doc.getChangeNo();
         }
@@ -215,19 +238,6 @@ public class ChangeDocService {
             doc.setTitle(req.getTitle());
         }
 
-        if (req.getFieldsData() != null && !req.getFieldsData().isEmpty()) {
-            Map<String, String> merged = new HashMap<>();
-            if (doc.getFieldsData() != null) merged.putAll(doc.getFieldsData());
-            merged.putAll(req.getFieldsData());
-            doc.setFieldsData(merged);
-
-            // 兼容老数据：fieldsData["title"] 也同步到一阶字段
-            if (!StringUtils.hasText(req.getTitle()) && merged.containsKey("title")
-                    && StringUtils.hasText(merged.get("title"))) {
-                doc.setTitle(merged.get("title"));
-            }
-        }
-
         // 模板 ID 修改规则：
         // - draft / approved / rejected → 两个模板都可改
         // - plan_pending → 仅可补填 plan_template_id
@@ -236,6 +246,23 @@ public class ChangeDocService {
         }
         if ((isDraft || isPlanPending || isApproved || isRejected) && req.getPlanTemplateId() != null) {
             doc.setPlanTemplateId(req.getPlanTemplateId());
+        }
+
+        if (req.getFieldsData() != null && !req.getFieldsData().isEmpty()) {
+            Map<String, Object> merged = new LinkedHashMap<>();
+            if (doc.getFieldsData() != null) merged.putAll(doc.getFieldsData());
+            merged.putAll(req.getFieldsData());
+
+            // 更新时只做结构性/类型校验，必填校验推迟到 submit / submitPlan
+            List<ChangeDocField> fields = loadFieldsForTemplates(doc.getApplicationTemplateId(), doc.getPlanTemplateId());
+            merged = tableFieldSupport.validateAndNormalize(fields, merged, false);
+            doc.setFieldsData(merged);
+
+            // 兼容老数据：fieldsData["title"] 也同步到一阶字段
+            if (!StringUtils.hasText(req.getTitle()) && merged.get("title") instanceof String s
+                    && StringUtils.hasText(s)) {
+                doc.setTitle(s);
+            }
         }
 
         // approved / rejected 状态编辑后回到 draft 重审，清空审批结果
@@ -269,8 +296,13 @@ public class ChangeDocService {
         }
 
         String beforeJson = toJson(doc);
-        // 只填了 application 没填 plan → plan_pending；其他情况 → pending
+
+        // 只填了 application 没填 plan → plan_pending（此时 plan 字段尚未填写，不校验其必填）；其他情况 → pending（两个模板都需校验）
         boolean planPending = doc.getApplicationTemplateId() != null && doc.getPlanTemplateId() == null;
+        List<ChangeDocField> fields = loadFieldsForTemplates(doc.getApplicationTemplateId(),
+                planPending ? null : doc.getPlanTemplateId());
+        doc.setFieldsData(tableFieldSupport.validateAndNormalize(fields, doc.getFieldsData(), true));
+
         doc.setStatus(planPending ? "plan_pending" : "pending");
         doc.setUpdatedAt(LocalDateTime.now());
 
@@ -296,6 +328,10 @@ public class ChangeDocService {
         }
 
         String beforeJson = toJson(doc);
+
+        List<ChangeDocField> fields = loadFieldsForTemplates(doc.getApplicationTemplateId(), doc.getPlanTemplateId());
+        doc.setFieldsData(tableFieldSupport.validateAndNormalize(fields, doc.getFieldsData(), true));
+
         doc.setStatus("pending");
         doc.setUpdatedAt(LocalDateTime.now());
 
@@ -406,11 +442,11 @@ public class ChangeDocService {
             throw new IllegalArgumentException("变更文档不存在");
         }
 
-        Map<String, String> fd = doc.getFieldsData() != null ? doc.getFieldsData() : Map.of();
+        Map<String, Object> fd = doc.getFieldsData() != null ? doc.getFieldsData() : Map.of();
 
-        String changeDesc   = req.getChangeDesc()   != null ? req.getChangeDesc()   : fd.getOrDefault("change_desc", "");
-        String impactScope  = req.getImpactScope()  != null ? req.getImpactScope()  : fd.getOrDefault("impact_scope", "");
-        String changeWindow = req.getChangeWindow() != null ? req.getChangeWindow() : fd.getOrDefault("change_window", "");
+        String changeDesc   = req.getChangeDesc()   != null ? req.getChangeDesc()   : stringOf(fd.get("change_desc"));
+        String impactScope  = req.getImpactScope()  != null ? req.getImpactScope()  : stringOf(fd.get("impact_scope"));
+        String changeWindow = req.getChangeWindow() != null ? req.getChangeWindow() : stringOf(fd.get("change_window"));
 
         String prompt = String.format("""
                 请根据以下变更信息，生成专业的变更方案内容，包含：背景与目的、详细操作步骤、风险评估与应对措施、回滚计划、验证方法。
@@ -507,6 +543,7 @@ public class ChangeDocService {
                 fvo.setInForm(f.getInForm());
                 fvo.setPlaceholder(f.getPlaceholder());
                 fvo.setSortOrder(f.getSortOrder());
+                fvo.setConfig(f.getConfig());
                 return fvo;
             }).collect(java.util.stream.Collectors.toList());
             vo.setApplicationFieldConfig(appFieldVOs);
@@ -523,6 +560,7 @@ public class ChangeDocService {
                 fvo.setInForm(f.getInForm());
                 fvo.setPlaceholder(f.getPlaceholder());
                 fvo.setSortOrder(f.getSortOrder());
+                fvo.setConfig(f.getConfig());
                 return fvo;
             }).collect(java.util.stream.Collectors.toList());
             vo.setPlanFieldConfig(planFieldVOs);

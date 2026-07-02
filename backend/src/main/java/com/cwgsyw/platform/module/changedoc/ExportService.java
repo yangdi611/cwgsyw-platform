@@ -317,10 +317,23 @@ public class ExportService {
         }
     }
 
+    /**
+     * 从 fieldsData 安全读取一个普通字段值并格式化为字符串。
+     * 表格字段（List/Map）不是普通字段的展示对象，程序化生成/PDF 场景下降级为空字符串，避免报错。
+     * 见 SPEC §4.3（PDF 不作为本次表格验收范围，但不能因数组值抛异常）、§10.8（普通字段格式化规则）。
+     */
     private String fieldOf(ChangeDocVO doc, String key) {
         if (doc.getFieldsData() == null) return "";
-        String v = doc.getFieldsData().get(key);
-        return v != null ? v : "";
+        Object v = doc.getFieldsData().get(key);
+        return formatFieldValue(v);
+    }
+
+    private String formatFieldValue(Object v) {
+        if (v == null) return "";
+        if (v instanceof String s) return s;
+        if (v instanceof Boolean b) return b ? "是" : "否";
+        if (v instanceof java.util.List || v instanceof java.util.Map) return "";
+        return v.toString();
     }
 
     /** PDF：把多行文本按 \n 切分成 Chunk + Chunk.NEWLINE，保留 paragraph 已有的样式属性。 */

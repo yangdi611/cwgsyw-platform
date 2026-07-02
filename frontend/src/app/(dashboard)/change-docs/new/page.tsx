@@ -12,6 +12,9 @@ import { StatusBadge } from '@/components/v2/StatusBadge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { Sparkles, ArrowLeft, FileText } from 'lucide-react'
+import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
+import { isTableFieldConfig, type TableRow } from '@/components/change-doc/tableFieldTypes'
+import type { FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
 
 type DocType = 'application' | 'plan' | 'general'
 
@@ -22,17 +25,6 @@ interface TemplateVO {
   hasDocx: boolean
   active: boolean
   docType: DocType
-}
-
-interface FieldConfigVO {
-  id: number
-  fieldKey: string
-  label: string
-  fieldType: string
-  required: boolean
-  inForm: boolean
-  placeholder: string | null
-  sortOrder: number
 }
 
 interface CiSnapshot {
@@ -63,7 +55,7 @@ export default function NewChangeDocPage() {
   const [planTemplate, setPlanTemplate] = useState<TemplateVO | null>(null)
   const [changeNo, setChangeNo] = useState('')
   const [title, setTitle] = useState('')
-  const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
+  const [fieldsData, setFieldsData] = useState<Record<string, unknown>>({})
   const [submitting, setSubmitting] = useState(false)
 
   const [ciSelectorOpen, setCiSelectorOpen] = useState<string | null>(null)
@@ -109,9 +101,13 @@ export default function NewChangeDocPage() {
   )
 
   const allRequiredFieldKeys = useMemo(() => {
-    const keys: { fieldKey: string; label: string }[] = []
-    appFields.forEach((f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label }))
-    planFields.forEach((f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label }))
+    const keys: { fieldKey: string; label: string; isTable: boolean }[] = []
+    appFields.forEach(
+      (f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label, isTable: f.fieldType === 'table' }),
+    )
+    planFields.forEach(
+      (f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label, isTable: f.fieldType === 'table' }),
+    )
     return keys
   }, [appFields, planFields])
 
@@ -162,7 +158,9 @@ export default function NewChangeDocPage() {
       return
     }
     for (const f of allRequiredFieldKeys) {
-      if (!fieldsData[f.fieldKey]?.trim()) {
+      const v = fieldsData[f.fieldKey]
+      const empty = f.isTable ? !Array.isArray(v) || v.length === 0 : !(typeof v === 'string' && v.trim())
+      if (empty) {
         toast.error(`"${f.label}" 不能为空`)
         return
       }
@@ -194,9 +192,26 @@ export default function NewChangeDocPage() {
   }
 
   const renderField = (f: FieldConfigVO) => {
-    const value = fieldsData[f.fieldKey] ?? ''
+    const value = typeof fieldsData[f.fieldKey] === 'string' ? (fieldsData[f.fieldKey] as string) : ''
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setFieldsData((prev) => ({ ...prev, [f.fieldKey]: e.target.value }))
+
+    if (f.fieldType === 'table' && isTableFieldConfig(f.config)) {
+      const rows = Array.isArray(fieldsData[f.fieldKey]) ? (fieldsData[f.fieldKey] as TableRow[]) : []
+      return (
+        <div key={f.fieldKey} className="space-y-1.5">
+          <Label>
+            {f.label}
+            {f.required && <span className="ml-1 text-v2-danger">*</span>}
+          </Label>
+          <TableFieldEditor
+            config={f.config}
+            rows={rows}
+            onChange={(next) => setFieldsData((prev) => ({ ...prev, [f.fieldKey]: next }))}
+          />
+        </div>
+      )
+    }
 
     if (f.fieldType === 'ci_selector') {
       const selected = selectedCis[f.fieldKey] ?? []

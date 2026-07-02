@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { ArrowLeft, Trash2, Plus, GripVertical } from 'lucide-react'
+import { TableConfigEditor } from '@/components/change-doc/TableConfigEditor'
+import type { TableFieldConfig } from '@/components/change-doc/tableFieldTypes'
 
 interface FieldConfigVO {
   id: number
@@ -20,6 +22,16 @@ interface FieldConfigVO {
   required: boolean
   inForm: boolean
   placeholder: string
+  config?: TableFieldConfig | Record<string, unknown>
+}
+
+const DEFAULT_TABLE_CONFIG: TableFieldConfig = {
+  tableMode: 'fixedDocxTable',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  allowEditColumn: false,
+  rowKey: 'rowId',
+  columns: [],
 }
 
 type DocType = 'application' | 'plan' | 'general'
@@ -45,6 +57,7 @@ const FIELD_TYPES = [
   { value: 'date', label: '日期' },
   { value: 'readonly', label: '只读（导出用）' },
   { value: 'ci_selector', label: 'CI 选择器' },
+  { value: 'table', label: '表格' },
 ]
 
 export default function TemplateFieldsPage() {
@@ -117,7 +130,21 @@ export default function TemplateFieldsPage() {
 
   const update = (idx: number, key: keyof FieldConfigVO, val: unknown) => {
     setDirty(true)
-    setFields((f) => f.map((field, i) => (i === idx ? { ...field, [key]: val } : field)))
+    setFields((f) =>
+      f.map((field, i) => {
+        if (i !== idx) return field
+        const next = { ...field, [key]: val }
+        if (key === 'fieldType' && val === 'table' && !next.config) {
+          next.config = { ...DEFAULT_TABLE_CONFIG }
+        }
+        return next
+      }),
+    )
+  }
+
+  const updateTableConfig = (idx: number, config: TableFieldConfig) => {
+    setDirty(true)
+    setFields((f) => f.map((field, i) => (i === idx ? { ...field, config } : field)))
   }
 
   const addField = () => {
@@ -297,6 +324,26 @@ export default function TemplateFieldsPage() {
                         <li>存储选中时的 CI 名称快照，CI 删除后仍可查看历史记录</li>
                         <li>变更文档详情页中以 CI 卡片列表呈现，可点击跳转 CMDB</li>
                       </ul>
+                    </div>
+                  )}
+                  {field.fieldType === 'table' && (
+                    <div className="col-span-2 mt-1 space-y-2">
+                      <div className="rounded-v2-md border border-v2-primary-border bg-v2-primary-soft p-3 text-xs text-v2-primary">
+                        <p className="font-semibold">表格字段用法说明</p>
+                        <p>
+                          Word 模板中用一行数据行模板表示，行内单元格占位符写成{' '}
+                          <code className="rounded bg-v2-surface px-1 font-v2-mono">{`{{${field.fieldKey || 'table_key'}.列key}}`}</code>
+                          ，填表数据会按行复制该模板行。
+                        </p>
+                      </div>
+                      <TableConfigEditor
+                        value={
+                          field.config && (field.config as TableFieldConfig).tableMode === 'fixedDocxTable'
+                            ? (field.config as TableFieldConfig)
+                            : DEFAULT_TABLE_CONFIG
+                        }
+                        onChange={(next) => updateTableConfig(idx, next)}
+                      />
                     </div>
                   )}
                 </div>

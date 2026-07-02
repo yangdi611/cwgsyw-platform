@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.changedoc.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class SaveFieldRequest {
@@ -18,5 +19,6 @@ public class SaveFieldRequest {
         private Boolean required;
         @JsonAlias("in_form")    private Boolean inForm;
         private String placeholder;
+        private Map<String, Object> config;
     }
 }

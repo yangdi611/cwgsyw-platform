@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 public class UpdateChangeDocRequest {
     private String title;
-    @JsonAlias("fields_data")             private Map<String, String> fieldsData;
+    @JsonAlias("fields_data")             private Map<String, Object> fieldsData;
     /** 仅 draft 状态可修改 */
     @JsonAlias("application_template_id") private Long applicationTemplateId;
     /** draft / plan_pending 都可修改（plan_pending 用于补填方案模板） */

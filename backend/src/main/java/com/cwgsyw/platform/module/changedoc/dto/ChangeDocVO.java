@@ -28,7 +28,7 @@ public class ChangeDocVO {
     private String planTemplateName;
 
     // dynamic field data and config
-    private Map<String, String> fieldsData;
+    private Map<String, Object> fieldsData;
     private List<FieldConfigVO> applicationFieldConfig;
     private List<FieldConfigVO> planFieldConfig;
 }

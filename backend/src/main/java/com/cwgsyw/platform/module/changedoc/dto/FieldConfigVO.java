@@ -2,6 +2,8 @@ package com.cwgsyw.platform.module.changedoc.dto;
 
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class FieldConfigVO {
     private Long id;
@@ -12,4 +14,5 @@ public class FieldConfigVO {
     private Boolean required;
     private Boolean inForm;
     private String placeholder;
+    private Map<String, Object> config;
 }

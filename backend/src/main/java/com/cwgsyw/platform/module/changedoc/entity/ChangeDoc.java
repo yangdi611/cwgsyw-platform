@@ -45,5 +45,5 @@ public class ChangeDoc {
     private Long planTemplateId;
 
     @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
-    private java.util.Map<String, String> fieldsData;
+    private java.util.Map<String, Object> fieldsData;
 }

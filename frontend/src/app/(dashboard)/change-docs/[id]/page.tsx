@@ -14,19 +14,10 @@ import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ArrowLeft, Download, Sparkles, Save, Send, Check, X, FileText, FilePlus2 } from 'lucide-react'
 import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
+import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
+import { isTableFieldConfig, type TableRow, type FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
 
 type DocType = 'application' | 'plan' | 'general'
-
-interface FieldConfigVO {
-  id: number
-  fieldKey: string
-  label: string
-  fieldType: string
-  required: boolean
-  inForm: boolean
-  placeholder: string | null
-  sortOrder: number
-}
 
 interface ChangeDocVO {
   id: number
@@ -46,7 +37,7 @@ interface ChangeDocVO {
   approverComment: string | null
   createdAt: string
   updatedAt: string
-  fieldsData: Record<string, string>
+  fieldsData: Record<string, unknown>
   applicationFieldConfig: FieldConfigVO[] | null
   planFieldConfig: FieldConfigVO[] | null
 }
@@ -103,7 +94,7 @@ export default function ChangeDocDetailPage() {
 
   useBreadcrumbLabel(doc?.title)
 
-  const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
+  const [fieldsData, setFieldsData] = useState<Record<string, unknown>>({})
   const [title, setTitle] = useState('')
   const [approveComment, setApproveComment] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -137,6 +128,9 @@ export default function ChangeDocDetailPage() {
   const setField =
     (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setFieldsData((f) => ({ ...f, [key]: e.target.value }))
+
+  const setTableField = (key: string) => (rows: TableRow[]) =>
+    setFieldsData((f) => ({ ...f, [key]: rows }))
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -345,7 +339,25 @@ export default function ChangeDocDetailPage() {
 
   const renderFieldList = (fields: FieldConfigVO[], editable: boolean) =>
     fields.map((field) => {
-      const value = fieldsData[field.fieldKey] ?? ''
+      if (field.fieldType === 'table' && isTableFieldConfig(field.config)) {
+        const rows = Array.isArray(fieldsData[field.fieldKey]) ? (fieldsData[field.fieldKey] as TableRow[]) : []
+        return (
+          <div key={field.fieldKey} className="space-y-1.5">
+            <Label>
+              {field.label}
+              {field.required && <span className="ml-1 text-v2-danger">*</span>}
+            </Label>
+            <TableFieldEditor
+              config={field.config}
+              rows={rows}
+              onChange={setTableField(field.fieldKey)}
+              disabled={!editable}
+            />
+          </div>
+        )
+      }
+
+      const value = typeof fieldsData[field.fieldKey] === 'string' ? (fieldsData[field.fieldKey] as string) : ''
       const isTextarea = field.fieldType === 'textarea'
       return (
         <div key={field.fieldKey} className="space-y-1.5">
