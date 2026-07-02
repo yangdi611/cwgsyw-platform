@@ -58,6 +58,23 @@ jwt:
   expiration: 86400
   refresh-expiration: 604800
 
+security:
+  account:
+    forceExistingUsersCompleteProfile: false
+  session:
+    idleTimeoutMinutes: 60
+    touchThrottleMinutes: 5
+    redisTtlBufferMinutes: 10
+  password:
+    minLength: 10
+    historyCount: 5
+    allowedSpecials: "!@#%*?_-"
+    requireUpper: true
+    requireLower: true
+    requireDigit: true
+    requireSpecial: true
+    rejectUsernameContained: true
+
 encrypt:
   key: ${ENCRYPT_KEY}
 

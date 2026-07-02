@@ -21,11 +21,16 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
-    public String generateToken(Long userId, String username, String tenantId) {
+    /**
+     * 生成携带 sessionId 的 JWT（SPEC 10.1）。sessionId 用于 {@link JwtAuthFilter}
+     * 校验 Redis 中的可撤销会话；不含 sessionId 的旧 token 视为无效，不提供兼容层。
+     */
+    public String generateToken(Long userId, String username, String tenantId, String sessionId) {
         return Jwts.builder()
             .subject(username)
             .claim("userId", userId)
             .claim("tenantId", tenantId)
+            .claim("sessionId", sessionId)
             .issuedAt(new Date())
             .expiration(new Date(System.currentTimeMillis() + expiration * 1000))
             .signWith(key)
@@ -47,7 +52,8 @@ public class JwtUtil {
             .parseSignedClaims(token).getPayload();
     }
 
-    public Long getUserId(String token)     { return claims(token).get("userId", Long.class); }
-    public String getUsername(String token) { return claims(token).getSubject(); }
-    public String getTenantId(String token) { return claims(token).get("tenantId", String.class); }
+    public Long getUserId(String token)      { return claims(token).get("userId", Long.class); }
+    public String getUsername(String token)  { return claims(token).getSubject(); }
+    public String getTenantId(String token)  { return claims(token).get("tenantId", String.class); }
+    public String getSessionId(String token) { return claims(token).get("sessionId", String.class); }
 }

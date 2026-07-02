@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.security;
 
 import com.cwgsyw.platform.module.rbac.RbacService;
+import com.cwgsyw.platform.module.user.RequiredActionResolver;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -13,14 +14,19 @@ import java.util.Set;
 public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserMapper userMapper;
     private final RbacService rbacService;
+    private final RequiredActionResolver requiredActionResolver;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userMapper.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("用户不存在: " + username));
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            throw new UsernameNotFoundException("账号已禁用: " + username);
+        }
         Set<String> permissions = rbacService.getUserPermissions(user.getId());
         String highestScope = rbacService.getHighestScope(user.getId());
         return new SecurityUser(user.getId(), user.getUsername(), user.getPassword(),
-            user.getTenantId(), user.getGroupId(), highestScope, permissions);
+            user.getTenantId(), user.getGroupId(), highestScope, permissions,
+            requiredActionResolver.resolve(user));
     }
 }

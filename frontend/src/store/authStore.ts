@@ -1,13 +1,30 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export type RequiredAction = 'CHANGE_PASSWORD' | 'COMPLETE_PROFILE'
+
+export interface AuthUser {
+  userId: number
+  username: string
+  realName: string
+  avatarUrl?: string | null
+}
+
 interface AuthState {
-  user: { username: string; realName: string } | null
+  user: AuthUser | null
   permissions: Set<string>
   groupScope: string   // "group" | "tenant" | "platform"
   groupId: number | null
+  requiredActions: RequiredAction[]
   isHydrated: boolean
-  setAuth: (user: { username: string; realName: string }, groupScope: string, groupId: number | null, permissions: string[]) => void
+  setAuth: (
+    user: AuthUser,
+    groupScope: string,
+    groupId: number | null,
+    permissions: string[],
+    requiredActions: RequiredAction[]
+  ) => void
+  setRequiredActions: (requiredActions: RequiredAction[]) => void
   clearAuth: () => void
   setHydrated: () => void
 }
@@ -19,10 +36,13 @@ export const useAuthStore = create<AuthState>()(
       permissions: new Set(),
       groupScope: 'group',
       groupId: null,
+      requiredActions: [],
       isHydrated: false,
-      setAuth: (user, groupScope, groupId, permissions) =>
-        set({ user, groupScope, groupId, permissions: new Set(permissions) }),
-      clearAuth: () => set({ user: null, groupScope: 'group', groupId: null, permissions: new Set() }),
+      setAuth: (user, groupScope, groupId, permissions, requiredActions) =>
+        set({ user, groupScope, groupId, permissions: new Set(permissions), requiredActions }),
+      setRequiredActions: (requiredActions) => set({ requiredActions }),
+      clearAuth: () =>
+        set({ user: null, groupScope: 'group', groupId: null, permissions: new Set(), requiredActions: [] }),
       setHydrated: () => set({ isHydrated: true }),
     }),
     {
@@ -32,6 +52,7 @@ export const useAuthStore = create<AuthState>()(
         groupScope: state.groupScope,
         groupId: state.groupId,
         permissions: [...state.permissions],
+        requiredActions: state.requiredActions,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

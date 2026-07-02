@@ -2,6 +2,7 @@ package com.cwgsyw.platform.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +12,13 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /** 业务异常：携带 errorCode + HTTP 状态（SPEC 9.5 / 13.6）。 */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<R<Void>> handleBusiness(BusinessException ex) {
+        return ResponseEntity.status(ex.getHttpStatus())
+            .body(R.fail(ex.getHttpStatus(), ex.getErrorCode(), ex.getMessage()));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

@@ -28,6 +28,7 @@ interface User {
   groupId?: number
   groupName?: string
   status: number
+  mustChangePassword?: boolean
 }
 
 export default function UsersPage() {

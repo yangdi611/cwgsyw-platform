@@ -10,7 +10,7 @@ import { PageHeader, FilterBar, FilterChip } from '@/components/shared'
 import { Button } from '@/components/v2/Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -173,7 +173,9 @@ function OpsCalendarInner() {
                   <ChevronDown className="h-4 w-4 text-v2-muted" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>运维日历</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>运维日历</DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   {managementItems.map((item, index) => {
                     if (item === 'separator') return <DropdownMenuSeparator key={`separator-${index}`} />
                     const Icon = item.icon
