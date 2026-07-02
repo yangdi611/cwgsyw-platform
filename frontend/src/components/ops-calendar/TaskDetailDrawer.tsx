@@ -196,14 +196,18 @@ export function TaskDetailDrawer({ taskId, onClose }: Props) {
           <div className="space-y-1">
             <label className="text-xs text-v2-muted">执行结论 *</label>
             <Select value={resultStatus} onValueChange={(v) => setResultStatus(v ?? 'normal')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{(v: string) => RESULT_OPTIONS.find((o) => o.value === v)?.label ?? v}</SelectValue>
+              </SelectTrigger>
               <SelectContent>{RESULT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <label className="text-xs text-v2-muted">风险等级</label>
             <Select value={riskLevel} onValueChange={(v) => setRiskLevel(v ?? 'none')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{(v: string) => RISK_OPTIONS.find((o) => o.value === v)?.label ?? v}</SelectValue>
+              </SelectTrigger>
               <SelectContent>{RISK_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>

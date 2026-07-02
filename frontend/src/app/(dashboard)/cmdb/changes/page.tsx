@@ -163,7 +163,13 @@ export default function CmdbChangesPage() {
           }}
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="全部模型" />
+            <SelectValue placeholder="全部模型">
+              {(v: string) =>
+                v === '__all__' || !v
+                  ? '全部模型'
+                  : (models ?? []).find((m) => m.modelId === v)?.displayName ?? v
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部模型</SelectItem>
@@ -215,7 +221,9 @@ export default function CmdbChangesPage() {
           }}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="全部动作" />
+            <SelectValue placeholder="全部动作">
+              {(v: string) => ACTION_OPTIONS.find((o) => o.value === v)?.label ?? '全部动作'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {ACTION_OPTIONS.map((o) => (

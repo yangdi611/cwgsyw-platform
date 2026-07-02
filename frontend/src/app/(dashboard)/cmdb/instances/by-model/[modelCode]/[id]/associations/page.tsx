@@ -142,7 +142,9 @@ export default function AssociationsPage() {
       <div className="flex items-center gap-3 mb-4">
         <Select value={filterKind} onValueChange={(v) => setFilterKind(v ?? 'all')}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="全部种类" />
+            <SelectValue placeholder="全部种类">
+              {(v: string) => (v === 'all' || !v ? '全部种类' : kindOptions.find(k => k.value === v)?.label ?? v)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部种类</SelectItem>

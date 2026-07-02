@@ -163,7 +163,11 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
               <div className="space-y-1">
                 <Label className="text-xs">关联类型</Label>
                 <Select value={defId} onValueChange={(v) => setDefId(v ?? '')}>
-                  <SelectTrigger><SelectValue placeholder="选择关联类型" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择关联类型">
+                      {(v: string) => rackDefs.find((d) => d.defId === v)?.name ?? '选择关联类型'}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {rackDefs.map((d) => <SelectItem key={d.defId} value={d.defId}>{d.name}</SelectItem>)}
                   </SelectContent>
@@ -178,7 +182,11 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
                 onChange={(e) => setRackKeyword(e.target.value)}
               />
               <Select value={rackId} onValueChange={(v) => setRackId(v ?? '')}>
-                <SelectTrigger><SelectValue placeholder="选择机柜" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择机柜">
+                    {(v: string) => (rackList ?? []).find((r) => String(r.id) === v)?.name ?? '选择机柜'}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {(rackList ?? []).map((r) => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
                 </SelectContent>

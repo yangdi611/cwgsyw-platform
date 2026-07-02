@@ -153,7 +153,11 @@ export default function ImpactAnalysisPage() {
         {/* 方向选择器 */}
         <Select value={direction} onValueChange={v => setDirection((v as Direction) ?? 'bidirectional')}>
           <SelectTrigger className="w-36">
-            <SelectValue />
+            <SelectValue>
+              {(v: string) =>
+                ({ bidirectional: '双向', upstream: '上游（被影响）', downstream: '下游（影响对象）' } as Record<string, string>)[v] ?? v
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="bidirectional">双向</SelectItem>
@@ -164,7 +168,7 @@ export default function ImpactAnalysisPage() {
         {/* 深度选择器 */}
         <Select value={String(maxDepth)} onValueChange={v => setMaxDepth(Number(v) || 3)}>
           <SelectTrigger className="w-28">
-            <SelectValue />
+            <SelectValue>{(v: string) => `深度 ${v}`}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {[1, 2, 3, 4, 5].map(d => (

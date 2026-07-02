@@ -177,7 +177,9 @@ export default function WorkflowTemplatesPage() {
           </Label>
           <Select value={val} onValueChange={(v) => setValue(f.key, v ?? '')}>
             <SelectTrigger>
-              <SelectValue placeholder="请选择" />
+              <SelectValue placeholder="请选择">
+                {(v: string) => (v ? optionLabel(v) : '请选择')}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {f.options.map((o) => (
@@ -332,7 +334,9 @@ export default function WorkflowTemplatesPage() {
                 </Label>
                 <Select value={businessType} onValueChange={(v) => setBusinessType(v ?? '')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择业务类型" />
+                    <SelectValue placeholder="请选择业务类型">
+                      {(v: string) => (v ? businessTypeLabels[v] ?? v : '请选择业务类型')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {createTpl.supportedBusinessTypes.map((bt) => (

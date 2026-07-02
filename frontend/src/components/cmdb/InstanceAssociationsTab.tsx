@@ -340,7 +340,12 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                 setSelectedDefId(v ?? ''); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}); setAddError('')
               }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择关联定义..." />
+                  <SelectValue placeholder="选择关联定义...">
+                    {(v: string) => {
+                      const d = applicableDefs.find(dd => dd.defId === v)
+                      return d ? `${d.name} (${d.mapping})` : '选择关联定义...'
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {applicableDefs.map(d => (
@@ -461,7 +466,11 @@ function RelationAttrField({ attr, value, onChange }: {
       <div className="space-y-1">
         {label}
         <Select value={current || '__none__'} onValueChange={v => onChange(v === '__none__' ? undefined : v)}>
-          <SelectTrigger><SelectValue placeholder="请选择..." /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="请选择...">
+              {(v: string) => (v === '__none__' || !v ? '（未设置）' : v)}
+            </SelectValue>
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__">（未设置）</SelectItem>
             {options.map(o => (

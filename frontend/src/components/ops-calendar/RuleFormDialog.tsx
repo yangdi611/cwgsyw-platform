@@ -184,7 +184,9 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
             <div>
               <Label>任务类型</Label>
               <Select value={taskType} onValueChange={(v) => setTaskType(v ?? 'inspection')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>{(v: string) => TASK_TYPE_META[v]?.label ?? v}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(TASK_TYPE_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                 </SelectContent>
@@ -193,7 +195,9 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
             <div>
               <Label>触发周期</Label>
               <Select value={triggerType} onValueChange={(v) => setTriggerType(v ?? 'weekly')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>{(v: string) => TRIGGER_TYPES.find((t) => t.value === v)?.label ?? v}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {TRIGGER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
@@ -205,7 +209,9 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
               <div>
                 <Label>星期</Label>
                 <Select value={weekday} onValueChange={(v) => setWeekday(v ?? 'FRI')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>{(v: string) => WEEKDAYS.find((w) => w.value === v)?.label ?? v}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {WEEKDAYS.map((w) => <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>)}
                   </SelectContent>
@@ -223,7 +229,11 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
                 <div>
                   <Label>锚点</Label>
                   <Select value={quarterPosition} onValueChange={(v) => setQuarterPosition(v ?? 'last_day')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue>
+                        {(v: string) => (v === 'first_day' ? '周期首日' : v === 'last_day' ? '周期末日' : v)}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="first_day">周期首日</SelectItem>
                       <SelectItem value="last_day">周期末日</SelectItem>
@@ -247,7 +257,9 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
                 <div>
                   <Label>相对节假日</Label>
                   <Select value={hrRelative} onValueChange={(v) => setHrRelative(v ?? 'before')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue>{(v: string) => (v === 'after' ? '节后' : '节前')}</SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="before">节前</SelectItem>
                       <SelectItem value="after">节后</SelectItem>
@@ -279,7 +291,13 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
             <div>
               <Label>负责人规则</Label>
               <Select value={assigneeType} onValueChange={(v) => setAssigneeType(v ?? 'group_leader')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {(v: string) => ({
+                      group_leader: '组长', fixed: '指定用户', creator: '创建者', roster_next_week: '排班负责人',
+                    } as Record<string, string>)[v] ?? v}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="group_leader">组长</SelectItem>
                   <SelectItem value="fixed">指定用户</SelectItem>
@@ -302,7 +320,11 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
             <div>
               <Label>可见性</Label>
               <Select value={visibility} onValueChange={(v) => setVisibility(v ?? 'group')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {(v: string) => ({ private: '私有', group: '本组', public: '公共' } as Record<string, string>)[v] ?? v}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="private">私有</SelectItem>
                   <SelectItem value="group">本组</SelectItem>
@@ -313,7 +335,11 @@ export function RuleFormDialog({ open, rule, onOpenChange }: Props) {
             <div>
               <Label>SOP 检查项模板（可选）</Label>
               <Select value={checklistTemplateId || 'none'} onValueChange={(v) => setChecklistTemplateId(v === 'none' ? '' : (v ?? ''))}>
-                <SelectTrigger><SelectValue placeholder="不绑定" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="不绑定">
+                    {(v: string) => (v === 'none' || !v ? '不绑定' : templates.find((t) => String(t.id) === v)?.name ?? '不绑定')}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">不绑定</SelectItem>
                   {templates.map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}

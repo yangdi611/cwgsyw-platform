@@ -160,7 +160,9 @@ function AuditLogPageInner() {
             }}
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="全部" />
+              <SelectValue placeholder="全部">
+                {(v: string) => (v === '__all__' || !v ? '全部模块' : MODULE_LABELS[v] ?? v)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">全部模块</SelectItem>

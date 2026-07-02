@@ -30,6 +30,7 @@ interface EndpointLinkVO {
 interface InstanceVO {
   id: number
   modelId: string
+  name?: string
   fieldsData?: Record<string, unknown>
   attributes?: { fieldKey: string; fieldType: string; name: string }[]
 }
@@ -173,7 +174,9 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
             <div className="space-y-1">
               <Label className="text-xs">连接类型</Label>
               <Select value={linkType} onValueChange={(v) => setLinkType(v ?? 'net')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>{(v: string) => LINK_TYPES.find((t) => t.value === v)?.label ?? v}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>{LINK_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -182,14 +185,22 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
               <div className="space-y-1">
                 <Label className="text-xs">本端字段</Label>
                 <Select value={srcFieldKey} onValueChange={(v) => { setSrcFieldKey(v ?? ''); setSrcEndpointUid('') }}>
-                  <SelectTrigger><SelectValue placeholder="选择端口表" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择端口表">
+                      {(v: string) => tableFields.find((f) => f.fieldKey === v)?.name ?? '选择端口表'}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>{tableFields.map((f) => <SelectItem key={f.fieldKey} value={f.fieldKey}>{f.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">本端端口</Label>
                 <Select value={srcEndpointUid} onValueChange={(v) => setSrcEndpointUid(v ?? '')}>
-                  <SelectTrigger><SelectValue placeholder="选择端口" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择端口">
+                      {(v: string) => srcRows.find((r) => r.uid === v)?.label ?? '选择端口'}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>{srcRows.map((r) => <SelectItem key={r.uid} value={r.uid}>{r.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -206,8 +217,15 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
               </div>
             </div>
             <Select value={dstId} onValueChange={(v) => { setDstId(v ?? ''); setDstFieldKey(''); setDstEndpointUid('') }}>
-              <SelectTrigger><SelectValue placeholder="选择对端设备" /></SelectTrigger>
-              <SelectContent>{(dstList ?? []).map((d) => <SelectItem key={d.id} value={String(d.id)}>{(d as any).name ?? `#${d.id}`}</SelectItem>)}</SelectContent>
+              <SelectTrigger>
+                <SelectValue placeholder="选择对端设备">
+                  {(v: string) => {
+                    const d = (dstList ?? []).find((dd) => String(dd.id) === v)
+                    return d ? (d.name ?? `#${d.id}`) : '选择对端设备'
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>{(dstList ?? []).map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name ?? `#${d.id}`}</SelectItem>)}</SelectContent>
             </Select>
 
             {dstId && dstTableFields.length > 0 && (
@@ -215,14 +233,22 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
                 <div className="space-y-1">
                   <Label className="text-xs">对端字段（可选）</Label>
                   <Select value={dstFieldKey} onValueChange={(v) => { setDstFieldKey(v ?? ''); setDstEndpointUid('') }}>
-                    <SelectTrigger><SelectValue placeholder="选择端口表" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择端口表">
+                        {(v: string) => dstTableFields.find((f) => f.fieldKey === v)?.name ?? '选择端口表'}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>{dstTableFields.map((f) => <SelectItem key={f.fieldKey} value={f.fieldKey}>{f.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">对端端口（可选）</Label>
                   <Select value={dstEndpointUid} onValueChange={(v) => setDstEndpointUid(v ?? '')}>
-                    <SelectTrigger><SelectValue placeholder="选择端口" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择端口">
+                        {(v: string) => dstRows.find((r) => r.uid === v)?.label ?? '选择端口'}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>{dstRows.map((r) => <SelectItem key={r.uid} value={r.uid}>{r.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>

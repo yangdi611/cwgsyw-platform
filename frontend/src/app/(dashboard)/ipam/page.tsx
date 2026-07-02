@@ -238,7 +238,9 @@ export default function IpamPage() {
           }}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="全部状态" />
+            <SelectValue placeholder="全部状态">
+              {(v: string) => (v === '__all__' || !v ? '全部状态' : poolStatusMeta(v).label)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">全部状态</SelectItem>

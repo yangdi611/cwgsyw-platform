@@ -81,7 +81,9 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
             <div className="space-y-1.5">
               <Label>类型</Label>
               <Select value={form.taskType} onValueChange={(v) => setForm({ ...form, taskType: v ?? 'inspection' })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>{(v: string) => TASK_TYPE_META[v]?.label ?? v}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(TASK_TYPE_META).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v.label}</SelectItem>
@@ -92,7 +94,11 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
             <div className="space-y-1.5">
               <Label>优先级</Label>
               <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v ?? 'normal' })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {(v: string) => ({ low: '低', normal: '普通', high: '高', critical: '紧急' } as Record<string, string>)[v] ?? v}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">低</SelectItem>
                   <SelectItem value="normal">普通</SelectItem>
@@ -118,7 +124,15 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
             <div className="space-y-1.5">
               <Label>负责人</Label>
               <Select value={form.assigneeId || 'none'} onValueChange={(v) => setForm({ ...form, assigneeId: !v || v === 'none' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="选择负责人" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择负责人">
+                    {(v: string) => {
+                      if (v === 'none' || !v) return '未指定'
+                      const u = users.find((uu) => String(uu.id) === v)
+                      return u ? (u.realName || u.username) : '选择负责人'
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">未指定</SelectItem>
                   {users.map((u) => (
@@ -130,7 +144,11 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
             <div className="space-y-1.5">
               <Label>可见性</Label>
               <Select value={form.visibility} onValueChange={(v) => setForm({ ...form, visibility: v ?? 'private' })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue>
+                    {(v: string) => ({ private: '私有', group: '本组', public: '公共' } as Record<string, string>)[v] ?? v}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="private">私有</SelectItem>
                   <SelectItem value="group">本组</SelectItem>

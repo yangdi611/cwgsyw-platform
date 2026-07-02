@@ -198,7 +198,9 @@ export default function CmdbAlertsPage() {
           }}
         >
           <SelectTrigger className="w-36">
-            <SelectValue placeholder="全部级别" />
+            <SelectValue placeholder="全部级别">
+              {(v: string) => SEVERITY_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部级别'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {SEVERITY_OPTIONS.map((o) => (
@@ -217,7 +219,9 @@ export default function CmdbAlertsPage() {
           }}
         >
           <SelectTrigger className="w-36">
-            <SelectValue placeholder="全部状态" />
+            <SelectValue placeholder="全部状态">
+              {(v: string) => STATUS_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部状态'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((o) => (

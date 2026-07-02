@@ -17,6 +17,14 @@ import { Mail, Bell, FileText, GitBranch } from 'lucide-react'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
+const WATERMARK_POSITION_LABELS: Record<WatermarkPosition, string> = {
+  'top-left': '左上角',
+  'top-right': '右上角',
+  'bottom-left': '左下角',
+  'bottom-right': '右下角',
+  center: '居中',
+}
+
 function ProcessVersionSelector({ value, configKey, onSave }: {
   value: string
   configKey: string
@@ -58,7 +66,9 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
         setSelectedKey(v)
       }}>
         <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="选择流程" />
+          <SelectValue placeholder="选择流程">
+            {(v: string) => allDefs.find((d) => d.key === v)?.name ?? '选择流程'}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {allDefs.map((d: any) => (
@@ -73,7 +83,12 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
         }}
       >
         <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder={selectedKey ? '选择版本' : '请先选择流程'} />
+          <SelectValue placeholder={selectedKey ? '选择版本' : '请先选择流程'}>
+            {(v: string) => {
+              const found = versions.find((ver) => ver.id === v)
+              return found ? `v${found.version} (启用)` : (selectedKey ? '选择版本' : '请先选择流程')
+            }}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {versions.filter((v: any) => !v.suspended).map((v: any) => (
@@ -352,7 +367,11 @@ export default function AdminConfigPage() {
                   <div className="space-y-1.5">
                     <Label>水印位置</Label>
                     <Select value={watermarkPosition} onValueChange={v => setWatermarkPosition(v as WatermarkPosition)}>
-                      <SelectTrigger><SelectValue placeholder="选择位置" /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择位置">
+                          {(v: WatermarkPosition) => WATERMARK_POSITION_LABELS[v] ?? '选择位置'}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="top-left">左上角</SelectItem>
                         <SelectItem value="top-right">右上角</SelectItem>

@@ -207,7 +207,9 @@ function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) =
     return (
       <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
         <SelectTrigger>
-          <SelectValue placeholder="请选择" />
+          <SelectValue placeholder="请选择">
+            {(v: string) => (v === 'true' ? '是' : v === 'false' ? '否' : '请选择')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="true">是</SelectItem>

@@ -266,7 +266,9 @@ export default function TemplateFieldsPage() {
                       onValueChange={(v) => update(idx, 'fieldType', v ?? 'textarea')}
                     >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
+                        <SelectValue>
+                          {(v: string) => FIELD_TYPES.find((t) => t.value === v)?.label ?? v}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {FIELD_TYPES.map((t) => (

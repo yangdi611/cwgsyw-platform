@@ -142,7 +142,9 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
                 disabled={disabled}
               >
                 <SelectTrigger className="h-6 w-16 text-xs border-0 p-0 pl-1 shadow-none">
-                  <SelectValue placeholder="影响" />
+                  <SelectValue placeholder="影响">
+                    {(v: string) => IMPACT_OPTIONS.find(o => o.value === v)?.label ?? '影响'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {IMPACT_OPTIONS.map(opt => (

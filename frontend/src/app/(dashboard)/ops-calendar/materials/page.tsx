@@ -90,7 +90,9 @@ export default function MaterialsPage() {
         <div className="space-y-1">
           <Label>周期类型</Label>
           <Select value={periodType} onValueChange={(v) => setPeriodType(v ?? 'quarter')}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-32">
+              <SelectValue>{(v: string) => (v === 'semiannual' ? '半年' : '季度')}</SelectValue>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="quarter">季度</SelectItem>
               <SelectItem value="semiannual">半年</SelectItem>

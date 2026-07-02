@@ -334,7 +334,11 @@ function ModelCatalogTab() {
             <div className="space-y-1">
               <Label className="text-xs">所属分类</Label>
               <Select value={modelForm.groupCode} onValueChange={v => setModelForm(f => ({ ...f, groupCode: v ?? '' }))}>
-                <SelectTrigger><SelectValue placeholder="请选择分类" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择分类">
+                    {(v: string) => modelGroups.find(g => g.code === v)?.name ?? '请选择分类'}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {modelGroups.map(g => (
                     <SelectItem key={g.code} value={g.code}>{g.name}</SelectItem>
@@ -721,7 +725,14 @@ function AssociationsTab() {
           <div className="flex-1">
             <Label className="text-xs mb-1 block text-muted-foreground">选择关联类型</Label>
             <Select value={selectedKind} onValueChange={v => setSelectedKind(v ?? '')}>
-              <SelectTrigger><SelectValue placeholder="请选择关联类型" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择关联类型">
+                  {(v: string) => {
+                    const k = kinds.find(kk => kk.code === v)
+                    return k ? `${k.name} (${k.code})` : '请选择关联类型'
+                  }}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {kinds.map(k => (
                   <SelectItem key={k.code} value={k.code}>
@@ -757,7 +768,11 @@ function AssociationsTab() {
               <div className="space-y-1">
                 <Label className="text-xs">字段类型</Label>
                 <Select value={form.fieldType} onValueChange={v => setForm(f => ({ ...f, fieldType: v ?? 'singlechar' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {(v: string) => FIELD_TYPE_OPTIONS.find(o => o.value === v)?.label ?? v}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {FIELD_TYPE_OPTIONS.map(o => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -1160,7 +1175,7 @@ function AssociationDefsSection({
                   <td className="px-3 py-2.5 text-center">
                     <Select value={editForm.mapping} onValueChange={v => setEditForm(f => ({ ...f, mapping: v ?? '1:n' }))}>
                       <SelectTrigger className="h-7 text-xs">
-                        <SelectValue>{editForm.mapping}</SelectValue>
+                        <SelectValue>{MAPPING_OPTIONS.find(o => o.value === editForm.mapping)?.label ?? editForm.mapping}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {MAPPING_OPTIONS.map(o => (
@@ -1329,7 +1344,14 @@ function AttributeGroupsTab() {
       <div className="flex items-center gap-3 mb-4">
         <Label className="text-sm">模型</Label>
         <Select value={selectedModel} onValueChange={v => { setSelectedModel(v ?? ''); setEditingId(null); setCreating(false) }}>
-          <SelectTrigger className="w-72"><SelectValue placeholder="请选择模型" /></SelectTrigger>
+          <SelectTrigger className="w-72">
+            <SelectValue placeholder="请选择模型">
+              {(v: string) => {
+                const m = models.find(mm => mm.modelId === v)
+                return m ? `${m.name} (${m.modelId})` : '请选择模型'
+              }}
+            </SelectValue>
+          </SelectTrigger>
           <SelectContent>
             {models.map(m => (
               <SelectItem key={m.modelId} value={m.modelId}>

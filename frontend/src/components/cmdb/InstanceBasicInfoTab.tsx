@@ -314,7 +314,9 @@ function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: strin
   if (fieldType === 'bool') {
     return (
       <Select value={value} onValueChange={v => onChange(v ?? '')}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectTrigger>
+          <SelectValue>{(v: string) => (v === 'true' ? '是' : v === 'false' ? '否' : '')}</SelectValue>
+        </SelectTrigger>
         <SelectContent>
           <SelectItem value="true">是</SelectItem>
           <SelectItem value="false">否</SelectItem>
@@ -470,7 +472,11 @@ function TableFieldEditor({
                       </Select>
                     ) : c.type === 'bool' ? (
                       <Select value={String(row[c.key] ?? '')} onValueChange={v => updateCell(i, c.key, v === 'true')}>
-                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="—">
+                            {(v: string) => (v === 'true' ? '是' : v === 'false' ? '否' : '—')}
+                          </SelectValue>
+                        </SelectTrigger>
                         <SelectContent><SelectItem value="true">是</SelectItem><SelectItem value="false">否</SelectItem></SelectContent>
                       </Select>
                     ) : c.type === 'int' || c.type === 'float' ? (

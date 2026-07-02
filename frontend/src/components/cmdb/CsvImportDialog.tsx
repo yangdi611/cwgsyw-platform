@@ -163,7 +163,11 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
             <div className="space-y-1.5">
               <Label>导入格式</Label>
               <Select value={format} onValueChange={v => { setFormat((v as 'csv' | 'json') ?? 'csv'); setFile(null) }}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(v: string) => (v === 'json' ? 'JSON / NDJSON（含 table 结构化字段）' : 'CSV（标量字段）')}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="csv">CSV（标量字段）</SelectItem>
                   <SelectItem value="json">JSON / NDJSON（含 table 结构化字段）</SelectItem>
@@ -190,7 +194,11 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 <div className="space-y-1.5">
                   <Label>冲突策略</Label>
                   <Select value={conflictStrategy} onValueChange={v => setConflictStrategy(v ?? 'override')}>
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {(v: string) => ({ override: '覆盖更新', skip: '跳过', error: '报错' } as Record<string, string>)[v] ?? v}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="override">覆盖更新</SelectItem>
                       <SelectItem value="skip">跳过</SelectItem>
@@ -215,7 +223,15 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 <div className="space-y-1.5">
                   <Label>导入模式</Label>
                   <Select value={importMode} onValueChange={v => setImportMode(v ?? 'merge')}>
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {(v: string) => ({
+                          merge: '合并（只更新出现的字段）',
+                          replace_fields: '字段替换（出现即覆盖）',
+                          baseline_replace: '基线重导（table 按 row_id 全量对齐）',
+                        } as Record<string, string>)[v] ?? v}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="merge">合并（只更新出现的字段）</SelectItem>
                       <SelectItem value="replace_fields">字段替换（出现即覆盖）</SelectItem>

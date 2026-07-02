@@ -148,7 +148,7 @@ export default function HolidaysPage() {
             <div>
               <Label>类型</Label>
               <Select value={form.holidayType} onValueChange={(v) => setForm({ ...form, holidayType: v ?? 'legal' })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue>{(v: string) => TYPE_LABEL[v] ?? v}</SelectValue></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="legal">法定节假日</SelectItem>
                   <SelectItem value="company">公司假期</SelectItem>

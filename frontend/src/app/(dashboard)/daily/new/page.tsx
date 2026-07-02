@@ -66,7 +66,9 @@ function NewDailyReportContent() {
             <Label>所属组 *</Label>
             <Select value={selectedGroupId} onValueChange={(v) => setSelectedGroupId(v ?? '')}>
               <SelectTrigger>
-                <SelectValue placeholder="请选择所属组" />
+                <SelectValue placeholder="请选择所属组">
+                  {(v: string) => groups.find((g: Group) => String(g.id) === v)?.name ?? '请选择所属组'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {groups.map((g: Group) => (

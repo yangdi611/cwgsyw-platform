@@ -145,7 +145,7 @@ export default function TemplatesPage() {
               <div>
                 <Label>模板类型</Label>
                 <Select value={form.templateType} onValueChange={(v) => setForm({ ...form, templateType: v ?? 'notification' })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue>{(v: string) => TYPE_LABEL[v] ?? v}</SelectValue></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="notification">通知模板</SelectItem>
                     <SelectItem value="checklist">SOP 检查项</SelectItem>
@@ -156,7 +156,11 @@ export default function TemplatesPage() {
               <div>
                 <Label>适用任务类型</Label>
                 <Select value={form.taskType || 'any'} onValueChange={(v) => setForm({ ...form, taskType: v === 'any' ? '' : (v ?? '') })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {(v: string) => (v === 'any' || !v ? '不限' : TASK_TYPE_META[v]?.label ?? v)}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">不限</SelectItem>
                     {Object.entries(TASK_TYPE_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}

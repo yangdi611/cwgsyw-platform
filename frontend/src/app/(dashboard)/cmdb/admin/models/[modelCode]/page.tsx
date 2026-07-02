@@ -323,7 +323,9 @@ export default function ModelDetailPage() {
                   onValueChange={(v) => setNewAttr((f) => ({ ...f, fieldType: v ?? 'singlechar' }))}
                 >
                   <SelectTrigger className="h-9">
-                    <SelectValue />
+                    <SelectValue>
+                      {(v: string) => FIELD_TYPES.find((t) => t.value === v)?.label ?? v}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {FIELD_TYPES.map((t) => (
@@ -341,7 +343,9 @@ export default function ModelDetailPage() {
                   onValueChange={(v) => setNewAttr((f) => ({ ...f, groupId: v ?? 'default' }))}
                 >
                   <SelectTrigger className="h-9">
-                    <SelectValue />
+                    <SelectValue>
+                      {(v: string) => groups.find((g) => g.groupId === v)?.name ?? v}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {groups.map((g) => (

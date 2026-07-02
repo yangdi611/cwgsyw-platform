@@ -172,7 +172,9 @@ export default function WorkflowBindingsPage() {
               </Label>
               <Select value={businessType} onValueChange={(v) => setBusinessType(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择业务类型" />
+                  <SelectValue placeholder="选择业务类型">
+                    {(v: string) => BUSINESS_TYPES.find((b) => b.value === v)?.label ?? '选择业务类型'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {BUSINESS_TYPES.map((b) => (
@@ -189,7 +191,12 @@ export default function WorkflowBindingsPage() {
               </Label>
               <Select value={processDefinitionId} onValueChange={(v) => setProcessDefinitionId(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择流程定义版本" />
+                  <SelectValue placeholder="选择流程定义版本">
+                    {(v: string) => {
+                      const d = (definitions ?? []).find((def) => def.id === v)
+                      return d ? `${d.name} (${d.key} v${d.version})` : '选择流程定义版本'
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(definitions ?? []).map((d) => (

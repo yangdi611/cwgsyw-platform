@@ -137,7 +137,9 @@ export function BatchEditDialog({
               ) : current?.fieldType === 'bool' ? (
                 <Select value={value} onValueChange={(v) => setValue(v ?? '')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="请选择" />
+                    <SelectValue placeholder="请选择">
+                      {(v: string) => (v === 'true' ? '是' : v === 'false' ? '否' : '请选择')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="true">是</SelectItem>

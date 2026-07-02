@@ -218,7 +218,11 @@ function OpsCalendarInner() {
         ))}
         <div className="ml-auto flex items-center gap-2">
           <Select value={taskType || 'all'} onValueChange={(v) => setTaskType(v === 'all' ? '' : v ?? '')}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="类型" /></SelectTrigger>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="类型">
+                {(v: string) => (v === 'all' || !v ? '全部类型' : TASK_TYPE_META[v]?.label ?? v)}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
               {Object.entries(TASK_TYPE_META).map(([k, v]) => (
@@ -227,7 +231,11 @@ function OpsCalendarInner() {
             </SelectContent>
           </Select>
           <Select value={status || 'all'} onValueChange={(v) => setStatus(v === 'all' ? '' : v ?? '')}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="状态" /></SelectTrigger>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="状态">
+                {(v: string) => (v === 'all' || !v ? '全部状态' : STATUS_META[v]?.label ?? v)}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
               {Object.entries(STATUS_META).map(([k, v]) => (

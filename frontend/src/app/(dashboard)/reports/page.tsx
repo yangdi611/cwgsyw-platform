@@ -143,7 +143,9 @@ export default function ReportsPage() {
               <Label>按组过滤（可选）</Label>
               <Select value={groupId} onValueChange={(v) => setGroupId(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="全部组" />
+                  <SelectValue placeholder="全部组">
+                    {(v: string) => (!v ? '全部组' : groups.find((g: Group) => String(g.id) === v)?.name ?? '全部组')}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">全部组</SelectItem>

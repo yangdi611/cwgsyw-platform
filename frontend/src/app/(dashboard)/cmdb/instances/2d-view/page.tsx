@@ -159,7 +159,11 @@ export default function TwoDViewPage() {
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-muted-foreground" />
           <Select value={model} onValueChange={handleModelChange}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="选择模型" /></SelectTrigger>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="选择模型">
+                {(v: string) => models.find(m => m.modelId === v)?.displayName ?? '选择模型'}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
               {models.map(m => (
                 <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
@@ -171,7 +175,11 @@ export default function TwoDViewPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">分组:</span>
           <Select value={groupBy} onValueChange={v => setGroupBy(v ?? '')} disabled={displayGroupableAttrs.length === 0}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="选择分组字段" /></SelectTrigger>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="选择分组字段">
+                {(v: string) => displayGroupableAttrs.find(a => a.fieldKey === v)?.name ?? '选择分组字段'}
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
               {displayGroupableAttrs.map(a => (
                 <SelectItem key={a.fieldKey} value={a.fieldKey}>{a.name}</SelectItem>
