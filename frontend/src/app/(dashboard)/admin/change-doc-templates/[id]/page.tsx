@@ -55,6 +55,7 @@ const FIELD_TYPES = [
   { value: 'text', label: '单行文本' },
   { value: 'textarea', label: '多行文本' },
   { value: 'date', label: '日期' },
+  { value: 'datetime', label: '日期时间' },
   { value: 'readonly', label: '只读（导出用）' },
   { value: 'ci_selector', label: 'CI 选择器' },
   { value: 'table', label: '表格' },
