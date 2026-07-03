@@ -175,6 +175,17 @@ public class AuthSessionService {
         return SESSION_KEY_PREFIX + sessionId;
     }
 
+    /**
+     * 启动时调用：删除所有 auth:session:* key，强制全部在线用户重新登录。
+     * 下次请求时 loadRecord 返回 null → SESSION_INVALID → 401 → 前端跳登录页。
+     */
+    public long invalidateAllSessions() {
+        Set<String> keys = redisTemplate.keys(SESSION_KEY_PREFIX + "*");
+        if (keys == null || keys.isEmpty()) return 0;
+        Long deleted = redisTemplate.delete(keys);
+        return deleted != null ? deleted : 0;
+    }
+
     private String userSessionsKey(Long userId) {
         return USER_SESSIONS_KEY_PREFIX + userId;
     }
