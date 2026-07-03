@@ -48,7 +48,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
                                     FilterChain chain) throws ServletException, IOException {
         String token = extractToken(req);
-        if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
+        if (StringUtils.hasText(token)) {
+            if (!jwtUtil.validateToken(token)) {
+                // 签名错误/格式损坏/已过期，统一按会话失效处理，避免落到 Spring Security
+                // 默认 403（无 errorCode），导致前端拦截器无法识别并跳转登录页。
+                writeError(res, 401, SecurityErrorCode.SESSION_INVALID, "登录状态已失效，请重新登录");
+                return;
+            }
             String sessionId = jwtUtil.getSessionId(token);
             if (!StringUtils.hasText(sessionId)) {
                 // 旧 token（上线前签发，无 sessionId）一律拒绝，要求重新登录（SPEC 17.1）
