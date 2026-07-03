@@ -205,7 +205,7 @@ export default function WikiPageReader() {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}
                 rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
-                components={{ img: ({ src, alt }) => <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} /> }}
+                components={{ img: ({ src, alt }) => <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} lightbox /> }}
               >
                 {rendered}
               </ReactMarkdown>
