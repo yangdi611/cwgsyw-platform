@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -11,7 +11,7 @@ import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { ArrowLeft, Save } from 'lucide-react'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
-import { WikiImage } from '@/components/wiki/WikiImage'
+import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
 import '@uiw/react-md-editor/markdown-editor.css'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
@@ -266,6 +266,17 @@ export default function WikiEditorPage() {
     [],
   )
 
+  const previewComponents = useMemo(
+    () =>
+      createWikiMarkdownComponents({
+        imageLightbox: false,
+        mermaidRenderMode: 'preview',
+        mermaidLazy: false,
+        mermaidDebounceMs: 250,
+      }),
+    [],
+  )
+
   return (
     <div className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">
       {/* 卡片：工具栏 + 编辑器统一在一个 surface 容器内，与阅读页风格一致 */}
@@ -328,11 +339,7 @@ export default function WikiEditorPage() {
             return cmd
           }}
           previewOptions={{
-            components: {
-              img: ({ src, alt }: { src?: string | Blob; alt?: string }) => (
-                <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} />
-              ),
-            },
+            components: previewComponents,
           }}
         />
 

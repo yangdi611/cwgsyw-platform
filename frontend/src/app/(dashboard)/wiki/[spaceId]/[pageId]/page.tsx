@@ -3,10 +3,6 @@
 import { useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import rehypeHighlight from 'rehype-highlight'
 import '@uiw/react-markdown-preview/markdown.css'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
@@ -19,7 +15,7 @@ import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
-import { WikiImage } from '@/components/wiki/WikiImage'
+import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace, WikiComment, PageResult } from '@/types/wiki'
@@ -197,13 +193,13 @@ export default function WikiPageReader() {
             className="wmde-markdown max-w-none !bg-transparent"
           >
             {page.content ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
-                components={{ img: ({ src, alt }) => <WikiImage src={typeof src === 'string' ? src : undefined} alt={alt} lightbox /> }}
-              >
-                {rendered}
-              </ReactMarkdown>
+              <WikiMarkdown
+                content={rendered}
+                imageLightbox
+                mermaidRenderMode="read"
+                mermaidLazy
+                mermaidDebounceMs={180}
+              />
             ) : (
               <p className="text-v2-muted">本页暂无内容。</p>
             )}
