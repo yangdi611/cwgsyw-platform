@@ -46,6 +46,18 @@ export function WikiMermaid({
   useEffect(() => {
     if (!lazy || hasEnteredViewport) return
     if (!containerRef.current) return
+
+    const container = containerRef.current
+
+    // Check if already in viewport
+    const rect = container.getBoundingClientRect()
+    const isInViewport = rect.top < window.innerHeight + 240 && rect.bottom > -240
+
+    if (isInViewport) {
+      setHasEnteredViewport(true)
+      return
+    }
+
     if (typeof IntersectionObserver === 'undefined') {
       setHasEnteredViewport(true)
       return
@@ -61,7 +73,7 @@ export function WikiMermaid({
       { rootMargin: '240px 0px' },
     )
 
-    observer.observe(containerRef.current)
+    observer.observe(container)
     return () => observer.disconnect()
   }, [lazy, hasEnteredViewport])
 

@@ -197,7 +197,7 @@ export default function WikiPageReader() {
                 content={rendered}
                 imageLightbox
                 mermaidRenderMode="read"
-                mermaidLazy
+                mermaidLazy={false}
                 mermaidDebounceMs={180}
               />
             ) : (

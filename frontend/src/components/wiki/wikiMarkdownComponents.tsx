@@ -14,6 +14,26 @@ function getCodeLanguage(className?: string): string | null {
   return match?.[1]?.toLowerCase() ?? null
 }
 
+// Recursively extract text from React children
+function extractText(children: React.ReactNode): string {
+  if (typeof children === 'string') {
+    return children
+  }
+  if (typeof children === 'number') {
+    return String(children)
+  }
+  if (Array.isArray(children)) {
+    return children.map(extractText).join('')
+  }
+  if (children && typeof children === 'object') {
+    const element = children as { props?: { children?: React.ReactNode } }
+    if ('props' in element && element.props && element.props.children !== undefined) {
+      return extractText(element.props.children)
+    }
+  }
+  return ''
+}
+
 export function createWikiMarkdownComponents(
   options: WikiMarkdownComponentsOptions = {},
 ): Components {
@@ -38,7 +58,7 @@ export function createWikiMarkdownComponents(
       children?: React.ReactNode
     }) => {
       const language = getCodeLanguage(className)
-      const value = String(children ?? '').replace(/\n$/, '')
+      const value = extractText(children).replace(/\n$/, '')
 
       if (!inline && language === 'mermaid') {
         return (
