@@ -80,8 +80,8 @@ export default function TwoDViewPage() {
   // Fetch model attributes when model selected
   const selectedModel = models.find(m => m.modelId === model)
   const { data: modelAttrs = [] } = useQuery<CiAttributeVO[]>({
-    queryKey: ['cmdb-model-attrs', selectedModel?.id],
-    queryFn: () => api.get(`/cmdb/models/${selectedModel!.id}/attributes`).then(r => r.data.data),
+    queryKey: ['cmdb-model-attrs', selectedModel?.modelId],
+    queryFn: () => api.get(`/cmdb/models/${selectedModel!.modelId}/attributes`).then(r => r.data.data),
     enabled: !!selectedModel,
   })
 

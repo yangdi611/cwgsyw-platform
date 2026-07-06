@@ -110,6 +110,10 @@ spaces:
       - key: rn-v0-32-0
         title: v0.32.0 — 2026年7月6日
         file: release-notes/v0.32.0.md
+        sort: 978
+      - key: rn-v0-31-2
+        title: v0.31.2 — 2026年7月6日
+        file: release-notes/v0.31.2.md
         sort: 979
       - key: rn-v0-31-1
         title: v0.31.1 — 2026年7月4日
