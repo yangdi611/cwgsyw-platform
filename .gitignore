@@ -40,3 +40,13 @@ docs/guide/*
 * 2.*
 * copy.*
 * copy 2.*
+
+# Playwright MCP 调试日志
+.playwright-mcp/
+
+# 应用日志
+logs/
+
+# 临时截图文件
+*.png
+!frontend/public/**/*.png

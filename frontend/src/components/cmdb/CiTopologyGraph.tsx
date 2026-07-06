@@ -506,7 +506,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     }, [onNodeClick, topoNodes, neighbors])
 
     return (
-      <div ref={ref} style={{ height: preview ? 280 : '100%', width: '100%', background: '#0f172a', borderRadius: 8 }}>
+      <div ref={ref} style={{ height: '100%', width: '100%', background: '#0f172a', borderRadius: 8 }}>
         <ReactFlow
           nodes={stateNodes}
           edges={stateEdges}

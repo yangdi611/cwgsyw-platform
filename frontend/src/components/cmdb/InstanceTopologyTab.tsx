@@ -22,8 +22,8 @@ export function InstanceTopologyTab({ id }: Props) {
   })
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b">
+    <div className="border rounded-lg overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 420px)', minHeight: '480px' }}>
+      <div className="flex items-center justify-between px-5 py-3 border-b flex-shrink-0">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <GitBranch className="h-4 w-4" />
           拓扑图
@@ -40,16 +40,18 @@ export function InstanceTopologyTab({ id }: Props) {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-[280px] text-v2-muted text-sm">加载中...</div>
+        <div className="flex items-center justify-center flex-1 text-v2-muted text-sm">加载中...</div>
       ) : !topoData || topoData.nodes.length === 0 ? (
-        <div className="flex items-center justify-center h-[280px] text-v2-muted text-sm">暂无关联数据</div>
+        <div className="flex items-center justify-center flex-1 text-v2-muted text-sm">暂无关联数据</div>
       ) : (
-        <CiTopologyGraph
-          nodes={topoData.nodes}
-          edges={topoData.edges}
-          rootId={Number(id)}
-          preview={true}
-        />
+        <div className="flex-1">
+          <CiTopologyGraph
+            nodes={topoData.nodes}
+            edges={topoData.edges}
+            rootId={Number(id)}
+            preview={true}
+          />
+        </div>
       )}
     </div>
   )
