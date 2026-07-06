@@ -108,7 +108,7 @@ spaces:
     write_scope: super_admin_only
     pages:
       - key: rn-v0-33-0
-        title: v0.33.0 — 2026年7月6日
+        title: v0.33.0 — 2026年7月7日
         file: release-notes/v0.33.0.md
         sort: 977
       - key: rn-v0-32-0
