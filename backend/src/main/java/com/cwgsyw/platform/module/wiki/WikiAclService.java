@@ -39,6 +39,7 @@ public class WikiAclService {
     private final GroupMapper groupMapper;
     private final SysRoleMapper roleMapper;
     private final ObjectMapper objectMapper;
+    private final WikiSpaceService spaceService;
 
     private boolean isAdmin(String groupScope) {
         return "tenant".equals(groupScope) || "platform".equals(groupScope);
@@ -56,6 +57,29 @@ public class WikiAclService {
 
         List<WikiPageAcl> effective = resolveEffectiveAcl(tenantId, pageId);
         if (effective == null) return true;
+
+        List<Long> roleIds = rbacService.getUserRoleIds(userId);
+        for (WikiPageAcl acl : effective) {
+            if (acl.getPermissions() == null || !acl.getPermissions().contains(requiredPerm)) continue;
+            if (matches(acl, userId, groupId, roleIds)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 供 write/delete/publish 场景与空间级权限做 OR 叠加时使用——与 {@link #hasPermission} 的唯一区别是
+     * 页面链上完全没有自定义 ACL 时返回 false（不额外授予任何权限），而不是 true。
+     * {@code hasPermission} 的"无自定义 ACL 则放行"是专为 read 可见性设计的默认值，
+     * 一旦被写权限判断复用，会等价于"任何登录用户对没设过页面级 ACL 的页面都有写/删/发布权限"，
+     * 完全绕过空间级 ACL——历史 bug，见 docs/plan/wiki/space_ACL/SPEC.md 3.1 节。
+     */
+    public boolean hasExplicitPermission(String tenantId, Long pageId, Long userId, Long groupId,
+                                          String groupScope, String requiredPerm) {
+        if (isAdmin(groupScope)) return true;
+        if (pageId == null) return false;
+
+        List<WikiPageAcl> effective = resolveEffectiveAcl(tenantId, pageId);
+        if (effective == null) return false;
 
         List<Long> roleIds = rbacService.getUserRoleIds(userId);
         for (WikiPageAcl acl : effective) {
@@ -91,8 +115,18 @@ public class WikiAclService {
         }
         WikiAclDTO dto = new WikiAclDTO();
         dto.setPageId(pageId);
-        dto.setInherited(!Boolean.FALSE.equals(page.getAclInherited()));
+        boolean inherited = !Boolean.FALSE.equals(page.getAclInherited());
+        dto.setInherited(inherited);
         dto.setEntries(toEntryDTOs(aclRows(pageId)));
+        dto.setForcedEntries(spaceService.computePageForcedGrants(tenantId, page.getSpaceId()));
+        // 当前处于继承状态时，把从祖先链解析出的有效权限也带给前端，供切到"自定义"时预填，
+        // 避免管理员切换模式后误以为之前继承来的权限还在（实际上自定义后不再继承任何祖先设置）。
+        if (inherited) {
+            List<WikiPageAcl> ancestorEffective = resolveEffectiveAcl(tenantId, pageId);
+            dto.setInheritedEntries(ancestorEffective == null ? List.of() : toEntryDTOs(ancestorEffective));
+        } else {
+            dto.setInheritedEntries(List.of());
+        }
         return dto;
     }
 

@@ -29,9 +29,11 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
+  Shield,
 } from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
+import { WikiSpaceAclDialog } from '@/components/wiki/WikiSpaceAclDialog'
 
 /** 个人空间排序：按当前用户 username 隔离存 localStorage（非全局，每人各自的顺序）。 */
 function orderStorageKey(username: string | undefined): string {
@@ -77,6 +79,7 @@ export default function WikiSpacesPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [deleting, setDeleting] = useState<WikiSpace | null>(null)
+  const [aclTarget, setAclTarget] = useState<WikiSpace | null>(null)
   const [order, setOrder] = useState<number[]>([])
 
   useEffect(() => {
@@ -97,7 +100,6 @@ export default function WikiSpacesPage() {
   const canCreate = hasPermission('wiki', 'create')
   const canUpdate = hasPermission('wiki', 'update')
   const canDelete = hasPermission('wiki', 'delete')
-  const groupScope = useAuthStore((s) => s.groupScope)
 
   // 两层：官方手册（system seed 空间，置顶固定）+ 团队空间（用户创建，可个人排序）
   const manualSpaces = useMemo(
@@ -181,7 +183,7 @@ export default function WikiSpacesPage() {
   // 渲染单个空间卡片。idx 仅团队空间传入（带上移/下移）；手册卡不传，无排序。
   function renderSpaceCard(s: WikiSpace, idx?: number) {
     const sortable = idx !== undefined
-    const writable = canWriteSpace(s, groupScope)
+    const writable = canWriteSpace(s)
     return (
       <Card
         key={s.id}
@@ -230,13 +232,22 @@ export default function WikiSpacesPage() {
             {s.createdByName ? ` · ${s.createdByName}` : ''}
           </span>
           <div className="flex shrink-0 items-center gap-1">
-            {canUpdate && writable && (
+            {(canUpdate && writable) || s.canManageAcl ? (
               <button
                 title="重命名"
                 onClick={(e) => { e.stopPropagation(); openEdit(s) }}
                 className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
               >
                 <Pencil className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+            {s.canManageAcl && (
+              <button
+                title="授权管理"
+                onClick={(e) => { e.stopPropagation(); setAclTarget(s) }}
+                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
+              >
+                <Shield className="h-3.5 w-3.5" />
               </button>
             )}
             {canDelete && writable && (
@@ -385,6 +396,15 @@ export default function WikiSpacesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {aclTarget && (
+        <WikiSpaceAclDialog
+          spaceId={aclTarget.id}
+          spaceName={aclTarget.name}
+          open={!!aclTarget}
+          onOpenChange={(o) => !o && setAclTarget(null)}
+        />
+      )}
     </div>
   )
 }

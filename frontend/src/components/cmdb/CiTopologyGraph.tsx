@@ -288,18 +288,20 @@ const NODE_TYPES = { ciNode: CiNode }
 // ── Graph helpers: downstream map + visibility + layout ──────────────────────
 
 function buildDownstream(edges: TopologyEdge[]): Map<number, number[]> {
-  const down = new Map<number, number[]>()
+  const neighbors = new Map<number, number[]>()
   edges.forEach(e => {
-    if (!down.has(e.src)) down.set(e.src, [])
-    down.get(e.src)!.push(e.dst)
+    if (!neighbors.has(e.src)) neighbors.set(e.src, [])
+    if (!neighbors.has(e.dst)) neighbors.set(e.dst, [])
+    neighbors.get(e.src)!.push(e.dst)
+    neighbors.get(e.dst)!.push(e.src)  // Bidirectional: add reverse edge
   })
-  return down
+  return neighbors
 }
 
 /** BFS from root, only traversing through nodes that are NOT collapsed. */
 function computeVisible(
   rootId: number,
-  down: Map<number, number[]>,
+  neighbors: Map<number, number[]>,
   collapsed: Set<number>,
   allIds: Set<number>,
 ): Set<number> {
@@ -308,7 +310,7 @@ function computeVisible(
   while (queue.length > 0) {
     const u = queue.shift()!
     if (collapsed.has(u)) continue
-    for (const v of down.get(u) ?? []) {
+    for (const v of neighbors.get(u) ?? []) {
       if (allIds.has(v) && !visible.has(v)) {
         visible.add(v)
         queue.push(v)
@@ -326,16 +328,20 @@ function layoutNodes(
   const levels = new Map<number, number>()
   const queue: number[] = [rootId]
   levels.set(rootId, 0)
-  // directed BFS using only edges within the visible sub-graph
+  // bidirectional BFS using only edges within the visible sub-graph
   while (queue.length > 0) {
     const cur = queue.shift()!
     const curLevel = levels.get(cur)!
     edges.forEach(e => {
-      if (e.src !== cur) return
-      if (!visibleIds.has(e.dst)) return
-      if (!levels.has(e.dst)) {
-        levels.set(e.dst, curLevel + 1)
-        queue.push(e.dst)
+      // Check both directions: cur as src or dst
+      let peer: number | null = null
+      if (e.src === cur) peer = e.dst
+      else if (e.dst === cur) peer = e.src
+      if (peer === null) return
+      if (!visibleIds.has(peer)) return
+      if (!levels.has(peer)) {
+        levels.set(peer, curLevel + 1)
+        queue.push(peer)
       }
     })
   }
@@ -366,7 +372,7 @@ function toRFNodes(
   topoNodes: TopologyNode[],
   visibleIds: Set<number>,
   positions: Map<number, { x: number; y: number }>,
-  down: Map<number, number[]>,
+  neighbors: Map<number, number[]>,
   collapsed: Set<number>,
   filterNodeIds: Set<number> | null,
   nodeDiffMap: Map<number, DiffStatus> | null,
@@ -388,7 +394,7 @@ function toRFNodes(
         isRoot: n.isRoot,
         keyAttrs: n.keyAttrs,
         collapsed: collapsed.has(n.id),
-        hasDownstream: (down.get(n.id)?.length ?? 0) > 0,
+        hasDownstream: (neighbors.get(n.id)?.length ?? 0) > 0,
         dimmed: filterNodeIds ? !filterNodeIds.has(n.id) : false,
         diffStatus: nodeDiffMap ? (nodeDiffMap.get(n.id) ?? null) : null,
         preview,
@@ -450,7 +456,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     nodeDiffMap = null,
     edgeDiffMap = null,
   }, ref) {
-    const down = useMemo(() => buildDownstream(topoEdges), [topoEdges])
+    const neighbors = useMemo(() => buildDownstream(topoEdges), [topoEdges])
     const allIds = useMemo(() => new Set(topoNodes.map(n => n.id)), [topoNodes])
 
     const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set())
@@ -458,8 +464,8 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     useEffect(() => { setCollapsedIds(new Set()) }, [topoNodes, topoEdges])
 
     const visibleIds = useMemo(
-      () => computeVisible(rootId, down, collapsedIds, allIds),
-      [rootId, down, collapsedIds, allIds],
+      () => computeVisible(rootId, neighbors, collapsedIds, allIds),
+      [rootId, neighbors, collapsedIds, allIds],
     )
 
     const positions = useMemo(
@@ -468,8 +474,8 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     )
 
     const rfNodes = useMemo(
-      () => toRFNodes(topoNodes, visibleIds, positions, down, collapsedIds, filterNodeIds, nodeDiffMap, preview),
-      [topoNodes, visibleIds, positions, down, collapsedIds, filterNodeIds, nodeDiffMap, preview],
+      () => toRFNodes(topoNodes, visibleIds, positions, neighbors, collapsedIds, filterNodeIds, nodeDiffMap, preview),
+      [topoNodes, visibleIds, positions, neighbors, collapsedIds, filterNodeIds, nodeDiffMap, preview],
     )
     const rfEdges = useMemo(
       () => toRFEdges(topoEdges, visibleIds, edgeDiffMap),
@@ -488,7 +494,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
       const id = Number(node.id)
       const orig = topoNodes.find(n => n.id === id)
       // expand / collapse downstream (only if the node has children)
-      if (orig && (down.get(id)?.length ?? 0) > 0) {
+      if (orig && (neighbors.get(id)?.length ?? 0) > 0) {
         setCollapsedIds(prev => {
           const next = new Set(prev)
           if (next.has(id)) next.delete(id)
@@ -497,7 +503,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
         })
       }
       if (onNodeClick && orig) onNodeClick(orig)
-    }, [onNodeClick, topoNodes, down])
+    }, [onNodeClick, topoNodes, neighbors])
 
     return (
       <div ref={ref} style={{ height: preview ? 280 : '100%', width: '100%', background: '#0f172a', borderRadius: 8 }}>

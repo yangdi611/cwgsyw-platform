@@ -6,14 +6,11 @@ import dynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
-import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { useAuthStore } from '@/store/authStore'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
 import { ArrowLeft, Save } from 'lucide-react'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
-import { canWriteSpace } from '@/types/wiki'
 import { WikiImage } from '@/components/wiki/WikiImage'
 import '@uiw/react-md-editor/markdown-editor.css'
 
@@ -69,8 +66,6 @@ export default function WikiEditorPage() {
   const { spaceId, pageId } = useParams<{ spaceId: string; pageId: string }>()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { hasPermission, isHydrated } = usePermission()
-  const groupScope = useAuthStore((s) => s.groupScope)
 
   const sid = Number(spaceId)
   const pid = Number(pageId)
@@ -91,22 +86,15 @@ export default function WikiEditorPage() {
     queryFn: () => wikiApi.listSpaces(),
   })
   const currentSpace = spaces?.find((s) => s.id === sid)
-  const writable = canWriteSpace(currentSpace, groupScope)
-
-  useEffect(() => {
-    if (!isHydrated) return
-    if (!hasPermission('wiki', 'update')) router.replace(`/wiki/${sid}/${pid}`)
-  }, [isHydrated, hasPermission, router, sid, pid])
-
-  // 不可写空间（如手册/Release Notes 对非授权用户）跳回阅读页
-  useEffect(() => {
-    if (spaces && !writable) router.replace(`/wiki/${sid}/${pid}`)
-  }, [spaces, writable, router, sid, pid])
 
   const { data: page } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],
     queryFn: () => wikiApi.getPage(pid),
   })
+
+  useEffect(() => {
+    if (page && page.canWrite === false) router.replace(`/wiki/${sid}/${pid}`)
+  }, [page, router, sid, pid])
 
   useBreadcrumbLabel([currentSpace?.name, page?.title])
 

@@ -15,6 +15,7 @@ import type {
   WikiSearchResult,
   WikiGraph,
   WikiAcl,
+  WikiSpaceAcl,
   WikiComment,
   PageResult,
 } from '@/types/wiki'
@@ -67,6 +68,12 @@ export const wikiApi = {
 
   exportSpace: (spaceId: number): Promise<void> =>
     downloadBlob(`/wiki/spaces/${spaceId}/export`, `wiki-space-${spaceId}.zip`),
+
+  getSpaceAcl: (id: number): Promise<WikiSpaceAcl> =>
+    api.get(`/wiki/spaces/${id}/acl`).then((r) => r.data.data),
+
+  setSpaceAcl: (id: number, body: WikiSpaceAcl): Promise<void> =>
+    api.put(`/wiki/spaces/${id}/acl`, body).then(() => undefined),
 
   // ── Pages ─────────────────────────────────────────────────────────────────
   getPage: (id: number): Promise<WikiPage> =>

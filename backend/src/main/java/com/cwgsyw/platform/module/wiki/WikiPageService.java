@@ -12,10 +12,12 @@ import com.cwgsyw.platform.module.wiki.entity.WikiBacklink;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
+import com.cwgsyw.platform.security.SecurityUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.RuntimeService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class WikiPageService {
     private final WikiBacklinkMapper backlinkMapper;
     private final WikiBacklinkService backlinkService;
     private final WikiAclService aclService;
+    private final WikiSpaceService spaceService;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -71,12 +74,12 @@ public class WikiPageService {
         }
     }
 
-    public WikiPageVO getPage(String tenantId, Long pageId, Long userId) {
+    public WikiPageVO getPage(String tenantId, Long pageId, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
-        return toVO(page);
+        return toVO(page, user);
     }
 
-    private WikiPageVO toVO(WikiPage page) {
+    private WikiPageVO toVO(WikiPage page, SecurityUser user) {
         WikiPageVO vo = new WikiPageVO();
         vo.setId(page.getId());
         vo.setSpaceId(page.getSpaceId());
@@ -95,11 +98,49 @@ public class WikiPageService {
         long bc = backlinkMapper.selectCount(new LambdaQueryWrapper<WikiBacklink>()
                 .eq(WikiBacklink::getToPageId, page.getId()));
         vo.setBacklinkCount((int) bc);
+        vo.setCanWrite(canDo(page, user, "write"));
+        vo.setCanDelete(canDo(page, user, "delete"));
+        vo.setCanPublish(canDo(page, user, "publish"));
         return vo;
     }
 
+    private boolean canDo(WikiPage page, SecurityUser user, String action) {
+        try {
+            checkWritePermission(page.getTenantId(), page.getSpaceId(), page.getId(), user, action);
+            return true;
+        } catch (AccessDeniedException e) {
+            return false;
+        }
+    }
+
+    /**
+     * 页面写操作统一权限闸门：空间级 hasWritePermission OR 页面级 aclService.hasExplicitPermission，任一命中即放行（SPEC 7.3 节）。
+     * 是不可绕过的强制调用点：失败直接抛异常，调用方无法"忘记检查返回值"（SPEC 3.1 节）。
+     * 页面级判断用 hasExplicitPermission 而非 hasPermission——后者在页面链无自定义 ACL 时默认放行（为 read 可见性设计），
+     * 若用来判断写权限会导致任何登录用户对未设置过页面级 ACL 的页面都拥有写/删/发布权限，绕过空间级 ACL。
+     */
+    private void checkWritePermission(String tenantId, Long spaceId, Long pageId, SecurityUser user, String action) {
+        boolean spaceOk = spaceService.hasWritePermission(tenantId, spaceId, user, mapToSpaceAction(action));
+        if (spaceOk) return;
+        boolean pageOk = aclService.hasExplicitPermission(tenantId, pageId, user.getUserId(), user.getGroupId(),
+                user.getGroupScope(), mapToPageAction(action));
+        if (pageOk) return;
+        throw new AccessDeniedException("无权限在此页面执行 " + action);
+    }
+
+    /** 空间级动词固定为 create/update/delete/publish，页面级固定为 read/write/delete/publish，仅 update↔write 需要映射。 */
+    private String mapToSpaceAction(String action) {
+        return "write".equals(action) ? "update" : action;
+    }
+
+    private String mapToPageAction(String action) {
+        return "update".equals(action) ? "write" : action;
+    }
+
     @Transactional
-    public WikiPageVO createPage(String tenantId, Long userId, CreatePageRequest req) {
+    public WikiPageVO createPage(String tenantId, SecurityUser user, CreatePageRequest req) {
+        spaceService.checkCanWrite(tenantId, req.getSpaceId(), user, "create");
+        Long userId = user.getUserId();
         WikiPage page = new WikiPage();
         page.setTenantId(tenantId);
         page.setSpaceId(req.getSpaceId());
@@ -130,12 +171,14 @@ public class WikiPageService {
 
         auditLogMapper.insert(buildAudit(tenantId, "create", page.getId(), userId, null, toJson(page),
                 "title=" + page.getTitle()));
-        return toVO(page);
+        return toVO(page, user);
     }
 
     @Transactional
-    public WikiPageVO savePage(String tenantId, Long userId, Long pageId, SavePageRequest req) {
+    public WikiPageVO savePage(String tenantId, SecurityUser user, Long pageId, SavePageRequest req) {
         WikiPage page = requirePage(tenantId, pageId);
+        checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "update");
+        Long userId = user.getUserId();
         if ("archived".equals(page.getStatus())) throw new IllegalStateException("已归档页面不可编辑");
         String before = toJson(page);
         page.setTitle(req.getTitle());
@@ -150,12 +193,14 @@ public class WikiPageService {
 
         auditLogMapper.insert(buildAudit(tenantId, "update", pageId, userId, before, toJson(page),
                 "version=" + page.getCurrentVersion()));
-        return toVO(page);
+        return toVO(page, user);
     }
 
     @Transactional
-    public void deletePage(String tenantId, Long pageId, Long userId) {
+    public void deletePage(String tenantId, Long pageId, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
+        checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "delete");
+        Long userId = user.getUserId();
         List<Long> ids = pageMapper.findDescendantIds(pageId);
         for (Long id : ids) {
             WikiPage p = pageMapper.selectById(id);
@@ -168,8 +213,10 @@ public class WikiPageService {
     }
 
     @Transactional
-    public void movePage(String tenantId, Long pageId, Long newParentId, int sortOrder, Long userId) {
+    public void movePage(String tenantId, Long pageId, Long newParentId, int sortOrder, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
+        checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "update");
+        Long userId = user.getUserId();
         if (newParentId != null) {
             List<Long> descendants = pageMapper.findDescendantIds(pageId);
             if (descendants.contains(newParentId)) {
@@ -205,7 +252,7 @@ public class WikiPageService {
     }
 
     @Transactional
-    public WikiPageVO revert(String tenantId, Long pageId, int version, Long userId) {
+    public WikiPageVO revert(String tenantId, Long pageId, int version, SecurityUser user) {
         WikiPageVersion v = versionMapper.selectOne(new LambdaQueryWrapper<WikiPageVersion>()
                 .eq(WikiPageVersion::getPageId, pageId)
                 .eq(WikiPageVersion::getVersion, version)
@@ -215,7 +262,7 @@ public class WikiPageService {
         req.setTitle(v.getTitle());
         req.setContent(v.getContent());
         req.setComment("回滚到版本 " + version);
-        return savePage(tenantId, userId, pageId, req);
+        return savePage(tenantId, user, pageId, req);
     }
 
     public PageResult<WikiSearchResultVO> search(String tenantId, String keyword, Long spaceId, int page, int size) {
@@ -251,8 +298,10 @@ public class WikiPageService {
     }
 
     @Transactional
-    public void publishDirect(String tenantId, Long pageId, Long userId) {
+    public void publishDirect(String tenantId, Long pageId, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
+        checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "publish");
+        Long userId = user.getUserId();
         String before = toJson(page);
         page.setStatus("published");
         page.setUpdatedBy(userId);

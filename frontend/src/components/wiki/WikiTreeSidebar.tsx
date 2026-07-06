@@ -28,7 +28,7 @@ import {
   Home,
 } from 'lucide-react'
 import type { WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
-import { canWriteSpace } from '@/types/wiki'
+import { canDeleteInSpace } from '@/types/wiki'
 
 const STATUS_DOT: Record<WikiStatus, string> = {
   draft: 'bg-v2-muted',
@@ -194,10 +194,10 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
     queryKey: ['wiki-spaces'],
     queryFn: () => wikiApi.listSpaces(),
   })
-  const writable = canWriteSpace(spaces?.find((s) => s.id === spaceId), groupScope)
+  const currentSpace = spaces?.find((s) => s.id === spaceId)
 
-  const canWrite = hasPermission('wiki', 'update') && writable
-  const canDelete = hasPermission('wiki', 'delete') && writable
+  const canWrite = currentSpace?.canCreatePage ?? false // 侧栏"新建"按钮：本质是空间级 create 权限
+  const canDelete = hasPermission('wiki', 'delete') && canDeleteInSpace(currentSpace, groupScope)
 
   const [renameTarget, setRenameTarget] = useState<WikiPageTree | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WikiPageTree | null>(null)

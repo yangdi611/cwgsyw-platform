@@ -25,7 +25,8 @@ import java.util.*;
  * Wiki seed 导入器。启动时（Flyway 迁移之后）读 classpath:wiki-manual/manifest.yaml + md 文件，
  * 幂等导入多个系统空间（平台使用手册 / Release Notes / Bug 反馈）：
  *   - 空间/页面用 seed_key 定位；页面内容 SHA-256 存 seed_hash，仅当 hash 变化才更新（覆盖式+保留 version 历史）
- *   - 每个空间有 write_scope（none/super_admin_only/all），决定根页面 ACL
+ *   - 每个空间有 write_scope，决定根页面 ACL：all=所有人可读/建/写/发布(delete 仅 admin)；
+ *     none/super_admin_only=锁定，任何人（含 admin）都不可写，只能评论
  *   - 单页可标 read_only: true 强制只读（如 Bug 反馈空间的模板页）
  * 详见 docs/guide/wiki 与 CLAUDE.md。
  */
@@ -143,6 +144,7 @@ public class WikiManualSeeder implements ApplicationRunner {
                 .eq(WikiPage::getSeedKey, key)
                 .last("LIMIT 1"));
 
+        Long pageId;
         if (existing == null) {
             WikiPage p = new WikiPage();
             p.setTenantId(TENANT);
@@ -164,27 +166,34 @@ public class WikiManualSeeder implements ApplicationRunner {
             insertVersion(p.getId(), 1, title, content, "seed 初始导入");
             keyToId.put(key, p.getId());
             changedIds.add(p.getId());
-            if (customAcl) applyAcl(p.getId(), pageReadOnly ? "none" : writeScope);
-            return;
+            pageId = p.getId();
+        } else {
+            keyToId.put(key, existing.getId());
+            pageId = existing.getId();
+            if (!hash.equals(existing.getSeedHash())) {
+                // hash 变化：保留旧版本快照 + 覆盖
+                int newVer = existing.getCurrentVersion() + 1;
+                existing.setTitle(title);
+                existing.setContent(content);
+                existing.setParentId(parentId);
+                existing.setSortOrder(sort);
+                existing.setCurrentVersion(newVer);
+                existing.setStatus("published");
+                existing.setSeedHash(hash);
+                existing.setUpdatedBy(SYSTEM_USER);
+                existing.setUpdatedAt(LocalDateTime.now());
+                pageMapper.updateById(existing);
+                insertVersion(existing.getId(), newVer, title, content, "seed 更新");
+                changedIds.add(existing.getId());
+            }
+            if (!Objects.equals(existing.getAclInherited(), !customAcl)) {
+                existing.setAclInherited(!customAcl);
+                pageMapper.updateById(existing);
+            }
         }
-
-        keyToId.put(key, existing.getId());
-        if (hash.equals(existing.getSeedHash())) return;   // 内容未变，跳过
-
-        // hash 变化：保留旧版本快照 + 覆盖
-        int newVer = existing.getCurrentVersion() + 1;
-        existing.setTitle(title);
-        existing.setContent(content);
-        existing.setParentId(parentId);
-        existing.setSortOrder(sort);
-        existing.setCurrentVersion(newVer);
-        existing.setStatus("published");
-        existing.setSeedHash(hash);
-        existing.setUpdatedBy(SYSTEM_USER);
-        existing.setUpdatedAt(LocalDateTime.now());
-        pageMapper.updateById(existing);
-        insertVersion(existing.getId(), newVer, title, content, "seed 更新");
-        changedIds.add(existing.getId());
+        // 每次启动都重新校准 ACL（不只在首次创建时）——否则线上已存在的系统页面在 manifest
+        // 调整 write_scope/read_only 策略后不会跟着变，2026-07-06 修复
+        if (customAcl) applyAcl(pageId, pageReadOnly ? "none" : writeScope);
     }
 
     private void insertVersion(Long pageId, int version, String title, String content, String comment) {
@@ -203,9 +212,12 @@ public class WikiManualSeeder implements ApplicationRunner {
     /**
      * 按 write_scope 设置页面 ACL（acl_inherited=false）。
      * 注意权限动词以 WikiAclService.ALL_PERMS 为准：read/write/delete/publish（编辑用 write，无 update）。
-     *   none             → 所有角色仅 read（admin/super_admin 靠 isAdmin 绕过写入）
-     *   super_admin_only → super_admin 全权，其余角色仅 read
-     *   all              → 所有角色 read+write（可建/可改，不含 delete/publish，防误删他人反馈）
+     * 这里只授予 read/write/publish，绝不授予 delete——delete 完全交给
+     * WikiSpaceService.hasWritePermission 的 isAdmin 分支单独把关（仅 admin/super_admin），
+     * 若在这里也授予 delete 会被 WikiAclService.hasExplicitPermission 的页面级 ACL 直接放行，
+     * 绕过"delete 仅管理员"的限制。
+     *   all              → 所有角色 read/write/publish（不含 delete）
+     *   none/super_admin_only → 锁定：所有角色（含 admin/super_admin）仅 read，只能评论
      */
     private void applyAcl(Long pageId, String writeScope) {
         List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<>());
@@ -214,7 +226,7 @@ public class WikiManualSeeder implements ApplicationRunner {
             AclEntryDTO e = new AclEntryDTO();
             e.setSubjectType("role");
             e.setSubjectId(r.getId());
-            e.setPermissions(permsFor(writeScope, r.getCode()));
+            e.setPermissions(permsFor(writeScope));
             entries.add(e);
         }
         WikiAclDTO dto = new WikiAclDTO();
@@ -224,19 +236,10 @@ public class WikiManualSeeder implements ApplicationRunner {
         aclService.setAcl(TENANT, pageId, SYSTEM_USER, dto);
     }
 
-    private List<String> permsFor(String writeScope, String roleCode) {
-        boolean isSuper = "super_admin".equals(roleCode);
-        boolean isAdmin = isSuper || "admin".equals(roleCode);
-        return switch (writeScope) {
-            case "all" -> List.of("read", "write");
-            case "super_admin_only" -> isSuper
-                    ? List.of("read", "write", "delete", "publish")
-                    : List.of("read");
-            // none：admin 全权（也靠 isAdmin 绕过），其余只读
-            default -> isAdmin
-                    ? List.of("read", "write", "delete", "publish")
-                    : List.of("read");
-        };
+    private List<String> permsFor(String writeScope) {
+        return "all".equals(writeScope)
+                ? List.of("read", "write", "publish")
+                : List.of("read");
     }
 
     private String loadMd(String file) {

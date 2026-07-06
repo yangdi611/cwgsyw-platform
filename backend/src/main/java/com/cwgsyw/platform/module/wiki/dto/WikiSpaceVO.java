@@ -18,4 +18,10 @@ public class WikiSpaceVO {
     private boolean system;
     /** 写权限范围：null=用户空间 / none / super_admin_only / all */
     private String writeScope;
+    /** 创建人 userId，前端据此判断"是否为我创建" */
+    private Long createdBy;
+    /** 由后端计算：admin/super_admin 或 createdBy == 当前用户，决定能否看到授权入口/重命名 */
+    private boolean canManageAcl;
+    /** 由后端计算：当前用户对该空间是否有 create 权限，侧栏"新建根页面"按钮据此显隐 */
+    private boolean canCreatePage;
 }

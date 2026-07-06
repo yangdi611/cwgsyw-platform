@@ -41,21 +41,21 @@ public class WikiController {
     @GetMapping("/spaces")
     @PreAuthorize("hasAuthority('wiki:read')")
     public R<List<WikiSpaceVO>> listSpaces(@AuthenticationPrincipal SecurityUser u) {
-        return R.ok(spaceService.listSpaces(u.getTenantId()));
+        return R.ok(spaceService.listSpaces(u.getTenantId(), u));
     }
 
     @PostMapping("/spaces")
     @PreAuthorize("hasAuthority('wiki:create')")
     public R<WikiSpaceVO> createSpace(@RequestBody CreateSpaceRequest req,
                                       @AuthenticationPrincipal SecurityUser u) {
-        return R.ok(spaceService.createSpace(u.getTenantId(), u.getUserId(), req.getName(), req.getDescription()));
+        return R.ok(spaceService.createSpace(u.getTenantId(), u, req.getName(), req.getDescription()));
     }
 
     @PutMapping("/spaces/{id}")
-    @PreAuthorize("hasAuthority('wiki:update')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiSpaceVO> updateSpace(@PathVariable Long id, @RequestBody CreateSpaceRequest req,
                                       @AuthenticationPrincipal SecurityUser u) {
-        return R.ok(spaceService.updateSpace(u.getTenantId(), id, u.getUserId(), req.getName(), req.getDescription()));
+        return R.ok(spaceService.updateSpace(u.getTenantId(), id, u, req.getName(), req.getDescription()));
     }
 
     @DeleteMapping("/spaces/{id}")
@@ -84,45 +84,56 @@ public class WikiController {
         exportService.exportSpace(id, u.getTenantId(), response);
     }
 
+    @GetMapping("/spaces/{id}/acl")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public R<WikiSpaceAclDTO> getSpaceAcl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
+        return R.ok(spaceService.getAcl(u.getTenantId(), id, u));
+    }
+
+    @PutMapping("/spaces/{id}/acl")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public R<Void> setSpaceAcl(@PathVariable Long id, @RequestBody WikiSpaceAclDTO body,
+                               @AuthenticationPrincipal SecurityUser u) {
+        spaceService.setAcl(u.getTenantId(), id, u.getUserId(), u, body);
+        return R.ok(null);
+    }
+
     // ===== Pages =====
 
     @GetMapping("/pages/{id}")
     @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiPageVO> getPage(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
         checkAcl(u, id, "read");
-        return R.ok(pageService.getPage(u.getTenantId(), id, u.getUserId()));
+        return R.ok(pageService.getPage(u.getTenantId(), id, u));
     }
 
     @PostMapping("/pages")
-    @PreAuthorize("hasAuthority('wiki:create')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiPageVO> createPage(@RequestBody CreatePageRequest req,
                                     @AuthenticationPrincipal SecurityUser u) {
         if (req.getParentId() != null) checkAcl(u, req.getParentId(), "write");
-        return R.ok(pageService.createPage(u.getTenantId(), u.getUserId(), req));
+        return R.ok(pageService.createPage(u.getTenantId(), u, req));
     }
 
     @PutMapping("/pages/{id}")
-    @PreAuthorize("hasAuthority('wiki:update')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiPageVO> savePage(@PathVariable Long id, @RequestBody SavePageRequest req,
                                   @AuthenticationPrincipal SecurityUser u) {
-        checkAcl(u, id, "write");
-        return R.ok(pageService.savePage(u.getTenantId(), u.getUserId(), id, req));
+        return R.ok(pageService.savePage(u.getTenantId(), u, id, req));
     }
 
     @DeleteMapping("/pages/{id}")
-    @PreAuthorize("hasAuthority('wiki:delete')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<Void> deletePage(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
-        checkAcl(u, id, "delete");
-        pageService.deletePage(u.getTenantId(), id, u.getUserId());
+        pageService.deletePage(u.getTenantId(), id, u);
         return R.ok(null);
     }
 
     @PostMapping("/pages/{id}/move")
-    @PreAuthorize("hasAuthority('wiki:update')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<Void> movePage(@PathVariable Long id, @RequestBody MovePageRequest req,
                             @AuthenticationPrincipal SecurityUser u) {
-        checkAcl(u, id, "write");
-        pageService.movePage(u.getTenantId(), id, req.getParentId(), req.getSortOrder(), u.getUserId());
+        pageService.movePage(u.getTenantId(), id, req.getParentId(), req.getSortOrder(), u);
         return R.ok(null);
     }
 
@@ -134,9 +145,9 @@ public class WikiController {
     }
 
     @PostMapping("/pages/{id}/publish")
-    @PreAuthorize("hasAuthority('wiki:publish')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<Void> publish(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
-        pageService.publishDirect(u.getTenantId(), id, u.getUserId());
+        pageService.publishDirect(u.getTenantId(), id, u);
         return R.ok(null);
     }
 
@@ -147,11 +158,10 @@ public class WikiController {
     }
 
     @PostMapping("/pages/{id}/revert/{version}")
-    @PreAuthorize("hasAuthority('wiki:update')")
+    @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiPageVO> revert(@PathVariable Long id, @PathVariable int version,
                                 @AuthenticationPrincipal SecurityUser u) {
-        checkAcl(u, id, "write");
-        return R.ok(pageService.revert(u.getTenantId(), id, version, u.getUserId()));
+        return R.ok(pageService.revert(u.getTenantId(), id, version, u));
     }
 
     @GetMapping("/pages/{id}/export")

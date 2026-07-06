@@ -11,7 +11,6 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import { wikiApi } from '@/lib/wiki-api'
-import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Button } from '@/components/v2/Button'
@@ -136,13 +135,9 @@ export default function WikiPageReader() {
     },
   })
 
-  const groupScope = useAuthStore((s) => s.groupScope)
-  const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
-  // 手册空间（read_only）对非 admin 隐藏一切写操作；admin 仍可改（后端 ACL 同步放行）
-  const writable = !readOnly || isAdmin
-  const canWrite = hasPermission('wiki', 'update') && writable
-  const canPublish = hasPermission('wiki', 'publish') && writable
-  const canManageAcl = hasPermission('wiki', 'manage_acl') && writable
+  const canWrite = page?.canWrite ?? false
+  const canPublish = page?.canPublish ?? false
+  const canManageAcl = hasPermission('wiki', 'manage_acl') // 页面级 ACL 管理权仍归 admin，不受空间 ACL 影响，不改
 
   if (isLoading) {
     return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>

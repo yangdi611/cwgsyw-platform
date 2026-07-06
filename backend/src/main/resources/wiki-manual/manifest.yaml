@@ -2,17 +2,17 @@
 # WikiManualSeeder 启动时幂等导入所有 seed 空间。
 # 新增功能：加新 md + 在对应空间 pages 追加条目，bump 版本号 push 即自动导入。
 #
-# write_scope:
-#   none             — 仅 admin/super_admin 可改（平台使用手册）
-#   super_admin_only — 仅超级管理员可改（Release Notes）
-#   all              — 所有登录用户可读写（Bug 反馈）
+# write_scope（2026-07-06 起，none 与 super_admin_only 语义已统一为"锁定"）:
+#   none             — 锁定：任何人（含 admin/super_admin）都不可创建/写/改/删/发布，只能评论（平台使用手册）
+#   super_admin_only — 锁定：同 none，任何人都不可写，只能评论（Release Notes）
+#   all              — 所有登录用户可读/建/写/改/发布；delete 仅 admin/super_admin（Bug 反馈，防止误删他人反馈）
 #
-# read_only: true — 单页强制只读（如 Bug 反馈里的模板页，防止被修改）
+# read_only: true — 单页强制只读（如 Bug 反馈里的模板页，防止被修改）；等同于该页单独套用锁定语义
 
 spaces:
 
   # ──────────────────────────────────────────
-  # 1. 平台使用手册（只有 admin 可改，其余只读）
+  # 1. 平台使用手册（锁定：任何人都不可写，只能评论）
   # ──────────────────────────────────────────
   - key: platform-manual
     name: 平台使用手册
@@ -100,13 +100,17 @@ spaces:
         sort: 2
 
   # ──────────────────────────────────────────
-  # 2. Release Notes（仅超级管理员可写，其余只读）
+  # 2. Release Notes（锁定：任何人都不可写，只能评论）
   # ──────────────────────────────────────────
   - key: release-notes
     name: Release Notes
     description: 平台每次版本发布的功能更新说明
     write_scope: super_admin_only
     pages:
+      - key: rn-v0-32-0
+        title: v0.32.0 — 2026年7月6日
+        file: release-notes/v0.32.0.md
+        sort: 979
       - key: rn-v0-31-1
         title: v0.31.1 — 2026年7月4日
         file: release-notes/v0.31.1.md
@@ -193,7 +197,7 @@ spaces:
         sort: 990
 
   # ──────────────────────────────────────────
-  # 3. Bug 反馈（所有人可读写，模板页只读）
+  # 3. Bug 反馈（所有人可读/建/写/改/发布，delete 仅 admin，模板页只读）
   # ──────────────────────────────────────────
   - key: bug-feedback
     name: Bug 反馈与建议
