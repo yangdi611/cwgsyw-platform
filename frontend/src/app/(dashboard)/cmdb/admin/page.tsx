@@ -70,6 +70,21 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const DEFAULT_KINDS_DEPRECATED: string[] = []   // legacy placeholder; kind list now comes from /api/cmdb/association-kinds
 
+type ApiErrorLike = {
+  response?: {
+    data?: {
+      message?: string
+    }
+  }
+  message?: string
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (typeof error !== 'object' || error === null) return fallback
+  const apiError = error as ApiErrorLike
+  return apiError.response?.data?.message ?? apiError.message ?? fallback
+}
+
 export default function AdminPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
@@ -141,9 +156,9 @@ interface ModelGroupVO {
 
 function ModelCatalogTab() {
   const { hasPermission } = usePermission()
-  const router = useRouter()
   const queryClient = useQueryClient()
   const canWrite = hasPermission('cmdb_model', 'update')
+  const canDeleteModel = hasPermission('cmdb_model', 'delete')
 
   const [creatingModel, setCreatingModel] = useState(false)
   const [creatingGroup, setCreatingGroup] = useState(false)
@@ -181,7 +196,7 @@ function ModelCatalogTab() {
       modelId: modelForm.modelId, name: modelForm.name, icon: modelForm.icon,
       groupCode: modelForm.groupCode || undefined, description: modelForm.description || undefined,
     }),
-    onSuccess: (r) => {
+    onSuccess: () => {
       toast.success('模型已创建')
       setCreatingModel(false)
       setModelForm({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
@@ -190,12 +205,12 @@ function ModelCatalogTab() {
       // 自动展开目标分类
       if (modelForm.groupCode) setExpandedGroups(s => new Set([...s, modelForm.groupCode]))
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
 
   const createGroupMutation = useMutation({
     mutationFn: () => api.post('/cmdb/model-groups', groupForm),
-    onSuccess: (r) => {
+    onSuccess: () => {
       toast.success('分类已创建')
       setCreatingGroup(false)
       setGroupForm({ code: '', name: '', icon: 'folder', sortOrder: 100 })
@@ -203,7 +218,7 @@ function ModelCatalogTab() {
       // 自动展开新分类
       setExpandedGroups(s => new Set([...s, groupForm.code]))
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
 
   const moveModelMutation = useMutation({
@@ -220,10 +235,10 @@ function ModelCatalogTab() {
       setExpandedGroups(s => new Set([...s, toCode]))
       return { prev }
     },
-    onError: (e: any, _vars, ctx) => {
+    onError: (error: unknown, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['cmdb-models'], ctx.prev)
       setMovedModelId(null)
-      toast.error(e?.response?.data?.message ?? '移动失败，已还原')
+      toast.error(getApiErrorMessage(error, '移动失败，已还原'))
     },
     onSuccess: (_data, { model, toCode }) => {
       const fromCode = model.group || ''
@@ -242,6 +257,16 @@ function ModelCatalogTab() {
     },
   })
 
+  const deleteModelMutation = useMutation({
+    mutationFn: (model: CiModelVO) => api.delete(`/cmdb/models/${model.id}`),
+    onSuccess: (_data, model) => {
+      toast.success(`模型「${model.name}」已删除`)
+      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+    },
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '删除失败')),
+  })
+
   const updateGroupMutation = useMutation({
     mutationFn: ({ id, body }: { id: number; body: typeof editGroupForm }) =>
       api.put(`/cmdb/model-groups/${id}`, body),
@@ -250,7 +275,7 @@ function ModelCatalogTab() {
       setEditingGroupId(null)
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '更新失败')),
   })
 
   const deleteGroupMutation = useMutation({
@@ -259,7 +284,7 @@ function ModelCatalogTab() {
       toast.success('分类已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '删除失败')),
   })
 
   const grouped = models.reduce((acc, m) => {
@@ -427,8 +452,11 @@ function ModelCatalogTab() {
                             model={model}
                             groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
                             canWrite={canWrite}
+                            canDelete={canDeleteModel}
+                            deleting={deleteModelMutation.isPending}
                             justMoved={movedModelId === model.modelId}
                             onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                            onDelete={() => deleteModelMutation.mutate(model)}
                           />
                         ))}
                       </div>
@@ -465,8 +493,11 @@ function ModelCatalogTab() {
                             model={model}
                             groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
                             canWrite={canWrite}
+                            canDelete={canDeleteModel}
+                            deleting={deleteModelMutation.isPending}
                             justMoved={movedModelId === model.modelId}
                             onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                            onDelete={() => deleteModelMutation.mutate(model)}
                           />
                         ))}
                       </div>
@@ -486,16 +517,20 @@ function ModelCatalogTab() {
 }
 
 function ModelCard({
-  model, groups, canWrite, justMoved, onMove,
+  model, groups, canWrite, canDelete, deleting, justMoved, onMove, onDelete,
 }: {
   model: CiModelVO
   groups: { code: string; name: string }[]
   canWrite: boolean
+  canDelete: boolean
+  deleting: boolean
   justMoved: boolean
   onMove: (toCode: string) => void
+  onDelete: () => void
 }) {
   const Icon = ICON_MAP[model.icon] ?? Box
   const router = useRouter()
+  const canShowMenu = canWrite || (canDelete && !model.isBuiltIn)
   return (
     <div
       className={cn(
@@ -521,7 +556,7 @@ function ModelCard({
           <span className="h-7 w-7 shrink-0" aria-hidden />
         </div>
       </Link>
-      {canWrite && (
+      {canShowMenu && (
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={`${model.name} 操作`}
@@ -530,33 +565,51 @@ function ModelCard({
             <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
-              <Settings className="mr-2 h-4 w-4" />打开设置
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FolderInput className="mr-2 h-4 w-4" />移动到分类
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">选择目标分类</DropdownMenuLabel>
-                  {groups.map(g => {
-                    const current = g.code === model.group
-                    return (
-                      <DropdownMenuItem
-                        key={g.code}
-                        disabled={current}
-                        onClick={() => { if (!current) onMove(g.code) }}
-                      >
-                        <span className="flex-1 truncate">{g.name}</span>
-                        {current && <Check className="ml-2 h-4 w-4 text-primary" />}
-                      </DropdownMenuItem>
-                    )
-                  })}
-                </DropdownMenuGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+            {canWrite && (
+              <>
+                <DropdownMenuItem onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
+                  <Settings className="mr-2 h-4 w-4" />打开设置
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderInput className="mr-2 h-4 w-4" />移动到分类
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">选择目标分类</DropdownMenuLabel>
+                      {groups.map(g => {
+                        const current = g.code === model.group
+                        return (
+                          <DropdownMenuItem
+                            key={g.code}
+                            disabled={current}
+                            onClick={() => { if (!current) onMove(g.code) }}
+                          >
+                            <span className="flex-1 truncate">{g.name}</span>
+                            {current && <Check className="ml-2 h-4 w-4 text-primary" />}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </>
+            )}
+            {canDelete && !model.isBuiltIn && (
+              <>
+                {canWrite && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  disabled={deleting}
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    if (window.confirm(`确认删除模型「${model.name}」？删除后该模型的属性定义也会被删除。`)) onDelete()
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />删除模型
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
