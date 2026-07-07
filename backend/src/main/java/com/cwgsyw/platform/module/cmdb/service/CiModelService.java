@@ -7,6 +7,7 @@ import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.model.CiModelVO;
+import com.cwgsyw.platform.module.cmdb.dto.model.CopyModelRequest;
 import com.cwgsyw.platform.module.cmdb.dto.model.CreateModelRequest;
 import com.cwgsyw.platform.module.cmdb.dto.model.UpdateModelRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
@@ -16,6 +17,7 @@ import com.cwgsyw.platform.module.cmdb.entity.CiModelGroup;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,7 +100,7 @@ public class CiModelService {
         model.setDisplayName(req.getName());
         model.setGroupCode(modelGroup.getCode());
         model.setIsBuiltIn(false);
-        ciModelMapper.insert(model);
+        insertModel(model);
 
         writeAudit(tenantId, "create_model", model.getId(), "ci_model", operatorId, null, snapshot(model));
         return getById(model.getId(), tenantId);
@@ -120,6 +122,68 @@ public class CiModelService {
 
         writeAudit(tenantId, "update_model", id, "ci_model", operatorId, before, snapshot(model));
         return getById(id, tenantId);
+    }
+
+    @Transactional
+    public CiModelVO copy(Long sourceId, CopyModelRequest req, String tenantId, Long operatorId) {
+        CiModel source = loadModel(sourceId, tenantId);
+        if (Boolean.TRUE.equals(source.getIsBuiltIn())) {
+            throw new IllegalStateException("内置模型不可复制");
+        }
+        ciModelMapper.findByName(req.getModelId(), tenantId).ifPresent(m -> {
+            throw new IllegalArgumentException("模型标识已存在: " + req.getModelId());
+        });
+
+        String targetGroupCode = req.getGroupCode() != null && !req.getGroupCode().isBlank()
+                ? req.getGroupCode()
+                : source.getGroupCode();
+        CiModelGroup modelGroup = findModelGroup(targetGroupCode, tenantId);
+
+        CiModel copy = new CiModel();
+        copy.setTenantId(tenantId);
+        copy.setModelId(req.getModelId());
+        copy.setName(req.getName());
+        copy.setDisplayName(req.getName());
+        copy.setGroupCode(modelGroup.getCode());
+        copy.setIsBuiltIn(false);
+        copy.setColor(source.getColor());
+        copy.setEnable2dView(source.getEnable2dView());
+        insertModel(copy);
+
+        List<CiAttributeGroup> sourceGroups = listAttributeGroups(source.getModelId(), tenantId);
+        for (CiAttributeGroup sourceGroup : sourceGroups) {
+            CiAttributeGroup copiedGroup = new CiAttributeGroup();
+            copiedGroup.setTenantId(tenantId);
+            copiedGroup.setModelId(copy.getModelId());
+            copiedGroup.setCode(sourceGroup.getCode());
+            copiedGroup.setName(sourceGroup.getName());
+            copiedGroup.setSortOrder(sourceGroup.getSortOrder());
+            ciAttributeGroupMapper.insert(copiedGroup);
+        }
+
+        List<CiAttribute> sourceAttrs = ciAttributeMapper.listByModel(source.getModelId(), tenantId);
+        for (CiAttribute sourceAttr : sourceAttrs) {
+            CiAttribute copiedAttr = new CiAttribute();
+            copiedAttr.setTenantId(tenantId);
+            copiedAttr.setModelId(copy.getModelId());
+            copiedAttr.setFieldKey(sourceAttr.getFieldKey());
+            copiedAttr.setName(sourceAttr.getName());
+            copiedAttr.setGroupId(sourceAttr.getGroupId());
+            copiedAttr.setFieldType(sourceAttr.getFieldType());
+            copiedAttr.setIsRequired(sourceAttr.getIsRequired());
+            copiedAttr.setIsEditable(sourceAttr.getIsEditable());
+            copiedAttr.setIsUnique(sourceAttr.getIsUnique());
+            copiedAttr.setIsBuiltIn(false);
+            copiedAttr.setIsListShow(sourceAttr.getIsListShow());
+            copiedAttr.setIsDrawerShow(sourceAttr.getIsDrawerShow());
+            copiedAttr.setDefaultValue(sourceAttr.getDefaultValue());
+            copiedAttr.setOption(sourceAttr.getOption());
+            copiedAttr.setSortOrder(sourceAttr.getSortOrder());
+            ciAttributeMapper.insert(copiedAttr);
+        }
+
+        writeAudit(tenantId, "copy_model", copy.getId(), "ci_model", operatorId, snapshot(source), snapshot(copy));
+        return getById(copy.getId(), tenantId);
     }
 
     @Transactional
@@ -149,10 +213,26 @@ public class CiModelService {
             ciAttributeMapper.deleteById(attr.getId());
         }
 
+        List<CiAttributeGroup> attrGroups = listAttributeGroups(model.getModelId(), tenantId);
+        for (CiAttributeGroup attrGroup : attrGroups) {
+            attrGroup.setDeletedAt(LocalDateTime.now());
+            attrGroup.setDeletedBy(operatorId);
+            ciAttributeGroupMapper.updateById(attrGroup);
+            ciAttributeGroupMapper.deleteById(attrGroup.getId());
+        }
+
         writeAudit(tenantId, "delete_model", id, "ci_model", operatorId, before, null);
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
+
+    private void insertModel(CiModel model) {
+        try {
+            ciModelMapper.insert(model);
+        } catch (DuplicateKeyException e) {
+            throw new IllegalStateException("模型标识已存在: " + model.getModelId(), e);
+        }
+    }
 
     private CiModel loadModel(Long id, String tenantId) {
         CiModel model = ciModelMapper.selectById(id);
@@ -186,6 +266,15 @@ public class CiModelService {
                 .eq(CiAttributeGroup::getIsDeleted, false);
         return ciAttributeGroupMapper.selectList(q).stream()
                 .collect(Collectors.toMap(g -> g.getModelId() + ":" + g.getCode(), CiAttributeGroup::getName));
+    }
+
+    private List<CiAttributeGroup> listAttributeGroups(String modelId, String tenantId) {
+        LambdaQueryWrapper<CiAttributeGroup> q = new LambdaQueryWrapper<CiAttributeGroup>()
+                .eq(CiAttributeGroup::getTenantId, tenantId)
+                .eq(CiAttributeGroup::getModelId, modelId)
+                .eq(CiAttributeGroup::getIsDeleted, false)
+                .orderByAsc(CiAttributeGroup::getSortOrder);
+        return ciAttributeGroupMapper.selectList(q);
     }
 
     private CiModelVO toVO(CiModel m, Map<Long, String> groupNames,

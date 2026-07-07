@@ -276,7 +276,7 @@ export default function ModelDetailPage() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-v2-fg">{model.name}</h1>
+            <h1 className="text-2xl font-bold text-v2-fg">{model.displayName || model.name}</h1>
             {model.isBuiltIn && <Chip tone="primary">内置</Chip>}
           </div>
           <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{model.modelId}</p>

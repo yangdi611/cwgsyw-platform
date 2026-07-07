@@ -17,7 +17,7 @@ import { PageHeader } from '@/components/shared'
 import Link from 'next/link'
 import {
   Plus, Settings, Server, Database, Network, Box, ArrowRight,
-  Trash2, PencilLine, RefreshCw, ChevronDown, MoreVertical, FolderInput, Check,
+  Trash2, PencilLine, RefreshCw, ChevronDown, MoreVertical, FolderInput, Check, Copy,
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -30,6 +30,7 @@ interface CiModelVO {
   id: number
   modelId: string
   name: string
+  displayName?: string
   icon: string
   group: string
   groupName?: string
@@ -83,6 +84,21 @@ function getApiErrorMessage(error: unknown, fallback: string) {
   if (typeof error !== 'object' || error === null) return fallback
   const apiError = error as ApiErrorLike
   return apiError.response?.data?.message ?? apiError.message ?? fallback
+}
+
+function getModelDisplayName(model: CiModelVO) {
+  return model.displayName || model.name
+}
+
+function nextCopyModelId(sourceModelId: string, models: CiModelVO[]) {
+  const existing = new Set(models.map(model => model.modelId))
+  let candidate = `${sourceModelId}_copy`
+  let index = 2
+  while (existing.has(candidate)) {
+    candidate = `${sourceModelId}_copy_${index}`
+    index += 1
+  }
+  return candidate
 }
 
 export default function AdminPage() {
@@ -157,6 +173,7 @@ interface ModelGroupVO {
 function ModelCatalogTab() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
+  const canCreateModel = hasPermission('cmdb_model', 'create')
   const canWrite = hasPermission('cmdb_model', 'update')
   const canDeleteModel = hasPermission('cmdb_model', 'delete')
 
@@ -168,6 +185,10 @@ function ModelCatalogTab() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null)
   const [editGroupForm, setEditGroupForm] = useState({ name: '', sortOrder: 0 })
+  const [editingModel, setEditingModel] = useState<CiModelVO | null>(null)
+  const [renameForm, setRenameForm] = useState({ displayName: '' })
+  const [copyingModel, setCopyingModel] = useState<CiModelVO | null>(null)
+  const [copyForm, setCopyForm] = useState({ modelId: '', name: '', groupCode: '' })
 
   const { data: models = [], isLoading: modelsLoading } = useQuery<CiModelVO[]>({
     queryKey: ['cmdb-models'],
@@ -267,6 +288,33 @@ function ModelCatalogTab() {
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '删除失败')),
   })
 
+  const renameModelMutation = useMutation({
+    mutationFn: ({ model, displayName }: { model: CiModelVO; displayName: string }) =>
+      api.put(`/cmdb/models/${model.id}`, { displayName }),
+    onSuccess: (_data, { model, displayName }) => {
+      toast.success(`模型「${getModelDisplayName(model)}」已重命名`)
+      setEditingModel(null)
+      setRenameForm({ displayName: '' })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model', model.modelId] })
+    },
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '重命名失败')),
+  })
+
+  const copyModelMutation = useMutation({
+    mutationFn: ({ model, body }: { model: CiModelVO; body: { modelId: string; name: string; groupCode: string } }) =>
+      api.post(`/cmdb/models/${model.id}/copy`, body),
+    onSuccess: (_data, { body }) => {
+      toast.success(`模型「${body.name}」已复制`)
+      setCopyingModel(null)
+      setCopyForm({ modelId: '', name: '', groupCode: '' })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
+      setExpandedGroups(s => new Set([...s, body.groupCode]))
+    },
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '复制失败')),
+  })
+
   const updateGroupMutation = useMutation({
     mutationFn: ({ id, body }: { id: number; body: typeof editGroupForm }) =>
       api.put(`/cmdb/model-groups/${id}`, body),
@@ -303,19 +351,40 @@ function ModelCatalogTab() {
     })
   }
 
+  const openRenameModel = (model: CiModelVO) => {
+    setCopyingModel(null)
+    setEditingModel(model)
+    setRenameForm({ displayName: getModelDisplayName(model) })
+  }
+
+  const openCopyModel = (model: CiModelVO) => {
+    const displayName = getModelDisplayName(model)
+    setEditingModel(null)
+    setCopyingModel(model)
+    setCopyForm({
+      modelId: nextCopyModelId(model.modelId, models),
+      name: `${displayName} 副本`,
+      groupCode: model.group || modelGroups[0]?.code || '',
+    })
+  }
+
   return (
     <div>
       {/* Top bar with both create buttons */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">按分类组织的 CI 模型目录</p>
-        {canWrite && (
+        {(canWrite || canCreateModel) && (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setCreatingGroup(v => !v)}>
-              <Plus className="mr-1 h-4 w-4" />新建分类
-            </Button>
-            <Button size="sm" onClick={() => setCreatingModel(v => !v)}>
-              <Plus className="mr-1 h-4 w-4" />新建模型
-            </Button>
+            {canWrite && (
+              <Button size="sm" variant="outline" onClick={() => setCreatingGroup(v => !v)}>
+                <Plus className="mr-1 h-4 w-4" />新建分类
+              </Button>
+            )}
+            {canCreateModel && (
+              <Button size="sm" onClick={() => setCreatingModel(v => !v)}>
+                <Plus className="mr-1 h-4 w-4" />新建模型
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -379,6 +448,95 @@ function ModelCatalogTab() {
           <div className="flex gap-2">
             <Button size="sm" onClick={() => createModelMutation.mutate()} disabled={!modelForm.modelId || !modelForm.name || createModelMutation.isPending}>创建</Button>
             <Button size="sm" variant="ghost" onClick={() => setCreatingModel(false)}>取消</Button>
+          </div>
+        </div>
+      )}
+
+      {editingModel && (
+        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+          <div>
+            <p className="text-sm font-medium">重命名模型</p>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">{editingModel.modelId}</p>
+          </div>
+          <div className="max-w-md space-y-1">
+            <Label className="text-xs">模型名称 *</Label>
+            <Input
+              value={renameForm.displayName}
+              onChange={e => setRenameForm({ displayName: e.target.value })}
+              placeholder="如: MySQL实例"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => renameModelMutation.mutate({ model: editingModel, displayName: renameForm.displayName.trim() })}
+              disabled={!renameForm.displayName.trim() || renameModelMutation.isPending}
+            >
+              保存
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditingModel(null)}>取消</Button>
+          </div>
+        </div>
+      )}
+
+      {copyingModel && (
+        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+          <div>
+            <p className="text-sm font-medium">复制模型</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              复制「{getModelDisplayName(copyingModel)}」的属性分组和属性定义，不复制实例数据
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">新模型ID * <span className="text-muted-foreground">(英文/下划线)</span></Label>
+              <Input
+                value={copyForm.modelId}
+                onChange={e => setCopyForm(f => ({ ...f, modelId: e.target.value }))}
+                placeholder="如: mysql_instance_copy"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">新模型名称 *</Label>
+              <Input
+                value={copyForm.name}
+                onChange={e => setCopyForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="如: MySQL实例副本"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">所属分类</Label>
+              <Select value={copyForm.groupCode} onValueChange={v => setCopyForm(f => ({ ...f, groupCode: v ?? '' }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择分类">
+                    {(v: string) => modelGroups.find(g => g.code === v)?.name ?? '请选择分类'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {modelGroups.map(g => (
+                    <SelectItem key={g.code} value={g.code}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => copyModelMutation.mutate({
+                model: copyingModel,
+                body: {
+                  modelId: copyForm.modelId.trim(),
+                  name: copyForm.name.trim(),
+                  groupCode: copyForm.groupCode,
+                },
+              })}
+              disabled={!copyForm.modelId.trim() || !copyForm.name.trim() || !copyForm.groupCode || copyModelMutation.isPending}
+            >
+              复制
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setCopyingModel(null)}>取消</Button>
           </div>
         </div>
       )}
@@ -452,10 +610,13 @@ function ModelCatalogTab() {
                             model={model}
                             groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
                             canWrite={canWrite}
+                            canCreate={canCreateModel}
                             canDelete={canDeleteModel}
                             deleting={deleteModelMutation.isPending}
                             justMoved={movedModelId === model.modelId}
                             onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                            onRename={() => openRenameModel(model)}
+                            onCopy={() => openCopyModel(model)}
                             onDelete={() => deleteModelMutation.mutate(model)}
                           />
                         ))}
@@ -493,10 +654,13 @@ function ModelCatalogTab() {
                             model={model}
                             groups={modelGroups.map(mg => ({ code: mg.code, name: mg.name }))}
                             canWrite={canWrite}
+                            canCreate={canCreateModel}
                             canDelete={canDeleteModel}
                             deleting={deleteModelMutation.isPending}
                             justMoved={movedModelId === model.modelId}
                             onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                            onRename={() => openRenameModel(model)}
+                            onCopy={() => openCopyModel(model)}
                             onDelete={() => deleteModelMutation.mutate(model)}
                           />
                         ))}
@@ -517,20 +681,26 @@ function ModelCatalogTab() {
 }
 
 function ModelCard({
-  model, groups, canWrite, canDelete, deleting, justMoved, onMove, onDelete,
+  model, groups, canWrite, canCreate, canDelete, deleting, justMoved, onMove, onRename, onCopy, onDelete,
 }: {
   model: CiModelVO
   groups: { code: string; name: string }[]
   canWrite: boolean
+  canCreate: boolean
   canDelete: boolean
   deleting: boolean
   justMoved: boolean
   onMove: (toCode: string) => void
+  onRename: () => void
+  onCopy: () => void
   onDelete: () => void
 }) {
   const Icon = ICON_MAP[model.icon] ?? Box
   const router = useRouter()
-  const canShowMenu = canWrite || (canDelete && !model.isBuiltIn)
+  const canRename = canWrite && !model.isBuiltIn
+  const canCopy = canCreate && !model.isBuiltIn
+  const canShowMenu = canWrite || canCopy || (canDelete && !model.isBuiltIn)
+  const displayName = getModelDisplayName(model)
   return (
     <div
       className={cn(
@@ -547,7 +717,7 @@ function ModelCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{model.name}</span>
+              <span className="text-sm font-medium">{displayName}</span>
               {model.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
             </div>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{model.modelId}</p>
@@ -559,7 +729,7 @@ function ModelCard({
       {canShowMenu && (
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label={`${model.name} 操作`}
+            aria-label={`${displayName} 操作`}
             className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-60 transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover:opacity-100"
           >
             <MoreVertical className="h-4 w-4" />
@@ -570,6 +740,11 @@ function ModelCard({
                 <DropdownMenuItem onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
                   <Settings className="mr-2 h-4 w-4" />打开设置
                 </DropdownMenuItem>
+                {canRename && (
+                  <DropdownMenuItem onClick={onRename}>
+                    <PencilLine className="mr-2 h-4 w-4" />重命名
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
@@ -596,14 +771,22 @@ function ModelCard({
                 </DropdownMenuSub>
               </>
             )}
-            {canDelete && !model.isBuiltIn && (
+            {canCopy && (
               <>
                 {canWrite && <DropdownMenuSeparator />}
+                <DropdownMenuItem onClick={onCopy}>
+                  <Copy className="mr-2 h-4 w-4" />复制模型
+                </DropdownMenuItem>
+              </>
+            )}
+            {canDelete && !model.isBuiltIn && (
+              <>
+                {(canWrite || canCopy) && <DropdownMenuSeparator />}
                 <DropdownMenuItem
                   disabled={deleting}
                   className="text-destructive focus:text-destructive"
                   onClick={() => {
-                    if (window.confirm(`确认删除模型「${model.name}」？删除后该模型的属性定义也会被删除。`)) onDelete()
+                    if (window.confirm(`确认删除模型「${displayName}」？删除后该模型的属性定义也会被删除。`)) onDelete()
                   }}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />删除模型

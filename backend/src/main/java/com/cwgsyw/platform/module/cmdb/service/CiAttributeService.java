@@ -15,6 +15,7 @@ import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,7 +100,7 @@ public class CiAttributeService {
             attr.setOption(req.getOption());
         }
         attr.setSortOrder(req.getSortOrder());
-        ciAttributeMapper.insert(attr);
+        insertAttribute(attr);
 
         writeAudit(tenantId, "create_attribute", attr.getId(), "ci_attribute",
                 operatorId, null, snapshot(attr));
@@ -159,6 +160,14 @@ public class CiAttributeService {
     private CiModel loadModel(String modelId, String tenantId) {
         return ciModelMapper.findByName(modelId, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("模型不存在: " + modelId));
+    }
+
+    private void insertAttribute(CiAttribute attr) {
+        try {
+            ciAttributeMapper.insert(attr);
+        } catch (DuplicateKeyException e) {
+            throw new IllegalStateException("字段标识已存在: " + attr.getFieldKey(), e);
+        }
     }
 
     private CiAttribute loadAttribute(Long attrId, String tenantId, String modelName) {

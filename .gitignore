@@ -50,3 +50,4 @@ logs/
 # 临时截图文件
 *.png
 !frontend/public/**/*.png
+claude-*.log

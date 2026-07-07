@@ -129,10 +129,10 @@ export default function DashboardPage() {
 
   const quickLinks = [
     {
-      title: 'CMDB 实例管理',
-      description: '查询、筛选、维护实例，并从详情抽屉查看拓扑、告警和变更历史。',
+      title: 'CMDB 概览',
+      description: '查看模型分类、实例浏览和近期 CI 动态。',
       icon: Database,
-      href: '/cmdb/instances',
+      href: '/cmdb',
     },
     {
       title: '变更文档',
