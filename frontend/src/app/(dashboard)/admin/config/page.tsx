@@ -25,12 +25,10 @@ const WATERMARK_POSITION_LABELS: Record<WatermarkPosition, string> = {
   center: '居中',
 }
 
-function ProcessVersionSelector({ value, configKey, onSave }: {
+function ProcessVersionSelector({ value, onSave }: {
   value: string
-  configKey: string
   onSave: (definitionId: string) => Promise<void>
 }) {
-  const [saving, setSaving] = useState(false)
   const { data: allDefs = [] } = useQuery<any[]>({
     queryKey: ['process-defs-selector'],
     queryFn: () => api.get('/workflow/definitions').then(r => {
@@ -39,14 +37,16 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
     }),
   })
 
+  // Initialize derived state from config (avoid setState in effect)
   const [selectedKey, setSelectedKey] = useState(() => {
-    if (!value) return ''
+    if (!value || allDefs.length === 0) return ''
     const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
     return match?.key ?? ''
   })
 
+  // Update selectedKey when allDefs loads and value is set but selectedKey is empty
   useEffect(() => {
-    if (value && !selectedKey) {
+    if (value && !selectedKey && allDefs.length > 0) {
       const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
       if (match) setSelectedKey(match.key)
     }
@@ -98,8 +98,8 @@ function ProcessVersionSelector({ value, configKey, onSave }: {
           ))}
         </SelectContent>
       </Select>
-      <Button variant="outline" size="sm" disabled={saving || !selectedDefId}>
-        {saving ? '保存中...' : '已选择'}
+      <Button variant="outline" size="sm" disabled={!selectedDefId}>
+        已选择
       </Button>
     </div>
   )
@@ -154,8 +154,10 @@ export default function AdminConfigPage() {
   const [prometheusUrl, setPrometheusUrl] = useState('')
   const [prometheusInterval, setPrometheusInterval] = useState('60')
 
+  // Initialize form state from config when it loads (one-time sync with guard)
+  const [initialized, setInitialized] = useState(false)
   useEffect(() => {
-    if (!config || Object.keys(config).length === 0) return
+    if (!config || Object.keys(config).length === 0 || initialized) return
     setSmtpEnabled(config['smtp.enabled'] === 'true')
     setHost(config['smtp.host'] ?? '')
     setPort(config['smtp.port'] ?? '465')
@@ -174,7 +176,8 @@ export default function AdminConfigPage() {
     setPrometheusEnabled(config['prometheus.enabled'] === 'true')
     setPrometheusUrl(config['prometheus.url'] ?? '')
     setPrometheusInterval(config['prometheus.scrape_interval'] ?? '60')
-  }, [config])
+    setInitialized(true)
+  }, [config, initialized])
 
   const smtpMutation = useMutation({
     mutationFn: () => api.put('/admin/config/smtp', { enabled: smtpEnabled, host, port: Number(port), username, password, from, fromName, ssl }),
@@ -407,7 +410,6 @@ export default function AdminConfigPage() {
                   <p className="text-xs text-muted-foreground mb-2">组员提交日报后使用的审批流程及版本</p>
                   <ProcessVersionSelector
                     value={config['daily_report_process_definition_id'] || ''}
-                    configKey="daily_report_process_definition_id"
                     onSave={async (definitionId) => {
                       await api.put('/admin/config', { daily_report_process_definition_id: definitionId })
                       toast.success('日报审批流程已更新')
@@ -421,7 +423,6 @@ export default function AdminConfigPage() {
                   <p className="text-xs text-muted-foreground mb-2">变更文档提交后使用的审批流程及版本</p>
                   <ProcessVersionSelector
                     value={config['change_doc_process_definition_id'] || ''}
-                    configKey="change_doc_process_definition_id"
                     onSave={async (definitionId) => {
                       await api.put('/admin/config', { change_doc_process_definition_id: definitionId })
                       toast.success('变更文档审批流程已更新')
@@ -435,7 +436,6 @@ export default function AdminConfigPage() {
                   <p className="text-xs text-muted-foreground mb-2">设备密码查看权限申请使用的审批流程及版本</p>
                   <ProcessVersionSelector
                     value={config['device_access_process_definition_id'] || ''}
-                    configKey="device_access_process_definition_id"
                     onSave={async (definitionId) => {
                       await api.put('/admin/config', { device_access_process_definition_id: definitionId })
                       toast.success('设备权限审批流程已更新')

@@ -21,7 +21,6 @@ interface BpmnEditorProps {
 export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const flowRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
 
@@ -34,44 +33,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   // Sequence flow condition editing
   const [seqFlow, setSeqFlow] = useState<{ name: string; condition: string; setCondition: (v: string) => void } | null>(null);
 
-  const renderSelectionFields = useCallback((element: any) => {
-    const bo = element?.businessObject;
-    if (!bo) { setFlowableFields(null); setSeqFlow(null); return; }
-
-    // UserTask → Flowable Assignment
-    if (bo.$type === 'bpmn:UserTask') {
-      setSeqFlow(null);
-      renderFlowFields(element);
-      return;
-    }
-
-    // SequenceFlow → Condition
-    if (bo.$type === 'bpmn:SequenceFlow') {
-      setFlowableFields(null);
-      const condExp = bo.get('conditionExpression');
-      const cond = condExp?.get('body') || '';
-      const bpmnFactory = modelerRef.current?.get('bpmnFactory');
-      const modeling = modelerRef.current?.get('modeling');
-      setSeqFlow({
-        name: bo.get('name') || '',
-        condition: cond,
-        setCondition: (v: string) => {
-          if (!bpmnFactory || !modeling) return;
-          if (!v) {
-            modeling.updateModdleProperties(element, bo, { conditionExpression: undefined });
-          } else {
-            const newCond = bpmnFactory.create('bpmn:FormalExpression', { body: v });
-            modeling.updateModdleProperties(element, bo, { conditionExpression: newCond });
-          }
-        }
-      });
-      return;
-    }
-
-    setFlowableFields(null);
-    setSeqFlow(null);
-  }, []);
-
+  // IMPORTANT: Declare renderFlowFields before renderSelectionFields to avoid "used before declared" error
   const renderFlowFields = useCallback((element: any) => {
     const bo = element?.businessObject;
 
@@ -115,6 +77,44 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       { key: 'candGroups', label: 'Candidate Groups', value: extVal('CandidateGroups'), setValue: v => setExtVal('CandidateGroups', v) },
     ]);
   }, []);
+
+  const renderSelectionFields = useCallback((element: any) => {
+    const bo = element?.businessObject;
+    if (!bo) { setFlowableFields(null); setSeqFlow(null); return; }
+
+    // UserTask → Flowable Assignment
+    if (bo.$type === 'bpmn:UserTask') {
+      setSeqFlow(null);
+      renderFlowFields(element);
+      return;
+    }
+
+    // SequenceFlow → Condition
+    if (bo.$type === 'bpmn:SequenceFlow') {
+      setFlowableFields(null);
+      const condExp = bo.get('conditionExpression');
+      const cond = condExp?.get('body') || '';
+      const bpmnFactory = modelerRef.current?.get('bpmnFactory');
+      const modeling = modelerRef.current?.get('modeling');
+      setSeqFlow({
+        name: bo.get('name') || '',
+        condition: cond,
+        setCondition: (v: string) => {
+          if (!bpmnFactory || !modeling) return;
+          if (!v) {
+            modeling.updateModdleProperties(element, bo, { conditionExpression: undefined });
+          } else {
+            const newCond = bpmnFactory.create('bpmn:FormalExpression', { body: v });
+            modeling.updateModdleProperties(element, bo, { conditionExpression: newCond });
+          }
+        }
+      });
+      return;
+    }
+
+    setFlowableFields(null);
+    setSeqFlow(null);
+  }, [renderFlowFields]);
 
   useEffect(() => {
     if (!containerRef.current || modelerRef.current) return;

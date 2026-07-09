@@ -12,7 +12,6 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { ChevronDown, CheckCircle, Pencil, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
