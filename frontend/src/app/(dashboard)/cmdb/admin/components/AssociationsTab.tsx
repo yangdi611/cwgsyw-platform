@@ -13,8 +13,8 @@ import { Plus, Trash2, PencilLine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { usePermission } from '@/hooks/usePermission'
 import { AssociationDefsSection } from './AssociationDefsSection'
-import type { CiModelVO } from './types'
-import { getApiErrorMessage } from './utils'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface AssociationAttrVO {
   id: number
@@ -47,7 +47,7 @@ function AssociationsTab() {
   const canWrite = hasPermission('cmdb_model', 'update')
 
   // ── Association Kinds / Defs (read-only from model data) ──
-  const { data: models = [] } = useQuery<CiModelVO[]>({
+  const { data: models = [] } = useQuery<CiModelAdminItem[]>({
     queryKey: ['cmdb-models'],
     queryFn: async () => {
       try {

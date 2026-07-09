@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner'
 import { Plus, PencilLine, Trash2, RefreshCw, ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { CiModelVO } from './types'
-import { getApiErrorMessage, getModelDisplayName } from './utils'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
+import { getModelDisplayName } from './utils'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface CiAssociationDefVO {
   id: number

@@ -2,28 +2,10 @@
  * Shared types for CMDB Admin components
  */
 
-export interface CiModelVO {
-  id: number
-  modelId: string
-  name: string
-  displayName?: string
-  icon: string
-  group: string
-  groupName?: string
-  description: string
-  isBuiltIn: boolean
-  isPaused: boolean
-}
+import type { CiModelAdminItem, CiAttributeGroupResponse } from '@/types/cmdb-model'
 
-export interface ModelGroupVO {
-  id: number
-  code: string
-  name: string
-  icon: string | null
-  sortOrder: number
-  isBuiltIn: boolean
-  modelCount: number
-}
+// Re-export shared types for convenience
+export type { CiModelAdminItem, CiAttributeGroupResponse }
 
 export interface CiAssociationDefVO {
   id: number
@@ -54,26 +36,4 @@ export interface AssociationAttrVO {
   defaultValue?: string
   enumOptions?: string[]
   sortOrder: number
-}
-
-export interface CiAttributeGroupVO {
-  id: number
-  modelId: string
-  name: string
-  sortOrder: number
-  groupId?: string
-  isBuiltIn?: boolean
-  attributeCount?: number
-}
-
-/**
- * API error type for safer error handling
- */
-export type ApiErrorLike = {
-  response?: {
-    data?: {
-      message?: string
-    }
-  }
-  message?: string
 }

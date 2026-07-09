@@ -16,11 +16,11 @@ import {
   DropdownMenuGroup,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import type { CiModelVO } from './types'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
 import { GROUP_ICONS, getModelDisplayName } from './utils'
 
 interface ModelCardProps {
-  model: CiModelVO
+  model: CiModelAdminItem
   groups: { code: string; name: string }[]
   canWrite: boolean
   canCreate: boolean
@@ -46,7 +46,7 @@ export function ModelCard({
   onCopy,
   onDelete,
 }: ModelCardProps) {
-  const Icon = GROUP_ICONS[model.icon] ?? Box
+  const Icon = model.icon ? GROUP_ICONS[model.icon] : Box
   const router = useRouter()
   const canRename = canWrite && !model.isBuiltIn
   const canCopy = canCreate && !model.isBuiltIn
