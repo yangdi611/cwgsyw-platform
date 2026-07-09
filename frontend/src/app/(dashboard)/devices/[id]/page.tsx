@@ -7,6 +7,7 @@ import { Button } from '@/components/v2/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
+import { Chip } from '@/components/v2/Chip'
 import { CredentialRow } from '@/components/device/CredentialRow'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
@@ -57,18 +58,6 @@ const ORG_GROUPS = [
   { id: 4, name: '网络组' },
   { id: 5, name: '云平台组' },
 ]
-
-function Chip({ children, tone = 'default' }: { children: React.ReactNode; tone?: 'default' | 'primary' | 'neutral' }) {
-  const cls =
-    tone === 'primary'
-      ? 'border-v2-primary-border bg-v2-primary-soft text-v2-primary'
-      : 'border-v2-border bg-v2-surface-soft text-v2-fg'
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium ${cls}`}>
-      {children}
-    </span>
-  )
-}
 
 function CredentialSection({
   group,
@@ -245,7 +234,7 @@ export default function DeviceDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-v2-fg">{device.name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <Chip tone="primary">{typeLabels[device.deviceType] ?? device.deviceType}</Chip>
+              <Chip variant="primary">{typeLabels[device.deviceType] ?? device.deviceType}</Chip>
               {device.category && <Chip>{device.category}</Chip>}
               {device.groupName && <span className="text-sm text-v2-muted">{device.groupName}</span>}
             </div>

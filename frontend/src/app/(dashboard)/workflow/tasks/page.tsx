@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { Textarea } from '@/components/v2/Textarea'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
+import { Chip } from '@/components/v2/Chip'
 import { PageHeader, EmptyState } from '@/components/shared'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -25,23 +26,6 @@ const businessTypeLabels: Record<string, string> = {
   daily_report: '日报审批',
   change_doc: '变更文档审批',
   device: '设备权限申请',
-}
-
-type ChipTone = 'default' | 'primary' | 'success' | 'warning' | 'danger'
-
-function Chip({ children, tone = 'default' }: { children: React.ReactNode; tone?: ChipTone }) {
-  const styles: Record<ChipTone, string> = {
-    default: 'border-v2-border bg-v2-surface-soft text-v2-fg',
-    primary: 'border-v2-primary-border bg-v2-primary-soft text-v2-primary',
-    success: 'border-v2-success-border bg-v2-success-soft text-v2-success',
-    warning: 'border-v2-warning-border bg-v2-warning-soft text-v2-warning',
-    danger: 'border-v2-danger-border bg-v2-danger-soft text-v2-danger',
-  }
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium ${styles[tone]}`}>
-      {children}
-    </span>
-  )
 }
 
 interface ApprovalState {
@@ -126,10 +110,10 @@ export default function WorkflowTasksPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-v2-fg">{task.taskName}</span>
-                      <Chip tone="primary">
+                      <Chip variant="primary">
                         {(businessTypeLabels[task.businessType] ?? task.businessType) || '审批'}
                       </Chip>
-                      {task.assignee && <Chip tone="success">已认领</Chip>}
+                      {task.assignee && <Chip variant="success">已认领</Chip>}
                     </div>
                     <p className="mt-1 text-sm text-v2-muted">
                       {new Date(task.createTime).toLocaleString('zh-CN')}

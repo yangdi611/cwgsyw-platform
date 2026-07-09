@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
+import { Chip } from '@/components/v2/Chip'
 import {
   PageHeader,
   FilterBar,
@@ -46,14 +47,6 @@ function TypeBadge({ type }: { type: string }) {
     <span className="inline-flex items-center gap-1.5 text-sm text-v2-fg">
       <Icon className="h-3.5 w-3.5 text-v2-muted" />
       {tc.label}
-    </span>
-  )
-}
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-v2-border bg-v2-surface-soft text-xs font-medium text-v2-fg">
-      {children}
     </span>
   )
 }

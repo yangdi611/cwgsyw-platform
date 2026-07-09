@@ -1,7 +1,7 @@
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Chip } from '@/components/v2/Chip'
 import { Pencil, Trash2 } from 'lucide-react'
-import { Chip } from './Chip'
 import type { CiAttributeVO } from './types'
 import { FIELD_TYPES } from './types'
 
@@ -58,11 +58,11 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                         类型：{FIELD_TYPES[attr.fieldType] ?? attr.fieldType}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        <Chip label="必填" active={attr.required} />
-                        <Chip label="可搜索" active={attr.searchable} />
-                        <Chip label="唯一" active={attr.unique} />
-                        <Chip label="列表显示" active={attr.inList} />
-                        <Chip label="表单显示" active={attr.inForm} />
+                        <Chip active={attr.required}>必填</Chip>
+                        <Chip active={attr.searchable}>可搜索</Chip>
+                        <Chip active={attr.unique}>唯一</Chip>
+                        <Chip active={attr.inList}>列表显示</Chip>
+                        <Chip active={attr.inForm}>表单显示</Chip>
                       </div>
                     </div>
                     {canManage && (
