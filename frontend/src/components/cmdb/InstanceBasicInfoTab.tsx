@@ -131,37 +131,55 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
                 {grp.name}
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
-              {attrs.map(a => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {attrs.map((a, idx) => {
                 const rawVal = inst.fieldsData[a.fieldKey]
                 const editVal = a.fieldKey in editAttrs ? editAttrs[a.fieldKey] : rawVal
                 const isTableField = a.fieldType === 'table'
+                const isEditing = editing && a.isEditable
+                const isLastInRow = (idx + 1) % 3 === 0 || idx === attrs.length - 1
+
                 return (
-                  <div key={a.id} className={isTableField ? 'md:col-span-2' : ''}>
-                    <div className="mb-1 flex items-center gap-2">
-                      <label className="text-sm font-semibold text-v2-fg">
-                        {a.name}{a.isRequired && <span className="text-v2-danger">*</span>}
-                      </label>
-                      {a.unit && <span className="text-xs text-v2-muted">({a.unit})</span>}
-                    </div>
-                    {editing && a.isEditable ? (
-                      isTableField ? (
-                        <TableFieldEditor
+                  <div
+                    key={a.id}
+                    className={`px-4 py-2.5 border-b border-v2-border last:border-b-0 ${
+                      isTableField ? 'md:col-span-2 lg:col-span-3' : ''
+                    } ${
+                      !isTableField && !isLastInRow ? 'lg:border-r' : ''
+                    } ${
+                      isEditing || isTableField ? '' : 'flex items-baseline gap-3'
+                    }`}
+                  >
+                    <dt
+                      className={`text-xs text-v2-muted ${
+                        isEditing || isTableField ? 'mb-1.5' : 'w-28 shrink-0 truncate'
+                      }`}
+                      title={a.name}
+                    >
+                      {a.name}
+                      {a.unit && <span className="ml-0.5">({a.unit})</span>}
+                      {a.isRequired && <span className="ml-0.5 text-v2-danger">*</span>}
+                    </dt>
+                    <dd className={`${isEditing || isTableField ? '' : 'min-w-0 flex-1 text-sm text-v2-fg'}`}>
+                      {isEditing ? (
+                        isTableField ? (
+                          <TableFieldEditor
+                            schema={a.option}
+                            rows={Array.isArray(editVal) ? editVal as Record<string, unknown>[] : []}
+                            onChange={rows => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: rows }))}
+                          />
+                        ) : (
+                          renderEditField(a, String(editVal ?? ''), v => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: v })))
+                        )
+                      ) : isTableField ? (
+                        <TableFieldDisplay
                           schema={a.option}
-                          rows={Array.isArray(editVal) ? editVal as Record<string, unknown>[] : []}
-                          onChange={rows => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: rows }))}
+                          rows={Array.isArray(rawVal) ? rawVal as Record<string, unknown>[] : []}
                         />
                       ) : (
-                        renderEditField(a, String(editVal ?? ''), v => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: v })))
-                      )
-                    ) : isTableField ? (
-                      <TableFieldDisplay
-                        schema={a.option}
-                        rows={Array.isArray(rawVal) ? rawVal as Record<string, unknown>[] : []}
-                      />
-                    ) : (
-                      renderDisplayValue(a, rawVal)
-                    )}
+                        renderDisplayValue(a, rawVal)
+                      )}
+                    </dd>
                   </div>
                 )
               })}
