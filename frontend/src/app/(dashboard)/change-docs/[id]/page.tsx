@@ -8,77 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { ArrowLeft, Download, Sparkles, Save, Send, Check, X, FileText, FilePlus2 } from 'lucide-react'
+import { ArrowLeft, FileText, FilePlus2 } from 'lucide-react'
 import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
-import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
-import { isTableFieldConfig, type TableRow, type FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
-
-type DocType = 'application' | 'plan' | 'general'
-
-interface ChangeDocVO {
-  id: number
-  changeNo: string
-  title: string
-  status: string
-  applicationTemplateId: number | null
-  applicationTemplateName: string | null
-  planTemplateId: number | null
-  planTemplateName: string | null
-  applicantId: number
-  applicantName: string
-  applyTime: string
-  approvedAt: string | null
-  approverId: number | null
-  approverName: string | null
-  approverComment: string | null
-  createdAt: string
-  updatedAt: string
-  fieldsData: Record<string, unknown>
-  applicationFieldConfig: FieldConfigVO[] | null
-  planFieldConfig: FieldConfigVO[] | null
-}
-
-interface TemplateVO {
-  id: number
-  name: string
-  docType: DocType
-  active: boolean
-  hasDocx: boolean
-}
-
-interface LinkedCiInstanceVO {
-  id: number
-  name: string
-  modelName: string
-  impactLevel?: string
-}
-
-type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
-
-function statusMeta(s: string): { variant: StatusVariant; label: string } {
-  if (s === 'draft') return { variant: 'neutral', label: '草稿' }
-  if (s === 'pending') return { variant: 'warn', label: '待审批' }
-  if (s === 'plan_pending') return { variant: 'warn', label: '待补填方案' }
-  if (s === 'approved') return { variant: 'ok', label: '已通过' }
-  if (s === 'rejected') return { variant: 'danger', label: '已拒绝' }
-  return { variant: 'neutral', label: s || '未知' }
-}
-
-const DOC_TYPE_LABEL: Record<DocType, string> = {
-  application: '申请单',
-  plan: '方案',
-  general: '通用',
-}
-
-const DOC_TYPE_TONE: Record<DocType, 'ok' | 'warn' | 'neutral'> = {
-  application: 'ok',
-  plan: 'warn',
-  general: 'neutral',
-}
+import type { TableRow } from '@/components/change-doc/tableFieldTypes'
+import { FieldList } from './components/FieldList'
+import { DocActionBar } from './components/DocActionBar'
+import { PlanTemplatePicker } from './components/PlanTemplatePicker'
+import { statusMeta, DOC_TYPE_LABEL, DOC_TYPE_TONE } from './components/types'
+import type { ChangeDocVO, LinkedCiInstanceVO, TemplateVO } from './components/types'
 
 export default function ChangeDocDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -118,10 +58,7 @@ export default function ChangeDocDetailPage() {
   const isPending = doc?.status === 'pending'
   const isApproved = doc?.status === 'approved'
   const isRejected = doc?.status === 'rejected'
-  // approved / rejected → 允许重新编辑（提交后回 draft 重审）
   const canReedit = isApproved || isRejected
-
-  // 在 plan_pending 时只能编辑 plan 字段
   const appEditable = isDraft || canReedit
   const planEditable = isDraft || isPlanPending || canReedit
 
@@ -134,10 +71,7 @@ export default function ChangeDocDetailPage() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      api.put(`/change-docs/${id}`, {
-        title: title.trim() || undefined,
-        fieldsData: fieldsData,
-      }),
+      api.put(`/change-docs/${id}`, { title: title.trim() || undefined, fieldsData }),
     onSuccess: () => {
       toast.success('已保存')
       queryClient.invalidateQueries({ queryKey: ['change-doc', id] })
@@ -187,7 +121,7 @@ export default function ChangeDocDetailPage() {
 
   const setPlanTemplateMutation = useMutation({
     mutationFn: (planTemplateId: number) =>
-      api.put(`/change-docs/${id}`, { planTemplateId: planTemplateId }),
+      api.put(`/change-docs/${id}`, { planTemplateId }),
     onSuccess: () => {
       toast.success('方案模板已设置')
       setPlanTemplatePickerOpen(false)
@@ -199,7 +133,6 @@ export default function ChangeDocDetailPage() {
     },
   })
 
-  // 拉所有可用的 plan 类模板供补填用
   const { data: allTemplates = [] } = useQuery<TemplateVO[]>({
     queryKey: ['change-doc-templates-active-for-detail'],
     queryFn: () => api.get('/admin/change-doc-templates').then((r) => r.data.data),
@@ -287,8 +220,7 @@ export default function ChangeDocDetailPage() {
     setAiLoadingField(fieldKey)
     try {
       const res = await api.post(`/change-docs/${id}/ai-generate`, { fieldKey })
-      const generated = res.data.data as string
-      setFieldsData((f) => ({ ...f, [fieldKey]: generated }))
+      setFieldsData((f) => ({ ...f, [fieldKey]: res.data.data as string }))
       toast.success('AI 内容已生成，请审阅后保存')
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
@@ -301,15 +233,13 @@ export default function ChangeDocDetailPage() {
   const handleExport = async (which: 'application' | 'plan', format: 'pdf' | 'docx') => {
     setExporting(true)
     try {
-      const res = await api.get(
-        `/change-docs/${id}/export?format=${format}&which=${which}`,
-        { responseType: 'blob' },
-      )
+      const res = await api.get(`/change-docs/${id}/export?format=${format}&which=${which}`, {
+        responseType: 'blob',
+      })
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
-      const partLabel = which === 'application' ? '申请单' : '方案'
-      a.download = `${doc?.changeNo ?? 'change-doc'}_${partLabel}.${format}`
+      a.download = `${doc?.changeNo ?? 'change-doc'}_${which === 'application' ? '申请单' : '方案'}.${format}`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -320,15 +250,11 @@ export default function ChangeDocDetailPage() {
   }
 
   const visibleAppFields = useMemo(
-    () => (doc?.applicationFieldConfig ?? [])
-      .filter((f) => f.inForm)
-      .sort((a, b) => a.sortOrder - b.sortOrder),
+    () => (doc?.applicationFieldConfig ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
     [doc],
   )
   const visiblePlanFields = useMemo(
-    () => (doc?.planFieldConfig ?? [])
-      .filter((f) => f.inForm)
-      .sort((a, b) => a.sortOrder - b.sortOrder),
+    () => (doc?.planFieldConfig ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
     [doc],
   )
 
@@ -336,74 +262,6 @@ export default function ChangeDocDetailPage() {
   if (!doc) return <p className="text-sm text-v2-muted">文档不存在</p>
 
   const st = statusMeta(doc.status)
-
-  const renderFieldList = (fields: FieldConfigVO[], editable: boolean) =>
-    fields.map((field) => {
-      if (field.fieldType === 'table' && isTableFieldConfig(field.config)) {
-        const rows = Array.isArray(fieldsData[field.fieldKey]) ? (fieldsData[field.fieldKey] as TableRow[]) : []
-        return (
-          <div key={field.fieldKey} className="space-y-1.5">
-            <Label>
-              {field.label}
-              {field.required && <span className="ml-1 text-v2-danger">*</span>}
-            </Label>
-            <TableFieldEditor
-              config={field.config}
-              rows={rows}
-              onChange={setTableField(field.fieldKey)}
-              disabled={!editable}
-            />
-          </div>
-        )
-      }
-
-      const value = typeof fieldsData[field.fieldKey] === 'string' ? (fieldsData[field.fieldKey] as string) : ''
-      const isTextarea = field.fieldType === 'textarea'
-      return (
-        <div key={field.fieldKey} className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label>
-              {field.label}
-              {field.required && <span className="ml-1 text-v2-danger">*</span>}
-            </Label>
-            {editable && isTextarea && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => handleAiGenerate(field.fieldKey)}
-                disabled={aiLoadingField === field.fieldKey}
-              >
-                <Sparkles className="h-3 w-3" />
-                {aiLoadingField === field.fieldKey ? 'AI 生成中…' : 'AI 生成'}
-              </Button>
-            )}
-          </div>
-          {editable ? (
-            isTextarea ? (
-              <Textarea
-                value={value}
-                onChange={setField(field.fieldKey)}
-                placeholder={field.placeholder ?? undefined}
-                rows={4}
-              />
-            ) : field.fieldType === 'date' ? (
-              <Input type="date" value={value} onChange={setField(field.fieldKey)} />
-            ) : field.fieldType === 'datetime' ? (
-              <Input type="datetime-local" value={value} onChange={setField(field.fieldKey)} />
-            ) : (
-              <Input
-                value={value}
-                onChange={setField(field.fieldKey)}
-                placeholder={field.placeholder ?? undefined}
-              />
-            )
-          ) : (
-            <p className="whitespace-pre-wrap text-sm text-v2-fg">{value || '—'}</p>
-          )}
-        </div>
-      )
-    })
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -433,7 +291,10 @@ export default function ChangeDocDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
-            <Label>变更标题{(isDraft || canReedit || isPlanPending) && <span className="ml-1 text-v2-danger">*</span>}</Label>
+            <Label>
+              变更标题
+              {(isDraft || canReedit || isPlanPending) && <span className="ml-1 text-v2-danger">*</span>}
+            </Label>
             {(isDraft || canReedit || isPlanPending) && hasPermission('change_doc', 'update') ? (
               <Input
                 value={title}
@@ -481,7 +342,7 @@ export default function ChangeDocDetailPage() {
         </CardContent>
       </Card>
 
-      {/* 申请单 Card */}
+      {/* 申请单 */}
       {doc.applicationTemplateId && (
         <Card>
           <CardHeader>
@@ -494,13 +355,21 @@ export default function ChangeDocDetailPage() {
             {visibleAppFields.length === 0 ? (
               <p className="text-sm text-v2-muted">该模板未配置表单字段</p>
             ) : (
-              renderFieldList(visibleAppFields, appEditable)
+              <FieldList
+                fields={visibleAppFields}
+                editable={appEditable}
+                fieldsData={fieldsData}
+                aiLoadingField={aiLoadingField}
+                onFieldChange={setField}
+                onTableFieldChange={setTableField}
+                onAiGenerate={handleAiGenerate}
+              />
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* 方案 Card */}
+      {/* 方案 */}
       {doc.planTemplateId && (
         <Card>
           <CardHeader>
@@ -513,13 +382,21 @@ export default function ChangeDocDetailPage() {
             {visiblePlanFields.length === 0 ? (
               <p className="text-sm text-v2-muted">该模板未配置表单字段</p>
             ) : (
-              renderFieldList(visiblePlanFields, planEditable)
+              <FieldList
+                fields={visiblePlanFields}
+                editable={planEditable}
+                fieldsData={fieldsData}
+                aiLoadingField={aiLoadingField}
+                onFieldChange={setField}
+                onTableFieldChange={setTableField}
+                onAiGenerate={handleAiGenerate}
+              />
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Linked CI instances */}
+      {/* 关联 CI 实例 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">关联 CI 实例</CardTitle>
@@ -533,7 +410,7 @@ export default function ChangeDocDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Approval result */}
+      {/* 审批结果 */}
       {(doc.status === 'approved' || doc.status === 'rejected') && (
         <Card>
           <CardHeader>
@@ -560,195 +437,37 @@ export default function ChangeDocDetailPage() {
         </Card>
       )}
 
-      {/* Action bar */}
+      {/* 操作栏 */}
       <Card>
-        <CardContent className="flex flex-wrap gap-2">
-          {/* approved / rejected：可修改 → 自动回 draft → 重新提交 */}
-          {canReedit && hasPermission('change_doc', 'update') && (
-            <>
-              <Button
-                variant="primary"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-              >
-                <Save className="h-4 w-4" />
-                {isApproved ? '修改并重新审批' : '修改并重新提交'}
-              </Button>
-              <span className="self-center text-xs text-v2-muted">
-                {isApproved
-                  ? '保存后将退回草稿状态，需重新提交审批。'
-                  : '保存后将退回草稿状态，可重新提交审批。'}
-              </span>
-            </>
-          )}
-
-          {/* draft：保存 + 提交 */}
-          {isDraft && (
-            <>
-              {hasPermission('change_doc', 'update') && (
-                <Button
-                  variant="primary"
-                  onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending}
-                >
-                  <Save className="h-4 w-4" />
-                  保存
-                </Button>
-              )}
-              <Button
-                variant="secondary"
-                onClick={() => submitMutation.mutate()}
-                disabled={submitMutation.isPending}
-              >
-                <Send className="h-4 w-4" />
-                {doc.applicationTemplateId && !doc.planTemplateId
-                  ? '提交申请单（稍后补填方案）'
-                  : '提交审批'}
-              </Button>
-            </>
-          )}
-
-          {/* plan_pending：保存方案 + 提交方案 */}
-          {isPlanPending && hasPermission('change_doc', 'update') && (
-            <>
-              <Button
-                variant="primary"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-              >
-                <Save className="h-4 w-4" />
-                保存方案
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => submitPlanMutation.mutate()}
-                disabled={submitPlanMutation.isPending || !doc.planTemplateId}
-              >
-                <Send className="h-4 w-4" />
-                提交方案
-              </Button>
-            </>
-          )}
-
-          {/* pending：审批 */}
-          {isPending && hasPermission('change_doc', 'approve') && (
-            <>
-              <Input
-                placeholder="审批意见（可选）"
-                value={approveComment}
-                onChange={(e) => setApproveComment(e.target.value)}
-                className="max-w-xs flex-1"
-              />
-              <Button
-                variant="primary"
-                onClick={() => approveMutation.mutate(true)}
-                disabled={approveMutation.isPending}
-              >
-                <Check className="h-4 w-4" />
-                审批通过
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => approveMutation.mutate(false)}
-                disabled={approveMutation.isPending}
-              >
-                <X className="h-4 w-4" />
-                拒绝
-              </Button>
-            </>
-          )}
-
-          {/* approved：分别导出申请单 / 方案 */}
-          {doc.status === 'approved' && (
-            <>
-              {doc.applicationTemplateId && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleExport('application', 'pdf')}
-                    disabled={exporting}
-                  >
-                    <Download className="h-4 w-4" />
-                    导出申请单 PDF
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleExport('application', 'docx')}
-                    disabled={exporting}
-                  >
-                    <Download className="h-4 w-4" />
-                    导出申请单 Word
-                  </Button>
-                </>
-              )}
-              {doc.planTemplateId && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleExport('plan', 'pdf')}
-                    disabled={exporting}
-                  >
-                    <Download className="h-4 w-4" />
-                    导出方案 PDF
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleExport('plan', 'docx')}
-                    disabled={exporting}
-                  >
-                    <Download className="h-4 w-4" />
-                    导出方案 Word
-                  </Button>
-                </>
-              )}
-            </>
-          )}
+        <CardContent>
+          <DocActionBar
+            doc={doc}
+            isDraft={isDraft}
+            isPlanPending={isPlanPending}
+            isPending={isPending}
+            canReedit={canReedit}
+            isApproved={isApproved}
+            hasPermission={hasPermission}
+            saveMutation={saveMutation}
+            submitMutation={submitMutation}
+            submitPlanMutation={submitPlanMutation}
+            approveMutation={approveMutation}
+            approveComment={approveComment}
+            onApproveCommentChange={setApproveComment}
+            exporting={exporting}
+            onExport={handleExport}
+          />
         </CardContent>
       </Card>
 
-      {/* 方案模板选择 modal */}
-      {planTemplatePickerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setPlanTemplatePickerOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-v2-md border border-v2-border bg-v2-surface p-4 shadow-v2-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-v2-fg">选择方案模板</h2>
-              <Button variant="ghost" size="sm" onClick={() => setPlanTemplatePickerOpen(false)}>
-                关闭
-              </Button>
-            </div>
-            <div className="max-h-72 space-y-2 overflow-y-auto">
-              {planTemplateCandidates.length === 0 && (
-                <p className="py-4 text-center text-sm text-v2-muted">暂无可用方案模板</p>
-              )}
-              {planTemplateCandidates.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setPlanTemplateMutation.mutate(t.id)}
-                  disabled={setPlanTemplateMutation.isPending}
-                  className="flex w-full items-center gap-2 rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 text-left text-sm transition-colors hover:border-v2-primary-border hover:bg-v2-surface-hover"
-                >
-                  <FileText className="h-4 w-4 text-v2-muted" />
-                  <span className="font-semibold text-v2-fg">{t.name}</span>
-                  <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
-                    {DOC_TYPE_LABEL[t.docType]}
-                  </StatusBadge>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 方案模板选择弹层 */}
+      <PlanTemplatePicker
+        open={planTemplatePickerOpen}
+        templates={planTemplateCandidates}
+        isPending={setPlanTemplateMutation.isPending}
+        onClose={() => setPlanTemplatePickerOpen(false)}
+        onSelect={(id) => setPlanTemplateMutation.mutate(id)}
+      />
     </div>
   )
 }
