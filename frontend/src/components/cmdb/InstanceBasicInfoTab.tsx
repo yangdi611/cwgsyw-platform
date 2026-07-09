@@ -125,9 +125,13 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
       {sortedGroupIds.map(grp => {
         const attrs = attrsByGroup.get(grp.id) ?? []
         return (
-          <div key={grp.id} className="rounded-v2-lg border border-v2-border bg-v2-surface p-5">
-            <h4 className="mb-4 text-sm font-semibold text-v2-fg">{grp.name}</h4>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div key={grp.id} className="overflow-hidden rounded-xl border border-v2-border bg-v2-surface">
+            <div className="px-4 py-2 border-b border-v2-border bg-v2-surface-soft">
+              <span className="text-xs font-bold uppercase tracking-wider text-v2-muted">
+                {grp.name}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
               {attrs.map(a => {
                 const rawVal = inst.fieldsData[a.fieldKey]
                 const editVal = a.fieldKey in editAttrs ? editAttrs[a.fieldKey] : rawVal
