@@ -78,7 +78,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     ]);
   }, []);
 
-  const renderSelectionFields = useCallback((element: any) => {
+  const renderSelectionFields = useCallback((element: unknown) => {
     const bo = element?.businessObject;
     if (!bo) { setFlowableFields(null); setSeqFlow(null); return; }
 
@@ -132,7 +132,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     modelerRef.current = modeler;
 
     // Listen for selection changes to render Flowable fields + sequence flow conditions
-    modeler.on('selection.changed', (e: any) => {
+    modeler.on('selection.changed', (e: { newSelection?: unknown[] }) => {
       const sel = e.newSelection?.[0];
       if (sel) {
         renderSelectionFields(sel);
@@ -142,7 +142,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       }
     });
     modeler.on('element.changed', () => {
-      const selection: any = modeler.get('selection');
+      const selection: { get: () => { length?: number } } = modeler.get('selection');
       const sel = selection?.get()?.[0];
       if (sel) renderSelectionFields(sel);
     });
@@ -153,7 +153,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
         const result = await modeler.saveXML({ format: true });
         onChange?.(result.xml ?? '');
       } catch { /* ignore */ }
-      raf2(() => (modeler.get('canvas') as any)?.zoom('fit-viewport'));
+      raf2(() => (modeler.get('canvas') as { zoom?: (mode: string) => void })?.zoom('fit-viewport'));
     });
 
     modeler.on('commandStack.changed', async () => {
@@ -166,7 +166,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     const xml = initialXml || EMPTY_BPMN;
     modeler.importXML(xml).catch(() => modeler.importXML(EMPTY_BPMN));
 
-    const onResize = () => (modeler.get('canvas') as any)?.resized();
+    const onResize = () => (modeler.get('canvas') as { resized?: () => void })?.resized();
     window.addEventListener('resize', onResize);
     const observer = new ResizeObserver(() => onResize());
     observer.observe(containerRef.current);

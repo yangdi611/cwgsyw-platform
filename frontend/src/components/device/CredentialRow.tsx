@@ -118,8 +118,8 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
       await api.delete(`/devices/credentials/${credentialId}`)
       toast.success('账号已删除')
       onDeleted?.()
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? '删除失败')
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, '删除失败'))
     } finally {
       setDeleting(false)
     }

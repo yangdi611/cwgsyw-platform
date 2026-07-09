@@ -8,6 +8,7 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import Link from 'next/link'
 import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -102,8 +103,8 @@ export default function NewAssociationPage() {
       toast.success('关联已建立')
       router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
     },
-    onError: (e: any) => {
-      setError(e?.response?.data?.message ?? '创建失败')
+    onError: (e: unknown) => {
+      setError(getApiErrorMessage(e, '创建失败'))
     },
   })
 

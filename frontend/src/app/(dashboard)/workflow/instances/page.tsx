@@ -83,7 +83,7 @@ export default function InstancesPage() {
       const [detailRes, activityRes] = await Promise.all([
         api.get('/workflow/definitions').then((r) => {
           const defs = r.data.data?.records ?? []
-          const match = defs.find((d: any) => d.key === inst.processDefinitionKey)
+          const match = defs.find((d: { key: string; name?: string }) => d.key === inst.processDefinitionKey)
           if (match) return api.get(`/workflow/definitions/${match.id}`)
           return null
         }),

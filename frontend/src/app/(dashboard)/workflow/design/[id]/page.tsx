@@ -60,7 +60,7 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
     // Otherwise find the latest version by key
     api.get('/workflow/definitions', { params: { page: 1, size: 100 } }).then(r => {
       const defs: DefDetail[] = r.data.data?.records ?? [];
-      const match = defs.find((d: any) => d.key === decodedKey);
+      const match = defs.find((d: { key: string; name?: string }) => d.key === decodedKey);
       if (match) {
         return api.get(`/workflow/definitions/${encodeURIComponent(match.id)}`);
       }

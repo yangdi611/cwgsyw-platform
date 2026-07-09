@@ -59,7 +59,7 @@ export default function BpmnViewer({
             }
           } catch { /* ignore */ }
         });
-      }).catch((err: any) => {
+      }).catch((err: unknown) => {
         console.warn('BPMN viewer import failed:', err);
       });
 

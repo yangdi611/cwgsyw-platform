@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/v2/StatusBadge'
 import { PageHeader, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { Database, Download, RotateCcw, Trash2, AlertTriangle, Loader2, Upload } from 'lucide-react'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface BackupRecordVO {
   id: number
@@ -173,8 +174,8 @@ export default function BackupPage() {
       setRestoreError(null)
       queryClient.invalidateQueries({ queryKey: ['backups'] })
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? err?.message ?? '恢复失败，请检查后端日志'
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, '恢复失败，请检查后端日志')
       setRestoreError(msg)
     },
   })
