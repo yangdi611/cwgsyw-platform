@@ -20,15 +20,9 @@ import { JsonDiffView } from '@/components/cmdb/JsonDiffView'
 import { actionMeta, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
 import { ChevronLeft, ChevronRight, ChevronDown, X, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import type { CiModelBase } from '@/types/cmdb-model'
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
-
-interface CiModelVO {
-  id: number
-  modelId: string
-  name: string
-  displayName: string
-}
 
 interface PageData {
   records: ChangeHistoryV2VO[]
@@ -78,7 +72,7 @@ export default function CmdbChangesPage() {
     }
   }, [isHydrated, hasPermission, router])
 
-  const { data: models } = useQuery<CiModelVO[]>({
+  const { data: models } = useQuery<CiModelBase[]>({
     queryKey: ['cmdb-models-all'],
     queryFn: async () => {
       try {

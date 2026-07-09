@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardContent } from '@/components/v2/Card'
 import InstanceBrowserSection from '@/components/cmdb/InstanceBrowserSection'
+import type { CiModelSummary } from '@/types/cmdb-model'
 
 // 单接口失败不白屏
 async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined> {
@@ -15,17 +16,6 @@ async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined
   } catch {
     return undefined
   }
-}
-
-interface CiModelVO {
-  modelId: string
-  name: string
-  displayName: string
-  group: string
-  groupName: string
-  color: string | null
-  instanceCount: number
-  attributes?: unknown[]
 }
 interface ModelGroupVO {
   code: string
@@ -45,7 +35,7 @@ interface ModelGroupSection {
   code: string
   name: string
   sortOrder: number
-  models: CiModelVO[]
+  models: CiModelSummary[]
   modelCount: number
   instanceCount: number
   attributeCount: number
@@ -117,7 +107,7 @@ const GROUP_DESCRIPTION_BY_CODE: Record<string, string> = {
   apps: '业务应用与服务目录。',
 }
 
-function getAttributeCount(model: CiModelVO): number {
+function getAttributeCount(model: CiModelSummary): number {
   return Array.isArray(model.attributes) ? model.attributes.length : 0
 }
 
@@ -133,7 +123,7 @@ function getModelColor(group: ModelGroupSection, modelIndex: number): string {
   return group.palette.modelColors[modelIndex % group.palette.modelColors.length] || group.palette.tone
 }
 
-function getModelInitial(model: CiModelVO): string {
+function getModelInitial(model: CiModelSummary): string {
   const text = (model.displayName || model.name || model.modelId || '?').trim()
   return text.slice(0, 1).toUpperCase()
 }
@@ -150,7 +140,7 @@ function getPaletteVars(palette: GroupPalette): React.CSSProperties {
 export default function CmdbOverviewPage() {
   const [activeGroupCode, setActiveGroupCode] = useState<string | null>(null)
 
-  const { data: modelsData } = useQuery<{ records: CiModelVO[]; total: number } | undefined>({
+  const { data: modelsData } = useQuery<{ records: CiModelSummary[]; total: number } | undefined>({
     queryKey: ['cmdb-models-overview'],
     queryFn: () => safe(api.get('/cmdb/models', { params: { size: 100 } })),
   })
@@ -402,7 +392,7 @@ function ModelCard({
   color,
   index,
 }: {
-  model: CiModelVO
+  model: CiModelSummary
   color: string
   index: number
 }) {

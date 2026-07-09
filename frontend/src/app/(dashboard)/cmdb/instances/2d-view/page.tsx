@@ -11,21 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Grid3x3, RefreshCw, Layers } from 'lucide-react'
+import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
 
 /* ---------- Types ---------- */
-
-interface CiModelVO {
-  id: number; modelId: string; name: string; displayName: string; group: string; groupName: string
-  isBuiltIn: boolean; instanceCount: number; attributes: any[]; createdAt: string; updatedAt: string
-}
-
-interface CiAttributeVO {
-  id: number; modelId: string; fieldKey: string; name: string
-  groupId: string; groupName: string; fieldType: string
-  isRequired: boolean; isEditable: boolean; isUnique: boolean
-  isBuiltIn: boolean; isListShow: boolean; defaultValue: string
-  enumOptions: string; sortOrder: number
-}
 
 interface GroupableAttrVO {
   fieldKey: string; name: string; fieldType: string
@@ -64,7 +52,7 @@ export default function TwoDViewPage() {
   }, [hasPermission, router])
 
   // Fetch all models
-  const { data: models = [] } = useQuery<CiModelVO[]>({
+  const { data: models = [] } = useQuery<CiModelSummary[]>({
     queryKey: ['cmdb-models-all'],
     queryFn: async () => {
       try {
@@ -79,7 +67,7 @@ export default function TwoDViewPage() {
 
   // Fetch model attributes when model selected
   const selectedModel = models.find(m => m.modelId === model)
-  const { data: modelAttrs = [] } = useQuery<CiAttributeVO[]>({
+  const { data: modelAttrs = [] } = useQuery<CiAttributeResponse[]>({
     queryKey: ['cmdb-model-attrs', selectedModel?.modelId],
     queryFn: () => api.get(`/cmdb/models/${selectedModel!.modelId}/attributes`).then(r => r.data.data),
     enabled: !!selectedModel,

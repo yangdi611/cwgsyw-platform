@@ -12,20 +12,7 @@ import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { FilterBar, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
 import { Search, GitBranch, FileText, ArrowRight } from 'lucide-react'
-
-interface CiModelVO {
-  id: number
-  modelId: string
-  name: string
-  displayName: string
-  group: string
-  groupName: string
-  isBuiltIn: boolean
-  instanceCount: number
-  attributes: any[]
-  createdAt: string
-  updatedAt: string
-}
+import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
   id: number
@@ -35,7 +22,7 @@ interface CiInstanceVO {
   status: string
   owner: string
   description: string
-  fieldsData: Record<string, any>
+  fieldsData: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
@@ -92,7 +79,7 @@ export default function InstanceBrowserSection() {
   const [selected, setSelected] = useState<CiInstanceVO | null>(null)
 
   // Fetch models for filter + attribute label translation
-  const { data: models = [] } = useQuery<CiModelVO[]>({
+  const { data: models = [] } = useQuery<CiModelSummary[]>({
     queryKey: ['cmdb-models-all'],
     queryFn: async () => {
       try {
@@ -128,8 +115,8 @@ export default function InstanceBrowserSection() {
   // Translate field key → label via model attributes
   const getAttrLabel = (modelId: string, key: string): string => {
     const m = models.find((x) => x.modelId === modelId)
-    const attr = m?.attributes?.find((a: any) => (a.fieldKey ?? a.property ?? a.id) === key)
-    return attr?.displayName ?? attr?.name ?? key
+    const attr = m?.attributes?.find((a) => (a.fieldKey ?? a.id.toString()) === key)
+    return attr?.name ?? key
   }
 
   const columns = useMemo<ColumnDef<CiInstanceVO>[]>(
