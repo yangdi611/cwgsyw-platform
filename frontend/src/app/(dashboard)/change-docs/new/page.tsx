@@ -7,556 +7,290 @@ import { Button } from '@/components/v2/Button'
 import { Card, CardContent } from '@/components/v2/Card'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
-import { StatusBadge } from '@/components/v2/StatusBadge'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
-import { Sparkles, ArrowLeft, FileText } from 'lucide-react'
-import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
-import { isTableFieldConfig, type TableRow } from '@/components/change-doc/tableFieldTypes'
-import type { FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
-
-type DocType = 'application' | 'plan' | 'general'
-
-interface TemplateVO {
-  id: number
-  name: string
-  description: string
-  hasDocx: boolean
-  active: boolean
-  docType: DocType
-}
-
-interface CiSnapshot {
-  id: number
-  name: string
-  modelName: string
-  modelId: string
-}
-
-const DOC_TYPE_LABEL: Record<DocType, string> = {
-  application: '申请单',
-  plan: '方案',
-  general: '通用',
-}
-
-const DOC_TYPE_TONE: Record<DocType, 'ok' | 'warn' | 'neutral'> = {
-  application: 'ok',
-  plan: 'warn',
-  general: 'neutral',
-}
+import { Sparkles, ArrowLeft } from 'lucide-react'
+import type { TableRow, FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
+import { FieldList } from '@/app/(dashboard)/change-docs/[id]/components/FieldList'
+import { TemplateSelector } from './components/TemplateSelector'
+import { CiSelectorModal } from './components/CiSelectorModal'
+import type { TemplateVO, CiSnapshot } from './components/types'
 
 export default function NewChangeDocPage() {
-  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
+  const { hasPermission, isHydrated } = usePermission()
 
   const [step, setStep] = useState<1 | 2>(1)
-  const [appTemplate, setAppTemplate] = useState<TemplateVO | null>(null)
-  const [planTemplate, setPlanTemplate] = useState<TemplateVO | null>(null)
-  const [changeNo, setChangeNo] = useState('')
+  const [selectedAppTemplateId, setSelectedAppTemplateId] = useState<number | null>(null)
+  const [selectedPlanTemplateId, setSelectedPlanTemplateId] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   const [fieldsData, setFieldsData] = useState<Record<string, unknown>>({})
+  const [selectedCis, setSelectedCis] = useState<CiSnapshot[]>([])
+  const [ciSelectorOpen, setCiSelectorOpen] = useState(false)
+  const [aiLoadingField, setAiLoadingField] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-
-  const [ciSelectorOpen, setCiSelectorOpen] = useState<string | null>(null)
-  const [ciSearch, setCiSearch] = useState('')
-  const [ciTopoInstanceId, setCiTopoInstanceId] = useState<number | null>(null)
-  const [selectedCis, setSelectedCis] = useState<Record<string, CiSnapshot[]>>({})
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('change_doc', 'create')) router.replace('/change-docs')
+    if (!hasPermission('change_doc', 'create')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: templates = [], isLoading: templatesLoading } = useQuery<TemplateVO[]>({
+  const { data: templates = [] } = useQuery<TemplateVO[]>({
     queryKey: ['change-doc-templates-active'],
     queryFn: () => api.get('/admin/change-doc-templates').then((r) => r.data.data),
-    enabled: hasPermission('change_doc', 'create'),
   })
 
-  const activeTemplates = templates.filter((t) => t.active)
-  const appTemplates = activeTemplates.filter((t) => t.docType === 'application' || t.docType === 'general')
-  const planTemplates = activeTemplates.filter((t) => t.docType === 'plan' || t.docType === 'general')
-
-  // 拉两个模板的字段配置
-  const { data: appDetail } = useQuery<{ fields: FieldConfigVO[] }>({
-    queryKey: ['change-doc-template-detail', appTemplate?.id],
-    queryFn: () => api.get(`/admin/change-doc-templates/${appTemplate!.id}`).then((r) => r.data.data),
-    enabled: !!appTemplate,
-  })
-
-  const { data: planDetail } = useQuery<{ fields: FieldConfigVO[] }>({
-    queryKey: ['change-doc-template-detail', planTemplate?.id],
-    queryFn: () => api.get(`/admin/change-doc-templates/${planTemplate!.id}`).then((r) => r.data.data),
-    enabled: !!planTemplate,
-  })
-
-  const appFields: FieldConfigVO[] = useMemo(
-    () => (appDetail?.fields ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
-    [appDetail],
+  const selectedAppTemplate = useMemo(
+    () => templates.find((t) => t.id === selectedAppTemplateId),
+    [templates, selectedAppTemplateId],
   )
-  const planFields: FieldConfigVO[] = useMemo(
-    () => (planDetail?.fields ?? []).filter((f) => f.inForm).sort((a, b) => a.sortOrder - b.sortOrder),
-    [planDetail],
+  const selectedPlanTemplate = useMemo(
+    () => templates.find((t) => t.id === selectedPlanTemplateId),
+    [templates, selectedPlanTemplateId],
   )
+
+  const appFields = useMemo(() => {
+    if (!selectedAppTemplate) return []
+    return ((selectedAppTemplate as { fieldConfig?: FieldConfigVO[] }).fieldConfig ?? [])
+      .filter((f) => f.inForm)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+  }, [selectedAppTemplate])
+
+  const planFields = useMemo(() => {
+    if (!selectedPlanTemplate) return []
+    return ((selectedPlanTemplate as { fieldConfig?: FieldConfigVO[] }).fieldConfig ?? [])
+      .filter((f) => f.inForm)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+  }, [selectedPlanTemplate])
 
   const allRequiredFieldKeys = useMemo(() => {
-    const keys: { fieldKey: string; label: string; isTable: boolean }[] = []
-    appFields.forEach(
-      (f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label, isTable: f.fieldType === 'table' }),
-    )
-    planFields.forEach(
-      (f) => f.required && keys.push({ fieldKey: f.fieldKey, label: f.label, isTable: f.fieldType === 'table' }),
-    )
+    const keys: string[] = []
+    appFields.forEach((f) => f.required && keys.push(f.fieldKey))
+    planFields.forEach((f) => f.required && keys.push(f.fieldKey))
     return keys
   }, [appFields, planFields])
 
-  const { data: ciSearchResult } = useQuery<{
-    records: { id: number; name: string; modelId: string; modelName: string }[]
-  }>({
-    queryKey: ['ci-selector-search', ciSearch],
-    queryFn: () =>
-      api.get('/cmdb/instances/search', { params: { keyword: ciSearch, size: 10 } }).then((r) => r.data.data),
-    enabled: !!ciSelectorOpen && ciSearch.length >= 1,
-  })
-
-  const { data: ciTopoResult } = useQuery<{
-    nodes: { id: number; name: string; modelId: string | null; modelName: string | null; isRoot: boolean }[]
-  }>({
-    queryKey: ['ci-selector-topo', ciTopoInstanceId],
-    queryFn: () =>
-      api.get(`/cmdb/topology/${ciTopoInstanceId}`, { params: { depth: 2 } }).then((r) => r.data.data),
-    enabled: !!ciTopoInstanceId,
-  })
-
-  const toggleCiSelection = (fieldKey: string, ci: CiSnapshot) => {
-    setSelectedCis((prev) => {
-      const current = prev[fieldKey] ?? []
-      const exists = current.some((c) => c.id === ci.id)
-      const next = exists ? current.filter((c) => c.id !== ci.id) : [...current, ci]
-      setFieldsData((fd) => ({ ...fd, [fieldKey]: JSON.stringify(next) }))
-      return { ...prev, [fieldKey]: next }
-    })
-  }
-
   const handleProceed = () => {
-    if (!appTemplate && !planTemplate) {
+    if (!selectedAppTemplateId && !selectedPlanTemplateId) {
       toast.error('请至少选择一个模板')
       return
     }
-    setFieldsData({})
     setStep(2)
   }
 
-  // 提交策略：
-  // - 两个模板都选 → 创建后立刻 submit → 后端走 pending（双模板齐全）
-  // - 只选 application → 创建后立刻 submit → 后端走 plan_pending（待补填方案）
-  // - 只选 plan → 创建后立刻 submit → 后端走 pending（仅方案场景）
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      toast.error('请填写变更标题')
-      return
-    }
-    for (const f of allRequiredFieldKeys) {
-      const v = fieldsData[f.fieldKey]
-      const empty = f.isTable ? !Array.isArray(v) || v.length === 0 : !(typeof v === 'string' && v.trim())
-      if (empty) {
-        toast.error(`"${f.label}" 不能为空`)
-        return
-      }
-    }
-    setSubmitting(true)
+  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setFieldsData((f) => ({ ...f, [key]: e.target.value }))
+
+  const setTableField = (key: string) => (rows: TableRow[]) =>
+    setFieldsData((f) => ({ ...f, [key]: rows }))
+
+  const toggleCiSelection = (ci: CiSnapshot) => {
+    setSelectedCis((prev) =>
+      prev.some((s) => s.instanceId === ci.instanceId)
+        ? prev.filter((s) => s.instanceId !== ci.instanceId)
+        : [...prev, ci],
+    )
+  }
+
+  const handleAiGenerate = async (fieldKey: string) => {
+    setAiLoadingField(fieldKey)
     try {
-      const createRes = await api.post('/change-docs', {
-        applicationTemplateId: appTemplate?.id ?? null,
-        planTemplateId: planTemplate?.id ?? null,
-        title: title.trim(),
-        changeNo: changeNo.trim() || undefined,
-        fieldsData: fieldsData,
-      })
-      const newId = createRes.data.data.id as number
-      // 立刻 submit
-      await api.post(`/change-docs/${newId}/submit`)
-      toast.success(
-        appTemplate && !planTemplate
-          ? '已提交申请单，请稍后补填方案'
-          : '变更文档已提交审批',
-      )
-      router.push(`/change-docs/${newId}`)
+      const res = await api.post('/change-docs/ai-generate-new', { fieldKey, fieldsData })
+      setFieldsData((f) => ({ ...f, [fieldKey]: res.data.data as string }))
+      toast.success('AI 内容已生成，请审阅后提交')
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      toast.error(err?.response?.data?.message ?? '提交失败')
+      toast.error(err?.response?.data?.message ?? 'AI 生成失败')
+    } finally {
+      setAiLoadingField(null)
+    }
+  }
+
+  const handleSubmit = async () => {
+    const missingKeys = allRequiredFieldKeys.filter((k) => {
+      const v = fieldsData[k]
+      return v === undefined || v === null || v === ''
+    })
+    if (missingKeys.length > 0) {
+      toast.error('请填写所有必填字段')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await api.post('/change-docs', {
+        title: title.trim() || undefined,
+        applicationTemplateId: selectedAppTemplateId,
+        planTemplateId: selectedPlanTemplateId,
+        fieldsData,
+        ciSnapshots: selectedCis,
+      })
+      const docId = res.data.data as number
+      toast.success('变更文档已创建')
+      router.push(`/change-docs/${docId}`)
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      toast.error(err?.response?.data?.message ?? '创建失败')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const renderField = (f: FieldConfigVO) => {
-    const value = typeof fieldsData[f.fieldKey] === 'string' ? (fieldsData[f.fieldKey] as string) : ''
-    const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setFieldsData((prev) => ({ ...prev, [f.fieldKey]: e.target.value }))
-
-    if (f.fieldType === 'table' && isTableFieldConfig(f.config)) {
-      const rows = Array.isArray(fieldsData[f.fieldKey]) ? (fieldsData[f.fieldKey] as TableRow[]) : []
-      return (
-        <div key={f.fieldKey} className="space-y-1.5">
-          <Label>
-            {f.label}
-            {f.required && <span className="ml-1 text-v2-danger">*</span>}
-          </Label>
-          <TableFieldEditor
-            config={f.config}
-            rows={rows}
-            onChange={(next) => setFieldsData((prev) => ({ ...prev, [f.fieldKey]: next }))}
-          />
-        </div>
-      )
-    }
-
-    if (f.fieldType === 'ci_selector') {
-      const selected = selectedCis[f.fieldKey] ?? []
-      return (
-        <div key={f.fieldKey} className="space-y-1.5">
-          <Label>
-            {f.label}
-            {f.required && <span className="ml-1 text-v2-danger">*</span>}
-          </Label>
-          {selected.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-2">
-              {selected.map((ci) => (
-                <div
-                  key={ci.id}
-                  className="inline-flex items-center gap-1 rounded-md bg-v2-primary-soft px-2 py-1 text-xs text-v2-primary"
-                >
-                  <span className="font-medium">{ci.name}</span>
-                  <span className="text-v2-muted">·</span>
-                  <span className="text-v2-muted">{ci.modelName}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleCiSelection(f.fieldKey, ci)}
-                    className="ml-1 hover:text-v2-danger"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <button
-            onClick={() => {
-              setCiSelectorOpen(f.fieldKey)
-              setCiSearch('')
-              setCiTopoInstanceId(null)
-            }}
-            className="w-full rounded-md border border-dashed border-v2-border bg-v2-surface px-3 py-2 text-left text-sm text-v2-muted transition-colors hover:bg-v2-surface-hover"
-          >
-            + 添加受影响的 CI
-          </button>
-        </div>
-      )
-    }
-
-    return (
-      <div key={f.fieldKey} className="space-y-1.5">
-        <Label>
-          {f.label}
-          {f.required && <span className="ml-1 text-v2-danger">*</span>}
-        </Label>
-        {f.fieldType === 'textarea' ? (
-          <div className="relative">
-            <Textarea
-              value={value}
-              onChange={onChange}
-              placeholder={f.placeholder ?? undefined}
-              rows={3}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-1.5 right-1.5 h-6 w-6 cursor-not-allowed p-0 opacity-50"
-              disabled
-              tabIndex={-1}
-              title="保存草稿后可使用 AI 生成"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : f.fieldType === 'date' ? (
-          <Input type="date" value={value} onChange={onChange} />
-        ) : f.fieldType === 'datetime' ? (
-          <Input type="datetime-local" value={value} onChange={onChange} />
-        ) : (
-          <Input value={value} onChange={onChange} placeholder={f.placeholder ?? undefined} />
-        )}
-      </div>
-    )
-  }
-
-  // ─── step 1: 模板选择 ────────────────────────────────────────────────
-  if (step === 1) {
-    return (
-      <div className="mx-auto max-w-3xl space-y-6">
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => (step === 1 ? router.back() : setStep(1))}
+          className="inline-flex h-9 items-center gap-1.5 rounded-v2-md px-3 text-sm font-semibold text-v2-muted transition-colors hover:bg-v2-surface-hover hover:text-v2-fg"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {step === 1 ? '返回' : '上一步'}
+        </button>
         <div>
-          <h1 className="text-2xl font-bold text-v2-fg">新建变更文档</h1>
-          <p className="mt-1 text-sm text-v2-muted">
-            为变更选择申请单和方案模板（至少选一个）。可在提交后再补填方案。
+          <h1 className="text-xl font-bold text-v2-fg">新建变更文档</h1>
+          <p className="mt-0.5 text-xs text-v2-muted">
+            {step === 1 ? '第 1 步：选择模板' : '第 2 步：填写内容'}
           </p>
         </div>
+      </div>
 
-        {templatesLoading ? (
-          <p className="text-sm text-v2-muted">加载中…</p>
-        ) : (
-          <>
-            {/* 申请单模板 */}
+      {/* Step 1: Template Selection */}
+      {step === 1 && (
+        <>
+          <TemplateSelector
+            templates={templates}
+            selectedAppTemplateId={selectedAppTemplateId}
+            selectedPlanTemplateId={selectedPlanTemplateId}
+            onSelectAppTemplate={setSelectedAppTemplateId}
+            onSelectPlanTemplate={setSelectedPlanTemplateId}
+          />
+          <div className="flex justify-end">
+            <Button variant="primary" onClick={handleProceed}>
+              下一步：填写内容
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Step 2: Fill Content */}
+      {step === 2 && (
+        <>
+          {/* Title */}
+          <Card>
+            <CardContent className="space-y-3 p-6">
+              <div className="space-y-1.5">
+                <Label>变更标题</Label>
+                <Input
+                  placeholder="例如：核心交易系统数据库版本升级"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Application Fields */}
+          {selectedAppTemplate && (
             <Card>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-v2-fg">变更申请单模板（可选）</h2>
-                  {appTemplate && (
-                    <Button variant="ghost" size="sm" onClick={() => setAppTemplate(null)}>
-                      清除
-                    </Button>
-                  )}
-                </div>
-                {appTemplates.length === 0 ? (
-                  <p className="text-sm text-v2-muted">暂无申请单类型模板</p>
+              <CardContent className="space-y-4 p-6">
+                <h3 className="text-sm font-bold text-v2-fg">申请单</h3>
+                {appFields.length === 0 ? (
+                  <p className="text-sm text-v2-muted">该模板未配置表单字段</p>
                 ) : (
-                  <div className="grid gap-2">
-                    {appTemplates.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setAppTemplate(t)}
-                        className={
-                          'flex items-center justify-between rounded-v2-md border px-3 py-2 text-left transition-colors ' +
-                          (appTemplate?.id === t.id
-                            ? 'border-v2-primary bg-v2-primary-soft'
-                            : 'border-v2-border bg-v2-surface hover:border-v2-primary-border hover:bg-v2-surface-hover')
-                        }
-                      >
-                        <div className="flex flex-1 items-center gap-2">
-                          <FileText className="h-4 w-4 text-v2-muted" />
-                          <span className="font-semibold text-v2-fg">{t.name}</span>
-                          <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
-                            {DOC_TYPE_LABEL[t.docType]}
-                          </StatusBadge>
-                          {!t.hasDocx && (
-                            <span className="text-xs text-v2-muted">纯文字</span>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <FieldList
+                    fields={appFields}
+                    editable={true}
+                    fieldsData={fieldsData}
+                    aiLoadingField={aiLoadingField}
+                    onFieldChange={setField}
+                    onTableFieldChange={setTableField}
+                    onAiGenerate={handleAiGenerate}
+                  />
                 )}
               </CardContent>
             </Card>
+          )}
 
-            {/* 方案模板 */}
+          {/* Plan Fields */}
+          {selectedPlanTemplate && (
             <Card>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-v2-fg">变更方案模板（可选）</h2>
-                  {planTemplate && (
-                    <Button variant="ghost" size="sm" onClick={() => setPlanTemplate(null)}>
-                      清除
-                    </Button>
-                  )}
-                </div>
-                {planTemplates.length === 0 ? (
-                  <p className="text-sm text-v2-muted">暂无方案类型模板</p>
+              <CardContent className="space-y-4 p-6">
+                <h3 className="text-sm font-bold text-v2-fg">方案</h3>
+                {planFields.length === 0 ? (
+                  <p className="text-sm text-v2-muted">该模板未配置表单字段</p>
                 ) : (
-                  <div className="grid gap-2">
-                    {planTemplates.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setPlanTemplate(t)}
-                        className={
-                          'flex items-center justify-between rounded-v2-md border px-3 py-2 text-left transition-colors ' +
-                          (planTemplate?.id === t.id
-                            ? 'border-v2-primary bg-v2-primary-soft'
-                            : 'border-v2-border bg-v2-surface hover:border-v2-primary-border hover:bg-v2-surface-hover')
-                        }
-                      >
-                        <div className="flex flex-1 items-center gap-2">
-                          <FileText className="h-4 w-4 text-v2-muted" />
-                          <span className="font-semibold text-v2-fg">{t.name}</span>
-                          <StatusBadge status={DOC_TYPE_TONE[t.docType]}>
-                            {DOC_TYPE_LABEL[t.docType]}
-                          </StatusBadge>
-                          {!t.hasDocx && (
-                            <span className="text-xs text-v2-muted">纯文字</span>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <FieldList
+                    fields={planFields}
+                    editable={true}
+                    fieldsData={fieldsData}
+                    aiLoadingField={aiLoadingField}
+                    onFieldChange={setField}
+                    onTableFieldChange={setTableField}
+                    onAiGenerate={handleAiGenerate}
+                  />
                 )}
               </CardContent>
             </Card>
-          </>
-        )}
+          )}
 
-        <div className="flex gap-2">
-          <Button variant="primary" onClick={handleProceed} disabled={!appTemplate && !planTemplate}>
-            下一步：填写内容
-          </Button>
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-            取消
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── step 2: 填表 ────────────────────────────────────────────────
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
-          <ArrowLeft className="h-4 w-4" />
-          重新选择模板
-        </Button>
-        <h1 className="flex-1 text-xl font-bold text-v2-fg">新建变更文档</h1>
-      </div>
-
-      <Card>
-        <CardContent className="space-y-3 p-4">
-          <div className="space-y-1.5">
-            <Label>
-              变更标题<span className="ml-1 text-v2-danger">*</span>
-            </Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="例如：核心交易系统数据库版本升级"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>变更编号（可选，留空自动生成）</Label>
-            <Input
-              value={changeNo}
-              onChange={(e) => setChangeNo(e.target.value)}
-              placeholder="CHG-YYYYMMDD-NNN"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 申请单 Card */}
-      {appTemplate && (
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center gap-2 border-b border-v2-border pb-2">
-              <h2 className="text-base font-bold text-v2-fg">变更申请单</h2>
-              <StatusBadge status={DOC_TYPE_TONE.application}>
-                {DOC_TYPE_LABEL.application}
-              </StatusBadge>
-              <span className="text-sm text-v2-muted">{appTemplate.name}</span>
-            </div>
-            {appFields.length === 0 && !appDetail ? (
-              <p className="text-sm text-v2-muted">加载字段中…</p>
-            ) : appFields.length === 0 ? (
-              <p className="text-sm text-v2-muted">该模板尚未配置表单字段</p>
-            ) : (
-              appFields.map(renderField)
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 方案 Card */}
-      {planTemplate && (
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center gap-2 border-b border-v2-border pb-2">
-              <h2 className="text-base font-bold text-v2-fg">变更方案</h2>
-              <StatusBadge status={DOC_TYPE_TONE.plan}>{DOC_TYPE_LABEL.plan}</StatusBadge>
-              <span className="text-sm text-v2-muted">{planTemplate.name}</span>
-            </div>
-            {planFields.length === 0 && !planDetail ? (
-              <p className="text-sm text-v2-muted">加载字段中…</p>
-            ) : planFields.length === 0 ? (
-              <p className="text-sm text-v2-muted">该模板尚未配置表单字段</p>
-            ) : (
-              planFields.map(renderField)
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex gap-2">
-        <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
-          {submitting
-            ? '提交中…'
-            : appTemplate && !planTemplate
-              ? '提交申请单（稍后补填方案）'
-              : '提交审批'}
-        </Button>
-        <Button variant="secondary" onClick={() => router.back()}>
-          取消
-        </Button>
-      </div>
-
-      {/* CI 选择器 modal */}
-      {ciSelectorOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setCiSelectorOpen(null)}
-        >
-          <div
-            className="w-full max-w-2xl rounded-v2-md border border-v2-border bg-v2-surface p-4 shadow-v2-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-v2-fg">添加受影响的 CI</h2>
-              <Button variant="ghost" size="sm" onClick={() => setCiSelectorOpen(null)}>
-                关闭
-              </Button>
-            </div>
-            <Input
-              autoFocus
-              placeholder="搜索 CI 名称…"
-              value={ciSearch}
-              onChange={(e) => setCiSearch(e.target.value)}
-              className="mb-2"
-            />
-            <div className="max-h-72 overflow-y-auto">
-              {(ciSearchResult?.records ?? []).map((ci) => {
-                const selected =
-                  (selectedCis[ciSelectorOpen] ?? []).some((c) => c.id === ci.id)
-                return (
-                  <button
-                    key={ci.id}
-                    type="button"
-                    onClick={() =>
-                      toggleCiSelection(ciSelectorOpen, {
-                        id: ci.id,
-                        name: ci.name,
-                        modelName: ci.modelName,
-                        modelId: ci.modelId,
-                      })
-                    }
-                    className={
-                      'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ' +
-                      (selected
-                        ? 'bg-v2-primary-soft text-v2-primary'
-                        : 'hover:bg-v2-surface-hover')
-                    }
-                  >
-                    <span className="font-medium">{ci.name}</span>
-                    <span className="text-xs text-v2-muted">{ci.modelName}</span>
-                  </button>
-                )
-              })}
-              {ciSearchResult?.records?.length === 0 && (
-                <p className="py-4 text-center text-sm text-v2-muted">未匹配到 CI</p>
+          {/* CI Selection */}
+          <Card>
+            <CardContent className="space-y-3 p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-v2-fg">关联 CI（可选）</h3>
+                <Button variant="secondary" size="sm" onClick={() => setCiSelectorOpen(true)}>
+                  选择 CI
+                </Button>
+              </div>
+              {selectedCis.length === 0 ? (
+                <p className="text-sm text-v2-muted">暂未关联 CI</p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedCis.map((ci) => (
+                    <div
+                      key={ci.instanceId}
+                      className="flex items-center justify-between rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2"
+                    >
+                      <div>
+                        <span className="font-medium text-v2-fg">{ci.instanceName}</span>
+                        <span className="ml-2 text-xs text-v2-muted">{ci.modelName}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleCiSelection(ci)}
+                      >
+                        移除
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setStep(1)}>
+              上一步
+            </Button>
+            <Button variant="primary" disabled={submitting} onClick={handleSubmit}>
+              <Sparkles className="h-4 w-4" />
+              {submitting ? '创建中…' : '创建变更文档'}
+            </Button>
           </div>
-        </div>
+        </>
       )}
+
+      {/* CI Selector Modal */}
+      <CiSelectorModal
+        open={ciSelectorOpen}
+        selectedCis={selectedCis}
+        onClose={() => setCiSelectorOpen(false)}
+        onToggle={toggleCiSelection}
+      />
     </div>
   )
 }
