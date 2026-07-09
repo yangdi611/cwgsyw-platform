@@ -45,7 +45,7 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN')
 }
 
-function formatValue(v: any): string {
+function formatValue(v: unknown): string {
   if (v === null || v === undefined || v === '') return '-'
   if (Array.isArray(v)) return v.join(', ')
   if (typeof v === 'object') return JSON.stringify(v)

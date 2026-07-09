@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 
+import { getApiErrorMessage } from '@/lib/api-error'
+
 interface EndpointLinkVO {
   id: number
   linkType: string
@@ -62,13 +64,12 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
 
   const { data: links } = useQuery<EndpointLinkVO[]>({
     queryKey: ['cmdb-endpoint-links', instanceId],
-    queryFn: () => api.get(`/cmdb/endpoint-links/by-instance/${instanceId}`).then((r: any) => r.data.data),
+    queryFn: () => api.get(`/cmdb/endpoint-links/by-instance/${instanceId}`).then(r => r.data.data),
   })
 
-  // 本实例（拿 table 字段做端点来源）
   const { data: self } = useQuery<InstanceVO>({
     queryKey: ['cmdb-instance', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}`).then((r: any) => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${instanceId}`).then(r => r.data.data),
   })
   const tableFields = (self?.attributes ?? []).filter((a) => a.fieldType === 'table')
   const srcRows = tableRows(self?.fieldsData?.[srcFieldKey])
@@ -79,13 +80,13 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
     queryFn: () =>
       api
         .get(`/cmdb/instances`, { params: { model: dstModel, keyword: dstKeyword, page: 1, size: 20 } })
-        .then((r: any) => (r.data.data?.records ?? r.data.data?.list ?? r.data.data ?? []) as InstanceVO[]),
+        .then(r => (r.data.data?.records ?? r.data.data?.list ?? r.data.data ?? []) as InstanceVO[]),
     enabled: open,
   })
   // 选中目标的端点行
   const { data: dstInst } = useQuery<InstanceVO>({
     queryKey: ['cmdb-instance', dstId],
-    queryFn: () => api.get(`/cmdb/instances/${dstId}`).then((r: any) => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${dstId}`).then(r => r.data.data),
     enabled: open && !!dstId,
   })
   const dstTableFields = (dstInst?.attributes ?? []).filter((a) => a.fieldType === 'table')
@@ -110,7 +111,7 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
       setOpen(false)
       setSrcFieldKey(''); setSrcEndpointUid(''); setDstId(''); setDstFieldKey(''); setDstEndpointUid('')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '连接失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '连接失败')),
   })
 
   const deleteMutation = useMutation({
@@ -119,7 +120,7 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
       toast.success('连接已解除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-endpoint-links', instanceId] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '解除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '解除失败')),
   })
 
   // 无 table 字段（无端点来源）则不显示

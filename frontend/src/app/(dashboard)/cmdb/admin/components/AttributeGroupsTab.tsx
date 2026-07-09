@@ -56,7 +56,7 @@ function AttributeGroupsTab() {
       setCreating(false)
       setForm({ groupId: '', name: '', sortOrder: 0 })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   const updateMutation = useMutation({
@@ -67,7 +67,7 @@ function AttributeGroupsTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
       setEditingId(null)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   const deleteMutation = useMutation({
@@ -76,7 +76,7 @@ function AttributeGroupsTab() {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   return (

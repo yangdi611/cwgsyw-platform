@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { Upload, Download, ChevronRight, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 interface CsvImportDialogProps {
@@ -20,7 +21,7 @@ interface CsvImportDialogProps {
 interface CsvImportPreviewVO {
   batchId: string; totalRows: number; toCreate: number; toUpdate: number
   toSkip: number; failedRows: { rowNumber: number; reason: string }[]
-  encoding: string; previewData: Record<string, any>[]
+  encoding: string; previewData: Record<string, unknown>[]
 }
 
 interface CsvImportProgressVO {
@@ -68,7 +69,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
       const a = document.createElement('a')
       a.href = url; a.download = `${model}_import_template.csv`; a.click()
       window.URL.revokeObjectURL(url)
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error('下载模板失败')
     }
   }
@@ -100,7 +101,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
       setBatchId(data.batchId)
       setStep(1)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '预览失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '预览失败')),
   })
 
   // Execute mutation
@@ -117,7 +118,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
       if (data.failed > 0) toast.warning(`导入完成，${data.failed} 条失败`)
       else toast.success(`导入完成，创建 ${data.created}，更新 ${data.updated}`)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '执行失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '执行失败')),
   })
 
   // Poll progress
