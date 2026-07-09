@@ -18,6 +18,7 @@ import {
 } from '@/components/v2/Dialog'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -185,7 +186,7 @@ export default function ModelDetailPage() {
         unit: '',
       })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '添加失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '添加失败')),
   })
 
   const deleteAttrMutation = useMutation({
@@ -194,7 +195,7 @@ export default function ModelDetailPage() {
       toast.success('属性已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelCode] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   const updateAttrMutation = useMutation({
@@ -235,7 +236,7 @@ export default function ModelDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-model', modelCode] })
       setEditingAttr(null)
     },
-    onError: (e: any) => toast.error(e?.message ?? e?.response?.data?.message ?? '保存失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '保存失败')),
   })
 
   function openEdit(attr: CiAttributeVO) {

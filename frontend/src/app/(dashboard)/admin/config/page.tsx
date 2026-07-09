@@ -14,6 +14,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shared'
 import { Mail, Bell, FileText, GitBranch } from 'lucide-react'
+import { ProcessDefinition, ProcessDefinitionVersion } from '@/types/workflow'
+import { extractPaginated } from '@/types/api'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
@@ -29,30 +31,30 @@ function ProcessVersionSelector({ value, onSave }: {
   value: string
   onSave: (definitionId: string) => Promise<void>
 }) {
-  const { data: allDefs = [] } = useQuery<any[]>({
+  const { data: allDefs = [] } = useQuery<ProcessDefinition[]>({
     queryKey: ['process-defs-selector'],
     queryFn: () => api.get('/workflow/definitions').then(r => {
-      const defs = (r.data.data?.records ?? []) as any[];
-      return defs.filter((d: any) => !d.suspended);
+      const { records } = extractPaginated<ProcessDefinition>(r);
+      return records.filter((d) => !d.suspended);
     }),
   })
 
   // Initialize derived state from config (avoid setState in effect)
   const [selectedKey, setSelectedKey] = useState(() => {
     if (!value || allDefs.length === 0) return ''
-    const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
+    const match = allDefs.find((d) => value.startsWith(d.key + ':'))
     return match?.key ?? ''
   })
 
   // Update selectedKey when allDefs loads and value is set but selectedKey is empty
   useEffect(() => {
     if (value && !selectedKey && allDefs.length > 0) {
-      const match = allDefs.find((d: any) => value.startsWith(d.key + ':'))
+      const match = allDefs.find((d) => value.startsWith(d.key + ':'))
       if (match) setSelectedKey(match.key)
     }
   }, [allDefs, value, selectedKey])
 
-  const { data: versions = [] } = useQuery<any[]>({
+  const { data: versions = [] } = useQuery<ProcessDefinitionVersion[]>({
     queryKey: ['process-versions', selectedKey],
     queryFn: () => api.get(`/workflow/definitions/key/${selectedKey}/versions`).then(r => r.data.data ?? []),
     enabled: !!selectedKey,
@@ -63,7 +65,7 @@ function ProcessVersionSelector({ value, onSave }: {
   return (
     <div className="flex gap-2 items-center flex-wrap">
       <Select value={selectedKey} onValueChange={v => {
-        setSelectedKey(v)
+        if (v) setSelectedKey(v)
       }}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="选择流程">
@@ -71,7 +73,7 @@ function ProcessVersionSelector({ value, onSave }: {
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {allDefs.map((d: any) => (
+          {allDefs.map((d) => (
             <SelectItem key={d.key} value={d.key}>{d.name}</SelectItem>
           ))}
         </SelectContent>
@@ -91,7 +93,7 @@ function ProcessVersionSelector({ value, onSave }: {
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {versions.filter((v: any) => !v.suspended).map((v: any) => (
+          {versions.filter((v) => !v.suspended).map((v) => (
             <SelectItem key={v.id} value={v.id}>
               v{v.version} (启用)
             </SelectItem>

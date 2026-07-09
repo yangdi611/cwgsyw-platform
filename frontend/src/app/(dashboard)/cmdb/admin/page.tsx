@@ -860,7 +860,7 @@ function AssociationsTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-asst-attrs', activeKind] })
       resetForm()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
   })
 
   const updateAttrMutation = useMutation({
@@ -876,7 +876,7 @@ function AssociationsTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-asst-attrs', activeKind] })
       resetForm()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败')),
   })
 
   const deleteAttrMutation = useMutation({
@@ -885,7 +885,7 @@ function AssociationsTab() {
       toast.success('关联扩展属性已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-asst-attrs', activeKind] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   function resetForm() {
@@ -1188,8 +1188,8 @@ function AssociationDefsSection({
     queryKey: ['cmdb-association-defs'],
     queryFn: async () => (await api.get('/cmdb/association-defs')).data.data,
     enabled: typeof window !== 'undefined',
-    retry: (failureCount, err: any) => {
-      const status = err?.response?.status
+    retry: (failureCount, err: unknown) => {
+      const status = (err as any)?.response?.status
       if (status === 403 || status === 401) return false
       return failureCount < 2
     },
@@ -1204,7 +1204,7 @@ function AssociationDefsSection({
       setCreating(false)
       setForm(emptyForm)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
   })
 
   const updateMutation = useMutation({
@@ -1216,7 +1216,7 @@ function AssociationDefsSection({
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-defs'] })
       setEditingId(null)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败')),
   })
 
   const deleteMutation = useMutation({
@@ -1226,7 +1226,7 @@ function AssociationDefsSection({
       queryClient.invalidateQueries({ queryKey: ['cmdb-association-defs'] })
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-defs'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   function startEdit(d: CiAssociationDefVO) {
@@ -1372,9 +1372,13 @@ function AssociationDefsSection({
         ) : isError ? (
           <div className="p-6 text-center space-y-3">
             <p className="text-sm text-destructive">
-              {(error as any)?.response?.status === 403
-                ? '无 cmdb_relation:read 权限，请联系管理员'
-                : `加载失败：${(error as any)?.response?.data?.message || (error as any)?.message || '未知错误'}`}
+              {(() => {
+                const axiosError = error as any
+                if (axiosError?.response?.status === 403) {
+                  return '无 cmdb_relation:read 权限，请联系管理员'
+                }
+                return `加载失败：${getApiErrorMessage(error, '未知错误')}`
+              })()}
             </p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" />重试
