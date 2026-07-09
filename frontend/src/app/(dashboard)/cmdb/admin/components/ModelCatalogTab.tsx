@@ -14,8 +14,19 @@ import { toast } from 'sonner'
 import { Plus, Settings, ChevronDown, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { ModelCard } from './ModelCard'
-import type { CiModelVO, ModelGroupVO } from './types'
-import { getApiErrorMessage, getModelDisplayName, nextCopyModelId } from './utils'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
+import { getModelDisplayName, nextCopyModelId } from './utils'
+import { getApiErrorMessage } from '@/lib/api-error'
+
+interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  isBuiltIn: boolean
+  modelCount: number
+}
 
 function ModelCatalogTab() {
   const { hasPermission } = usePermission()
@@ -32,12 +43,12 @@ function ModelCatalogTab() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null)
   const [editGroupForm, setEditGroupForm] = useState({ name: '', sortOrder: 0 })
-  const [editingModel, setEditingModel] = useState<CiModelVO | null>(null)
+  const [editingModel, setEditingModel] = useState<CiModelAdminItem | null>(null)
   const [renameForm, setRenameForm] = useState({ displayName: '' })
-  const [copyingModel, setCopyingModel] = useState<CiModelVO | null>(null)
+  const [copyingModel, setCopyingModel] = useState<CiModelAdminItem | null>(null)
   const [copyForm, setCopyForm] = useState({ modelId: '', name: '', groupCode: '' })
 
-  const { data: models = [], isLoading: modelsLoading } = useQuery<CiModelVO[]>({
+  const { data: models = [], isLoading: modelsLoading } = useQuery<CiModelAdminItem[]>({
     queryKey: ['cmdb-models'],
     queryFn: async () => {
       try {
@@ -90,13 +101,13 @@ function ModelCatalogTab() {
   })
 
   const moveModelMutation = useMutation({
-    mutationFn: ({ model, toCode }: { model: CiModelVO; toCode: string }) =>
+    mutationFn: ({ model, toCode }: { model: CiModelAdminItem; toCode: string }) =>
       api.put(`/cmdb/models/${model.id}`, { group: toCode }),
     onMutate: async ({ model, toCode }) => {
       await queryClient.cancelQueries({ queryKey: ['cmdb-models'] })
-      const prev = queryClient.getQueryData<CiModelVO[]>(['cmdb-models'])
+      const prev = queryClient.getQueryData<CiModelAdminItem[]>(['cmdb-models'])
       const toName = modelGroups.find(g => g.code === toCode)?.name ?? toCode
-      queryClient.setQueryData<CiModelVO[]>(['cmdb-models'], (old = []) =>
+      queryClient.setQueryData<CiModelAdminItem[]>(['cmdb-models'], (old = []) =>
         old.map(m => m.modelId === model.modelId ? { ...m, group: toCode, groupName: toName } : m))
       setMovedModelId(model.modelId)
       // 展开目标分类以显示刚移入的模型
@@ -126,7 +137,7 @@ function ModelCatalogTab() {
   })
 
   const deleteModelMutation = useMutation({
-    mutationFn: (model: CiModelVO) => api.delete(`/cmdb/models/${model.id}`),
+    mutationFn: (model: CiModelAdminItem) => api.delete(`/cmdb/models/${model.id}`),
     onSuccess: (_data, model) => {
       toast.success(`模型「${model.name}」已删除`)
       queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
@@ -136,7 +147,7 @@ function ModelCatalogTab() {
   })
 
   const renameModelMutation = useMutation({
-    mutationFn: ({ model, displayName }: { model: CiModelVO; displayName: string }) =>
+    mutationFn: ({ model, displayName }: { model: CiModelAdminItem; displayName: string }) =>
       api.put(`/cmdb/models/${model.id}`, { displayName }),
     onSuccess: (_data, { model, displayName }) => {
       toast.success(`模型「${getModelDisplayName(model)}」已重命名`)
@@ -149,7 +160,7 @@ function ModelCatalogTab() {
   })
 
   const copyModelMutation = useMutation({
-    mutationFn: ({ model, body }: { model: CiModelVO; body: { modelId: string; name: string; groupCode: string } }) =>
+    mutationFn: ({ model, body }: { model: CiModelAdminItem; body: { modelId: string; name: string; groupCode: string } }) =>
       api.post(`/cmdb/models/${model.id}/copy`, body),
     onSuccess: (_data, { body }) => {
       toast.success(`模型「${body.name}」已复制`)
@@ -187,7 +198,7 @@ function ModelCatalogTab() {
     if (!acc[key]) acc[key] = []
     acc[key].push(m)
     return acc
-  }, {} as Record<string, CiModelVO[]>)
+  }, {} as Record<string, CiModelAdminItem[]>)
 
   const toggleGroup = (code: string) => {
     setExpandedGroups(s => {
@@ -198,13 +209,13 @@ function ModelCatalogTab() {
     })
   }
 
-  const openRenameModel = (model: CiModelVO) => {
+  const openRenameModel = (model: CiModelAdminItem) => {
     setCopyingModel(null)
     setEditingModel(model)
     setRenameForm({ displayName: getModelDisplayName(model) })
   }
 
-  const openCopyModel = (model: CiModelVO) => {
+  const openCopyModel = (model: CiModelAdminItem) => {
     const displayName = getModelDisplayName(model)
     setEditingModel(null)
     setCopyingModel(model)

@@ -2,7 +2,7 @@
  * Shared utility functions for CMDB Admin components
  */
 
-import type { CiModelVO, ApiErrorLike } from './types'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
 import { Server, Database, Network, Box } from 'lucide-react'
 
 /**
@@ -16,25 +16,16 @@ export const GROUP_ICONS: Record<string, typeof Server> = {
 }
 
 /**
- * Extract error message from API error
- */
-export function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (typeof error !== 'object' || error === null) return fallback
-  const apiError = error as ApiErrorLike
-  return apiError.response?.data?.message ?? apiError.message ?? fallback
-}
-
-/**
  * Get model display name (prefer displayName over name)
  */
-export function getModelDisplayName(model: CiModelVO): string {
+export function getModelDisplayName(model: CiModelAdminItem): string {
   return model.displayName || model.name
 }
 
 /**
  * Generate next copy model ID (e.g., "server_copy", "server_copy_2")
  */
-export function nextCopyModelId(sourceModelId: string, models: CiModelVO[]): string {
+export function nextCopyModelId(sourceModelId: string, models: CiModelAdminItem[]): string {
   const existing = new Set(models.map(model => model.modelId))
   let candidate = `${sourceModelId}_copy`
   let index = 2

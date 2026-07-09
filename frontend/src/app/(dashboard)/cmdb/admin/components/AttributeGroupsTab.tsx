@@ -11,8 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner'
 import { Plus, PencilLine, Trash2, RefreshCw } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
-import type { CiAttributeGroupVO, CiModelVO } from './types'
-import { getApiErrorMessage } from './utils'
+import type { CiAttributeGroupResponse, CiModelAdminItem } from '@/types/cmdb-model'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 function AttributeGroupsTab() {
   const { hasPermission } = usePermission()
@@ -25,7 +25,7 @@ function AttributeGroupsTab() {
   const [editForm, setEditForm] = useState({ name: '', sortOrder: 0 })
 
   // Model picker
-  const { data: models = [] } = useQuery<CiModelVO[]>({
+  const { data: models = [] } = useQuery<CiModelAdminItem[]>({
     queryKey: ['cmdb-models'],
     queryFn: async () => {
       try {
@@ -36,7 +36,7 @@ function AttributeGroupsTab() {
     enabled: typeof window !== 'undefined',
   })
 
-  const { data: groups = [], isLoading } = useQuery<CiAttributeGroupVO[]>({
+  const { data: groups = [], isLoading } = useQuery<CiAttributeGroupResponse[]>({
     queryKey: ['cmdb-attribute-groups', selectedModel],
     queryFn: async () => {
       try {
@@ -56,7 +56,7 @@ function AttributeGroupsTab() {
       setCreating(false)
       setForm({ groupId: '', name: '', sortOrder: 0 })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   const updateMutation = useMutation({
@@ -67,7 +67,7 @@ function AttributeGroupsTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
       setEditingId(null)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   const deleteMutation = useMutation({
@@ -76,7 +76,7 @@ function AttributeGroupsTab() {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-attribute-groups', selectedModel] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e)),
   })
 
   return (
@@ -158,7 +158,7 @@ function AttributeGroupsTab() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
+                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id ?? 0, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
                       </div>
                     </div>
@@ -173,13 +173,13 @@ function AttributeGroupsTab() {
                       </div>
                       {canWrite && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id ?? null); setEditForm({ name: g.name, sortOrder: g.sortOrder ?? 0 }) }}>
                             <PencilLine className="h-4 w-4" />
                           </Button>
                           <Button size="sm" variant="ghost"
                             disabled={(g.attributeCount ?? 0) > 0}
                             title={(g.attributeCount ?? 0) > 0 ? '分组下尚有属性' : ''}
-                            onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
+                            onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id ?? 0) }}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>

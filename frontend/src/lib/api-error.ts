@@ -37,7 +37,7 @@ export function getApiErrorMessage(error: unknown, fallback = '操作失败'): s
 /**
  * Type guard for Axios-like errors
  */
-function isAxiosError(error: unknown): error is {
+export function isAxiosError(error: unknown): error is {
   response?: { status: number; data: unknown }
   message: string
 } {

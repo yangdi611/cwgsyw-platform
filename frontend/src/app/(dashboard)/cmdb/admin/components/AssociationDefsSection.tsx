@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner'
 import { Plus, PencilLine, Trash2, RefreshCw, ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { CiModelVO } from './types'
-import { getApiErrorMessage, getModelDisplayName } from './utils'
+import type { CiModelAdminItem } from '@/types/cmdb-model'
+import { getModelDisplayName } from './utils'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 
 interface CiAssociationDefVO {
   id: number
@@ -54,13 +55,15 @@ function AssociationDefsSection({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState({ name: '', mapping: '1:n', onDelete: 'none' })
 
-  const { data: defs = [], isLoading, isError, error, refetch } = useQuery<CiAssociationDefVO[]>({
+  const { data: defs = [], isLoading, isError, error, refetch } = useQuery<CiAssociationDefVO[], unknown>({
     queryKey: ['cmdb-association-defs'],
     queryFn: async () => (await api.get('/cmdb/association-defs')).data.data,
     enabled: typeof window !== 'undefined',
     retry: (failureCount: number, err: unknown) => {
-      const status = (err as any)?.response?.status
-      if (status === 403 || status === 401) return false
+      if (isAxiosError(err)) {
+        const status = err.response?.status
+        if (status === 403 || status === 401) return false
+      }
       return failureCount < 2
     },
   })
@@ -242,13 +245,9 @@ function AssociationDefsSection({
         ) : isError ? (
           <div className="p-6 text-center space-y-3">
             <p className="text-sm text-destructive">
-              {(() => {
-                const axiosError = error as any
-                if (axiosError?.response?.status === 403) {
-                  return '无 cmdb_relation:read 权限，请联系管理员'
-                }
-                return `加载失败：${getApiErrorMessage(error, '未知错误')}`
-              })()}
+              {isAxiosError(error) && error.response?.status === 403
+                ? '无 cmdb_relation:read 权限，请联系管理员'
+                : `加载失败：${getApiErrorMessage(error, '未知错误')}`}
             </p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" />重试

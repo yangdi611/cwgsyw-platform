@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
+
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface AssociationDef {
   defId: string
@@ -50,14 +52,14 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
   // 反向 def：当前实例作为 dst 的关联定义，过滤出 src 是机柜（rack）的
   const { data: reverseDefs } = useQuery<AssociationDef[]>({
     queryKey: ['cmdb-reverse-defs', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}/relations/reverse-defs`).then((r: any) => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${instanceId}/relations/reverse-defs`).then(r => r.data.data),
   })
   const rackDefs = (reverseDefs ?? []).filter((d) => d.srcModelId === 'rack')
 
   // 当前已建立的反向关联（用于展示"所在机柜"）
   const { data: relations } = useQuery<RelationVO[]>({
     queryKey: ['cmdb-relations', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}/relations`).then((r: any) => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${instanceId}/relations`).then(r => r.data.data),
   })
   const rackDefIds = new Set(rackDefs.map((d) => d.defId))
   const rackMemberships = (relations ?? []).filter(
@@ -70,7 +72,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
     queryFn: () =>
       api
         .get(`/cmdb/instances`, { params: { model: 'rack', keyword: rackKeyword, page: 1, size: 20 } })
-        .then((r: any) => (r.data.data?.records ?? r.data.data?.list ?? r.data.data ?? []) as RackOption[]),
+        .then(r => (r.data.data?.records ?? r.data.data?.list ?? r.data.data ?? []) as RackOption[]),
     enabled: open,
   })
 
@@ -97,7 +99,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
       setOpen(false)
       setDefId(''); setRackId(''); setUStart(''); setUEnd('')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '装机失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '装机失败')),
   })
 
   const removeMutation = useMutation({
@@ -106,7 +108,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
       toast.success('已移出机柜')
       queryClient.invalidateQueries({ queryKey: ['cmdb-relations', instanceId] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '移除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '移除失败')),
   })
 
   // 模型不支持装入机柜则不渲染

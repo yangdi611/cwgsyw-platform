@@ -18,29 +18,17 @@ import { RackElevationView } from '@/components/cmdb/RackElevationView'
 import { RackAssignmentCard } from '@/components/cmdb/RackAssignmentCard'
 import { EndpointLinksCard } from '@/components/cmdb/EndpointLinksCard'
 import { cn } from '@/lib/utils'
+import type { CiAttributeResponse, CmdbFieldsData } from '@/types/cmdb-model'
 
-interface CiAttributeVO {
-  id: number
-  fieldKey: string
-  name: string
-  fieldType: string
-  isRequired: boolean
-  isEditable: boolean
-  option: { id: string; name: string; isDefault?: boolean }[] | null
-  placeholder: string
-  unit: string
-  sortOrder: number
-  groupId: string
-}
 interface CiInstanceVO {
   id: number
   modelId: string
   modelCode?: string
   displayName?: string
   name: string
-  fieldsData: Record<string, unknown>
-  fieldConfig: CiAttributeVO[]
-  attributes: CiAttributeVO[]
+  fieldsData: CmdbFieldsData
+  fieldConfig: CiAttributeResponse[]
+  attributes: CiAttributeResponse[]
   createdAt: string
   updatedAt: string
   createdByName: string

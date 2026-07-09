@@ -1,3 +1,5 @@
+import type { CiAttributeResponse, CiAttributeGroupResponse, CmdbFieldsData, CmdbTableSchema } from '@/types/cmdb-model'
+
 export interface TableColumn {
   key: string
   name: string
@@ -14,25 +16,9 @@ export interface TableSchema {
   columns: TableColumn[]
 }
 
-export interface CiAttributeVO {
-  id: number
-  fieldKey: string
-  name: string
-  fieldType: string
-  isRequired: boolean
-  isEditable: boolean
-  option: { id: string; name: string; isDefault?: boolean }[] | TableSchema | null
-  placeholder: string
-  unit: string
-  sortOrder: number
-  groupId: string
-}
-
-export interface CiAttributeGroupVO {
-  groupId: string
-  name: string
-  sortOrder: number
-}
+// Re-export shared types for backward compatibility
+export type CiAttributeVO = CiAttributeResponse
+export type CiAttributeGroupVO = CiAttributeGroupResponse
 
 export interface CiModelVO {
   attributeGroups: CiAttributeGroupVO[]
@@ -42,7 +28,7 @@ export interface CiInstanceVO {
   id: number
   modelId: string
   name: string
-  fieldsData: Record<string, unknown>
+  fieldsData: CmdbFieldsData
   attributes: CiAttributeVO[]
 }
 

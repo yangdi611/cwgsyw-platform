@@ -11,6 +11,7 @@ import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch, Penci
 import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
+import type { CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
   id: number
@@ -21,7 +22,7 @@ interface CiInstanceVO {
   status?: string
   owner?: string
   description?: string
-  fieldsData: Record<string, unknown>
+  fieldsData: CmdbFieldsData
   createdAt: string
   updatedAt?: string
 }
@@ -31,11 +32,6 @@ interface PageResult {
   total: number
   page: number
   size: number
-}
-
-interface CiModelVO {
-  name: string
-  attributes: { fieldKey: string; name: string; isListShow: boolean; isDrawerShow: boolean; fieldType: string; isEditable?: boolean; option?: { id: string; name: string }[] | null }[]
 }
 
 export default function InstanceListPage() {
@@ -54,7 +50,7 @@ export default function InstanceListPage() {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: model } = useQuery<CiModelVO>({
+  const { data: model } = useQuery<CiModelWithAttributes>({
     queryKey: ['cmdb-model', modelCode],
     queryFn: async () => {
       try {
@@ -207,7 +203,13 @@ export default function InstanceListPage() {
         open={batchOpen}
         onClose={() => setBatchOpen(false)}
         modelCode={modelCode}
-        attributes={model?.attributes ?? []}
+        attributes={model?.attributes.map(a => ({
+          fieldKey: a.fieldKey,
+          name: a.name,
+          fieldType: a.fieldType,
+          isEditable: a.isEditable,
+          option: Array.isArray(a.option) ? a.option : null
+        })) ?? []}
         selectedIds={selectedIds.map(Number)}
         onDone={() => {
           setBatchOpen(false)
