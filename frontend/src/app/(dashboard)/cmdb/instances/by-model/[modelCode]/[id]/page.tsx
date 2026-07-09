@@ -18,6 +18,7 @@ import { RackElevationView } from '@/components/cmdb/RackElevationView'
 import { RackAssignmentCard } from '@/components/cmdb/RackAssignmentCard'
 import { EndpointLinksCard } from '@/components/cmdb/EndpointLinksCard'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import type { CiAttributeResponse, CmdbFieldsData } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
@@ -65,7 +66,7 @@ export default function InstanceDetailPage() {
     enabled: typeof window !== 'undefined',
     retry: (failureCount, err: unknown) => {
       // 404 视为实例真不存在，不重试；其余（超时/5xx/网络）重试 2 次
-      if (err?.response?.status === 404) return false
+      if (isAxiosError(err) && err.response?.status === 404) return false
       return failureCount < 2
     },
   })
@@ -74,9 +75,9 @@ export default function InstanceDetailPage() {
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
   if (isError) {
-    const status = (error as any)?.response?.status
+    const status = isAxiosError(error) ? error.response?.status : undefined
     if (status === 404) return <p className="text-v2-danger">实例不存在</p>
-    const msg = (error as any)?.response?.data?.message ?? (error as any)?.message ?? '未知错误'
+    const msg = getApiErrorMessage(error, '未知错误')
     return (
       <div className="space-y-3">
         <p className="text-v2-danger">加载实例失败{status ? `（${status}）` : ''}：{msg}</p>
