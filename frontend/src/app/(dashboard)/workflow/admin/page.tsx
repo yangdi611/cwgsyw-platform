@@ -14,16 +14,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner'
 import { ChevronDown, CheckCircle, Pencil, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ProcessDefinition, ProcessDefinitionVersion } from '@/types/workflow'
+import { extractPaginated } from '@/types/api'
+import { getApiErrorMessage } from '@/lib/api-error'
 
-interface ProcessDef {
-  id: string
-  name: string
-  key: string
-  version: number
-  description: string
-  category: string
-  suspended: boolean
-  deploymentTime: string
+// Extended type for admin UI (includes activeVersion metadata)
+interface ProcessDefWithMeta extends ProcessDefinition {
+  deploymentTime?: string
   activeVersion?: number | null
 }
 
@@ -31,17 +28,17 @@ export default function WorkflowAdminPage() {
   const router = useRouter()
   const { hasPermission } = usePermission()
   const canConfigure = hasPermission('workflow', 'configure')
-  const [deleteTarget, setDeleteTarget] = useState<ProcessDef | null>(null)
-  const [versionDef, setVersionDef] = useState<ProcessDef | null>(null)
-  const [versions, setVersions] = useState<any[]>([])
+  const [deleteTarget, setDeleteTarget] = useState<ProcessDefWithMeta | null>(null)
+  const [versionDef, setVersionDef] = useState<ProcessDefWithMeta | null>(null)
+  const [versions, setVersions] = useState<ProcessDefinitionVersion[]>([])
   const [page, setPage] = useState(1)
   const [deleteVersionTarget, setDeleteVersionTarget] = useState<{
-    version: any
-    def: ProcessDef
+    version: ProcessDefinitionVersion
+    def: ProcessDefWithMeta
   } | null>(null)
   const [activating, setActivating] = useState<string | null>(null)
   const [suspending, setSuspending] = useState<string | null>(null)
-  const [renameTarget, setRenameTarget] = useState<ProcessDef | null>(null)
+  const [renameTarget, setRenameTarget] = useState<ProcessDefWithMeta | null>(null)
   const [renameName, setRenameName] = useState('')
   const [renameKey, setRenameKey] = useState('')
   const [renaming, setRenaming] = useState(false)
@@ -49,10 +46,9 @@ export default function WorkflowAdminPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['process-definitions', page],
     queryFn: () =>
-      api.get('/workflow/definitions', { params: { page, size: 20 } }).then((r) => ({
-        records: (r.data.data?.records ?? []) as ProcessDef[],
-        total: r.data.data?.total ?? 0,
-      })),
+      api.get('/workflow/definitions', { params: { page, size: 20 } }).then((r) =>
+        extractPaginated<ProcessDefWithMeta>(r)
+      ),
   })
 
   const definitions = data?.records ?? []
@@ -65,13 +61,13 @@ export default function WorkflowAdminPage() {
       toast.success(`流程 "${deleteTarget.name}" 已删除`)
       setDeleteTarget(null)
       refetch()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '删除失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '删除失败'))
       setDeleteTarget(null)
     }
   }
 
-  const handleVersions = async (def: ProcessDef) => {
+  const handleVersions = async (def: ProcessDefWithMeta) => {
     if (versionDef?.id === def.id) {
       setVersionDef(null)
       setVersions([])
@@ -86,35 +82,35 @@ export default function WorkflowAdminPage() {
     }
   }
 
-  const handleActivate = async (v: any, def: ProcessDef) => {
+  const handleActivate = async (v: ProcessDefinitionVersion, def: ProcessDefWithMeta) => {
     setActivating(v.id)
     try {
       await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/activate`)
       toast.success(`v${v.version} 已启用`)
       handleVersions(def)
       refetch()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '启用失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '启用失败'))
     } finally {
       setActivating(null)
     }
   }
 
-  const handleSuspend = async (v: any, def: ProcessDef) => {
+  const handleSuspend = async (v: ProcessDefinitionVersion, def: ProcessDefWithMeta) => {
     setSuspending(v.id)
     try {
       await api.put(`/workflow/definitions/${encodeURIComponent(v.id)}/suspend`)
       toast.success(`v${v.version} 已禁用`)
       handleVersions(def)
       refetch()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '禁用失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '禁用失败'))
     } finally {
       setSuspending(null)
     }
   }
 
-  const openRename = (def: ProcessDef) => {
+  const openRename = (def: ProcessDefWithMeta) => {
     setRenameTarget(def)
     setRenameName(def.name)
     setRenameKey(def.key)
@@ -143,14 +139,14 @@ export default function WorkflowAdminPage() {
       if (versionDef?.id === t.id) {
         handleVersions(t)
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '更新失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '更新失败'))
     } finally {
       setRenaming(false)
     }
   }
 
-  const getActiveVersionInfo = (def: ProcessDef) => {
+  const getActiveVersionInfo = (def: ProcessDefWithMeta) => {
     if (def.activeVersion != null) {
       return { version: def.activeVersion, active: true }
     }
@@ -426,8 +422,8 @@ export default function WorkflowAdminPage() {
                   if (versionDef?.key === t.def.key) {
                     handleVersions(t.def)
                   }
-                } catch (err: any) {
-                  toast.error(err.response?.data?.message || '删除失败')
+                } catch (err: unknown) {
+                  toast.error(getApiErrorMessage(err, '删除失败'))
                   setDeleteVersionTarget(null)
                 }
               }}
