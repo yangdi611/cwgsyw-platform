@@ -5,6 +5,7 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.sharedfile.dto.FolderAclDTO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
+import com.cwgsyw.platform.module.sharedfile.dto.CreateFolderRequest;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/files")
@@ -33,11 +33,9 @@ public class SharedFileController {
     @PostMapping("/folders")
     @PreAuthorize("hasAuthority('shared_file:manage')")
     public R<SharedFolderVO> createFolder(
-            @RequestBody Map<String, Object> body,
+            @RequestBody CreateFolderRequest body,
             @AuthenticationPrincipal SecurityUser user) {
-        String name = (String) body.get("name");
-        Long parentId = body.get("parent_id") != null ? ((Number) body.get("parent_id")).longValue() : null;
-        return R.ok(folderService.createFolder(user.getTenantId(), user.getUserId(), name, parentId));
+        return R.ok(folderService.createFolder(user.getTenantId(), user.getUserId(), body.getName(), body.getParentId()));
     }
 
     @DeleteMapping("/folders/{id}")
