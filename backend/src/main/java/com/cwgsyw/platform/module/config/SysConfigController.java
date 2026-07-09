@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.config;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.config.dto.NotificationConfigRequest;
 import com.cwgsyw.platform.module.config.dto.SmtpConfigRequest;
+import com.cwgsyw.platform.module.config.dto.WatermarkConfigRequest;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -97,12 +98,12 @@ public class SysConfigController {
     @PutMapping("/watermark")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateWatermark(@AuthenticationPrincipal SecurityUser user,
-                                    @RequestBody Map<String, Object> req) {
+                                    @RequestBody WatermarkConfigRequest req) {
         String tid = user.getTenantId();
-        if (req.containsKey("text"))     configService.set(tid, "watermark.text",      String.valueOf(req.get("text")));
-        if (req.containsKey("opacity"))  configService.set(tid, "watermark.opacity",   String.valueOf(req.get("opacity")));
-        if (req.containsKey("position")) configService.set(tid, "watermark.position",  String.valueOf(req.get("position")));
-        if (req.containsKey("enabled"))  configService.set(tid, "watermark.enabled",   String.valueOf(req.get("enabled")));
+        if (req.getText() != null)     configService.set(tid, "watermark.text",     req.getText());
+        if (req.getOpacity() != null)  configService.set(tid, "watermark.opacity",  String.valueOf(req.getOpacity()));
+        if (req.getPosition() != null) configService.set(tid, "watermark.position", req.getPosition());
+        if (req.getEnabled() != null)  configService.set(tid, "watermark.enabled",  String.valueOf(req.getEnabled()));
         return R.ok(null);
     }
 }
