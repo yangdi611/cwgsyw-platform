@@ -127,7 +127,6 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
         BpmnPropertiesProviderModule,
       ],
       moddleExtensions: { flowable: flowableModdleDescriptor },
-      keyboard: { bindTo: document },
     });
 
     modelerRef.current = modeler;
