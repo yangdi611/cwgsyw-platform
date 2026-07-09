@@ -15,6 +15,16 @@ export interface CiModelVO {
   isPaused: boolean
 }
 
+export interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  isBuiltIn: boolean
+  modelCount: number
+}
+
 export interface CiAssociationDefVO {
   id: number
   defId: string
