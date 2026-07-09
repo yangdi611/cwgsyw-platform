@@ -9,6 +9,7 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -93,7 +94,7 @@ export default function IpamPage() {
       setCreateOpen(false)
       setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '' })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败'),
   })
 
   const deleteMutation = useMutation({
@@ -103,7 +104,7 @@ export default function IpamPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setDeleteTarget(null)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败'),
   })
 
   const handleCreate = () => {

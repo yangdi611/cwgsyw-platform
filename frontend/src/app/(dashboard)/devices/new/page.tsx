@@ -53,7 +53,7 @@ export default function NewDevicePage() {
       toast.success('设备已创建')
       router.push(`/devices/${res.data.data.id}`)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败'),
   })
 
   return (

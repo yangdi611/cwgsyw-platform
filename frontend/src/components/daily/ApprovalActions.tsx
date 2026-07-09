@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import api from '@/lib/api'
-import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface Props {
   taskId: string
@@ -24,7 +24,7 @@ export function ApprovalActions({ taskId, onDone }: Props) {
       queryClient.invalidateQueries({ queryKey: ['workflow-tasks'] })
       onDone()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '操作失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '操作失败')),
   })
 
   return (

@@ -14,6 +14,8 @@ interface ProfileFormData {
   avatarUrl: string
 }
 
+import { getApiErrorMessage } from '@/lib/api-error'
+
 interface ProfileFormProps {
   onSuccess?: (profile: AccountProfile) => void
 }
@@ -51,8 +53,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       const profile = await updateAccountProfile(data)
       toast.success('资料已更新')
       onSuccess?.(profile)
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '更新失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '更新失败'))
     } finally {
       setSubmitting(false)
     }

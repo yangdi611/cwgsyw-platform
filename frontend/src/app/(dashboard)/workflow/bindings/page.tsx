@@ -98,7 +98,7 @@ export default function WorkflowBindingsPage() {
       toast.success('绑定成功')
       setDialogOpen(false)
       refetch()
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response?.data?.message || '绑定失败')
     } finally {
       setSubmitting(false)

@@ -63,7 +63,7 @@ export default function InstanceDetailPage() {
       return r.data.data
     },
     enabled: typeof window !== 'undefined',
-    retry: (failureCount, err: any) => {
+    retry: (failureCount, err: unknown) => {
       // 404 视为实例真不存在，不重试；其余（超时/5xx/网络）重试 2 次
       if (err?.response?.status === 404) return false
       return failureCount < 2

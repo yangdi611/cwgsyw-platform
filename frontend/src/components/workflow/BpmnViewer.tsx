@@ -18,13 +18,13 @@ export default function BpmnViewer({
   currentActivities = [],
 }: BpmnViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<any>(null);
+  const viewerRef = useRef<unknown>(null);
 
   useEffect(() => {
     if (!containerRef.current || !xml) return;
 
     if (viewerRef.current) {
-      viewerRef.current.destroy();
+      (viewerRef.current as { destroy: () => void }).destroy();
       viewerRef.current = null;
     }
 
@@ -32,11 +32,11 @@ export default function BpmnViewer({
       const viewer = new BpmnJSViewer({ container: containerRef.current });
 
       viewer.importXML(xml).then(() => {
-        const canvas = viewer.get('canvas') as any;
+        const canvas = viewer.get('canvas') as { zoom: (mode: string) => void };
         canvas.zoom('fit-viewport');
 
-        const overlays = viewer.get('overlays') as any;
-        const elementRegistry = viewer.get('elementRegistry') as any;
+        const overlays = viewer.get('overlays') as { add: (id: string, config: { position: { top: number; left: number }; html: string }) => void };
+        const elementRegistry = viewer.get('elementRegistry') as { get: (id: string) => unknown };
 
         completedActivities.forEach((id) => {
           try {

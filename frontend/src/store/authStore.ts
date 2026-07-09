@@ -56,8 +56,8 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (Array.isArray((state as any).permissions)) {
-            state.permissions = new Set((state as any).permissions)
+          if (Array.isArray((state as { permissions?: unknown }).permissions)) {
+            state.permissions = new Set((state as { permissions: string[] }).permissions)
           }
           state.setHydrated()
         }

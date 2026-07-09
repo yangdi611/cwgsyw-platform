@@ -63,7 +63,7 @@ export default function WorkflowTasksPage() {
       toast.success(approved ? '已通过' : '已拒绝')
       setExpandedTask(null)
       refetch()
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response?.data?.message || '操作失败')
     }
   }

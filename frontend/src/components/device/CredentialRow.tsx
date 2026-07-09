@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { Eye, EyeOff, Copy, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -82,8 +83,8 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
     setLoading(true)
     try {
       setPassword(await fetchPassword(credentialId))
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? '获取密码失败')
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, '获取密码失败'))
     } finally {
       setLoading(false)
     }
@@ -105,8 +106,8 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
         document.body.removeChild(el)
       }
       toast.success('密码已复制到剪贴板')
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? '获取密码失败')
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, '获取密码失败'))
     }
   }
 

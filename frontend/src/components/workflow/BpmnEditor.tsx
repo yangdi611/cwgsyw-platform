@@ -21,7 +21,7 @@ interface BpmnEditorProps {
 export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const modelerRef = useRef<any>(null);
+  const modelerRef = useRef<unknown>(null);
   const [ready, setReady] = useState(false);
 
   // Flowable fields state — managed by DOM directly, React just hides/shows
@@ -34,28 +34,28 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   const [seqFlow, setSeqFlow] = useState<{ name: string; condition: string; setCondition: (v: string) => void } | null>(null);
 
   // IMPORTANT: Declare renderFlowFields before renderSelectionFields to avoid "used before declared" error
-  const renderFlowFields = useCallback((element: any) => {
-    const bo = element?.businessObject;
+  const renderFlowFields = useCallback((element: unknown) => {
+    const bo = (element as { businessObject?: { get: (name: string) => unknown } })?.businessObject;
 
     // Read/write extension elements
     const extVal = (name: string): string => {
       const ee = bo.get('extensionElements');
       if (!ee) return '';
-      const vals: any[] = ee.get('values') || [];
-      const found = vals.find((v: any) => v.$type === 'flowable:' + name);
-      return found ? (found.get('value') || '') : '';
+      const vals: unknown[] = (ee as { get: (name: string) => unknown[] }).get('values') || [];
+      const found = vals.find((v: unknown) => (v as { $type?: string }).$type === 'flowable:' + name);
+      return found ? (((found as { get: (name: string) => string }).get('value')) || '') : '';
     };
 
     const setExtVal = (name: string, value: string) => {
       const ee = bo.get('extensionElements');
-      const vals: any[] = ee ? [...(ee.get('values') || [])] : [];
-      const existing = vals.find((v: any) => v.$type === 'flowable:' + name);
+      const vals: unknown[] = ee ? [...((ee as { get: (name: string) => unknown[] }).get('values') || [])] : [];
+      const existing = vals.find((v: unknown) => (v as { $type?: string }).$type === 'flowable:' + name);
       const bpmnFactory = modelerRef.current?.get('bpmnFactory');
       const modeling = modelerRef.current?.get('modeling');
       if (!bpmnFactory || !modeling) return;
 
       if (!value) {
-        const filtered = vals.filter((v: any) => v.$type !== 'flowable:' + name);
+        const filtered = vals.filter((v: unknown) => (v as { $type?: string }).$type !== 'flowable:' + name);
         const newEE = filtered.length
           ? bpmnFactory.create('bpmn:ExtensionElements', { values: filtered })
           : null;
@@ -65,7 +65,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
 
       const newEl = bpmnFactory.create('flowable:' + name, { value });
       const newVals = existing
-        ? vals.map((v: any) => (v === existing ? newEl : v))
+        ? vals.map((v: unknown) => (v === existing ? newEl : v))
         : [...vals, newEl];
       const newEE = bpmnFactory.create('bpmn:ExtensionElements', { values: newVals });
       modeling.updateModdleProperties(element, bo, { extensionElements: newEE });

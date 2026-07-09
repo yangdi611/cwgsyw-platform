@@ -50,13 +50,13 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
 
   const { data: groupsData } = useQuery({
     queryKey: ['all-groups-for-dialog'],
-    queryFn: () => api.get('/groups').then(r => r.data.data as any[]),
+    queryFn: () => api.get('/groups').then(r => r.data.data as { id: number; name: string }[]),
     enabled: open,
   })
 
   const sortedUsers = useMemo(() => {
     if (!usersData) return []
-    const groupMap = new Map((groupsData || []).map((g: any) => [g.id, g.name]))
+    const groupMap = new Map((groupsData || []).map((g) => [g.id, g.name]))
     return [...usersData].sort((a, b) => {
       const aHasGroup = a.groupId != null ? 1 : 0
       const bHasGroup = b.groupId != null ? 1 : 0
@@ -68,7 +68,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
   useEffect(() => {
     if (open) {
       if (mode === 'edit' && group) {
-        reset({ name: group.name, description: group.description || '', leaderId: (group as any).leaderId ?? null, memberIds: [] })
+        reset({ name: group.name, description: group.description || '', leaderId: (group as { leaderId?: number | null }).leaderId ?? null, memberIds: [] })
       } else {
         reset({ name: '', description: '', leaderId: null, memberIds: [] })
       }

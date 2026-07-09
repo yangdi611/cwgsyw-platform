@@ -38,7 +38,7 @@ export default function NewWorkflowDesignPage() {
       await api.post('/workflow/definitions', { name, key, category, description, xml: finalXml });
       toast.success('流程定义已保存');
       router.push('/workflow/admin');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response?.data?.message || '保存失败');
     } finally { setSaving(false); }
   };

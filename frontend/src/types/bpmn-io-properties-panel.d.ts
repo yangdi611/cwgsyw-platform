@@ -1,4 +1,4 @@
 declare module '@bpmn-io/properties-panel' {
-  export const TextFieldEntry: any;
-  export const isTextFieldEntryEdited: any;
+  export const TextFieldEntry: unknown;
+  export const isTextFieldEntryEdited: unknown;
 }

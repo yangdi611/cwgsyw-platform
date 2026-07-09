@@ -48,7 +48,7 @@ export default function NewInstancePage() {
       toast.success('实例已创建')
       router.push(`/cmdb/instances/by-model/${modelCode}/${res.data.data.id}`)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败'),
   })
 
   const set = (key: string, val: string) => setAttrs((a) => ({ ...a, [key]: val }))

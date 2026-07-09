@@ -151,7 +151,7 @@ export default function WorkflowTemplatesPage() {
       toast.success(bindNow ? '模板实例已创建并绑定' : '模板实例已创建')
       closeCreate()
       refetch()
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response?.data?.message || '创建失败')
     } finally {
       setSubmitting(false)

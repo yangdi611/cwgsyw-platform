@@ -14,6 +14,7 @@ import { DataTable, type ColumnDef } from '@/components/shared'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -110,7 +111,7 @@ export default function IpamDetailPage() {
       setAllocateOpen(false)
       setAllocateForm({ ipAddress: '', ciInstanceId: null, description: '' })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '分配失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '分配失败'),
   })
 
   const releaseMutation = useMutation({
@@ -121,7 +122,7 @@ export default function IpamDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setReleaseTarget(null)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '释放失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '释放失败'),
   })
 
   const updateMutation = useMutation({
@@ -132,7 +133,7 @@ export default function IpamDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setEditing(false)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败'),
   })
 
   const startEdit = () => {

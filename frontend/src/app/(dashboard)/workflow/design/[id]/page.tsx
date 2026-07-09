@@ -96,7 +96,7 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
       });
       toast.success(`流程定义已更新 (v${(detail.version ?? 0) + 1})`);
       router.push('/workflow/admin');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response?.data?.message || '更新失败');
     } finally {
       setSaving(false);
