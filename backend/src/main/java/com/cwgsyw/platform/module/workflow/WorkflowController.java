@@ -211,13 +211,9 @@ public class WorkflowController {
      */
     @PostMapping("/definitions/delete-version")
     @PreAuthorize("hasPermission('workflow', 'configure')")
-    public R<Void> deleteVersion(@RequestBody Map<String, String> body,
+    public R<Void> deleteVersion(@RequestBody DeleteVersionRequest body,
                                   @AuthenticationPrincipal SecurityUser cu) {
-        // 前后端统一使用 definitionId（camelCase）；兼容历史 definition_id 字段
-        String definitionId = body.get("definitionId");
-        if (definitionId == null || definitionId.isBlank()) {
-            definitionId = body.get("definition_id");
-        }
+        String definitionId = body.getDefinitionId();
         if (definitionId == null || definitionId.isBlank()) {
             return R.fail("缺少 definitionId 参数");
         }
