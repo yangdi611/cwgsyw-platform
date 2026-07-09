@@ -61,6 +61,9 @@ export interface CiAttributeGroupVO {
   modelId: string
   name: string
   sortOrder: number
+  groupId?: string
+  isBuiltIn?: boolean
+  attributeCount?: number
 }
 
 /**
