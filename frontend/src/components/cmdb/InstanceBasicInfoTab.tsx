@@ -76,13 +76,13 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
       if (!map.has(gid)) map.set(gid, [])
       map.get(gid)!.push(a)
     }
-    for (const arr of map.values()) arr.sort((a, b) => a.sortOrder - b.sortOrder)
+    for (const arr of map.values()) arr.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
     return map
   }, [inst.attributes])
 
   const sortedGroupIds = useMemo(() => {
     const arr: { id: string; name: string; sortOrder: number }[] = []
-    for (const g of groups) if (attrsByGroup.has(g.groupId)) arr.push({ id: g.groupId, name: g.name, sortOrder: g.sortOrder })
+    for (const g of groups) if (attrsByGroup.has(g.groupId)) arr.push({ id: g.groupId, name: g.name, sortOrder: g.sortOrder ?? 0 })
     if (attrsByGroup.has('__ungrouped__')) arr.push({ id: '__ungrouped__', name: '未分组', sortOrder: 9999 })
     arr.sort((a, b) => a.sortOrder - b.sortOrder)
     return arr

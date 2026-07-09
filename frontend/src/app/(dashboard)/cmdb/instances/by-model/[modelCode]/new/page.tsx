@@ -14,37 +14,13 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
-
-interface CiAttributeVO {
-  id: number
-  fieldKey: string
-  name: string
-  fieldType: string
-  isRequired: boolean
-  isEditable: boolean
-  option: { id: string; name: string; isDefault?: boolean }[] | null
-  placeholder: string
-  unit: string
-  sortOrder: number
-  groupId: string
-}
-interface CiAttributeGroupVO {
-  id: number
-  groupId: string
-  name: string
-  sortOrder: number
-}
-interface CiModelVO {
-  name: string
-  attributes: CiAttributeVO[]
-  attributeGroups: CiAttributeGroupVO[]
-}
+import type { CiModelWithAttributes, CmdbFieldsData, CiAttributeResponse } from '@/types/cmdb-model'
 
 export default function NewInstancePage() {
   const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
-  const [attrs, setAttrs] = useState<Record<string, string>>({})
+  const [attrs, setAttrs] = useState<CmdbFieldsData>({})
   const [name, setName] = useState('')
 
   useEffect(() => {
@@ -53,7 +29,7 @@ export default function NewInstancePage() {
       router.replace(`/cmdb/instances/by-model/${modelCode}`)
   }, [isHydrated, hasPermission, router, modelCode])
 
-  const { data: model, isLoading } = useQuery<CiModelVO>({
+  const { data: model, isLoading } = useQuery<CiModelWithAttributes>({
     queryKey: ['cmdb-model', modelCode],
     queryFn: async () => {
       try {
@@ -83,7 +59,7 @@ export default function NewInstancePage() {
     if (!acc[g]) acc[g] = []
     acc[g].push(a)
     return acc
-  }, {} as Record<string, CiAttributeVO[]>)
+  }, {} as Record<string, CiAttributeResponse[]>)
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
 
@@ -110,9 +86,9 @@ export default function NewInstancePage() {
       </Card>
 
       {groups
-        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
         .map((group) => {
-          const groupAttrs = (attrsByGroup[group.groupId] ?? []).sort((a, b) => a.sortOrder - b.sortOrder)
+          const groupAttrs = (attrsByGroup[group.groupId] ?? []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
           if (groupAttrs.length === 0) return null
           return (
             <Card key={group.groupId}>
@@ -128,7 +104,7 @@ export default function NewInstancePage() {
                           <span className="ml-1 text-xs text-v2-muted">({attr.unit})</span>
                         )}
                       </Label>
-                      {renderField(attr, attrs[attr.fieldKey] ?? '', (val) => set(attr.fieldKey, val))}
+                      {renderField(attr, String(attrs[attr.fieldKey] ?? ''), (val) => set(attr.fieldKey, val))}
                     </div>
                   ))}
                 </div>
@@ -149,7 +125,7 @@ export default function NewInstancePage() {
   )
 }
 
-function renderField(attr: CiAttributeVO, value: string, onChange: (v: string) => void) {
+function renderField(attr: CiAttributeResponse, value: string, onChange: (v: string) => void) {
   const { fieldType, option, placeholder } = attr
   const ph = placeholder ?? ''
   if (fieldType === 'longchar') {
