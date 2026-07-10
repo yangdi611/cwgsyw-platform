@@ -160,7 +160,7 @@ export default function DeviceDetailPage() {
       setAddingToGroup(undefined)
       setNewCred({ username: '', password: '', description: '' })
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '添加失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '添加失败')),
   })
 
   const updateMutation = useMutation({
@@ -175,7 +175,7 @@ export default function DeviceDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['devices'] })
       setEditing(false)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败')),
   })
 
   const deleteMutation = useMutation({
@@ -184,7 +184,7 @@ export default function DeviceDetailPage() {
       toast.success('设备已删除')
       router.push('/devices')
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   const startEdit = () => {

@@ -76,7 +76,7 @@ export default function InstanceListPage() {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   const cloneMutation = useMutation({
@@ -87,7 +87,7 @@ export default function InstanceListPage() {
       setSelected(null)
       router.push(`/cmdb/instances/by-model/${modelCode}/${created.id}`)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '克隆失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '克隆失败')),
   })
 
   const listColumns = (model?.attributes ?? []).filter((a) => a.isListShow).slice(0, 5)

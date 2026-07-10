@@ -99,7 +99,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, '操作失败')
+      toast.error(getApiErrorMessage(err, '操作失败'))
     }
   }
 

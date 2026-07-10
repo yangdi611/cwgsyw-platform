@@ -94,7 +94,7 @@ export default function IpamPage() {
       setCreateOpen(false)
       setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '' })
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
   })
 
   const deleteMutation = useMutation({

@@ -107,7 +107,7 @@ export function TableConfigEditor({ value, onChange }: Props) {
           </Button>
         </div>
         {value.columns.length === 0 && (
-          <p className="py-3 text-center text-xs text-v2-muted">暂无列，点击"添加列"</p>
+          <p className="py-3 text-center text-xs text-v2-muted">暂无列，点击&ldquo;添加列&rdquo;</p>
         )}
         <div className="space-y-1">
           {value.columns.map((col, idx) => (

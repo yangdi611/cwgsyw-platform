@@ -111,7 +111,7 @@ export default function IpamDetailPage() {
       setAllocateOpen(false)
       setAllocateForm({ ipAddress: '', ciInstanceId: null, description: '' })
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '分配失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '分配失败')),
   })
 
   const releaseMutation = useMutation({
@@ -122,7 +122,7 @@ export default function IpamDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setReleaseTarget(null)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '释放失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '释放失败')),
   })
 
   const updateMutation = useMutation({
@@ -133,7 +133,7 @@ export default function IpamDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setEditing(false)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '更新失败')),
   })
 
   const startEdit = () => {

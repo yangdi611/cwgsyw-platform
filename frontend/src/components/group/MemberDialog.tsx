@@ -81,7 +81,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       toast.success('成员已加入')
       loadMembers()
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, '加入失败')
+      toast.error(getApiErrorMessage(err, '加入失败'))
     } finally {
       setLoading(false)
     }
