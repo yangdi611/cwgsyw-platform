@@ -79,16 +79,24 @@ export default function TemplateFieldsPage() {
   })
 
   useEffect(() => {
-    if (tpl && !dirty) setFields(tpl.fields ?? [])
+    if (tpl && !dirty) {
+      // Use setTimeout to defer setState call
+      const timer = setTimeout(() => setFields(tpl.fields ?? []), 0)
+      return () => clearTimeout(timer)
+    }
   }, [tpl, dirty])
 
   useEffect(() => {
     if (tpl && !metaDirty) {
-      setMeta({
-        name: tpl.name ?? '',
-        description: tpl.description ?? '',
-        docType: tpl.docType ?? 'general',
-      })
+      // Use setTimeout to defer setState call
+      const timer = setTimeout(() => {
+        setMeta({
+          name: tpl.name ?? '',
+          description: tpl.description ?? '',
+          docType: tpl.docType ?? 'general',
+        })
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [tpl, metaDirty])
 

@@ -47,13 +47,17 @@ function ProviderCard({
   })
 
   useEffect(() => {
-    setForm({
-      apiKey: '',
-      baseUrl: config.baseUrl,
-      model: config.model,
-      enabled: config.enabled,
-      systemPrompt: config.systemPrompt,
-    })
+    // Use setTimeout to defer setState call
+    const timer = setTimeout(() => {
+      setForm({
+        apiKey: '',
+        baseUrl: config.baseUrl,
+        model: config.model,
+        enabled: config.enabled,
+        systemPrompt: config.systemPrompt,
+      })
+    }, 0)
+    return () => clearTimeout(timer)
   }, [config])
 
   const saveMutation = useMutation({
