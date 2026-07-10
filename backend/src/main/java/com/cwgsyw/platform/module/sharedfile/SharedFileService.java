@@ -10,12 +10,8 @@ import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.user.UserMapper;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,12 +32,8 @@ public class SharedFileService {
     private final SharedFolderService folderService;
     private final SharedFolderAclService aclService;
     private final MinioStorageService storageService;
-    private final MinioClient minioClient;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
-
-    @Value("${minio.bucket}")
-    private String bucket;
 
     public PageResult<SharedFileVO> listFiles(String tenantId, Long folderId, String keyword,
                                                Long userId, Long userGroupId, String groupScope, int page, int size) {
@@ -181,18 +172,16 @@ public class SharedFileService {
                 .createdAt(LocalDateTime.now()).build());
     }
 
-    public String getPresignedUrl(String tenantId, Long fileId, int expirySeconds) {
+    public FileContent getFileContent(String tenantId, Long fileId) {
         SharedFile sf = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
                 .eq(SharedFile::getTenantId, tenantId)
                 .eq(SharedFile::getId, fileId));
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
-        try {
-            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                    .bucket(bucket).object(sf.getMinioKey())
-                    .method(Method.GET).expiry(expirySeconds, TimeUnit.SECONDS).build());
-        } catch (Exception e) {
-            throw new RuntimeException("生成预签名URL失败: " + e.getMessage(), e);
-        }
+        long actualSize = storageService.objectSize(sf.getMinioKey());
+        return new FileContent(sf.getOriginalName(), actualSize, storageService.download(sf.getMinioKey()));
+    }
+
+    public record FileContent(String originalName, long sizeBytes, InputStream stream) {
     }
 
     @Async

@@ -157,15 +157,24 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        className="flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:gap-6"
         eyebrow="Operations Command Center"
         title="企业运维工作台"
         subtitle="集中处理审批、CMDB 风险、变更文档与近期变更；数据来自后端实时接口。"
         actions={
           <>
-            <Button variant="secondary" onClick={() => (window.location.href = '/workflow/tasks')}>
+            <Button
+              className="flex-1 sm:flex-none"
+              variant="secondary"
+              onClick={() => (window.location.href = '/workflow/tasks')}
+            >
               查看全部待办
             </Button>
-            <Button variant="primary" onClick={() => (window.location.href = '/change-docs/new')}>
+            <Button
+              className="flex-1 sm:flex-none"
+              variant="primary"
+              onClick={() => (window.location.href = '/change-docs/new')}
+            >
               发起变更
             </Button>
           </>

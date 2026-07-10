@@ -46,6 +46,17 @@ export function CollapsedEntry({ entry, pathname, hasPermission }: {
     }, CLOSE_DELAY)
   }
 
+  const toggleOpen = () => {
+    if (mounted) {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      if (unmountTimer.current) clearTimeout(unmountTimer.current)
+      setEntered(false)
+      setMounted(false)
+      return
+    }
+    open()
+  }
+
   useEffect(() => {
     return () => {
       if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -64,6 +75,10 @@ export function CollapsedEntry({ entry, pathname, hasPermission }: {
     return (
       <div ref={ref} className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
         <button
+          type="button"
+          onClick={toggleOpen}
+          aria-expanded={mounted}
+          aria-label={entry.label}
           className={cn(
             'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
             isActive || mounted
@@ -102,6 +117,7 @@ export function CollapsedEntry({ entry, pathname, hasPermission }: {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={() => setMounted(false)}
                       className={cn(
                         'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
                         childActive

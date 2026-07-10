@@ -8,11 +8,19 @@ import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.module.sharedfile.dto.CreateFolderRequest;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -85,13 +93,29 @@ public class SharedFileController {
     @GetMapping("/{id}/download-url")
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<String> getDownloadUrl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(fileService.getPresignedUrl(user.getTenantId(), id, 300));
+        fileService.getFile(user.getTenantId(), id);
+        return R.ok("/api/files/" + id + "/download");
     }
 
     @GetMapping("/{id}/preview-url")
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<String> getPreviewUrl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(fileService.getPresignedUrl(user.getTenantId(), id, 1800));
+        fileService.getFile(user.getTenantId(), id);
+        return R.ok("/api/files/" + id + "/preview");
+    }
+
+    @GetMapping("/{id}/download")
+    @PreAuthorize("hasAuthority('shared_file:read')")
+    public ResponseEntity<InputStreamResource> download(
+            @PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return fileContentResponse(fileService.getFileContent(user.getTenantId(), id), true);
+    }
+
+    @GetMapping("/{id}/preview")
+    @PreAuthorize("hasAuthority('shared_file:read')")
+    public ResponseEntity<InputStreamResource> preview(
+            @PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return fileContentResponse(fileService.getFileContent(user.getTenantId(), id), false);
     }
 
     @DeleteMapping("/{id}")
@@ -105,5 +129,22 @@ public class SharedFileController {
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<SharedFileVO> getFile(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
         return R.ok(fileService.getFile(user.getTenantId(), id));
+    }
+
+    private ResponseEntity<InputStreamResource> fileContentResponse(
+            SharedFileService.FileContent content, boolean attachment) {
+        ContentDisposition disposition = (attachment
+                ? ContentDisposition.attachment()
+                : ContentDisposition.inline())
+                .filename(content.originalName(), StandardCharsets.UTF_8)
+                .build();
+        MediaType mediaType = MediaTypeFactory.getMediaType(content.originalName())
+                .orElse(MediaType.APPLICATION_OCTET_STREAM);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(mediaType)
+                .contentLength(content.sizeBytes())
+                .body(new InputStreamResource(content.stream()));
     }
 }

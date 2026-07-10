@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import api from '@/lib/api'
+import { downloadSharedFile, fetchSharedFileBlob } from '@/lib/shared-file-content'
 import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button'
@@ -21,14 +23,11 @@ function formatBytes(bytes: number): string {
 interface FileDetail {
   id: number
   name: string
+  originalName: string
   fileType: string
   sizeBytes: number
   createdByName: string
   createdAt: string
-}
-
-interface PreviewUrlResponse {
-  data: { url: string }
 }
 
 interface FileDetailResponse {
@@ -50,7 +49,7 @@ function DocxPreview({ url }: { url: string }) {
         const buf = await res.arrayBuffer()
         if (cancelled || !containerRef.current) return
         await renderAsync(buf, containerRef.current)
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('无法预览此文件，请下载后查看。')
       }
     }
@@ -80,7 +79,7 @@ function XlsxPreview({ url }: { url: string }) {
         const ws = wb.Sheets[wb.SheetNames[0]]
         const tableHtml = XLSX.utils.sheet_to_html(ws)
         if (!cancelled) setHtml(tableHtml)
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('无法预览此文件，请下载后查看。')
       }
     }
@@ -117,14 +116,23 @@ export default function FilePreviewPage() {
     enabled: !!id,
   })
 
-  const { data: urlData } = useQuery<PreviewUrlResponse>({
-    queryKey: ['file-preview-url', id],
-    queryFn: () => api.get(`/files/${id}/preview-url`).then(r => r.data),
+  const { data: previewBlob, isError: previewError } = useQuery<Blob>({
+    queryKey: ['file-preview-content', id],
+    queryFn: () => fetchSharedFileBlob(id, 'preview', 'preview').then((result) => result.blob),
     enabled: !!id,
   })
 
   const file = detailData?.data
-  const previewUrl = urlData?.data?.url
+  const previewUrl = useMemo(
+    () => (previewBlob ? URL.createObjectURL(previewBlob) : undefined),
+    [previewBlob],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
 
   const ext = file?.fileType?.toLowerCase() ?? ''
   const isPdf = ext === 'pdf'
@@ -133,19 +141,15 @@ export default function FilePreviewPage() {
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)
 
   const handleDownload = async () => {
-    const res = await api.get(`/files/${id}/download-url`)
-    const url: string = res.data?.data?.url ?? res.data?.url
-    if (url) {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = file?.name ?? 'download'
-      a.target = '_blank'
-      a.click()
+    try {
+      await downloadSharedFile(id, file?.originalName ?? file?.name ?? 'download')
+    } catch {
+      toast.error('下载失败')
     }
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-[calc(100dvh-7rem)] min-h-0 flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-background shrink-0">
         <Link href="/files" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
@@ -172,7 +176,11 @@ export default function FilePreviewPage() {
 
       {/* Preview Area */}
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
-        {!previewUrl ? (
+        {previewError ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            预览加载失败，请下载后查看。
+          </div>
+        ) : !previewUrl ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             加载中...
           </div>

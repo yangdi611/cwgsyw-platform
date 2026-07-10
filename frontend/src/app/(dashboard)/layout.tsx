@@ -10,12 +10,36 @@ import { useIdleSession } from '@/hooks/useIdleSession'
 
 const SETUP_PATH = '/account/setup'
 
+const ROUTE_PERMISSIONS = [
+  { path: '/workflow/design', permissions: ['workflow:configure'] },
+  { path: '/workflow/admin', permissions: ['workflow:configure'] },
+  { path: '/workflow/templates', permissions: ['workflow:configure'] },
+  { path: '/workflow/bindings', permissions: ['workflow:configure'] },
+  { path: '/users', permissions: ['user:read'] },
+  { path: '/groups', permissions: ['group:read'] },
+  { path: '/rbac/roles', permissions: ['role:read'] },
+  {
+    path: '/rbac/permissions',
+    permissions: ['resource:read', 'resource:assign', 'role:read'],
+  },
+] as const
+
+function requiredRoutePermission(pathname: string) {
+  return ROUTE_PERMISSIONS.find(
+    ({ path }) => pathname === path || pathname.startsWith(`${path}/`),
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [checked, setChecked] = useState(false)
   const requiredActions = useAuthStore((s) => s.requiredActions)
   const isHydrated = useAuthStore((s) => s.isHydrated)
+  const permissions = useAuthStore((s) => s.permissions)
+  const routePermission = requiredRoutePermission(pathname)
+  const canAccessRoute =
+    !routePermission || routePermission.permissions.every((permission) => permissions.has(permission))
 
   useIdleSession()
 
@@ -37,12 +61,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/')
       return
     }
+    if (!canAccessRoute) {
+      router.replace('/')
+      return
+    }
     // Use setTimeout to defer setState call
     const timer = setTimeout(() => setChecked(true), 0)
     return () => clearTimeout(timer)
-  }, [router, pathname, requiredActions, isHydrated])
+  }, [router, pathname, requiredActions, isHydrated, canAccessRoute])
 
-  if (!checked) return null
+  if (!checked || !canAccessRoute) return null
 
   return (
     <div className="flex min-h-screen bg-muted/30">

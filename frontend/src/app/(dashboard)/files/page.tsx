@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import api from '@/lib/api'
+import { downloadSharedFile } from '@/lib/shared-file-content'
 import { usePermission } from '@/hooks/usePermission'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
@@ -142,14 +143,10 @@ export default function FilesPage() {
   )
 
   const handleDownload = useCallback(async (id: number, name: string) => {
-    const res = await api.get(`/files/${id}/download-url`)
-    const url: string = res.data?.data
-    if (url) {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = name
-      a.target = '_blank'
-      a.click()
+    try {
+      await downloadSharedFile(id, name)
+    } catch {
+      toast.error('下载失败')
     }
   }, [])
 
@@ -232,7 +229,7 @@ export default function FilesPage() {
             size="sm"
             className="h-8 w-8 px-0"
             title="下载"
-            onClick={() => handleDownload(r.id, r.name)}
+            onClick={() => handleDownload(r.id, r.originalName)}
           >
             <Download className="h-4 w-4" />
           </Button>

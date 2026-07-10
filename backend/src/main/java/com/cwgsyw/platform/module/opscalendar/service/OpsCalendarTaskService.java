@@ -335,6 +335,10 @@ public class OpsCalendarTaskService {
     public Long createManual(SecurityUser user, TaskCreateRequest req) {
         if (!notBlank(req.getTitle())) throw new IllegalArgumentException("标题必填");
         if (!notBlank(req.getTaskType())) throw new IllegalArgumentException("任务类型必填");
+        LocalDateTime plannedStartAt = req.getPlannedStartAt() != null
+                ? req.getPlannedStartAt() : LocalDateTime.now();
+        if (req.getDueAt() != null && req.getDueAt().isBefore(plannedStartAt))
+            throw new IllegalArgumentException("截止时间不能早于计划开始时间");
 
         OpsScheduleTask t = new OpsScheduleTask();
         t.setTenantId(user.getTenantId());
@@ -342,7 +346,7 @@ public class OpsCalendarTaskService {
         t.setTaskType(req.getTaskType());
         t.setSourceType("manual");
         t.setStatus("pending_confirm");
-        t.setPlannedStartAt(req.getPlannedStartAt());
+        t.setPlannedStartAt(plannedStartAt);
         t.setDueAt(req.getDueAt());
         t.setAssigneeId(req.getAssigneeId());
         t.setGroupId(req.getGroupId() != null ? req.getGroupId() : user.getGroupId());
@@ -355,6 +359,8 @@ public class OpsCalendarTaskService {
 
         // participants
         addParticipant(t.getId(), user.getTenantId(), req.getAssigneeId(), "assignee");
+        if (req.getAssigneeId() == null)
+            addParticipant(t.getId(), user.getTenantId(), user.getUserId(), "collaborator");
         if (req.getParticipantIds() != null)
             req.getParticipantIds().forEach(uid -> addParticipant(t.getId(), user.getTenantId(), uid, "collaborator"));
         if (req.getRecipientIds() != null)

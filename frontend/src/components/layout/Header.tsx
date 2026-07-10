@@ -28,8 +28,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
-      <div className="flex h-full min-w-0 items-center justify-between gap-4 px-4 md:px-6">
-        <div className="min-w-0 shrink-0">
+      <div className="flex h-full min-w-0 items-center justify-between gap-2 px-2 sm:gap-4 sm:px-4 md:px-6">
+        <div className="min-w-0 flex-1 overflow-hidden md:shrink-0">
           <Breadcrumb />
         </div>
 
@@ -43,8 +43,8 @@ export function Header() {
           <kbd className="ml-auto rounded border bg-background px-1.5 py-0.5 text-[11px]">⌘K</kbd>
         </button>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <Link href="/change-docs/new" className={buttonVariants({ size: 'sm' })}>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          <Link href="/change-docs/new" className={buttonVariants({ size: 'sm', className: 'hidden sm:inline-flex' })}>
             新建变更
           </Link>
           <NotificationBell />

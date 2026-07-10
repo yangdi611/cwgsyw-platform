@@ -151,7 +151,7 @@ export const navItems: NavEntry[] = [
       { href: '/users', label: '用户管理', icon: Users, resource: 'user', action: 'read' },
       { href: '/groups', label: '用户组', icon: Building2, resource: 'group', action: 'read' },
       { href: '/rbac/roles', label: '角色管理', icon: Shield, resource: 'role', action: 'read' },
-      { href: '/rbac/permissions', label: '权限配置', icon: Shield, resource: 'role', action: 'assign' },
+      { href: '/rbac/permissions', label: '权限配置', icon: Shield, resource: 'resource', action: 'assign' },
     ],
   },
 

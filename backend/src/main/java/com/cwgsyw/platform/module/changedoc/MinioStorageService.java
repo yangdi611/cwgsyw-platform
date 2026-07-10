@@ -43,6 +43,18 @@ public class MinioStorageService {
         }
     }
 
+    public long objectSize(String objectKey) {
+        try {
+            return minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build())
+                    .size();
+        } catch (Exception e) {
+            throw new RuntimeException("读取文件信息失败: " + e.getMessage(), e);
+        }
+    }
+
     public void delete(String objectKey) {
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()

@@ -54,19 +54,19 @@ export function Sidebar() {
     <aside
       className={cn(
         'bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
-        collapsed ? 'w-[76px]' : 'w-[280px]',
+        collapsed ? 'w-[76px]' : 'w-[76px] md:w-[280px]',
       )}
     >
       {/* Brand */}
       <div
         className={cn(
           'h-14 flex items-center border-b border-v2-sidebar-border shrink-0',
-          collapsed ? 'justify-center px-2' : 'gap-3 px-5',
+          collapsed ? 'justify-center px-2' : 'justify-center px-2 md:justify-start md:gap-3 md:px-5',
         )}
       >
         <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
         {!collapsed && (
-          <>
+          <div className="hidden min-w-0 flex-1 items-center gap-3 md:flex">
             <div className="min-w-0 flex-1">
               <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">CWGSYW 平台</div>
               <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">企业运维与 CMDB 工作台</div>
@@ -78,7 +78,7 @@ export function Sidebar() {
             >
               <PanelLeftClose className="h-[18px] w-[18px]" />
             </button>
-          </>
+          </div>
         )}
       </div>
 
@@ -110,7 +110,21 @@ export function Sidebar() {
           })}
         </nav>
       ) : (
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <>
+          <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-visible p-2 md:hidden">
+            {navItems.map((entry) => {
+              if (isGroup(entry) && entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
+              return (
+                <CollapsedEntry
+                  key={isGroup(entry) ? entry.label : entry.href}
+                  entry={entry}
+                  pathname={pathname}
+                  hasPermission={hasPermission}
+                />
+              )
+            })}
+          </nav>
+          <nav className="hidden flex-1 space-y-1 overflow-y-auto p-3 md:block">
           {navItems.map((entry) => {
             if (isGroup(entry)) {
               if (entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
@@ -151,12 +165,13 @@ export function Sidebar() {
               </Link>
             )
           })}
-        </nav>
+          </nav>
+        </>
       )}
 
       {/* Footer: Version Info（折叠态隐藏） */}
       {!collapsed && (
-        <div className="px-4 py-3 border-t border-v2-sidebar-border shrink-0 space-y-2">
+        <div className="hidden shrink-0 space-y-2 border-t border-v2-sidebar-border px-4 py-3 md:block">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
             <span
