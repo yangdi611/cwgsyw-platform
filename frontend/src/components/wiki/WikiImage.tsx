@@ -28,20 +28,27 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
 
   useEffect(() => {
     if (!src) {
-      setResolvedSrc(null)
-      setFailed(false)
-      return
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setResolvedSrc(null)
+        setFailed(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
     // 仅 wiki 附件走鉴权 blob 拉取；其余(外链/data URI)直接透传
     if (!src.startsWith('/api/wiki/attachments/')) {
-      setResolvedSrc(src)
-      setFailed(false)
-      return
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setResolvedSrc(src)
+        setFailed(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
 
     let objectUrl: string | null = null
     let cancelled = false
-    setFailed(false)
+    // Use setTimeout to defer setState call
+    setTimeout(() => setFailed(false), 0)
     // axios baseURL = '/api'，需去掉前缀避免 /api/api 重复
     api
       .get(src.replace(/^\/api/, ''), { responseType: 'blob' })

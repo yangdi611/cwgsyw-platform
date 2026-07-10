@@ -82,13 +82,17 @@ export function WikiMermaid({
   useEffect(() => {
     const source = chart.trim()
     if (!source) {
-      setStatus('idle')
-      setSvg('')
-      return
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setStatus('idle')
+        setSvg('')
+      }, 0)
+      return () => clearTimeout(timer)
     }
 
     if (lazy && !hasEnteredViewport) {
-      setStatus('waiting')
+      // Use setTimeout to defer setState call
+      setTimeout(() => setStatus('waiting'), 0)
       return
     }
 

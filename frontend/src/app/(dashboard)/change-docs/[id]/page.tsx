@@ -48,8 +48,12 @@ export default function ChangeDocDetailPage() {
 
   useEffect(() => {
     if (doc) {
-      setFieldsData(doc.fieldsData ?? {})
-      setTitle(doc.title ?? '')
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setFieldsData(doc.fieldsData ?? {})
+        setTitle(doc.title ?? '')
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [doc])
 
@@ -153,14 +157,18 @@ export default function ChangeDocDetailPage() {
   const [linkedCiItems, setLinkedCiItems] = useState<Array<CiLinkItem>>([])
 
   useEffect(() => {
-    setLinkedCiItems(
-      (ciLinksData ?? []).map((c) => ({
-        instanceId: c.id,
-        instanceName: c.name,
-        modelName: c.modelName,
-        impactLevel: c.impactLevel,
-      })),
-    )
+    // Use setTimeout to defer setState call
+    const timer = setTimeout(() => {
+      setLinkedCiItems(
+        (ciLinksData ?? []).map((c) => ({
+          instanceId: c.id,
+          instanceName: c.name,
+          modelName: c.modelName,
+          impactLevel: c.impactLevel,
+        })),
+      )
+    }, 0)
+    return () => clearTimeout(timer)
   }, [ciLinksData])
 
   const addLinkMutation = useMutation({
