@@ -8,6 +8,7 @@ frontend/.next/
 *.jar
 data/
 /test/
+/test-results/
 .worktrees/
 
 # 根目录误建的 Node 依赖（真正的前端依赖在 frontend/）
