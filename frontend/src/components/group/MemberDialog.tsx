@@ -64,14 +64,20 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
 
   useEffect(() => {
     if (open) {
-      loadMembers()
-      setSearchKeyword('')
-      setSearchResults([])
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        loadMembers()
+        setSearchKeyword('')
+        setSearchResults([])
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [open, loadMembers])
 
   useEffect(() => {
-    searchUsers(searchKeyword)
+    // Use setTimeout to defer setState call
+    const timer = setTimeout(() => searchUsers(searchKeyword), 0)
+    return () => clearTimeout(timer)
   }, [searchKeyword, searchUsers])
 
   const handleAdd = async (userId: number) => {

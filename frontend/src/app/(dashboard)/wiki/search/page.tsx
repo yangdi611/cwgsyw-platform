@@ -19,13 +19,15 @@ function SearchResults() {
   const [page, setPage] = useState(1)
   const pageSize = 20
 
-  // Sync with URL
+  // Sync with URL - use callback to update all states atomically
   useEffect(() => {
     const kw = searchParams.get('keyword') ?? ''
-    setKeyword(kw)
-    setDebouncedKw(kw)
-    setPage(1)
-  }, [searchParams])
+    if (kw !== keyword || kw !== debouncedKw || page !== 1) {
+      setKeyword(kw)
+      setDebouncedKw(kw)
+      setPage(1)
+    }
+  }, [searchParams, keyword, debouncedKw, page])
 
   // Debounce typed input
   useEffect(() => {

@@ -27,19 +27,21 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null)
 
   useEffect(() => {
-    setFailed(false)
     if (!src) {
       setResolvedSrc(null)
+      setFailed(false)
       return
     }
     // 仅 wiki 附件走鉴权 blob 拉取；其余(外链/data URI)直接透传
     if (!src.startsWith('/api/wiki/attachments/')) {
       setResolvedSrc(src)
+      setFailed(false)
       return
     }
 
     let objectUrl: string | null = null
     let cancelled = false
+    setFailed(false)
     // axios baseURL = '/api'，需去掉前缀避免 /api/api 重复
     api
       .get(src.replace(/^\/api/, ''), { responseType: 'blob' })

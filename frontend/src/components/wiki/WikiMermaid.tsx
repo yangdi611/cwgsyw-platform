@@ -59,7 +59,8 @@ export function WikiMermaid({
     }
 
     if (typeof IntersectionObserver === 'undefined') {
-      setHasEnteredViewport(true)
+      // Fallback: render immediately if IntersectionObserver is not available
+      setTimeout(() => setHasEnteredViewport(true), 0)
       return
     }
 
