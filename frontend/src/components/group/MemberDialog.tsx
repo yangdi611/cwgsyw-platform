@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface GroupMember {
   userId: number
@@ -79,8 +80,8 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       await api.post(`/groups/${groupId}/members`, { userId })
       toast.success('成员已加入')
       loadMembers()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '加入失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '加入失败')
     } finally {
       setLoading(false)
     }
@@ -94,8 +95,8 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       toast.success('成员已移除')
       setRemoveTarget(null)
       loadMembers()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '移除失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '移除失败')
     } finally {
       setLoading(false)
     }

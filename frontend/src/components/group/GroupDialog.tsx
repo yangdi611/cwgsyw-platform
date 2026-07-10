@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface GroupFormData {
   name: string
@@ -97,8 +98,8 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
       }
       onSuccess()
       onClose()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '操作失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '操作失败')
     }
   }
 

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { inspectPassword, describeViolation } from '@/lib/password-policy'
 
 interface Role {
@@ -110,7 +111,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
       }
       onSuccess()
       onClose()
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || '操作失败'
       toast.error(msg)
     }
@@ -256,7 +257,7 @@ function ResetPasswordDialog({
       await api.post(`/users/${userId}/reset-password`, data)
       toast.success('密码已重置，用户下次登录需修改密码')
       onClose()
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || '重置密码失败'
       toast.error(msg)
     }

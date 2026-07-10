@@ -6,6 +6,7 @@ import { Button } from '@/components/v2/Button'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { changeAccountPassword } from '@/lib/account-api'
 import { inspectPassword } from '@/lib/password-policy'
 import { PasswordStrengthHints } from './PasswordStrengthHints'
@@ -41,8 +42,8 @@ export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
       toast.success('密码修改成功')
       reset()
       onSuccess?.()
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || '修改失败')
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '修改失败'))
     } finally {
       setSubmitting(false)
     }

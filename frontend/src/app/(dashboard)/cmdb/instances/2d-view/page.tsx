@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { Grid3x3, RefreshCw, Layers } from 'lucide-react'
 import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
 
@@ -190,7 +191,7 @@ export default function TwoDViewPage() {
       ) : isError ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm text-destructive">
-            {(error as any)?.response?.data?.message ?? '加载失败，该模型可能未启用 2D 视图'}
+            {getApiErrorMessage(error, '加载失败，该模型可能未启用 2D 视图')}
           </p>
           <Button size="sm" variant="outline" className="mt-4" onClick={handleRefresh}>
             重试
