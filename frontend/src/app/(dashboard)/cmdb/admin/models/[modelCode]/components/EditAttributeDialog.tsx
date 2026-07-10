@@ -55,26 +55,30 @@ export function EditAttributeDialog({
 
   useEffect(() => {
     if (attr) {
-      setDisplayName(attr.displayName)
-      setFieldType(attr.fieldType)
-      setRequired(attr.required)
-      setSearchable(attr.searchable)
-      setUnique(attr.unique)
-      setInList(attr.inList)
-      setInForm(attr.inForm)
-      setGroupId(attr.groupId)
-      setValidationStr(attr.validation ?? '')
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setDisplayName(attr.displayName)
+        setFieldType(attr.fieldType)
+        setRequired(attr.required)
+        setSearchable(attr.searchable)
+        setUnique(attr.unique)
+        setInList(attr.inList)
+        setInForm(attr.inForm)
+        setGroupId(attr.groupId)
+        setValidationStr(attr.validation ?? '')
 
-      if (attr.fieldType === 'select' || attr.fieldType === 'multi_select') {
-        try {
-          const arr = JSON.parse(attr.options ?? '[]') as string[]
-          setOptionsStr(arr.join(','))
-        } catch {
+        if (attr.fieldType === 'select' || attr.fieldType === 'multi_select') {
+          try {
+            const arr = JSON.parse(attr.options ?? '[]') as string[]
+            setOptionsStr(arr.join(','))
+          } catch {
+            setOptionsStr('')
+          }
+        } else {
           setOptionsStr('')
         }
-      } else {
-        setOptionsStr('')
-      }
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [attr])
 

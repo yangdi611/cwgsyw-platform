@@ -57,17 +57,21 @@ export function AddAttributeDialog({
 
   useEffect(() => {
     if (!open) {
-      setFieldKey('')
-      setDisplayName('')
-      setFieldType('text')
-      setRequired(false)
-      setSearchable(false)
-      setUnique(false)
-      setInList(true)
-      setInForm(true)
-      setGroupId(null)
-      setOptionsStr('')
-      setValidationStr('')
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setFieldKey('')
+        setDisplayName('')
+        setFieldType('text')
+        setRequired(false)
+        setSearchable(false)
+        setUnique(false)
+        setInList(true)
+        setInForm(true)
+        setGroupId(null)
+        setOptionsStr('')
+        setValidationStr('')
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
