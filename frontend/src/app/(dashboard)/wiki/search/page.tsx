@@ -23,9 +23,13 @@ function SearchResults() {
   useEffect(() => {
     const kw = searchParams.get('keyword') ?? ''
     if (kw !== keyword || kw !== debouncedKw || page !== 1) {
-      setKeyword(kw)
-      setDebouncedKw(kw)
-      setPage(1)
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setKeyword(kw)
+        setDebouncedKw(kw)
+        setPage(1)
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [searchParams, keyword, debouncedKw, page])
 

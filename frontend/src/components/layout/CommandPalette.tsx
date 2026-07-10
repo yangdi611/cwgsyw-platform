@@ -126,7 +126,8 @@ export function CommandPalette() {
       }, 0)
       return () => clearTimeout(timer)
     }
-    setLoading(true)
+    // Use setTimeout to defer setState call
+    setTimeout(() => setLoading(true), 0)
     const id = ++reqId.current
     const timer = setTimeout(() => {
       globalSearch(kw, 5)
