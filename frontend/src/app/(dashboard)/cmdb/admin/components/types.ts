@@ -2,10 +2,10 @@
  * Shared types for CMDB Admin components
  */
 
-import type { CiModelAdminItem, CiAttributeGroupResponse } from '@/types/cmdb-model'
+import type { CiModelAdminItem, CiAttributeGroupAdminItem } from '@/types/cmdb-model'
 
 // Re-export shared types for convenience
-export type { CiModelAdminItem, CiAttributeGroupResponse }
+export type { CiModelAdminItem, CiAttributeGroupAdminItem }
 
 export interface CiAssociationDefVO {
   id: number

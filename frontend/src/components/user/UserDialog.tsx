@@ -112,8 +112,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      const msg = err.response?.data?.message || '操作失败'
-      toast.error(msg)
+      toast.error(getApiErrorMessage(err, '操作失败'))
     }
   }
 
@@ -258,8 +257,7 @@ function ResetPasswordDialog({
       toast.success('密码已重置，用户下次登录需修改密码')
       onClose()
     } catch (err: unknown) {
-      const msg = err.response?.data?.message || '重置密码失败'
-      toast.error(msg)
+      toast.error(getApiErrorMessage(err, '重置密码失败'))
     }
   }
 

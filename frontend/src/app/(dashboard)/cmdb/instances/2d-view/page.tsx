@@ -1,6 +1,6 @@
 'use client'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -41,7 +41,6 @@ const GROUPABLE_FIELD_TYPES = new Set(['singlechar', 'enum'])
 
 export default function TwoDViewPage() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const { hasPermission } = usePermission()
 
   const [model, setModel] = useState('')
@@ -79,26 +78,15 @@ export default function TwoDViewPage() {
     .filter(a => GROUPABLE_FIELD_TYPES.has(a.fieldType))
     .map(a => ({ fieldKey: a.fieldKey, name: a.name, fieldType: a.fieldType }))
 
-  // Auto-set first groupable attr when model changes
-  useEffect(() => {
-    // Use setTimeout to defer setState calls
-    const timer = setTimeout(() => {
-      if (groupableAttrs.length > 0) {
-        setGroupBy(groupableAttrs[0].fieldKey)
-      } else {
-        setGroupBy('')
-      }
-    }, 0)
-    return () => clearTimeout(timer)
-  }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
+  const effectiveGroupBy = groupBy || groupableAttrs[0]?.fieldKey || ''
 
   // Fetch 2D view data
   const { data: viewData, isLoading, isError, error, refetch } = useQuery<TwoDimensionViewVO>({
-    queryKey: ['cmdb-2d-view', model, groupBy],
+    queryKey: ['cmdb-2d-view', model, effectiveGroupBy],
     queryFn: () => api.get('/cmdb/instances/2d-view', {
-      params: { modelId: model, groupBy },
+      params: { modelId: model, groupBy: effectiveGroupBy },
     }).then(r => r.data.data),
-    enabled: !!model && !!groupBy,
+    enabled: !!model && !!effectiveGroupBy,
   })
 
   // Display the groupable attrs selector (now populated from pre-fetch)

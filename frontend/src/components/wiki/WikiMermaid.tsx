@@ -17,6 +17,13 @@ export interface WikiMermaidProps {
 
 type MermaidRenderStatus = 'idle' | 'waiting' | 'rendering' | 'success' | 'error'
 
+interface MermaidRenderResult {
+  key: string
+  status: 'rendering' | 'success' | 'error'
+  svg: string
+  errorMessage: string
+}
+
 export function WikiMermaid({
   chart,
   className = '',
@@ -29,9 +36,7 @@ export function WikiMermaid({
   const { resolvedTheme } = useTheme()
   const theme = resolvedTheme === 'dark' ? 'dark' : 'default'
 
-  const [status, setStatus] = useState<MermaidRenderStatus>('idle')
-  const [svg, setSvg] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [renderResult, setRenderResult] = useState<MermaidRenderResult | null>(null)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [fullscreenOpen, setFullscreenOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -60,7 +65,8 @@ export function WikiMermaid({
 
     if (typeof IntersectionObserver === 'undefined') {
       // Fallback: render immediately if IntersectionObserver is not available
-      setTimeout(() => setHasEnteredViewport(true), 0)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizes an external browser capability fallback
+      setHasEnteredViewport(true)
       return
     }
 
@@ -81,24 +87,12 @@ export function WikiMermaid({
   // Main render effect
   useEffect(() => {
     const source = chart.trim()
-    if (!source) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setStatus('idle')
-        setSvg('')
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-
-    if (lazy && !hasEnteredViewport) {
-      // Use setTimeout to defer setState call
-      setTimeout(() => setStatus('waiting'), 0)
-      return
-    }
+    if (!source || (lazy && !hasEnteredViewport)) return
 
     let cancelled = false
+    const renderKey = `${theme}:${source}`
     const timer = window.setTimeout(async () => {
-      setStatus('rendering')
+      setRenderResult({ key: renderKey, status: 'rendering', svg: '', errorMessage: '' })
       try {
         const mermaid = (await import('mermaid')).default
         mermaid.initialize({
@@ -113,16 +107,17 @@ export function WikiMermaid({
 
         if (cancelled) return
 
-        setSvg(renderedSvg)
-        setErrorMessage('')
-        setStatus('success')
+        setRenderResult({ key: renderKey, status: 'success', svg: renderedSvg, errorMessage: '' })
         setSourceOpen(false)
       } catch (error) {
         if (cancelled) return
 
-        setSvg('')
-        setErrorMessage(error instanceof Error ? error.message : '未知错误')
-        setStatus('error')
+        setRenderResult({
+          key: renderKey,
+          status: 'error',
+          svg: '',
+          errorMessage: error instanceof Error ? error.message : '未知错误',
+        })
         setSourceOpen(true)
       }
     }, debounceMs)
@@ -132,6 +127,18 @@ export function WikiMermaid({
       window.clearTimeout(timer)
     }
   }, [chart, debounceMs, hasEnteredViewport, lazy, theme, mermaidId])
+
+  const source = chart.trim()
+  const renderKey = `${theme}:${source}`
+  const status: MermaidRenderStatus = !source
+    ? 'idle'
+    : lazy && !hasEnteredViewport
+      ? 'waiting'
+      : renderResult?.key === renderKey
+        ? renderResult.status
+        : 'rendering'
+  const svg = renderResult?.key === renderKey ? renderResult.svg : ''
+  const errorMessage = renderResult?.key === renderKey ? renderResult.errorMessage : ''
 
   // Copy source code
   const handleCopy = async () => {

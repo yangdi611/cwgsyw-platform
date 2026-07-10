@@ -7,16 +7,15 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { toast } from 'sonner'
-import { Plus, PencilLine, Trash2, RefreshCw } from 'lucide-react'
+import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
-import type { CiAttributeGroupResponse, CiModelAdminItem } from '@/types/cmdb-model'
+import type { CiAttributeGroupAdminItem, CiModelAdminItem } from '@/types/cmdb-model'
 import { getApiErrorMessage } from '@/lib/api-error'
 
 function AttributeGroupsTab() {
   const { hasPermission } = usePermission()
-  const canWrite = hasPermission('cmdb_model', 'update')
+  const canWrite = hasPermission('cmdb_model', 'manage')
   const queryClient = useQueryClient()
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [creating, setCreating] = useState(false)
@@ -36,7 +35,7 @@ function AttributeGroupsTab() {
     enabled: typeof window !== 'undefined',
   })
 
-  const { data: groups = [], isLoading } = useQuery<CiAttributeGroupResponse[]>({
+  const { data: groups = [], isLoading } = useQuery<CiAttributeGroupAdminItem[]>({
     queryKey: ['cmdb-attribute-groups', selectedModel],
     queryFn: async () => {
       try {
@@ -158,7 +157,7 @@ function AttributeGroupsTab() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id ?? 0, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
+                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
                       </div>
                     </div>
@@ -173,13 +172,13 @@ function AttributeGroupsTab() {
                       </div>
                       {canWrite && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id ?? null); setEditForm({ name: g.name, sortOrder: g.sortOrder ?? 0 }) }}>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder ?? 0 }) }}>
                             <PencilLine className="h-4 w-4" />
                           </Button>
                           <Button size="sm" variant="ghost"
                             disabled={(g.attributeCount ?? 0) > 0}
                             title={(g.attributeCount ?? 0) > 0 ? '分组下尚有属性' : ''}
-                            onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id ?? 0) }}>
+                            onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>

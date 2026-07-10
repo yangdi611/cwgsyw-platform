@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
@@ -10,34 +10,33 @@ import { PageHeader, EmptyState, Pagination } from '@/components/shared'
 import { Search, FileText } from 'lucide-react'
 import type { WikiSearchResult } from '@/types/wiki'
 
-function SearchResults() {
-  const searchParams = useSearchParams()
+function SearchResults({ urlKeyword }: { urlKeyword: string }) {
   const router = useRouter()
-  const initialKw = searchParams.get('keyword') ?? ''
-  const [keyword, setKeyword] = useState(initialKw)
-  const [debouncedKw, setDebouncedKw] = useState(initialKw)
+  const [keyword, setKeyword] = useState(urlKeyword)
+  const [debouncedKw, setDebouncedKw] = useState(urlKeyword)
   const [page, setPage] = useState(1)
+  const lastWrittenKeyword = useRef(urlKeyword)
   const pageSize = 20
 
-  // Sync with URL - use callback to update all states atomically
   useEffect(() => {
-    const kw = searchParams.get('keyword') ?? ''
-    if (kw !== keyword || kw !== debouncedKw || page !== 1) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setKeyword(kw)
-        setDebouncedKw(kw)
-        setPage(1)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-  }, [searchParams, keyword, debouncedKw, page])
+    if (urlKeyword === lastWrittenKeyword.current) return
+    lastWrittenKeyword.current = urlKeyword
+    // Browser back/forward is an external URL state change that must update the controlled input.
+    setKeyword(urlKeyword)
+    setDebouncedKw(urlKeyword)
+    setPage(1)
+  }, [urlKeyword])
 
   // Debounce typed input
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedKw(keyword), 400)
+    const t = setTimeout(() => {
+      setDebouncedKw(keyword)
+      lastWrittenKeyword.current = keyword
+      const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
+      router.replace(`/wiki/search${query}`, { scroll: false })
+    }, 400)
     return () => clearTimeout(t)
-  }, [keyword])
+  }, [keyword, router])
 
   const { data, isLoading } = useQuery({
     queryKey: ['wiki-search', debouncedKw, page],
@@ -45,14 +44,10 @@ function SearchResults() {
     enabled: !!debouncedKw,
   })
 
-  const handleSearch = useCallback(
-    (kw: string) => {
-      setKeyword(kw)
-      router.push(`/wiki/search?keyword=${encodeURIComponent(kw)}`)
-      setPage(1)
-    },
-    [router],
-  )
+  const handleSearch = useCallback((nextKeyword: string) => {
+    setKeyword(nextKeyword)
+    setPage(1)
+  }, [])
 
   const records: WikiSearchResult[] = data?.records ?? []
   const total = data?.total ?? 0
@@ -116,10 +111,17 @@ function SearchResults() {
   )
 }
 
+function WikiSearchContent() {
+  const searchParams = useSearchParams()
+  const urlKeyword = searchParams.get('keyword') ?? ''
+
+  return <SearchResults urlKeyword={urlKeyword} />
+}
+
 export default function WikiSearchPage() {
   return (
     <Suspense fallback={<div className="py-12 text-center text-sm text-v2-muted">加载中…</div>}>
-      <SearchResults />
+      <WikiSearchContent />
     </Suspense>
   )
 }

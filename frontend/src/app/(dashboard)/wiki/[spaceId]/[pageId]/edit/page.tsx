@@ -100,12 +100,10 @@ export default function WikiEditorPage() {
 
   useEffect(() => {
     if (!page) return
-    // Use setTimeout to defer setState calls
-    const timer = setTimeout(() => {
-      setTitle(page.title)
-      setContent(page.content ?? '')
-    }, 0)
-    return () => clearTimeout(timer)
+    // Query data initializes the editable page form.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTitle(page.title)
+    setContent(page.content ?? '')
   }, [page])
 
   const saveMutation = useMutation({

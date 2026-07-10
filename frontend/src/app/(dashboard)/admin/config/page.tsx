@@ -39,36 +39,21 @@ function ProcessVersionSelector({ value, onSave }: {
     }),
   })
 
-  // Initialize derived state from config (avoid setState in effect)
-  const [selectedKey, setSelectedKey] = useState(() => {
-    if (!value || allDefs.length === 0) return ''
-    const match = allDefs.find((d) => value.startsWith(d.key + ':'))
-    return match?.key ?? ''
-  })
-
-  // Update selectedKey when allDefs loads and value is set but selectedKey is empty
-  useEffect(() => {
-    if (value && !selectedKey && allDefs.length > 0) {
-      const match = allDefs.find((d) => value.startsWith(d.key + ':'))
-      // Use setTimeout to defer setState call
-      if (match) {
-        const timer = setTimeout(() => setSelectedKey(match.key), 0)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [allDefs, value, selectedKey])
+  const [selectedKey, setSelectedKey] = useState('')
+  const configuredKey = allDefs.find((definition) => value.startsWith(definition.key + ':'))?.key ?? ''
+  const effectiveSelectedKey = selectedKey || configuredKey
 
   const { data: versions = [] } = useQuery<ProcessDefinitionVersion[]>({
-    queryKey: ['process-versions', selectedKey],
-    queryFn: () => api.get(`/workflow/definitions/key/${selectedKey}/versions`).then(r => r.data.data ?? []),
-    enabled: !!selectedKey,
+    queryKey: ['process-versions', effectiveSelectedKey],
+    queryFn: () => api.get(`/workflow/definitions/key/${effectiveSelectedKey}/versions`).then(r => r.data.data ?? []),
+    enabled: !!effectiveSelectedKey,
   })
 
   const selectedDefId = value
 
   return (
     <div className="flex gap-2 items-center flex-wrap">
-      <Select value={selectedKey} onValueChange={v => {
+      <Select value={effectiveSelectedKey} onValueChange={v => {
         if (v) setSelectedKey(v)
       }}>
         <SelectTrigger className="w-[200px]">
@@ -89,10 +74,10 @@ function ProcessVersionSelector({ value, onSave }: {
         }}
       >
         <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder={selectedKey ? '选择版本' : '请先选择流程'}>
+          <SelectValue placeholder={effectiveSelectedKey ? '选择版本' : '请先选择流程'}>
             {(v: string) => {
               const found = versions.find((ver) => ver.id === v)
-              return found ? `v${found.version} (启用)` : (selectedKey ? '选择版本' : '请先选择流程')
+              return found ? `v${found.version} (启用)` : (effectiveSelectedKey ? '选择版本' : '请先选择流程')
             }}
           </SelectValue>
         </SelectTrigger>
@@ -164,29 +149,27 @@ export default function AdminConfigPage() {
   const [initialized, setInitialized] = useState(false)
   useEffect(() => {
     if (!config || Object.keys(config).length === 0 || initialized) return
-    // Use setTimeout to defer setState calls
-    const timer = setTimeout(() => {
-      setSmtpEnabled(config['smtp.enabled'] === 'true')
-      setHost(config['smtp.host'] ?? '')
-      setPort(config['smtp.port'] ?? '465')
-      setUsername(config['smtp.username'] ?? '')
-      setPassword(config['smtp.password'] ?? '')
-      setFrom(config['smtp.from'] ?? '')
-      setFromName(config['smtp.from_name'] ?? 'IT运维平台')
-      setSsl(config['smtp.ssl'] !== 'false')
-      setReminderEnabled(config['notify.reminder.enabled'] === 'true')
-      setReminderCron(config['notify.reminder.cron'] ?? '0 0 17 * * MON-FRI')
-      setReminderTemplate(config['notify.reminder.template'] ?? '')
-      setWatermarkEnabled(config['watermark.enabled'] === 'true')
-      setWatermarkText(config['watermark.text'] ?? '')
-      setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
-      setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
-      setPrometheusEnabled(config['prometheus.enabled'] === 'true')
-      setPrometheusUrl(config['prometheus.url'] ?? '')
-      setPrometheusInterval(config['prometheus.scrape_interval'] ?? '60')
-      setInitialized(true)
-    }, 0)
-    return () => clearTimeout(timer)
+    // Query data hydrates this editable form once; subsequent refetches must not overwrite user input.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSmtpEnabled(config['smtp.enabled'] === 'true')
+    setHost(config['smtp.host'] ?? '')
+    setPort(config['smtp.port'] ?? '465')
+    setUsername(config['smtp.username'] ?? '')
+    setPassword(config['smtp.password'] ?? '')
+    setFrom(config['smtp.from'] ?? '')
+    setFromName(config['smtp.from_name'] ?? 'IT运维平台')
+    setSsl(config['smtp.ssl'] !== 'false')
+    setReminderEnabled(config['notify.reminder.enabled'] === 'true')
+    setReminderCron(config['notify.reminder.cron'] ?? '0 0 17 * * MON-FRI')
+    setReminderTemplate(config['notify.reminder.template'] ?? '')
+    setWatermarkEnabled(config['watermark.enabled'] === 'true')
+    setWatermarkText(config['watermark.text'] ?? '')
+    setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
+    setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
+    setPrometheusEnabled(config['prometheus.enabled'] === 'true')
+    setPrometheusUrl(config['prometheus.url'] ?? '')
+    setPrometheusInterval(config['prometheus.scrape_interval'] ?? '60')
+    setInitialized(true)
   }, [config, initialized])
 
   const smtpMutation = useMutation({

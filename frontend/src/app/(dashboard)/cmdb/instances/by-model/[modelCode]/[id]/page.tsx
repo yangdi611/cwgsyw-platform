@@ -57,7 +57,7 @@ export default function InstanceDetailPage() {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: inst, isLoading, isError, error, refetch } = useQuery<CiInstanceVO>({
+  const { data: inst, isLoading, isError, error, refetch } = useQuery<CiInstanceVO, unknown>({
     queryKey: ['cmdb-instance', modelCode, id],
     queryFn: async () => {
       const r = await api.get(`/cmdb/instances/${id}`)

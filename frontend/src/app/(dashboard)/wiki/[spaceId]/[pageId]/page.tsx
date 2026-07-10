@@ -180,7 +180,7 @@ export default function WikiPageReader() {
                 </Button>
               )
             )}
-            <Button variant="ghost" size="sm" onClick={() => { wikiApi.exportPage(pid).catch(() => toast.error('导出失败')) }}>
+            <Button variant="secondary" size="sm" onClick={() => { wikiApi.exportPage(pid).catch(() => toast.error('导出失败')) }}>
               <FileDown className="h-3.5 w-3.5" />
               导出
             </Button>

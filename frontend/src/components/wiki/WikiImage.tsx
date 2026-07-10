@@ -18,8 +18,11 @@ import api from '@/lib/api'
  * `lightbox`：仅阅读页传 true 开启点击放大遮罩，编辑器预览默认关闭。
  */
 export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: string; lightbox?: boolean }) {
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [attachment, setAttachment] = useState<{
+    source: string
+    resolvedSrc: string | null
+    failed: boolean
+  } | null>(null)
   const [open, setOpen] = useState(false)
   const [scale, setScale] = useState(1)
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -27,38 +30,20 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null)
 
   useEffect(() => {
-    if (!src) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setResolvedSrc(null)
-        setFailed(false)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-    // 仅 wiki 附件走鉴权 blob 拉取；其余(外链/data URI)直接透传
-    if (!src.startsWith('/api/wiki/attachments/')) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setResolvedSrc(src)
-        setFailed(false)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
+    if (!src?.startsWith('/api/wiki/attachments/')) return
 
     let objectUrl: string | null = null
     let cancelled = false
-    // Use setTimeout to defer setState call
-    setTimeout(() => setFailed(false), 0)
     // axios baseURL = '/api'，需去掉前缀避免 /api/api 重复
     api
       .get(src.replace(/^\/api/, ''), { responseType: 'blob' })
       .then((r) => {
         if (cancelled) return
         objectUrl = URL.createObjectURL(r.data as Blob)
-        setResolvedSrc(objectUrl)
+        setAttachment({ source: src, resolvedSrc: objectUrl, failed: false })
       })
       .catch(() => {
-        if (!cancelled) setFailed(true)
+        if (!cancelled) setAttachment({ source: src, resolvedSrc: null, failed: true })
       })
 
     return () => {
@@ -66,6 +51,11 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [src])
+
+  const isAttachment = src?.startsWith('/api/wiki/attachments/') ?? false
+  const currentAttachment = isAttachment && attachment?.source === src ? attachment : null
+  const resolvedSrc = isAttachment ? currentAttachment?.resolvedSrc ?? null : src ?? null
+  const failed = currentAttachment?.failed ?? false
 
   // 打开遮罩时重置缩放/位移；ESC 关闭
   const openLightbox = () => {

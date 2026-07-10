@@ -80,23 +80,21 @@ export default function TemplateFieldsPage() {
 
   useEffect(() => {
     if (tpl && !dirty) {
-      // Use setTimeout to defer setState call
-      const timer = setTimeout(() => setFields(tpl.fields ?? []), 0)
-      return () => clearTimeout(timer)
+      // Query data hydrates the editable field list until the user changes it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFields(tpl.fields ?? [])
     }
   }, [tpl, dirty])
 
   useEffect(() => {
     if (tpl && !metaDirty) {
-      // Use setTimeout to defer setState call
-      const timer = setTimeout(() => {
-        setMeta({
-          name: tpl.name ?? '',
-          description: tpl.description ?? '',
-          docType: tpl.docType ?? 'general',
-        })
-      }, 0)
-      return () => clearTimeout(timer)
+      // Query data hydrates the editable metadata until the user changes it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMeta({
+        name: tpl.name ?? '',
+        description: tpl.description ?? '',
+        docType: tpl.docType ?? 'general',
+      })
     }
   }, [tpl, metaDirty])
 

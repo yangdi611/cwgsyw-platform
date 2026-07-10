@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
@@ -33,10 +33,10 @@ function requiredRoutePermission(pathname: string) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [checked, setChecked] = useState(false)
   const requiredActions = useAuthStore((s) => s.requiredActions)
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const permissions = useAuthStore((s) => s.permissions)
+  const token = getToken()
   const routePermission = requiredRoutePermission(pathname)
   const canAccessRoute =
     !routePermission || routePermission.permissions.every((permission) => permissions.has(permission))
@@ -44,7 +44,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useIdleSession()
 
   useEffect(() => {
-    const token = getToken()
     if (!token) {
       router.replace('/login')
       return
@@ -63,14 +62,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (!canAccessRoute) {
       router.replace('/')
-      return
     }
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => setChecked(true), 0)
-    return () => clearTimeout(timer)
-  }, [router, pathname, requiredActions, isHydrated, canAccessRoute])
+  }, [router, pathname, requiredActions, isHydrated, token, canAccessRoute])
 
-  if (!checked || !canAccessRoute) return null
+  const shouldRedirectToSetup = requiredActions.length > 0 && pathname !== SETUP_PATH
+  const shouldRedirectFromSetup = requiredActions.length === 0 && pathname === SETUP_PATH
+  if (!token || !isHydrated || shouldRedirectToSetup || shouldRedirectFromSetup || !canAccessRoute) {
+    return null
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">

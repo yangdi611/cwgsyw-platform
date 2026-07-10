@@ -92,6 +92,12 @@ export interface CiAttributeGroupResponse {
   attributeCount?: number
 }
 
+/** Attribute group returned by the admin CRUD endpoint. */
+export interface CiAttributeGroupAdminItem extends CiAttributeGroupResponse {
+  id: number
+  attributeCount: number
+}
+
 // ============================================================================
 // 模型类型
 // ============================================================================
@@ -160,6 +166,7 @@ export interface CiModelDetail extends CiModelWithAttributes {
  * 用于管理页卡片，包含管理相关的兼容字段
  */
 export interface CiModelAdminItem extends CiModelListItem {
+  id: number
   icon?: string | null
   description?: string | null
   isPaused?: boolean
@@ -208,7 +215,7 @@ export interface CreateCiAttributePayload {
   isListShow?: boolean
   isDrawerShow?: boolean
   defaultValue?: string | null
-  option?: unknown
+  option?: CmdbAttributeOptionValue
   enumOptions?: string | null
   sortOrder?: number
 }
@@ -224,26 +231,7 @@ export interface UpdateCiAttributePayload {
   isListShow?: boolean
   isDrawerShow?: boolean
   defaultValue?: string | null
-  option?: unknown
+  option?: CmdbAttributeOptionValue
   enumOptions?: string | null
   sortOrder?: number
-}
-
-/**
- * 遗留属性表单 Payload
- * 用于当前属性管理页，与后端 DTO 字段命名不一致
- * 待后续契约修正任务统一
- */
-export interface LegacyAttributeFormPayload {
-  fieldKey: string
-  displayName: string
-  fieldType: string
-  required: boolean
-  searchable: boolean
-  unique: boolean
-  inList: boolean
-  inForm: boolean
-  groupId: number | null
-  options: string | null
-  validation: string | null
 }

@@ -29,6 +29,10 @@ interface AuthState {
   setHydrated: () => void
 }
 
+interface PersistedAuthState {
+  permissions?: unknown
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -56,8 +60,11 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (Array.isArray((state as { permissions?: unknown }).permissions)) {
-            state.permissions = new Set((state as { permissions: string[] }).permissions)
+          const storedPermissions = (state as unknown as PersistedAuthState).permissions
+          if (Array.isArray(storedPermissions)) {
+            state.permissions = new Set(
+              storedPermissions.filter((permission): permission is string => typeof permission === 'string')
+            )
           }
           state.setHydrated()
         }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { Textarea } from '@/components/v2/Textarea'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
@@ -64,7 +65,7 @@ export default function WorkflowTodoPage() {
       setExpanded(null)
       refetch()
     } catch (err: unknown) {
-      toast.error(err.response?.data?.message || '操作失败')
+      toast.error(getApiErrorMessage(err, '操作失败'))
     } finally {
       setActing(null)
     }

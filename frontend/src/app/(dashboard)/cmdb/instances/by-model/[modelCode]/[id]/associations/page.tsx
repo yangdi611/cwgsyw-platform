@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { ArrowLeft, Trash2, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
 
 /**
@@ -75,6 +76,8 @@ export default function AssociationsPage() {
     },
     enabled: typeof window !== 'undefined',
   })
+
+  useBreadcrumbLabel(inst?.name)
 
   const deleteMutation = useMutation({
     mutationFn: (relId: number) => api.delete(`/cmdb/instances/${id}/relations/${relId}`),

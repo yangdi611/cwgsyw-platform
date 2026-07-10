@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -56,14 +56,6 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   const handleClose = (v: boolean) => {
     if (!v) { onOpenChange(false); setTimeout(reset, 200) }
   }
-
-  useEffect(() => {
-    if (open) {
-      // Use setTimeout to defer setState call
-      const timer = setTimeout(() => reset(), 0)
-      return () => clearTimeout(timer)
-    }
-  }, [open, reset])
 
   // Download template
   const downloadTemplate = async () => {

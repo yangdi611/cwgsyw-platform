@@ -12,6 +12,7 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import Link from 'next/link'
 import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { cn } from '@/lib/utils'
 
 interface CiInstanceSummary { name: string; modelId: string; modelCode?: string }
@@ -77,6 +78,8 @@ export default function NewAssociationPage() {
     queryFn: () => api.get(`/cmdb/instances/${id}/relations/applicable-defs`).then(r => r.data.data),
     enabled: typeof window !== 'undefined',
   })
+
+  useBreadcrumbLabel(inst?.name)
 
   const selectedDef = applicableDefs.find(d => d.defId === selectedDefId)
   // applicable-defs 仅返回 src 端 = 当前模型 的 def，故目标恒为 dst 端

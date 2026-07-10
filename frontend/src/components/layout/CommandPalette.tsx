@@ -102,32 +102,10 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // 关闭时重置查询状态
-  useEffect(() => {
-    if (!open) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setKeyword('')
-        setResults([])
-        setLoading(false)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-  }, [open])
-
   // 防抖搜索（300ms）。reqId 防止旧请求覆盖新结果（竞态）。
   useEffect(() => {
     const kw = keyword.trim()
-    if (!kw) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setResults([])
-        setLoading(false)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-    // Use setTimeout to defer setState call
-    setTimeout(() => setLoading(true), 0)
+    if (!kw) return
     const id = ++reqId.current
     const timer = setTimeout(() => {
       globalSearch(kw, 5)
@@ -144,8 +122,29 @@ export function CommandPalette() {
     return () => clearTimeout(timer)
   }, [keyword])
 
+  const handleKeywordChange = (nextKeyword: string) => {
+    reqId.current += 1
+    setKeyword(nextKeyword)
+    if (nextKeyword.trim()) {
+      setLoading(true)
+    } else {
+      setResults([])
+      setLoading(false)
+    }
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      reqId.current += 1
+      setKeyword('')
+      setResults([])
+      setLoading(false)
+    }
+    setOpen(nextOpen)
+  }
+
   const handleSelect = (url: string) => {
-    setOpen(false)
+    handleOpenChange(false)
     router.push(url)
   }
 
@@ -160,7 +159,7 @@ export function CommandPalette() {
   const showPanel = hasQuery
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogPortal>
         <DialogOverlay />
         <DialogPrimitive.Popup
@@ -181,7 +180,7 @@ export function CommandPalette() {
               <Command.Input
                 autoFocus
                 value={keyword}
-                onValueChange={setKeyword}
+                onValueChange={handleKeywordChange}
                 placeholder="搜索 CI、共享文件、变更单、设备、用户、知识库…"
                 className="flex h-16 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
               />

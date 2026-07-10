@@ -83,15 +83,13 @@ export function WikiSpaceAclDialog({
 
   useEffect(() => {
     if (!acl) return
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => {
-      const m = new Map<string, Set<Perm>>()
-      for (const e of acl.entries ?? []) {
-        m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions as Perm[]))
-      }
-      setGrants(m)
-    }, 0)
-    return () => clearTimeout(timer)
+    const m = new Map<string, Set<Perm>>()
+    for (const e of acl.entries ?? []) {
+      m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions as Perm[]))
+    }
+    // The loaded ACL initializes the dialog's editable permission matrix.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGrants(m)
   }, [acl])
 
   // 候选对象 = 选择器接口列出的全量对象 ⋃ 已保存 ACL / 强制项里出现的对象。

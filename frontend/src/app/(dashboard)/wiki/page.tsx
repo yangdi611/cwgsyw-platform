@@ -89,9 +89,9 @@ export default function WikiSpacesPage() {
 
   // 加载个人排序（username 就绪后）
   useEffect(() => {
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => setOrder(loadPersonalOrder(username)), 0)
-    return () => clearTimeout(timer)
+    // Persisted browser state changes when the hydrated username becomes available.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrder(loadPersonalOrder(username))
   }, [username])
 
   const { data: spaces, isLoading } = useQuery<WikiSpace[]>({

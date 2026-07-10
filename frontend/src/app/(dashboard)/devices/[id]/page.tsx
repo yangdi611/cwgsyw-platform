@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface Credential {
   id: number

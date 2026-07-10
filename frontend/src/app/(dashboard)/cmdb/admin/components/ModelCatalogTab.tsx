@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -9,9 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { toast } from 'sonner'
-import { Plus, Settings, ChevronDown, PencilLine, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { ModelCard } from './ModelCard'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
@@ -34,6 +32,7 @@ function ModelCatalogTab() {
   const canCreateModel = hasPermission('cmdb_model', 'create')
   const canWrite = hasPermission('cmdb_model', 'update')
   const canDeleteModel = hasPermission('cmdb_model', 'delete')
+  const canManageGroups = hasPermission('cmdb_model', 'manage')
 
   const [creatingModel, setCreatingModel] = useState(false)
   const [creatingGroup, setCreatingGroup] = useState(false)
@@ -149,7 +148,7 @@ function ModelCatalogTab() {
   const renameModelMutation = useMutation({
     mutationFn: ({ model, displayName }: { model: CiModelAdminItem; displayName: string }) =>
       api.put(`/cmdb/models/${model.id}`, { displayName }),
-    onSuccess: (_data, { model, displayName }) => {
+    onSuccess: (_data, { model }) => {
       toast.success(`模型「${getModelDisplayName(model)}」已重命名`)
       setEditingModel(null)
       setRenameForm({ displayName: '' })
@@ -231,9 +230,9 @@ function ModelCatalogTab() {
       {/* Top bar with both create buttons */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">按分类组织的 CI 模型目录</p>
-        {(canWrite || canCreateModel) && (
+        {(canManageGroups || canCreateModel) && (
           <div className="flex gap-2">
-            {canWrite && (
+            {canManageGroups && (
               <Button size="sm" variant="outline" onClick={() => setCreatingGroup(v => !v)}>
                 <Plus className="mr-1 h-4 w-4" />新建分类
               </Button>
@@ -433,7 +432,7 @@ function ModelCatalogTab() {
                         <span className="shrink-0 text-xs text-muted-foreground">{groupModels.length} 个模型</span>
                         {g.isBuiltIn && <Badge variant="secondary" className="shrink-0 text-xs">内置</Badge>}
                       </div>
-                      {canWrite && (
+                      {canManageGroups && (
                         <div className="flex shrink-0 gap-1" onClick={e => e.stopPropagation()}>
                           <Button size="sm" variant="ghost" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
                             <PencilLine className="h-4 w-4" />

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
@@ -99,7 +100,7 @@ export default function WorkflowBindingsPage() {
       setDialogOpen(false)
       refetch()
     } catch (err: unknown) {
-      toast.error(err.response?.data?.message || '绑定失败')
+      toast.error(getApiErrorMessage(err, '绑定失败'))
     } finally {
       setSubmitting(false)
     }

@@ -18,9 +18,9 @@ export interface Crumb {
   /** 动态名（实例/文档/页面标题），由详情页按顺序注册到 breadcrumb store */
   dynamic?: boolean
   /**
-   * 动态段的 href 模板，用 :N 引用 URL 第 N 段（0 基）。
+   * href 模板，用 :N 引用 URL 第 N 段（0 基）。
    * 例：wiki 空间段 hrefTemplate='/wiki/:0' → 解析为 /wiki/<spaceId>，可点回空间。
-   * 仅对非末段动态槽有意义（末段是当前页，不可点）。
+   * 仅对非末段节点有意义（末段是当前页，不可点）。
    */
   hrefTemplate?: string
 }
@@ -56,10 +56,11 @@ const ROUTES: RouteDef[] = [
   { pattern: '/cmdb', trail: [ROOT.cmdb, { label: '概览' }] },
   { pattern: '/cmdb/instances', trail: [ROOT.cmdb, { label: '概览' }] },
   { pattern: '/cmdb/instances/2d-view', trail: [ROOT.cmdb, { label: '2D 视图' }] },
-  { pattern: '/cmdb/instances/by-model/:m/new', trail: [ROOT.cmdb, { label: '实例浏览', href: '/cmdb' }, { label: '新建实例' }] },
-  { pattern: '/cmdb/instances/by-model/:m/:id/associations/new', trail: [ROOT.cmdb, { label: '实例浏览', href: '/cmdb' }, { ...DYN }, { label: '关联管理' }, { label: '新建关联' }] },
-  { pattern: '/cmdb/instances/by-model/:m/:id/associations', trail: [ROOT.cmdb, { label: '实例浏览', href: '/cmdb' }, { ...DYN }, { label: '关联管理' }] },
-  { pattern: '/cmdb/instances/by-model/:m/:id', trail: [ROOT.cmdb, { label: '实例浏览', href: '/cmdb' }, { ...DYN }] },
+  { pattern: '/cmdb/instances/by-model/:m/new', trail: [ROOT.cmdb, { label: '概览', href: '/cmdb' }, { label: '实例列表', hrefTemplate: '/cmdb/instances/by-model/:3' }, { label: '新建实例' }] },
+  { pattern: '/cmdb/instances/by-model/:m/:id/associations/new', trail: [ROOT.cmdb, { label: '概览', href: '/cmdb' }, { label: '实例列表', hrefTemplate: '/cmdb/instances/by-model/:3' }, { ...DYN, hrefTemplate: '/cmdb/instances/by-model/:3/:4' }, { label: '关联管理', hrefTemplate: '/cmdb/instances/by-model/:3/:4/associations' }, { label: '新建关联' }] },
+  { pattern: '/cmdb/instances/by-model/:m/:id/associations', trail: [ROOT.cmdb, { label: '概览', href: '/cmdb' }, { label: '实例列表', hrefTemplate: '/cmdb/instances/by-model/:3' }, { ...DYN, hrefTemplate: '/cmdb/instances/by-model/:3/:4' }, { label: '关联管理' }] },
+  { pattern: '/cmdb/instances/by-model/:m/:id', trail: [ROOT.cmdb, { label: '概览', href: '/cmdb' }, { label: '实例列表', hrefTemplate: '/cmdb/instances/by-model/:3' }, { ...DYN }] },
+  { pattern: '/cmdb/instances/by-model/:m', trail: [ROOT.cmdb, { label: '概览', href: '/cmdb' }, { label: '实例列表' }] },
   { pattern: '/cmdb/changes/stats', trail: [ROOT.reports, { label: 'CMDB 统计' }] },
   { pattern: '/cmdb/changes', trail: [ROOT.cmdb, { label: '变更记录' }] },
   { pattern: '/cmdb/alerts', trail: [ROOT.cmdb, { label: '告警中心' }] },
@@ -160,6 +161,9 @@ export function resolveBreadcrumb(pathname: string, dynamicLabels?: string[]): C
   let dynSeen = 0
 
   trail.forEach((c, i) => {
+    if (c.hrefTemplate && i !== lastIdx) {
+      c.href = resolveHref(c.hrefTemplate, segs)
+    }
     if (!c.dynamic) return
     const registered = names[dynSeen]
     if (registered) {
@@ -170,10 +174,6 @@ export function resolveBreadcrumb(pathname: string, dynamicLabels?: string[]): C
     } else {
       // 中间动态段未注册（数据加载中）→ 安静占位
       c.label = '…'
-    }
-    // 中间动态段若带 href 模板 → 解析为可点链接（末段是当前页，不可点）
-    if (c.hrefTemplate && i !== lastIdx) {
-      c.href = resolveHref(c.hrefTemplate, segs)
     }
     dynSeen += 1
   })

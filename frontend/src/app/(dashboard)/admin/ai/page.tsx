@@ -46,20 +46,6 @@ function ProviderCard({
     systemPrompt: config.systemPrompt,
   })
 
-  useEffect(() => {
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => {
-      setForm({
-        apiKey: '',
-        baseUrl: config.baseUrl,
-        model: config.model,
-        enabled: config.enabled,
-        systemPrompt: config.systemPrompt,
-      })
-    }, 0)
-    return () => clearTimeout(timer)
-  }, [config])
-
   const saveMutation = useMutation({
     mutationFn: () => {
       const body: Record<string, unknown> = {
@@ -186,7 +172,13 @@ export default function AdminAiPage() {
       {isLoading ? (
         <p className="text-v2-muted">加载中…</p>
       ) : (
-        providers.map((p) => <ProviderCard key={p.provider} config={p} canWrite={canWrite} />)
+        providers.map((p) => (
+          <ProviderCard
+            key={`${p.provider}:${p.baseUrl}:${p.model}:${p.enabled}:${p.systemPrompt}`}
+            config={p}
+            canWrite={canWrite}
+          />
+        ))
       )}
     </div>
   )

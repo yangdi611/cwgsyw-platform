@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import api from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/v2/Input';
 import { Label } from '@/components/v2/Label';
@@ -39,7 +40,7 @@ export default function NewWorkflowDesignPage() {
       toast.success('流程定义已保存');
       router.push('/workflow/admin');
     } catch (err: unknown) {
-      toast.error(err.response?.data?.message || '保存失败');
+      toast.error(getApiErrorMessage(err, '保存失败'));
     } finally { setSaving(false); }
   };
 

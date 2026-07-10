@@ -6,7 +6,7 @@ import { Button } from '@/components/v2/Button'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { toast } from 'sonner'
-import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error'
 import { submitAccountSetup, type AccountProfile } from '@/lib/account-api'
 import { inspectPassword } from '@/lib/password-policy'
 import { PasswordStrengthHints } from './PasswordStrengthHints'
@@ -68,7 +68,7 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
       toast.success('设置完成')
       onSuccess(profile)
     } catch (err: unknown) {
-      const code = isAxiosError(err) ? err.response?.data?.errorCode : undefined
+      const code = getApiErrorCode(err)
       const message = getApiErrorMessage(err, '提交失败')
       if (code === 'PASSWORD_REUSED') {
         toast.error('新密码不能与初始密码或最近使用过的密码相同')

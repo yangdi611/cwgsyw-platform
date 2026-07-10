@@ -11,6 +11,7 @@ import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch, Penci
 import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 import type { CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
 
 interface CiInstanceVO {

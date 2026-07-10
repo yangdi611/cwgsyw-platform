@@ -51,9 +51,9 @@ function PermissionsContent() {
 
   useEffect(() => {
     if (rolePerms) {
-      // Use setTimeout to defer setState call
-      const timer = setTimeout(() => setSelected(new Set(rolePerms.map((p) => p.id))), 0)
-      return () => clearTimeout(timer)
+      // Server permissions initialize the editable role selection.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(new Set(rolePerms.map((p) => p.id)))
     }
   }, [rolePerms])
 

@@ -64,19 +64,16 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
 
   useEffect(() => {
     if (open) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        loadMembers()
-        setSearchKeyword('')
-        setSearchResults([])
-      }, 0)
-      return () => clearTimeout(timer)
+      // Opening the dialog resets its transient search state and fetches the external member list.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSearchKeyword('')
+      setSearchResults([])
+      void loadMembers()
     }
   }, [open, loadMembers])
 
   useEffect(() => {
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => searchUsers(searchKeyword), 0)
+    const timer = setTimeout(() => void searchUsers(searchKeyword), 250)
     return () => clearTimeout(timer)
   }, [searchKeyword, searchUsers])
 

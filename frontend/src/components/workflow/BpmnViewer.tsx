@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import BpmnJSViewer from 'bpmn-js/lib/NavigatedViewer';
+import type { BpmnViewerServices } from '@/types/bpmn';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
@@ -18,25 +19,25 @@ export default function BpmnViewer({
   currentActivities = [],
 }: BpmnViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<unknown>(null);
+  const viewerRef = useRef<BpmnJSViewer<BpmnViewerServices> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !xml) return;
 
     if (viewerRef.current) {
-      (viewerRef.current as { destroy: () => void }).destroy();
+      viewerRef.current.destroy();
       viewerRef.current = null;
     }
 
     try {
-      const viewer = new BpmnJSViewer({ container: containerRef.current });
+      const viewer = new BpmnJSViewer<BpmnViewerServices>({ container: containerRef.current });
 
       viewer.importXML(xml).then(() => {
-        const canvas = viewer.get('canvas') as { zoom: (mode: string) => void };
+        const canvas = viewer.get('canvas');
         canvas.zoom('fit-viewport');
 
-        const overlays = viewer.get('overlays') as { add: (id: string, config: { position: { top: number; left: number }; html: string }) => void };
-        const elementRegistry = viewer.get('elementRegistry') as { get: (id: string) => unknown };
+        const overlays = viewer.get('overlays');
+        const elementRegistry = viewer.get('elementRegistry');
 
         completedActivities.forEach((id) => {
           try {

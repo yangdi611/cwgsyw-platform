@@ -48,12 +48,10 @@ export default function ChangeDocDetailPage() {
 
   useEffect(() => {
     if (doc) {
-      // Use setTimeout to defer setState calls
-      const timer = setTimeout(() => {
-        setFieldsData(doc.fieldsData ?? {})
-        setTitle(doc.title ?? '')
-      }, 0)
-      return () => clearTimeout(timer)
+      // Query data is the source for this editable document form.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFieldsData(doc.fieldsData ?? {})
+      setTitle(doc.title ?? '')
     }
   }, [doc])
 
@@ -157,18 +155,16 @@ export default function ChangeDocDetailPage() {
   const [linkedCiItems, setLinkedCiItems] = useState<Array<CiLinkItem>>([])
 
   useEffect(() => {
-    // Use setTimeout to defer setState call
-    const timer = setTimeout(() => {
-      setLinkedCiItems(
-        (ciLinksData ?? []).map((c) => ({
-          instanceId: c.id,
-          instanceName: c.name,
-          modelName: c.modelName,
-          impactLevel: c.impactLevel,
-        })),
-      )
-    }, 0)
-    return () => clearTimeout(timer)
+    // Query data initializes the selector's editable list after each server refresh.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinkedCiItems(
+      (ciLinksData ?? []).map((c) => ({
+        instanceId: c.id,
+        instanceName: c.name,
+        modelName: c.modelName,
+        impactLevel: c.impactLevel,
+      })),
+    )
   }, [ciLinksData])
 
   const addLinkMutation = useMutation({

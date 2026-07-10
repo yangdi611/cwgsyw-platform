@@ -1,4 +1,4 @@
-import type { CiAttributeResponse, CiAttributeGroupResponse, CmdbFieldsData, CmdbTableSchema } from '@/types/cmdb-model'
+import type { CiAttributeResponse, CiAttributeGroupResponse, CmdbFieldsData } from '@/types/cmdb-model'
 
 export interface TableColumn {
   key: string
@@ -20,7 +20,7 @@ export interface TableSchema {
 export type CiAttributeVO = CiAttributeResponse
 export type CiAttributeGroupVO = CiAttributeGroupResponse
 
-export interface CiModelVO {
+export interface InstanceBasicInfoModelShape {
   attributeGroups: CiAttributeGroupVO[]
 }
 

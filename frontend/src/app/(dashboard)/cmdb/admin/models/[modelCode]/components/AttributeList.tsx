@@ -2,14 +2,14 @@ import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Chip } from '@/components/v2/Chip'
 import { Pencil, Trash2 } from 'lucide-react'
-import type { CiAttributeVO } from './types'
+import type { AttributeAdminItem } from './types'
 import { FIELD_TYPES } from './types'
 
 interface AttributeListProps {
-  attributes: CiAttributeVO[]
+  attributes: AttributeAdminItem[]
   canManage: boolean
-  onEdit: (attr: CiAttributeVO) => void
-  onDelete: (attr: CiAttributeVO) => void
+  onEdit: (attr: AttributeAdminItem) => void
+  onDelete: (attr: AttributeAdminItem) => void
 }
 
 export function AttributeList({ attributes, canManage, onEdit, onDelete }: AttributeListProps) {
@@ -20,7 +20,7 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
       acc[key].push(attr)
       return acc
     },
-    {} as Record<string, CiAttributeVO[]>,
+    {} as Record<string, AttributeAdminItem[]>,
   )
 
   return (
@@ -46,11 +46,11 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="font-semibold text-v2-fg">{attr.displayName}</span>
+                        <span className="font-semibold text-v2-fg">{attr.name}</span>
                         <code className="rounded bg-v2-surface-soft px-1.5 py-0.5 font-v2-mono text-xs text-v2-muted">
                           {attr.fieldKey}
                         </code>
-                        {attr.builtIn && (
+                        {attr.isBuiltIn && (
                           <StatusBadge status="neutral">内置</StatusBadge>
                         )}
                       </div>
@@ -58,11 +58,11 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                         类型：{FIELD_TYPES[attr.fieldType] ?? attr.fieldType}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        <Chip active={attr.required}>必填</Chip>
-                        <Chip active={attr.searchable}>可搜索</Chip>
-                        <Chip active={attr.unique}>唯一</Chip>
-                        <Chip active={attr.inList}>列表显示</Chip>
-                        <Chip active={attr.inForm}>表单显示</Chip>
+                        <Chip active={attr.isRequired}>必填</Chip>
+                        <Chip active={attr.isEditable}>实例可编辑</Chip>
+                        <Chip active={attr.isUnique}>唯一</Chip>
+                        <Chip active={attr.isListShow}>列表显示</Chip>
+                        <Chip active={attr.isDrawerShow}>详情表单显示</Chip>
                       </div>
                     </div>
                     {canManage && (
@@ -70,14 +70,14 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                         <Button variant="ghost" size="sm" onClick={() => onEdit(attr)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        {!attr.builtIn && (
+                        {!attr.isBuiltIn && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-v2-danger hover:text-v2-danger"
                             onClick={() => {
                               if (
-                                confirm(`确认删除属性「${attr.displayName}」？此操作不可恢复。`)
+                                confirm(`确认删除属性「${attr.name}」？此操作不可恢复。`)
                               ) {
                                 onDelete(attr)
                               }

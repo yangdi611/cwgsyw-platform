@@ -275,7 +275,7 @@ export default function WorkflowAdminPage() {
                                           </td>
                                         </tr>
                                       ) : (
-                                        versions.map((v: { id: number; version: number; name?: string }) => (
+                                        versions.map((v) => (
                                           <tr key={v.id}>
                                             <td className="px-3 py-2.5 font-v2-mono text-v2-fg tabular-nums">v{v.version}</td>
                                             <td className="px-3 py-2.5 text-v2-fg">{v.name}</td>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import api from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/v2/Input';
 import { Label } from '@/components/v2/Label';
@@ -97,7 +98,7 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
       toast.success(`流程定义已更新 (v${(detail.version ?? 0) + 1})`);
       router.push('/workflow/admin');
     } catch (err: unknown) {
-      toast.error(err.response?.data?.message || '更新失败');
+      toast.error(getApiErrorMessage(err, '更新失败'));
     } finally {
       setSaving(false);
     }

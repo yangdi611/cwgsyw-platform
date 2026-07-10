@@ -1,4 +1,6 @@
 declare module 'bpmn-js-properties-panel' {
-  export const BpmnPropertiesPanelModule: unknown;
-  export const BpmnPropertiesProviderModule: unknown;
+  import type { ModuleDeclaration } from 'didi';
+
+  export const BpmnPropertiesPanelModule: ModuleDeclaration;
+  export const BpmnPropertiesProviderModule: ModuleDeclaration;
 }

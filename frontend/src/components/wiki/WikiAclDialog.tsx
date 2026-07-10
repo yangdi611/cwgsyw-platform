@@ -84,19 +84,17 @@ export function WikiAclDialog({
 
   useEffect(() => {
     if (!acl) return
-    // Use setTimeout to defer setState calls
-    const timer = setTimeout(() => {
-      setInherited(acl.inherited)
-      const m = new Map<string, Set<Perm>>()
-      // 页面处于继承状态时自身没有任何自定义行，entries 恒为空——
-      // 用 inheritedEntries（祖先链解析出的有效权限）预填，切到自定义时不会误丢祖先已授予的权限。
-      const source = acl.inherited ? (acl.inheritedEntries ?? []) : (acl.entries ?? [])
-      for (const e of source) {
-        m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions as Perm[]))
-      }
-      setGrants(m)
-    }, 0)
-    return () => clearTimeout(timer)
+    // The loaded ACL initializes the dialog's editable permission matrix.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInherited(acl.inherited)
+    const m = new Map<string, Set<Perm>>()
+    // 页面处于继承状态时自身没有任何自定义行，entries 恒为空——
+    // 用 inheritedEntries（祖先链解析出的有效权限）预填，切到自定义时不会误丢祖先已授予的权限。
+    const source = acl.inherited ? (acl.inheritedEntries ?? []) : (acl.entries ?? [])
+    for (const e of source) {
+      m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions as Perm[]))
+    }
+    setGrants(m)
   }, [acl])
 
   // 候选对象 = 选择器接口列出的全量对象 ⋃ 已保存 ACL / 强制项 / 祖先继承项里出现的对象。

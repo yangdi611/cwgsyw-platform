@@ -462,9 +462,9 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set())
     // reset collapse state whenever the underlying graph changes
     useEffect(() => {
-      // Use setTimeout to defer setState call
-      const timer = setTimeout(() => setCollapsedIds(new Set()), 0)
-      return () => clearTimeout(timer)
+      // Graph replacement invalidates collapse IDs from the previous graph.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsedIds(new Set())
     }, [topoNodes, topoEdges])
 
     const visibleIds = useMemo(

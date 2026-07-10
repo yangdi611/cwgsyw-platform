@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface CiDetail {
   id: number
@@ -101,7 +102,7 @@ export default function NewDevicePage() {
                   <div>
                     <dt className="text-xs text-v2-muted">IP 地址</dt>
                     <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">
-                      {ci.fieldsData?.inner_ip || '-'}
+                      {String(ci.fieldsData?.inner_ip ?? '-')}
                     </dd>
                   </div>
                   <div>

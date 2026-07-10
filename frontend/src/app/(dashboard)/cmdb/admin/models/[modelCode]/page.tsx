@@ -13,7 +13,15 @@ import { usePermission } from '@/hooks/usePermission'
 import { AttributeList } from './components/AttributeList'
 import { AddAttributeDialog } from './components/AddAttributeDialog'
 import { EditAttributeDialog } from './components/EditAttributeDialog'
-import type { CiAttributeVO, CiAttributeGroupVO, CiModelVO } from './components/types'
+import type { CiAttributeResponse } from '@/types/cmdb-model'
+import type {
+  AttributeAdminItem,
+  AttributeAdminModel,
+  AttributeGroupAdminItem,
+  CreateAttributePayload,
+  UpdateAttributePayload,
+} from './components/types'
+import { toAttributeAdminItem } from './components/types'
 
 export default function ModelDetailPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
@@ -21,37 +29,29 @@ export default function ModelDetailPage() {
   const queryClient = useQueryClient()
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [editingAttr, setEditingAttr] = useState<CiAttributeVO | null>(null)
+  const [editingAttr, setEditingAttr] = useState<AttributeAdminItem | null>(null)
 
-  const { data: model } = useQuery<CiModelVO>({
+  const { data: model } = useQuery<AttributeAdminModel>({
     queryKey: ['cmdb-model', modelCode],
     queryFn: () => api.get(`/cmdb/models/${modelCode}`).then((r) => r.data.data),
   })
 
-  const { data: attributes = [] } = useQuery<CiAttributeVO[]>({
+  const { data: attributes = [] } = useQuery<AttributeAdminItem[]>({
     queryKey: ['cmdb-model-attrs', modelCode],
-    queryFn: () => api.get(`/cmdb/models/${modelCode}/attributes`).then((r) => r.data.data),
+    queryFn: () =>
+      api
+        .get(`/cmdb/models/${modelCode}/attributes`)
+        .then((r) => (r.data.data as CiAttributeResponse[]).map(toAttributeAdminItem)),
   })
 
-  const { data: groups = [] } = useQuery<CiAttributeGroupVO[]>({
+  const { data: groups = [] } = useQuery<AttributeGroupAdminItem[]>({
     queryKey: ['cmdb-model-groups', modelCode],
     queryFn: () => api.get(`/cmdb/models/${modelCode}/attribute-groups`).then((r) => r.data.data),
   })
 
   const createAttrMutation = useMutation({
-    mutationFn: (payload: {
-      fieldKey: string
-      displayName: string
-      fieldType: string
-      required: boolean
-      searchable: boolean
-      unique: boolean
-      inList: boolean
-      inForm: boolean
-      groupId: number | null
-      options: string | null
-      validation: string | null
-    }) => api.post(`/cmdb/models/${modelCode}/attributes`, payload),
+    mutationFn: (payload: CreateAttributePayload) =>
+      api.post(`/cmdb/models/${modelCode}/attributes`, payload),
     onSuccess: () => {
       toast.success('属性已创建')
       setAddDialogOpen(false)
@@ -61,18 +61,7 @@ export default function ModelDetailPage() {
   })
 
   const updateAttrMutation = useMutation({
-    mutationFn: (payload: {
-      displayName: string
-      fieldType: string
-      required: boolean
-      searchable: boolean
-      unique: boolean
-      inList: boolean
-      inForm: boolean
-      groupId: number | null
-      options: string | null
-      validation: string | null
-    }) => {
+    mutationFn: (payload: UpdateAttributePayload) => {
       if (!editingAttr) return Promise.reject()
       return api.put(`/cmdb/models/${modelCode}/attributes/${editingAttr.id}`, payload)
     },
@@ -93,7 +82,7 @@ export default function ModelDetailPage() {
     onError: (e) => toast.error(getApiErrorMessage(e)),
   })
 
-  const canManage = hasPermission('cmdb_model', 'manage')
+  const canManage = hasPermission('cmdb_model', 'update')
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -139,22 +128,26 @@ export default function ModelDetailPage() {
       </Card>
 
       {/* Add Dialog */}
-      <AddAttributeDialog
-        open={addDialogOpen}
-        groups={groups}
-        isPending={createAttrMutation.isPending}
-        onClose={() => setAddDialogOpen(false)}
-        onCreate={(data) => createAttrMutation.mutate(data)}
-      />
+      {addDialogOpen && (
+        <AddAttributeDialog
+          open
+          groups={groups}
+          isPending={createAttrMutation.isPending}
+          onClose={() => setAddDialogOpen(false)}
+          onCreate={(data) => createAttrMutation.mutate(data)}
+        />
+      )}
 
       {/* Edit Dialog */}
-      <EditAttributeDialog
-        attr={editingAttr}
-        groups={groups}
-        isPending={updateAttrMutation.isPending}
-        onClose={() => setEditingAttr(null)}
-        onUpdate={(data) => updateAttrMutation.mutate(data)}
-      />
+      {editingAttr && (
+        <EditAttributeDialog
+          key={editingAttr.id}
+          attr={editingAttr}
+          isPending={updateAttrMutation.isPending}
+          onClose={() => setEditingAttr(null)}
+          onUpdate={(data) => updateAttrMutation.mutate(data)}
+        />
+      )}
     </div>
   )
 }

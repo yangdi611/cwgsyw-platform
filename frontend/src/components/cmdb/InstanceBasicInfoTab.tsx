@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Pencil, Save, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
-import type { CiInstanceVO, CiModelVO, CiAttributeVO, CiAttributeGroupVO } from './InstanceBasicInfoTab/types'
+import type { CiInstanceVO, InstanceBasicInfoModelShape, CiAttributeVO } from './InstanceBasicInfoTab/types'
 import { renderDisplayValue } from './InstanceBasicInfoTab/FieldDisplay'
 import { renderEditField } from './InstanceBasicInfoTab/FieldEditor'
 import { MaintStatusBadge, BaselineBadge } from './InstanceBasicInfoTab/StatusBadges'
@@ -37,8 +37,8 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
     staleTime: 600_000,
   })
 
-  const model = modelRes.data as CiModelVO | undefined
-  const groups = model?.attributeGroups ?? []
+  const model = modelRes.data as InstanceBasicInfoModelShape | undefined
+  const groups = useMemo(() => model?.attributeGroups ?? [], [model?.attributeGroups])
 
   if (inst.id !== prevInstId) {
     setPrevInstId(inst.id)

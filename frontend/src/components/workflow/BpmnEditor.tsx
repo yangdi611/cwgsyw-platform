@@ -8,6 +8,12 @@ import {
 } from 'bpmn-js-properties-panel';
 import { EMPTY_BPMN } from '@/lib/bpmn';
 import { flowableModdleDescriptor } from '@/lib/FlowableProps';
+import {
+  isBpmnBusinessObject,
+  isBpmnElement,
+  type BpmnBusinessObjectLike,
+  type BpmnEditorServices,
+} from '@/types/bpmn';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
@@ -21,7 +27,7 @@ interface BpmnEditorProps {
 export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const modelerRef = useRef<unknown>(null);
+  const modelerRef = useRef<BpmnModeler<BpmnEditorServices> | null>(null);
   const [ready, setReady] = useState(false);
 
   // Flowable fields state — managed by DOM directly, React just hides/shows
@@ -35,27 +41,41 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
 
   // IMPORTANT: Declare renderFlowFields before renderSelectionFields to avoid "used before declared" error
   const renderFlowFields = useCallback((element: unknown) => {
-    const bo = (element as { businessObject?: { get: (name: string) => unknown } })?.businessObject;
+    if (!isBpmnElement(element) || !element.businessObject) {
+      setFlowableFields(null);
+      return;
+    }
+    const bo = element.businessObject;
 
     // Read/write extension elements
     const extVal = (name: string): string => {
       const ee = bo.get('extensionElements');
-      if (!ee) return '';
-      const vals: unknown[] = (ee as { get: (name: string) => unknown[] }).get('values') || [];
-      const found = vals.find((v: unknown) => (v as { $type?: string }).$type === 'flowable:' + name);
-      return found ? (((found as { get: (name: string) => string }).get('value')) || '') : '';
+      if (!isBpmnBusinessObject(ee)) return '';
+      const values = ee.get('values');
+      const vals = Array.isArray(values) ? values : [];
+      const found = vals.find(
+        (value): value is BpmnBusinessObjectLike =>
+          isBpmnBusinessObject(value) && value.$type === 'flowable:' + name
+      );
+      const value = found?.get('value');
+      return typeof value === 'string' ? value : '';
     };
 
     const setExtVal = (name: string, value: string) => {
       const ee = bo.get('extensionElements');
-      const vals: unknown[] = ee ? [...((ee as { get: (name: string) => unknown[] }).get('values') || [])] : [];
-      const existing = vals.find((v: unknown) => (v as { $type?: string }).$type === 'flowable:' + name);
+      const values = isBpmnBusinessObject(ee) ? ee.get('values') : undefined;
+      const vals: unknown[] = Array.isArray(values) ? [...values] : [];
+      const existing = vals.find(
+        (item) => isBpmnBusinessObject(item) && item.$type === 'flowable:' + name
+      );
       const bpmnFactory = modelerRef.current?.get('bpmnFactory');
       const modeling = modelerRef.current?.get('modeling');
       if (!bpmnFactory || !modeling) return;
 
       if (!value) {
-        const filtered = vals.filter((v: unknown) => (v as { $type?: string }).$type !== 'flowable:' + name);
+        const filtered = vals.filter(
+          (item) => !isBpmnBusinessObject(item) || item.$type !== 'flowable:' + name
+        );
         const newEE = filtered.length
           ? bpmnFactory.create('bpmn:ExtensionElements', { values: filtered })
           : null;
@@ -79,7 +99,12 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   }, []);
 
   const renderSelectionFields = useCallback((element: unknown) => {
-    const bo = element?.businessObject;
+    if (!isBpmnElement(element)) {
+      setFlowableFields(null);
+      setSeqFlow(null);
+      return;
+    }
+    const bo = element.businessObject;
     if (!bo) { setFlowableFields(null); setSeqFlow(null); return; }
 
     // UserTask → Flowable Assignment
@@ -93,11 +118,13 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     if (bo.$type === 'bpmn:SequenceFlow') {
       setFlowableFields(null);
       const condExp = bo.get('conditionExpression');
-      const cond = condExp?.get('body') || '';
+      const conditionBody = isBpmnBusinessObject(condExp) ? condExp.get('body') : undefined;
+      const cond = typeof conditionBody === 'string' ? conditionBody : '';
       const bpmnFactory = modelerRef.current?.get('bpmnFactory');
       const modeling = modelerRef.current?.get('modeling');
+      const sequenceName = bo.get('name');
       setSeqFlow({
-        name: bo.get('name') || '',
+        name: typeof sequenceName === 'string' ? sequenceName : '',
         condition: cond,
         setCondition: (v: string) => {
           if (!bpmnFactory || !modeling) return;
@@ -119,7 +146,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
   useEffect(() => {
     if (!containerRef.current || modelerRef.current) return;
 
-    const modeler = new BpmnModeler({
+    const modeler = new BpmnModeler<BpmnEditorServices>({
       container: containerRef.current,
       propertiesPanel: { parent: panelRef.current! },
       additionalModules: [
@@ -142,8 +169,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
       }
     });
     modeler.on('element.changed', () => {
-      const selection: { get: () => { length?: number } } = modeler.get('selection');
-      const sel = selection?.get()?.[0];
+      const sel = modeler.get('selection').get()[0];
       if (sel) renderSelectionFields(sel);
     });
 
@@ -153,7 +179,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
         const result = await modeler.saveXML({ format: true });
         onChange?.(result.xml ?? '');
       } catch { /* ignore */ }
-      raf2(() => (modeler.get('canvas') as { zoom?: (mode: string) => void })?.zoom('fit-viewport'));
+      raf2(() => modeler.get('canvas').zoom('fit-viewport'));
     });
 
     modeler.on('commandStack.changed', async () => {
@@ -166,7 +192,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     const xml = initialXml || EMPTY_BPMN;
     modeler.importXML(xml).catch(() => modeler.importXML(EMPTY_BPMN));
 
-    const onResize = () => (modeler.get('canvas') as { resized?: () => void })?.resized();
+    const onResize = () => modeler.get('canvas').resized();
     window.addEventListener('resize', onResize);
     const observer = new ResizeObserver(() => onResize());
     observer.observe(containerRef.current);
