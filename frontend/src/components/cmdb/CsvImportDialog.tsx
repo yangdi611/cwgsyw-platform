@@ -57,7 +57,13 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
     if (!v) { onOpenChange(false); setTimeout(reset, 200) }
   }
 
-  useEffect(() => { if (open) reset() }, [open, reset])
+  useEffect(() => {
+    if (open) {
+      // Use setTimeout to defer setState call
+      const timer = setTimeout(() => reset(), 0)
+      return () => clearTimeout(timer)
+    }
+  }, [open, reset])
 
   // Download template
   const downloadTemplate = async () => {
