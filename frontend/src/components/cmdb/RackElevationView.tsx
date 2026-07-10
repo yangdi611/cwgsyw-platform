@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -114,6 +114,19 @@ export function RackElevationView({ rackId }: { rackId: string }) {
   const router = useRouter()
   const wrapRef = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [wrapWidth, setWrapWidth] = useState<number>(300)
+
+  // 监听容器宽度变化，避免在渲染时访问 ref
+  useEffect(() => {
+    const updateWidth = () => {
+      if (wrapRef.current) {
+        setWrapWidth(wrapRef.current.clientWidth)
+      }
+    }
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   const { data, isLoading, isError } = useQuery<RackLayout>({
     queryKey: ['rack-layout', rackId],
@@ -296,7 +309,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
             <div
               className="pointer-events-none absolute z-50 w-60 rounded-lg border border-white/10 bg-[#11161f] p-3 text-xs shadow-xl"
               style={{
-                left: Math.min(hover.x + 16, (wrapRef.current?.clientWidth ?? 300) - 248),
+                left: Math.min(hover.x + 16, wrapWidth - 248),
                 top: hover.y + 12,
               }}
             >
