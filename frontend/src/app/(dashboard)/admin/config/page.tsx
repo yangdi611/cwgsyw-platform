@@ -50,7 +50,11 @@ function ProcessVersionSelector({ value, onSave }: {
   useEffect(() => {
     if (value && !selectedKey && allDefs.length > 0) {
       const match = allDefs.find((d) => value.startsWith(d.key + ':'))
-      if (match) setSelectedKey(match.key)
+      // Use setTimeout to defer setState call
+      if (match) {
+        const timer = setTimeout(() => setSelectedKey(match.key), 0)
+        return () => clearTimeout(timer)
+      }
     }
   }, [allDefs, value, selectedKey])
 

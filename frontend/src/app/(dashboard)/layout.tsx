@@ -37,7 +37,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/')
       return
     }
-    setChecked(true)
+    // Use setTimeout to defer setState call
+    const timer = setTimeout(() => setChecked(true), 0)
+    return () => clearTimeout(timer)
   }, [router, pathname, requiredActions, isHydrated])
 
   if (!checked) return null

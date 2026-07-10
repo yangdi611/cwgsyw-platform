@@ -105,9 +105,13 @@ export function CommandPalette() {
   // 关闭时重置查询状态
   useEffect(() => {
     if (!open) {
-      setKeyword('')
-      setResults([])
-      setLoading(false)
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setKeyword('')
+        setResults([])
+        setLoading(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
@@ -115,9 +119,12 @@ export function CommandPalette() {
   useEffect(() => {
     const kw = keyword.trim()
     if (!kw) {
-      setResults([])
-      setLoading(false)
-      return
+      // Use setTimeout to defer setState calls
+      const timer = setTimeout(() => {
+        setResults([])
+        setLoading(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
     setLoading(true)
     const id = ++reqId.current
