@@ -18,7 +18,7 @@ interface CiDetail {
   name: string
   modelId: string
   modelName: string
-  fieldsData: Record<string, any>
+  fieldsData: Record<string, unknown>
 }
 
 // CMDB modelId → 设备类型中文（与后端 mapModelToDeviceType 对齐）

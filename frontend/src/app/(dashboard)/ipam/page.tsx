@@ -104,7 +104,7 @@ export default function IpamPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setDeleteTarget(null)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败'),
+    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
 
   const handleCreate = () => {

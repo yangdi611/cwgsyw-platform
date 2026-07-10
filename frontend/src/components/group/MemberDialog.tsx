@@ -96,7 +96,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       setRemoveTarget(null)
       loadMembers()
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, '移除失败')
+      toast.error(getApiErrorMessage(err, '移除失败'))
     } finally {
       setLoading(false)
     }
