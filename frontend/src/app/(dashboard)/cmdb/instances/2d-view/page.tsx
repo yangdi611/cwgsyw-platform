@@ -81,11 +81,15 @@ export default function TwoDViewPage() {
 
   // Auto-set first groupable attr when model changes
   useEffect(() => {
-    if (groupableAttrs.length > 0) {
-      setGroupBy(groupableAttrs[0].fieldKey)
-    } else {
-      setGroupBy('')
-    }
+    // Use setTimeout to defer setState calls
+    const timer = setTimeout(() => {
+      if (groupableAttrs.length > 0) {
+        setGroupBy(groupableAttrs[0].fieldKey)
+      } else {
+        setGroupBy('')
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch 2D view data

@@ -50,7 +50,11 @@ function PermissionsContent() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    if (rolePerms) setSelected(new Set(rolePerms.map((p) => p.id)))
+    if (rolePerms) {
+      // Use setTimeout to defer setState call
+      const timer = setTimeout(() => setSelected(new Set(rolePerms.map((p) => p.id))), 0)
+      return () => clearTimeout(timer)
+    }
   }, [rolePerms])
 
   const saveMutation = useMutation({

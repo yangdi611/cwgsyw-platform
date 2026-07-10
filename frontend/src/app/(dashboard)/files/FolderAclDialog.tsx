@@ -86,12 +86,16 @@ export function FolderAclDialog({
   // Load existing ACL into local state
   useEffect(() => {
     if (!aclData?.data) return
-    setInherited(aclData.data.inherited)
-    const m = new Map<string, Set<Perm>>()
-    for (const e of aclData.data.entries ?? []) {
-      m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions))
-    }
-    setGrants(m)
+    // Use setTimeout to defer setState calls
+    const timer = setTimeout(() => {
+      setInherited(aclData.data.inherited)
+      const m = new Map<string, Set<Perm>>()
+      for (const e of aclData.data.entries ?? []) {
+        m.set(`${e.subjectType}:${e.subjectId}`, new Set(e.permissions))
+      }
+      setGrants(m)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [aclData])
 
   const subjects: Subject[] = useMemo(() => {

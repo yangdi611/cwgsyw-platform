@@ -89,7 +89,9 @@ export default function WikiSpacesPage() {
 
   // 加载个人排序（username 就绪后）
   useEffect(() => {
-    setOrder(loadPersonalOrder(username))
+    // Use setTimeout to defer setState call
+    const timer = setTimeout(() => setOrder(loadPersonalOrder(username)), 0)
+    return () => clearTimeout(timer)
   }, [username])
 
   const { data: spaces, isLoading } = useQuery<WikiSpace[]>({

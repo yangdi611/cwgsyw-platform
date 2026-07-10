@@ -100,8 +100,12 @@ export default function WikiEditorPage() {
 
   useEffect(() => {
     if (!page) return
-    setTitle(page.title)
-    setContent(page.content ?? '')
+    // Use setTimeout to defer setState calls
+    const timer = setTimeout(() => {
+      setTitle(page.title)
+      setContent(page.content ?? '')
+    }, 0)
+    return () => clearTimeout(timer)
   }, [page])
 
   const saveMutation = useMutation({
