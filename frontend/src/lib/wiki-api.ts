@@ -51,7 +51,7 @@ export const wikiApi = {
   listSpaces: (): Promise<WikiSpace[]> =>
     api.get('/wiki/spaces').then((r) => r.data.data),
 
-  createSpace: (body: { name: string; description: string }): Promise<WikiSpace> =>
+  createSpace: (body: { name: string; description: string; ownerGroupId?: number }): Promise<WikiSpace> =>
     api.post('/wiki/spaces', body).then((r) => r.data.data),
 
   updateSpace: (id: number, body: { name: string; description: string }): Promise<WikiSpace> =>

@@ -6,6 +6,7 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.dto.GroupMemberVO;
+import com.cwgsyw.platform.module.org.dto.GroupMembershipRequest;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,6 +28,7 @@ public class GroupController {
     private final GroupMapper groupMapper;
     private final UserMapper userMapper;
     private final AuditLogMapper auditLogMapper;
+    private final GroupMembershipService groupMembershipService;
 
     @GetMapping
     @PreAuthorize("hasPermission('group', 'read')")
@@ -38,15 +41,31 @@ public class GroupController {
     @PreAuthorize("hasPermission('group', 'create')")
     public R<Group> create(@RequestBody Group group,
                            @AuthenticationPrincipal SecurityUser cu) {
+        group.setId(null);
         group.setTenantId(cu.getTenantId());
+        group.setCode("group_" + UUID.randomUUID().toString().replace("-", ""));
+        group.setGroupType("business");
+        group.setIsBuiltin(false);
         groupMapper.insert(group);
         return R.ok(group);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('group', 'update')")
-    public R<Void> update(@PathVariable Long id, @RequestBody Group req) {
+    public R<Void> update(@PathVariable Long id, @RequestBody Group req,
+                          @AuthenticationPrincipal SecurityUser cu) {
+        Group existing = groupMapper.selectById(id);
+        if (existing == null || !cu.getTenantId().equals(existing.getTenantId())) {
+            throw new IllegalArgumentException("用户组不存在");
+        }
+        if (Boolean.TRUE.equals(existing.getIsBuiltin())) {
+            throw new IllegalArgumentException("内置用户组不能编辑");
+        }
         req.setId(id);
+        req.setTenantId(existing.getTenantId());
+        req.setCode(existing.getCode());
+        req.setGroupType(existing.getGroupType());
+        req.setIsBuiltin(existing.getIsBuiltin());
         groupMapper.updateById(req);
         return R.ok();
     }
@@ -55,10 +74,7 @@ public class GroupController {
     @PreAuthorize("hasPermission('group', 'read')")
     public R<List<GroupMemberVO>> getMembers(@PathVariable Long id,
                                               @AuthenticationPrincipal SecurityUser cu) {
-        List<User> members = userMapper.selectList(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getTenantId, cu.getTenantId())
-                .eq(User::getGroupId, id));
+        List<User> members = groupMembershipService.findUsersByGroup(id, cu.getTenantId());
         List<GroupMemberVO> vos = members.stream().map(u -> {
             GroupMemberVO vo = new GroupMemberVO();
             vo.setUserId(u.getId());
@@ -88,10 +104,13 @@ public class GroupController {
         User user = userMapper.selectById(userId);
         if (user == null) throw new IllegalArgumentException("用户不存在: " + userId);
 
+        GroupMembershipRequest request = new GroupMembershipRequest();
+        request.setGroupId(id);
+        request.setMembershipRole("member");
+        request.setPrimary(user.getGroupId() == null || id.equals(user.getGroupId()));
+        groupMembershipService.add(userId, request, cu.getTenantId(), cu.getUserId());
         String beforeJson = "{\"group_id\":" + user.getGroupId() + "}";
-        user.setGroupId(id);
-        userMapper.updateById(user);
-        String afterJson = "{\"group_id\":" + id + "}";
+        String afterJson = "{\"membership_group_id\":" + id + "}";
 
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(cu.getTenantId())
@@ -121,15 +140,8 @@ public class GroupController {
 
         User user = userMapper.selectById(userId);
         if (user == null) throw new IllegalArgumentException("用户不存在: " + userId);
-        if (!id.equals(user.getGroupId())) {
-            throw new IllegalArgumentException("用户不在当前组中");
-        }
-
-        String beforeJson = "{\"group_id\":" + user.getGroupId() + "}";
-        userMapper.update(null,
-            new LambdaUpdateWrapper<User>()
-                .eq(User::getId, userId)
-                .set(User::getGroupId, null));
+        String beforeJson = "{\"membership_group_id\":" + id + "}";
+        groupMembershipService.removeByGroup(userId, id, cu.getTenantId(), cu.getUserId());
 
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(cu.getTenantId())

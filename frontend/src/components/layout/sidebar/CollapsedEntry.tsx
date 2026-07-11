@@ -17,10 +17,11 @@ const ANIM_MS = 200    // ms，与 CSS duration-200 对齐
  * flyout 用 fixed 定位，避免被侧栏 overflow 裁切。
  * 鼠标移出后延时 200ms 才收起，期间移入 flyout 可取消收起。
  */
-export function CollapsedEntry({ entry, pathname, hasPermission }: {
+export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
   entry: NavEntry
   pathname: string
   hasPermission: (r: string, a: string) => boolean
+  groupScope: string
 }) {
   const [mounted, setMounted] = useState(false)
   const [entered, setEntered] = useState(false)
@@ -66,10 +67,11 @@ export function CollapsedEntry({ entry, pathname, hasPermission }: {
 
   if (isGroup(entry)) {
     const visibleChildren = entry.children.filter(
-      c => !c.resource || !c.action || hasPermission(c.resource, c.action),
+      c => (!c.requiredScope || c.requiredScope === groupScope)
+        && (!c.resource || !c.action || hasPermission(c.resource, c.action)),
     )
     if (visibleChildren.length === 0) return null
-    const isActive = groupActiveChild(entry, pathname, hasPermission)
+    const isActive = groupActiveChild(entry, pathname, hasPermission, groupScope)
     const Icon = entry.icon
 
     return (

@@ -20,8 +20,11 @@ import { Plus, Trash2, Pencil, Users } from 'lucide-react'
 
 interface Group {
   id: number
+  code: string
   name: string
   description: string
+  groupType: 'business' | 'unassigned'
+  isBuiltin: boolean
   leaderId: number | null
   leaderRealName: string | null
   memberCount: number
@@ -113,13 +116,13 @@ export default function GroupsPage() {
             render: (r: Group) => (
               <div className="flex items-center justify-end gap-1">
                 {canUpdate && (
-                  <Button variant="ghost" size="sm" onClick={() => setMemberGroup(r)}>
+                  <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => setMemberGroup(r)}>
                     <Users className="h-3.5 w-3.5" />
                     成员
                   </Button>
                 )}
                 {canUpdate && (
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)}>
+                  <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => handleEdit(r)}>
                     <Pencil className="h-3.5 w-3.5" />
                     编辑
                   </Button>
@@ -129,6 +132,7 @@ export default function GroupsPage() {
                     variant="ghost"
                     size="sm"
                     className="text-v2-danger"
+                    disabled={r.isBuiltin}
                     onClick={() => setDeleteTarget(r)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

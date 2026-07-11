@@ -7,13 +7,14 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import { wikiApi } from '@/lib/wiki-api'
-import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
+import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
+import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock, MessageCircle } from 'lucide-react'
@@ -64,8 +65,8 @@ export default function WikiPageReader() {
   const { spaceId, pageId } = useParams<{ spaceId: string; pageId: string }>()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { hasPermission } = usePermission()
   const { resolvedTheme } = useTheme()
+  const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const sid = Number(spaceId)
   const pid = Number(pageId)
@@ -133,7 +134,7 @@ export default function WikiPageReader() {
 
   const canWrite = page?.canWrite ?? false
   const canPublish = page?.canPublish ?? false
-  const canManageAcl = hasPermission('wiki', 'manage_acl') // 页面级 ACL 管理权仍归 admin，不受空间 ACL 影响，不改
+  const canManageAcl = page?.canManageAcl ?? false
 
   if (isLoading) {
     return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>
@@ -245,7 +246,10 @@ export default function WikiPageReader() {
       </aside>
 
       {canManageAcl && (
-        <WikiAclDialog pageId={pid} pageTitle={page.title} open={aclOpen} onOpenChange={setAclOpen} />
+        authorizationEnforced
+          ? <ResourceAccessDialog resourceType="wiki_page" resourceId={pid} title={page.title}
+              container open={aclOpen} onOpenChange={setAclOpen} />
+          : <WikiAclDialog pageId={pid} pageTitle={page.title} open={aclOpen} onOpenChange={setAclOpen} />
       )}
 
       {/* 右下角评论入口 —— 复用页面 read 权限，无需 wiki:update */}

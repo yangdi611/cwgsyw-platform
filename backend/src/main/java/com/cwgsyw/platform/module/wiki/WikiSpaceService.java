@@ -18,6 +18,8 @@ import com.cwgsyw.platform.module.wiki.dto.WikiSpaceVO;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpaceAcl;
 import com.cwgsyw.platform.security.SecurityUser;
+import com.cwgsyw.platform.module.authorization.AuthorizationService;
+import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -48,6 +50,8 @@ public class WikiSpaceService {
     private final SysRoleMapper roleMapper;
     private final RbacService rbacService;
     private final ObjectMapper objectMapper;
+    private final AuthorizationService authorizationService;
+    private final AuthorizationResourceMigrationService resourceMigrationService;
 
     private boolean isAdmin(String groupScope) {
         return "tenant".equals(groupScope) || "platform".equals(groupScope);
@@ -56,7 +60,7 @@ public class WikiSpaceService {
     public List<WikiSpaceVO> listSpaces(String tenantId, SecurityUser user) {
         List<WikiSpace> spaces = spaceMapper.selectList(new LambdaQueryWrapper<WikiSpace>()
                 .eq(WikiSpace::getTenantId, tenantId));
-        return spaces.stream().map(s -> {
+        return spaces.stream().filter(space -> canReadSpace(space.getId(), user)).map(s -> {
             long count = pageMapper.selectCount(new LambdaQueryWrapper<
                     com.cwgsyw.platform.module.wiki.entity.WikiPage>()
                     .eq(com.cwgsyw.platform.module.wiki.entity.WikiPage::getSpaceId, s.getId()));
@@ -65,8 +69,14 @@ public class WikiSpaceService {
         }).collect(Collectors.toList());
     }
 
+    public boolean canReadSpace(Long spaceId, SecurityUser user) {
+        return authorizationService.decideWithCompatibility(user, "wiki", "wiki:read",
+            "wiki_space", spaceId, 5, true);
+    }
+
     @Transactional
-    public WikiSpaceVO createSpace(String tenantId, SecurityUser user, String name, String description) {
+    public WikiSpaceVO createSpace(String tenantId, SecurityUser user, String name, String description,
+                                   Long ownerGroupId) {
         Long userId = user.getUserId();
         WikiSpace space = new WikiSpace();
         space.setTenantId(tenantId);
@@ -76,15 +86,17 @@ public class WikiSpaceService {
         space.setCreatedAt(LocalDateTime.now());
         space.setUpdatedAt(LocalDateTime.now());
         spaceMapper.insert(space);
+        resourceMigrationService.initializeCreatedResource(tenantId, "wiki_space", space.getId(),
+            userId, ownerGroupId, 02770);
         // 创建人所在组自动获得空间全权限（create/update/delete/publish），使团队协作无需手动授权；
         // 创建人本人已经通过 hasWritePermission 的“创建人”分支天然放行，此处只补组维度。
         // 创建人无归属组（如平台管理员建空间）时静默跳过，不阻断建空间流程。
-        if (user.getGroupId() != null) {
+        if (ownerGroupId != null) {
             WikiSpaceAcl groupAcl = new WikiSpaceAcl();
             groupAcl.setTenantId(tenantId);
             groupAcl.setSpaceId(space.getId());
             groupAcl.setSubjectType("group");
-            groupAcl.setSubjectId(user.getGroupId());
+            groupAcl.setSubjectId(ownerGroupId);
             groupAcl.setPermissions(SPACE_ACL_PERMS);
             groupAcl.setCreatedBy(userId);
             groupAcl.setCreatedAt(LocalDateTime.now());
@@ -156,23 +168,31 @@ public class WikiSpaceService {
         if (space == null || !tenantId.equals(space.getTenantId())) {
             throw new IllegalArgumentException("空间不存在: " + spaceId);
         }
+        String permissionCode = "wiki:" + action;
+        int requiredBits = "create".equals(action) ? 3 : 2;
         if (space.getSeedKey() != null) {
-            if ("all".equals(space.getWriteScope())) {
-                return "delete".equals(action) ? isAdmin(user.getGroupScope()) : true;
-            }
-            return false; // 锁定：任何人都不可写，只能评论
+            boolean policyAllowed = "all".equals(space.getWriteScope())
+                && (!"delete".equals(action) || isAdmin(user.getGroupScope()));
+            return authorizationService.decideWithPolicyCompatibility(user, "wiki", permissionCode,
+                "wiki_space", spaceId, requiredBits, policyAllowed, policyAllowed);
         }
-        if (isAdmin(user.getGroupScope())) return true;
-        if (user.getPermissions().contains("wiki:" + action)) return true;
-        if (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId())) return true;
-        List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
+        if (authorizationService.isEnforced(user, "wiki")) {
+            return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
+                "wiki_space", spaceId, requiredBits, false);
+        }
+        boolean legacyAllowed = isAdmin(user.getGroupScope())
+            || user.getPermissions().contains("wiki:" + action)
+            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId()));
+        if (!legacyAllowed) {
+            List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
                 .eq(WikiSpaceAcl::getSpaceId, spaceId));
-        List<Long> roleIds = rbacService.getUserRoleIds(user.getUserId());
-        for (WikiSpaceAcl acl : rows) {
-            if (acl.getPermissions() == null || !acl.getPermissions().contains(action)) continue;
-            if (matches(acl, user.getUserId(), user.getGroupId(), roleIds)) return true;
+            List<Long> roleIds = rbacService.getUserRoleIds(user.getUserId());
+            legacyAllowed = rows.stream().anyMatch(acl -> acl.getPermissions() != null
+                && acl.getPermissions().contains(action)
+                && matches(acl, user.getUserId(), user.getGroupId(), roleIds));
         }
-        return false;
+        return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
+            "wiki_space", spaceId, requiredBits, legacyAllowed);
     }
 
     /**
@@ -395,7 +415,10 @@ public class WikiSpaceService {
         // 只读：系统空间且写范围不是 all（none/super_admin_only 均为锁定，任何人都不可写，见 hasWritePermission）
         vo.setReadOnly(s.getWriteScope() != null && !"all".equals(s.getWriteScope()));
         vo.setCreatedBy(s.getCreatedBy());
-        vo.setCanManageAcl(canManageAcl(s, currentUser));
+        boolean legacyCanManageAcl = currentUser.getPermissions().contains("wiki:manage_acl")
+            && canManageAcl(s, currentUser);
+        vo.setCanManageAcl(authorizationService.decideWithCompatibility(currentUser, "wiki",
+            "wiki:manage_acl", "wiki_space", s.getId(), 2, legacyCanManageAcl));
         vo.setCanCreatePage(hasWritePermission(s.getTenantId(), s.getId(), currentUser, "create"));
         return vo;
     }

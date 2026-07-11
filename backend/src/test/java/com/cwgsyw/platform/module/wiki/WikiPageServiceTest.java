@@ -5,6 +5,7 @@ import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -33,8 +34,23 @@ class WikiPageServiceTest {
     @Mock com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock com.cwgsyw.platform.module.notification.NotificationService notificationService;
     @Mock com.cwgsyw.platform.module.user.UserMapper userMapper;
+    @Mock com.cwgsyw.platform.module.authorization.AuthorizationService authorizationService;
+    @Mock com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService resourceMigrationService;
+    @Mock org.flowable.engine.RuntimeService runtimeService;
 
     @InjectMocks WikiPageService service;
+
+    @BeforeEach
+    void setUpAuthorizationCompatibility() {
+        lenient().when(authorizationService.decideWithCompatibility(
+            any(), anyString(), anyString(), anyString(), anyLong(), anyInt(), anyBoolean()))
+            .thenAnswer(invocation -> invocation.getArgument(6));
+        lenient().when(authorizationService.decideWithCompatibility(
+            any(), anyString(), anyString(), anyString(), anyLong(), anyInt(),
+            any(java.util.function.BooleanSupplier.class)))
+            .thenAnswer(invocation -> ((java.util.function.BooleanSupplier) invocation.getArgument(6))
+                .getAsBoolean());
+    }
 
     private SecurityUser user(Long userId, String groupScope, Set<String> perms) {
         return new SecurityUser(userId, "u" + userId, "pw", "default", 1L, groupScope, perms);
@@ -106,6 +122,25 @@ class WikiPageServiceTest {
         verify(aclService, never()).hasExplicitPermission(any(), any(), any(), any(), any(), any());
     }
 
+    @Test
+    void savePage_enforcedDecisionDoesNotEvaluateLegacyWikiAcl() {
+        WikiPage page = page(88L, 100L);
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        SecurityUser editor = user(5L, "group", Set.of("wiki:update"));
+        reset(authorizationService);
+        when(authorizationService.decideWithCompatibility(
+            any(), anyString(), anyString(), anyString(), anyLong(), anyInt(),
+            any(java.util.function.BooleanSupplier.class))).thenReturn(true);
+
+        SavePageRequest req = new SavePageRequest();
+        req.setTitle("新标题");
+        req.setContent("新内容");
+        service.savePage("default", editor, 88L, req);
+
+        verifyNoInteractions(spaceService, aclService);
+        verify(pageMapper).updateById(any(WikiPage.class));
+    }
+
     // ── revert 回归：viewer 被空间 ACL 授予 update 后，可成功回滚版本 ─────
 
     @Test
@@ -154,15 +189,32 @@ class WikiPageServiceTest {
     @Test
     void createPage_spaceCreateDenied_throwsBeforeInsert() {
         SecurityUser viewer = user(7L, "group", Set.of("wiki:read"));
-        doThrow(new AccessDeniedException("无权限在此空间执行 create"))
-                .when(spaceService).checkCanWrite("default", 100L, viewer, "create");
-
+        when(spaceService.hasWritePermission("default", 100L, viewer, "create")).thenReturn(false);
         var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
         req.setSpaceId(100L);
         req.setTitle("新页面");
 
         assertThatThrownBy(() -> service.createPage("default", viewer, req))
                 .isInstanceOf(AccessDeniedException.class);
+        verify(pageMapper, never()).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void createChildPage_checksCreatePermissionOnParentPage() {
+        SecurityUser editor = user(7L, "group", Set.of("wiki:create"));
+        when(authorizationService.decideWithCompatibility(eq(editor), eq("wiki"), eq("wiki:create"),
+            eq("wiki_page"), eq(44L), eq(3), any(java.util.function.BooleanSupplier.class)))
+            .thenReturn(false);
+
+        var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setParentId(44L);
+        req.setTitle("子页面");
+
+        assertThatThrownBy(() -> service.createPage("default", editor, req))
+            .isInstanceOf(AccessDeniedException.class);
+        verify(authorizationService).decideWithCompatibility(eq(editor), eq("wiki"), eq("wiki:create"),
+            eq("wiki_page"), eq(44L), eq(3), any(java.util.function.BooleanSupplier.class));
         verify(pageMapper, never()).insert(any(WikiPage.class));
     }
 
@@ -174,12 +226,28 @@ class WikiPageServiceTest {
         when(pageMapper.selectById(88L)).thenReturn(page);
         SecurityUser stranger = user(6L, "group", Set.of("wiki:read"));
 
-        when(spaceService.hasWritePermission("default", 100L, stranger, "delete")).thenReturn(false);
-        when(aclService.hasExplicitPermission("default", 88L, 6L, 1L, "group", "delete")).thenReturn(false);
+        doThrow(new AccessDeniedException("denied")).when(authorizationService)
+            .requireParentWithCompatibility(eq(stranger), eq("wiki"), eq("wiki:delete"),
+                eq("wiki_page"), eq(88L), eq(3), any(java.util.function.BooleanSupplier.class));
 
         assertThatThrownBy(() -> service.deletePage("default", 88L, stranger))
                 .isInstanceOf(AccessDeniedException.class);
         verify(pageMapper, never()).deleteById(any(Long.class));
+    }
+
+    @Test
+    void movePage_checksSourceAndTargetContainers() {
+        WikiPage page = page(88L, 100L);
+        page.setParentId(12L);
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(pageMapper.findDescendantIds(88L)).thenReturn(List.of(88L));
+        SecurityUser editor = user(5L, "group", Set.of("wiki:update"));
+        service.movePage("default", 88L, 22L, 1, editor);
+
+        verify(authorizationService).requireParentWithCompatibility(eq(editor), eq("wiki"), eq("wiki:update"),
+            eq("wiki_page"), eq(88L), eq(3), any(java.util.function.BooleanSupplier.class));
+        verify(authorizationService).requireWithCompatibility(eq(editor), eq("wiki"), eq("wiki:update"),
+            eq("wiki_page"), eq(22L), eq(3), any(java.util.function.BooleanSupplier.class));
     }
 
     @Test

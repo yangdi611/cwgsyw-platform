@@ -18,6 +18,7 @@ const ROUTE_PERMISSIONS = [
   { path: '/users', permissions: ['user:read'] },
   { path: '/groups', permissions: ['group:read'] },
   { path: '/rbac/roles', permissions: ['role:read'] },
+  { path: '/rbac/migration-exceptions', permissions: ['role:read', 'role:assign'] },
   {
     path: '/rbac/permissions',
     permissions: ['resource:read', 'resource:assign', 'role:read'],
@@ -36,10 +37,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const requiredActions = useAuthStore((s) => s.requiredActions)
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const permissions = useAuthStore((s) => s.permissions)
+  const groupScope = useAuthStore((s) => s.groupScope)
   const token = getToken()
   const routePermission = requiredRoutePermission(pathname)
   const canAccessRoute =
-    !routePermission || routePermission.permissions.every((permission) => permissions.has(permission))
+    (!routePermission || routePermission.permissions.every((permission) => permissions.has(permission)))
+      && (pathname !== '/rbac/migration-exceptions' || groupScope === 'platform')
 
   useIdleSession()
 

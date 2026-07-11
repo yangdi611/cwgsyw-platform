@@ -3,6 +3,10 @@ export interface FolderNode {
   name: string
   parentId: number | null
   aclCustom?: boolean
+  canCreateChild: boolean
+  canUpload: boolean
+  canDelete: boolean
+  canManageAcl: boolean
   children?: FolderNode[]
 }
 
@@ -15,6 +19,8 @@ export interface SharedFile {
   folderId: number | null
   createdByName: string
   createdAt: string
+  canDelete: boolean
+  canManageAcl: boolean
 }
 
 export interface SharedFileAuditLog {

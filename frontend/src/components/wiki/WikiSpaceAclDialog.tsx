@@ -168,7 +168,7 @@ export function WikiSpaceAclDialog({
         <DialogHeader>
           <DialogTitle>空间权限设置：{spaceName}</DialogTitle>
           <DialogDescription>
-            所有登录用户默认可读该空间，此处仅管理写权限（新建/编辑/删除/发布）。
+            兼容权限模式：所有登录用户默认可读；角色授权已冻结，请改用用户或组管理写权限。
           </DialogDescription>
         </DialogHeader>
 
@@ -214,7 +214,7 @@ export function WikiSpaceAclDialog({
                       const checkbox = (
                         <Checkbox
                           checked={isForced || (set?.has(p) ?? false)}
-                          disabled={isForced}
+                          disabled={isForced || tab === 'role'}
                           onCheckedChange={() => togglePerm(s.id, p)}
                         />
                       )

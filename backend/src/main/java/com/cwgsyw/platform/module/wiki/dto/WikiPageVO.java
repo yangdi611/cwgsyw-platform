@@ -22,4 +22,5 @@ public class WikiPageVO {
     private boolean canWrite;
     private boolean canDelete;
     private boolean canPublish;
+    private boolean canManageAcl;
 }

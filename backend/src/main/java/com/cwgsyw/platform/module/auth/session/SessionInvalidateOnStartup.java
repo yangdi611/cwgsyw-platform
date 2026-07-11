@@ -1,5 +1,6 @@
 package com.cwgsyw.platform.module.auth.session;
 
+import com.cwgsyw.platform.config.AuthorizationProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -16,9 +17,14 @@ import org.springframework.stereotype.Component;
 public class SessionInvalidateOnStartup {
 
     private final AuthSessionService authSessionService;
+    private final AuthorizationProperties authorizationProperties;
 
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
+        if (!authorizationProperties.isInvalidateSessionsOnStartup()) {
+            log.info("[启动] 已保留 Redis 会话，未执行全量会话撤销");
+            return;
+        }
         try {
             long count = authSessionService.invalidateAllSessions();
             log.info("[启动] 已清除 {} 个 Redis 会话，所有在线用户需重新登录", count);

@@ -28,9 +28,12 @@ import {
   Eye,
   Trash2,
   File,
+  Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FolderAclDialog } from './FolderAclDialog'
+import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
+import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 import { FolderTreeNode } from './components/FolderTreeNode'
 import { AuditPanel } from './components/AuditPanel'
 import type { FolderNode, SharedFile } from './components/types'
@@ -40,6 +43,7 @@ export default function FilesPage() {
   const router = useRouter()
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
+  const authorizationEnforced = useAuthorizationEnforced('shared_file')
 
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
@@ -48,8 +52,10 @@ export default function FilesPage() {
 
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [ownerGroupId, setOwnerGroupId] = useState('')
 
   const [aclTarget, setAclTarget] = useState<FolderNode | null>(null)
+  const [fileAclTarget, setFileAclTarget] = useState<SharedFile | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -81,11 +87,17 @@ export default function FilesPage() {
         .then((r) => r.data),
   })
 
+  const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['authorization-groups'],
+    queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
+  })
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData()
       form.append('file', file)
       if (selectedFolderId !== null) form.append('folder_id', String(selectedFolderId))
+      if (selectedFolderId === null && ownerGroupId) form.append('owner_group_id', ownerGroupId)
       return api.post('/files/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
@@ -119,7 +131,11 @@ export default function FilesPage() {
 
   const createFolderMutation = useMutation({
     mutationFn: (name: string) =>
-      api.post('/files/folders', { name, parentId: selectedFolderId ?? null }),
+      api.post('/files/folders', {
+        name,
+        parentId: selectedFolderId ?? null,
+        ownerGroupId: selectedFolderId === null && ownerGroupId ? Number(ownerGroupId) : undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['file-folders'] })
       setNewFolderOpen(false)
@@ -233,7 +249,12 @@ export default function FilesPage() {
           >
             <Download className="h-4 w-4" />
           </Button>
-          {canDelete && (
+          {authorizationEnforced && canManageAcl && r.canManageAcl && (
+            <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="权限设置" onClick={() => setFileAclTarget(r)}>
+              <Lock className="h-4 w-4" />
+            </Button>
+          )}
+          {canDelete && r.canDelete && (
             <Button
               variant="ghost"
               size="sm"
@@ -351,7 +372,7 @@ export default function FilesPage() {
           <DialogHeader>
             <DialogTitle>新建文件夹</DialogTitle>
           </DialogHeader>
-          <div className="py-2">
+          <div className="space-y-3 py-2">
             <Input
               placeholder="文件夹名称"
               value={newFolderName}
@@ -362,6 +383,15 @@ export default function FilesPage() {
                 }
               }}
             />
+            {selectedFolderId === null && groups.length > 0 && (
+              <label className="block space-y-1 text-sm text-v2-fg">
+                <span>归属组</span>
+                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>
+                  <option value="">使用主组</option>
+                  {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                </select>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setNewFolderOpen(false)}>
@@ -380,14 +410,21 @@ export default function FilesPage() {
 
       {/* Folder ACL Dialog */}
       {aclTarget && (
-        <FolderAclDialog
-          folderId={aclTarget.id}
-          folderName={aclTarget.name}
-          open={!!aclTarget}
-          onOpenChange={(v) => {
-            if (!v) setAclTarget(null)
-          }}
-        />
+        authorizationEnforced
+          ? <ResourceAccessDialog resourceType="shared_folder" resourceId={aclTarget.id}
+              title={aclTarget.name} container open={!!aclTarget}
+              onOpenChange={(value) => { if (!value) setAclTarget(null) }} />
+          : <FolderAclDialog
+              folderId={aclTarget.id}
+              folderName={aclTarget.name}
+              open={!!aclTarget}
+              onOpenChange={(value) => { if (!value) setAclTarget(null) }}
+            />
+      )}
+      {fileAclTarget && authorizationEnforced && (
+        <ResourceAccessDialog resourceType="shared_file" resourceId={fileAclTarget.id}
+          title={fileAclTarget.name} container={false} open
+          onOpenChange={(value) => { if (!value) setFileAclTarget(null) }} />
       )}
     </div>
   )

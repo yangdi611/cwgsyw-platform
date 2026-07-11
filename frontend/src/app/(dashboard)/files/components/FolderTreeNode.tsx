@@ -62,7 +62,7 @@ export function FolderTreeNode({
             <Lock className="h-3 w-3 shrink-0 text-v2-warn" aria-label="自定义权限" />
           )}
         </button>
-        {canManageAcl && (
+        {canManageAcl && node.canManageAcl && (
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -74,7 +74,7 @@ export function FolderTreeNode({
             <Lock className="h-3.5 w-3.5" />
           </button>
         )}
-        {canManage && (
+        {canManage && node.canDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation()
