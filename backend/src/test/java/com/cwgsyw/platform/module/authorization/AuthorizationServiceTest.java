@@ -135,6 +135,56 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void tenantAdminCanManageSharedFileOutsideResourceOwnerGroup() {
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0600, null);
+        resource.setResourceType("shared_file");
+        when(resourceRepository.find("default", "shared_file", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.hasActiveTenantAdminAssignment("default", 7L)).thenReturn(true);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "shared_file:manage_acl"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
+
+        AuthorizationDecision decision = service.decide(user, "shared_file:manage_acl", "shared_file", 8L, 2);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("tenant_admin", decision.getResourceClass());
+    }
+
+    @Test
+    void tenantAdminCanTraverseCrossGroupSharedFolderAncestors() {
+        ResourceDescriptor folder = resource(8L, 9L, 1L, 0600, 7L);
+        folder.setResourceType("shared_folder");
+        ResourceDescriptor parent = resource(7L, 9L, 1L, 0600, null);
+        parent.setResourceType("shared_folder");
+        when(resourceRepository.find("default", "shared_folder", 8L)).thenReturn(folder);
+        when(resourceRepository.find("default", "shared_folder", 7L)).thenReturn(parent);
+        when(scopedPermissionMapper.hasActiveTenantAdminAssignment("default", 7L)).thenReturn(true);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "shared_file:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
+
+        AuthorizationDecision decision = service.decide(user, "shared_file:read", "shared_folder", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("tenant_admin", decision.getResourceClass());
+    }
+
+    @Test
+    void tenantScopedNonAdminCannotManageCrossGroupSharedFile() {
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0600, null);
+        resource.setResourceType("shared_file");
+        when(resourceRepository.find("default", "shared_file", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.hasActiveTenantAdminAssignment("default", 7L)).thenReturn(false);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "shared_file:manage_acl"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(resourceAclMapper.findAccessEntries("default", "shared_file", 8L)).thenReturn(List.of());
+
+        AuthorizationDecision decision = service.decide(user, "shared_file:manage_acl", "shared_file", 8L, 2);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("RESOURCE_ACCESS_DENIED", decision.getReasonCode());
+    }
+
+    @Test
     void namedUserAclDoesNotFallBackToOthers() {
         ResourceDescriptor resource = resource(8L, 9L, 4L, 0004, null);
         resource.setResourceType("shared_file");
