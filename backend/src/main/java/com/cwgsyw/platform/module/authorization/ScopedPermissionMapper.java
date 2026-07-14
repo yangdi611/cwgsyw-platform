@@ -63,5 +63,19 @@ public interface ScopedPermissionMapper {
         """)
     boolean hasActiveDocumentAdminAssignment(String tenantId, Long userId);
 
+    @Select("""
+        SELECT EXISTS (
+            SELECT 1
+            FROM sys_role_assignment a
+            JOIN sys_role r ON r.id = a.role_id
+              AND r.tenant_id = a.tenant_id AND NOT r.is_deleted
+            WHERE a.tenant_id = #{tenantId} AND a.user_id = #{userId}
+              AND NOT a.is_deleted AND r.code = 'admin' AND a.scope_type = 'tenant'
+              AND (a.valid_from IS NULL OR a.valid_from <= NOW())
+              AND (a.valid_until IS NULL OR a.valid_until > NOW())
+        )
+        """)
+    boolean hasActiveTenantAdminAssignment(String tenantId, Long userId);
+
     record ScopedPermissionRow(Long id, String scopeType, Long scopeId) {}
 }

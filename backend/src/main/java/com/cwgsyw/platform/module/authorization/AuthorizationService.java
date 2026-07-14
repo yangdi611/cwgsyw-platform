@@ -259,6 +259,7 @@ public class AuthorizationService {
     private boolean scopeCovers(SecurityUser user, ScopedPermissionRow assignment, ResourceDescriptor resource) {
         if ("platform".equals(assignment.scopeType()) || "tenant".equals(assignment.scopeType())) return true;
         if (isWritableSystemWikiDocumentAdmin(user, resource)) return true;
+        if (isSharedFileTenantAdministrator(user, resource)) return true;
         return "group".equals(assignment.scopeType())
             && Objects.equals(assignment.scopeId(), resource.getOwnerGroupId());
     }
@@ -304,6 +305,7 @@ public class AuthorizationService {
     private PermissionMatch resourcePermissions(SecurityUser user, ResourceDescriptor resource,
                                                 Set<Long> groupIds) {
         if (isWritableSystemWikiDocumentAdmin(user, resource)) return new PermissionMatch("document_admin", 7);
+        if (isSharedFileTenantAdministrator(user, resource)) return new PermissionMatch("tenant_admin", 7);
         int mode = resource.getPermissionMode();
         if (Objects.equals(user.getUserId(), resource.getOwnerUserId())) {
             return new PermissionMatch("owner", (mode >> 6) & 7);
@@ -337,6 +339,12 @@ public class AuthorizationService {
             && resourceRepository.isWritableSystemWikiResource(user.getTenantId(), resource.getResourceType(),
                 resource.getResourceId())
             && scopedPermissionMapper.hasActiveDocumentAdminAssignment(user.getTenantId(), user.getUserId());
+    }
+
+    private boolean isSharedFileTenantAdministrator(SecurityUser user, ResourceDescriptor resource) {
+        return ("shared_folder".equals(resource.getResourceType())
+            || "shared_file".equals(resource.getResourceType()))
+            && scopedPermissionMapper.hasActiveTenantAdminAssignment(user.getTenantId(), user.getUserId());
     }
 
     private AuthorizationDecision denied(String reasonCode) {
