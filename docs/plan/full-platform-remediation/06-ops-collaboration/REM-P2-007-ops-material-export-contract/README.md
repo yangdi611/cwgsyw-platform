@@ -1,0 +1,40 @@
+# REM-P2-007：运维材料导出文件与摘要合同
+
+| 项目 | 内容 |
+|---|---|
+| 事件 ID | `REM-P2-007` |
+| 优先级 | P2 |
+| 领域 | `06-ops-collaboration` |
+| 状态 | `NOT_STARTED` |
+| 风险 | `LOW` |
+| 负责人 | 待实施时认领 |
+| 创建 / 更新 | 2026-07-15 |
+| 来源 | `FQA_20260712_0329_lintfix` |
+
+## 问题与影响
+
+运维材料导出缺少可观察的 Content-Disposition，工作簿也未证明包含范围和状态汇总。
+
+用户无法获得稳定命名的可审计导出物，报告内容难以确认覆盖范围。
+
+## 追溯
+
+- 缺陷：`BUG-FQA-106`
+- 用例：`XL-EXPORT-005`
+- 历史证据：`defects.md` 对应章节及 `test-results/FQA_20260712_0329_lintfix/`；保持只读。
+
+## 边界
+
+根因：需要核对 Controller/proxy 下载头传递和 exportExcel 工作表结构。
+
+范围：
+- 稳定 Content-Disposition/MIME/文件名
+- 在工作簿写入范围、状态和汇总信息
+- 验证空数据与有数据导出
+
+非目标：
+- 不重做运维报表体系
+- 不修改任务状态
+- 不执行不可清理的全生命周期夹具
+
+下一门禁：逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 告警后才可编辑。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

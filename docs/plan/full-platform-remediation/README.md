@@ -4,13 +4,14 @@
 
 ## 从哪里开始看
 
-1. 先看 [INDEX.md](./INDEX.md)，按优先级、状态和下一门禁选择事件。
-2. 进入事件目录先看 `README.md`，一分钟内了解问题、影响、边界和当前进度。
-3. 实施前看 `SPEC.md`；测试与复查按 `VERIFICATION.md` 执行。
-4. 需要 Claude Code 执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
-5. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
+1. 使用 Codex 长期顺序执行时，先读 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)，再从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复当前事件。
+2. 人工查看整体队列时看 [INDEX.md](./INDEX.md)，按优先级、状态和下一门禁选择事件。
+3. 进入事件目录先看 `README.md`，一分钟内了解问题、影响、边界和当前进度。
+4. 实施前看 `SPEC.md`；测试与复查按 `VERIFICATION.md` 执行。
+5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
+6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前进行中的事件是 `REM-P1-002`：成员列表软删除一致性，位于 `02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/`。它独立处理 `BUG-FQA-016`，不与已关闭的 P0 membership assignment 失效事件混合；发布前全量复验仍是所有事件的最终共同门禁。
+当前规划已覆盖源 run 的全部 100 个缺陷章节：45 个事件中，4 个已关闭、1 个已验证、1 个验证中、39 个待实施。先看 [缺陷覆盖矩阵](./FQA-COVERAGE-MATRIX.md) 确认缺陷与主事件的唯一映射；测试环境和产品生命周期造成的 BLOCKED 另见 [解除计划](./BLOCKED-READINESS-PLAN.md)。发布前全量复验仍是所有事件的最终共同门禁。
 
 ## 目录规则
 
@@ -18,6 +19,10 @@
 full-platform-remediation/
 ├── README.md
 ├── INDEX.md
+├── CODEX-GOAL-PROMPT.md
+├── REMEDIATION-CHECKPOINT.json
+├── FQA-COVERAGE-MATRIX.md
+├── BLOCKED-READINESS-PLAN.md
 ├── _templates/
 │   ├── remediation-event-template.md
 │   └── CLAUDE-CODE-PROMPT.template.md
@@ -43,7 +48,7 @@ full-platform-remediation/
 | `07` | 平台与集成 | 配置、AI、报表、审计、备份 |
 | `08` | 横切合同 | 输入校验、DTO、错误处理、状态机一致性 |
 
-只有出现实际事件时才创建领域目录，不建立空目录。
+只有出现实际事件时才创建领域目录，不建立空目录。领域目录名以本事件库已登记名称为准，不因后续实现重命名。
 
 ## 事件拆分规则
 
@@ -61,7 +66,7 @@ full-platform-remediation/
 
 - 事件 ID：`REM-P0-001`，ID 一经登记不得复用或重编号。
 - 目录名：`<事件ID>-<可读短名>`，短名只用于人读，追溯以 ID 为准。
-- 状态：`DRAFT -> READY -> IN_PROGRESS -> VERIFYING -> CLOSED`。
+- 状态：`DRAFT -> READY -> IN_PROGRESS -> VERIFYING -> VERIFIED -> CLOSED`。`VERIFIED` 表示事件级 L1-L3 已通过，`CLOSED` 仍需最终 L4。
 - 特殊状态：`BLOCKED`、`ROLLED_BACK`、`SUPERSEDED`；必须写原因和后继事件。
 - `CLOSED` 必须同时满足 SPEC 验收、验证矩阵无未解释项、实施记录完整和索引更新。
 
@@ -83,6 +88,8 @@ full-platform-remediation/
 
 事件文档必须记录源 runId、缺陷 ID、用例 ID、证据路径、受影响符号、验收项 ID 和验证结果。不得用“已修复”“测试正常”代替可定位证据。
 
+总覆盖额外要求：`defects.md` 的每个 `BUG-FQA-*` 必须在 `FQA-COVERAGE-MATRIX.md` 中恰好出现一次主映射；checkpoint 漏记或保留已关闭编号时，必须在矩阵中显式对账，不能静默丢弃或重复建事件。
+
 ## 文档与代码边界
 
 - 本目录是整改计划和实施台账，不替代原始测试报告；原始证据保持只读。
@@ -91,3 +98,11 @@ full-platform-remediation/
 - 每个事件独立提交、独立验证、独立回滚；不要把无关清理混入 P0/P1 修复。
 - `CLAUDE-CODE-PROMPT.md` 必须是事件专用的完整执行合同，不得只写“请按 SPEC 修复”。它至少要明确读取顺序、授权边界、已决策合同、实施步骤、验证层级、证据回写和停止条件。
 - prompt 不得包含密码、token 或其他秘密，也不得默认授权 Git 提交、历史数据迁移、全租户切换、restore 或修改非测试授权。
+
+## Codex Goal 执行约定
+
+- Goal 在单一工作区中顺序执行；每个事件从最新 `lint-fix` 创建独立分支，完成 L1-L3 运行时复验后提交并 `--no-ff` 合并，再进入下一事件。
+- `REMEDIATION-CHECKPOINT.json` 是中断恢复入口，但必须用 Git 提交、事件文档和证据校验，不能把检查点声明当成完成证据。
+- 事件级 L1-L3 全部通过后状态为 `VERIFIED`；全部事件完成后还要执行独立 L4 全平台复验，L4 通过后才统一 `CLOSED`。
+- 每次状态变化同步事件卡、验证矩阵、实施记录、`INDEX.md`、`FQA-COVERAGE-MATRIX.md`、本 README 和检查点；只有 BLOCKED gate 改变时更新解除计划。
+- 管理员凭据只能在运行时安全提供，不得进入仓库、Prompt、日志、截图、证据或提交；其他权限账号使用带 runId 的产品 API 创建并精确清理。

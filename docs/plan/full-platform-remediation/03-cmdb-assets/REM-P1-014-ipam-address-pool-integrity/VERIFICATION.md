@@ -1,0 +1,12 @@
+# REM-P1-014 验证与证据矩阵
+
+| AC | caseId | 层级 | 修复后证据 | 结果 |
+|---|---|---|---|---|
+| `AC-001` | IPAM-003 | L1 | `test-results/<remediationRunId>/REM-P1-014/` | `NOT_RUN` |
+| `AC-002` | IPAM-004 / IPAM-006 / IPAM-007 / IPAM-009 / COMMON-004 | L2 | 逐缺陷独立 result | `NOT_RUN` |
+| `AC-003` | 边界 / deny / 并发 / 零副作用 | L2 | API、UI、DB/存储核对 | `NOT_RUN` |
+| `AC-004` | 受影响模块 | L3 | 测试命令与报告 | `NOT_RUN` |
+| `AC-005` | impact/detect/cleanup/rollback | L3 | 实施记录与 manifest | `NOT_RUN` |
+| `AC-006` | 全平台 `275+78` | L4 | 新候选 run | `PENDING` |
+
+原始证据：`defects.md` 的 `BUG-FQA-041`、`BUG-FQA-064`、`BUG-FQA-072`、`BUG-FQA-073`、`BUG-FQA-075` 和对应 test-results。PASS 要求行为、持久化、权限、审计、清理全部一致；FAIL 包括残留、未解释 5xx/Console error；BLOCKED 必须注明解除条件。禁止覆盖历史证据。
