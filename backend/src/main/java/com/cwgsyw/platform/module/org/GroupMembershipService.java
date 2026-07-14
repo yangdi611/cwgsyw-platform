@@ -43,6 +43,7 @@ public class GroupMembershipService {
         return membershipMapper.selectList(new LambdaQueryWrapper<UserGroupMembership>()
                 .eq(UserGroupMembership::getTenantId, tenantId)
                 .eq(UserGroupMembership::getUserId, userId)
+                .eq(UserGroupMembership::getIsDeleted, false)
                 .orderByDesc(UserGroupMembership::getIsPrimary)
                 .orderByAsc(UserGroupMembership::getId))
             .stream()
