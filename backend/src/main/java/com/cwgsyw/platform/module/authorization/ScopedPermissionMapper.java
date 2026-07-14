@@ -45,5 +45,23 @@ public interface ScopedPermissionMapper {
         """)
     List<ScopedPermissionRow> findAssignments(String tenantId, Long userId, String permissionCode);
 
+    @Select("""
+        SELECT EXISTS (
+            SELECT 1
+            FROM sys_role_assignment a
+            JOIN sys_role r ON r.id = a.role_id
+              AND r.tenant_id = a.tenant_id AND NOT r.is_deleted
+            JOIN sys_user_group_membership gm ON gm.tenant_id = a.tenant_id
+              AND gm.user_id = a.user_id AND gm.group_id = a.scope_id AND NOT gm.is_deleted
+            JOIN sys_group g ON g.id = a.scope_id AND g.tenant_id = a.tenant_id
+              AND NOT g.is_deleted AND g.group_type = 'business'
+            WHERE a.tenant_id = #{tenantId} AND a.user_id = #{userId}
+              AND NOT a.is_deleted AND r.code = 'doc_admin' AND a.scope_type = 'group'
+              AND (a.valid_from IS NULL OR a.valid_from <= NOW())
+              AND (a.valid_until IS NULL OR a.valid_until > NOW())
+        )
+        """)
+    boolean hasActiveDocumentAdminAssignment(String tenantId, Long userId);
+
     record ScopedPermissionRow(Long id, String scopeType, Long scopeId) {}
 }

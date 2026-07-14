@@ -34,7 +34,31 @@ public class ResourceDescriptorRepository {
         return jdbcTemplate.query("""
                 SELECT space_id FROM wiki_page
                 WHERE id = ? AND tenant_id = ? AND NOT is_deleted
-                """, rs -> rs.next() ? rs.getLong(1) : null, pageId, tenantId);
+            """, rs -> rs.next() ? rs.getLong(1) : null, pageId, tenantId);
+    }
+
+    public boolean isWritableSystemWikiResource(String tenantId, String resourceType, Long resourceId) {
+        String sql = switch (resourceType) {
+            case "wiki_space" -> """
+                SELECT EXISTS (
+                    SELECT 1 FROM wiki_space
+                    WHERE id = ? AND tenant_id = ? AND NOT is_deleted
+                      AND seed_key IS NOT NULL AND write_scope = 'all'
+                )
+                """;
+            case "wiki_page" -> """
+                SELECT EXISTS (
+                    SELECT 1 FROM wiki_page page
+                    JOIN wiki_space space ON space.id = page.space_id AND space.tenant_id = page.tenant_id
+                    WHERE page.id = ? AND page.tenant_id = ? AND NOT page.is_deleted AND NOT space.is_deleted
+                      AND space.seed_key IS NOT NULL AND space.write_scope = 'all'
+                )
+                """;
+            default -> null;
+        };
+        if (sql == null) return false;
+        Boolean result = jdbcTemplate.queryForObject(sql, Boolean.class, resourceId, tenantId);
+        return Boolean.TRUE.equals(result);
     }
 
     private Long nullableLong(Object value) {

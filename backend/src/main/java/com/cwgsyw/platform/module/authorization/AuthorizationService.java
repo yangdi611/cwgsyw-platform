@@ -63,7 +63,7 @@ public class AuthorizationService {
         List<ScopedPermissionRow> assignments = scopedPermissionMapper.findAssignments(
             user.getTenantId(), user.getUserId(), permissionCode);
         ScopedPermissionRow assignment = assignments.stream()
-            .filter(row -> scopeCovers(row, resource))
+            .filter(row -> scopeCovers(user, row, resource))
             .findFirst().orElse(null);
         if (assignment == null) return denied(assignments.isEmpty()
             ? "FUNCTION_PERMISSION_DENIED" : "ROLE_SCOPE_NOT_COVERED");
@@ -256,8 +256,9 @@ public class AuthorizationService {
         }
     }
 
-    private boolean scopeCovers(ScopedPermissionRow assignment, ResourceDescriptor resource) {
+    private boolean scopeCovers(SecurityUser user, ScopedPermissionRow assignment, ResourceDescriptor resource) {
         if ("platform".equals(assignment.scopeType()) || "tenant".equals(assignment.scopeType())) return true;
+        if (isWritableSystemWikiDocumentAdmin(user, resource)) return true;
         return "group".equals(assignment.scopeType())
             && Objects.equals(assignment.scopeId(), resource.getOwnerGroupId());
     }
@@ -302,6 +303,7 @@ public class AuthorizationService {
 
     private PermissionMatch resourcePermissions(SecurityUser user, ResourceDescriptor resource,
                                                 Set<Long> groupIds) {
+        if (isWritableSystemWikiDocumentAdmin(user, resource)) return new PermissionMatch("document_admin", 7);
         int mode = resource.getPermissionMode();
         if (Objects.equals(user.getUserId(), resource.getOwnerUserId())) {
             return new PermissionMatch("owner", (mode >> 6) & 7);
@@ -328,6 +330,13 @@ public class AuthorizationService {
         }
         if (groupMatched) return new PermissionMatch("group", groupPermissions);
         return new PermissionMatch("others", mode & 7);
+    }
+
+    private boolean isWritableSystemWikiDocumentAdmin(SecurityUser user, ResourceDescriptor resource) {
+        return resource.getResourceType().startsWith("wiki")
+            && resourceRepository.isWritableSystemWikiResource(user.getTenantId(), resource.getResourceType(),
+                resource.getResourceId())
+            && scopedPermissionMapper.hasActiveDocumentAdminAssignment(user.getTenantId(), user.getUserId());
     }
 
     private AuthorizationDecision denied(String reasonCode) {

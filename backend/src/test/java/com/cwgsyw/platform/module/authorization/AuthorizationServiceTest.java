@@ -106,6 +106,35 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void documentAdminCanManageWritableSystemWikiOutsideAssignmentGroup() {
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0645, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(resourceRepository.isWritableSystemWikiResource("default", "wiki_page", 8L)).thenReturn(true);
+        when(scopedPermissionMapper.hasActiveDocumentAdminAssignment("default", 7L)).thenReturn(true);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:manage_acl"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+
+        AuthorizationDecision decision = service.decide(user, "wiki:manage_acl", "wiki_page", 8L, 2);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("document_admin", decision.getResourceClass());
+    }
+
+    @Test
+    void documentAdminCannotManageLockedSystemWiki() {
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0645, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(resourceRepository.isWritableSystemWikiResource("default", "wiki_page", 8L)).thenReturn(false);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:manage_acl"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+
+        AuthorizationDecision decision = service.decide(user, "wiki:manage_acl", "wiki_page", 8L, 2);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("ROLE_SCOPE_NOT_COVERED", decision.getReasonCode());
+    }
+
+    @Test
     void namedUserAclDoesNotFallBackToOthers() {
         ResourceDescriptor resource = resource(8L, 9L, 4L, 0004, null);
         resource.setResourceType("shared_file");

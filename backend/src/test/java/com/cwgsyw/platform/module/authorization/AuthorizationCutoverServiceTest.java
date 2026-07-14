@@ -73,7 +73,8 @@ class AuthorizationCutoverServiceTest {
             .contains("diff.resource_type = 'shared_folder'")
             .contains("diff.resource_type = 'shared_file'")
             .contains("resource.tenant_id = diff.tenant_id")
-            .contains("NOT resource.is_deleted");
+            .contains("NOT resource.is_deleted")
+            .contains("space.write_scope <> 'all'");
     }
 
     @Test

@@ -746,6 +746,27 @@ public class AuthorizationCutoverService {
                 JOIN sys_user u ON u.id = diff.user_id AND u.tenant_id = diff.tenant_id
                     AND NOT u.is_deleted AND u.status = 1
                 WHERE diff.tenant_id = ?
+                  AND NOT (
+                      diff.module = 'wiki'
+                      AND diff.permission_code IN ('wiki:create', 'wiki:update', 'wiki:delete',
+                                                   'wiki:publish', 'wiki:manage_acl')
+                      AND (
+                          (diff.resource_type = 'wiki_space' AND EXISTS (
+                              SELECT 1 FROM wiki_space space
+                              WHERE space.id = diff.resource_id AND space.tenant_id = diff.tenant_id
+                                AND NOT space.is_deleted AND space.seed_key IS NOT NULL
+                                AND space.write_scope <> 'all'
+                          ))
+                          OR (diff.resource_type = 'wiki_page' AND EXISTS (
+                              SELECT 1 FROM wiki_page page
+                              JOIN wiki_space space ON space.id = page.space_id
+                                AND space.tenant_id = page.tenant_id
+                              WHERE page.id = diff.resource_id AND page.tenant_id = diff.tenant_id
+                                AND NOT page.is_deleted AND NOT space.is_deleted
+                                AND space.seed_key IS NOT NULL AND space.write_scope <> 'all'
+                          ))
+                      )
+                  )
                   AND (
                       (diff.resource_type = 'wiki_space' AND EXISTS (
                           SELECT 1 FROM wiki_space resource
