@@ -117,7 +117,7 @@ export function TaskDetailDrawer({ taskId, onClose }: Props) {
             <Field label="联系电话" value={t.assigneePhone ?? '-'} />
             <Field label="计划开始" value={fmtTime(t.plannedStartAt)} />
             <Field label="截止时间" value={fmtTime(t.dueAt)} />
-            <Field label="所属组" value={t.groupName ?? '-'} />
+            <Field label="所属组" value={t.groupName ? `${t.groupName}${t.groupArchived ? '（已归档）' : ''}` : '-'} />
             <Field label="来源" value={t.sourceType} />
           </dl>
 

@@ -6,10 +6,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AuthorizationRelationshipCleanupService {
     private final JdbcTemplate jdbcTemplate;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
 
     public void requireNoOwnedResources(String tenantId, Long userId) {
         long ownedResources = count("""
@@ -34,6 +38,7 @@ public class AuthorizationRelationshipCleanupService {
         if (count("SELECT COUNT(*) FROM sys_user WHERE tenant_id = ? AND id = ? AND is_deleted", tenantId, userId) == 0) {
             throw new IllegalStateException("仅允许清理已删除账户的授权关系");
         }
+        lockActiveGroupRelationships(tenantId, userId, null);
         int legacyUserRoles = jdbcTemplate.update("DELETE FROM sys_user_role WHERE user_id = ?", userId);
         int roleAssignments = jdbcTemplate.update("""
             UPDATE sys_role_assignment
@@ -101,6 +106,10 @@ public class AuthorizationRelationshipCleanupService {
         if (!isInvalidOrphanLegacyRole(tenantId, userId, roleId)) {
             throw new IllegalStateException("该遗留角色关系当前有效，系统拒绝清理");
         }
+        lockActiveGroupRelationships(tenantId, userId, roleId);
+        if (!isInvalidOrphanLegacyRole(tenantId, userId, roleId)) {
+            throw new IllegalStateException("遗留角色关系已变化，请刷新后重试");
+        }
         int roleAssignments = jdbcTemplate.update("""
             UPDATE sys_role_assignment
             SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = ?, updated_at = NOW(), updated_by = ?
@@ -129,6 +138,48 @@ public class AuthorizationRelationshipCleanupService {
             throw new IllegalStateException("遗留角色关系已变化，请刷新后重试");
         }
         return result(legacyUserRoles, roleAssignments, 0, 0, 0, 0, 0);
+    }
+
+    private void lockActiveGroupRelationships(String tenantId, Long userId, Long roleId) {
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+        List<Long> roleIds = roleId == null
+            ? jdbcTemplate.queryForList("""
+                SELECT role_id FROM (
+                    SELECT ur.role_id
+                    FROM sys_user_role ur
+                    WHERE ur.user_id = ?
+                    UNION
+                    SELECT a.role_id
+                    FROM sys_role_assignment a
+                    WHERE a.tenant_id = ? AND a.user_id = ? AND NOT a.is_deleted
+                ) active_role_relationships
+                """, Long.class, userId, tenantId, userId)
+            : List.of(roleId);
+        roleIds.stream().distinct().sorted()
+            .forEach(affectedRoleId -> authorizationWriteLockService.lockRoleAuthorization(
+                tenantId, affectedRoleId));
+        List<Long> groupIds = roleId == null
+            ? jdbcTemplate.queryForList("""
+                SELECT group_id FROM (
+                    SELECT m.group_id
+                    FROM sys_user_group_membership m
+                    WHERE m.tenant_id = ? AND m.user_id = ? AND NOT m.is_deleted
+                    UNION
+                    SELECT a.scope_id AS group_id
+                    FROM sys_role_assignment a
+                    WHERE a.tenant_id = ? AND a.user_id = ? AND NOT a.is_deleted
+                      AND a.scope_type = 'group' AND a.scope_id IS NOT NULL
+                ) active_group_relationships
+                """, Long.class, tenantId, userId, tenantId, userId)
+            : jdbcTemplate.queryForList("""
+                SELECT a.scope_id
+                FROM sys_role_assignment a
+                WHERE a.tenant_id = ? AND a.user_id = ? AND a.role_id = ?
+                  AND NOT a.is_deleted AND a.scope_type = 'group' AND a.scope_id IS NOT NULL
+                """, Long.class, tenantId, userId, roleId);
+        groupIds.stream().distinct().sorted(Comparator.naturalOrder())
+            .forEach(groupId -> authorizationWriteLockService.lockGroupAssignment(
+                tenantId, userId, groupId));
     }
 
     private AuthorizationRelationshipCleanupResult result(

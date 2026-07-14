@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
@@ -52,6 +53,7 @@ public class WikiSpaceService {
     private final ObjectMapper objectMapper;
     private final AuthorizationService authorizationService;
     private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     private boolean isAdmin(String groupScope) {
         return "tenant".equals(groupScope) || "platform".equals(groupScope);
@@ -322,6 +324,11 @@ public class WikiSpaceService {
     public void setAcl(String tenantId, Long spaceId, Long operatorId, SecurityUser user, WikiSpaceAclDTO dto) {
         WikiSpace space = requireSpace(tenantId, spaceId);
         if (!canManageAcl(space, user)) throw new AccessDeniedException("无权限管理此空间的授权");
+        if (dto.getEntries() != null) {
+            dto.getEntries().stream().filter(entry -> "group".equals(entry.getSubjectType()))
+                .map(SpaceAclEntryDTO::getSubjectId).distinct().sorted()
+                .forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
+        }
 
         List<WikiSpaceAcl> before = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
                 .eq(WikiSpaceAcl::getSpaceId, spaceId));

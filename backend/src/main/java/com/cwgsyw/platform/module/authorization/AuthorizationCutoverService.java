@@ -7,6 +7,7 @@ import com.cwgsyw.platform.module.authorization.dto.AuthorizationPermissionSourc
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationPreflightIssue;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationPreflightReport;
 import com.cwgsyw.platform.module.authorization.dto.PendingAuthorizationUserVO;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.GroupMembershipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,8 @@ public class AuthorizationCutoverService {
     private final AuthorizationProperties properties;
     private final AuthorizationModeService modeService;
     private final GroupMembershipService groupMembershipService;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public AuthorizationCutoverStatusVO status(String tenantId) {
         CutoverRow row = jdbcTemplate.query("""
@@ -112,6 +116,7 @@ public class AuthorizationCutoverService {
     public void assignPrimaryGroup(String tenantId, Long userId, Long groupId, Long operatorId,
                                    String operatorScope) {
         requirePlatformAdministrator(operatorScope);
+        lockPrimaryGroupWrites(tenantId, userId, groupId);
         long superAdmins = count("""
             SELECT COUNT(*) FROM sys_user u
             WHERE u.id = ? AND u.tenant_id = ? AND NOT u.is_deleted AND (
@@ -124,11 +129,7 @@ public class AuthorizationCutoverService {
             """, userId, tenantId);
         if (superAdmins > 0) throw new IllegalArgumentException("超级管理员必须保持无组状态");
 
-        String groupType = jdbcTemplate.query("""
-            SELECT group_type FROM sys_group
-            WHERE id = ? AND tenant_id = ? AND NOT is_deleted
-            """, rs -> rs.next() ? rs.getString(1) : null, groupId, tenantId);
-        if (groupType == null) throw new IllegalArgumentException("目标用户组不存在");
+        String groupType = activeGroupReferenceValidator.lockAndRequire(tenantId, groupId).getGroupType();
         if ("unassigned".equals(groupType)) {
             long businessMemberships = count("""
                 SELECT COUNT(*) FROM sys_user_group_membership m
@@ -493,7 +494,7 @@ public class AuthorizationCutoverService {
                    ?, NOW(), NOW()
             FROM sys_user_role ur
             JOIN sys_user u ON u.id = ur.user_id AND NOT u.is_deleted
-            JOIN sys_role r ON r.id = ur.role_id AND NOT r.is_deleted
+            JOIN sys_role r ON r.id = ur.role_id AND r.tenant_id = u.tenant_id AND NOT r.is_deleted
             WHERE u.tenant_id = ? AND u.id = ? AND r.scope IN ('platform', 'tenant', 'group')
               AND (r.scope <> 'group' OR EXISTS (
                   SELECT 1 FROM sys_group scope_group
@@ -515,6 +516,43 @@ public class AuthorizationCutoverService {
                     ELSE 'shadow' END, updated_at = NOW()
                 """, tenantId, userId, module);
         }
+    }
+
+    private void lockPrimaryGroupWrites(String tenantId, Long userId, Long targetGroupId) {
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+        jdbcTemplate.queryForList("""
+            SELECT role_id FROM (
+                SELECT ur.role_id
+                FROM sys_user_role ur
+                JOIN sys_user u ON u.id = ur.user_id
+                JOIN sys_role r ON r.id = ur.role_id
+                WHERE u.tenant_id = ? AND u.id = ? AND r.tenant_id = u.tenant_id
+                UNION
+                SELECT a.role_id
+                FROM sys_role_assignment a
+                JOIN sys_role r ON r.id = a.role_id AND r.tenant_id = a.tenant_id
+                WHERE a.tenant_id = ? AND a.user_id = ? AND NOT a.is_deleted
+            ) affected_roles
+            """, Long.class, tenantId, userId, tenantId, userId).stream()
+            .distinct().sorted()
+            .forEach(roleId -> authorizationWriteLockService.lockRoleAuthorization(tenantId, roleId));
+        List<Long> groupIds = new ArrayList<>(jdbcTemplate.queryForList("""
+            SELECT group_id FROM (
+                SELECT m.group_id
+                FROM sys_user_group_membership m
+                WHERE m.tenant_id = ? AND m.user_id = ? AND NOT m.is_deleted
+                UNION
+                SELECT a.scope_id AS group_id
+                FROM sys_role_assignment a
+                WHERE a.tenant_id = ? AND a.user_id = ? AND NOT a.is_deleted
+                  AND a.scope_type = 'group' AND a.scope_id IS NOT NULL
+            ) active_group_writes
+            """, Long.class, tenantId, userId, tenantId, userId));
+        groupIds.add(targetGroupId);
+        groupIds.stream().filter(java.util.Objects::nonNull).distinct()
+            .sorted(Comparator.naturalOrder())
+            .forEach(groupId -> authorizationWriteLockService.lockGroupAssignment(
+                tenantId, userId, groupId));
     }
 
     private boolean hasGroupScopedRole(String tenantId, Long userId) {

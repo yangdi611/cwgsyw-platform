@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.authorization;
 
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationMigrationResult;
 import com.cwgsyw.platform.module.authorization.dto.ResourceMigrationRequest;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -9,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthorizationResourceMigrationService {
     private final JdbcTemplate jdbcTemplate;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @Transactional
     public AuthorizationMigrationResult backfill(String tenantId, String module, ResourceMigrationRequest request,
@@ -89,6 +92,17 @@ public class AuthorizationResourceMigrationService {
                 && (parent.getPermissionMode() & 02000) != 0) {
             ownerGroupId = parent.getOwnerGroupId();
         }
+        TreeSet<Long> groupIds = new TreeSet<>();
+        if (ownerGroupId != null) groupIds.add(ownerGroupId);
+        if (parent != null) {
+            groupIds.addAll(jdbcTemplate.queryForList("""
+                SELECT subject_id FROM resource_acl_entry
+                WHERE tenant_id = ? AND resource_type = ? AND resource_id = ?
+                  AND entry_type = 'default' AND subject_type = 'group' AND NOT is_deleted
+                ORDER BY subject_id
+                """, Long.class, parent.getTenantId(), parent.getResourceType(), parent.getResourceId()));
+        }
+        groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
         jdbcTemplate.update("UPDATE " + table + " SET owner_user_id = ?, owner_group_id = ?, permission_mode = ? "
             + "WHERE id = ? AND tenant_id = ?", ownerUserId, ownerGroupId, mode, resourceId, tenantId);
         if (parent != null) copyDefaultAcl(parent, resourceType, resourceId, ownerUserId);
@@ -198,6 +212,10 @@ public class AuthorizationResourceMigrationService {
         long migrated = 0;
         long skipped = 0;
         long errors = 0;
+        rows.stream().filter(row -> "group".equals(String.valueOf(row.get("subject_type"))))
+            .map(row -> number(row.get("subject_id"))).filter(java.util.Objects::nonNull)
+            .distinct().sorted()
+            .forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
         for (Map<String, Object> row : rows) {
             String subjectType = String.valueOf(row.get("subject_type"));
             Long sourceId = number(row.get("id"));
@@ -240,10 +258,8 @@ public class AuthorizationResourceMigrationService {
     private void validateSystemOwner(String tenantId, ResourceMigrationRequest request) {
         long ownerCount = count("SELECT COUNT(*) FROM sys_user WHERE id = ? AND tenant_id = ? AND NOT is_deleted",
             request.getSystemOwnerUserId(), tenantId);
-        long groupCount = count("SELECT COUNT(*) FROM sys_group WHERE id = ? AND tenant_id = ? AND NOT is_deleted"
-                + " AND group_type <> 'unassigned'",
-            request.getSystemOwnerGroupId(), tenantId);
-        if (ownerCount == 0 || groupCount == 0) throw new IllegalArgumentException("系统 owner 用户或属组不存在");
+        if (ownerCount == 0) throw new IllegalArgumentException("系统 owner 用户不存在");
+        activeGroupReferenceValidator.lockAndRequire(tenantId, request.getSystemOwnerGroupId());
     }
 
     private void insertException(String runId, String tenantId, Long userId, String sourceType,

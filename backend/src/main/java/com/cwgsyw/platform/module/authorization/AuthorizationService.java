@@ -263,9 +263,8 @@ public class AuthorizationService {
     }
 
     private Set<Long> effectiveGroupIds(SecurityUser user) {
-        Set<Long> groups = new HashSet<>(membershipMapper.findActiveGroupIds(user.getTenantId(), user.getUserId()));
-        if (user.getGroupId() != null) groups.add(user.getGroupId());
-        return groups;
+        return new HashSet<>(membershipMapper.findEffectiveActiveBusinessGroupIds(
+            user.getTenantId(), user.getUserId()));
     }
 
     private AuthorizationDecision checkAncestors(SecurityUser user, ResourceDescriptor resource,

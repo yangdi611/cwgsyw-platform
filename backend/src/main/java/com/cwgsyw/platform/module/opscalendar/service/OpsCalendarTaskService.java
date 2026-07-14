@@ -9,6 +9,7 @@ import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
 import com.cwgsyw.platform.module.opscalendar.mapper.*;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -43,6 +44,7 @@ public class OpsCalendarTaskService {
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     // ============ helpers ============
 
@@ -128,8 +130,14 @@ public class OpsCalendarTaskService {
                     if (u != null) vo.setAssigneePhone(u.getPhone());
                 }
                 if (t.getGroupId() != null) {
-                    Group g = groupCache != null ? groupCache.get(t.getGroupId()) : groupMapper.selectById(t.getGroupId());
-                    if (g != null) vo.setGroupName(g.getName());
+                    Group g = groupCache != null ? groupCache.get(t.getGroupId())
+                        : historicalTask(t)
+                            ? groupMapper.findByTenantAndIdIncludingDeleted(t.getTenantId(), t.getGroupId())
+                            : groupMapper.selectById(t.getGroupId());
+                    if (g != null && (historicalTask(t) || !Boolean.TRUE.equals(g.getIsDeleted()))) {
+                        vo.setGroupName(g.getName());
+                        vo.setGroupArchived(Boolean.TRUE.equals(g.getIsDeleted()));
+                    }
                 }
             }
         }
@@ -183,9 +191,18 @@ public class OpsCalendarTaskService {
         Map<Long, User> userCache = new HashMap<>();
         Map<Long, Group> groupCache = new HashMap<>();
         Set<Long> uids = tasks.stream().map(OpsScheduleTask::getAssigneeId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> gids = tasks.stream().map(OpsScheduleTask::getGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> activeGroupIds = tasks.stream().filter(t -> !historicalTask(t))
+            .map(OpsScheduleTask::getGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> historicalGroupIds = tasks.stream().filter(this::historicalTask)
+            .map(OpsScheduleTask::getGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (!uids.isEmpty()) userMapper.selectBatchIds(uids).forEach(u -> userCache.put(u.getId(), u));
-        if (!gids.isEmpty()) groupMapper.selectBatchIds(gids).forEach(g -> groupCache.put(g.getId(), g));
+        if (!activeGroupIds.isEmpty()) {
+            groupMapper.selectBatchIds(activeGroupIds).forEach(g -> groupCache.put(g.getId(), g));
+        }
+        if (!historicalGroupIds.isEmpty()) {
+            groupMapper.findIncludingDeletedByIds(user.getTenantId(), historicalGroupIds)
+                .forEach(g -> groupCache.put(g.getId(), g));
+        }
         return tasks.stream().map(t -> toVO(t, user, userCache, groupCache)).collect(Collectors.toList());
     }
 
@@ -340,6 +357,8 @@ public class OpsCalendarTaskService {
         if (req.getDueAt() != null && req.getDueAt().isBefore(plannedStartAt))
             throw new IllegalArgumentException("截止时间不能早于计划开始时间");
 
+        Long referencedGroupId = req.getGroupId() != null ? req.getGroupId() : user.getGroupId();
+        activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), referencedGroupId);
         OpsScheduleTask t = new OpsScheduleTask();
         t.setTenantId(user.getTenantId());
         t.setTitle(req.getTitle());
@@ -349,7 +368,7 @@ public class OpsCalendarTaskService {
         t.setPlannedStartAt(plannedStartAt);
         t.setDueAt(req.getDueAt());
         t.setAssigneeId(req.getAssigneeId());
-        t.setGroupId(req.getGroupId() != null ? req.getGroupId() : user.getGroupId());
+        t.setGroupId(referencedGroupId);
         t.setPriority(notBlank(req.getPriority()) ? req.getPriority() : "normal");
         t.setContent(req.getContent());
         t.setVisibility(notBlank(req.getVisibility()) ? req.getVisibility() : "private");
@@ -425,6 +444,10 @@ public class OpsCalendarTaskService {
         if (!d_canEdit(t, user))
             throw new IllegalArgumentException("无权编辑该任务");
 
+        if (req.getGroupId() != null) {
+            activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
+        }
+
         if (notBlank(req.getTitle())) t.setTitle(req.getTitle());
         if (req.getPlannedStartAt() != null) t.setPlannedStartAt(req.getPlannedStartAt());
         if (req.getDueAt() != null) t.setDueAt(req.getDueAt());
@@ -456,6 +479,10 @@ public class OpsCalendarTaskService {
 
     private boolean d_canEdit(OpsScheduleTask t, SecurityUser user) {
         return visibilityService.canCancel(t, user); // 创建者/组长/管理员
+    }
+
+    private boolean historicalTask(OpsScheduleTask task) {
+        return Set.of("completed", "exception_closed", "cancelled").contains(task.getStatus());
     }
 
     private OpsScheduleTask loadOwned(SecurityUser user, Long id) {

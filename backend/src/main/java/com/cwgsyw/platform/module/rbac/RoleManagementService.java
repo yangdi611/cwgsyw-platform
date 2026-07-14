@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.rbac.dto.CreateRoleRequest;
 import com.cwgsyw.platform.module.rbac.dto.UpdateRoleRequest;
 import com.cwgsyw.platform.module.rbac.entity.RoleAssignment;
@@ -27,6 +28,7 @@ public class RoleManagementService {
     private final RoleAssignmentMapper assignmentMapper;
     private final RbacService rbacService;
     private final AuditLogMapper auditLogMapper;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
 
     public PageResult<SysRole> list(int page, int size, String tenantId) {
         LambdaQueryWrapper<SysRole> query = new LambdaQueryWrapper<SysRole>()
@@ -96,6 +98,7 @@ public class RoleManagementService {
 
     @Transactional
     public void delete(Long roleId, String tenantId, Long operatorId) {
+        authorizationWriteLockService.lockRoleAuthorization(tenantId, roleId);
         SysRole role = requireCustomRole(roleId, tenantId);
         if (!userRoleMapper.findUserIdsByRoleIds(List.of(roleId)).isEmpty()) {
             throw new IllegalArgumentException("角色仍被旧账户授权使用，无法删除");
@@ -104,9 +107,10 @@ public class RoleManagementService {
             .eq(RoleAssignment::getTenantId, tenantId)
             .eq(RoleAssignment::getRoleId, roleId));
         if (assignmentCount > 0) throw new IllegalArgumentException("角色仍有有效分配，无法删除");
-        role.setDeletedAt(LocalDateTime.now());
-        role.setDeletedBy(operatorId);
-        roleMapper.deleteById(role);
+        int updated = roleMapper.softDeleteActiveCustomRole(roleId, tenantId, operatorId);
+        if (updated != 1) {
+            throw new IllegalStateException("角色删除失败或状态已变化");
+        }
         audit(tenantId, operatorId, roleId, "role_delete", "删除功能角色: " + role.getCode());
     }
 

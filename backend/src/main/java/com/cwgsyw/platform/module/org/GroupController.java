@@ -7,6 +7,10 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.dto.GroupMemberVO;
 import com.cwgsyw.platform.module.org.dto.GroupMembershipRequest;
+import com.cwgsyw.platform.module.org.dto.GroupLifecycleActionRequest;
+import com.cwgsyw.platform.module.org.dto.GroupLifecycleListVO;
+import com.cwgsyw.platform.module.org.dto.GroupLifecyclePreflightVO;
+import com.cwgsyw.platform.module.org.dto.GroupLifecycleResult;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -29,12 +33,51 @@ public class GroupController {
     private final UserMapper userMapper;
     private final AuditLogMapper auditLogMapper;
     private final GroupMembershipService groupMembershipService;
+    private final GroupLifecycleService groupLifecycleService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @GetMapping
     @PreAuthorize("hasPermission('group', 'read')")
-    public R<List<Group>> list(@AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(groupMapper.selectList(
-            new LambdaQueryWrapper<Group>().eq(Group::getTenantId, cu.getTenantId())));
+    public R<List<GroupLifecycleListVO>> list(
+            @RequestParam(defaultValue = "active") String state,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(groupLifecycleService.list(state, cu));
+    }
+
+    @GetMapping("/{id}/lifecycle-preflight")
+    @PreAuthorize("isAuthenticated()")
+    public R<GroupLifecyclePreflightVO> lifecyclePreflight(
+            @PathVariable Long id,
+            @RequestParam String action,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(groupLifecycleService.preflight(id, action, cu));
+    }
+
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasPermission('group', 'delete')")
+    public R<GroupLifecycleResult> archive(
+            @PathVariable Long id,
+            @RequestBody GroupLifecycleActionRequest request,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(groupLifecycleService.archive(id, request, cu));
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasPermission('group', 'update')")
+    public R<GroupLifecycleResult> restore(
+            @PathVariable Long id,
+            @RequestBody GroupLifecycleActionRequest request,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(groupLifecycleService.restore(id, request, cu));
+    }
+
+    @PostMapping("/{id}/purge")
+    @PreAuthorize("hasPermission('group', 'purge')")
+    public R<GroupLifecycleResult> purge(
+            @PathVariable Long id,
+            @RequestBody GroupLifecycleActionRequest request,
+            @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(groupLifecycleService.purge(id, request, cu));
     }
 
     @PostMapping
@@ -54,10 +97,7 @@ public class GroupController {
     @PreAuthorize("hasPermission('group', 'update')")
     public R<Void> update(@PathVariable Long id, @RequestBody Group req,
                           @AuthenticationPrincipal SecurityUser cu) {
-        Group existing = groupMapper.selectById(id);
-        if (existing == null || !cu.getTenantId().equals(existing.getTenantId())) {
-            throw new IllegalArgumentException("用户组不存在");
-        }
+        Group existing = activeGroupReferenceValidator.lockAndRequire(cu.getTenantId(), id);
         if (Boolean.TRUE.equals(existing.getIsBuiltin())) {
             throw new IllegalArgumentException("内置用户组不能编辑");
         }

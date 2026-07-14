@@ -1,7 +1,9 @@
 package com.cwgsyw.platform.module.workflow;
 
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.*;
+import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.HistoryService;
@@ -29,9 +31,13 @@ public class WorkflowService {
     private final RepositoryService repositoryService;
     private final HistoryService historyService;
     private final JdbcTemplate jdbcTemplate;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @Transactional
     public String startDailyReportApproval(Long reportId, Long groupId) {
+        if (groupId == null) throw new IllegalArgumentException("审批候选用户组不能为空");
+        String tenantId = currentTenantId();
+        activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
         Map<String, Object> vars = new HashMap<>();
         vars.put("reportId", reportId);
         vars.put("groupId", "group_" + groupId);
@@ -43,6 +49,17 @@ public class WorkflowService {
             vars
         );
         return pi.getId();
+    }
+
+    private String currentTenantId() {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+            .getContext().getAuthentication();
+        Object principal = authentication != null ? authentication.getPrincipal() : null;
+        if (principal instanceof SecurityUser user && user.getTenantId() != null
+                && !user.getTenantId().isBlank()) {
+            return user.getTenantId();
+        }
+        throw new IllegalStateException("旧版日报审批启动入口缺少租户上下文");
     }
 
     @Transactional

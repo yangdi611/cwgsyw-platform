@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.authorization;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationMigrationResult;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationPreflightIssue;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationPreflightReport;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +27,8 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 @RequiredArgsConstructor
 public class AuthorizationMigrationService {
     private final JdbcTemplate jdbcTemplate;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public AuthorizationPreflightReport preflight() {
         Map<String, Long> counts = new LinkedHashMap<>();
@@ -135,24 +139,6 @@ public class AuthorizationMigrationService {
             WHERE NOT u.is_deleted
             ORDER BY u.id
             """);
-        for (Map<String, Object> row : users) {
-            Long userId = longValue(row.get("id"));
-            String tenantId = stringValue(row.get("tenant_id"));
-            Long groupId = longValue(row.get("group_id"));
-            if (groupId == null) continue;
-            sourceCount++;
-            if (row.get("valid_group_id") == null) {
-                insertException(runId, tenantId, userId, "user_primary_group",
-                    "sys_user.group_id:" + userId, "INVALID_PRIMARY_GROUP");
-                errorCount++;
-                continue;
-            }
-            Long targetId = upsertMembership(runId, tenantId, userId, groupId, "member", true, operatorId);
-            insertLineage(runId, tenantId, "user_primary_group", "sys_user.group_id:" + userId,
-                "membership", targetId, tenantId + ":" + userId + ":" + groupId);
-            migratedCount++;
-        }
-
         List<Map<String, Object>> leaders = jdbcTemplate.queryForList("""
             SELECT g.id AS group_id, g.tenant_id, g.leader_id,
                    u.id AS valid_user_id
@@ -161,24 +147,6 @@ public class AuthorizationMigrationService {
             WHERE NOT g.is_deleted AND g.leader_id IS NOT NULL
             ORDER BY g.id
             """);
-        for (Map<String, Object> row : leaders) {
-            sourceCount++;
-            Long groupId = longValue(row.get("group_id"));
-            Long userId = longValue(row.get("leader_id"));
-            String tenantId = stringValue(row.get("tenant_id"));
-            if (row.get("valid_user_id") == null) {
-                insertException(runId, tenantId, userId, "group_leader",
-                    "sys_group.leader_id:" + groupId, "INVALID_GROUP_LEADER");
-                errorCount++;
-                continue;
-            }
-            boolean primary = count("SELECT COUNT(*) FROM sys_user WHERE id = ? AND group_id = ?", userId, groupId) > 0;
-            Long targetId = upsertMembership(runId, tenantId, userId, groupId, "leader", primary, operatorId);
-            insertLineage(runId, tenantId, "group_leader", "sys_group.leader_id:" + groupId,
-                "membership", targetId, tenantId + ":" + userId + ":" + groupId + ":leader");
-            migratedCount++;
-        }
-
         List<Map<String, Object>> userRoles = jdbcTemplate.queryForList("""
             SELECT ur.user_id, ur.role_id, u.tenant_id AS user_tenant_id, u.group_id,
                    r.tenant_id AS role_tenant_id, r.scope, r.code,
@@ -189,22 +157,81 @@ public class AuthorizationMigrationService {
             LEFT JOIN sys_role r ON r.id = ur.role_id
             ORDER BY ur.user_id, ur.role_id
             """);
+        lockMigrationWrites(users, leaders, userRoles);
+
+        for (Map<String, Object> row : users) {
+            Long userId = longValue(row.get("id"));
+            String tenantId = stringValue(row.get("tenant_id"));
+            Long groupId = longValue(row.get("group_id"));
+            if (groupId == null) continue;
+            sourceCount++;
+            if (row.get("valid_group_id") == null
+                    || !hasActivePrimaryGroup(tenantId, userId, groupId)) {
+                insertException(runId, tenantId, userId, "user_primary_group",
+                    "sys_user.group_id:" + userId, "INVALID_PRIMARY_GROUP");
+                errorCount++;
+                continue;
+            }
+            activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
+            Long targetId = upsertMembership(runId, tenantId, userId, groupId, "member", true, operatorId);
+            insertLineage(runId, tenantId, "user_primary_group", "sys_user.group_id:" + userId,
+                "membership", targetId, tenantId + ":" + userId + ":" + groupId);
+            migratedCount++;
+        }
+
+        for (Map<String, Object> row : leaders) {
+            sourceCount++;
+            Long groupId = longValue(row.get("group_id"));
+            Long userId = longValue(row.get("leader_id"));
+            String tenantId = stringValue(row.get("tenant_id"));
+            if (row.get("valid_user_id") == null
+                    || !hasActiveGroupLeader(tenantId, userId, groupId)) {
+                insertException(runId, tenantId, userId, "group_leader",
+                    "sys_group.leader_id:" + groupId, "INVALID_GROUP_LEADER");
+                errorCount++;
+                continue;
+            }
+            activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
+            boolean primary = count("SELECT COUNT(*) FROM sys_user WHERE id = ? AND group_id = ?", userId, groupId) > 0;
+            Long targetId = upsertMembership(runId, tenantId, userId, groupId, "leader", primary, operatorId);
+            insertLineage(runId, tenantId, "group_leader", "sys_group.leader_id:" + groupId,
+                "membership", targetId, tenantId + ":" + userId + ":" + groupId + ":leader");
+            migratedCount++;
+        }
+
         for (Map<String, Object> row : userRoles) {
             sourceCount++;
             Long userId = longValue(row.get("user_id"));
             Long roleId = longValue(row.get("role_id"));
-            String tenantId = stringValue(row.get("user_tenant_id"));
+            String snapshotTenantId = stringValue(row.get("user_tenant_id"));
             String sourceKey = "sys_user_role:" + userId + ":" + roleId;
-            if (!Boolean.TRUE.equals(row.get("valid_user")) || !Boolean.TRUE.equals(row.get("valid_role"))
-                    || tenantId == null || !tenantId.equals(stringValue(row.get("role_tenant_id")))) {
+            Map<String, Object> authoritativeRole = lockAuthoritativeUserRole(userId, roleId);
+            String tenantId = authoritativeRole == null
+                ? snapshotTenantId
+                : stringValue(authoritativeRole.get("user_tenant_id"));
+            if (authoritativeRole == null || snapshotTenantId == null
+                    || !snapshotTenantId.equals(tenantId)
+                    || !tenantId.equals(stringValue(authoritativeRole.get("role_tenant_id")))) {
                 insertException(runId, tenantId == null ? "unknown" : tenantId, userId,
                     "user_role", sourceKey, "ORPHAN_USER_ROLE");
                 errorCount++;
                 continue;
             }
-            String scope = stringValue(row.get("scope"));
-            Long scopeId = "group".equals(scope) ? longValue(row.get("group_id")) : null;
+            String scope = stringValue(authoritativeRole.get("scope"));
+            Long scopeId = "group".equals(scope)
+                ? longValue(authoritativeRole.get("group_id"))
+                : null;
             if ("group".equals(scope) && scopeId == null) {
+                insertException(runId, tenantId, userId, "user_role", sourceKey,
+                    "GROUP_SCOPE_WITHOUT_GROUP");
+                errorCount++;
+                continue;
+            }
+            if ("group".equals(scope)) {
+                authorizationWriteLockService.lockGroupAssignment(tenantId, userId, scopeId);
+                activeGroupReferenceValidator.lockAndRequire(tenantId, scopeId);
+            }
+            if ("group".equals(scope) && !hasActiveBusinessMembership(tenantId, userId, scopeId)) {
                 insertException(runId, tenantId, userId, "user_role", sourceKey,
                     "GROUP_SCOPE_WITHOUT_GROUP");
                 errorCount++;
@@ -268,6 +295,115 @@ public class AuthorizationMigrationService {
             RETURNING id
             """, Long.class, tenantId, userId, groupId, role, primary,
             "membership:" + tenantId + ":" + userId + ":" + groupId, runId, operatorId);
+    }
+
+    private void lockMigrationWrites(List<Map<String, Object>> users,
+                                     List<Map<String, Object>> leaders,
+                                     List<Map<String, Object>> userRoles) {
+        List<UserWriteKey> userKeys = new ArrayList<>();
+        List<RoleWriteKey> roleKeys = new ArrayList<>();
+        List<GroupWriteKey> groupKeys = new ArrayList<>();
+        users.forEach(row -> {
+            String tenantId = stringValue(row.get("tenant_id"));
+            Long userId = longValue(row.get("id"));
+            addUserWriteKey(userKeys, tenantId, userId);
+            addGroupWriteKey(groupKeys, tenantId, userId, longValue(row.get("group_id")));
+        });
+        leaders.forEach(row -> {
+            String tenantId = stringValue(row.get("tenant_id"));
+            Long userId = longValue(row.get("leader_id"));
+            addUserWriteKey(userKeys, tenantId, userId);
+            addGroupWriteKey(groupKeys, tenantId, userId, longValue(row.get("group_id")));
+        });
+        userRoles.forEach(row -> {
+            String tenantId = stringValue(row.get("user_tenant_id"));
+            Long userId = longValue(row.get("user_id"));
+            addUserWriteKey(userKeys, tenantId, userId);
+            addRoleWriteKey(roleKeys, tenantId,
+                longValue(row.get("role_id")));
+            if ("group".equals(stringValue(row.get("scope")))) {
+                addGroupWriteKey(groupKeys, tenantId, userId, longValue(row.get("group_id")));
+            }
+        });
+        userKeys.stream().distinct()
+            .sorted(Comparator.comparing(UserWriteKey::tenantId).thenComparing(UserWriteKey::userId))
+            .forEach(key -> authorizationWriteLockService.lockUserAuthorization(
+                key.tenantId(), key.userId()));
+        roleKeys.stream().distinct()
+            .sorted(Comparator.comparing(RoleWriteKey::tenantId).thenComparing(RoleWriteKey::roleId))
+            .forEach(key -> authorizationWriteLockService.lockRoleAuthorization(
+                key.tenantId(), key.roleId()));
+        groupKeys.stream().distinct().sorted(Comparator
+                .comparing(GroupWriteKey::tenantId)
+                .thenComparing(GroupWriteKey::userId)
+                .thenComparing(GroupWriteKey::groupId))
+            .forEach(key -> authorizationWriteLockService.lockGroupAssignment(
+                key.tenantId(), key.userId(), key.groupId()));
+    }
+
+    private void addUserWriteKey(List<UserWriteKey> keys, String tenantId, Long userId) {
+        if (tenantId != null && userId != null) {
+            keys.add(new UserWriteKey(tenantId, userId));
+        }
+    }
+
+    private void addGroupWriteKey(List<GroupWriteKey> keys, String tenantId, Long userId, Long groupId) {
+        if (tenantId != null && userId != null && groupId != null) {
+            keys.add(new GroupWriteKey(tenantId, userId, groupId));
+        }
+    }
+
+    private void addRoleWriteKey(List<RoleWriteKey> keys, String tenantId, Long roleId) {
+        if (tenantId != null && roleId != null) {
+            keys.add(new RoleWriteKey(tenantId, roleId));
+        }
+    }
+
+    private boolean hasActivePrimaryGroup(String tenantId, Long userId, Long groupId) {
+        return count("""
+            SELECT COUNT(*)
+            FROM sys_user u
+            JOIN sys_group g ON g.id = u.group_id AND g.tenant_id = u.tenant_id
+            WHERE u.tenant_id = ? AND u.id = ? AND u.group_id = ?
+              AND NOT u.is_deleted AND NOT g.is_deleted
+            """, tenantId, userId, groupId) > 0;
+    }
+
+    private boolean hasActiveGroupLeader(String tenantId, Long userId, Long groupId) {
+        return count("""
+            SELECT COUNT(*)
+            FROM sys_group g
+            JOIN sys_user u ON u.id = g.leader_id AND u.tenant_id = g.tenant_id
+            WHERE g.tenant_id = ? AND g.id = ? AND g.leader_id = ?
+              AND NOT g.is_deleted AND NOT u.is_deleted
+            """, tenantId, groupId, userId) > 0;
+    }
+
+    private boolean hasActiveBusinessMembership(String tenantId, Long userId, Long groupId) {
+        return !jdbcTemplate.queryForList("""
+            SELECT m.id
+            FROM sys_user u
+            JOIN sys_group g ON g.id = u.group_id AND g.tenant_id = u.tenant_id
+            JOIN sys_user_group_membership m
+              ON m.tenant_id = u.tenant_id AND m.user_id = u.id AND m.group_id = g.id
+            WHERE u.tenant_id = ? AND u.id = ? AND u.group_id = ?
+              AND NOT u.is_deleted AND NOT g.is_deleted AND g.group_type = 'business'
+              AND NOT m.is_deleted
+            FOR UPDATE OF u, g, m
+            """, Long.class, tenantId, userId, groupId).isEmpty();
+    }
+
+    private Map<String, Object> lockAuthoritativeUserRole(Long userId, Long roleId) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+            SELECT ur.user_id, ur.role_id, u.tenant_id AS user_tenant_id, u.group_id,
+                   r.tenant_id AS role_tenant_id, r.scope, r.code
+            FROM sys_user_role ur
+            JOIN sys_user u ON u.id = ur.user_id AND NOT u.is_deleted
+            JOIN sys_role r ON r.id = ur.role_id AND NOT r.is_deleted
+            WHERE ur.user_id = ? AND ur.role_id = ?
+            FOR UPDATE OF ur, u, r
+            """, userId, roleId);
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     private Long upsertAssignment(String runId, String tenantId, Long userId, Long roleId,
@@ -341,4 +477,8 @@ public class AuthorizationMigrationService {
             throw new IllegalStateException("SHA-256 unavailable", exception);
         }
     }
+
+    private record GroupWriteKey(String tenantId, Long userId, Long groupId) {}
+    private record RoleWriteKey(String tenantId, Long roleId) {}
+    private record UserWriteKey(String tenantId, Long userId) {}
 }

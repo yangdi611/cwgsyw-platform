@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
@@ -40,6 +41,7 @@ public class WikiAclService {
     private final SysRoleMapper roleMapper;
     private final ObjectMapper objectMapper;
     private final WikiSpaceService spaceService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     private boolean isAdmin(String groupScope) {
         return "tenant".equals(groupScope) || "platform".equals(groupScope);
@@ -170,6 +172,7 @@ public class WikiAclService {
         if (page == null || !tenantId.equals(page.getTenantId())) {
             throw new IllegalArgumentException("页面不存在: " + pageId);
         }
+        validateGroupEntries(tenantId, dto.getEntries());
         String beforeJson = snapshot(page, aclRows(pageId));
 
         page.setAclInherited(dto.isInherited());
@@ -204,6 +207,13 @@ public class WikiAclService {
                 .beforeJson(beforeJson).afterJson(afterJson)
                 .remark("page=" + page.getTitle() + " inherited=" + dto.isInherited())
                 .createdAt(LocalDateTime.now()).build());
+    }
+
+    private void validateGroupEntries(String tenantId, List<AclEntryDTO> entries) {
+        if (entries == null) return;
+        entries.stream().filter(entry -> "group".equals(entry.getSubjectType()))
+            .map(AclEntryDTO::getSubjectId).distinct().sorted()
+            .forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
     }
 
     private String snapshot(WikiPage page, List<WikiPageAcl> rows) {

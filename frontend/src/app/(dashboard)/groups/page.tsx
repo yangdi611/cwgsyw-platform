@@ -1,22 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/v2/Button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
-import { toast } from 'sonner'
 import GroupDialog from '@/components/group/GroupDialog'
 import MemberDialog from '@/components/group/MemberDialog'
+import GroupLifecycleDialog, {
+  type GroupLifecycleAction,
+  type GroupLifecycleTarget,
+} from '@/components/group/GroupLifecycleDialog'
 import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
-import { Plus, Trash2, Pencil, Users } from 'lucide-react'
+import { Plus, Archive, Pencil, RotateCcw, Trash2, Users } from 'lucide-react'
 
 interface Group {
   id: number
@@ -29,23 +26,39 @@ interface Group {
   leaderRealName: string | null
   memberCount: number
   memberPreview: string[]
+  state?: 'active' | 'archived'
+  archivedAt?: string | null
+  archivedByName?: string | null
+  updatedAt?: string | null
+}
+
+type GroupListState = 'active' | 'archived'
+
+interface LifecycleDialogState {
+  action: GroupLifecycleAction
+  target: GroupLifecycleTarget
 }
 
 export default function GroupsPage() {
+  const queryClient = useQueryClient()
   const { hasPermission } = usePermission()
+  const groupScope = useAuthStore((state) => state.groupScope)
   const canCreate = hasPermission('group', 'create')
   const canUpdate = hasPermission('group', 'update')
-  const canDelete = hasPermission('group', 'delete')
+  const canArchive = hasPermission('group', 'delete')
+  const canPurge = hasPermission('group', 'purge') && groupScope === 'platform'
+  const canViewArchived = groupScope === 'tenant' || groupScope === 'platform'
 
+  const [listState, setListState] = useState<GroupListState>('active')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
   const [editGroup, setEditGroup] = useState<Group | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null)
   const [memberGroup, setMemberGroup] = useState<Group | null>(null)
+  const [lifecycleDialog, setLifecycleDialog] = useState<LifecycleDialogState | null>(null)
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['groups'],
-    queryFn: () => api.get('/groups').then((r) => r.data.data as Group[]),
+    queryKey: ['groups', listState],
+    queryFn: () => api.get('/groups', { params: { state: listState } }).then((r) => r.data.data as Group[]),
   })
 
   const groups = data ?? []
@@ -63,17 +76,29 @@ export default function GroupsPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    try {
-      await api.delete(`/groups/${deleteTarget.id}`)
-      toast.success('组已删除')
-      setDeleteTarget(null)
-      refetch()
-    } catch {
-      toast.error('删除失败')
-      setDeleteTarget(null)
-    }
+  const openLifecycleDialog = (action: GroupLifecycleAction, group: Group) => {
+    setLifecycleDialog({
+      action,
+      target: {
+        id: group.id,
+        name: group.name,
+        state: group.state ?? listState,
+        updatedAt: group.updatedAt,
+        archivedAt: group.archivedAt,
+      },
+    })
+  }
+
+  const invalidateGroupQueries = async () => {
+    const groupOptionQueryKeys = new Set([
+      'groups',
+      'authorization-groups',
+      'acl-groups',
+      'all-groups-for-dialog',
+    ])
+    await queryClient.invalidateQueries({
+      predicate: (query) => groupOptionQueryKeys.has(String(query.queryKey[0] ?? '')),
+    })
   }
 
   const columns: ColumnDef<Group>[] = [
@@ -107,7 +132,7 @@ export default function GroupsPage() {
         </div>
       ),
     },
-    ...(canUpdate || canDelete
+    ...(canUpdate || canArchive || canPurge
       ? [
           {
             key: 'actions',
@@ -115,28 +140,55 @@ export default function GroupsPage() {
             align: 'right' as const,
             render: (r: Group) => (
               <div className="flex items-center justify-end gap-1">
-                {canUpdate && (
+                {listState === 'active' && canUpdate && (
                   <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => setMemberGroup(r)}>
                     <Users className="h-3.5 w-3.5" />
                     成员
                   </Button>
                 )}
-                {canUpdate && (
+                {listState === 'active' && canUpdate && (
                   <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => handleEdit(r)}>
                     <Pencil className="h-3.5 w-3.5" />
                     编辑
                   </Button>
                 )}
-                {canDelete && (
+                {listState === 'active' && canArchive && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-v2-danger"
                     disabled={r.isBuiltin}
-                    onClick={() => setDeleteTarget(r)}
+                    aria-label={`归档用户组 ${r.name}`}
+                    data-testid={`group-archive-${r.id}`}
+                    onClick={() => openLifecycleDialog('archive', r)}
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                    归档
+                  </Button>
+                )}
+                {listState === 'archived' && canUpdate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`恢复用户组 ${r.name}`}
+                    data-testid={`group-restore-${r.id}`}
+                    onClick={() => openLifecycleDialog('restore', r)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    恢复
+                  </Button>
+                )}
+                {listState === 'archived' && canPurge && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-v2-danger"
+                    aria-label={`永久清除用户组 ${r.name}`}
+                    data-testid={`group-purge-${r.id}`}
+                    onClick={() => openLifecycleDialog('purge', r)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    删除
+                    清除
                   </Button>
                 )}
               </div>
@@ -162,16 +214,47 @@ export default function GroupsPage() {
         }
       />
 
+      {canViewArchived && (
+        <div className="flex w-fit rounded-v2-md border border-v2-border bg-v2-surface p-1" role="tablist" aria-label="用户组状态">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listState === 'active'}
+            data-testid="group-state-active"
+            className={listState === 'active'
+              ? 'rounded-v2-sm bg-v2-primary px-4 py-2 text-sm font-semibold text-white'
+              : 'rounded-v2-sm px-4 py-2 text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover'}
+            onClick={() => setListState('active')}
+          >
+            活动组
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listState === 'archived'}
+            data-testid="group-state-archived"
+            className={listState === 'archived'
+              ? 'rounded-v2-sm bg-v2-primary px-4 py-2 text-sm font-semibold text-white'
+              : 'rounded-v2-sm px-4 py-2 text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover'}
+            onClick={() => setListState('archived')}
+          >
+            已归档
+          </button>
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={groups}
         rowKey={(r) => r.id}
         loading={isLoading}
-        empty={{ title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }}
+        empty={listState === 'active'
+          ? { title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }
+          : { title: '暂无已归档用户组', description: '归档后的用户组会显示在这里。' }}
       />
 
       <div className="text-sm text-v2-muted">
-        共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 个组
+        共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 个{listState === 'active' ? '活动组' : '已归档组'}
       </div>
 
       <GroupDialog
@@ -182,31 +265,25 @@ export default function GroupsPage() {
         onSuccess={() => refetch()}
       />
 
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            确定要删除组 <strong>{deleteTarget?.name}</strong> 吗？该组下的成员关联将一并清除。
-          </p>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-              取消
-            </Button>
-            <Button variant="danger" onClick={handleDelete}>
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <MemberDialog
         groupId={memberGroup?.id ?? 0}
         groupName={memberGroup?.name ?? ''}
         open={!!memberGroup}
         onOpenChange={(o) => !o && setMemberGroup(null)}
       />
+
+      {lifecycleDialog && (
+        <GroupLifecycleDialog
+          action={lifecycleDialog.action}
+          target={lifecycleDialog.target}
+          open
+          onOpenChange={(open) => { if (!open) setLifecycleDialog(null) }}
+          onSuccess={async () => {
+            await invalidateGroupQueries()
+            await refetch()
+          }}
+        />
+      )}
     </div>
   )
 }

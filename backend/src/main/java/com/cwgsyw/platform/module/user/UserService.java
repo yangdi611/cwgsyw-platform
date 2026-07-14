@@ -11,8 +11,10 @@ import com.cwgsyw.platform.config.SecurityProperties;
 import com.cwgsyw.platform.module.auth.session.AuthSessionRecord;
 import com.cwgsyw.platform.module.auth.session.AuthSessionService;
 import com.cwgsyw.platform.module.authorization.AuthorizationRelationshipCleanupService;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationRelationshipCleanupResult;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.dto.*;
@@ -44,6 +46,8 @@ public class UserService {
     private final SecurityProperties securityProperties;
     private final GroupMembershipService groupMembershipService;
     private final AuthorizationRelationshipCleanupService authorizationRelationshipCleanupService;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<User> list(int page, int size, String tenantId, String keyword) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
@@ -75,6 +79,7 @@ public class UserService {
             throw new IllegalArgumentException("用户名已存在");
         }
         passwordPolicyService.validateNewPassword(req.getUsername(), req.getPassword());
+        activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
 
         User user = new User();
         user.setTenantId(tenantId);
@@ -118,8 +123,14 @@ public class UserService {
 
     @Transactional
     public void update(Long id, UpdateUserRequest req, Long operatorId) {
+        User locatedUser = userMapper.selectById(id);
+        if (locatedUser == null) throw new IllegalArgumentException("用户不存在");
+        authorizationWriteLockService.lockUserAuthorization(locatedUser.getTenantId(), id);
         User user = userMapper.selectById(id);
-        if (user == null) throw new IllegalArgumentException("用户不存在");
+        if (user == null || !locatedUser.getTenantId().equals(user.getTenantId())) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
 
         // Snapshot before update for audit log
         String beforeJson = toAuditJson(user, "***");
@@ -171,8 +182,13 @@ public class UserService {
 
     @Transactional
     public void delete(Long id, Long operatorId) {
+        User locatedUser = userMapper.selectById(id);
+        if (locatedUser == null) throw new IllegalArgumentException("用户不存在");
+        authorizationWriteLockService.lockUserAuthorization(locatedUser.getTenantId(), id);
         User user = userMapper.selectById(id);
-        if (user == null) throw new IllegalArgumentException("用户不存在");
+        if (user == null || !locatedUser.getTenantId().equals(user.getTenantId())) {
+            throw new IllegalArgumentException("用户不存在");
+        }
         authorizationRelationshipCleanupService.requireNoOwnedResources(user.getTenantId(), id);
 
         // Snapshot before delete for audit log

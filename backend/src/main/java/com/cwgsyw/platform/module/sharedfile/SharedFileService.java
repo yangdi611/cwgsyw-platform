@@ -7,6 +7,7 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -39,6 +40,7 @@ public class SharedFileService {
     private final UserMapper userMapper;
     private final AuthorizationResourceMigrationService resourceMigrationService;
     private final AuthorizationService authorizationService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<SharedFileVO> listFiles(String tenantId, Long folderId, String keyword,
                                               SecurityUser user, int page, int size) {
@@ -152,6 +154,7 @@ public class SharedFileService {
 
     private SharedFileVO uploadFileUnchecked(String tenantId, Long operatorId, MultipartFile file,
                                              Long folderId, List<Long> visibleGroups, Long groupId) {
+        List<Long> normalizedVisibleGroups = lockReferencedGroups(tenantId, groupId, visibleGroups);
         String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
         String fileType = detectFileType(originalName);
         String objectKey = "shared/" + UUID.randomUUID() + "/" + originalName;
@@ -170,7 +173,7 @@ public class SharedFileService {
         sf.setFileType(fileType);
         sf.setSizeBytes(file.getSize());
         sf.setMinioKey(objectKey);
-        sf.setVisibleGroups(visibleGroups != null ? visibleGroups : List.of());
+        sf.setVisibleGroups(normalizedVisibleGroups);
         sf.setCreatedBy(operatorId);
         sf.setCreatedAt(LocalDateTime.now());
         sf.setUpdatedAt(LocalDateTime.now());
@@ -296,6 +299,7 @@ public class SharedFileService {
         }
     }
 
+    @Transactional
     public SharedFileVO archiveFromChangeDoc(String tenantId, Long operatorId, Long changeDocId,
                                               byte[] wordBytes, byte[] pdfBytes, String docTitle) {
         return archiveDocPart(tenantId, operatorId, changeDocId, wordBytes, pdfBytes, docTitle, null);
@@ -305,8 +309,11 @@ public class SharedFileService {
      * 双模板归档：每个 part（application / plan）调用一次。docTitle 通常会带后缀如
      * "{changeNo}_申请单"、"{changeNo}_方案"。{@code partLabel} 用作返回 VO 的辨识。
      */
+    @Transactional
     public SharedFileVO archiveDocPart(String tenantId, Long operatorId, Long changeDocId,
                                         byte[] wordBytes, byte[] pdfBytes, String docTitle, String partLabel) {
+        Long ownerGroupId = primaryGroupId(operatorId);
+        lockReferencedGroups(tenantId, ownerGroupId, List.of());
         String monthFolder = "变更文档/" + java.time.YearMonth.now().toString();
         var folder = folderService.getOrCreateFolder(tenantId, operatorId, monthFolder);
 
@@ -339,7 +346,7 @@ public class SharedFileService {
         wordFile.setUpdatedAt(LocalDateTime.now());
         fileMapper.insert(wordFile);
         resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", wordFile.getId(),
-            operatorId, primaryGroupId(operatorId), 0660);
+            operatorId, ownerGroupId, 0660);
 
         // Save PDF file record
         SharedFile pdfFile = new SharedFile();
@@ -358,7 +365,7 @@ public class SharedFileService {
         pdfFile.setUpdatedAt(LocalDateTime.now());
         fileMapper.insert(pdfFile);
         resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", pdfFile.getId(),
-            operatorId, primaryGroupId(operatorId), 0660);
+            operatorId, ownerGroupId, 0660);
 
         convertToMarkdownAsync(wordFile.getId(), wordKey, tenantId);
 
@@ -397,5 +404,20 @@ public class SharedFileService {
         if (userId == null) return null;
         var user = userMapper.selectById(userId);
         return user == null ? null : user.getGroupId();
+    }
+
+    private List<Long> lockReferencedGroups(String tenantId, Long ownerGroupId,
+                                            List<Long> visibleGroups) {
+        SortedSet<Long> groupIds = new TreeSet<>();
+        if (ownerGroupId != null) groupIds.add(ownerGroupId);
+        if (visibleGroups != null) {
+            if (visibleGroups.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException("可见用户组不能包含空值");
+            }
+            groupIds.addAll(visibleGroups);
+        }
+        groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
+        if (visibleGroups == null || visibleGroups.isEmpty()) return List.of();
+        return visibleGroups.stream().distinct().sorted().toList();
     }
 }

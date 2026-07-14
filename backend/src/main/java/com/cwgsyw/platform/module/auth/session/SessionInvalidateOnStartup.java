@@ -8,8 +8,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 后端每次启动时清除所有 Redis 会话，强制全部在线用户重新登录。
- * 防止重启后客户端持有旧 token 继续访问，导致功能受限（内存状态/缓存已重置）。
+ * 只有显式启用时才递增全局会话 epoch，强制旧会话在下一次请求重新登录。
+ * 不删除 Redis session key，普通重启不会影响在线用户或测试会话。
  */
 @Component
 @RequiredArgsConstructor
@@ -22,14 +22,14 @@ public class SessionInvalidateOnStartup {
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
         if (!authorizationProperties.isInvalidateSessionsOnStartup()) {
-            log.info("[启动] 已保留 Redis 会话，未执行全量会话撤销");
+            log.info("[启动] 已保留 Redis 会话，未递增全局会话 epoch");
             return;
         }
         try {
-            long count = authSessionService.invalidateAllSessions();
-            log.info("[启动] 已清除 {} 个 Redis 会话，所有在线用户需重新登录", count);
+            long epoch = authSessionService.advanceGlobalSessionEpoch();
+            log.info("[启动] 已递增全局会话 epoch 至 {}，旧会话将在下一次请求重新登录", epoch);
         } catch (Exception e) {
-            log.warn("[启动] 清除 Redis 会话失败（Redis 不可用？），跳过: {}", e.getMessage());
+            log.warn("[启动] 递增全局会话 epoch 失败（Redis 不可用？），跳过: {}", e.getMessage());
         }
     }
 }

@@ -5,6 +5,7 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.authorization.dto.ResourceAccessRequest;
 import com.cwgsyw.platform.module.authorization.dto.ResourceAccessResponse;
 import com.cwgsyw.platform.module.authorization.dto.ResourceAccessResponse.ResourceAclEntryResponse;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +27,7 @@ public class ResourceAccessService {
     private final ResourceDescriptorRepository descriptorRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogMapper auditLogMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public ResourceAccessResponse get(SecurityUser user, String resourceType, Long resourceId) {
         ResourceDescriptor descriptor = requireResource(user, resourceType, resourceId);
@@ -101,13 +103,17 @@ public class ResourceAccessService {
     private void validateOwnerAndSubjects(String tenantId, ResourceAccessRequest request) {
         if (count("SELECT COUNT(*) FROM sys_user WHERE id = ? AND tenant_id = ? AND NOT is_deleted",
                 request.getOwnerUserId(), tenantId) == 0) throw new IllegalArgumentException("owner 用户不存在");
-        if (count("SELECT COUNT(*) FROM sys_group WHERE id = ? AND tenant_id = ? AND NOT is_deleted"
-                + " AND group_type <> 'unassigned'",
-                request.getOwnerGroupId(), tenantId) == 0) throw new IllegalArgumentException("owning group 不存在");
         List<ResourceAccessRequest.ResourceAclEntryRequest> all = new java.util.ArrayList<>();
         if (request.getEntries() != null) all.addAll(request.getEntries());
         if (request.getDefaultEntries() != null) all.addAll(request.getDefaultEntries());
+        java.util.SortedSet<Long> groupIds = new java.util.TreeSet<>();
+        groupIds.add(request.getOwnerGroupId());
+        all.stream().filter(entry -> "group".equals(entry.getSubjectType()))
+            .map(ResourceAccessRequest.ResourceAclEntryRequest::getSubjectId)
+            .forEach(groupIds::add);
+        groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
         for (ResourceAccessRequest.ResourceAclEntryRequest entry : all) {
+            if ("group".equals(entry.getSubjectType())) continue;
             String table = "user".equals(entry.getSubjectType()) ? "sys_user" : "sys_group";
             String groupGuard = "sys_group".equals(table) ? " AND group_type <> 'unassigned'" : "";
             if (count("SELECT COUNT(*) FROM " + table

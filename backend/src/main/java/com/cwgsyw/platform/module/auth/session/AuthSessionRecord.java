@@ -14,6 +14,7 @@ public class AuthSessionRecord {
     private Long userId;
     private String tenantId;
     private String username;
+    private Long sessionEpoch;
     private LocalDateTime createdAt;
     private LocalDateTime lastActiveAt;
     private LocalDateTime expiresAt;

@@ -3,7 +3,9 @@ package com.cwgsyw.platform.module.rbac;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.UserGroupMembershipMapper;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.dto.RoleAssignmentRequest;
@@ -34,6 +36,8 @@ public class RoleAssignmentService {
     private final SysRolePermissionMapper rolePermissionMapper;
     private final SysPermissionMapper permissionMapper;
     private final UserGroupMembershipMapper membershipMapper;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public List<RoleAssignmentVO> list(Long userId, String tenantId) {
         requireUser(userId, tenantId);
@@ -52,18 +56,27 @@ public class RoleAssignmentService {
         return assignmentMapper.findEffectiveScopes(tenantId, userId);
     }
 
+    public List<String> findEffectiveScopesForPermission(Long userId, String tenantId,
+                                                          String permissionCode) {
+        return assignmentMapper.findEffectiveScopesForPermission(tenantId, userId, permissionCode);
+    }
+
     @Transactional
     public RoleAssignment add(Long userId, RoleAssignmentRequest request,
                               String tenantId, Long operatorId,
                               Set<String> operatorPermissions, String operatorScope,
                               Long operatorGroupId) {
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
         User user = requireUser(userId, tenantId);
+        authorizationWriteLockService.lockRoleAuthorization(tenantId, request.getRoleId());
         SysRole role = requireRole(request.getRoleId(), tenantId);
         validateScope(request.getScopeType(), request.getScopeId(), tenantId);
         validateOperatorScope(request.getScopeType(), request.getScopeId(), operatorScope, operatorGroupId);
-        if ("group".equals(request.getScopeType())
-                && !membershipMapper.findActiveGroupIds(tenantId, userId).contains(request.getScopeId())) {
-            throw new IllegalArgumentException("用户不属于目标作用域组");
+        if ("group".equals(request.getScopeType())) {
+            authorizationWriteLockService.lockGroupAssignment(tenantId, userId, request.getScopeId());
+            if (!membershipMapper.findActiveGroupIds(tenantId, userId).contains(request.getScopeId())) {
+                throw new IllegalArgumentException("用户不属于目标作用域组");
+            }
         }
         if (Boolean.TRUE.equals(role.getIsBuiltin())) {
             throw new IllegalArgumentException("内置角色不能通过新作用域分配入口授予");
@@ -96,18 +109,25 @@ public class RoleAssignmentService {
 
     @Transactional
     public void remove(Long userId, Long assignmentId, String tenantId, Long operatorId) {
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
         RoleAssignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null || !tenantId.equals(assignment.getTenantId())
                 || !userId.equals(assignment.getUserId())) {
             throw new IllegalArgumentException("角色分配不存在");
         }
+        authorizationWriteLockService.lockRoleAuthorization(tenantId, assignment.getRoleId());
         SysRole role = roleMapper.selectById(assignment.getRoleId());
         if (role != null && "super_admin".equals(role.getCode())) {
             throw new IllegalArgumentException("不能通过通用入口撤销超级管理员");
         }
-        assignment.setDeletedAt(LocalDateTime.now());
-        assignment.setDeletedBy(operatorId);
-        assignmentMapper.deleteById(assignment);
+        if ("group".equals(assignment.getScopeType()) && assignment.getScopeId() != null) {
+            authorizationWriteLockService.lockGroupAssignment(tenantId, userId, assignment.getScopeId());
+        }
+        int updated = assignmentMapper.softDeleteActiveAssignment(
+            assignmentId, tenantId, userId, operatorId);
+        if (updated != 1) {
+            throw new IllegalStateException("角色分配撤销失败或状态已变化");
+        }
         audit(tenantId, operatorId, userId, "role_assignment_remove",
             "撤销角色分配: assignment=" + assignmentId);
     }
@@ -115,28 +135,71 @@ public class RoleAssignmentService {
     @Transactional
     public void replaceLegacyRoles(Long userId, List<Long> roleIds,
                                    String tenantId, Long primaryGroupId, Long operatorId) {
-        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
-            .eq(SysUserRole::getUserId, userId));
-        roleIds.forEach(roleId -> {
-            requireRole(roleId, tenantId);
-            SysUserRole userRole = new SysUserRole();
-            userRole.setUserId(userId);
-            userRole.setRoleId(roleId);
-            userRoleMapper.insert(userRole);
-        });
-
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
         List<RoleAssignment> generatedAssignments = assignmentMapper.selectList(
             new LambdaQueryWrapper<RoleAssignment>()
                 .eq(RoleAssignment::getTenantId, tenantId)
                 .eq(RoleAssignment::getUserId, userId)
                 .ne(RoleAssignment::getOriginType, "manual"));
-        generatedAssignments.forEach(assignmentMapper::deleteById);
+        java.util.TreeSet<Long> lockedRoleIds = new java.util.TreeSet<>(roleIds);
+        generatedAssignments.stream()
+            .map(RoleAssignment::getRoleId)
+            .filter(java.util.Objects::nonNull)
+            .forEach(lockedRoleIds::add);
+        lockedRoleIds.forEach(roleId ->
+            authorizationWriteLockService.lockRoleAuthorization(tenantId, roleId));
+        List<SysRole> roles = roleIds.stream()
+            .map(roleId -> requireRole(roleId, tenantId))
+            .toList();
+        java.util.TreeSet<Long> lockedGroupIds = generatedAssignments.stream()
+            .filter(assignment -> "group".equals(assignment.getScopeType()))
+            .map(RoleAssignment::getScopeId)
+            .filter(java.util.Objects::nonNull)
+            .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+        if (primaryGroupId != null && roles.stream().anyMatch(role -> "group".equals(role.getScope()))) {
+            lockedGroupIds.add(primaryGroupId);
+        }
+        lockedGroupIds.forEach(groupId ->
+            authorizationWriteLockService.lockGroupAssignment(tenantId, userId, groupId));
+        Long effectivePrimaryGroupId = resolveActivePrimaryGroup(
+            userId, tenantId, primaryGroupId, roles);
 
-        roleIds.forEach(roleId -> {
-            SysRole role = requireRole(roleId, tenantId);
-            RoleAssignment assignment = compatibilityAssignment(userId, role, tenantId, primaryGroupId, operatorId);
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+            .eq(SysUserRole::getUserId, userId));
+        roles.forEach(role -> {
+            SysUserRole userRole = new SysUserRole();
+            userRole.setUserId(userId);
+            userRole.setRoleId(role.getId());
+            userRoleMapper.insert(userRole);
+        });
+
+        for (RoleAssignment assignment : generatedAssignments) {
+            int updated = assignmentMapper.softDeleteActiveAssignment(
+                assignment.getId(), tenantId, userId, operatorId);
+            if (updated != 1) {
+                throw new IllegalStateException("兼容角色分配撤销失败或状态已变化");
+            }
+        }
+
+        roles.forEach(role -> {
+            RoleAssignment assignment = compatibilityAssignment(
+                userId, role, tenantId, effectivePrimaryGroupId, operatorId);
             if (assignment != null && !hasActiveAssignment(assignment)) assignmentMapper.insert(assignment);
         });
+    }
+
+    private Long resolveActivePrimaryGroup(Long userId, String tenantId, Long primaryGroupId,
+                                           List<SysRole> roles) {
+        if (primaryGroupId == null || roles.stream().noneMatch(role -> "group".equals(role.getScope()))) {
+            return null;
+        }
+        User currentUser = requireUser(userId, tenantId);
+        if (!primaryGroupId.equals(currentUser.getGroupId())) {
+            return null;
+        }
+        return membershipMapper.findActiveGroupIds(tenantId, userId).contains(primaryGroupId)
+            ? primaryGroupId
+            : null;
     }
 
     private RoleAssignment compatibilityAssignment(Long userId, SysRole role, String tenantId,
@@ -169,13 +232,7 @@ public class RoleAssignmentService {
         if (!"group".equals(scopeType) || scopeId == null) {
             throw new IllegalArgumentException("group scope 必须提供 scopeId");
         }
-        Group group = groupMapper.selectById(scopeId);
-        if (group == null || !tenantId.equals(group.getTenantId())) {
-            throw new IllegalArgumentException("作用域用户组不存在");
-        }
-        if ("unassigned".equals(group.getGroupType())) {
-            throw new IllegalArgumentException("未分配组不能作为角色作用域");
-        }
+        activeGroupReferenceValidator.lockAndRequire(tenantId, scopeId);
     }
 
     private void validateOperatorScope(String scopeType, Long scopeId,
@@ -241,7 +298,7 @@ public class RoleAssignmentService {
     }
 
     private void audit(String tenantId, Long operatorId, Long userId, String action, String remark) {
-        auditLogMapper.insert(AuditLog.builder()
+        int inserted = auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("authorization")
             .action(action)
@@ -251,5 +308,8 @@ public class RoleAssignmentService {
             .remark(remark)
             .createdAt(LocalDateTime.now())
             .build());
+        if (inserted != 1) {
+            throw new IllegalStateException("审计日志写入失败");
+        }
     }
 }

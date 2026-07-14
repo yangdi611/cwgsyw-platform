@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.org.dto.GroupMembershipRequest;
 import com.cwgsyw.platform.module.org.dto.UserGroupMembershipVO;
 import com.cwgsyw.platform.module.org.entity.Group;
@@ -34,6 +35,8 @@ public class GroupMembershipService {
     private final SysRoleMapper roleMapper;
     private final RoleAssignmentMapper roleAssignmentMapper;
     private final SysUserRoleMapper userRoleMapper;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public List<UserGroupMembershipVO> list(Long userId, String tenantId) {
         requireUser(userId, tenantId);
@@ -62,11 +65,24 @@ public class GroupMembershipService {
     @Transactional
     public UserGroupMembership add(Long userId, GroupMembershipRequest request,
                                    String tenantId, Long operatorId) {
+        requireUser(userId, tenantId);
+        requireGroup(request.getGroupId(), tenantId);
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+        activeGroupReferenceValidator.lockAndRequire(tenantId, request.getGroupId());
+        boolean primary = Boolean.TRUE.equals(request.getPrimary());
+        if (primary) {
+            java.util.TreeSet<Long> groupIds = new java.util.TreeSet<>(
+                membershipMapper.findActiveGroupIds(tenantId, userId));
+            groupIds.add(request.getGroupId());
+            groupIds.forEach(groupId ->
+                authorizationWriteLockService.lockGroupAssignment(tenantId, userId, groupId));
+        } else {
+            authorizationWriteLockService.lockGroupAssignment(tenantId, userId, request.getGroupId());
+        }
         User user = requireUser(userId, tenantId);
         Group group = requireGroup(request.getGroupId(), tenantId);
         if (isSuperAdmin(userId)) throw new IllegalArgumentException("超级管理员必须保持无组状态");
         UserGroupMembership existing = find(userId, group.getId(), tenantId);
-        boolean primary = Boolean.TRUE.equals(request.getPrimary());
         if ("unassigned".equals(group.getGroupType())) {
             validateUnassignedMembership(user, request, tenantId, existing);
         }
@@ -113,6 +129,10 @@ public class GroupMembershipService {
     @Transactional
     public void syncPrimaryMembership(Long userId, Long groupId, String tenantId, Long operatorId) {
         if (groupId == null) {
+            authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+            List<Long> activeGroupIds = membershipMapper.findActiveGroupIds(tenantId, userId);
+            activeGroupIds.stream().sorted().forEach(activeGroupId ->
+                authorizationWriteLockService.lockGroupAssignment(tenantId, userId, activeGroupId));
             clearPrimary(userId, tenantId, operatorId);
             return;
         }
@@ -121,42 +141,140 @@ public class GroupMembershipService {
 
     @Transactional
     public void remove(Long userId, Long membershipId, String tenantId, Long operatorId) {
-        UserGroupMembership membership = membershipMapper.selectById(membershipId);
-        if (membership == null || !tenantId.equals(membership.getTenantId())
-                || !userId.equals(membership.getUserId())) {
+        // 初步读取只为获取 tenant/user/group 并验证路径所有权
+        UserGroupMembership preliminaryMembership = membershipMapper.selectById(membershipId);
+        if (preliminaryMembership == null || !tenantId.equals(preliminaryMembership.getTenantId())
+                || !userId.equals(preliminaryMembership.getUserId())) {
             throw new IllegalArgumentException("成员关系不存在");
         }
-        removeMembership(membership, tenantId, operatorId);
+
+        // 获取锁
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+        authorizationWriteLockService.lockGroupAssignment(
+            tenantId, preliminaryMembership.getUserId(), preliminaryMembership.getGroupId());
+
+        // 重新读取活动 membership
+        UserGroupMembership membership = membershipMapper.selectOne(new LambdaQueryWrapper<UserGroupMembership>()
+            .eq(UserGroupMembership::getId, membershipId)
+            .eq(UserGroupMembership::getTenantId, tenantId)
+            .eq(UserGroupMembership::getUserId, userId)
+            .eq(UserGroupMembership::getGroupId, preliminaryMembership.getGroupId())
+            .eq(UserGroupMembership::getIsDeleted, false));
+
+        if (membership == null) {
+            throw new IllegalStateException("membership 已被删除或状态已变化");
+        }
+
+        removeMembershipLocked(membership, tenantId, operatorId);
     }
 
     @Transactional
     public void removeByGroup(Long userId, Long groupId, String tenantId, Long operatorId) {
+        requireUser(userId, tenantId);
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
+        authorizationWriteLockService.lockGroupAssignment(tenantId, userId, groupId);
+
         UserGroupMembership membership = find(userId, groupId, tenantId);
         if (membership == null) {
+            // 旧主组兼容分支：重新读取 user 并验证
             User user = requireUser(userId, tenantId);
-            if (!groupId.equals(user.getGroupId())) throw new IllegalArgumentException("用户不在当前组中");
-            user.setGroupId(null);
-            userMapper.updateById(user);
-            audit(tenantId, operatorId, userId, "membership_remove_legacy",
-                "移除尚未回填的旧主组关系: group=" + groupId);
+            if (!groupId.equals(user.getGroupId())) {
+                throw new IllegalArgumentException("用户不在当前组中");
+            }
+
+            // 撤销 assignments
+            List<Long> revokedAssignmentIds = revokeMatchingGroupAssignmentsLocked(
+                tenantId, userId, groupId, operatorId);
+
+            // 清空主组
+            clearPrimaryGroupIfMatches(tenantId, userId, groupId, operatorId);
+
+            // 审计（有界）
+            String remark = "移除尚未回填的旧主组关系: group=" + groupId;
+            if (!revokedAssignmentIds.isEmpty()) {
+                if (revokedAssignmentIds.size() <= 5) {
+                    remark += ", revoked_assignment_ids=" + revokedAssignmentIds;
+                } else {
+                    remark += ", revoked_count=" + revokedAssignmentIds.size()
+                        + ", first_5=" + revokedAssignmentIds.subList(0, 5) + "...";
+                }
+            }
+            audit(tenantId, operatorId, userId, "membership_remove_legacy", remark);
             return;
         }
-        removeMembership(membership, tenantId, operatorId);
+
+        removeMembershipLocked(membership, tenantId, operatorId);
     }
 
-    private void removeMembership(UserGroupMembership membership, String tenantId, Long operatorId) {
+    private void removeMembershipLocked(UserGroupMembership membership, String tenantId, Long operatorId) {
+        // 清空主组（如果是主 membership）
         if (Boolean.TRUE.equals(membership.getIsPrimary())) {
-            User user = requireUser(membership.getUserId(), tenantId);
-            if (membership.getGroupId().equals(user.getGroupId())) {
-                user.setGroupId(null);
-                userMapper.updateById(user);
+            clearPrimaryGroupIfMatches(tenantId, membership.getUserId(), membership.getGroupId(), operatorId);
+        }
+
+        // 软撤销与该 membership 匹配的 group assignments
+        List<Long> revokedAssignmentIds = revokeMatchingGroupAssignmentsLocked(
+            tenantId, membership.getUserId(), membership.getGroupId(), operatorId);
+
+        // 软删除 membership：使用原子更新方法
+        int updated = membershipMapper.softDeleteActive(
+            membership.getId(), tenantId, membership.getUserId(), membership.getGroupId(), operatorId);
+
+        if (updated != 1) {
+            throw new IllegalStateException("membership 软删除失败或状态已变化");
+        }
+
+        // 审计：记录 membership 删除和被撤销的 assignment IDs（有界）
+        String remark = "移除组成员关系: group=" + membership.getGroupId();
+        if (!revokedAssignmentIds.isEmpty()) {
+            if (revokedAssignmentIds.size() <= 5) {
+                remark += ", revoked_assignment_ids=" + revokedAssignmentIds;
+            } else {
+                remark += ", revoked_count=" + revokedAssignmentIds.size()
+                    + ", first_5=" + revokedAssignmentIds.subList(0, 5) + "...";
             }
         }
-        membership.setDeletedAt(LocalDateTime.now());
-        membership.setDeletedBy(operatorId);
-        membershipMapper.deleteById(membership);
-        audit(tenantId, operatorId, membership.getUserId(), "membership_remove",
-            "移除组成员关系: group=" + membership.getGroupId());
+        audit(tenantId, operatorId, membership.getUserId(), "membership_remove", remark);
+    }
+
+    private List<Long> revokeMatchingGroupAssignmentsLocked(String tenantId, Long userId, Long groupId, Long operatorId) {
+        // 查找匹配的活动 group assignments
+        var matchingAssignments = roleAssignmentMapper.selectList(
+            new LambdaQueryWrapper<com.cwgsyw.platform.module.rbac.entity.RoleAssignment>()
+                .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getTenantId, tenantId)
+                .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getUserId, userId)
+                .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getScopeType, "group")
+                .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getScopeId, groupId)
+                .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getIsDeleted, false)
+        );
+
+        List<Long> revokedIds = new java.util.ArrayList<>();
+
+        for (var assignment : matchingAssignments) {
+            // 软删除 assignment：使用原子更新方法
+            int updated = roleAssignmentMapper.softDeleteActiveGroupAssignment(
+                assignment.getId(), tenantId, userId, groupId, operatorId);
+
+            if (updated == 1) {
+                revokedIds.add(assignment.getId());
+
+                // 为每个撤销写审计
+                audit(tenantId, operatorId, userId, "assignment_revoke_on_membership_removal",
+                    "因 membership 删除撤销 assignment: id=" + assignment.getId() +
+                    ", role=" + assignment.getRoleId() + ", group=" + groupId);
+            } else {
+                throw new IllegalStateException("assignment 软删除失败: id=" + assignment.getId());
+            }
+        }
+
+        return revokedIds;
+    }
+
+    private void clearPrimaryGroupIfMatches(String tenantId, Long userId, Long groupId, Long operatorId) {
+        int updated = userMapper.clearPrimaryGroup(tenantId, userId, groupId, operatorId);
+        if (updated != 1) {
+            throw new IllegalStateException("主组清理失败或状态已变化");
+        }
     }
 
     private void clearPrimary(Long userId, String tenantId, Long operatorId) {
@@ -250,7 +368,7 @@ public class GroupMembershipService {
     }
 
     private void audit(String tenantId, Long operatorId, Long userId, String action, String remark) {
-        auditLogMapper.insert(AuditLog.builder()
+        int inserted = auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("authorization")
             .action(action)
@@ -260,5 +378,9 @@ public class GroupMembershipService {
             .remark(remark)
             .createdAt(LocalDateTime.now())
             .build());
+
+        if (inserted != 1) {
+            throw new IllegalStateException("审计日志写入失败");
+        }
     }
 }

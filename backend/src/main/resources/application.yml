@@ -78,7 +78,7 @@ security:
 authorization:
   decision-mode: ${AUTHORIZATION_DECISION_MODE:LEGACY}
   tenant-admin-implicit-data-access: true
-  invalidate-sessions-on-startup: ${AUTHORIZATION_INVALIDATE_SESSIONS_ON_STARTUP:true}
+  invalidate-sessions-on-startup: ${AUTHORIZATION_INVALIDATE_SESSIONS_ON_STARTUP:false}
   break-glass-ttl-minutes: ${AUTHORIZATION_BREAK_GLASS_TTL_MINUTES:15}
 
 encrypt:
