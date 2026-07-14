@@ -34,17 +34,18 @@ public class AuthService {
     private final AuthSessionService authSessionService;
     private final RequiredActionResolver requiredActionResolver;
     private final AuditLogMapper auditLogMapper;
+    private final AuthAuditService authAuditService;
 
     @Transactional
     public LoginResponse login(LoginRequest req, String userAgent, String clientIp) {
         User user = userMapper.findByUsername(req.getUsername()).orElse(null);
         if (user == null || !passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            recordAuth("login_failed", user != null ? user.getId() : null, clientIp,
+            recordFailedLogin(user != null ? user.getId() : null, clientIp,
                 user != null ? user.getTenantId() : "default", "用户名或密码错误");
             throw new BadCredentialsException("用户名或密码错误");
         }
         if (user.getStatus() != 1) {
-            recordAuth("login_failed", user.getId(), clientIp, user.getTenantId(), "账号已禁用");
+            recordFailedLogin(user.getId(), clientIp, user.getTenantId(), "账号已禁用");
             throw new IllegalArgumentException("账号已禁用");
         }
 
@@ -64,6 +65,10 @@ public class AuthService {
 
         return new LoginResponse(token, user.getId(), user.getUsername(), user.getRealName(),
             user.getAvatarUrl(), scope, user.getGroupId(), permissions, requiredActions);
+    }
+
+    public void recordFailedLoginValidation(String clientIp) {
+        recordFailedLogin(null, clientIp, "default", "登录请求校验失败");
     }
 
     /** 幂等：session 已不存在也返回成功。 */
@@ -126,5 +131,9 @@ public class AuthService {
             .remark(remark)
             .createdAt(LocalDateTime.now())
             .build());
+    }
+
+    private void recordFailedLogin(Long userId, String clientIp, String tenantId, String remark) {
+        authAuditService.recordFailedLogin(userId, clientIp, tenantId, remark);
     }
 }

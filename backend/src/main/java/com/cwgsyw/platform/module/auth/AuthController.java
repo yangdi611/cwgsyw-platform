@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,7 +18,15 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public R<LoginResponse> login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
+    public R<LoginResponse> login(@Valid @RequestBody LoginRequest req, BindingResult bindingResult,
+                                  HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            authService.recordFailedLoginValidation(request.getRemoteAddr());
+            String message = bindingResult.getFieldErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .collect(java.util.stream.Collectors.joining("; "));
+            return R.fail(400, message);
+        }
         return R.ok(authService.login(req, request.getHeader("User-Agent"), request.getRemoteAddr()));
     }
 
