@@ -4,15 +4,20 @@ import { Bell } from 'lucide-react'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { usePermission } from '@/hooks/usePermission'
 
 export function NotificationBell() {
+  const { hasPermission, isHydrated } = usePermission()
+  const canReadNotifications = hasPermission('notification', 'read')
   const { data: count = 0 } = useQuery<number>({
     queryKey: ['notification-unread'],
     queryFn: () => api.get('/notifications/unread-count').then(r => r.data.data).catch(() => 0),
     refetchInterval: 30_000,
     retry: false,
-    enabled: typeof window !== 'undefined',
+    enabled: typeof window !== 'undefined' && isHydrated && canReadNotifications,
   })
+
+  if (!isHydrated || !canReadNotifications) return null
 
   return (
     <Link
