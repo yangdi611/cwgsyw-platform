@@ -51,6 +51,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: change-doc-templates
       BACKUP_DIR: /backups
+      AUTHORIZATION_DECISION_MODE: ${AUTHORIZATION_DECISION_MODE:-LEGACY}
     volumes:
       - ./data/backups:/backups
     depends_on:
