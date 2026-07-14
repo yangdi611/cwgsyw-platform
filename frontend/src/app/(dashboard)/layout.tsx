@@ -17,6 +17,7 @@ const ROUTE_PERMISSIONS = [
   { path: '/workflow/bindings', permissions: ['workflow:configure'] },
   { path: '/users', permissions: ['user:read'] },
   { path: '/groups', permissions: ['group:read'] },
+  { path: '/notifications', permissions: ['notification:read'] },
   { path: '/rbac/roles', permissions: ['role:read'] },
   { path: '/rbac/migration-exceptions', permissions: ['role:read', 'role:assign'] },
   {

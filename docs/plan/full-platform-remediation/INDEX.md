@@ -11,6 +11,8 @@
 | `REM-P1-001` | P1 | 可审计用户组归档、恢复与清除能力 | 组织对象缺少生命周期与引用收敛合同 | `REM-P0-001 / AC-012`；groups `11..15` | `CLOSED` | `HIGH` | `AC-001..021` 全部 PASS；历史 session incident 已披露并经用户接受，session epoch 修复及重启不变性复验通过。L4 `275+78` 仍为独立发布门禁 | [事件卡](./02-account-organization/REM-P1-001-auditable-group-lifecycle/README.md) / [PRD](./02-account-organization/REM-P1-001-auditable-group-lifecycle/PRD.md) / [SPEC](./02-account-organization/REM-P1-001-auditable-group-lifecycle/SPEC.md) | [执行 Prompt](./02-account-organization/REM-P1-001-auditable-group-lifecycle/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-002` | P1 | 成员列表软删除一致性 | 活动 membership 读模型过滤缺失 | `BUG-FQA-016`；`GROUP-CRUD` | `CLOSED` | `LOW` | `AC-001..004` PASS；L4 全量复验仍是独立发布门禁 | [事件卡](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/README.md) / [SPEC](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/SPEC.md) | [执行 Prompt](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-003` | P1 | 未分配组与业务组双向互斥 | 前序 business-only 引用门禁已消除历史混合状态入口 | `BUG-FQA-056`；`RBAC-008` | `CLOSED` | `CRITICAL`（只读复验） | `AC-001..004` PASS；无生产 diff，L4 全量复验仍是独立发布门禁 | [事件卡](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/README.md) / [SPEC](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/SPEC.md) | [执行 Prompt](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-004` | P1 | 失败登录审计 | 认证拒绝分支缺失审计写入 | `BUG-FQA-006`；`AUTH-003` | `VERIFIED` | `LOW` | `AC-001..004` PASS；L4 全量复验仍是独立发布门禁 | [事件卡](./02-account-organization/REM-P1-004-failed-login-audit/README.md) / [SPEC](./02-account-organization/REM-P1-004-failed-login-audit/SPEC.md) | [执行 Prompt](./02-account-organization/REM-P1-004-failed-login-audit/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-005` | P1 | 通知读取权限收敛 | 通知 API 与直达路由仅认证、未执行权限合同 | `BUG-FQA-008`；`NOTICE-001`；`RBAC-013` | `VERIFYING` | `LOW` | 代码与 L1 已完成；待真实会话 API/UI allow/deny 复验及前端依赖检查 | [事件卡](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) / [SPEC](./01-security-authorization/REM-P1-005-notification-read-authorization/SPEC.md) | [执行 Prompt](./01-security-authorization/REM-P1-005-notification-read-authorization/CLAUDE-CODE-PROMPT.md) |
 
 ## 关联边界
 
@@ -22,7 +24,7 @@
 |---|---:|
 | `DRAFT` | 0 |
 | `READY` | 0 |
-| `IN_PROGRESS` | 0 |
+| `IN_PROGRESS` | 1 |
 | `VERIFYING` | 0 |
 | `BLOCKED` | 0 |
 | `CLOSED` | 4 |
