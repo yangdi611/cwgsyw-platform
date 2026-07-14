@@ -76,8 +76,7 @@ public class SearchService {
         if (has(u, "shared_file:read")) {
             safe("shared_file", () -> {
                 List<SharedFileVO> hits = sharedFileService.listFiles(
-                    tenantId, null, kw, u.getUserId(), u.getGroupId(),
-                    u.getGroupScope(), 1, perType).getRecords();
+                    tenantId, null, kw, u, 1, perType).getRecords();
                 for (SharedFileVO f : hits) {
                     results.add(new SearchResultVO(
                         "shared_file", f.getId(),
@@ -137,7 +136,7 @@ public class SearchService {
         if (has(u, "wiki:read")) {
             safe("wiki", () -> {
                 List<WikiSearchResultVO> hits =
-                    wikiPageService.search(tenantId, kw, null, 1, perType).getRecords();
+                    wikiPageService.search(tenantId, kw, null, 1, perType, u).getRecords();
                 for (WikiSearchResultVO w : hits) {
                     results.add(new SearchResultVO(
                         "wiki", w.getPageId(), w.getTitle(),

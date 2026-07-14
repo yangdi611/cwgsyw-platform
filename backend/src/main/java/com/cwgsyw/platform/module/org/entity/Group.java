@@ -9,6 +9,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("sys_group")
 public class Group extends BaseEntity {
+    private String code;
     private String name;
     private String description;
+    private Long leaderId;
+    private String groupType;
+    private Boolean isBuiltin;
 }

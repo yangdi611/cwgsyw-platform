@@ -15,6 +15,7 @@ interface DailyReportDetail {
   id: number
   reporterName: string
   groupName: string
+  groupArchived?: boolean
   reportDate: string
   completedItems: string
   issues: string
@@ -86,7 +87,7 @@ export default function DailyReportDetailPage() {
             <CardTitle className="text-sm">提交人 / 组别</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-v2-muted">
-            {report.reporterName} · {report.groupName}
+            {report.reporterName} · {report.groupName}{report.groupArchived ? '（已归档）' : ''}
           </CardContent>
         </Card>
         <Card>

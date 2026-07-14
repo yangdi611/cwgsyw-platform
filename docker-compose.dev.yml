@@ -37,7 +37,10 @@ services:
       - "9011:9001"
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      secrets:
+        - maven_settings
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?stringtype=unspecified
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -51,6 +54,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: change-doc-templates
       BACKUP_DIR: /backups
+      AUTHORIZATION_DECISION_MODE: ${AUTHORIZATION_DECISION_MODE:-ENFORCED}
+      AUTHORIZATION_INVALIDATE_SESSIONS_ON_STARTUP: ${AUTHORIZATION_INVALIDATE_SESSIONS_ON_STARTUP:-false}
+      GROUP_LIFECYCLE_PURGE_RETENTION_DAYS: ${GROUP_LIFECYCLE_PURGE_RETENTION_DAYS:-30}
     volumes:
       - ./data/backups:/backups
     depends_on:
@@ -89,3 +95,7 @@ services:
 
 volumes:
   pgdata_t942c4356:
+
+secrets:
+  maven_settings:
+    file: ./backend/settings.nexus.xml

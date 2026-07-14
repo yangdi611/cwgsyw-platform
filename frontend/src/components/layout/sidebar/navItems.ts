@@ -25,6 +25,7 @@ import {
   CalendarDays,
   LayoutTemplate,
   Link2,
+  TriangleAlert,
 } from 'lucide-react'
 
 // V2 导航架构：8 大模块
@@ -152,6 +153,7 @@ export const navItems: NavEntry[] = [
       { href: '/groups', label: '用户组', icon: Building2, resource: 'group', action: 'read' },
       { href: '/rbac/roles', label: '角色管理', icon: Shield, resource: 'role', action: 'read' },
       { href: '/rbac/permissions', label: '权限配置', icon: Shield, resource: 'resource', action: 'assign' },
+      { href: '/rbac/migration-exceptions', label: '迁移异常', icon: TriangleAlert, resource: 'role', action: 'assign', requiredScope: 'platform' },
     ],
   },
 

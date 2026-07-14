@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.wiki;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cwgsyw.platform.module.authorization.AuthorizationModeService;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
 import com.cwgsyw.platform.module.wiki.dto.*;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 
@@ -43,10 +45,11 @@ public class WikiManualSeeder implements ApplicationRunner {
     private final WikiSpaceMapper spaceMapper;
     private final WikiPageMapper pageMapper;
     private final WikiPageVersionMapper versionMapper;
-    private final WikiPageService pageService;
     private final WikiAclService aclService;
     private final WikiBacklinkService backlinkService;
     private final SysRoleMapper roleMapper;
+    private final JdbcTemplate jdbcTemplate;
+    private final AuthorizationModeService authorizationModeService;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -62,16 +65,18 @@ public class WikiManualSeeder implements ApplicationRunner {
                 log.warn("[WikiSeeder] manifest 缺少 spaces，跳过");
                 return;
             }
+            SystemOwnership ownership = resolveSystemOwnership();
+            boolean writeLegacyAcl = writesLegacyAcl(authorizationModeService.cutoverStatus(TENANT));
             int totalPages = 0, totalChanged = 0;
             for (Map<String, Object> spaceCfg : spaces) {
-                WikiSpace space = findOrCreateSpace(spaceCfg);
+                WikiSpace space = findOrCreateSpace(spaceCfg, ownership);
                 List<Map<String, Object>> pages = (List<Map<String, Object>>) spaceCfg.get("pages");
                 if (pages == null) continue;
                 String writeScope = str(spaceCfg.get("write_scope"), "none");
                 Map<String, Long> keyToId = new HashMap<>();
                 List<Long> changedIds = new ArrayList<>();
                 for (Map<String, Object> entry : pages) {
-                    upsertPage(space, writeScope, entry, keyToId, changedIds);
+                    upsertPage(space, writeScope, entry, keyToId, changedIds, ownership, writeLegacyAcl);
                 }
                 // 二次遍历：所有页面已存在后再重建变更页的 backlinks（解析 [[标题]] 跨页引用）
                 for (Long pid : changedIds) {
@@ -92,7 +97,7 @@ public class WikiManualSeeder implements ApplicationRunner {
     // PLACEHOLDER_HELPERS
 
     /** 按 seed_key 查找或创建空间（泛化：不再硬编码 SEED_SPACE_KEY） */
-    private WikiSpace findOrCreateSpace(Map<String, Object> spaceCfg) {
+    private WikiSpace findOrCreateSpace(Map<String, Object> spaceCfg, SystemOwnership ownership) {
         String key = str(spaceCfg.get("key"), "");
         String writeScope = str(spaceCfg.get("write_scope"), "none");
         WikiSpace existing = spaceMapper.selectOne(new LambdaQueryWrapper<WikiSpace>()
@@ -105,6 +110,8 @@ public class WikiManualSeeder implements ApplicationRunner {
                 existing.setWriteScope(writeScope);
                 spaceMapper.updateById(existing);
             }
+            synchronizeSeedResource("wiki_space", existing.getId(), ownership,
+                systemSpacePermissionMode(writeScope));
             return existing;
         }
         WikiSpace s = new WikiSpace();
@@ -117,6 +124,8 @@ public class WikiManualSeeder implements ApplicationRunner {
         s.setCreatedAt(LocalDateTime.now());
         s.setUpdatedAt(LocalDateTime.now());
         spaceMapper.insert(s);
+        synchronizeSeedResource("wiki_space", s.getId(), ownership,
+            systemSpacePermissionMode(writeScope));
         log.info("[WikiSeeder] 创建空间「{}」id={}", s.getName(), s.getId());
         return s;
     }
@@ -124,7 +133,8 @@ public class WikiManualSeeder implements ApplicationRunner {
     /** 幂等 upsert 单页：新建 / hash 变化则更新 / 不变跳过。 */
     @SuppressWarnings("unchecked")
     private void upsertPage(WikiSpace space, String writeScope, Map<String, Object> entry,
-                            Map<String, Long> keyToId, List<Long> changedIds) {
+                            Map<String, Long> keyToId, List<Long> changedIds,
+                            SystemOwnership ownership, boolean writeLegacyAcl) {
         String key = (String) entry.get("key");
         String title = str(entry.get("title"), key);
         String file = (String) entry.get("file");
@@ -191,9 +201,88 @@ public class WikiManualSeeder implements ApplicationRunner {
                 pageMapper.updateById(existing);
             }
         }
+        synchronizeSeedResource("wiki_page", pageId, ownership,
+            systemPagePermissionMode(writeScope, pageReadOnly));
         // 每次启动都重新校准 ACL（不只在首次创建时）——否则线上已存在的系统页面在 manifest
         // 调整 write_scope/read_only 策略后不会跟着变，2026-07-06 修复
-        if (customAcl) applyAcl(pageId, pageReadOnly ? "none" : writeScope);
+        if (customAcl && writeLegacyAcl) applyAcl(pageId, pageReadOnly ? "none" : writeScope);
+    }
+
+    private SystemOwnership resolveSystemOwnership() {
+        SystemOwnership existing = jdbcTemplate.query("""
+            SELECT space.owner_user_id, space.owner_group_id
+            FROM wiki_space space
+            JOIN sys_user owner_user ON owner_user.id = space.owner_user_id
+                AND owner_user.tenant_id = space.tenant_id AND NOT owner_user.is_deleted
+            JOIN sys_group owner_group ON owner_group.id = space.owner_group_id
+                AND owner_group.tenant_id = space.tenant_id AND NOT owner_group.is_deleted
+                AND owner_group.group_type <> 'unassigned'
+            WHERE space.tenant_id = ? AND space.seed_key IS NOT NULL AND NOT space.is_deleted
+            ORDER BY space.id
+            LIMIT 1
+            """, rs -> rs.next()
+                ? new SystemOwnership(rs.getLong("owner_user_id"), rs.getLong("owner_group_id"))
+                : null, TENANT);
+        if (existing != null) return existing;
+
+        Long ownerUserId = jdbcTemplate.query("""
+            SELECT candidate.user_id
+            FROM (
+                SELECT u.id AS user_id, 0 AS source_order
+                FROM sys_user u
+                JOIN sys_user_role ur ON ur.user_id = u.id
+                JOIN sys_role role ON role.id = ur.role_id AND NOT role.is_deleted
+                WHERE u.tenant_id = ? AND NOT u.is_deleted AND u.status = 1
+                  AND role.tenant_id = u.tenant_id AND role.code = 'super_admin'
+                UNION
+                SELECT u.id AS user_id, 1 AS source_order
+                FROM sys_user u
+                JOIN sys_role_assignment assignment ON assignment.user_id = u.id
+                    AND assignment.tenant_id = u.tenant_id AND NOT assignment.is_deleted
+                    AND (assignment.valid_from IS NULL OR assignment.valid_from <= NOW())
+                    AND (assignment.valid_until IS NULL OR assignment.valid_until > NOW())
+                JOIN sys_role role ON role.id = assignment.role_id AND NOT role.is_deleted
+                WHERE u.tenant_id = ? AND NOT u.is_deleted AND u.status = 1
+                  AND role.tenant_id = u.tenant_id AND role.code = 'super_admin'
+            ) candidate
+            ORDER BY candidate.source_order, candidate.user_id
+            LIMIT 1
+            """, rs -> rs.next() ? rs.getLong(1) : null, TENANT, TENANT);
+        Long ownerGroupId = jdbcTemplate.query("""
+            SELECT id FROM sys_group
+            WHERE tenant_id = ? AND NOT is_deleted AND group_type <> 'unassigned'
+            ORDER BY id
+            LIMIT 1
+            """, rs -> rs.next() ? rs.getLong(1) : null, TENANT);
+        if (ownerUserId == null || ownerGroupId == null) {
+            throw new IllegalStateException("系统 Wiki 缺少有效的 super_admin owner 或业务 owning group");
+        }
+        return new SystemOwnership(ownerUserId, ownerGroupId);
+    }
+
+    private void synchronizeSeedResource(String table, Long resourceId,
+                                         SystemOwnership ownership, int permissionMode) {
+        if (!List.of("wiki_space", "wiki_page").contains(table)) {
+            throw new IllegalArgumentException("不支持的系统 Wiki 资源表: " + table);
+        }
+        jdbcTemplate.update("UPDATE " + table + " SET "
+                + "owner_user_id = COALESCE(owner_user_id, ?), "
+                + "owner_group_id = COALESCE(owner_group_id, ?), permission_mode = ?, updated_at = NOW() "
+                + "WHERE id = ? AND tenant_id = ? AND NOT is_deleted "
+                + "AND (owner_user_id IS NULL OR owner_group_id IS NULL OR permission_mode IS DISTINCT FROM ?)",
+            ownership.userId(), ownership.groupId(), permissionMode, resourceId, TENANT, permissionMode);
+    }
+
+    static boolean writesLegacyAcl(String cutoverStatus) {
+        return "rollback".equals(cutoverStatus);
+    }
+
+    static int systemSpacePermissionMode(String writeScope) {
+        return 0755;
+    }
+
+    static int systemPagePermissionMode(String writeScope, boolean readOnly) {
+        return 0645;
     }
 
     private void insertVersion(Long pageId, int version, String title, String content, String comment) {
@@ -269,4 +358,6 @@ public class WikiManualSeeder implements ApplicationRunner {
     private static String str(Object o, String dft) {
         return o == null ? dft : o.toString();
     }
+
+    private record SystemOwnership(Long userId, Long groupId) {}
 }

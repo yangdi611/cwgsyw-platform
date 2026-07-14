@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/api'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { navItems } from './sidebar/navItems'
@@ -15,6 +16,7 @@ import { CollapsedEntry } from './sidebar/CollapsedEntry'
 export function Sidebar() {
   const pathname = usePathname()
   const { hasPermission } = usePermission()
+  const groupScope = useAuthStore((state) => state.groupScope)
 
   // 默认展开的一级菜单：优先「当前页所属组」，其次「defaultOpen」的组。
   const groups = navItems.filter(isGroup)
@@ -22,8 +24,8 @@ export function Sidebar() {
     groups.find(g => {
       if (!isGroup(g)) return false
       if (g.resource && g.action && !hasPermission(g.resource, g.action)) return false
-      return pathname === g.children?.[0]?.href ||
-        g.children?.some(c => pathname.startsWith(c.href))
+      return g.children?.some(c => (!c.requiredScope || c.requiredScope === groupScope)
+        && pathname.startsWith(c.href))
     })?.storageKey ??
     groups.find(g => isGroup(g) && g.defaultOpen && (!g.resource || !g.action || hasPermission(g.resource, g.action)))?.storageKey ??
     null
@@ -105,6 +107,7 @@ export function Sidebar() {
                 entry={entry}
                 pathname={pathname}
                 hasPermission={hasPermission}
+                groupScope={groupScope}
               />
             )
           })}
@@ -120,6 +123,7 @@ export function Sidebar() {
                   entry={entry}
                   pathname={pathname}
                   hasPermission={hasPermission}
+                  groupScope={groupScope}
                 />
               )
             })}
@@ -134,6 +138,7 @@ export function Sidebar() {
                   group={entry}
                   pathname={pathname}
                   hasPermission={hasPermission}
+                  groupScope={groupScope}
                   isOpen={openKey === entry.storageKey}
                   onToggle={() => toggleGroup(entry.storageKey)}
                 />

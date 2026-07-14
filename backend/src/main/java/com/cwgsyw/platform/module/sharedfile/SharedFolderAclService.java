@@ -4,6 +4,7 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
@@ -43,6 +44,7 @@ public class SharedFolderAclService {
     private final GroupMapper groupMapper;
     private final SysRoleMapper roleMapper;
     private final ObjectMapper objectMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public static final List<String> ALL_PERMS = List.of("read", "write", "update", "delete");
 
@@ -155,6 +157,11 @@ public class SharedFolderAclService {
         if (folder == null || !tenantId.equals(folder.getTenantId())) {
             throw new IllegalArgumentException("文件夹不存在: " + folderId);
         }
+        if (dto.getEntries() != null) {
+            dto.getEntries().stream().filter(entry -> "group".equals(entry.getSubjectType()))
+                .map(AclEntryDTO::getSubjectId).distinct().sorted()
+                .forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
+        }
         String beforeJson = snapshot(folder, aclRows(folderId));
 
         folder.setAclInherited(dto.isInherited());
@@ -205,4 +212,3 @@ public class SharedFolderAclService {
         } catch (Exception e) { return "{}"; }
     }
 }
-

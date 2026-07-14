@@ -13,4 +13,7 @@ public class SysRole extends BaseEntity {
     private String code;
     private String scope;
     private String description;
+    private String roleType;
+    private Boolean isBuiltin;
+    private Boolean isLegacy;
 }

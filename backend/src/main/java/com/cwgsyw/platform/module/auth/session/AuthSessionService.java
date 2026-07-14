@@ -31,6 +31,8 @@ public class AuthSessionService {
 
     private static final String SESSION_KEY_PREFIX = "auth:session:";
     private static final String USER_SESSIONS_KEY_PREFIX = "auth:userSessions:";
+    private static final String GLOBAL_SESSION_EPOCH_KEY = "auth:sessionEpoch";
+    private static final long INITIAL_SESSION_EPOCH = 1L;
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -48,6 +50,7 @@ public class AuthSessionService {
         record.setUserId(user.getId());
         record.setTenantId(user.getTenantId());
         record.setUsername(user.getUsername());
+        record.setSessionEpoch(currentGlobalSessionEpoch());
         record.setCreatedAt(now);
         record.setLastActiveAt(now);
         record.setExpiresAt(now.plusSeconds(jwtExpirationSeconds));
@@ -84,6 +87,9 @@ public class AuthSessionService {
         if (Boolean.TRUE.equals(record.getRevoked())) {
             return SessionValidationResult.of(AuthSessionStatus.REVOKED, record);
         }
+        if (!matchesGlobalSessionEpoch(record)) {
+            return SessionValidationResult.of(AuthSessionStatus.INVALID, record);
+        }
 
         long idleMinutes = ChronoUnit.MINUTES.between(record.getLastActiveAt(), LocalDateTime.now());
         if (idleMinutes > securityProperties.getSession().getIdleTimeoutMinutes()) {
@@ -103,6 +109,9 @@ public class AuthSessionService {
             throw new BusinessException(503, SecurityErrorCode.SESSION_STORE_UNAVAILABLE, "系统认证服务暂不可用，请稍后重试");
         }
         if (record == null || !record.getUserId().equals(userId) || Boolean.TRUE.equals(record.getRevoked())) {
+            throw new BusinessException(401, SecurityErrorCode.SESSION_INVALID, "登录状态已失效，请重新登录");
+        }
+        if (!matchesGlobalSessionEpoch(record)) {
             throw new BusinessException(401, SecurityErrorCode.SESSION_INVALID, "登录状态已失效，请重新登录");
         }
         record.setLastActiveAt(LocalDateTime.now());
@@ -176,14 +185,32 @@ public class AuthSessionService {
     }
 
     /**
-     * 启动时调用：删除所有 auth:session:* key，强制全部在线用户重新登录。
-     * 下次请求时 loadRecord 返回 null → SESSION_INVALID → 401 → 前端跳登录页。
+     * 显式全局失效时递增 epoch。旧 session 保留至 TTL 到期，但其下一次校验将返回 401。
      */
-    public long invalidateAllSessions() {
-        Set<String> keys = redisTemplate.keys(SESSION_KEY_PREFIX + "*");
-        if (keys == null || keys.isEmpty()) return 0;
-        Long deleted = redisTemplate.delete(keys);
-        return deleted != null ? deleted : 0;
+    public long advanceGlobalSessionEpoch() {
+        Long epoch = redisTemplate.opsForValue().increment(GLOBAL_SESSION_EPOCH_KEY);
+        if (epoch == null) {
+            throw new IllegalStateException("递增全局会话 epoch 失败");
+        }
+        return epoch;
+    }
+
+    private boolean matchesGlobalSessionEpoch(AuthSessionRecord record) {
+        Long recordEpoch = record.getSessionEpoch();
+        long currentEpoch = currentGlobalSessionEpoch();
+        return recordEpoch == null ? currentEpoch == INITIAL_SESSION_EPOCH : recordEpoch == currentEpoch;
+    }
+
+    private long currentGlobalSessionEpoch() {
+        String raw = redisTemplate.opsForValue().get(GLOBAL_SESSION_EPOCH_KEY);
+        if (raw == null || raw.isBlank()) {
+            return INITIAL_SESSION_EPOCH;
+        }
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("全局会话 epoch 格式无效", e);
+        }
     }
 
     private String userSessionsKey(Long userId) {

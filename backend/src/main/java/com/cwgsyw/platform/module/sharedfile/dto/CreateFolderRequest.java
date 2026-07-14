@@ -8,4 +8,5 @@ public class CreateFolderRequest {
     private String name;
     @JsonAlias("parent_id")
     private Long parentId;
+    private Long ownerGroupId;
 }

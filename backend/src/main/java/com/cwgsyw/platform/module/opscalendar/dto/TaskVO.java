@@ -17,6 +17,7 @@ public class TaskVO {
     private String assigneePhone;
     private Long groupId;
     private String groupName;
+    private Boolean groupArchived;
     private String priority;
     private String sourceType;
     private String visibility;

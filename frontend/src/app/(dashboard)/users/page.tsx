@@ -17,7 +17,8 @@ import {
 import { toast } from 'sonner'
 import UserDialog from '@/components/user/UserDialog'
 import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
-import { Plus, Search, Trash2, Pencil } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ShieldCheck } from 'lucide-react'
+import { UserAuthorizationDialog } from '@/components/user/UserAuthorizationDialog'
 
 interface User {
   id: number
@@ -43,6 +44,7 @@ export default function UsersPage() {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
   const [editUser, setEditUser] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [authorizationTarget, setAuthorizationTarget] = useState<User | null>(null)
 
   const pageSize = 20
 
@@ -120,6 +122,12 @@ export default function UsersPage() {
             align: 'right' as const,
             render: (r: User) => (
               <div className="flex items-center justify-end gap-1">
+                {canUpdate && (
+                  <Button variant="ghost" size="sm" onClick={() => setAuthorizationTarget(r)}>
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    授权
+                  </Button>
+                )}
                 {canUpdate && (
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(r)}>
                     <Pencil className="h-3.5 w-3.5" />
@@ -210,6 +218,12 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UserAuthorizationDialog
+        user={authorizationTarget}
+        open={!!authorizationTarget}
+        onClose={() => setAuthorizationTarget(null)}
+      />
     </div>
   )
 }

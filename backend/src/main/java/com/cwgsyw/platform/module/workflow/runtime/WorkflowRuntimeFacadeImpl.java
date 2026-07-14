@@ -5,6 +5,7 @@ import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowAdapter;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowAdapterRegistry;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowContext;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowSummary;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.binding.ProcessBindingService;
 import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBinding;
 import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
@@ -26,11 +27,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +47,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
+
+    private static final Pattern GROUP_TOKEN = Pattern.compile(
+        "(?<![A-Za-z0-9_])group_(\\d+)(?![A-Za-z0-9_])");
 
     private final RuntimeService runtimeService;
     private final TaskService taskService;
@@ -52,6 +62,7 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
     private final TemplateApproverResolver approverResolver;
     private final com.cwgsyw.platform.module.rbac.RbacService rbacService;
     private final com.cwgsyw.platform.module.rbac.SysRoleMapper roleMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @Override
     @Transactional
@@ -105,6 +116,7 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         if (command.getVariables() != null) {
             vars.putAll(command.getVariables());
         }
+        lockFlowableGroupReferences(tenantId, vars);
 
         ProcessInstance pi;
         try {
@@ -131,6 +143,58 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         businessInstanceMapper.insert(instance);
 
         return instance;
+    }
+
+    private void lockFlowableGroupReferences(String tenantId, Map<String, Object> variables) {
+        SortedSet<Long> groupIds = new TreeSet<>();
+        variables.forEach((key, value) -> collectFlowableGroupIds(key, value, groupIds));
+        groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
+    }
+
+    private void collectFlowableGroupIds(String key, Object value, Set<Long> groupIds) {
+        if (value == null) return;
+        if (value instanceof Map<?, ?> nested) {
+            nested.forEach((nestedKey, nestedValue) ->
+                collectFlowableGroupIds(String.valueOf(nestedKey), nestedValue, groupIds));
+            return;
+        }
+        if (value instanceof Iterable<?> values) {
+            values.forEach(item -> collectFlowableGroupIds(key, item, groupIds));
+            return;
+        }
+        if (value.getClass().isArray()) {
+            for (int index = 0; index < Array.getLength(value); index++) {
+                collectFlowableGroupIds(key, Array.get(value, index), groupIds);
+            }
+            return;
+        }
+        if (value instanceof Number number && isGroupVariable(key)) {
+            String numberValue = number.toString();
+            if (!numberValue.matches("\\d+")) {
+                throw new IllegalArgumentException("Flowable group 变量中的用户组 ID 无效");
+            }
+            groupIds.add(parseGroupId(numberValue));
+            return;
+        }
+        if (!(value instanceof CharSequence sequence)) return;
+        String text = sequence.toString().trim();
+        Matcher matcher = GROUP_TOKEN.matcher(text);
+        while (matcher.find()) groupIds.add(parseGroupId(matcher.group(1)));
+        if (isGroupVariable(key) && text.matches("\\d+")) {
+            groupIds.add(parseGroupId(text));
+        }
+    }
+
+    private Long parseGroupId(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Flowable group token 中的用户组 ID 无效", e);
+        }
+    }
+
+    private boolean isGroupVariable(String key) {
+        return key != null && key.toLowerCase(Locale.ROOT).contains("group");
     }
 
     @Override

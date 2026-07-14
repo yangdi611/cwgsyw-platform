@@ -5,6 +5,9 @@ import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.SharedFileMapper;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
+import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceDescriptorRepository;
+import com.cwgsyw.platform.module.authorization.ResourceDescriptor;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,8 @@ public class WikiAttachmentService {
     private final MinioStorageService minioStorage;
     private final SharedFileMapper sharedFileMapper;
     private final WikiPageMapper pageMapper;
+    private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ResourceDescriptorRepository resourceDescriptorRepository;
 
     public SharedFile uploadAttachment(String tenantId, Long userId, Long pageId, MultipartFile file) {
         WikiPage page = pageMapper.selectById(pageId);
@@ -55,7 +60,19 @@ public class WikiAttachmentService {
         sf.setCreatedAt(LocalDateTime.now());
         sf.setUpdatedAt(LocalDateTime.now());
         sharedFileMapper.insert(sf);
+        ResourceDescriptor pageResource = resourceDescriptorRepository.find(tenantId, "wiki_page", pageId);
+        resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", sf.getId(),
+            userId, pageResource == null ? null : pageResource.getOwnerGroupId(), 0600);
         return sf;
+    }
+
+    public Long attachmentPageId(String tenantId, Long fileId) {
+        SharedFile file = sharedFileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
+            .eq(SharedFile::getId, fileId)
+            .eq(SharedFile::getTenantId, tenantId)
+            .eq(SharedFile::getSourceType, "wiki_page"));
+        if (file == null) throw new IllegalArgumentException("附件不存在: " + fileId);
+        return file.getSourceId();
     }
 
     public void streamTo(String tenantId, Long fileId, HttpServletResponse response) throws Exception {

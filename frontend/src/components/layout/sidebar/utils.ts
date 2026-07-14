@@ -9,9 +9,11 @@ export function groupActiveChild(
   group: NavGroup,
   pathname: string,
   hasPermission: (r: string, a: string) => boolean,
+  groupScope?: string,
 ): boolean {
   const visibleChildren = group.children.filter(
-    c => !c.resource || !c.action || hasPermission(c.resource, c.action),
+    c => (!c.requiredScope || c.requiredScope === groupScope)
+      && (!c.resource || !c.action || hasPermission(c.resource, c.action)),
   )
   if (visibleChildren.length === 0) return false
   return visibleChildren.some(

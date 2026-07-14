@@ -183,7 +183,7 @@ export function WikiAclDialog({
         <DialogHeader>
           <DialogTitle>页面权限设置：{pageTitle}</DialogTitle>
           <DialogDescription>
-            覆盖式继承：开启「继承」沿用父页面权限；关闭后仅以下勾选的对象可访问。灰色锁定的勾选框来自空间级授权，无法在此收回；带提示的勾选框继承自上级页面，可直接取消。
+            兼容权限模式：开启「继承」沿用父页面权限；关闭后仅以下勾选的对象可访问。角色授权已冻结，请改用用户或组。
           </DialogDescription>
         </DialogHeader>
 
@@ -244,7 +244,7 @@ export function WikiAclDialog({
                           const checkbox = (
                             <Checkbox
                               checked={isForced || (set?.has(p) ?? false)}
-                              disabled={isForced}
+                              disabled={isForced || tab === 'role'}
                               onCheckedChange={() => togglePerm(s.id, p)}
                             />
                           )

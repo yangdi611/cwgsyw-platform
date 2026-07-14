@@ -19,5 +19,6 @@ public class RosterVO {
     private String phoneOverride;
     private Long groupId;
     private String groupName;
+    private Boolean groupArchived;
     private String remark;
 }

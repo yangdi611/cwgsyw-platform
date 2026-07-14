@@ -9,6 +9,7 @@ import com.cwgsyw.platform.module.opscalendar.dto.RosterVO;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsDutyRoster;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsDutyRosterMapper;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -20,7 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +40,7 @@ public class OpsCalendarRosterService {
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
     private final AuditLogMapper auditLogMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public List<RosterVO> list(String tenantId, LocalDate from, LocalDate to, Long groupId) {
         LambdaQueryWrapper<OpsDutyRoster> qw = new LambdaQueryWrapper<OpsDutyRoster>()
@@ -43,27 +49,45 @@ public class OpsCalendarRosterService {
                 .le(to != null, OpsDutyRoster::getDutyDate, to)
                 .eq(groupId != null, OpsDutyRoster::getGroupId, groupId)
                 .orderByAsc(OpsDutyRoster::getDutyDate);
-        return rosterMapper.selectList(qw).stream().map(this::toVO).collect(Collectors.toList());
+        List<OpsDutyRoster> rosters = rosterMapper.selectList(qw);
+        Set<Long> activeGroupIds = rosters.stream()
+            .filter(roster -> roster.getDutyDate() == null || !roster.getDutyDate().isBefore(LocalDate.now()))
+            .map(OpsDutyRoster::getGroupId)
+            .filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> historicalGroupIds = rosters.stream()
+            .filter(roster -> roster.getDutyDate() != null && roster.getDutyDate().isBefore(LocalDate.now()))
+            .map(OpsDutyRoster::getGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, Group> groupCache = new HashMap<>();
+        if (!activeGroupIds.isEmpty()) {
+            groupMapper.selectBatchIds(activeGroupIds).forEach(group -> groupCache.put(group.getId(), group));
+        }
+        if (!historicalGroupIds.isEmpty()) {
+            groupMapper.findIncludingDeletedByIds(tenantId, historicalGroupIds)
+                .forEach(group -> groupCache.put(group.getId(), group));
+        }
+        return rosters.stream().map(roster -> toVO(roster, groupCache)).collect(Collectors.toList());
     }
 
     @Transactional
     public RosterVO create(RosterRequest req, String tenantId, Long operatorId) {
+        activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         OpsDutyRoster r = new OpsDutyRoster();
         r.setTenantId(tenantId);
         applyRequest(r, req);
         rosterMapper.insert(r);
         writeAudit(tenantId, "create", r.getId(), operatorId, null);
-        return toVO(r);
+        return toVO(r, null);
     }
 
     @Transactional
     public RosterVO update(Long id, RosterRequest req, String tenantId, Long operatorId) {
         OpsDutyRoster r = rosterMapper.selectById(id);
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("排班记录不存在");
+        activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         applyRequest(r, req);
         rosterMapper.updateById(r);
         writeAudit(tenantId, "update", id, operatorId, null);
-        return toVO(r);
+        return toVO(r, null);
     }
 
     private void applyRequest(OpsDutyRoster r, RosterRequest req) {
@@ -107,7 +131,7 @@ public class OpsCalendarRosterService {
         return result;
     }
 
-    private RosterVO toVO(OpsDutyRoster r) {
+    private RosterVO toVO(OpsDutyRoster r, Map<Long, Group> groupCache) {
         RosterVO vo = new RosterVO();
         vo.setId(r.getId());
         vo.setDutyDate(r.getDutyDate());
@@ -131,8 +155,15 @@ public class OpsCalendarRosterService {
             if (u != null) vo.setBackupAssigneeName(u.getRealName() != null ? u.getRealName() : u.getUsername());
         }
         if (r.getGroupId() != null) {
-            Group g = groupMapper.selectById(r.getGroupId());
-            if (g != null) vo.setGroupName(g.getName());
+            boolean historical = r.getDutyDate() != null && r.getDutyDate().isBefore(LocalDate.now());
+            Group g = groupCache != null ? groupCache.get(r.getGroupId())
+                : historical
+                    ? groupMapper.findByTenantAndIdIncludingDeleted(r.getTenantId(), r.getGroupId())
+                    : groupMapper.selectById(r.getGroupId());
+            if (g != null && (historical || !Boolean.TRUE.equals(g.getIsDeleted()))) {
+                vo.setGroupName(g.getName());
+                vo.setGroupArchived(Boolean.TRUE.equals(g.getIsDeleted()));
+            }
         }
         return vo;
     }

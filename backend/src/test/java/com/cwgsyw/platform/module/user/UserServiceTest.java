@@ -7,7 +7,10 @@ import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.SecurityProperties;
 import com.cwgsyw.platform.module.auth.session.AuthSessionService;
+import com.cwgsyw.platform.module.authorization.AuthorizationRelationshipCleanupService;
+import com.cwgsyw.platform.module.authorization.dto.AuthorizationRelationshipCleanupResult;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.GroupMembershipService;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.dto.CreateUserRequest;
@@ -40,11 +43,13 @@ class UserServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock RbacService rbacService;
     @Mock GroupMapper groupMapper;
+    @Mock GroupMembershipService groupMembershipService;
     @Mock AuditLogMapper auditLogMapper;
     @Mock PasswordPolicyService passwordPolicyService;
     @Mock PasswordHistoryService passwordHistoryService;
     @Mock AuthSessionService authSessionService;
     @Mock SecurityProperties securityProperties;
+    @Mock AuthorizationRelationshipCleanupService authorizationRelationshipCleanupService;
 
     @InjectMocks UserService userService;
 
@@ -98,6 +103,7 @@ class UserServiceTest {
         // 密码历史写入（source = CREATE_USER）
         verify(passwordHistoryService).record(eq(100L), eq("default"), eq("encoded-password"),
             eq(PasswordHistorySource.CREATE_USER), eq(1L));
+        verify(groupMembershipService).syncPrimaryMembership(100L, 1L, "default", 1L);
 
         // Verify audit log was written
         ArgumentCaptor<AuditLog> logCaptor = ArgumentCaptor.forClass(AuditLog.class);
@@ -192,6 +198,8 @@ class UserServiceTest {
         // Given
         User existing = createUser(1L, "deleteuser", "13800138000", 1L);
         when(userMapper.selectById(1L)).thenReturn(existing);
+        when(authorizationRelationshipCleanupService.cleanupDeletedUser("default", 1L, 3L))
+            .thenReturn(AuthorizationRelationshipCleanupResult.builder().totalRelationships(3).build());
 
         // When
         userService.delete(1L, 3L);
@@ -206,6 +214,7 @@ class UserServiceTest {
         assertNull(auditLog.getAfterJson());
         assertTrue(auditLog.getBeforeJson().contains("\"username\":\"deleteuser\""));
         assertTrue(auditLog.getRemark().contains("deleteuser"));
+        assertTrue(auditLog.getRemark().contains("3 条"));
 
         // Verify user soft-deleted
         verify(userMapper).updateById(argThat((User u) -> {
@@ -217,6 +226,23 @@ class UserServiceTest {
 
         // 删除前撤销所有会话（SPEC 11.4）
         verify(authSessionService).revokeAllForUser(1L, 3L, "ADMIN_DELETE");
+        verify(authorizationRelationshipCleanupService).requireNoOwnedResources("default", 1L);
+        verify(authorizationRelationshipCleanupService).cleanupDeletedUser("default", 1L, 3L);
+    }
+
+    @Test
+    void delete_withOwnedResources_doesNotDeleteUser() {
+        User existing = createUser(1L, "resourceowner", "13800138000", 1L);
+        when(userMapper.selectById(1L)).thenReturn(existing);
+        doThrow(new IllegalStateException("请先转移属主"))
+            .when(authorizationRelationshipCleanupService).requireNoOwnedResources("default", 1L);
+
+        assertThrows(IllegalStateException.class, () -> userService.delete(1L, 3L));
+
+        verify(userMapper, never()).updateById(any(User.class));
+        verify(userMapper, never()).deleteById(anyLong());
+        verify(authorizationRelationshipCleanupService, never())
+            .cleanupDeletedUser(anyString(), anyLong(), anyLong());
     }
 
     // ── keyword search ─────────────────────────────────────────────────────

@@ -152,7 +152,7 @@ export function FolderAclDialog({
         <DialogHeader>
           <DialogTitle>文件夹权限设置：{folderName}</DialogTitle>
           <DialogDescription>
-            覆盖式继承：开启「继承」沿用父文件夹权限；关闭后仅以下勾选的对象可访问（管理员始终可访问）。
+            兼容权限模式：开启「继承」沿用父文件夹权限；角色授权已冻结，请改用用户或组。
           </DialogDescription>
         </DialogHeader>
 
@@ -209,6 +209,7 @@ export function FolderAclDialog({
                             <div className="flex items-center justify-center">
                               <Checkbox
                                 checked={set?.has(p) ?? false}
+                                disabled={tab === 'role'}
                                 onCheckedChange={() => togglePerm(s.id, p)}
                               />
                             </div>

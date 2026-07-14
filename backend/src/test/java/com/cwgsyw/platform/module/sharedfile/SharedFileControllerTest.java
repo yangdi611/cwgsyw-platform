@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.sharedfile;
 
 import com.cwgsyw.platform.security.SecurityUser;
+import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class SharedFileControllerTest {
@@ -23,14 +28,15 @@ class SharedFileControllerTest {
     @Mock SharedFileService fileService;
     @Mock SharedFolderService folderService;
     @Mock SharedFolderAclService aclService;
+    @Mock AuthorizationService authorizationService;
     @Mock SecurityUser user;
 
     private SharedFileController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new SharedFileController(fileService, folderService, aclService);
-        when(user.getTenantId()).thenReturn("default");
+        controller = new SharedFileController(fileService, folderService, aclService, authorizationService);
+        lenient().when(user.getTenantId()).thenReturn("default");
     }
 
     @Test
@@ -63,6 +69,24 @@ class SharedFileControllerTest {
         assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("report.pdf");
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)).isEqualTo("application/pdf");
         assertResponseBody(response, bytes);
+    }
+
+    @Test
+    void deleteFile_checksParentContainerPermission() {
+        controller.deleteFile(9L, user);
+
+        verify(authorizationService).requireParentWithCompatibility(user, "shared_file",
+            "shared_file:delete", "shared_file", 9L, 3, true);
+        verify(fileService).deleteFile(user, 9L);
+    }
+
+    @Test
+    void enforcedFolderAclReadDoesNotUseLegacyAclService() {
+        when(authorizationService.isEnforced(user, "shared_file")).thenReturn(true);
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(
+            () -> controller.getFolderAcl(9L, user))).isInstanceOf(IllegalStateException.class);
+        verify(aclService, never()).getAcl(anyString(), anyLong());
     }
 
     private void assertResponseBody(ResponseEntity<InputStreamResource> response, byte[] expected)
