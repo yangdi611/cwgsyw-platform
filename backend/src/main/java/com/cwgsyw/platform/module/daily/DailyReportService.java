@@ -13,6 +13,7 @@ import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.user.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class DailyReportService {
     private final CiInstanceMapper ciInstanceMapper;
     private final CiModelMapper ciModelMapper;
     private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
         LambdaQueryWrapper<DailyReport> query = new LambdaQueryWrapper<DailyReport>()
@@ -65,6 +67,7 @@ public class DailyReportService {
 
     @Transactional
     public DailyReport create(CreateDailyReportRequest req, Long userId, Long groupId, String tenantId) {
+        activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
         reportMapper.findByReporterAndDate(userId, req.getReportDate()).ifPresent(r -> {
             throw new IllegalArgumentException("该日期已有日报，请编辑现有日报");
         });
@@ -194,8 +197,13 @@ public class DailyReportService {
         vo.setUpdatedAt(r.getUpdatedAt());
         var user = userMapper.selectById(r.getReporterId());
         if (user != null) vo.setReporterName(user.getRealName() != null ? user.getRealName() : user.getUsername());
-        var group = groupMapper.selectById(r.getGroupId());
-        if (group != null) vo.setGroupName(group.getName());
+        var group = "APPROVED".equals(r.getStatus())
+            ? groupMapper.findByTenantAndIdIncludingDeleted(r.getTenantId(), r.getGroupId())
+            : groupMapper.selectById(r.getGroupId());
+        if (group != null) {
+            vo.setGroupName(group.getName());
+            vo.setGroupArchived(Boolean.TRUE.equals(group.getIsDeleted()));
+        }
         vo.setCiInstanceIds(r.getCiInstanceIds());
         // Populate CI instance brief info
         if (r.getCiInstanceIds() != null && !r.getCiInstanceIds().isEmpty()) {

@@ -6,19 +6,21 @@ import { ChevronDown } from 'lucide-react'
 import type { NavGroup } from './types'
 import { groupActiveChild } from './utils'
 
-export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle }: {
+export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle, groupScope }: {
   group: NavGroup
   pathname: string
   hasPermission: (r: string, a: string) => boolean
   isOpen: boolean
   onToggle: () => void
+  groupScope: string
 }) {
   const visibleChildren = group.children.filter(c =>
-    !c.resource || !c.action || hasPermission(c.resource, c.action)
+    (!c.requiredScope || c.requiredScope === groupScope)
+      && (!c.resource || !c.action || hasPermission(c.resource, c.action))
   )
   if (visibleChildren.length === 0) return null
 
-  const isAnyChildActive = groupActiveChild(group, pathname, hasPermission)
+  const isAnyChildActive = groupActiveChild(group, pathname, hasPermission, groupScope)
 
   return (
     <div className="mb-1">

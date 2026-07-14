@@ -21,6 +21,7 @@ interface DailyReport {
   workHours: number
   reporterName?: string
   groupName?: string
+  groupArchived?: boolean
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -260,7 +261,9 @@ export default function DailyReportsPage() {
                       <span className="text-sm font-medium text-v2-fg">
                         {report.reporterName}
                         {report.groupName && (
-                          <span className="font-normal text-v2-muted"> · {report.groupName}</span>
+                          <span className="font-normal text-v2-muted">
+                            {' · '}{report.groupName}{report.groupArchived ? '（已归档）' : ''}
+                          </span>
                         )}
                       </span>
                     )}

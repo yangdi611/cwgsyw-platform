@@ -16,6 +16,7 @@ import com.cwgsyw.platform.module.device.dto.*;
 import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.device.entity.DeviceCredential;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,7 @@ public class DeviceService {
     private final CiModelMapper ciModelMapper;
     private final CiModelGroupMapper ciModelGroupMapper;
     private final GroupMapper groupMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<DeviceVO> list(Long groupId, String deviceType, String category,
                                      int page, int size, String tenantId) {
@@ -100,6 +102,7 @@ public class DeviceService {
 
     @Transactional
     public Device create(CreateDeviceRequest req, String tenantId, Long operatorId) {
+        activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         if (req.getCiInstanceId() == null) {
             throw new IllegalArgumentException("必须关联 CMDB 实例");
         }
@@ -134,7 +137,10 @@ public class DeviceService {
         // name/ip/deviceType/ciInstanceId 不可修改（由 CI 派生）；只允许 category/description/groupId
         if (req.getCategory() != null) device.setCategory(req.getCategory());
         if (req.getDescription() != null) device.setDescription(req.getDescription());
-        if (req.getGroupId() != null) device.setGroupId(req.getGroupId());
+        if (req.getGroupId() != null) {
+            activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
+            device.setGroupId(req.getGroupId());
+        }
         deviceMapper.updateById(device);
         writeAudit(tenantId, "update", id, operatorId, "name=" + device.getName());
     }
@@ -161,6 +167,7 @@ public class DeviceService {
             throw new IllegalArgumentException("设备不存在");
         }
         Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
+        activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
         // 组级越权校验：group scope 用户只能往本组创建凭据（admin/super_admin 绕过）
         if ("group".equals(callerGroupScope)) {
             if (callerGroupId == null || !callerGroupId.equals(groupId)) {

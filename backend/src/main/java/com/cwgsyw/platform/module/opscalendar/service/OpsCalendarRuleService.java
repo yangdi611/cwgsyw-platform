@@ -7,6 +7,7 @@ import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
 import com.cwgsyw.platform.module.opscalendar.mapper.*;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -43,6 +44,7 @@ public class OpsCalendarRuleService {
     private final OpsCalendarNotificationService notificationService;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
     private final RbacService rbacService;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
@@ -121,6 +123,7 @@ public class OpsCalendarRuleService {
         r.setTenantId(user.getTenantId());
         applyRequest(r, req);
         r.setEnabled(req.getEnabled() == null || req.getEnabled());
+        validateReferencedGroups(r);
         if (Boolean.TRUE.equals(r.getEnabled())) validateAssignable(r);
         // 首轮立即扫描
         r.setNextGenerateAt(null);
@@ -135,6 +138,7 @@ public class OpsCalendarRuleService {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
         applyRequest(r, req);
+        validateReferencedGroups(r);
         // 触发配置可能变化 -> 重置下次扫描点为立即
         r.setNextGenerateAt(null);
         ruleMapper.updateById(r);
@@ -165,6 +169,7 @@ public class OpsCalendarRuleService {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
         if (enabled) validateAssignable(r);
+        if (enabled) validateReferencedGroups(r);
         r.setEnabled(enabled);
         if (enabled) r.setNextGenerateAt(null); // 重新启用立即扫描
         ruleMapper.updateById(r);
@@ -185,6 +190,37 @@ public class OpsCalendarRuleService {
         }
         if ("fixed".equals(type) && ar.get("userId") == null) {
             throw new IllegalArgumentException("该规则负责人为「指定用户」，启用前必须指定 userId");
+        }
+    }
+
+    private void validateReferencedGroups(OpsScheduleRule rule) {
+        SortedSet<Long> groupIds = new TreeSet<>();
+        collectGroupIds(fromJson(rule.getAssigneeRule()), groupIds);
+        collectGroupIds(fromJson(rule.getRecipientRule()), groupIds);
+        collectGroupIds(fromJson(rule.getEscalationRule()), groupIds);
+        groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId));
+    }
+
+    private void collectGroupIds(Object value, Set<Long> groupIds) {
+        if (value instanceof Map<?, ?> values) {
+            values.forEach((key, nested) -> {
+                if ("groupId".equals(String.valueOf(key))) groupIds.add(parseGroupId(nested));
+                else collectGroupIds(nested, groupIds);
+            });
+            return;
+        }
+        if (value instanceof Collection<?> values) values.forEach(item -> collectGroupIds(item, groupIds));
+    }
+
+    private Long parseGroupId(Object value) {
+        String text = value instanceof Number number ? number.toString() : String.valueOf(value);
+        if (!text.matches("[1-9][0-9]*")) {
+            throw new IllegalArgumentException("GROUP_REFERENCE_INVALID: groupId 必须为正整数");
+        }
+        try {
+            return Long.valueOf(text);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("GROUP_REFERENCE_INVALID: groupId 超出 BIGINT 范围", exception);
         }
     }
 
@@ -227,6 +263,8 @@ public class OpsCalendarRuleService {
         List<LocalDateTime> occurrences = occurrenceCalculator.calculate(rule, now, windowEnd);
 
         for (LocalDateTime start : occurrences) {
+            Long groupId = resolveGroupId(rule);
+            activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId);
             Long assigneeId = resolveAssignee(rule, start);
             String occKey = rule.getId() + ":" + start.toLocalDate() + ":" + rule.getTaskType()
                     + ":" + (assigneeId != null ? "u" + assigneeId : "g" + (rule.getVisibility()));
@@ -248,7 +286,7 @@ public class OpsCalendarRuleService {
             t.setPlannedStartAt(start);
             t.setDueAt(computeDue(rule, start));
             t.setAssigneeId(assigneeId);
-            t.setGroupId(resolveGroupId(rule));
+            t.setGroupId(groupId);
             t.setPriority("normal");
             t.setContent(rule.getDescription());
             t.setVisibility(rule.getVisibility());

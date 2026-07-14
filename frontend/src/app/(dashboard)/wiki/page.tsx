@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
+import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { Input } from '@/components/v2/Input'
@@ -34,6 +35,8 @@ import {
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
 import { WikiSpaceAclDialog } from '@/components/wiki/WikiSpaceAclDialog'
+import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
+import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 
 /** 个人空间排序：按当前用户 username 隔离存 localStorage（非全局，每人各自的顺序）。 */
 function orderStorageKey(username: string | undefined): string {
@@ -73,11 +76,13 @@ export default function WikiSpacesPage() {
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
   const username = useAuthStore((s) => s.user?.username)
+  const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<WikiSpace | null>(null) // null=新建，非空=编辑
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [ownerGroupId, setOwnerGroupId] = useState('')
   const [deleting, setDeleting] = useState<WikiSpace | null>(null)
   const [aclTarget, setAclTarget] = useState<WikiSpace | null>(null)
   const [order, setOrder] = useState<number[]>([])
@@ -97,6 +102,10 @@ export default function WikiSpacesPage() {
   const { data: spaces, isLoading } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
     queryFn: wikiApi.listSpaces,
+  })
+  const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['authorization-groups'],
+    queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
   })
 
   const canCreate = hasPermission('wiki', 'create')
@@ -130,7 +139,8 @@ export default function WikiSpacesPage() {
     mutationFn: () =>
       editing
         ? wikiApi.updateSpace(editing.id, { name: name.trim(), description: description.trim() })
-        : wikiApi.createSpace({ name: name.trim(), description: description.trim() }),
+        : wikiApi.createSpace({ name: name.trim(), description: description.trim(),
+          ownerGroupId: ownerGroupId ? Number(ownerGroupId) : undefined }),
     onSuccess: (space) => {
       queryClient.invalidateQueries({ queryKey: ['wiki-spaces'] })
       const wasCreate = !editing
@@ -138,6 +148,7 @@ export default function WikiSpacesPage() {
       setEditing(null)
       setName('')
       setDescription('')
+      setOwnerGroupId('')
       toast.success(wasCreate ? '空间已创建' : '空间已更新')
       if (wasCreate && space) router.push(`/wiki/${space.id}`)
     },
@@ -355,6 +366,15 @@ export default function WikiSpacesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            {!editing && groups.length > 0 && (
+              <label className="block space-y-1 text-sm text-v2-fg">
+                <span>归属组</span>
+                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>
+                  <option value="">使用主组</option>
+                  {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                </select>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
@@ -400,12 +420,16 @@ export default function WikiSpacesPage() {
       </Dialog>
 
       {aclTarget && (
-        <WikiSpaceAclDialog
-          spaceId={aclTarget.id}
-          spaceName={aclTarget.name}
-          open={!!aclTarget}
-          onOpenChange={(o) => !o && setAclTarget(null)}
-        />
+        authorizationEnforced
+          ? <ResourceAccessDialog resourceType="wiki_space" resourceId={aclTarget.id}
+              title={aclTarget.name} container open={!!aclTarget}
+              onOpenChange={(open) => { if (!open) setAclTarget(null) }} />
+          : <WikiSpaceAclDialog
+              spaceId={aclTarget.id}
+              spaceName={aclTarget.name}
+              open={!!aclTarget}
+              onOpenChange={(open) => { if (!open) setAclTarget(null) }}
+            />
       )}
     </div>
   )

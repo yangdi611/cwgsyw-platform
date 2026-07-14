@@ -53,6 +53,7 @@ export interface WikiPage {
   canWrite: boolean
   canDelete: boolean
   canPublish: boolean
+  canManageAcl: boolean
 }
 
 export interface WikiBacklink {

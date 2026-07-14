@@ -12,6 +12,7 @@ public class DailyReportVO {
     private Long id;
     private Long groupId;
     private String groupName;
+    private Boolean groupArchived;
     private Long reporterId;
     private String reporterName;
     private LocalDate reportDate;

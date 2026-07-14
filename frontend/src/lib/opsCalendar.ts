@@ -16,6 +16,7 @@ export interface TaskVO {
   assigneePhone: string | null
   groupId: number | null
   groupName: string | null
+  groupArchived?: boolean
   priority: string
   sourceType: string
   visibility: string
@@ -116,6 +117,7 @@ export interface RosterVO {
   phoneOverride: string | null
   groupId: number | null
   groupName: string | null
+  groupArchived?: boolean
   remark: string | null
 }
 

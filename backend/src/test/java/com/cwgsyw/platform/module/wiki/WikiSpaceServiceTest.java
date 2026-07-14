@@ -8,6 +8,7 @@ import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpaceAcl;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -33,8 +34,20 @@ class WikiSpaceServiceTest {
     @Mock com.cwgsyw.platform.module.rbac.SysRoleMapper roleMapper;
     @Mock RbacService rbacService;
     @Mock com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    @Mock com.cwgsyw.platform.module.authorization.AuthorizationService authorizationService;
+    @Mock com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService resourceMigrationService;
 
     @InjectMocks WikiSpaceService service;
+
+    @BeforeEach
+    void setUpAuthorizationCompatibility() {
+        lenient().when(authorizationService.decideWithCompatibility(
+            any(), anyString(), anyString(), anyString(), anyLong(), anyInt(), anyBoolean()))
+            .thenAnswer(invocation -> invocation.getArgument(6));
+        lenient().when(authorizationService.decideWithPolicyCompatibility(
+            any(), anyString(), anyString(), anyString(), anyLong(), anyInt(), anyBoolean(), anyBoolean()))
+            .thenAnswer(invocation -> invocation.getArgument(7));
+    }
 
     private SecurityUser user(Long userId, String groupScope, Set<String> perms) {
         return new SecurityUser(userId, "u" + userId, "pw", "default", 1L, groupScope, perms);
@@ -72,14 +85,15 @@ class WikiSpaceServiceTest {
     @Test
     void hasWritePermission_admin_alwaysAllowed_withoutQueryingAcl() {
         SecurityUser admin = user(1L, "tenant", Set.of());
+        when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
         assertThat(service.hasWritePermission("default", 100L, admin, "update")).isTrue();
-        verify(spaceMapper, never()).selectById(any());
         verify(spaceAclMapper, never()).selectList(any());
     }
 
     @Test
     void hasWritePermission_superAdminPlatformScope_alwaysAllowed() {
         SecurityUser superAdmin = user(1L, "platform", Set.of());
+        when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
         assertThat(service.hasWritePermission("default", 100L, superAdmin, "delete")).isTrue();
     }
 
@@ -88,11 +102,9 @@ class WikiSpaceServiceTest {
     @Test
     void hasWritePermission_memberWithRolePermission_regressionAllowed() {
         SecurityUser member = user(2L, "group", Set.of("wiki:update"));
+        when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
 
         assertThat(service.hasWritePermission("default", 100L, member, "update")).isTrue();
-        // 角色分支命中，无需查询空间/空间 ACL 表
-        verify(spaceMapper, never()).selectById(any());
-        verify(spaceAclMapper, never()).selectList(any());
         verify(spaceAclMapper, never()).selectList(any());
     }
 
@@ -202,16 +214,35 @@ class WikiSpaceServiceTest {
         when(spaceMapper.selectById(300L)).thenReturn(sysSpace);
 
         assertThat(service.hasWritePermission("default", 300L, viewer, "update")).isFalse();
+        verify(authorizationService).decideWithPolicyCompatibility(viewer, "wiki", "wiki:update",
+            "wiki_space", 300L, 2, false, false);
         verify(spaceAclMapper, never()).selectList(any());
+    }
+
+    @Test
+    void hasWritePermission_lockedSystemSpace_constrainsEnforcedAuthorization() {
+        SecurityUser superAdmin = user(1L, "platform", Set.of("wiki:create"));
+        when(spaceMapper.selectById(300L)).thenReturn(systemSpace(300L));
+        when(authorizationService.decideWithPolicyCompatibility(superAdmin, "wiki", "wiki:create",
+            "wiki_space", 300L, 3, false, false)).thenReturn(false);
+
+        assertThat(service.hasWritePermission("default", 300L, superAdmin, "create")).isFalse();
+
+        verify(authorizationService).decideWithPolicyCompatibility(superAdmin, "wiki", "wiki:create",
+            "wiki_space", 300L, 3, false, false);
+        verify(authorizationService, never()).decideWithCompatibility(any(), anyString(), anyString(),
+            anyString(), anyLong(), anyInt(), anyBoolean());
     }
 
     @Test
     void hasWritePermission_systemSpace_roleAndAdminStillWork() {
         SecurityUser admin = user(1L, "tenant", Set.of());
         SecurityUser memberWithRole = user(9L, "group", Set.of("wiki:update"));
+        WikiSpace systemSpace = systemSpace(300L);
+        systemSpace.setWriteScope("all");
+        when(spaceMapper.selectById(300L)).thenReturn(systemSpace);
 
         assertThat(service.hasWritePermission("default", 300L, admin, "update")).isTrue();
-        // 角色分支同样先命中，不查询空间表
         assertThat(service.hasWritePermission("default", 300L, memberWithRole, "update")).isTrue();
     }
 

@@ -8,6 +8,7 @@ export type NavItem = {
   /** 精确匹配 pathname（不走 startsWith 前缀）。
    *  用于根路径项如 /cmdb 概览，避免 /cmdb/* 子页都把它点亮。 */
   exact?: boolean
+  requiredScope?: 'platform'
 }
 
 export type NavGroup = {

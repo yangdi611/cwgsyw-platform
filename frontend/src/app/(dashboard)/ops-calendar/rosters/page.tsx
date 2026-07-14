@@ -103,6 +103,9 @@ export default function RostersPage() {
         ? <span className="font-v2-mono text-sm">{r.assigneePhone}</span>
         : <span className="text-amber-600 text-xs">缺手机号</span> },
     { key: 'backup', title: '备份', render: (r) => r.backupAssigneeName ?? '-' },
+    { key: 'group', title: '所属组', render: (r) => r.groupName
+        ? <span className="text-sm text-v2-fg">{r.groupName}{r.groupArchived ? '（已归档）' : ''}</span>
+        : <span className="text-v2-subtle">-</span> },
     { key: 'remark', title: '备注', render: (r) => <span className="text-v2-muted text-sm">{r.remark ?? '-'}</span> },
     { key: 'ops', title: '操作', align: 'right' as const, render: (r) => (
         <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(r) }}>编辑</Button>

@@ -10,7 +10,11 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.SecurityProperties;
 import com.cwgsyw.platform.module.auth.session.AuthSessionRecord;
 import com.cwgsyw.platform.module.auth.session.AuthSessionService;
+import com.cwgsyw.platform.module.authorization.AuthorizationRelationshipCleanupService;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
+import com.cwgsyw.platform.module.authorization.dto.AuthorizationRelationshipCleanupResult;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.dto.*;
@@ -26,6 +30,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.cwgsyw.platform.module.org.GroupMembershipService;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +44,10 @@ public class UserService {
     private final PasswordHistoryService passwordHistoryService;
     private final AuthSessionService authSessionService;
     private final SecurityProperties securityProperties;
+    private final GroupMembershipService groupMembershipService;
+    private final AuthorizationRelationshipCleanupService authorizationRelationshipCleanupService;
+    private final AuthorizationWriteLockService authorizationWriteLockService;
+    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<User> list(int page, int size, String tenantId, String keyword) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
@@ -70,6 +79,7 @@ public class UserService {
             throw new IllegalArgumentException("用户名已存在");
         }
         passwordPolicyService.validateNewPassword(req.getUsername(), req.getPassword());
+        activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
 
         User user = new User();
         user.setTenantId(tenantId);
@@ -85,8 +95,11 @@ public class UserService {
         user.setMustChangePassword(true);
         user.setProfileCompleted(StringUtils.hasText(req.getEmail()) && StringUtils.hasText(req.getPhone()));
         userMapper.insert(user);
+        if (user.getGroupId() != null) {
+            groupMembershipService.syncPrimaryMembership(user.getId(), user.getGroupId(), tenantId, operatorId);
+        }
         if (req.getRoleIds() != null && !req.getRoleIds().isEmpty()) {
-            rbacService.assignRolesToUser(user.getId(), req.getRoleIds());
+            rbacService.assignRolesToUser(user.getId(), req.getRoleIds(), operatorId);
         }
 
         passwordHistoryService.record(user.getId(), tenantId, passwordHash, PasswordHistorySource.CREATE_USER, operatorId);
@@ -110,8 +123,14 @@ public class UserService {
 
     @Transactional
     public void update(Long id, UpdateUserRequest req, Long operatorId) {
+        User locatedUser = userMapper.selectById(id);
+        if (locatedUser == null) throw new IllegalArgumentException("用户不存在");
+        authorizationWriteLockService.lockUserAuthorization(locatedUser.getTenantId(), id);
         User user = userMapper.selectById(id);
-        if (user == null) throw new IllegalArgumentException("用户不存在");
+        if (user == null || !locatedUser.getTenantId().equals(user.getTenantId())) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
 
         // Snapshot before update for audit log
         String beforeJson = toAuditJson(user, "***");
@@ -123,8 +142,11 @@ public class UserService {
         boolean disabling = req.getStatus() != null && req.getStatus() != 1 && user.getStatus() != null && user.getStatus() == 1;
         if (req.getStatus() != null) user.setStatus(req.getStatus());
         userMapper.updateById(user);
+        if (req.getGroupId() != null) {
+            groupMembershipService.syncPrimaryMembership(id, user.getGroupId(), user.getTenantId(), operatorId);
+        }
         if (req.getRoleIds() != null) {
-            rbacService.assignRolesToUser(id, req.getRoleIds());
+            rbacService.assignRolesToUser(id, req.getRoleIds(), operatorId);
         }
 
         // 管理员禁用用户后撤销该用户所有会话（SPEC 11.4）
@@ -160,8 +182,14 @@ public class UserService {
 
     @Transactional
     public void delete(Long id, Long operatorId) {
+        User locatedUser = userMapper.selectById(id);
+        if (locatedUser == null) throw new IllegalArgumentException("用户不存在");
+        authorizationWriteLockService.lockUserAuthorization(locatedUser.getTenantId(), id);
         User user = userMapper.selectById(id);
-        if (user == null) throw new IllegalArgumentException("用户不存在");
+        if (user == null || !locatedUser.getTenantId().equals(user.getTenantId())) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        authorizationRelationshipCleanupService.requireNoOwnedResources(user.getTenantId(), id);
 
         // Snapshot before delete for audit log
         String beforeJson = toAuditJson(user, "***");
@@ -171,6 +199,9 @@ public class UserService {
         user.setDeletedAt(LocalDateTime.now());
         userMapper.updateById(user);
         userMapper.deleteById(id);
+
+        AuthorizationRelationshipCleanupResult cleanup = authorizationRelationshipCleanupService
+            .cleanupDeletedUser(user.getTenantId(), id, operatorId);
 
         // 删除用户前撤销所有会话（SPEC 11.4）
         authSessionService.revokeAllForUser(id, operatorId, "ADMIN_DELETE");
@@ -184,7 +215,8 @@ public class UserService {
             .targetType("user")
             .operatorId(operatorId)
             .beforeJson(beforeJson)
-            .remark("删除用户: " + user.getUsername())
+            .remark("删除用户: " + user.getUsername() + "；系统撤销授权关系 "
+                + cleanup.getTotalRelationships() + " 条")
             .createdAt(LocalDateTime.now())
             .build());
     }
