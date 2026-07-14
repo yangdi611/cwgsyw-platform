@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T01:52:33+08:00",
+  "updatedAt": "2026-07-15T02:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
     "observedCommit": "842dc84f0197e2f6fcc54d3141128c1087b3e2e2",
-    "planningBaselineStatus": "PENDING_COMMIT",
-    "planningBaselineCommit": null
+    "planningBaselineStatus": "COMMITTED",
+    "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
   "executionPolicy": {
     "singleWorkspace": true,
