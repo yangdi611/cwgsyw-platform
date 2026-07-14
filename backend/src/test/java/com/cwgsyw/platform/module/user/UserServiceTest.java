@@ -8,8 +8,10 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.SecurityProperties;
 import com.cwgsyw.platform.module.auth.session.AuthSessionService;
 import com.cwgsyw.platform.module.authorization.AuthorizationRelationshipCleanupService;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.authorization.dto.AuthorizationRelationshipCleanupResult;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.GroupMembershipService;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.rbac.RbacService;
@@ -50,6 +52,8 @@ class UserServiceTest {
     @Mock AuthSessionService authSessionService;
     @Mock SecurityProperties securityProperties;
     @Mock AuthorizationRelationshipCleanupService authorizationRelationshipCleanupService;
+    @Mock AuthorizationWriteLockService authorizationWriteLockService;
+    @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @InjectMocks UserService userService;
 
@@ -103,6 +107,7 @@ class UserServiceTest {
         // 密码历史写入（source = CREATE_USER）
         verify(passwordHistoryService).record(eq(100L), eq("default"), eq("encoded-password"),
             eq(PasswordHistorySource.CREATE_USER), eq(1L));
+        verify(activeGroupReferenceValidator).lockAndRequire("default", 1L);
         verify(groupMembershipService).syncPrimaryMembership(100L, 1L, "default", 1L);
 
         // Verify audit log was written
@@ -148,7 +153,7 @@ class UserServiceTest {
     void update_withPhone_changeWritesBeforeAndAfterAuditLog() {
         // Given
         User existing = createUser(1L, "existinguser", "13800138000", 1L);
-        when(userMapper.selectById(1L)).thenReturn(existing);
+        when(userMapper.selectById(1L)).thenReturn(existing, existing);
 
         UpdateUserRequest req = new UpdateUserRequest();
         req.setPhone("13900139000");
@@ -174,12 +179,36 @@ class UserServiceTest {
 
         // 未禁用，不撤销会话
         verify(authSessionService, never()).revokeAllForUser(anyLong(), any(), anyString());
+        var order = inOrder(authorizationWriteLockService, userMapper);
+        order.verify(userMapper).selectById(1L);
+        order.verify(authorizationWriteLockService).lockUserAuthorization("default", 1L);
+        order.verify(userMapper).selectById(1L);
+        order.verify(userMapper).updateById(existing);
+    }
+
+    @Test
+    void update_withGroupValidatesReferenceAfterUserLockBeforeMutation() {
+        User existing = createUser(1L, "existinguser", "13800138000", 1L);
+        when(userMapper.selectById(1L)).thenReturn(existing, existing);
+        UpdateUserRequest req = new UpdateUserRequest();
+        req.setGroupId(2L);
+
+        userService.update(1L, req, 2L);
+
+        var order = inOrder(authorizationWriteLockService, activeGroupReferenceValidator,
+            userMapper, groupMembershipService);
+        order.verify(userMapper).selectById(1L);
+        order.verify(authorizationWriteLockService).lockUserAuthorization("default", 1L);
+        order.verify(userMapper).selectById(1L);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 2L);
+        order.verify(userMapper).updateById(existing);
+        order.verify(groupMembershipService).syncPrimaryMembership(1L, 2L, "default", 2L);
     }
 
     @Test
     void update_disablingUser_revokesAllSessions() {
         User existing = createUser(1L, "existinguser", "13800138000", 1L);
-        when(userMapper.selectById(1L)).thenReturn(existing);
+        when(userMapper.selectById(1L)).thenReturn(existing, existing);
 
         UpdateUserRequest req = new UpdateUserRequest();
         req.setStatus(0);
@@ -197,7 +226,7 @@ class UserServiceTest {
     void delete_writesBeforeAuditLogAndSoftDeletes() {
         // Given
         User existing = createUser(1L, "deleteuser", "13800138000", 1L);
-        when(userMapper.selectById(1L)).thenReturn(existing);
+        when(userMapper.selectById(1L)).thenReturn(existing, existing);
         when(authorizationRelationshipCleanupService.cleanupDeletedUser("default", 1L, 3L))
             .thenReturn(AuthorizationRelationshipCleanupResult.builder().totalRelationships(3).build());
 
@@ -228,6 +257,11 @@ class UserServiceTest {
         verify(authSessionService).revokeAllForUser(1L, 3L, "ADMIN_DELETE");
         verify(authorizationRelationshipCleanupService).requireNoOwnedResources("default", 1L);
         verify(authorizationRelationshipCleanupService).cleanupDeletedUser("default", 1L, 3L);
+        var order = inOrder(authorizationWriteLockService, userMapper);
+        order.verify(userMapper).selectById(1L);
+        order.verify(authorizationWriteLockService).lockUserAuthorization("default", 1L);
+        order.verify(userMapper).selectById(1L);
+        order.verify(userMapper).updateById(existing);
     }
 
     @Test

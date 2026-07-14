@@ -380,19 +380,7 @@ public class AuthorizationCutoverService {
                 """, tenantId, tenantId, tenantId), "role_acl",
             "旧 role ACL 必须手工转换为 user/group ACL");
         addCountIssue(counts, issues, "latestDecisionDiffs", "SHADOW_DECISION_DIFF",
-            count("""
-                SELECT COUNT(*) FROM (
-                    SELECT DISTINCT ON (diff.user_id, diff.module, diff.permission_code,
-                                        diff.resource_type, diff.resource_id)
-                        diff.legacy_allowed, diff.new_allowed
-                    FROM authorization_decision_diff diff
-                    JOIN sys_user u ON u.id = diff.user_id AND u.tenant_id = diff.tenant_id
-                        AND NOT u.is_deleted AND u.status = 1
-                    WHERE diff.tenant_id = ?
-                    ORDER BY diff.user_id, diff.module, diff.permission_code,
-                             diff.resource_type, diff.resource_id, diff.observed_at DESC, diff.id DESC
-                ) latest WHERE legacy_allowed <> new_allowed
-                """, tenantId), "decision_diff", "Shadow 最新判定仍存在差异");
+            count(activeResourceDecisionDiffSql(), tenantId), "decision_diff", "Shadow 最新判定仍存在差异");
         addCountIssue(counts, issues, "unobservedPermissionGrants", "SHADOW_COVERAGE_INCOMPLETE",
             count(unobservedPermissionSql(), tenantId, tenantId), "shadow_coverage",
             "存在尚未经过 Shadow 观测的 Wiki/共享文档授权");
@@ -745,6 +733,44 @@ public class AuthorizationCutoverService {
                 AND source.user_id = d.user_id AND source.permission_code = d.permission_code
             ORDER BY u.username, d.permission_code, source.source_model, source.role_name,
                 source.assignment_id
+            """;
+    }
+
+    String activeResourceDecisionDiffSql() {
+        return """
+            SELECT COUNT(*) FROM (
+                SELECT DISTINCT ON (diff.user_id, diff.module, diff.permission_code,
+                                    diff.resource_type, diff.resource_id)
+                    diff.legacy_allowed, diff.new_allowed
+                FROM authorization_decision_diff diff
+                JOIN sys_user u ON u.id = diff.user_id AND u.tenant_id = diff.tenant_id
+                    AND NOT u.is_deleted AND u.status = 1
+                WHERE diff.tenant_id = ?
+                  AND (
+                      (diff.resource_type = 'wiki_space' AND EXISTS (
+                          SELECT 1 FROM wiki_space resource
+                          WHERE resource.id = diff.resource_id AND resource.tenant_id = diff.tenant_id
+                            AND NOT resource.is_deleted
+                      ))
+                      OR (diff.resource_type = 'wiki_page' AND EXISTS (
+                          SELECT 1 FROM wiki_page resource
+                          WHERE resource.id = diff.resource_id AND resource.tenant_id = diff.tenant_id
+                            AND NOT resource.is_deleted
+                      ))
+                      OR (diff.resource_type = 'shared_folder' AND EXISTS (
+                          SELECT 1 FROM shared_folder resource
+                          WHERE resource.id = diff.resource_id AND resource.tenant_id = diff.tenant_id
+                            AND NOT resource.is_deleted
+                      ))
+                      OR (diff.resource_type = 'shared_file' AND EXISTS (
+                          SELECT 1 FROM shared_file resource
+                          WHERE resource.id = diff.resource_id AND resource.tenant_id = diff.tenant_id
+                            AND NOT resource.is_deleted
+                      ))
+                  )
+                ORDER BY diff.user_id, diff.module, diff.permission_code,
+                         diff.resource_type, diff.resource_id, diff.observed_at DESC, diff.id DESC
+            ) latest WHERE legacy_allowed <> new_allowed
             """;
     }
 

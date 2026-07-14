@@ -57,12 +57,45 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void assignmentOutsideResourceScopeReturnsRoleScopeNotCovered() {
+        ResourceDescriptor resource = resource(8L, 9L, 4L, 0660, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("ROLE_SCOPE_NOT_COVERED", decision.getReasonCode());
+        assertNull(decision.getMatchedRoleAssignmentId());
+    }
+
+    @Test
+    void coveredAssignmentWithDeniedResourceModeReturnsResourceAccessDenied() {
+        ResourceDescriptor resource = resource(8L, 9L, 3L, 0600, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("RESOURCE_ACCESS_DENIED", decision.getReasonCode());
+        assertEquals(20L, decision.getMatchedRoleAssignmentId());
+        assertEquals("group", decision.getMatchedScopeType());
+        assertEquals(3L, decision.getMatchedScopeId());
+    }
+
+    @Test
     void groupScopeAndGroupModeAllowRead() {
         ResourceDescriptor resource = resource(8L, 9L, 3L, 0660, null);
         when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
         when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
             .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
-        when(membershipMapper.findActiveGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
         when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
         when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
 
@@ -79,7 +112,7 @@ class AuthorizationServiceTest {
         when(resourceRepository.find("default", "shared_file", 8L)).thenReturn(resource);
         when(scopedPermissionMapper.findAssignments("default", 7L, "shared_file:read"))
             .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
-        when(membershipMapper.findActiveGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
         when(resourceAclMapper.findAccessEntries("default", "shared_file", 8L))
             .thenReturn(List.of(new ResourceAclRow("user", 7L, 0)));
 
@@ -99,7 +132,7 @@ class AuthorizationServiceTest {
         when(resourceRepository.find("default", "wiki_space", 2L)).thenReturn(space);
         when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
             .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
-        when(membershipMapper.findActiveGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
         when(resourceAclMapper.findAccessEntries("default", "wiki_space", 2L)).thenReturn(List.of());
 
         AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
@@ -116,7 +149,7 @@ class AuthorizationServiceTest {
         when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
         when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
             .thenReturn(List.of(new ScopedPermissionRow(20L, "platform", null)));
-        when(membershipMapper.findActiveGroupIds("default", 7L)).thenReturn(List.of());
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of());
         when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
         when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
         when(breakGlassService.isActive(user)).thenReturn(true);

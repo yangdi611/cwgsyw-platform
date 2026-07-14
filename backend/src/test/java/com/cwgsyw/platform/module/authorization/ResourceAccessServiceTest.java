@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.authorization;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.authorization.dto.ResourceAccessRequest;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceAccessServiceTest {
@@ -30,6 +32,7 @@ class ResourceAccessServiceTest {
     @Mock ResourceDescriptorRepository descriptorRepository;
     @Mock AuthorizationService authorizationService;
     @Mock AuditLogMapper auditLogMapper;
+    @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     private ResourceAccessService service;
     private SecurityUser user;
@@ -37,14 +40,14 @@ class ResourceAccessServiceTest {
     @BeforeEach
     void setUp() {
         service = new ResourceAccessService(jdbcTemplate, descriptorRepository,
-            authorizationService, auditLogMapper);
+            authorizationService, auditLogMapper, activeGroupReferenceValidator);
         user = new SecurityUser(7L, "admin", "hash", "default", 3L, "platform", Set.of());
     }
 
     @Test
     void staleVersionRejectsBeforeReplacingAcl() {
         when(descriptorRepository.find("default", "wiki_page", 8L)).thenReturn(resource(3L));
-        stubValidOwnerAndGroup();
+        stubValidOwner();
         when(jdbcTemplate.update(anyString(), eq(9L), eq(4L), eq(440), eq(8L),
             eq("default"), eq(2L))).thenReturn(0);
 
@@ -58,7 +61,7 @@ class ResourceAccessServiceTest {
     void ownerTransferReturnsUpdatedSnapshotWithoutReauthorizingNewOwner() {
         when(descriptorRepository.find("default", "wiki_page", 8L))
             .thenReturn(resource(2L), resource(3L));
-        stubValidOwnerAndGroup();
+        stubValidOwner();
         when(jdbcTemplate.update(anyString(), eq(9L), eq(4L), eq(440), eq(8L),
             eq("default"), eq(2L))).thenReturn(1);
         when(jdbcTemplate.update(anyString(), eq(7L), eq("default"), eq("wiki_page"), eq(8L)))
@@ -84,7 +87,7 @@ class ResourceAccessServiceTest {
     @Test
     void rejectsDuplicateAccessSubjects() {
         when(descriptorRepository.find("default", "wiki_page", 8L)).thenReturn(resource(2L));
-        stubValidOwnerAndGroup();
+        stubValidOwner();
         ResourceAccessRequest request = request(2L);
         request.setEntries(List.of(entry("group", 4L, "r--"), entry("group", 4L, "rw-")));
         when(jdbcTemplate.update(anyString(), eq(9L), eq(4L), eq(440), eq(8L),
@@ -96,10 +99,29 @@ class ResourceAccessServiceTest {
             () -> service.replace(user, "wiki_page", 8L, request));
     }
 
-    private void stubValidOwnerAndGroup() {
+    @Test
+    void ownerAndGroupAclSubjectsAreLockedInAscendingOrderBeforeResourceMutation() {
+        when(descriptorRepository.find("default", "wiki_page", 8L)).thenReturn(resource(2L));
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(9L), eq("default")))
             .thenReturn(1L);
-        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(4L), eq("default")))
+        ResourceAccessRequest request = request(2L);
+        request.setOwnerGroupId(5L);
+        request.setEntries(List.of(entry("group", 7L, "r--"), entry("group", 3L, "rw-")));
+        when(jdbcTemplate.update(anyString(), eq(9L), eq(5L), eq(440), eq(8L),
+            eq("default"), eq(2L))).thenReturn(1);
+
+        service.replace(user, "wiki_page", 8L, request);
+
+        var order = inOrder(activeGroupReferenceValidator, jdbcTemplate);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 3L);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 5L);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 7L);
+        order.verify(jdbcTemplate).update(anyString(), eq(9L), eq(5L), eq(440), eq(8L),
+            eq("default"), eq(2L));
+    }
+
+    private void stubValidOwner() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(9L), eq("default")))
             .thenReturn(1L);
     }
 

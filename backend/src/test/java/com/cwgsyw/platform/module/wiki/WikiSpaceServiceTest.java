@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.module.rbac.RbacService;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.rbac.entity.SysPermission;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
 import com.cwgsyw.platform.module.wiki.dto.WikiSpaceAclDTO;
@@ -36,6 +37,7 @@ class WikiSpaceServiceTest {
     @Mock com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationService authorizationService;
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService resourceMigrationService;
+    @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @InjectMocks WikiSpaceService service;
 
@@ -411,5 +413,31 @@ class WikiSpaceServiceTest {
         org.mockito.ArgumentCaptor<WikiSpaceAcl> captor = org.mockito.ArgumentCaptor.forClass(WikiSpaceAcl.class);
         verify(spaceAclMapper).insert(captor.capture());
         assertThat(captor.getValue().getPermissions()).containsExactly("update");
+    }
+
+    @Test
+    void setAclValidatesGroupSubjectsInAscendingOrderBeforeMutation() {
+        WikiSpace mySpace = userSpace(100L, 3L);
+        when(spaceMapper.selectById(100L)).thenReturn(mySpace);
+        SecurityUser creator = user(3L, "group", Set.of());
+        com.cwgsyw.platform.module.wiki.dto.SpaceAclEntryDTO first =
+            new com.cwgsyw.platform.module.wiki.dto.SpaceAclEntryDTO();
+        first.setSubjectType("group");
+        first.setSubjectId(9L);
+        first.setPermissions(List.of("update"));
+        com.cwgsyw.platform.module.wiki.dto.SpaceAclEntryDTO second =
+            new com.cwgsyw.platform.module.wiki.dto.SpaceAclEntryDTO();
+        second.setSubjectType("group");
+        second.setSubjectId(4L);
+        second.setPermissions(List.of("publish"));
+        WikiSpaceAclDTO dto = new WikiSpaceAclDTO();
+        dto.setEntries(List.of(first, second));
+
+        service.setAcl("default", 100L, 3L, creator, dto);
+
+        var order = inOrder(activeGroupReferenceValidator, spaceAclMapper);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 4L);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 9L);
+        order.verify(spaceAclMapper).delete(any());
     }
 }

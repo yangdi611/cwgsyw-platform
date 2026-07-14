@@ -13,18 +13,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorizationRelationshipCleanupServiceTest {
     @Mock JdbcTemplate jdbcTemplate;
+    @Mock AuthorizationWriteLockService authorizationWriteLockService;
 
     private AuthorizationRelationshipCleanupService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuthorizationRelationshipCleanupService(jdbcTemplate);
+        service = new AuthorizationRelationshipCleanupService(jdbcTemplate, authorizationWriteLockService);
     }
 
     @Test
@@ -32,6 +34,8 @@ class AuthorizationRelationshipCleanupServiceTest {
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(4L), eq(4L))).thenReturn(1L);
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(4L), eq(4L),
             eq("default"), eq("default"))).thenReturn(1L);
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq("default"), eq(4L),
+            eq(4L))).thenReturn(java.util.List.of(9L, 3L, 9L));
         when(jdbcTemplate.update(anyString(), eq(1L), eq(1L), eq("default"),
             eq(4L), eq(4L), eq(4L), eq(4L))).thenReturn(0);
         when(jdbcTemplate.update(anyString(), eq(4L), eq(4L), eq(4L), eq(4L),
@@ -42,6 +46,30 @@ class AuthorizationRelationshipCleanupServiceTest {
 
         assertEquals(1, result.getLegacyUserRoles());
         assertEquals(1, result.getTotalRelationships());
+        var lockOrder = inOrder(authorizationWriteLockService);
+        lockOrder.verify(authorizationWriteLockService).lockUserAuthorization("default", 4L);
+        lockOrder.verify(authorizationWriteLockService).lockRoleAuthorization("default", 4L);
+        lockOrder.verify(authorizationWriteLockService).lockGroupAssignment("default", 4L, 3L);
+        lockOrder.verify(authorizationWriteLockService).lockGroupAssignment("default", 4L, 9L);
+    }
+
+    @Test
+    void cleanupDeletedUserLocksAllAffectedGroupsInStableOrder() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class),
+            eq("default"), eq(7L))).thenReturn(1L);
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq(7L),
+            eq("default"), eq(7L))).thenReturn(java.util.List.of(6L, 4L, 6L));
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq("default"), eq(7L),
+            eq("default"), eq(7L))).thenReturn(java.util.List.of(11L, 2L, 11L));
+
+        service.cleanupDeletedUser("default", 7L, 1L);
+
+        var lockOrder = inOrder(authorizationWriteLockService);
+        lockOrder.verify(authorizationWriteLockService).lockUserAuthorization("default", 7L);
+        lockOrder.verify(authorizationWriteLockService).lockRoleAuthorization("default", 4L);
+        lockOrder.verify(authorizationWriteLockService).lockRoleAuthorization("default", 6L);
+        lockOrder.verify(authorizationWriteLockService).lockGroupAssignment("default", 7L, 2L);
+        lockOrder.verify(authorizationWriteLockService).lockGroupAssignment("default", 7L, 11L);
     }
 
     @Test

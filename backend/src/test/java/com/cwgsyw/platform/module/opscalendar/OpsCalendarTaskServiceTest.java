@@ -13,6 +13,8 @@ import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarNotificationSer
 import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarTaskService;
 import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarVisibilityService;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
+import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,7 @@ class OpsCalendarTaskServiceTest {
     @Mock UserMapper userMapper;
     @Mock GroupMapper groupMapper;
     @Mock AuditLogMapper auditLogMapper;
+    @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @InjectMocks OpsCalendarTaskService service;
 
@@ -142,5 +145,58 @@ class OpsCalendarTaskServiceTest {
         assertThatThrownBy(() -> service.createManual(groupLeader(), request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("截止时间不能早于计划开始时间");
+    }
+
+    @Test
+    void createManual_validatesEffectiveGroupBeforeInsert() {
+        when(taskMapper.insert(any(OpsScheduleTask.class))).thenAnswer(invocation -> {
+            OpsScheduleTask task = invocation.getArgument(0);
+            task.setId(103L);
+            return 1;
+        });
+        when(participantMapper.selectCount(any())).thenReturn(0L);
+
+        service.createManual(groupLeader(), minimalRequest());
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(activeGroupReferenceValidator, taskMapper);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 1L);
+        order.verify(taskMapper).insert(any(OpsScheduleTask.class));
+    }
+
+    @Test
+    void completedTask_usesTenantBoundHistoricalGroupLookup() {
+        assertHistoricalTaskUsesArchivedGroup("completed");
+    }
+
+    @Test
+    void exceptionClosedTask_usesTenantBoundHistoricalGroupLookup() {
+        assertHistoricalTaskUsesArchivedGroup("exception_closed");
+    }
+
+    @Test
+    void cancelledTask_usesTenantBoundHistoricalGroupLookup() {
+        assertHistoricalTaskUsesArchivedGroup("cancelled");
+    }
+
+    private void assertHistoricalTaskUsesArchivedGroup(String status) {
+        OpsScheduleTask task = new OpsScheduleTask();
+        task.setId(104L);
+        task.setTenantId("default");
+        task.setStatus(status);
+        task.setGroupId(15L);
+        task.setSensitive(false);
+        Group archived = new Group();
+        archived.setId(15L);
+        archived.setName("历史运维组");
+        archived.setIsDeleted(true);
+        when(visibilityService.canViewDetail(any(), any(), any())).thenReturn(true);
+        when(visibilityService.canOperate(any(), any(), any())).thenReturn(false);
+        when(groupMapper.findByTenantAndIdIncludingDeleted("default", 15L)).thenReturn(archived);
+
+        var vo = service.toVO(task, groupLeader(), null, null);
+
+        assertThat(vo.getGroupName()).isEqualTo("历史运维组");
+        assertThat(vo.getGroupArchived()).isTrue();
+        org.mockito.Mockito.verify(groupMapper, org.mockito.Mockito.never()).selectById(15L);
     }
 }

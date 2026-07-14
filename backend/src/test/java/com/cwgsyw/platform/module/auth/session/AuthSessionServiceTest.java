@@ -70,6 +70,7 @@ class AuthSessionServiceTest {
 
         assertNotNull(record.getSessionId());
         assertEquals(1L, record.getUserId());
+        assertEquals(1L, record.getSessionEpoch());
         assertFalse(record.getRevoked());
         verify(valueOps).set(eq("auth:session:" + record.getSessionId()), anyString(), anyLong(), any(TimeUnit.class));
         verify(setOps).add(eq("auth:userSessions:1"), eq(record.getSessionId()));
@@ -133,6 +134,30 @@ class AuthSessionServiceTest {
     void validate_withinIdleWindow_returnsValid() throws Exception {
         AuthSessionRecord record = buildRecord("sess-1", 1L, LocalDateTime.now().minusMinutes(5), false);
         when(valueOps.get("auth:session:sess-1")).thenReturn(objectMapper.writeValueAsString(record));
+
+        SessionValidationResult result = service.validate("sess-1", 1L);
+
+        assertEquals(AuthSessionStatus.VALID, result.getStatus());
+    }
+
+    @Test
+    void validate_staleGlobalEpoch_returnsInvalidWithoutDeletingSession() throws Exception {
+        AuthSessionRecord record = buildRecord("sess-1", 1L, LocalDateTime.now(), false);
+        record.setSessionEpoch(1L);
+        when(valueOps.get("auth:session:sess-1")).thenReturn(objectMapper.writeValueAsString(record));
+        when(valueOps.get("auth:sessionEpoch")).thenReturn("2");
+
+        SessionValidationResult result = service.validate("sess-1", 1L);
+
+        assertEquals(AuthSessionStatus.INVALID, result.getStatus());
+        verify(valueOps, never()).set(eq("auth:session:sess-1"), anyString(), anyLong(), any());
+    }
+
+    @Test
+    void validate_legacySessionRemainsCompatibleAtInitialEpoch() throws Exception {
+        AuthSessionRecord record = buildRecord("sess-1", 1L, LocalDateTime.now(), false);
+        when(valueOps.get("auth:session:sess-1")).thenReturn(objectMapper.writeValueAsString(record));
+        when(valueOps.get("auth:sessionEpoch")).thenReturn(null);
 
         SessionValidationResult result = service.validate("sess-1", 1L);
 

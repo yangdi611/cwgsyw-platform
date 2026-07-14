@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.module.rbac.RbacService;
+import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
+import com.cwgsyw.platform.module.wiki.dto.AclEntryDTO;
 import com.cwgsyw.platform.module.wiki.dto.AclForcedGrantDTO;
 import com.cwgsyw.platform.module.wiki.dto.WikiAclDTO;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
@@ -29,6 +31,7 @@ class WikiAclServiceTest {
     @Mock com.cwgsyw.platform.module.rbac.SysRoleMapper roleMapper;
     @Mock com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock WikiSpaceService spaceService;
+    @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     @InjectMocks WikiAclService service;
 
@@ -165,5 +168,25 @@ class WikiAclServiceTest {
         WikiAclDTO dto = service.getAcl("default", 88L);
 
         assertThat(dto.getForcedEntries()).containsExactly(forced);
+    }
+
+    @Test
+    void setAclValidatesGroupSubjectsBeforePageOrAclMutation() {
+        WikiPage self = page(88L);
+        when(pageMapper.selectById(88L)).thenReturn(self);
+        WikiAclDTO dto = new WikiAclDTO();
+        dto.setInherited(false);
+        AclEntryDTO groupEntry = new AclEntryDTO();
+        groupEntry.setSubjectType("group");
+        groupEntry.setSubjectId(7L);
+        groupEntry.setPermissions(List.of("read"));
+        dto.setEntries(List.of(groupEntry));
+
+        service.setAcl("default", 88L, 5L, dto);
+
+        var order = inOrder(activeGroupReferenceValidator, pageMapper, aclMapper);
+        order.verify(activeGroupReferenceValidator).lockAndRequire("default", 7L);
+        order.verify(pageMapper).updateById(self);
+        order.verify(aclMapper).insert(any(WikiPageAcl.class));
     }
 }

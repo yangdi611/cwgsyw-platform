@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.rbac;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.module.authorization.AuthorizationWriteLockService;
 import com.cwgsyw.platform.module.rbac.dto.CreateRoleRequest;
 import com.cwgsyw.platform.module.rbac.entity.SysPermission;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
@@ -27,6 +28,7 @@ class RoleManagementServiceTest {
     @Mock RoleAssignmentMapper assignmentMapper;
     @Mock RbacService rbacService;
     @Mock AuditLogMapper auditLogMapper;
+    @Mock AuthorizationWriteLockService authorizationWriteLockService;
     @InjectMocks RoleManagementService service;
 
     @Test
@@ -71,5 +73,47 @@ class RoleManagementServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.delete(1L, "default", 2L));
         verify(roleMapper, never()).deleteById(any(SysRole.class));
+    }
+
+    @Test
+    void deleteLocksRoleThenRechecksAndSoftDeletesExactlyOneRow() {
+        SysRole role = customRole(3L);
+        when(roleMapper.selectById(3L)).thenReturn(role);
+        when(userRoleMapper.findUserIdsByRoleIds(List.of(3L))).thenReturn(List.of());
+        when(assignmentMapper.selectCount(any())).thenReturn(0L);
+        when(roleMapper.softDeleteActiveCustomRole(3L, "default", 2L)).thenReturn(1);
+        when(auditLogMapper.insert(any(com.cwgsyw.platform.common.entity.AuditLog.class))).thenReturn(1);
+
+        service.delete(3L, "default", 2L);
+
+        var order = inOrder(authorizationWriteLockService, roleMapper, userRoleMapper, assignmentMapper);
+        order.verify(authorizationWriteLockService).lockRoleAuthorization("default", 3L);
+        order.verify(roleMapper).selectById(3L);
+        order.verify(userRoleMapper).findUserIdsByRoleIds(List.of(3L));
+        order.verify(assignmentMapper).selectCount(any());
+        order.verify(roleMapper).softDeleteActiveCustomRole(3L, "default", 2L);
+        verify(roleMapper, never()).deleteById(any(SysRole.class));
+    }
+
+    @Test
+    void zeroRowRoleDeleteDoesNotWriteSuccessAudit() {
+        when(roleMapper.selectById(3L)).thenReturn(customRole(3L));
+        when(userRoleMapper.findUserIdsByRoleIds(List.of(3L))).thenReturn(List.of());
+        when(assignmentMapper.selectCount(any())).thenReturn(0L);
+        when(roleMapper.softDeleteActiveCustomRole(3L, "default", 2L)).thenReturn(0);
+
+        assertThrows(IllegalStateException.class, () -> service.delete(3L, "default", 2L));
+
+        verify(auditLogMapper, never()).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
+    }
+
+    private SysRole customRole(Long id) {
+        SysRole role = new SysRole();
+        role.setId(id);
+        role.setTenantId("default");
+        role.setCode("wiki_reader");
+        role.setIsBuiltin(false);
+        role.setRoleType("functional");
+        return role;
     }
 }
