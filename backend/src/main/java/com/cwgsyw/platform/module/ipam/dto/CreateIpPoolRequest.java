@@ -12,4 +12,5 @@ public class CreateIpPoolRequest {
     private String cidr;
     private String gateway;
     private String dns;
+    private Long groupId;
 }

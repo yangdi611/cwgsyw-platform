@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("ip_pool")
 public class IpPool extends BaseEntity {
+    private Long groupId;
     private String name;
     private String description;
     private String cidr;

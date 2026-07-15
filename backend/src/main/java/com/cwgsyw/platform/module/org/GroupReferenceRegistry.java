@@ -40,6 +40,7 @@ public final class GroupReferenceRegistry {
     private static final Set<ForeignKeyDescriptor> REQUIRED_FOREIGN_KEYS = Set.of(
         new ForeignKeyDescriptor("daily_report", "group_id"),
         new ForeignKeyDescriptor("device", "group_id"),
+        new ForeignKeyDescriptor("ip_pool", "group_id"),
         new ForeignKeyDescriptor("ops_duty_roster", "group_id"),
         new ForeignKeyDescriptor("ops_schedule_task", "group_id"),
         new ForeignKeyDescriptor("sys_user", "group_id"),
@@ -101,7 +102,7 @@ public final class GroupReferenceRegistry {
                 errors.add("missing-writer-coverage:" + descriptor.referenceType());
             }
         }
-        if (requiredTriggers().size() != 17) {
+        if (requiredTriggers().size() != 18) {
             errors.add("trigger-denominator:" + requiredTriggers().size());
         }
         if (REQUIRED_FUNCTIONS.size() != 7) {
@@ -148,6 +149,9 @@ public final class GroupReferenceRegistry {
         descriptors.add(scalar("devices", "device", "group_id", "NOT is_deleted",
             "trg_device_active_group", "GROUP_ACTIVE_DEVICES", "该组仍关联 {count} 个活动设备",
             "先通过设备管理解除或迁移组引用", List.of("DeviceService#create", "DeviceService#update")));
+        descriptors.add(scalar("ipPools", "ip_pool", "group_id", "NOT is_deleted",
+            "trg_ip_pool_active_group", "GROUP_ACTIVE_IP_POOLS", "该组仍拥有 {count} 个活动地址池",
+            "先通过 IP 地址池管理迁移或删除组归属", List.of("IpPoolService#create")));
         descriptors.add(scalar("deviceCredentials", "device_credential", "group_id", "NOT is_deleted",
             "trg_device_credential_active_group", "GROUP_ACTIVE_DEVICE_CREDENTIALS",
             "该组仍关联 {count} 条活动凭据", "先通过凭据管理解除或迁移组引用",

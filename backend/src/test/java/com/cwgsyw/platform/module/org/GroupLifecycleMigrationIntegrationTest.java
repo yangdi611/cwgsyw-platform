@@ -89,7 +89,7 @@ class GroupLifecycleMigrationIntegrationTest {
                     'enforce_active_group_scalar_reference'
                 )
                 """));
-            assertEquals(17, queryInt(connection, """
+            assertEquals(18, queryInt(connection, """
                 SELECT COUNT(*) FROM pg_trigger
                 WHERE NOT tgisinternal AND tgname LIKE 'trg_%_active_group%'
                 """));
@@ -757,6 +757,11 @@ class GroupLifecycleMigrationIntegrationTest {
                 INSERT INTO device (tenant_id, group_id, name, device_type)
                 VALUES (%s, %d, %s, 'server')
                 """.formatted(tenant, group, literal(unique("device-ref")))),
+            new WriterCase("ip-pool", """
+                INSERT INTO ip_pool
+                    (tenant_id, group_id, name, cidr, status, total_count, allocated_count)
+                VALUES (%s, %d, %s, '10.254.0.0/30', 'active', 2, 0)
+                """.formatted(tenant, group, literal(unique("ip-pool-ref")))),
             new WriterCase("device-credential", """
                 INSERT INTO device_credential
                     (tenant_id, device_id, group_id, username, password_enc)

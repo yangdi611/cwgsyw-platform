@@ -5,9 +5,13 @@ import com.cwgsyw.platform.module.ipam.entity.IpPool;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface IpPoolMapper extends BaseMapper<IpPool> {
+
+    @Update("SELECT pg_advisory_xact_lock(hashtext(#{tenantId}))")
+    void lockTenantForCidrChange(@Param("tenantId") String tenantId);
 
     @Select("SELECT COUNT(*) FROM ip_allocation WHERE pool_id = #{poolId} AND is_deleted = FALSE AND status = 'allocated'")
     int countAllocated(@Param("poolId") Long poolId);

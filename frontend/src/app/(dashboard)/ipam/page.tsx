@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
@@ -28,6 +29,7 @@ import { Plus, Trash2, Search, Eye } from 'lucide-react'
 
 interface IpPoolVO {
   id: number
+  groupId: number
   name: string
   description: string
   cidr: string
@@ -41,6 +43,11 @@ interface IpPoolVO {
   updatedAt: string
 }
 
+interface Group {
+  id: number
+  name: string
+}
+
 function poolStatusMeta(s: string): { variant: 'ok' | 'warn' | 'danger' | 'neutral'; label: string } {
   if (s === 'active') return { variant: 'ok', label: '活跃' }
   if (s === 'full') return { variant: 'danger', label: '已满' }
@@ -51,6 +58,8 @@ function poolStatusMeta(s: string): { variant: 'ok' | 'warn' | 'danger' | 'neutr
 export default function IpamPage() {
   const router = useRouter()
   const { hasPermission } = usePermission()
+  const userGroupId = useAuthStore((state) => state.groupId)
+  const userGroupScope = useAuthStore((state) => state.groupScope)
   const queryClient = useQueryClient()
 
   const [keyword, setKeyword] = useState('')
@@ -65,8 +74,15 @@ export default function IpamPage() {
     gateway: '',
     dns: '',
     description: '',
+    groupId: '',
   })
   const [deleteTarget, setDeleteTarget] = useState<IpPoolVO | null>(null)
+  const needsGroupSelect = userGroupScope !== 'group'
+  const { data: groups = [] } = useQuery<Group[]>({
+    queryKey: ['groups'],
+    queryFn: () => api.get('/groups').then((response) => response.data.data?.records ?? response.data.data ?? []),
+    enabled: createOpen && needsGroupSelect,
+  })
 
   useEffect(() => {
     if (!hasPermission('ip_pool', 'read')) router.replace('/')
@@ -87,12 +103,12 @@ export default function IpamPage() {
   const total = data?.total ?? 0
 
   const createMutation = useMutation({
-    mutationFn: (body: typeof createForm) => api.post('/ip-pools', body).then((r) => r.data),
+    mutationFn: (body: typeof createForm) => api.post('/ip-pools', { ...body, groupId: Number(body.groupId) }).then((r) => r.data),
     onSuccess: () => {
       toast.success('地址池已创建')
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setCreateOpen(false)
-      setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '' })
+      setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
   })
@@ -116,7 +132,11 @@ export default function IpamPage() {
       toast.error('请填写 CIDR')
       return
     }
-    createMutation.mutate(createForm)
+    if (!userGroupId && !createForm.groupId) {
+      toast.error('请选择地址池归属组')
+      return
+    }
+    createMutation.mutate({ ...createForm, groupId: String(userGroupId ?? createForm.groupId) })
   }
 
   const columns: ColumnDef<IpPoolVO>[] = [
@@ -208,7 +228,7 @@ export default function IpamPage() {
               variant="primary"
               onClick={() => {
                 setCreateOpen(true)
-                setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '' })
+                setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
               }}
             >
               <Plus className="h-4 w-4" />
@@ -287,6 +307,21 @@ export default function IpamPage() {
                 />
               </div>
             </div>
+            {needsGroupSelect && (
+              <div className="space-y-1.5">
+                <Label>归属组 *</Label>
+                <Select value={createForm.groupId} onValueChange={(value) => setCreateForm((form) => ({ ...form, groupId: value ?? '' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择归属组">
+                      {(value: string) => groups.find((group) => String(group.id) === value)?.name ?? '请选择归属组'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((group) => <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>网关</Label>
@@ -321,7 +356,7 @@ export default function IpamPage() {
               variant="primary"
               size="sm"
               onClick={handleCreate}
-              disabled={!createForm.name.trim() || !createForm.cidr.trim() || createMutation.isPending}
+              disabled={!createForm.name.trim() || !createForm.cidr.trim() || (needsGroupSelect && !createForm.groupId) || createMutation.isPending}
             >
               {createMutation.isPending ? '创建中…' : '创建'}
             </Button>

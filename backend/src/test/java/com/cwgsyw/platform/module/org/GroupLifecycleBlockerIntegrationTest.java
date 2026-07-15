@@ -60,6 +60,7 @@ class GroupLifecycleBlockerIntegrationTest {
         "roleAssignments",
         "openDailyReports",
         "devices",
+        "ipPools",
         "deviceCredentials",
         "openOpsTasks",
         "currentFutureRosters",
@@ -278,6 +279,11 @@ class GroupLifecycleBlockerIntegrationTest {
                 INSERT INTO device (tenant_id, group_id, name, device_type)
                 VALUES (?, ?, ?, 'server')
                 """, fixture.tenantId(), fixture.groupId(), "FQA grouped device " + fixture.suffix());
+            case "ipPools" -> update("""
+                INSERT INTO ip_pool
+                    (tenant_id, group_id, name, cidr, status, total_count, allocated_count)
+                VALUES (?, ?, ?, '10.254.0.0/30', 'active', 2, 0)
+                """, fixture.tenantId(), fixture.groupId(), "FQA IP pool " + fixture.suffix());
             case "deviceCredentials" -> update("""
                 INSERT INTO device_credential
                     (tenant_id, device_id, group_id, username, password_enc)
