@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T18:35:00+08:00",
+  "updatedAt": "2026-07-15T19:14:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-020_L1_L3_PASS",
-  "nextEvent": "REM-P1-021",
-  "nextBranch": "codex/rem-p1-021-stored-object-delete-compensation",
-  "nextAction": "Create the REM-P1-021 event branch from latest lint-fix, complete upstream impact and root-cause confirmation before editing.",
+  "lastCompletedGate": "REM-P1-021_L1_L3_PASS",
+  "nextEvent": "REM-P1-022",
+  "nextBranch": "codex/rem-p1-022-shared-file-update-consumer",
+  "nextAction": "Create REM-P1-022 branch from lint-fix and begin upstream impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 12,
+    "verified": 13,
     "verifying": 0,
-    "notStarted": 29,
+    "notStarted": 28,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -51,7 +51,8 @@
       "REM-P1-017",
       "REM-P1-018",
       "REM-P1-019",
-      "REM-P1-020"
+      "REM-P1-020",
+      "REM-P1-021"
     ],
     "verifying": [],
     "inProgress": [],
@@ -61,7 +62,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-021",
       "REM-P1-022",
       "REM-P1-023",
       "REM-P1-024",
@@ -98,7 +98,6 @@
     "REM-P1-017",
     "REM-P1-018",
     "REM-P1-019",
-      "REM-P1-021",
     "REM-P1-022",
     "REM-P1-023",
     "REM-P1-024",
@@ -172,6 +171,10 @@
     "REM-P1-020": {
       "eventCommit": "7dbd3fd16c29186f11bd9a14d1e22f0649d51543",
       "mergeCommit": "dc549f950be18e8e22b780407b43ae105c9ae8e5"
+    },
+    "REM-P1-021": {
+      "eventCommit": "784dce52c224da512f2c607f6fb76e68936afd27",
+      "mergeCommit": null
     }
   },
   "l4": {
@@ -195,6 +198,7 @@
     "REM-P1-017 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-018.",
     "REM-P1-018 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-019.",
     "REM-P1-019 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
-    "REM-P1-020 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes."
+    "REM-P1-020 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-021 L1-L3 storage compensation and Wiki attachment lifecycle passed; event commit 784dce52 is merged with this checkpoint advance."
   ]
 }

@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import io.minio.*;
+import com.cwgsyw.platform.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,6 +64,31 @@ public class MinioStorageService {
                     .build());
         } catch (Exception e) {
             log.warn("删除文件失败 key={}: {}", objectKey, e.getMessage());
+        }
+    }
+
+    public void deleteOrThrow(String objectKey) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build());
+        } catch (Exception e) {
+            log.warn("删除文件失败 key={}: {}", objectKey, e.getMessage());
+            throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
+        }
+    }
+
+    public void copyOrThrow(String sourceKey, String targetKey) {
+        try {
+            minioClient.copyObject(CopyObjectArgs.builder()
+                .bucket(bucket)
+                .object(targetKey)
+                .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                .build());
+        } catch (Exception e) {
+            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, e.getMessage());
+            throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         }
     }
 

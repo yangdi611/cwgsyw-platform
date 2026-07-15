@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-021` |
 | 优先级 | P1 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@
 - 不删除历史孤儿对象而无报告
 - 不改变下载权限
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：对象删除失败返回 `503` 且保留记录；独立附件删除与页面级联回收均完成运行时 API 复验，测试对象已通过产品 API 精确清理。等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

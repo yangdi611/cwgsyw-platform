@@ -19,6 +19,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -264,11 +266,23 @@ public class SharedFileService {
                 .eq(SharedFile::getId, fileId));
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
         String before = fileSnapshot(sf);
-
-        storageService.delete(sf.getMinioKey());
-        if (StringUtils.hasText(sf.getMdKey())) {
-            storageService.delete(sf.getMdKey());
+        List<String> objectKeys = new ArrayList<>();
+        objectKeys.add(sf.getMinioKey());
+        if (StringUtils.hasText(sf.getMdKey())) objectKeys.add(sf.getMdKey());
+        String backupPrefix = "shared/delete-backup/" + UUID.randomUUID() + "/";
+        List<String> backupKeys = new ArrayList<>();
+        try {
+            for (int index = 0; index < objectKeys.size(); index++) {
+                String backupKey = backupPrefix + index;
+                storageService.copyOrThrow(objectKeys.get(index), backupKey);
+                backupKeys.add(backupKey);
+            }
+            for (String objectKey : objectKeys) storageService.deleteOrThrow(objectKey);
+        } catch (RuntimeException exception) {
+            restoreObjects(backupKeys, objectKeys, exception);
+            throw exception;
         }
+        registerObjectCleanup(backupKeys, objectKeys);
         fileMapper.deleteById(fileId);
 
         auditLogMapper.insert(AuditLog.builder()
@@ -277,6 +291,32 @@ public class SharedFileService {
                 .beforeJson(before)
                 .operatorId(operatorId).remark("name=" + sf.getOriginalName())
                 .createdAt(LocalDateTime.now()).build());
+
+    }
+
+    private void registerObjectCleanup(List<String> backupKeys, List<String> objectKeys) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) restoreObjects(backupKeys, objectKeys, null);
+                    for (String backupKey : backupKeys) storageService.delete(backupKey);
+                }
+            });
+        } else {
+            for (String backupKey : backupKeys) storageService.delete(backupKey);
+        }
+    }
+
+    private void restoreObjects(List<String> backupKeys, List<String> objectKeys, RuntimeException originalFailure) {
+        for (int index = 0; index < backupKeys.size(); index++) {
+            try {
+                storageService.copyOrThrow(backupKeys.get(index), objectKeys.get(index));
+            } catch (RuntimeException restoreFailure) {
+                if (originalFailure != null) originalFailure.addSuppressed(restoreFailure);
+                else log.error("恢复共享文件对象失败 key={}", objectKeys.get(index), restoreFailure);
+            }
+        }
     }
 
     @Transactional
