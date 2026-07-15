@@ -301,6 +301,7 @@ export default function DeviceDetailPage() {
                 value={editForm.category ?? ''}
                 onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
                 placeholder="生产/测试/开发"
+                maxLength={64}
               />
             </div>
             <div className="space-y-1.5">
@@ -308,6 +309,7 @@ export default function DeviceDetailPage() {
               <Input
                 value={editForm.description ?? ''}
                 onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                maxLength={2000}
               />
             </div>
             <div className="flex gap-2">
@@ -380,18 +382,20 @@ export default function DeviceDetailPage() {
               <div className="space-y-1">
                 <Label className="text-xs">用户名 *</Label>
                 <Input
-                  value={newCred.username}
-                  onChange={(e) => setNewCred((p) => ({ ...p, username: e.target.value }))}
-                  placeholder="root"
+                value={newCred.username}
+                onChange={(e) => setNewCred((p) => ({ ...p, username: e.target.value }))}
+                placeholder="root"
+                maxLength={128}
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">密码 *</Label>
                 <Input
                   type="password"
-                  value={newCred.password}
-                  onChange={(e) => setNewCred((p) => ({ ...p, password: e.target.value }))}
-                  placeholder="••••••••"
+                value={newCred.password}
+                onChange={(e) => setNewCred((p) => ({ ...p, password: e.target.value }))}
+                placeholder="••••••••"
+                maxLength={1024}
                 />
               </div>
             </div>
@@ -401,6 +405,7 @@ export default function DeviceDetailPage() {
                 value={newCred.description}
                 onChange={(e) => setNewCred((p) => ({ ...p, description: e.target.value }))}
                 placeholder="例：SSH 登录账号"
+                maxLength={255}
               />
             </div>
             <div className="flex gap-2">

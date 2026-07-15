@@ -2,6 +2,12 @@ package com.cwgsyw.platform.config;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+import java.security.KeyPairGenerator;
+import java.security.spec.MGF1ParameterSpec;
+import java.util.Base64;
 import static org.assertj.core.api.Assertions.*;
 
 class CryptoServiceTest {
@@ -28,5 +34,19 @@ class CryptoServiceTest {
         assertThat(enc1).isNotEqualTo(enc2);
         assertThat(crypto.decrypt(enc1)).isEqualTo(plain);
         assertThat(crypto.decrypt(enc2)).isEqualTo(plain);
+    }
+
+    @Test
+    void encryptForClientUsesWebCryptoCompatibleOaepParameters() throws Exception {
+        var keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        String publicKey = Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
+        String cipherText = crypto.encryptForClient("client-secret", publicKey);
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate(), new OAEPParameterSpec(
+                "SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT));
+
+        assertThat(cipher.doFinal(Base64.getDecoder().decode(cipherText)))
+                .asString()
+                .isEqualTo("client-secret");
     }
 }

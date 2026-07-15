@@ -40,16 +40,16 @@ public class DeviceController {
     @PreAuthorize("hasPermission('device', 'create')")
     public R<DeviceVO> create(@Valid @RequestBody CreateDeviceRequest req,
                               @AuthenticationPrincipal SecurityUser cu) {
-        var device = deviceService.create(req, cu.getTenantId(), cu.getUserId());
+        var device = deviceService.create(req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok(deviceService.getById(device.getId(), cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('device', 'update')")
     public R<Void> update(@PathVariable Long id,
-                          @RequestBody CreateDeviceRequest req,
+                          @Valid @RequestBody CreateDeviceRequest req,
                           @AuthenticationPrincipal SecurityUser cu) {
-        deviceService.update(id, req, cu.getTenantId(), cu.getUserId());
+        deviceService.update(id, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -57,7 +57,7 @@ public class DeviceController {
     @PreAuthorize("hasPermission('device', 'delete')")
     public R<Void> delete(@PathVariable Long id,
                           @AuthenticationPrincipal SecurityUser cu) {
-        deviceService.delete(id, cu.getTenantId(), cu.getUserId());
+        deviceService.delete(id, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -67,6 +67,16 @@ public class DeviceController {
                                  @Valid @RequestBody CreateCredentialRequest req,
                                  @AuthenticationPrincipal SecurityUser cu) {
         deviceService.addCredential(deviceId, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
+        return R.ok();
+    }
+
+    @PutMapping("/credentials/{credentialId}")
+    @PreAuthorize("hasPermission('device', 'update')")
+    public R<Void> updateCredential(@PathVariable Long credentialId,
+                                    @Valid @RequestBody UpdateCredentialRequest req,
+                                    @AuthenticationPrincipal SecurityUser cu) {
+        deviceService.updateCredential(credentialId, req, cu.getTenantId(), cu.getUserId(),
+                cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 

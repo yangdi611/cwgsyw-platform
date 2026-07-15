@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T13:00:00+08:00",
+  "updatedAt": "2026-07-15T13:32:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-009_MERGED",
-  "nextEvent": "REM-P1-012",
-  "nextBranch": "codex/rem-p1-012-device-credential-input-contracts",
-  "nextAction": "Create REM-P1-012 from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
+  "lastCompletedGate": "REM-P1-012_L1_L3_PASS",
+  "nextEvent": "REM-P1-014",
+  "nextBranch": "codex/rem-p1-014-ipam-address-pool-integrity",
+  "nextAction": "Create the REM-P1-014 branch from this lint-fix merge commit and begin its impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 5,
+    "verified": 6,
     "verifying": 0,
-    "notStarted": 36,
+    "notStarted": 35,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -44,14 +44,15 @@
       "REM-P1-005",
       "REM-P1-006",
       "REM-P1-007",
-      "REM-P1-009"
+      "REM-P1-009",
+      "REM-P1-012"
     ],
     "verifying": [],
+    "inProgress": [],
     "notStarted": [
       "REM-P1-008",
       "REM-P1-010",
       "REM-P1-011",
-      "REM-P1-012",
       "REM-P1-013",
       "REM-P1-014",
       "REM-P1-015",
@@ -145,6 +146,10 @@
     "REM-P1-009": {
       "eventCommit": "9a5ad58b14d28adc886246947c91cb06d6cab5d9",
       "mergeCommit": "067e023335e46ddc9d90da4744b10bf6be9e6159"
+    },
+    "REM-P1-012": {
+      "eventCommit": "8c0110150c0858bfa85b3cb22439d5a2614a0d45",
+      "mergeCommit": "PENDING_CURRENT_MERGE"
     }
   },
   "l4": {
