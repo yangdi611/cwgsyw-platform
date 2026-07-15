@@ -35,8 +35,8 @@ export default function WikiSpaceHomePage() {
   const router = useRouter()
   const sid = Number(spaceId)
 
-  const { data: spaces } = useQuery({ queryKey: ['wiki-spaces'], queryFn: wikiApi.listSpaces })
-  const { data: tree } = useQuery<WikiPageTree[]>({
+  const { data: spaces, isError: spaceError } = useQuery({ queryKey: ['wiki-spaces'], queryFn: wikiApi.listSpaces })
+  const { data: tree, isError: treeError } = useQuery<WikiPageTree[]>({
     queryKey: ['wiki-tree', sid],
     queryFn: () => wikiApi.getTree(sid),
   })
@@ -45,6 +45,10 @@ export default function WikiSpaceHomePage() {
   const pages = useMemo(() => flatten(tree ?? []), [tree])
 
   useBreadcrumbLabel(space?.name)
+
+  if (spaceError || treeError || (spaces && !space)) {
+    return <EmptyState icon={<BookOpen className="h-5 w-5 text-v2-muted" />} title="知识空间不存在或无权访问" description="请返回知识库列表选择可访问的空间。" />
+  }
 
   return (
     <div className="space-y-6">

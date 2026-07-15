@@ -320,7 +320,7 @@ public class AuthorizationService {
 
         int groupPermissions = 0;
         boolean groupMatched = false;
-        if (resource.getOwnerGroupId() != null && groupIds.contains(resource.getOwnerGroupId())) {
+        if (resource.getOwnerGroupId() != null && Objects.equals(user.getGroupId(), resource.getOwnerGroupId())) {
             groupMatched = true;
             groupPermissions |= (mode >> 3) & 7;
         }

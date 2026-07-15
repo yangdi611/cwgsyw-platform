@@ -83,6 +83,11 @@ public class WikiPageService {
         return toVO(page, user);
     }
 
+    public boolean exists(String tenantId, Long pageId) {
+        WikiPage page = pageMapper.selectById(pageId);
+        return page != null && !Boolean.TRUE.equals(page.getIsDeleted()) && tenantId.equals(page.getTenantId());
+    }
+
     private WikiPageVO toVO(WikiPage page, SecurityUser user) {
         WikiPageVO vo = new WikiPageVO();
         vo.setId(page.getId());
@@ -158,12 +163,15 @@ public class WikiPageService {
 
     @Transactional
     public WikiPageVO createPage(String tenantId, SecurityUser user, CreatePageRequest req) {
-        String targetType = req.getParentId() == null ? "wiki_space" : "wiki_page";
-        Long targetId = req.getParentId() == null ? req.getSpaceId() : req.getParentId();
-        boolean allowed = authorizationService.decideWithCompatibility(user, "wiki", "wiki:create",
-            targetType, targetId, 3,
-            () -> spaceService.hasWritePermission(tenantId, req.getSpaceId(), user, "create"));
-        if (!allowed) throw new AccessDeniedException("无权限在此位置创建页面");
+        if (req.getParentId() != null) {
+            WikiPage parent = requirePage(tenantId, req.getParentId());
+            if (!Objects.equals(parent.getSpaceId(), req.getSpaceId())) {
+                throw new IllegalArgumentException("父页面不属于当前空间");
+            }
+            checkWritePermission(tenantId, req.getSpaceId(), req.getParentId(), user, "update");
+        } else {
+            spaceService.checkCanWrite(tenantId, req.getSpaceId(), user, "create");
+        }
         Long userId = user.getUserId();
         WikiPage page = new WikiPage();
         page.setTenantId(tenantId);
@@ -433,7 +441,7 @@ public class WikiPageService {
 
     private WikiPage requirePage(String tenantId, Long pageId) {
         WikiPage page = pageMapper.selectById(pageId);
-        if (page == null || !tenantId.equals(page.getTenantId())) {
+        if (page == null || Boolean.TRUE.equals(page.getIsDeleted()) || !tenantId.equals(page.getTenantId())) {
             throw new IllegalArgumentException("页面不存在: " + pageId);
         }
         return page;

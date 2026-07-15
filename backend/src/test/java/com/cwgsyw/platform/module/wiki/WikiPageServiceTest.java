@@ -189,10 +189,12 @@ class WikiPageServiceTest {
     @Test
     void createPage_spaceCreateDenied_throwsBeforeInsert() {
         SecurityUser viewer = user(7L, "group", Set.of("wiki:read"));
-        when(spaceService.hasWritePermission("default", 100L, viewer, "create")).thenReturn(false);
         var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
         req.setSpaceId(100L);
         req.setTitle("新页面");
+
+        doThrow(new AccessDeniedException("denied")).when(spaceService)
+            .checkCanWrite("default", 100L, viewer, "create");
 
         assertThatThrownBy(() -> service.createPage("default", viewer, req))
                 .isInstanceOf(AccessDeniedException.class);
@@ -202,9 +204,9 @@ class WikiPageServiceTest {
     @Test
     void createChildPage_checksCreatePermissionOnParentPage() {
         SecurityUser editor = user(7L, "group", Set.of("wiki:create"));
-        when(authorizationService.decideWithCompatibility(eq(editor), eq("wiki"), eq("wiki:create"),
-            eq("wiki_page"), eq(44L), eq(3), any(java.util.function.BooleanSupplier.class)))
-            .thenReturn(false);
+        WikiPage parent = page(44L, 100L);
+        when(pageMapper.selectById(44L)).thenReturn(parent);
+        when(spaceService.hasWritePermission("default", 100L, editor, "update")).thenReturn(false);
 
         var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
         req.setSpaceId(100L);
@@ -213,9 +215,31 @@ class WikiPageServiceTest {
 
         assertThatThrownBy(() -> service.createPage("default", editor, req))
             .isInstanceOf(AccessDeniedException.class);
-        verify(authorizationService).decideWithCompatibility(eq(editor), eq("wiki"), eq("wiki:create"),
-            eq("wiki_page"), eq(44L), eq(3), any(java.util.function.BooleanSupplier.class));
+        verify(spaceService).hasWritePermission("default", 100L, editor, "update");
         verify(pageMapper, never()).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void createChildPage_ownerCanCreateThroughParentWritePermission() {
+        SecurityUser owner = user(7L, "group", Set.of("wiki:update"));
+        WikiPage parent = page(44L, 100L);
+        when(pageMapper.selectById(44L)).thenReturn(parent);
+        when(spaceService.hasWritePermission("default", 100L, owner, "update")).thenReturn(true);
+        when(pageMapper.selectList(any())).thenReturn(List.of());
+        when(pageMapper.insert(any(WikiPage.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, WikiPage.class).setId(45L);
+            return 1;
+        });
+
+        var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setParentId(44L);
+        req.setTitle("子页面");
+
+        var result = service.createPage("default", owner, req);
+
+        assertThat(result.getId()).isEqualTo(45L);
+        verify(pageMapper).insert(any(WikiPage.class));
     }
 
     // ── deletePage / movePage / publishDirect 权限闸门 ──────────────────

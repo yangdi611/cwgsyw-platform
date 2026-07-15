@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -33,6 +34,7 @@ public class WikiController {
     private final AuthorizationService authorizationService;
 
     private void checkAcl(SecurityUser u, Long pageId, String perm) {
+        requirePageExists(u, pageId);
         int requiredBits = "read".equals(perm) ? 4 : 2;
         authorizationService.requireWithCompatibility(u, "wiki", "wiki:" + perm,
             "wiki_page", pageId, requiredBits,
@@ -40,7 +42,15 @@ public class WikiController {
                 u.getGroupScope(), perm));
     }
 
+    private void requirePageExists(SecurityUser user, Long pageId) {
+        if (pageService.exists(user.getTenantId(), pageId)) return;
+        throw new BusinessException(404, "RESOURCE_NOT_FOUND", "页面不存在");
+    }
+
     private void checkSpaceRead(SecurityUser user, Long spaceId) {
+        if (!spaceService.exists(user.getTenantId(), spaceId)) {
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "空间不存在");
+        }
         if (!spaceService.canReadSpace(spaceId, user)) {
             throw new AccessDeniedException("无权限访问此空间");
         }
@@ -64,7 +74,7 @@ public class WikiController {
     @PreAuthorize("hasAuthority('wiki:create')")
     public R<WikiSpaceVO> createSpace(@RequestBody CreateSpaceRequest req,
                                       @AuthenticationPrincipal SecurityUser u) {
-        Long ownerGroupId = req.getOwnerGroupId() != null ? req.getOwnerGroupId() : u.getGroupId();
+        Long ownerGroupId = resolveOwnerGroupId(req.getOwnerGroupId(), u);
         if (!authorizationService.canUseOwnerGroup(u, ownerGroupId)) {
             throw new AccessDeniedException("不能将空间归属到当前用户未加入的组");
         }
@@ -73,6 +83,19 @@ public class WikiController {
             throw new AccessDeniedException("当前作用域不允许创建 Wiki 空间");
         }
         return R.ok(spaceService.createSpace(u.getTenantId(), u, req.getName(), req.getDescription(), ownerGroupId));
+    }
+
+    private Long resolveOwnerGroupId(Long requestedGroupId, SecurityUser user) {
+        if ("group".equals(user.getGroupScope())) {
+            if (user.getGroupId() == null) {
+                throw BusinessException.badRequest("RESOURCE_GROUP_REQUIRED", "组级用户必须具有归属组");
+            }
+            return user.getGroupId();
+        }
+        if (requestedGroupId == null) {
+            throw BusinessException.badRequest("RESOURCE_GROUP_REQUIRED", "管理员必须选择空间归属组");
+        }
+        return requestedGroupId;
     }
 
     @PutMapping("/spaces/{id}")

@@ -106,6 +106,24 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void nonOwnerGroupMembershipWithoutNamedAclFallsBackToOthersMode() {
+        user = new SecurityUser(7L, "tester", "hash", "default", 4L, "tenant", Set.of("wiki:read"));
+        ResourceDescriptor resource = resource(8L, 9L, 3L, 0004, null);
+        resource.setResourceType("wiki_page");
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(4L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("others", decision.getResourceClass());
+    }
+
+    @Test
     void documentAdminCanManageWritableSystemWikiOutsideAssignmentGroup() {
         ResourceDescriptor resource = resource(8L, 9L, 1L, 0645, null);
         when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
