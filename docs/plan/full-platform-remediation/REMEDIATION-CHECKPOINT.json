@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T10:35:00+08:00",
+  "updatedAt": "2026-07-15T13:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-007_MERGE_PENDING_COMMIT",
-  "nextEvent": "REM-P1-009",
-  "nextBranch": "codex/rem-p1-009-cmdb-relation-integrity",
-  "nextAction": "Create the REM-P1-009 branch from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
+  "lastCompletedGate": "REM-P1-009_VERIFIED_PENDING_COMMIT",
+  "nextEvent": "REM-P1-012",
+  "nextBranch": "codex/rem-p1-012-device-credential-input-contracts",
+  "nextAction": "Commit and no-ff merge REM-P1-009 to lint-fix; verify the event commit is an ancestor, then create REM-P1-012 from the updated integration branch.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 4,
+    "verified": 5,
     "verifying": 0,
-    "notStarted": 38,
+    "notStarted": 36,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -43,12 +43,12 @@
       "REM-P1-004",
       "REM-P1-005",
       "REM-P1-006",
-      "REM-P1-007"
+      "REM-P1-007",
+      "REM-P1-009"
     ],
     "verifying": [],
     "notStarted": [
       "REM-P1-008",
-      "REM-P1-009",
       "REM-P1-010",
       "REM-P1-011",
       "REM-P1-012",

@@ -10,6 +10,8 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
+import com.cwgsyw.platform.module.device.DeviceMapper;
+import com.cwgsyw.platform.module.device.entity.Device;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class CiInstanceCommandService {
     private final CiModelMapper ciModelMapper;
     private final CiAttributeMapper ciAttributeMapper;
     private final CiInstanceRelMapper ciInstanceRelMapper;
+    private final DeviceMapper deviceMapper;
     private final AuditLogMapper auditLogMapper;
     private final CiChangeRecordMapper ciChangeRecordMapper;
     private final ObjectMapper objectMapper;
@@ -246,23 +249,31 @@ public class CiInstanceCommandService {
 
     @Transactional
     public void delete(Long id, String tenantId, Long operatorId) {
-        CiInstance inst = loadInstance(id, tenantId);
-        String before = snapshotInstance(inst);
-        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
-
-        inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
-        ciInstanceMapper.updateById(inst);
-        ciInstanceMapper.deleteById(id);
-
+        CiInstance inst = ciInstanceMapper.findActiveByIdForUpdate(id, tenantId);
+        if (inst == null) {
+            throw new IllegalArgumentException("实例不存在");
+        }
         LambdaQueryWrapper<CiInstanceRel> relQuery = new LambdaQueryWrapper<CiInstanceRel>()
                 .eq(CiInstanceRel::getTenantId, tenantId).eq(CiInstanceRel::getIsDeleted, false)
                 .and(w -> w.eq(CiInstanceRel::getSrcInstanceId, id).or().eq(CiInstanceRel::getDstInstanceId, id));
-        List<CiInstanceRel> rels = ciInstanceRelMapper.selectList(relQuery);
-        for (CiInstanceRel rel : rels) {
-            rel.setDeletedAt(LocalDateTime.now()); rel.setDeletedBy(operatorId);
-            ciInstanceRelMapper.updateById(rel);
-            ciInstanceRelMapper.deleteById(rel.getId());
+        long activeRelationCount = ciInstanceRelMapper.selectCount(relQuery);
+        if (activeRelationCount > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍有关联关系，请先解除后再删除");
         }
+
+        LambdaQueryWrapper<Device> deviceQuery = new LambdaQueryWrapper<Device>()
+                .eq(Device::getTenantId, tenantId)
+                .eq(Device::getCiInstanceId, id)
+                .eq(Device::getIsDeleted, false);
+        if (deviceMapper.selectCount(deviceQuery) > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍关联设备，请先删除设备后再删除实例");
+        }
+
+        String before = snapshotInstance(inst);
+        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
+        inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
+        ciInstanceMapper.updateById(inst);
+        ciInstanceMapper.deleteById(id);
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
         writeChangeRecord(tenantId, "delete", id, inst.getModelId(), operatorId,
