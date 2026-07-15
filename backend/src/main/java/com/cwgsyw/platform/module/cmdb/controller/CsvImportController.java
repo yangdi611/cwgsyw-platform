@@ -10,6 +10,7 @@ import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +33,10 @@ public class CsvImportController {
         byte[] bytes = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + model + "_import_template.csv\"")
+                        ContentDisposition.attachment()
+                                .filename(model + "_import_template.csv", java.nio.charset.StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(bytes);
     }

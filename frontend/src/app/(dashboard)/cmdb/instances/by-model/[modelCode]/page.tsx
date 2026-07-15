@@ -12,6 +12,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
 import { getApiErrorMessage } from '@/lib/api-error'
+import { decodeModelCodeOnce } from '@/lib/cmdb-model-code'
 import type { CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
@@ -37,6 +38,7 @@ interface PageResult {
 
 export default function InstanceListPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
+  const canonicalModelCode = decodeModelCodeOnce(modelCode)
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -52,10 +54,10 @@ export default function InstanceListPage() {
   }, [isHydrated, hasPermission, router])
 
   const { data: model } = useQuery<CiModelWithAttributes>({
-    queryKey: ['cmdb-model', modelCode],
+    queryKey: ['cmdb-model', canonicalModelCode],
     queryFn: async () => {
       try {
-        const r = await api.get(`/cmdb/models/${modelCode}`)
+        const r = await api.get(`/cmdb/models/${canonicalModelCode}`)
         return r.data.data
       } catch {
         return undefined
@@ -65,9 +67,9 @@ export default function InstanceListPage() {
   })
 
   const { data: result, isLoading } = useQuery<PageResult>({
-    queryKey: ['cmdb-instances', modelCode],
+    queryKey: ['cmdb-instances', canonicalModelCode],
     queryFn: () =>
-      api.get('/cmdb/instances', { params: { model: modelCode } }).then((r) => r.data.data),
+      api.get('/cmdb/instances', { params: { model: canonicalModelCode } }).then((r) => r.data.data),
     enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
@@ -75,7 +77,7 @@ export default function InstanceListPage() {
     mutationFn: (id: number) => api.delete(`/cmdb/instances/${id}`),
     onSuccess: () => {
       toast.success('已删除')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', canonicalModelCode] })
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
@@ -84,9 +86,9 @@ export default function InstanceListPage() {
     mutationFn: (id: number) => api.post(`/cmdb/instances/${id}/clone`).then((r) => r.data.data),
     onSuccess: (created: CiInstanceVO) => {
       toast.success('已克隆，跳转到副本')
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', modelCode] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instances', canonicalModelCode] })
       setSelected(null)
-      router.push(`/cmdb/instances/by-model/${modelCode}/${created.id}`)
+      router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${created.id}`)
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '克隆失败')),
   })
@@ -148,13 +150,13 @@ export default function InstanceListPage() {
     ]
     return cols
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listColumns, hasPermission, modelCode])
+  }, [listColumns, hasPermission, canonicalModelCode])
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="CMDB"
-        title={`${model?.name ?? modelCode} 实例列表`}
+        title={`${model?.name ?? canonicalModelCode} 实例列表`}
         subtitle={`共 ${result?.total ?? 0} 条实例，按模型属性展示列表字段。`}
         actions={
           <>
@@ -178,7 +180,7 @@ export default function InstanceListPage() {
               </Button>
             )}
             {hasPermission('cmdb_instance', 'create') && (
-              <Button variant="primary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/new`)}>
+              <Button variant="primary" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/new`)}>
                 <Plus className="h-4 w-4" />
                 新建实例
               </Button>
@@ -198,12 +200,12 @@ export default function InstanceListPage() {
         empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
       />
 
-      <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={modelCode} />
+      <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={canonicalModelCode} />
 
       <BatchEditDialog
         open={batchOpen}
         onClose={() => setBatchOpen(false)}
-        modelCode={modelCode}
+        modelCode={canonicalModelCode}
         attributes={model?.attributes.map(a => ({
           fieldKey: a.fieldKey,
           name: a.name,
@@ -255,7 +257,7 @@ export default function InstanceListPage() {
                 variant="primary"
                 size="sm"
                 onClick={() =>
-                  router.push(`/cmdb/instances/by-model/${modelCode}/${selected.id}`)
+                  router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${selected.id}`)
                 }
               >
                 <FileText className="h-4 w-4" />

@@ -211,7 +211,7 @@ export default function TwoDViewPage() {
                   {group.instances.map(inst => (
                     <Link
                       key={inst.id}
-                      href={`/cmdb/instances/${inst.id}`}
+                      href={`/cmdb/instances/by-model/${model}/${inst.id}`}
                       className="block rounded-lg border p-3 hover:bg-accent transition-colors"
                     >
                       <div className="font-medium text-sm mb-1 truncate">{inst.name}</div>
