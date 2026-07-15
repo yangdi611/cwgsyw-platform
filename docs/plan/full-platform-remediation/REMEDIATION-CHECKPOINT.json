@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T19:16:00+08:00",
+  "updatedAt": "2026-07-15T19:35:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P1-021_L1_L3_PASS",
+  "activeEvent": "REM-P1-022",
+  "activeBranch": "codex/rem-p1-022-shared-file-update-consumer",
+  "activeRunId": "REM_P1_022_20260715_191800",
+  "lastCompletedGate": "REM-P1-022_L1_L3_PASS",
   "nextEvent": "REM-P1-022",
   "nextBranch": "codex/rem-p1-022-shared-file-update-consumer",
-  "nextAction": "Create REM-P1-022 branch from lint-fix and begin upstream impact analysis.",
+  "nextAction": "Commit verified REM-P1-022, then merge --no-ff into lint-fix and advance to REM-P1-023.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 13,
+    "verified": 14,
     "verifying": 0,
-    "notStarted": 28,
+    "notStarted": 27,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -52,7 +52,8 @@
       "REM-P1-018",
       "REM-P1-019",
       "REM-P1-020",
-      "REM-P1-021"
+      "REM-P1-021",
+      "REM-P1-022"
     ],
     "verifying": [],
     "inProgress": [],
@@ -62,7 +63,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-022",
       "REM-P1-023",
       "REM-P1-024",
       "REM-P1-025",
