@@ -16,7 +16,7 @@
 | 缺陷 | 原严重度 | 主整改事件 | 事件状态 | 来源对账 |
 |---|---|---|---|---|
 | `BUG-FQA-006` | P1 | [`REM-P1-004`：失败登录审计](./02-account-organization/REM-P1-004-failed-login-audit/README.md) | `VERIFIED` | 历史失败；checkpoint 已移除，事件已定向验证 |
-| `BUG-FQA-008` | P1 | [`REM-P1-005`：通知读取权限收敛](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) | `VERIFYING` | checkpoint.openDefects |
+| `BUG-FQA-008` | P1 | [`REM-P1-005`：通知读取权限收敛](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) | `VERIFIED` | L1-L3 API/UI allow-deny 与精确清理通过；待最终 L4 |
 | `BUG-FQA-009` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-010` | P2 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-011` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `NOT_STARTED` | checkpoint.openDefects |

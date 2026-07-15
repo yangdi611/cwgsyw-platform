@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=1`、`VERIFYING=1`、`NOT_STARTED=39`。
+- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=2`、`VERIFYING=0`、`NOT_STARTED=39`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -20,7 +20,7 @@
 | `REM-P1-002` | P1 | 成员列表软删除一致性 | `BUG-FQA-016` | `CLOSED` | `LOW` | L4 仍为共同发布门禁 | [事件卡](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/README.md) / [SPEC](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/SPEC.md) / [验证](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-003` | P1 | 未分配组与业务组双向互斥 | `BUG-FQA-056` | `CLOSED` | `CRITICAL` | L4 仍为共同发布门禁 | [事件卡](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/README.md) / [SPEC](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/SPEC.md) / [验证](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-004` | P1 | 失败登录审计 | `BUG-FQA-006` | `VERIFIED` | `LOW` | 发布候选版 L4 | [事件卡](./02-account-organization/REM-P1-004-failed-login-audit/README.md) / [SPEC](./02-account-organization/REM-P1-004-failed-login-audit/SPEC.md) / [验证](./02-account-organization/REM-P1-004-failed-login-audit/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-004-failed-login-audit/CLAUDE-CODE-PROMPT.md) |
-| `REM-P1-005` | P1 | 通知读取权限收敛 | `BUG-FQA-008` | `VERIFYING` | `LOW` | 完成真实 allow/deny 与前端检查 | [事件卡](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) / [SPEC](./01-security-authorization/REM-P1-005-notification-read-authorization/SPEC.md) / [验证](./01-security-authorization/REM-P1-005-notification-read-authorization/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P1-005-notification-read-authorization/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-005` | P1 | 通知读取权限收敛 | `BUG-FQA-008` | `VERIFIED` | `LOW` | 发布候选版 L4 | [事件卡](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) / [SPEC](./01-security-authorization/REM-P1-005-notification-read-authorization/SPEC.md) / [验证](./01-security-authorization/REM-P1-005-notification-read-authorization/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P1-005-notification-read-authorization/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-006` | P1 | 权限消费、兼容别名与导航可达性收敛 | `BUG-FQA-010`、`BUG-FQA-013`、`BUG-FQA-035`、`BUG-FQA-069`、`BUG-FQA-070`、`BUG-FQA-074` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) / [SPEC](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/SPEC.md) / [验证](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-007` | P1 | 已删除角色关联读取与清理一致性 | `BUG-FQA-055`、`BUG-FQA-093` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) / [SPEC](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/SPEC.md) / [验证](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-008` | P1 | CMDB 模型与动态属性合同收敛 | `BUG-FQA-047`、`BUG-FQA-079`、`BUG-FQA-090`、`BUG-FQA-091` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) / [SPEC](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/CLAUDE-CODE-PROMPT.md) |
@@ -74,7 +74,7 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。当前先完成 `REM-P1-005` 剩余运行时复验；`REM-P1-004` 已是事件级 `VERIFIED`，等待最终 L4，不重复实施。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P1-004` 与 `REM-P1-005` 均已事件级 `VERIFIED`，等待最终 L4，不重复实施；下一项为 `REM-P1-006`。
 
 ## 状态统计
 
@@ -82,8 +82,8 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 |---|---:|
 | `NOT_STARTED` | 39 |
 | `IN_PROGRESS` | 0 |
-| `VERIFYING` | 1 |
-| `VERIFIED` | 1 |
+| `VERIFYING` | 0 |
+| `VERIFIED` | 2 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T02:05:00+08:00",
+  "updatedAt": "2026-07-15T08:55:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,19 +16,19 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "PLANNING_BASELINE",
+  "phase": "EVENT_REVALIDATION",
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "PLANNING_PACKAGE_VALIDATED",
-  "nextEvent": "REM-P1-005",
-  "nextBranch": "codex/fqa-008-notification-read-authorization",
-  "nextAction": "Commit the planning baseline on lint-fix, then resume REM-P1-005 at its first incomplete runtime allow/deny verification gate.",
+  "lastCompletedGate": "REM_P1_005_MERGED",
+  "nextEvent": "REM-P1-006",
+  "nextBranch": "codex/rem-p1-006-permission-consumer-navigation-parity",
+  "nextAction": "Verify REM-P1-005 merge ancestry, safely delete its event branch, then create the REM-P1-006 branch from the latest lint-fix and begin its impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 1,
-    "verifying": 1,
+    "verified": 2,
+    "verifying": 0,
     "notStarted": 39,
     "blocked": 0
   },
@@ -40,11 +40,10 @@
       "REM-P1-003"
     ],
     "verified": [
-      "REM-P1-004"
-    ],
-    "verifying": [
+      "REM-P1-004",
       "REM-P1-005"
     ],
+    "verifying": [],
     "notStarted": [
       "REM-P1-006",
       "REM-P1-007",
@@ -130,7 +129,12 @@
     "REM-P2-013",
     "REM-P2-014"
   ],
-  "eventGit": {},
+  "eventGit": {
+    "REM-P1-005": {
+      "eventCommit": "2a931872ef3de83716bd7bce9fb2cefd74a71624",
+      "mergeCommit": "86225607e5f713f9f68b1bbaae96066187b624d9"
+    }
+  },
   "l4": {
     "status": "NOT_STARTED",
     "branch": null,
@@ -144,6 +148,6 @@
   "notes": [
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
-    "REM-P1-005 code is integrated, but runtime allow/deny and frontend checks remain incomplete."
+    "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560; REM-P1-006 is next."
   ]
 }
