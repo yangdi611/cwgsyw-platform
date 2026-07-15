@@ -120,7 +120,7 @@ public class WorkflowController {
             @PathVariable String definitionId,
             @AuthenticationPrincipal SecurityUser cu) {
         var def = workflowService.getDefinition(definitionId);
-        workflowService.deleteDefinition(definitionId);
+        workflowService.deleteDefinition(definitionId, cu.getTenantId());
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(cu.getTenantId())
             .module("workflow")

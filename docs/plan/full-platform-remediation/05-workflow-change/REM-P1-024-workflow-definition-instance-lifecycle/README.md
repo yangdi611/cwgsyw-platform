@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-024` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED`（L1-L3 已通过，等待最终 L4） |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@
 - 不绕过业务回调
 - 不改变 BPMN 内容
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：全版本非级联删除、绑定/运行实例保护、挂起定义拒绝发起和实例终止历史均已复验；测试流程对象已经产品 API 清理。下一门禁：最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.workflow;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.BusinessException;
+import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -35,6 +36,7 @@ public class WorkflowService {
     private final HistoryService historyService;
     private final JdbcTemplate jdbcTemplate;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    private final SysConfigService configService;
 
     @Transactional
     public String startDailyReportApproval(Long reportId, Long groupId) {
@@ -298,12 +300,23 @@ public class WorkflowService {
      * Delete process definition and all versions
      */
     @Transactional
-    public void deleteDefinition(String definitionId) {
+    public void deleteDefinition(String definitionId, String tenantId) {
         var def = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
-        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
-        // Cascade delete: removes all versions + runtime instances + history
-        repositoryService.deleteDeployment(def.getDeploymentId(), true);
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        List<String> definitionIds = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionKey(def.getKey()).list().stream().map(d -> d.getId()).toList();
+        if (isBoundToBusinessProcess(definitionIds, tenantId)) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_BOUND", "流程定义已被业务流程绑定，请先在系统配置中更换绑定");
+        }
+        if (runtimeService.createProcessInstanceQuery().processDefinitionKey(def.getKey()).count() > 0) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_RUNNING_INSTANCES", "流程定义存在运行中的实例，无法删除");
+        }
+        repositoryService.createProcessDefinitionQuery().processDefinitionKey(def.getKey()).list().stream()
+            .map(d -> d.getDeploymentId()).distinct()
+            .forEach(deploymentId -> repositoryService.deleteDeployment(deploymentId, false));
     }
 
     /**
@@ -314,15 +327,19 @@ public class WorkflowService {
     public void deleteDefinitionVersion(String definitionId) {
         var def = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
-        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
         // Protect: don't allow deleting the last version
         long versionCount = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey(def.getKey()).count();
         if (versionCount <= 1) {
-            throw new IllegalArgumentException("至少保留一个版本，无法删除");
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_LAST_VERSION", "至少保留一个版本，无法删除");
         }
-        // Cascade delete: removes this version's runtime instances + history
-        repositoryService.deleteDeployment(def.getDeploymentId(), true);
+        if (runtimeService.createProcessInstanceQuery().processDefinitionId(definitionId).count() > 0) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_RUNNING_INSTANCES", "该版本存在运行中的实例，无法删除");
+        }
+        repositoryService.deleteDeployment(def.getDeploymentId(), false);
     }
 
     /**
@@ -350,6 +367,14 @@ public class WorkflowService {
      */
     @Transactional
     public void suspendDefinition(String definitionId) {
+        var def = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        if (def.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_ALREADY_SUSPENDED", "流程定义已处于挂起状态");
+        }
         repositoryService.suspendProcessDefinitionById(definitionId, true, null);
     }
 
@@ -450,12 +475,21 @@ public class WorkflowService {
      */
     @Transactional
     public InstanceVO startProcess(StartProcessRequest req, Long userId, String tenantId) {
+        if (req.getProcessDefinitionId() == null || req.getProcessDefinitionId().isBlank()) {
+            if (req.getProcessDefinitionKey() == null || req.getProcessDefinitionKey().isBlank()) {
+                throw BusinessException.badRequest("WORKFLOW_DEFINITION_REQUIRED", "必须指定流程定义 ID 或 Key");
+            }
+        }
         Map<String, Object> vars = req.getVariables() != null ? req.getVariables() : new HashMap<>();
         ProcessInstance pi;
         if (req.getProcessDefinitionId() != null && !req.getProcessDefinitionId().isBlank()) {
+            requireStartableDefinition(repositoryService.createProcessDefinitionQuery()
+                .processDefinitionId(req.getProcessDefinitionId()).singleResult());
             pi = runtimeService.startProcessInstanceById(
                 req.getProcessDefinitionId(), req.getBusinessKey(), vars);
         } else {
+            requireStartableDefinition(repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(req.getProcessDefinitionKey()).latestVersion().singleResult());
             pi = runtimeService.startProcessInstanceByKey(
                 req.getProcessDefinitionKey(), req.getBusinessKey(), vars);
         }
@@ -484,6 +518,10 @@ public class WorkflowService {
      */
     @Transactional
     public void suspendInstance(String instanceId) {
+        var instance = requireRunningInstance(instanceId);
+        if (instance.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_ALREADY_SUSPENDED", "流程实例已处于挂起状态");
+        }
         runtimeService.suspendProcessInstanceById(instanceId);
     }
 
@@ -492,6 +530,10 @@ public class WorkflowService {
      */
     @Transactional
     public void activateInstance(String instanceId) {
+        var instance = requireRunningInstance(instanceId);
+        if (!instance.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_ALREADY_ACTIVE", "流程实例已处于激活状态");
+        }
         runtimeService.activateProcessInstanceById(instanceId);
     }
 
@@ -500,7 +542,33 @@ public class WorkflowService {
      */
     @Transactional
     public void deleteInstance(String instanceId, String reason) {
+        requireRunningInstance(instanceId);
         runtimeService.deleteProcessInstance(instanceId, reason);
+    }
+
+    private boolean isBoundToBusinessProcess(List<String> definitionIds, String tenantId) {
+        return configService.getAll(tenantId).entrySet().stream()
+            .filter(entry -> entry.getKey().endsWith("_process_definition_id"))
+            .map(Map.Entry::getValue)
+            .anyMatch(definitionIds::contains);
+    }
+
+    private void requireStartableDefinition(org.flowable.engine.repository.ProcessDefinition definition) {
+        if (definition == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        if (definition.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_SUSPENDED", "流程定义已挂起，无法发起实例");
+        }
+    }
+
+    private ProcessInstance requireRunningInstance(String instanceId) {
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery()
+            .processInstanceId(instanceId).singleResult();
+        if (instance == null) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_NOT_FOUND", "流程实例不存在或已结束");
+        }
+        return instance;
     }
 
     /**
