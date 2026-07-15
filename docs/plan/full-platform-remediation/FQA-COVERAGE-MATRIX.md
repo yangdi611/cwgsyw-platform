@@ -18,10 +18,10 @@
 | `BUG-FQA-006` | P1 | [`REM-P1-004`：失败登录审计](./02-account-organization/REM-P1-004-failed-login-audit/README.md) | `VERIFIED` | 历史失败；checkpoint 已移除，事件已定向验证 |
 | `BUG-FQA-008` | P1 | [`REM-P1-005`：通知读取权限收敛](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) | `VERIFIED` | L1-L3 API/UI allow-deny 与精确清理通过；待最终 L4 |
 | `BUG-FQA-009` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-010` | P2 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-010` | P2 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-011` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-012` | P1 | [`REM-P1-026`：日报审批待办与统一流程任务收敛](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-013` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-013` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-014` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-015` | P2 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-016` | P1 | [`REM-P1-002`：成员列表软删除一致性](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/README.md) | `CLOSED` | checkpoint 仍列开放，但整改事件已关闭 |
@@ -43,7 +43,7 @@
 | `BUG-FQA-032` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-033` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-034` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-035` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-035` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-036` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-037` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-038` | P2 | [`REM-P2-005`：Wiki 当前页面导出合同](./04-content-files/REM-P2-005-wiki-page-export-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -77,12 +77,12 @@
 | `BUG-FQA-066` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-067` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-068` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-069` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-070` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-069` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
+| `BUG-FQA-070` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-071` | P2 | [`REM-P2-009`：Wiki 搜索入口与历史导航](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-072` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-073` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-074` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-074` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-075` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-076` | P1 | [`REM-P1-018`：Wiki 版本快照与回退完整性](./04-content-files/REM-P1-018-wiki-version-revert-integrity/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-077` | P1 | [`REM-P1-022`：共享文件 write 权限运行时消费者](./04-content-files/REM-P1-022-shared-file-update-consumer/README.md) | `NOT_STARTED` | checkpoint.openDefects |

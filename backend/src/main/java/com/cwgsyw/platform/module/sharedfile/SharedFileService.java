@@ -253,6 +253,32 @@ public class SharedFileService {
         deleteFile(user.getTenantId(), fileId, user.getUserId(), user.getGroupId(), user.getGroupScope());
     }
 
+    @Transactional
+    public SharedFileVO renameFile(SecurityUser user, Long fileId, String name) {
+        SharedFile file = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
+                .eq(SharedFile::getTenantId, user.getTenantId())
+                .eq(SharedFile::getId, fileId));
+        if (file == null) throw new IllegalArgumentException("文件不存在: " + fileId);
+
+        String normalizedName = name.trim();
+        if (normalizedName.isEmpty()) throw new IllegalArgumentException("文件名不能为空");
+        String extension = "";
+        int dot = file.getOriginalName().lastIndexOf('.');
+        if (dot > 0) extension = file.getOriginalName().substring(dot);
+        String beforeName = file.getOriginalName();
+        file.setName(normalizedName);
+        file.setOriginalName(normalizedName + extension);
+        file.setUpdatedAt(LocalDateTime.now());
+        fileMapper.updateById(file);
+        auditLogMapper.insert(AuditLog.builder()
+                .tenantId(user.getTenantId()).module("shared_file").action("update")
+                .targetId(fileId).targetType("shared_file").operatorId(user.getUserId())
+                .beforeJson("{\"name\":\"" + beforeName + "\"}")
+                .afterJson("{\"name\":\"" + file.getOriginalName() + "\"}")
+                .createdAt(LocalDateTime.now()).build());
+        return toVO(file, Map.of());
+    }
+
     public FileContent getFileContent(String tenantId, Long fileId) {
         SharedFile sf = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
                 .eq(SharedFile::getTenantId, tenantId)

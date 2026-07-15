@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.sharedfile;
 
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
+import com.cwgsyw.platform.module.sharedfile.dto.UpdateSharedFileRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -78,6 +79,18 @@ class SharedFileControllerTest {
         verify(authorizationService).requireParentWithCompatibility(user, "shared_file",
             "shared_file:delete", "shared_file", 9L, 3, true);
         verify(fileService).deleteFile(user, 9L);
+    }
+
+    @Test
+    void updateFile_checksParentContainerPermission() {
+        UpdateSharedFileRequest request = new UpdateSharedFileRequest();
+        request.setName("renamed document");
+
+        controller.updateFile(9L, request, user);
+
+        verify(authorizationService).requireParentWithCompatibility(user, "shared_file",
+            "shared_file:update", "shared_file", 9L, 2, true);
+        verify(fileService).renameFile(user, 9L, "renamed document");
     }
 
     @Test

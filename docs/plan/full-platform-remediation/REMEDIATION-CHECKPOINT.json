@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T08:55:00+08:00",
+  "updatedAt": "2026-07-15T10:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM_P1_005_MERGED",
-  "nextEvent": "REM-P1-006",
-  "nextBranch": "codex/rem-p1-006-permission-consumer-navigation-parity",
-  "nextAction": "Verify REM-P1-005 merge ancestry, safely delete its event branch, then create the REM-P1-006 branch from the latest lint-fix and begin its impact analysis.",
+  "lastCompletedGate": "REM-P1-006_MERGE_PENDING_COMMIT",
+  "nextEvent": "REM-P1-007",
+  "nextBranch": "codex/rem-p1-007-deleted-role-association-lifecycle",
+  "nextAction": "Create the REM-P1-007 branch from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 2,
+    "verified": 3,
     "verifying": 0,
-    "notStarted": 39,
+    "notStarted": 38,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -41,11 +41,11 @@
     ],
     "verified": [
       "REM-P1-004",
-      "REM-P1-005"
+      "REM-P1-005",
+      "REM-P1-006"
     ],
     "verifying": [],
     "notStarted": [
-      "REM-P1-006",
       "REM-P1-007",
       "REM-P1-008",
       "REM-P1-009",
@@ -133,6 +133,10 @@
     "REM-P1-005": {
       "eventCommit": "2a931872ef3de83716bd7bce9fb2cefd74a71624",
       "mergeCommit": "86225607e5f713f9f68b1bbaae96066187b624d9"
+    },
+    "REM-P1-006": {
+      "eventCommit": "01e5933e4ec16ba92a6f37abb8566cc041a2871d",
+      "mergeCommit": "ff8da9d416d4bdbfc70cb53e81ceb6ab67d30cee"
     }
   },
   "l4": {
@@ -148,6 +152,7 @@
   "notes": [
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
-    "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560; REM-P1-006 is next."
+    "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560.",
+    "REM-P1-006 L1-L3 evidence is committed as 01e5933e; its no-ff merge commit is being created and REM-P1-007 follows."
   ]
 }

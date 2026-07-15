@@ -27,6 +27,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Pencil,
   File,
   Lock,
 } from 'lucide-react'
@@ -56,6 +57,8 @@ export default function FilesPage() {
 
   const [aclTarget, setAclTarget] = useState<FolderNode | null>(null)
   const [fileAclTarget, setFileAclTarget] = useState<SharedFile | null>(null)
+  const [renaming, setRenaming] = useState<SharedFile | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -90,6 +93,7 @@ export default function FilesPage() {
   const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
     queryKey: ['authorization-groups'],
     queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
+    enabled: hasPermission('group', 'read'),
   })
 
   const uploadMutation = useMutation({
@@ -111,6 +115,16 @@ export default function FilesPage() {
     mutationFn: (id: number) => api.delete(`/files/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files'] })
+    },
+  })
+
+  const renameMutation = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => api.put(`/files/${id}`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setRenaming(null)
+      setRenameValue('')
+      toast.success('文件已重命名')
     },
   })
 
@@ -172,6 +186,7 @@ export default function FilesPage() {
 
   const canUpload = hasPermission('shared_file', 'upload')
   const canDelete = hasPermission('shared_file', 'delete')
+  const canUpdate = hasPermission('shared_file', 'update')
   const canManage = hasPermission('shared_file', 'manage')
   const canManageAcl = hasPermission('shared_file', 'manage_acl')
 
@@ -254,6 +269,14 @@ export default function FilesPage() {
               <Lock className="h-4 w-4" />
             </Button>
           )}
+          {canUpdate && (
+            <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="重命名" onClick={() => {
+              setRenaming(r)
+              setRenameValue(r.name)
+            }}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
           {canDelete && r.canDelete && (
             <Button
               variant="ghost"
@@ -297,6 +320,19 @@ export default function FilesPage() {
       />
 
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+
+      <Dialog open={!!renaming} onOpenChange={(open) => !open && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>重命名文件</DialogTitle></DialogHeader>
+          <Input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} autoFocus />
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setRenaming(null)}>取消</Button>
+            <Button variant="primary" disabled={!renameValue.trim() || renameMutation.isPending} onClick={() => {
+              if (renaming) renameMutation.mutate({ id: renaming.id, name: renameValue.trim() })
+            }}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex gap-4">
         {/* Left: Folder Tree */}

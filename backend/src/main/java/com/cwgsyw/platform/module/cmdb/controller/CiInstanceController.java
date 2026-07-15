@@ -16,7 +16,13 @@ import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +38,11 @@ public class CiInstanceController {
     private final CiChangeService ciChangeService;
     private final Ci2DViewService ci2DViewService;
 
+    private static String csv(Object value) {
+        String text = value == null ? "" : value.toString();
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<PageResult<CiInstanceVO>> list(
@@ -40,6 +51,26 @@ public class CiInstanceController {
             @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciInstanceQueryService.list(model, keyword, status, page, size, cu.getTenantId()));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasPermission('cmdb_instance', 'export')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(required = false) String model, @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal SecurityUser cu) {
+        List<CiInstanceVO> records = ciInstanceQueryService.list(model, keyword, status, 1, 10_000, cu.getTenantId())
+                .getRecords();
+        String csv = "id,name,model,status,owner,description\n" + records.stream()
+                .map(instance -> String.join(",", csv(instance.getId()), csv(instance.getName()),
+                        csv(instance.getModelName()), csv(instance.getStatus()), csv(instance.getOwner()),
+                        csv(instance.getDescription())))
+                .collect(Collectors.joining("\n"));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("cmdb-instances.csv", StandardCharsets.UTF_8).build().toString())
+                .body(csv.getBytes(StandardCharsets.UTF_8));
     }
 
     @GetMapping("/search")

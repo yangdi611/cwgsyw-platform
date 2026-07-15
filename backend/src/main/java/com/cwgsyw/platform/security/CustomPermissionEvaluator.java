@@ -12,7 +12,9 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
     public boolean hasPermission(Authentication auth, Object targetDomainObject, Object permission) {
         if (auth == null || !(auth.getPrincipal() instanceof SecurityUser su)) return false;
         String permCode = targetDomainObject + ":" + permission;
-        return su.getPermissions().contains(permCode);
+        if (su.getPermissions().contains(permCode)) return true;
+        return "cmdb_model:update".equals(permCode)
+                && su.getPermissions().contains("cmdb_model:write");
     }
 
     @Override

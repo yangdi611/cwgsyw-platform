@@ -12,7 +12,11 @@ export function usePermission() {
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const hasPermission = (resource: string, action: string) => {
     const canonicalAction = DEPRECATED_ACTION_ALIAS[resource]?.[action] ?? action
-    return permissions.has(`${resource}:${canonicalAction}`)
+    if (permissions.has(`${resource}:${canonicalAction}`)) return true
+    return Object.entries(DEPRECATED_ACTION_ALIAS[resource] ?? {}).some(
+      ([deprecatedAction, mappedAction]) =>
+        mappedAction === canonicalAction && permissions.has(`${resource}:${deprecatedAction}`),
+    )
   }
   return { hasPermission, isHydrated }
 }
