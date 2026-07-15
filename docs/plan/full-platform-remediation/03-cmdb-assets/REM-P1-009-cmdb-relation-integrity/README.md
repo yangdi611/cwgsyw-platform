@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-009` |
 | 优先级 | P1 |
 | 领域 | `03-cmdb-assets` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -13,7 +13,7 @@
 
 ## 问题与影响
 
-关系创建允许实例自环，设备可重复关联同一 CI，实例删除又忽略 onDelete=restrict 并留下设备孤儿引用。
+关系创建允许实例自环，设备可重复关联同一 CI，实例删除会删除活跃关系并留下设备孤儿引用。
 
 拓扑和资产引用可进入不合法状态，删除后产生不可追踪孤儿对象。
 
@@ -29,7 +29,7 @@
 
 范围：
 - 拒绝自环与重复设备关联
-- 落实 restrict/cascade/none 明确语义
+- 删除 CI 时统一执行 `restrict`：存在活跃关系或设备关联即拒绝
 - 增加必要唯一/检查约束和引用摘要
 - 保证失败原子性
 
@@ -39,3 +39,5 @@
 - 不改变关系定义模型
 
 下一门禁：逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 告警后才可编辑。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+结论：L1-L3 已通过。GitNexus `detect_changes` 确认高风险变更仅覆盖本事件的 CI 删除、关系创建、设备创建与相应流程；最终 L4 仍为共同发布门禁。

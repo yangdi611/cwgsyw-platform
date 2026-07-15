@@ -20,6 +20,7 @@ import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -106,9 +107,16 @@ public class DeviceService {
         if (req.getCiInstanceId() == null) {
             throw new IllegalArgumentException("必须关联 CMDB 实例");
         }
-        CiInstance ci = ciInstanceMapper.selectById(req.getCiInstanceId());
-        if (ci == null || ci.getIsDeleted() || !ci.getTenantId().equals(tenantId)) {
+        CiInstance ci = ciInstanceMapper.findActiveByIdForUpdate(req.getCiInstanceId(), tenantId);
+        if (ci == null) {
             throw new IllegalArgumentException("CMDB 实例不存在");
+        }
+        LambdaQueryWrapper<Device> duplicateCheck = new LambdaQueryWrapper<Device>()
+                .eq(Device::getTenantId, tenantId)
+                .eq(Device::getCiInstanceId, req.getCiInstanceId())
+                .eq(Device::getIsDeleted, false);
+        if (deviceMapper.selectCount(duplicateCheck) > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例已关联设备");
         }
 
         Device device = new Device();
@@ -122,7 +130,11 @@ public class DeviceService {
         device.setCategory(req.getCategory());
         device.setDescription(req.getDescription());
 
-        deviceMapper.insert(device);
+        try {
+            deviceMapper.insert(device);
+        } catch (DataIntegrityViolationException exception) {
+            throw new IllegalArgumentException("该 CMDB 实例已关联设备");
+        }
         writeAudit(tenantId, "create", device.getId(), operatorId,
             "ci_instance_id=" + req.getCiInstanceId() + " name=" + device.getName());
         return device;

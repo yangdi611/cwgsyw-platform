@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T10:35:00+08:00",
+  "updatedAt": "2026-07-15T13:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-007_MERGE_PENDING_COMMIT",
-  "nextEvent": "REM-P1-009",
-  "nextBranch": "codex/rem-p1-009-cmdb-relation-integrity",
-  "nextAction": "Create the REM-P1-009 branch from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
+  "lastCompletedGate": "REM-P1-009_MERGED",
+  "nextEvent": "REM-P1-012",
+  "nextBranch": "codex/rem-p1-012-device-credential-input-contracts",
+  "nextAction": "Create REM-P1-012 from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 4,
+    "verified": 5,
     "verifying": 0,
-    "notStarted": 38,
+    "notStarted": 36,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -43,12 +43,12 @@
       "REM-P1-004",
       "REM-P1-005",
       "REM-P1-006",
-      "REM-P1-007"
+      "REM-P1-007",
+      "REM-P1-009"
     ],
     "verifying": [],
     "notStarted": [
       "REM-P1-008",
-      "REM-P1-009",
       "REM-P1-010",
       "REM-P1-011",
       "REM-P1-012",
@@ -141,6 +141,10 @@
     "REM-P1-007": {
       "eventCommit": "7cc4d98c0c753bbd790a03fa1abb5b3c8b37912e",
       "mergeCommit": "8543fbdf35b0f6e80cfdb297a9aa000e50691821"
+    },
+    "REM-P1-009": {
+      "eventCommit": "9a5ad58b14d28adc886246947c91cb06d6cab5d9",
+      "mergeCommit": "PENDING"
     }
   },
   "l4": {
@@ -158,6 +162,7 @@
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
     "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560.",
     "REM-P1-006 L1-L3 evidence is committed as 01e5933e and merged as 5c45551.",
-    "REM-P1-007 L1-L3 evidence is committed as 7cc4d98; its no-ff merge commit is being created and REM-P1-009 follows."
+    "REM-P1-007 L1-L3 evidence is committed as 7cc4d98; its no-ff merge commit is being created and REM-P1-009 follows.",
+    "REM-P1-009 L1-L3 evidence is committed as 9a5ad58 and merged with this checkpoint advance."
   ]
 }
