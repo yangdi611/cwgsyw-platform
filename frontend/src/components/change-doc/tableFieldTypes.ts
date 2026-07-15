@@ -32,7 +32,7 @@ export interface FieldConfigVO {
   inForm: boolean
   placeholder: string | null
   sortOrder: number
-  config?: TableFieldConfig | Record<string, unknown>
+  config?: TableFieldConfig | { defaultValue?: string | number; options?: { value: string; label: string }[] } | Record<string, unknown>
 }
 
 export function isTableFieldConfig(config: unknown): config is TableFieldConfig {

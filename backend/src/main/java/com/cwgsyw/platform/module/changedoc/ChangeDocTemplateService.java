@@ -2,6 +2,8 @@ package com.cwgsyw.platform.module.changedoc;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
@@ -26,6 +28,8 @@ public class ChangeDocTemplateService {
 
     private final ChangeDocTemplateMapper templateMapper;
     private final ChangeDocFieldMapper fieldMapper;
+    private final ChangeDocMapper changeDocMapper;
+    private final AuditLogMapper auditLogMapper;
     private final MinioStorageService storage;
     private final TableFieldSupport tableFieldSupport;
 
@@ -41,7 +45,66 @@ public class ChangeDocTemplateService {
         tpl.setCreatedAt(LocalDateTime.now());
         tpl.setUpdatedAt(LocalDateTime.now());
         templateMapper.insert(tpl);
+        writeAudit(tenantId, "create_template", tpl.getId(), operatorId, "创建变更模板");
         return toTemplateVO(tpl, List.of());
+    }
+
+    @Transactional
+    public TemplateVO cloneTemplate(String tenantId, Long operatorId, Long sourceId, String name) {
+        ChangeDocTemplate source = getOrThrow(tenantId, sourceId);
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("模板名称不能为空");
+        ChangeDocTemplate copy = new ChangeDocTemplate();
+        copy.setTenantId(tenantId);
+        copy.setName(name.trim());
+        copy.setDescription(source.getDescription());
+        copy.setVersion(1);
+        copy.setIsActive(false);
+        copy.setDocType(source.getDocType());
+        copy.setCreatedAt(LocalDateTime.now());
+        copy.setUpdatedAt(LocalDateTime.now());
+        templateMapper.insert(copy);
+        try {
+            if (source.getDocxKey() != null && !source.getDocxKey().isBlank()) {
+                String targetKey = "templates/" + tenantId + "/" + copy.getId() + "/v1.docx";
+                storage.copyOrThrow(source.getDocxKey(), targetKey);
+                copy.setDocxKey(targetKey);
+                templateMapper.updateById(copy);
+            }
+            List<ChangeDocField> fields = fieldMapper.findByTemplate(sourceId);
+            for (ChangeDocField sourceField : fields) {
+                ChangeDocField field = new ChangeDocField();
+                field.setTenantId(tenantId);
+                field.setTemplateId(copy.getId());
+                field.setFieldKey(sourceField.getFieldKey());
+                field.setLabel(sourceField.getLabel());
+                field.setFieldType(sourceField.getFieldType());
+                field.setSortOrder(sourceField.getSortOrder());
+                field.setRequired(sourceField.getRequired());
+                field.setInForm(sourceField.getInForm());
+                field.setPlaceholder(sourceField.getPlaceholder());
+                field.setConfig(sourceField.getConfig() == null ? Map.of() : new LinkedHashMap<>(sourceField.getConfig()));
+                fieldMapper.insert(field);
+            }
+        } catch (RuntimeException exception) {
+            if (copy.getDocxKey() != null) storage.delete(copy.getDocxKey());
+            throw exception;
+        }
+        writeAudit(tenantId, "clone_template", copy.getId(), operatorId, "复制自模板 " + sourceId);
+        return toTemplateVO(copy, fieldMapper.findByTemplate(copy.getId()));
+    }
+
+    @Transactional
+    public void deleteTemplate(String tenantId, Long operatorId, Long templateId) {
+        ChangeDocTemplate template = getOrThrow(tenantId, templateId);
+        if (changeDocMapper.countActiveReferences(tenantId, templateId) > 0) {
+            throw new IllegalArgumentException("模板已被变更文档引用，不能删除");
+        }
+        fieldMapper.delete(new LambdaQueryWrapper<ChangeDocField>().eq(ChangeDocField::getTemplateId, templateId));
+        templateMapper.deleteById(templateId);
+        if (template.getDocxKey() != null && !template.getDocxKey().isBlank()) {
+            storage.deleteOrThrow(template.getDocxKey());
+        }
+        writeAudit(tenantId, "delete_template", templateId, operatorId, "删除未引用变更模板及字段");
     }
 
     @Transactional
@@ -261,7 +324,7 @@ public class ChangeDocTemplateService {
         }
 
         for (SaveFieldRequest.FieldItem item : req.getFields()) {
-            Map<String, Object> config = "table".equals(item.getFieldType()) ? item.getConfig() : Map.of();
+            Map<String, Object> config = item.getConfig() == null ? Map.of() : item.getConfig();
             if (item.getId() != null && item.getId() > 0) {
                 ChangeDocField f = fieldMapper.selectOne(new LambdaQueryWrapper<ChangeDocField>()
                         .eq(ChangeDocField::getId, item.getId())
@@ -530,6 +593,12 @@ public class ChangeDocTemplateService {
                 .eq(ChangeDocTemplate::getId, id));
         if (tpl == null) throw new IllegalArgumentException("模板不存在: " + id);
         return tpl;
+    }
+
+    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId, String remark) {
+        auditLogMapper.insert(AuditLog.builder().tenantId(tenantId).module("change_doc_template")
+            .action(action).targetId(targetId).targetType("change_doc_template").operatorId(operatorId)
+            .remark(remark).createdAt(LocalDateTime.now()).build());
     }
 
     private TemplateVO toTemplateVO(ChangeDocTemplate t, List<ChangeDocField> fields) {
