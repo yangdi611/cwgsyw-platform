@@ -97,12 +97,15 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         Long filterGroupId = "group".equals(callerGroupScope) ? callerGroupId : null;
         return toVO(device, true, filterGroupId);
     }
 
     @Transactional
-    public Device create(CreateDeviceRequest req, String tenantId, Long operatorId) {
+    public Device create(CreateDeviceRequest req, String tenantId, Long operatorId,
+                         Long callerGroupId, String callerGroupScope) {
+        requireRequestedGroupScope(req.getGroupId(), callerGroupId, callerGroupScope);
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         if (req.getCiInstanceId() == null) {
             throw new IllegalArgumentException("必须关联 CMDB 实例");
@@ -141,15 +144,18 @@ public class DeviceService {
     }
 
     @Transactional
-    public void update(Long id, CreateDeviceRequest req, String tenantId, Long operatorId) {
+    public void update(Long id, CreateDeviceRequest req, String tenantId, Long operatorId,
+                       Long callerGroupId, String callerGroupScope) {
         Device device = deviceMapper.selectById(id);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         // name/ip/deviceType/ciInstanceId 不可修改（由 CI 派生）；只允许 category/description/groupId
         if (req.getCategory() != null) device.setCategory(req.getCategory());
         if (req.getDescription() != null) device.setDescription(req.getDescription());
         if (req.getGroupId() != null) {
+            requireRequestedGroupScope(req.getGroupId(), callerGroupId, callerGroupScope);
             activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
             device.setGroupId(req.getGroupId());
         }
@@ -158,16 +164,31 @@ public class DeviceService {
     }
 
     @Transactional
-    public void delete(Long id, String tenantId, Long operatorId) {
+    public void delete(Long id, String tenantId, Long operatorId,
+                       Long callerGroupId, String callerGroupScope) {
         Device device = deviceMapper.selectById(id);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         device.setDeletedAt(LocalDateTime.now());
         device.setDeletedBy(operatorId);
         deviceMapper.updateById(device);
         deviceMapper.deleteById(id);
         writeAudit(tenantId, "delete", id, operatorId, null);
+    }
+
+    private void requireDeviceScope(Device device, Long callerGroupId, String callerGroupScope) {
+        if ("group".equals(callerGroupScope) && (callerGroupId == null || !callerGroupId.equals(device.getGroupId()))) {
+            throw new IllegalArgumentException("无权访问该设备");
+        }
+    }
+
+    private void requireRequestedGroupScope(Long requestedGroupId, Long callerGroupId, String callerGroupScope) {
+        if ("group".equals(callerGroupScope)
+                && (callerGroupId == null || requestedGroupId == null || !callerGroupId.equals(requestedGroupId))) {
+            throw new IllegalArgumentException("无权指定其他用户组");
+        }
     }
 
     @Transactional
@@ -178,6 +199,7 @@ public class DeviceService {
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("设备不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         Long groupId = req.getGroupId() != null ? req.getGroupId() : callerGroupId;
         activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
         // 组级越权校验：group scope 用户只能往本组创建凭据（admin/super_admin 绕过）
@@ -200,6 +222,30 @@ public class DeviceService {
     }
 
     @Transactional
+    public void updateCredential(Long credentialId, UpdateCredentialRequest req, String tenantId, Long operatorId,
+                                 Long callerGroupId, String callerGroupScope) {
+        DeviceCredential credential = credentialMapper.selectById(credentialId);
+        if (credential == null || credential.getIsDeleted() || !credential.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("账号不存在");
+        }
+        Device device = deviceMapper.selectById(credential.getDeviceId());
+        if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("账号不存在");
+        }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
+        if ("group".equals(callerGroupScope)
+                && (credential.getGroupId() == null || !credential.getGroupId().equals(callerGroupId))) {
+            throw new IllegalArgumentException("无权编辑该账号");
+        }
+        if (req.getUsername() != null) credential.setUsername(req.getUsername());
+        if (req.getPassword() != null) credential.setPasswordEnc(crypto.encrypt(req.getPassword()));
+        if (req.getDescription() != null) credential.setDescription(req.getDescription());
+        credentialMapper.updateById(credential);
+        writeAudit(tenantId, "update_credential", credential.getDeviceId(), operatorId,
+                "credential_id=" + credentialId);
+    }
+
+    @Transactional
     public void deleteCredential(Long credentialId, String tenantId, Long operatorId,
                                  Long callerGroupId, String callerGroupScope) {
         DeviceCredential cred = credentialMapper.selectById(credentialId);
@@ -208,6 +254,7 @@ public class DeviceService {
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         // 组级越权校验：group scope 用户只能删本组凭据（admin/super_admin 绕过，与 reveal 一致）
         if ("group".equals(callerGroupScope)) {
             if (cred.getGroupId() == null || !cred.getGroupId().equals(callerGroupId)) {
@@ -232,6 +279,7 @@ public class DeviceService {
         if (device == null || !device.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("账号不存在");
         }
+        requireDeviceScope(device, callerGroupId, callerGroupScope);
         // Group-level authorization: members may only reveal their own group's credentials
         if ("group".equals(callerGroupScope)) {
             if (cred.getGroupId() == null || !cred.getGroupId().equals(callerGroupId)) {

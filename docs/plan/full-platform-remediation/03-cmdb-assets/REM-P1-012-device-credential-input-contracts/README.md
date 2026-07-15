@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-012` |
 | 优先级 | P1 |
 | 领域 | `03-cmdb-assets` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -38,4 +38,4 @@
 - 不改变凭据加密算法
 - 不扩大 device 权限
 
-下一门禁：逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 告警后才可编辑。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+结论：L1-L3 已通过。组级账号无法枚举、读取或写入其他组设备；设备与凭据输入在边界处返回校验错误；凭据可安全编辑、刷新后保持掩码，复制反馈可见且浏览器端 RSA-OAEP 解密与后端参数一致。两批 runId 夹具均已通过产品 API 精确清理。等待独立 L4 全平台复验后才可 `CLOSED`。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

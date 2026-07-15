@@ -4,7 +4,8 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Eye, EyeOff, Copy, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Copy, Trash2, Pencil } from 'lucide-react'
+import { Input } from '@/components/v2/Input'
 import { usePermission } from '@/hooks/usePermission'
 
 interface Props {
@@ -67,9 +68,14 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
   const [password, setPassword] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editUsername, setEditUsername] = useState(username)
+  const [editPassword, setEditPassword] = useState('')
+  const [editDescription, setEditDescription] = useState(description ?? '')
   const { hasPermission } = usePermission()
   const canReveal = hasPermission('device', 'view_password')
   const canDelete = hasPermission('device', 'delete')
+  const canUpdate = hasPermission('device', 'update')
 
   // Auto-clear revealed password after 30 s
   useEffect(() => {
@@ -125,11 +131,36 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
     }
   }
 
+  const saveEdit = async () => {
+    try {
+      await api.put(`/devices/credentials/${credentialId}`, {
+        username: editUsername,
+        password: editPassword || undefined,
+        description: editDescription,
+      })
+      toast.success('账号已更新')
+      setEditPassword('')
+      setEditing(false)
+      onDeleted?.()
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, '更新失败'))
+    }
+  }
+
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-0">
-      <div>
-        <span className="font-medium text-sm">{username}</span>
-        {description && <span className="text-xs text-v2-muted ml-2">{description}</span>}
+      <div className="min-w-0 flex-1">
+        {editing ? (
+          <div className="flex flex-wrap gap-2">
+            <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} maxLength={128} />
+            <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="留空不修改密码" maxLength={1024} />
+            <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="备注" maxLength={255} />
+            <Button variant="secondary" size="sm" onClick={saveEdit} disabled={!editUsername}>保存</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setEditPassword('') }}>取消</Button>
+          </div>
+        ) : (
+          <><span className="font-medium text-sm">{username}</span>{description && <span className="text-xs text-v2-muted ml-2">{description}</span>}</>
+        )}
       </div>
       <div className="flex items-center gap-1">
         {password ? (
@@ -157,6 +188,11 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
             onClick={deleteCred} disabled={deleting} title="删除账号"
           >
             <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {canUpdate && !editing && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(true)} title="编辑账号">
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>

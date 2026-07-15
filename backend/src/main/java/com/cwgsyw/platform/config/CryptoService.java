@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.PSource;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PublicKey;
@@ -18,6 +20,8 @@ public class CryptoService {
     private static final int GCM_NONCE_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
     private final SecretKey key;
+    private static final OAEPParameterSpec CLIENT_OAEP_PARAMETERS = new OAEPParameterSpec(
+            "SHA-256", "MGF1", new java.security.spec.MGF1ParameterSpec("SHA-256"), PSource.PSpecified.DEFAULT);
 
     public CryptoService(@Value("${encrypt.key}") String base64Key) {
         byte[] keyBytes = Base64.getDecoder().decode(base64Key);
@@ -73,7 +77,7 @@ public class CryptoService {
             PublicKey pubKey = kf.generatePublic(spec);
 
             Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+            cipher.init(Cipher.ENCRYPT_MODE, pubKey, CLIENT_OAEP_PARAMETERS);
             byte[] encrypted = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception e) {
