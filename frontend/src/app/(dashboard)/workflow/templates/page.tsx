@@ -22,7 +22,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { PageHeader, EmptyState } from '@/components/shared'
 import { toast } from 'sonner'
-import { LayoutTemplate, Plus } from 'lucide-react'
+import { LayoutTemplate, Plus, Trash2 } from 'lucide-react'
 
 interface TemplateConfigField {
   key: string
@@ -99,6 +99,8 @@ export default function WorkflowTemplatesPage() {
   const [values, setValues] = useState<Record<string, string>>({})
   const [bindNow, setBindNow] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<TemplateInstanceVO | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const { data: templates, isLoading: loadingTemplates } = useQuery({
     queryKey: ['workflow-templates'],
@@ -156,6 +158,21 @@ export default function WorkflowTemplatesPage() {
       toast.error(getApiErrorMessage(err, '创建失败'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api.delete(`/workflow/templates/instances/${deleteTarget.id}`)
+      toast.success('模板实例已删除')
+      setDeleteTarget(null)
+      refetch()
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '删除失败'))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -296,6 +313,15 @@ export default function WorkflowTemplatesPage() {
                 <span className="shrink-0 text-xs text-v2-muted">
                   {new Date(inst.createdAt).toLocaleString('zh-CN')}
                 </span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={!canConfigure}
+                  onClick={() => setDeleteTarget(inst)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  删除
+                </Button>
               </Card>
             ))}
           </div>
@@ -379,6 +405,25 @@ export default function WorkflowTemplatesPage() {
             </Button>
             <Button variant="primary" onClick={handleCreate} disabled={!canSubmit || submitting}>
               创建
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除模板实例</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-v2-muted">
+            删除 <strong className="text-v2-fg">{deleteTarget?.name}</strong> 后无法恢复。仅在该模板实例没有业务绑定、运行中流程或历史流程记录时才可删除。
+          </p>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleting}>
+              {deleting ? '删除中…' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>

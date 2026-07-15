@@ -57,7 +57,7 @@
 | `BUG-FQA-046` | P2 | [`REM-P2-008`：Wiki 未知链接友好渲染](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-047` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-048` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-049` | P1 | [`REM-P1-025`：Workflow 模板实例可审计清理生命周期](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-049` | P1 | [`REM-P1-025`：Workflow 模板实例可审计清理生命周期](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) | `VERIFIED` | L1-L3 template delete, reference protection, audit and UI confirmation passed; awaiting L4 |
 | `BUG-FQA-050` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-051` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-052` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
