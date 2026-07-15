@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.workflow.binding.ProcessBindingService;
+import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBinding;
+import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBindingMapper;
 import com.cwgsyw.platform.module.workflow.template.dto.CreateTemplateInstanceRequest;
 import com.cwgsyw.platform.module.workflow.template.dto.TemplateInstanceVO;
 import com.cwgsyw.platform.module.workflow.template.model.TemplateDefinition;
@@ -14,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.HistoryService;
+import org.flowable.engine.RuntimeService;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.springframework.stereotype.Service;
@@ -34,7 +38,10 @@ public class WorkflowTemplateService {
     private final BpmnTemplateGenerator generator;
     private final BpmnValidationService validationService;
     private final RepositoryService repositoryService;
+    private final RuntimeService runtimeService;
+    private final HistoryService historyService;
     private final ProcessBindingService bindingService;
+    private final WorkflowProcessBindingMapper bindingMapper;
     private final WorkflowTemplateInstanceMapper instanceMapper;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
@@ -133,6 +140,59 @@ public class WorkflowTemplateService {
         }
 
         return toVO(instance);
+    }
+
+    /**
+     * 删除没有绑定或流程实例引用的模板实例。
+     *
+     * <p>模板定义本身不会被删除；存在任一引用时拒绝操作，避免隐式解绑或清除业务历史。
+     */
+    @Transactional
+    public void deleteInstance(String tenantId, Long operatorId, Long instanceId) {
+        WorkflowTemplateInstance instance = instanceMapper.selectOne(new LambdaQueryWrapper<WorkflowTemplateInstance>()
+            .eq(WorkflowTemplateInstance::getId, instanceId)
+            .eq(WorkflowTemplateInstance::getTenantId, tenantId)
+            .eq(WorkflowTemplateInstance::getIsDeleted, false)
+            .last("LIMIT 1"));
+        if (instance == null) {
+            throw new IllegalArgumentException("模板实例不存在或已删除");
+        }
+
+        long bindingCount = bindingMapper.selectCount(new LambdaQueryWrapper<WorkflowProcessBinding>()
+            .eq(WorkflowProcessBinding::getTenantId, tenantId)
+            .eq(WorkflowProcessBinding::getTemplateInstanceId, instanceId)
+            .eq(WorkflowProcessBinding::getEnabled, true));
+        if (bindingCount > 0) {
+            throw new IllegalStateException("模板实例仍被业务流程绑定，无法删除");
+        }
+        if (runtimeService.createProcessInstanceQuery()
+            .processDefinitionKey(instance.getProcessKey()).count() > 0) {
+            throw new IllegalStateException("模板实例存在运行中的流程，无法删除");
+        }
+        if (historyService.createHistoricProcessInstanceQuery()
+            .processDefinitionKey(instance.getProcessKey()).count() > 0) {
+            throw new IllegalStateException("模板实例存在历史流程记录，无法删除");
+        }
+
+        var definitions = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionKey(instance.getProcessKey()).list();
+        definitions.stream().map(ProcessDefinition::getDeploymentId).distinct()
+            .forEach(deploymentId -> repositoryService.deleteDeployment(deploymentId, false));
+
+        LocalDateTime now = LocalDateTime.now();
+        instance.setStatus("deleted");
+        instance.setUpdatedBy(operatorId);
+        instance.setUpdatedAt(now);
+        instanceMapper.updateById(instance);
+        instanceMapper.deleteById(instanceId);
+
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(tenantId).module("workflow").action("delete_template_instance")
+            .targetType("workflow_template_instance").targetId(instanceId).operatorId(operatorId)
+            .beforeJson("{\"processKey\":\"" + instance.getProcessKey() + "\",\"status\":\"active\"}")
+            .afterJson("{\"status\":\"deleted\"}")
+            .remark("删除未引用模板实例 " + instance.getName())
+            .createdAt(now).build());
     }
 
     private TemplateInstanceVO toVO(WorkflowTemplateInstance i) {

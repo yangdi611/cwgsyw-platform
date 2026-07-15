@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-025` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED`（L1-L3 已通过，等待最终 L4） |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@ Workflow 模板可以创建实例，但没有 delete/unbind/archive 清理入口
 - 不清理非测试历史实例
 - 不改 BPMN 生成器
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：未引用模板实例可以经确认后删除并软删记录；绑定、运行/历史流程引用均拒绝删除；测试对象已通过产品 API 精确清理。下一门禁：最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

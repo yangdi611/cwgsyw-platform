@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T20:10:00+08:00",
+  "updatedAt": "2026-07-15T20:36:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-024_L1_L3_PASS",
-  "nextEvent": "REM-P1-025",
-  "nextBranch": "codex/rem-p1-025-workflow-template-instance-cleanup",
-  "nextAction": "Create REM-P1-025 branch from lint-fix and begin upstream impact analysis.",
+  "lastCompletedGate": "REM-P1-025_L1_L3_PASS",
+  "nextEvent": "REM-P1-026",
+  "nextBranch": "codex/rem-p1-026-daily-workflow-task-convergence",
+  "nextAction": "Create REM-P1-026 branch from lint-fix and begin upstream impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 16,
+    "verified": 17,
     "verifying": 0,
-    "notStarted": 25,
+    "notStarted": 24,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -55,7 +55,8 @@
       "REM-P1-021",
       "REM-P1-022",
       "REM-P1-023",
-      "REM-P1-024"
+      "REM-P1-024",
+      "REM-P1-025"
     ],
     "verifying": [],
     "inProgress": [],
@@ -65,7 +66,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-025",
       "REM-P1-026",
       "REM-P1-027",
       "REM-P1-028",
@@ -187,6 +187,10 @@
     "REM-P1-024": {
       "eventCommit": "c8372a05c13606ff8dfa3764ca68dba1e924085a",
       "mergeCommit": "269b3c497d2de53445d4bccb505c790a91e64c72"
+    },
+    "REM-P1-025": {
+      "eventCommit": null,
+      "mergeCommit": null
     }
   },
   "l4": {
@@ -214,6 +218,7 @@
     "REM-P1-021 L1-L3 storage compensation and Wiki attachment lifecycle passed; event commit 784dce52 is merged with this checkpoint advance.",
     "REM-P1-022 existing shared-file update consumer passed L1-L3 without duplicate production code; event commit ab08409 is merged with this checkpoint advance.",
     "REM-P1-023 BPMN validation and roundtrip passed L1-L3; event commit 1429fc8 is merged with this checkpoint advance.",
-    "REM-P1-024 L1-L3 passed: all-version non-cascade deletion, binding/runtime protection, suspended-start rejection and instance termination history were revalidated; event and merge commit hashes are recorded when the no-ff merge completes."
+    "REM-P1-024 L1-L3 passed: all-version non-cascade deletion, binding/runtime protection, suspended-start rejection and instance termination history were revalidated; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes."
   ]
 }
