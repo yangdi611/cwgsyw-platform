@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-005` |
 | 优先级 | P1 |
 | 领域 | `01-security-authorization` |
-| 状态 | `VERIFYING` |
+| 状态 | `VERIFIED` |
 | 分支 | `codex/fqa-008-notification-read-authorization` |
 | 来源 | `FQA_20260712_0329_lintfix` / `BUG-FQA-008` / `NOTICE-001` / `RBAC-013` |
 
@@ -15,4 +15,4 @@
 
 本目录包含实施合同、验证矩阵、实施记录和执行提示。
 
-当前代码与 L1 已完成并合并到 `lint-fix`；待从最新集成点重建同名事件分支，完成真实会话 API/UI allow/deny、前端 lint/typecheck 和测试数据清理后，才能更新为事件级 `VERIFIED`。最终 `CLOSED` 仍需发布候选版 L4。
+当前事件已完成 L1-L3：四个 API guard、真实会话 allow/deny、零权限直达路由拒绝、管理员 UI 访问、前端 lint/typecheck、当前分支容器构建与测试数据精确清理均通过。事件级状态为 `VERIFIED`；最终 `CLOSED` 仍需发布候选版 L4。

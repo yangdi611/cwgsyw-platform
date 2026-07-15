@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T02:05:00+08:00",
+  "updatedAt": "2026-07-15T08:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,19 +16,19 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "PLANNING_BASELINE",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "PLANNING_PACKAGE_VALIDATED",
+  "phase": "EVENT_REVALIDATION",
+  "activeEvent": "REM-P1-005",
+  "activeBranch": "codex/fqa-008-notification-read-authorization",
+  "activeRunId": "REM_REM-P1-005_20260715_084500",
+  "lastCompletedGate": "L1_L3_VERIFIED_PENDING_EVENT_COMMIT",
   "nextEvent": "REM-P1-005",
   "nextBranch": "codex/fqa-008-notification-read-authorization",
-  "nextAction": "Commit the planning baseline on lint-fix, then resume REM-P1-005 at its first incomplete runtime allow/deny verification gate.",
+  "nextAction": "Run detect_changes, commit the verified REM-P1-005 event, then --no-ff merge it into lint-fix and advance the checkpoint to REM-P1-006.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 1,
-    "verifying": 1,
+    "verified": 2,
+    "verifying": 0,
     "notStarted": 39,
     "blocked": 0
   },
@@ -40,11 +40,10 @@
       "REM-P1-003"
     ],
     "verified": [
-      "REM-P1-004"
-    ],
-    "verifying": [
+      "REM-P1-004",
       "REM-P1-005"
     ],
+    "verifying": [],
     "notStarted": [
       "REM-P1-006",
       "REM-P1-007",
@@ -144,6 +143,6 @@
   "notes": [
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
-    "REM-P1-005 code is integrated, but runtime allow/deny and frontend checks remain incomplete."
+    "REM-P1-005 has event-level L1-L3 PASS; its event commit and no-ff merge are pending, then REM-P1-006 is next."
   ]
 }
