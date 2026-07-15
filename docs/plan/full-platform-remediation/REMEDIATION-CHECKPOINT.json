@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T00:50:00+08:00",
+  "updatedAt": "2026-07-16T01:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-008_L1_L3_PASS",
-  "nextEvent": "REM-P1-010",
-  "nextBranch": "codex/rem-p1-010-cmdb-impact-history-reconstruction",
-  "nextAction": "Create the REM-P1-010 event branch from current lint-fix after REM-P1-008 is committed and merged.",
+  "lastCompletedGate": "REM-P1-010_L1_L3_PASS",
+  "nextEvent": "REM-P1-011",
+  "nextBranch": "codex/rem-p1-011-cmdb-navigation-query-contracts",
+  "nextAction": "Create the REM-P1-011 event branch from current lint-fix after REM-P1-010 is committed and merged.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 20,
+    "verified": 21,
     "verifying": 0,
-    "notStarted": 21,
+    "notStarted": 20,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -64,7 +64,6 @@
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P1-010",
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
@@ -105,7 +104,6 @@
     "REM-P1-026",
     "REM-P1-027",
     "REM-P1-008",
-    "REM-P1-010",
     "REM-P1-011",
     "REM-P1-013",
     "REM-P1-015",
@@ -202,6 +200,9 @@
     },
     "REM-P1-008": {
       "eventCommit": "330e01387ef7cccf713dc4585d9ea326069b618d"
+    },
+    "REM-P1-010": {
+      "eventCommit": "ffdf2ed3d3ab9f8530b83eda1042ec18cc906cdd"
     }
   },
   "l4": {
@@ -234,6 +235,7 @@
     "REM-P1-026 implementation and L1 passed, but L2-L3 are blocked by BR-005: daily-report, notification and Flowable terminal state lack a product archive/purge lifecycle for exact runId cleanup.",
     "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account. Event commit dd1a6703 merged as 712f23b with this checkpoint advance.",
     "REM-P1-027 L1-L3 passed: template clone preserved fields/config; referenced templates were protected; runId document and templates were deleted through product APIs. Event commit 3aa2f213 merged as dc1fd83 with this checkpoint advance.",
-    "REM-P1-008 L1-L3 passed: model/attribute validation, concurrent uniqueness, defaultValue readback and real UI create-edit-refresh passed; runId model, group and attributes were removed by product APIs. Event commit 330e0138 is merged with this checkpoint advance."
+    "REM-P1-008 L1-L3 passed: model/attribute validation, concurrent uniqueness, defaultValue readback and real UI create-edit-refresh passed; runId model, group and attributes were removed by product APIs. Event commit 330e0138 is merged with this checkpoint advance.",
+    "REM-P1-010 L1-L3 passed: CTE direction/depth/error contract, topology history create-update-delete-relation reconstruction and real API/UI compare passed; all runId objects were removed by product APIs. Event commit ffdf2ed3 is merged with this checkpoint advance."
   ]
 }

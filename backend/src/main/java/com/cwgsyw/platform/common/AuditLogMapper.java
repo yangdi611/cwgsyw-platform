@@ -43,7 +43,7 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
           <if test='targetId != null'>AND al.target_id = #{targetId}</if>
           <if test='action != null'>AND al.action = #{action}</if>
           <if test='operatorId != null'>AND al.operator_id = #{operatorId}</if>
-          <if test='fromDate != null'>AND al.created_at &gt;= #{fromDate}::timestamp</if>
+          <if test='fromDate != null'>AND al.created_at &gt; #{fromDate}::timestamp</if>
           <if test='toDate != null'>AND al.created_at &lt; #{toDate}::timestamp</if>
         ORDER BY al.created_at DESC
         </script>
