@@ -70,8 +70,8 @@
 | `BUG-FQA-059` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-060` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-061` | P1 | [`REM-P1-009`：CMDB 关系与实例删除引用完整性](./03-cmdb-assets/REM-P1-009-cmdb-relation-integrity/README.md) | `VERIFIED` | L1-L3 自环 API/UI 拒绝、清理与 impact 通过；待最终 L4 |
-| `BUG-FQA-062` | P1 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-063` | P2 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-062` | P1 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `VERIFIED` | L1-L3 rename/move、源/目标权限与 UI 树刷新通过；待最终 L4 |
+| `BUG-FQA-063` | P2 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `VERIFIED` | L1-L3 空白/路径/超长、规范名冲突与局部唯一约束通过；待最终 L4 |
 | `BUG-FQA-064` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 group range API/UI and cleanup passed; awaiting L4 |
 | `BUG-FQA-065` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 上传进度、当前列表刷新和取消实现完成；待最终 L4 |
 | `BUG-FQA-066` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 白名单、20MB、规范名冲突与 API/UI 复验通过；待最终 L4 |

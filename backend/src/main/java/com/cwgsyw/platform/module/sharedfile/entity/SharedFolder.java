@@ -11,7 +11,9 @@ public class SharedFolder {
     private Long id;
     private String tenantId;
     private String name;
+    private String normalizedName;
     private Long parentId;
+    private Long ownerGroupId;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

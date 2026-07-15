@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FolderOpen, Folder, ChevronRight, Lock, Trash2 } from 'lucide-react'
+import { FolderOpen, Folder, ChevronRight, Lock, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { FolderNode } from './types'
 
@@ -13,6 +13,7 @@ export function FolderTreeNode({
   canManage,
   canManageAcl,
   onDelete,
+  onEdit,
   onEditAcl,
 }: {
   node: FolderNode
@@ -22,6 +23,7 @@ export function FolderTreeNode({
   canManage: boolean
   canManageAcl: boolean
   onDelete: (node: FolderNode) => void
+  onEdit: (node: FolderNode) => void
   onEditAcl: (node: FolderNode) => void
 }) {
   const [expanded, setExpanded] = useState(depth === 0)
@@ -74,6 +76,18 @@ export function FolderTreeNode({
             <Lock className="h-3.5 w-3.5" />
           </button>
         )}
+        {node.canUpdate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(node)
+            }}
+            title="编辑文件夹"
+            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded text-v2-muted hover:bg-v2-surface hover:text-v2-fg group-hover:flex"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
         {canManage && node.canDelete && (
           <button
             onClick={(e) => {
@@ -99,6 +113,7 @@ export function FolderTreeNode({
               canManage={canManage}
               canManageAcl={canManageAcl}
               onDelete={onDelete}
+              onEdit={onEdit}
               onEditAcl={onEditAcl}
             />
           ))}

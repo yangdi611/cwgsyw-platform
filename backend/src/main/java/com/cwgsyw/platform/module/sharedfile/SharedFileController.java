@@ -6,6 +6,7 @@ import com.cwgsyw.platform.module.sharedfile.dto.FolderAclDTO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.module.sharedfile.dto.CreateFolderRequest;
+import com.cwgsyw.platform.module.sharedfile.dto.UpdateFolderRequest;
 import com.cwgsyw.platform.module.sharedfile.dto.UpdateSharedFileRequest;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
@@ -70,6 +71,37 @@ public class SharedFileController {
             "shared_folder", id, 3, true);
         folderService.deleteFolder(user.getTenantId(), id, user.getUserId());
         return R.ok(null);
+    }
+
+    @PatchMapping("/folders/{id}")
+    @PreAuthorize("hasAuthority('shared_file:update')")
+    public R<SharedFolderVO> updateFolder(@PathVariable Long id,
+                                           @RequestBody @jakarta.validation.Valid UpdateFolderRequest body,
+                                           @AuthenticationPrincipal SecurityUser user) {
+        if (body.getName() == null && !body.isParentIdSpecified()) {
+            throw new IllegalArgumentException("至少需要提供文件夹名称或目标目录");
+        }
+        if (body.getName() != null) {
+            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
+                "shared_folder", id, 2, true);
+        }
+        if (body.isParentIdSpecified()) {
+            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:manage",
+                "shared_folder", id, 3, true);
+            if (body.getParentId() == null) {
+                Long ownerGroupId = folderService.getFolder(user.getTenantId(), id).getOwnerGroupId();
+                if (!authorizationService.canUseOwnerGroup(user, ownerGroupId)
+                        || !authorizationService.decideCreateWithCompatibility(user, "shared_file",
+                        "shared_file:manage", ownerGroupId, true)) {
+                    throw new AccessDeniedException("当前作用域不允许移动到根目录");
+                }
+            } else {
+                authorizationService.requireWithCompatibility(user, "shared_file", "shared_file:manage",
+                    "shared_folder", body.getParentId(), 3, true);
+            }
+        }
+        return R.ok(folderService.updateFolder(user.getTenantId(), user.getUserId(), id,
+            body.getName(), body.getParentId(), body.isParentIdSpecified()));
     }
 
     @GetMapping("/folders/{id}/acl")
