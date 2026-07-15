@@ -36,7 +36,7 @@ public class CiAttributeController {
     @PutMapping("/{attrId}")
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
     public R<CiAttributeVO> update(@PathVariable String modelId, @PathVariable Long attrId,
-            @RequestBody UpdateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
+            @Valid @RequestBody UpdateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.update(modelId, attrId, req, cu.getTenantId(), cu.getUserId()));
     }
 

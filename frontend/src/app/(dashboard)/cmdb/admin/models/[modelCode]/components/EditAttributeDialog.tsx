@@ -33,6 +33,8 @@ export function EditAttributeDialog({
   const [isEditable, setIsEditable] = useState(attr.isEditable)
   const [isListShow, setIsListShow] = useState(attr.isListShow)
   const [isDrawerShow, setIsDrawerShow] = useState(attr.isDrawerShow)
+  const [defaultValue, setDefaultValue] = useState(attr.defaultValue ?? '')
+  const [sortOrder, setSortOrder] = useState(String(attr.sortOrder))
   const [optionsText, setOptionsText] = useState(() => formatEnumOptions(attr.option))
   const isEnum = attr.fieldType === 'enum' || attr.fieldType === 'enummulti'
 
@@ -43,7 +45,9 @@ export function EditAttributeDialog({
       isEditable,
       isListShow,
       isDrawerShow,
+      defaultValue: defaultValue.trim() || null,
       option: isEnum ? parseEnumOptions(optionsText) : undefined,
+      sortOrder: Number(sortOrder) || 0,
     })
   }
 
@@ -96,6 +100,26 @@ export function EditAttributeDialog({
               />
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>默认值</Label>
+              <Input
+                placeholder="可选"
+                value={defaultValue}
+                onChange={(event) => setDefaultValue(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>排序</Label>
+              <Input
+                type="number"
+                min="0"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+              />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <label className="flex items-center gap-2">
