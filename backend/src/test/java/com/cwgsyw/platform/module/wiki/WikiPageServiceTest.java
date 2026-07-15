@@ -160,7 +160,30 @@ class WikiPageServiceTest {
 
         var vo = service.revert("default", 88L, 1, grantedViewer);
         assertThat(vo.getTitle()).isEqualTo("旧标题");
-        verify(pageMapper).updateById(any(WikiPage.class));
+        assertThat(vo.getContent()).isEqualTo("旧内容");
+        assertThat(page.getCurrentVersion()).isEqualTo(2);
+        verify(pageMapper).updateById(page);
+        verify(versionMapper).insert(argThat((WikiPageVersion saved) -> saved.getPageId().equals(88L)
+            && saved.getVersion().equals(2)
+            && saved.getTitle().equals("旧标题")
+            && saved.getContent().equals("旧内容")
+            && saved.getComment().equals("回滚到版本 1")));
+    }
+
+    @Test
+    void revert_incompleteSnapshot_throwsBeforePageUpdate() {
+        WikiPageVersion v = new WikiPageVersion();
+        v.setPageId(88L);
+        v.setVersion(1);
+        v.setTitle("旧标题");
+        v.setContent("");
+        when(versionMapper.selectOne(any())).thenReturn(v);
+
+        assertThatThrownBy(() -> service.revert("default", 88L, 1, user(5L, "group", Set.of("wiki:update"))))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("版本快照内容不完整");
+        verify(pageMapper, never()).updateById(any(WikiPage.class));
+        verify(versionMapper, never()).insert(any(WikiPageVersion.class));
     }
 
     @Test
@@ -240,6 +263,23 @@ class WikiPageServiceTest {
 
         assertThat(result.getId()).isEqualTo(45L);
         verify(pageMapper).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void createPage_doesNotCreateEmptyRevertableVersion() {
+        SecurityUser owner = user(7L, "group", Set.of("wiki:create"));
+        when(pageMapper.selectList(any())).thenReturn(List.of());
+        when(pageMapper.insert(any(WikiPage.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, WikiPage.class).setId(45L);
+            return 1;
+        });
+
+        var req = new com.cwgsyw.platform.module.wiki.dto.CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setTitle("新页面");
+        service.createPage("default", owner, req);
+
+        verify(versionMapper, never()).insert(any(WikiPageVersion.class));
     }
 
     // ── deletePage / movePage / publishDirect 权限闸门 ──────────────────

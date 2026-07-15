@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P1-018` |
 | 优先级 | P1 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -35,4 +35,4 @@ Wiki 版本回退返回成功，但正文被清空。
 - 不删除历史版本
 - 不自动修复无法判定的空快照
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：首次保存生成完整 `v1`，回退精确恢复正文、详情与导出，并写入新版本；空/旧快照在写入前受控拒绝；真实 API/UI 路径和精确清理通过。下一门禁：最终 L4 全平台复验。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
