@@ -194,7 +194,7 @@
     },
     "REM-P1-026": {
       "eventCommit": "dd1a67037ab352cc9614b62b6b6c044b33946c1d",
-      "mergeCommit": null
+      "mergeCommit": "712f23b577ea2549399e61fcaf934ebe0a8940e3"
     }
   },
   "l4": {
@@ -225,6 +225,6 @@
     "REM-P1-024 L1-L3 passed: all-version non-cascade deletion, binding/runtime protection, suspended-start rejection and instance termination history were revalidated; event and merge commit hashes are recorded when the no-ff merge completes.",
     "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes.",
     "REM-P1-026 implementation and L1 passed, but L2-L3 are blocked by BR-005: daily-report, notification and Flowable terminal state lack a product archive/purge lifecycle for exact runId cleanup.",
-    "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account. Event commit dd1a6703 is being merged with this checkpoint advance."
+    "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account. Event commit dd1a6703 merged as 712f23b with this checkpoint advance."
   ]
 }
