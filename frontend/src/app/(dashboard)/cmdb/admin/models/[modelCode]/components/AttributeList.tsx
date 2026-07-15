@@ -67,13 +67,21 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                     </div>
                     {canManage && (
                       <div className="flex shrink-0 gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(attr)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`编辑属性 ${attr.name}`}
+                          title={`编辑属性 ${attr.name}`}
+                          onClick={() => onEdit(attr)}
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         {!attr.isBuiltIn && (
                           <Button
                             variant="ghost"
                             size="sm"
+                            aria-label={`删除属性 ${attr.name}`}
+                            title={`删除属性 ${attr.name}`}
                             className="text-v2-danger hover:text-v2-danger"
                             onClick={() => {
                               if (

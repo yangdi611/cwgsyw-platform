@@ -40,6 +40,8 @@ export function AddAttributeDialog({
   const [isListShow, setIsListShow] = useState(true)
   const [isDrawerShow, setIsDrawerShow] = useState(true)
   const [groupId, setGroupId] = useState('')
+  const [defaultValue, setDefaultValue] = useState('')
+  const [sortOrder, setSortOrder] = useState('0')
   const [optionsText, setOptionsText] = useState('')
   const effectiveGroupId = groupId || groups[0]?.groupId || ''
   const isEnum = fieldType === 'enum' || fieldType === 'enummulti'
@@ -56,6 +58,7 @@ export function AddAttributeDialog({
       isUnique,
       isListShow,
       isDrawerShow,
+      defaultValue: defaultValue.trim() || null,
       option: isEnum
         ? enumOptions
         : fieldType === 'table'
@@ -63,7 +66,7 @@ export function AddAttributeDialog({
           : null,
       // Backend create validation still requires this deprecated mirror for enum fields.
       enumOptions: enumOptions ? JSON.stringify(enumOptions) : null,
-      sortOrder: 0,
+      sortOrder: Number(sortOrder) || 0,
     })
   }
 
@@ -84,9 +87,10 @@ export function AddAttributeDialog({
               <Input
                 placeholder="例如：cpu_cores"
                 value={fieldKey}
+                maxLength={64}
                 onChange={(event) => setFieldKey(event.target.value)}
               />
-              <p className="text-xs text-v2-muted">使用小写字母、数字和下划线，创建后不可修改</p>
+              <p className="text-xs text-v2-muted">最多 64 个字符；使用小写字母、数字和下划线，创建后不可修改</p>
             </div>
             <div className="space-y-1.5">
               <Label>
@@ -148,6 +152,26 @@ export function AddAttributeDialog({
               <p className="text-xs text-v2-muted">使用逗号分隔；选项值与显示名称保持一致</p>
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>默认值</Label>
+              <Input
+                placeholder="可选"
+                value={defaultValue}
+                onChange={(event) => setDefaultValue(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>排序</Label>
+              <Input
+                type="number"
+                min="0"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+              />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <label className="flex items-center gap-2">

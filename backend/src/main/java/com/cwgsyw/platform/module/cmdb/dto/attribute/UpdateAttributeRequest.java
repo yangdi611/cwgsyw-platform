@@ -1,12 +1,15 @@
 package com.cwgsyw.platform.module.cmdb.dto.attribute;
 
 import lombok.Data;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 import java.util.Map;
 
 @Data
 public class UpdateAttributeRequest {
+    @Size(min = 1, max = 128)
     private String name;
     private Boolean isRequired;
     private Boolean isEditable;
@@ -25,5 +28,6 @@ public class UpdateAttributeRequest {
     @Deprecated
     private String enumOptions;
 
+    @PositiveOrZero
     private Integer sortOrder;
 }
