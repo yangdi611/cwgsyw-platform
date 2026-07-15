@@ -63,7 +63,7 @@
 | `BUG-FQA-052` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-053` | P1 | [`REM-P1-021`：共享文件与 Wiki 附件存储回收](./04-content-files/REM-P1-021-stored-object-delete-compensation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-054` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-055` | P2 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-055` | P2 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `VERIFIED` | L1-L3 deleted-role API/UI lifecycle and cleanup passed; awaiting L4 |
 | `BUG-FQA-056` | P1 | [`REM-P1-003`：未分配组与业务组双向互斥](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/README.md) | `CLOSED` | checkpoint 仍列开放，但整改事件已关闭 |
 | `BUG-FQA-057` | P2 | [`REM-P2-003`：Wiki 页面标题规范与同级唯一性](./04-content-files/REM-P2-003-wiki-title-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-058` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -101,7 +101,7 @@
 | `BUG-FQA-090` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-091` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-092` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-093` | P1 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-093` | P1 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `VERIFIED` | L1-L3 deleted-role API/UI lifecycle and cleanup passed; awaiting L4 |
 | `BUG-FQA-094` | P1 | [`REM-P1-030`：日报导出权限运行时消费者](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-095` | P1 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-096` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `NOT_STARTED` | checkpoint.openDefects |
