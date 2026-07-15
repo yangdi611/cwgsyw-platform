@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class IpPoolDetailVO {
     private Long id;
+    private Long groupId;
     private String name;
     private String description;
     private String cidr;

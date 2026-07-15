@@ -19,9 +19,9 @@ class GroupReferenceRegistryTest {
         assertEquals("group-reference-registry/v1", GroupReferenceRegistry.VERSION);
         assertTrue(GroupReferenceRegistry.validationErrors().isEmpty(),
             GroupReferenceRegistry.validationErrors().toString());
-        assertEquals(17, GroupReferenceRegistry.requiredTriggers().size());
+        assertEquals(18, GroupReferenceRegistry.requiredTriggers().size());
         assertEquals(7, GroupReferenceRegistry.requiredFunctions().size());
-        assertEquals(6, GroupReferenceRegistry.requiredForeignKeys().size());
+        assertEquals(7, GroupReferenceRegistry.requiredForeignKeys().size());
 
         Set<String> referenceTypes = new HashSet<>();
         GroupReferenceRegistry.descriptors().forEach(descriptor -> {

@@ -29,7 +29,7 @@
 | `REM-P1-011` | P1 | CMDB 导航、模型路由与查询合同 | `BUG-FQA-039`、`BUG-FQA-087`、`BUG-FQA-095` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) / [SPEC](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-012` | P1 | 设备、凭据与范围合同 | `BUG-FQA-018`、`BUG-FQA-080`、`BUG-FQA-092`、`BUG-FQA-103` | `VERIFIED` | `HIGH` | 发布候选版 L4 | [事件卡](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) / [SPEC](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-013` | P1 | 账号与组织输入及显式清空合同 | `BUG-FQA-015`、`BUG-FQA-044`、`BUG-FQA-085` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) / [SPEC](./02-account-organization/REM-P1-013-account-input-null-update-contracts/SPEC.md) / [验证](./02-account-organization/REM-P1-013-account-input-null-update-contracts/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-013-account-input-null-update-contracts/CLAUDE-CODE-PROMPT.md) |
-| `REM-P1-014` | P1 | IPAM 地址池、分配与范围完整性 | `BUG-FQA-041`、`BUG-FQA-064`、`BUG-FQA-072`、`BUG-FQA-073`、`BUG-FQA-075` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) / [SPEC](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-014` | P1 | IPAM 地址池、分配与范围完整性 | `BUG-FQA-041`、`BUG-FQA-064`、`BUG-FQA-072`、`BUG-FQA-073`、`BUG-FQA-075` | `VERIFIED` | `HIGH` | 发布候选版 L4 | [事件卡](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) / [SPEC](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-015` | P1 | 分页基础设施与审计筛选合同 | `BUG-FQA-023`、`BUG-FQA-024`、`BUG-FQA-040`、`BUG-FQA-054` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) / [SPEC](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/SPEC.md) / [验证](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-016` | P1 | 跨模块写操作审计与快照完整性 | `BUG-FQA-011`、`BUG-FQA-019`、`BUG-FQA-096` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) / [SPEC](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/SPEC.md) / [验证](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-017` | P1 | Wiki 资源授权、归属组与不存在语义 | `BUG-FQA-045`、`BUG-FQA-058`、`BUG-FQA-067`、`BUG-FQA-089` | `NOT_STARTED` | `CRITICAL` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) / [SPEC](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/SPEC.md) / [验证](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/CLAUDE-CODE-PROMPT.md) |
@@ -74,16 +74,16 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P1-004`、`REM-P1-005`、`REM-P1-006`、`REM-P1-007`、`REM-P1-009` 与 `REM-P1-012` 均已事件级 `VERIFIED`，等待最终 L4，不重复实施；下一项为 `REM-P1-014`。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P1-004`、`REM-P1-005`、`REM-P1-006`、`REM-P1-007`、`REM-P1-009`、`REM-P1-012` 与 `REM-P1-014` 均已事件级 `VERIFIED`，等待最终 L4，不重复实施；下一项为 `REM-P1-016`。
 
 ## 状态统计
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 35 |
+| `NOT_STARTED` | 34 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 6 |
+| `VERIFIED` | 7 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 

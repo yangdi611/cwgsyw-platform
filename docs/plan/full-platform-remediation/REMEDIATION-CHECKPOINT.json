@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T13:32:00+08:00",
+  "updatedAt": "2026-07-15T14:35:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P1-014",
+  "activeBranch": "codex/rem-p1-014-ipam-address-pool-integrity",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-012_L1_L3_PASS",
-  "nextEvent": "REM-P1-014",
-  "nextBranch": "codex/rem-p1-014-ipam-address-pool-integrity",
-  "nextAction": "Create the REM-P1-014 branch from this lint-fix merge commit and begin its impact analysis.",
+  "lastCompletedGate": "REM-P1-014_L1_L3_PASS",
+  "nextEvent": "REM-P1-016",
+  "nextBranch": "codex/rem-p1-016-cross-module-audit-snapshots",
+  "nextAction": "Commit REM-P1-014 and merge it with --no-ff into lint-fix; then create the REM-P1-016 branch from that integration point.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 6,
+    "verified": 7,
     "verifying": 0,
     "notStarted": 35,
     "blocked": 0
@@ -45,7 +45,8 @@
       "REM-P1-006",
       "REM-P1-007",
       "REM-P1-009",
-      "REM-P1-012"
+      "REM-P1-012",
+      "REM-P1-014"
     ],
     "verifying": [],
     "inProgress": [],
@@ -54,7 +55,6 @@
       "REM-P1-010",
       "REM-P1-011",
       "REM-P1-013",
-      "REM-P1-014",
       "REM-P1-015",
       "REM-P1-016",
       "REM-P1-017",
@@ -94,7 +94,6 @@
     "REM-P1-007",
     "REM-P1-009",
     "REM-P1-012",
-    "REM-P1-014",
     "REM-P1-016",
     "REM-P1-017",
     "REM-P1-018",
