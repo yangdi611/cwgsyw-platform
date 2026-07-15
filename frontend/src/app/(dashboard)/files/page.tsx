@@ -55,6 +55,9 @@ export default function FilesPage() {
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [ownerGroupId, setOwnerGroupId] = useState('')
+  const [editingFolder, setEditingFolder] = useState<FolderNode | null>(null)
+  const [folderName, setFolderName] = useState('')
+  const [folderParentId, setFolderParentId] = useState('')
 
   const [aclTarget, setAclTarget] = useState<FolderNode | null>(null)
   const [fileAclTarget, setFileAclTarget] = useState<SharedFile | null>(null)
@@ -166,6 +169,22 @@ export default function FilesPage() {
     },
   })
 
+  const updateFolderMutation = useMutation({
+    mutationFn: ({ id, name, parentId }: { id: number; name: string; parentId?: string }) =>
+      api.patch(`/files/folders/${id}`, {
+        name,
+        ...(parentId === undefined ? {} : { parentId: parentId === '' ? null : Number(parentId) }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['file-folders'] })
+      setEditingFolder(null)
+      toast.success('文件夹已更新')
+    },
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '更新失败')
+    },
+  })
+
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
@@ -198,6 +217,7 @@ export default function FilesPage() {
   const folders = folderData?.data ?? []
   const files = fileData?.data?.records ?? []
   const total = fileData?.data?.total ?? 0
+  const flatFolders = (nodes: FolderNode[]): FolderNode[] => nodes.flatMap((node) => [node, ...flatFolders(node.children ?? [])])
 
   const canUpload = hasPermission('shared_file', 'upload')
   const canDelete = hasPermission('shared_file', 'delete')
@@ -380,6 +400,11 @@ export default function FilesPage() {
                 canManage={canManage}
                 canManageAcl={canManageAcl}
                 onDelete={handleDeleteFolder}
+                onEdit={(node) => {
+                  setEditingFolder(node)
+                  setFolderName(node.name)
+                  setFolderParentId(node.parentId === null ? '' : String(node.parentId))
+                }}
                 onEditAcl={setAclTarget}
               />
             ))}
@@ -458,6 +483,36 @@ export default function FilesPage() {
             >
               创建
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>编辑文件夹</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input value={folderName} onChange={(event) => setFolderName(event.target.value)} autoFocus />
+            <label className="block space-y-1 text-sm text-v2-fg">
+              <span>移动到</span>
+              <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={folderParentId} onChange={(event) => setFolderParentId(event.target.value)}>
+                <option value="">根目录</option>
+                {flatFolders(folders).filter((folder) => folder.id !== editingFolder?.id).map((folder) => (
+                  <option key={folder.id} value={folder.id}>{folder.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setEditingFolder(null)}>取消</Button>
+            <Button variant="primary" disabled={!folderName.trim() || updateFolderMutation.isPending} onClick={() => {
+              if (editingFolder) updateFolderMutation.mutate({
+                id: editingFolder.id,
+                name: folderName.trim(),
+                parentId: folderParentId === (editingFolder.parentId === null ? '' : String(editingFolder.parentId))
+                  ? undefined
+                  : folderParentId,
+              })
+            }}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

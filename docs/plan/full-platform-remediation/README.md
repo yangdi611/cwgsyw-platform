@@ -101,7 +101,7 @@ full-platform-remediation/
 
 ## Codex Goal 执行约定
 
-- Goal 在单一工作区中顺序执行；`REM-P1-019` 已通过 L1-L3，下一事件为 `REM-P1-020`；每个事件从最新 `lint-fix` 创建独立分支，完成 L1-L3 运行时复验后提交并 `--no-ff` 合并，再进入下一事件。
+- Goal 在单一工作区中顺序执行；`REM-P1-020` 已通过 L1-L3，下一事件为 `REM-P1-021`；每个事件从最新 `lint-fix` 创建独立分支，完成 L1-L3 运行时复验后提交并 `--no-ff` 合并，再进入下一事件。
 - `REMEDIATION-CHECKPOINT.json` 是中断恢复入口，但必须用 Git 提交、事件文档和证据校验，不能把检查点声明当成完成证据。
 - 事件级 L1-L3 全部通过后状态为 `VERIFIED`；全部事件完成后还要执行独立 L4 全平台复验，L4 通过后才统一 `CLOSED`。
 - 每次状态变化同步事件卡、验证矩阵、实施记录、`INDEX.md`、`FQA-COVERAGE-MATRIX.md`、本 README 和检查点；只有 BLOCKED gate 改变时更新解除计划。

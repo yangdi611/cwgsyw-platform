@@ -6,6 +6,7 @@ export interface FolderNode {
   canCreateChild: boolean
   canUpload: boolean
   canDelete: boolean
+  canUpdate: boolean
   canManageAcl: boolean
   children?: FolderNode[]
 }

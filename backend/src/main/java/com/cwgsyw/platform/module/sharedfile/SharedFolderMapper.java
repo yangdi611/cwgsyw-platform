@@ -9,6 +9,12 @@ import java.util.List;
 
 @Mapper
 public interface SharedFolderMapper extends BaseMapper<SharedFolder> {
+    @Select("""
+            SELECT 1
+            FROM (SELECT pg_advisory_xact_lock(hashtext(#{tenantId}))) AS locked
+            """)
+    int lockFolderTree(@Param("tenantId") String tenantId);
+
     @Select("SELECT * FROM shared_folder WHERE tenant_id = #{tenantId} AND is_deleted = FALSE ORDER BY name")
     List<SharedFolder> findAllByTenant(@Param("tenantId") String tenantId);
 

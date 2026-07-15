@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T18:10:00+08:00",
+  "updatedAt": "2026-07-15T18:35:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-019_L1_L3_PASS",
-  "nextEvent": "REM-P1-020",
-  "nextBranch": "codex/rem-p1-020-shared-folder-crud-validation",
-  "nextAction": "Create the REM-P1-020 event branch from latest lint-fix, complete upstream impact and root-cause confirmation before editing.",
+  "lastCompletedGate": "REM-P1-020_L1_L3_PASS",
+  "nextEvent": "REM-P1-021",
+  "nextBranch": "codex/rem-p1-021-stored-object-delete-compensation",
+  "nextAction": "Create the REM-P1-021 event branch from latest lint-fix, complete upstream impact and root-cause confirmation before editing.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 11,
+    "verified": 12,
     "verifying": 0,
-    "notStarted": 30,
+    "notStarted": 29,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -50,7 +50,8 @@
       "REM-P1-016",
       "REM-P1-017",
       "REM-P1-018",
-      "REM-P1-019"
+      "REM-P1-019",
+      "REM-P1-020"
     ],
     "verifying": [],
     "inProgress": [],
@@ -60,7 +61,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-020",
       "REM-P1-021",
       "REM-P1-022",
       "REM-P1-023",
@@ -98,8 +98,7 @@
     "REM-P1-017",
     "REM-P1-018",
     "REM-P1-019",
-    "REM-P1-020",
-    "REM-P1-021",
+      "REM-P1-021",
     "REM-P1-022",
     "REM-P1-023",
     "REM-P1-024",
@@ -191,6 +190,7 @@
     "REM-P1-016 is merged after L1-L3 PASS; the merge commit records the next-event checkpoint advance.",
     "REM-P1-017 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-018.",
     "REM-P1-018 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-019.",
-    "REM-P1-019 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes."
+    "REM-P1-019 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-020 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes."
   ]
 }

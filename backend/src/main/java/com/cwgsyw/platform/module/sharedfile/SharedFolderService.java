@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.sharedfile;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.text.Normalizer;
 import java.util.*;
 import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -60,9 +62,13 @@ public class SharedFolderService {
     @Transactional
     public SharedFolderVO createFolder(String tenantId, Long operatorId, String name, Long parentId,
                                        Long ownerGroupId) {
+        folderMapper.lockFolderTree(tenantId);
+        String normalizedName = normalizeName(name);
+        requireUniqueName(tenantId, parentId, normalizedName, null);
         SharedFolder folder = new SharedFolder();
         folder.setTenantId(tenantId);
-        folder.setName(name);
+        folder.setName(name.trim());
+        folder.setNormalizedName(normalizedName);
         folder.setParentId(parentId);
         folder.setAclInherited(true);
         folder.setCreatedBy(operatorId);
@@ -79,6 +85,37 @@ public class SharedFolderService {
                 .createdAt(LocalDateTime.now()).build());
 
         return toVO(folder);
+    }
+
+    @Transactional
+    public SharedFolderVO updateFolder(String tenantId, Long operatorId, Long folderId, String requestedName,
+                                       Long requestedParentId, boolean moveRequested) {
+        folderMapper.lockFolderTree(tenantId);
+        SharedFolder folder = requireFolder(tenantId, folderId);
+        Long parentId = moveRequested ? requestedParentId : folder.getParentId();
+        if (moveRequested && parentId != null) validateMove(tenantId, folderId, parentId);
+        String name = requestedName == null ? folder.getName() : requestedName.trim();
+        String normalizedName = requestedName == null ? folder.getNormalizedName() : normalizeName(requestedName);
+        requireUniqueName(tenantId, parentId, normalizedName, folderId);
+        boolean renamed = !Objects.equals(folder.getName(), name);
+        boolean moved = moveRequested && !Objects.equals(folder.getParentId(), parentId);
+        if (!renamed && !moved) return toVO(folder);
+        Long oldParentId = folder.getParentId();
+        folder.setName(name);
+        folder.setNormalizedName(normalizedName);
+        folder.setParentId(parentId);
+        folder.setUpdatedAt(LocalDateTime.now());
+        folderMapper.updateById(folder);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(tenantId).module("shared_file").action(moved ? "move_folder" : "rename_folder")
+            .targetId(folderId).targetType("shared_folder").operatorId(operatorId)
+            .remark("oldParentId=" + oldParentId + ",newParentId=" + parentId + ",name=" + name)
+            .createdAt(LocalDateTime.now()).build());
+        return toVO(folder);
+    }
+
+    public SharedFolder getFolder(String tenantId, Long folderId) {
+        return requireFolder(tenantId, folderId);
     }
 
     @Transactional
@@ -124,9 +161,11 @@ public class SharedFolderService {
                 current = existing;
                 parentId = existing.getId();
             } else {
+                folderMapper.lockFolderTree(tenantId);
                 SharedFolder newFolder = new SharedFolder();
                 newFolder.setTenantId(tenantId);
                 newFolder.setName(part);
+                newFolder.setNormalizedName(normalizeName(part));
                 newFolder.setParentId(parentId);
                 newFolder.setAclInherited(true);
                 newFolder.setCreatedBy(operatorId);
@@ -152,6 +191,51 @@ public class SharedFolderService {
         return vo;
     }
 
+    private SharedFolder requireFolder(String tenantId, Long folderId) {
+        SharedFolder folder = folderMapper.selectById(folderId);
+        if (folder == null || !tenantId.equals(folder.getTenantId())) {
+            throw BusinessException.badRequest("SHARED_FOLDER_NOT_FOUND", "文件夹不存在");
+        }
+        return folder;
+    }
+
+    private void validateMove(String tenantId, Long folderId, Long parentId) {
+        if (Objects.equals(folderId, parentId)) {
+            throw BusinessException.badRequest("SHARED_FOLDER_MOVE_CYCLE", "不能移动到自身");
+        }
+        SharedFolder parent = requireFolder(tenantId, parentId);
+        Long cursor = parent.getParentId();
+        while (cursor != null) {
+            if (Objects.equals(cursor, folderId)) {
+                throw BusinessException.badRequest("SHARED_FOLDER_MOVE_CYCLE", "不能移动到子文件夹");
+            }
+            cursor = requireFolder(tenantId, cursor).getParentId();
+        }
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) throw BusinessException.badRequest("SHARED_FOLDER_NAME_INVALID", "文件夹名称不能为空");
+        String trimmed = Normalizer.normalize(name, Normalizer.Form.NFC).trim();
+        if (trimmed.isEmpty()) throw BusinessException.badRequest("SHARED_FOLDER_NAME_INVALID", "文件夹名称不能为空");
+        if (trimmed.length() > 255 || trimmed.indexOf('/') >= 0 || trimmed.indexOf('\\') >= 0
+                || trimmed.chars().anyMatch(Character::isISOControl)) {
+            throw BusinessException.badRequest("SHARED_FOLDER_NAME_INVALID", "文件夹名称格式不合法");
+        }
+        return trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    private void requireUniqueName(String tenantId, Long parentId, String normalizedName, Long excludedId) {
+        LambdaQueryWrapper<SharedFolder> query = new LambdaQueryWrapper<SharedFolder>()
+            .eq(SharedFolder::getTenantId, tenantId)
+            .eq(SharedFolder::getNormalizedName, normalizedName);
+        if (parentId == null) query.isNull(SharedFolder::getParentId);
+        else query.eq(SharedFolder::getParentId, parentId);
+        if (excludedId != null) query.ne(SharedFolder::getId, excludedId);
+        if (folderMapper.selectCount(query) > 0) {
+            throw new BusinessException(409, "SHARED_FOLDER_NAME_CONFLICT", "当前目录已存在同名文件夹");
+        }
+    }
+
     private List<SharedFolderVO> filterReadable(List<SharedFolderVO> folders, SecurityUser user) {
         List<SharedFolderVO> result = new ArrayList<>();
         for (SharedFolderVO folder : folders) {
@@ -168,6 +252,7 @@ public class SharedFolderService {
             boolean legacyManage = user.getPermissions().contains("shared_file:manage");
             boolean legacyUpload = user.getPermissions().contains("shared_file:upload");
             boolean legacyDelete = user.getPermissions().contains("shared_file:delete");
+            boolean legacyUpdate = user.getPermissions().contains("shared_file:update");
             boolean legacyManageAcl = user.getPermissions().contains("shared_file:manage_acl");
             folder.setCanCreateChild(authorizationService.decideWithCompatibility(user, "shared_file",
                 "shared_file:manage", "shared_folder", folder.getId(), 3, legacyManage));
@@ -175,6 +260,8 @@ public class SharedFolderService {
                 "shared_file:upload", "shared_folder", folder.getId(), 3, legacyUpload));
             folder.setCanDelete(authorizationService.decideParentWithCompatibility(user, "shared_file",
                 "shared_file:delete", "shared_folder", folder.getId(), 3, legacyDelete));
+            folder.setCanUpdate(authorizationService.decideParentWithCompatibility(user, "shared_file",
+                "shared_file:update", "shared_folder", folder.getId(), 2, legacyUpdate));
             folder.setCanManageAcl(authorizationService.decideWithCompatibility(user, "shared_file",
                 "shared_file:manage_acl", "shared_folder", folder.getId(), 2, legacyManageAcl));
             applyCapabilities(folder.getChildren(), user);

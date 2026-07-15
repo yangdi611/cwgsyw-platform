@@ -22,6 +22,7 @@
 - 范围：实现 rename/move API 与 UI；校验目标 parent 权限、防环和根目录规则；统一名称规范和同级唯一；审计并刷新树。
 - 兼容：保留成功响应、路由、query key 和已有 ACL；明确修正项除外。
 - GitNexus：规划索引已刷新；编辑每个符号前必须 upstream `impact`。
+- 已确认权限与 ACL：重命名使用 `shared_file:update`；移动同时要求源目录与目标父目录的 `shared_file:manage`。移动不变更 owner、ACL 行或 `aclInherited`；继承型目录改由新父级动态生效。
 
 步骤：复现/确认 → 固定合同 → 最小根因改动 → L1/L2/L3 → `detect_changes` → 产品清理与回滚。
 
