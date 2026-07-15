@@ -21,6 +21,7 @@
 - 候选文件 / 符号：`backend/src/main/java/com/cwgsyw/platform/module/sharedfile/**`、`frontend/src/app/(dashboard)/files/page.tsx`、`backend/src/main/resources/db/migration/**`
 - 范围：零字节/名称/大小/MIME 校验；同目录规范名唯一与并发冲突；上传进度与取消状态；存储成功/数据库失败及中断补偿；成功后准确刷新当前目录。
 - 兼容：保留成功响应、路由、query key 和已有 ACL；明确修正项除外。
+- 已批准前置：为保证本事件测试对象可经产品 API 精确清理，`REM-P1-021` 的共享文件删除存储回收作为本事件必要前置实现；仅回收被删除记录的主对象及其受控 Markdown 派生对象，不扫描或清理无法证明归属的历史对象。
 - GitNexus：规划索引已刷新；编辑每个符号前必须 upstream `impact`。
 
 步骤：复现/确认 → 固定合同 → 最小根因改动 → L1/L2/L3 → `detect_changes` → 产品清理与回滚。

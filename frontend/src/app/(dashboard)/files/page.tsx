@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { FolderAclDialog } from './FolderAclDialog'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
 import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
+import axios from 'axios'
 import { FolderTreeNode } from './components/FolderTreeNode'
 import { AuditPanel } from './components/AuditPanel'
 import type { FolderNode, SharedFile } from './components/types'
@@ -61,7 +62,9 @@ export default function FilesPage() {
   const [renameValue, setRenameValue] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadAbortRef = useRef<AbortController | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -99,11 +102,17 @@ export default function FilesPage() {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData()
+      const controller = new AbortController()
+      uploadAbortRef.current = controller
       form.append('file', file)
       if (selectedFolderId !== null) form.append('folder_id', String(selectedFolderId))
       if (selectedFolderId === null && ownerGroupId) form.append('owner_group_id', ownerGroupId)
       return api.post('/files/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        signal: controller.signal,
+        onUploadProgress: (event) => {
+          if (event.total) setUploadProgress(Math.round((event.loaded / event.total) * 100))
+        },
       })
     },
     onSuccess: () => {
@@ -164,8 +173,14 @@ export default function FilesPage() {
       setUploading(true)
       try {
         await uploadMutation.mutateAsync(file)
+        toast.success('文件上传成功')
+      } catch (error) {
+        if (axios.isCancel(error)) toast.message('已取消上传')
+        else toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '上传失败')
       } finally {
         setUploading(false)
+        setUploadProgress(null)
+        uploadAbortRef.current = null
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
@@ -310,10 +325,13 @@ export default function FilesPage() {
               </Button>
             )}
             {canUpload && (
+              <>
               <Button variant="primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4" />
-                {uploading ? '上传中…' : '上传文件'}
+                {uploading ? `上传中${uploadProgress === null ? '…' : ` ${uploadProgress}%`}` : '上传文件'}
               </Button>
+              {uploading && <Button variant="secondary" onClick={() => uploadAbortRef.current?.abort()}>取消上传</Button>}
+              </>
             )}
           </>
         }

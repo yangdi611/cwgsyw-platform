@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P1-019` |
 | 优先级 | P1 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -36,4 +36,4 @@
 - 不改变现有 ACL 模型
 - 不清理无法证明归属的历史对象
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：白名单、20MB、规范名冲突、对象补偿和删除回收均已实现并经 API/UI 复验；等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
