@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
@@ -47,15 +48,17 @@ public class OpsCalendarRuleService {
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
     private final RbacService rbacService;
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final ObjectMapper objectMapper;
 
     // ============ helpers ============
 
-    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId, String remark) {
+    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId,
+                            String beforeJson, String afterJson, String remark) {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("ops_calendar").action(action)
                 .targetId(targetId).targetType("ops_schedule_rule")
-                .operatorId(operatorId).remark(remark)
+                .operatorId(operatorId).beforeJson(beforeJson).afterJson(afterJson).remark(remark)
                 .createdAt(LocalDateTime.now()).build());
     }
 
@@ -71,6 +74,29 @@ public class OpsCalendarRuleService {
     }
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
+
+    private String snapshot(OpsScheduleRule rule) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", rule.getId());
+        values.put("name", rule.getName());
+        values.put("description", Objects.toString(rule.getDescription(), ""));
+        values.put("taskType", rule.getTaskType());
+        values.put("enabled", rule.getEnabled());
+        values.put("triggerType", rule.getTriggerType());
+        values.put("triggerConfig", fromJson(rule.getTriggerConfig()));
+        values.put("generateDaysAhead", rule.getGenerateDaysAhead());
+        values.put("reminderConfig", fromJson(rule.getReminderConfig()));
+        values.put("dueConfig", fromJson(rule.getDueConfig()));
+        values.put("assigneeRule", fromJson(rule.getAssigneeRule()));
+        values.put("recipientRule", fromJson(rule.getRecipientRule()));
+        values.put("escalationRule", fromJson(rule.getEscalationRule()));
+        values.put("templateId", Objects.toString(rule.getTemplateId(), ""));
+        values.put("checklistTemplateId", Objects.toString(rule.getChecklistTemplateId(), ""));
+        values.put("visibility", rule.getVisibility());
+        values.put("publicSummary", Objects.toString(rule.getPublicSummary(), ""));
+        values.put("sensitive", rule.getSensitive());
+        return auditSnapshotSerializer.serialize(values);
+    }
 
     // ============ CRUD ============
 
@@ -129,7 +155,7 @@ public class OpsCalendarRuleService {
         r.setNextGenerateAt(null);
         ruleMapper.insert(r);
 
-        writeAudit(user.getTenantId(), "create", r.getId(), user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "create", r.getId(), user.getUserId(), null, snapshot(r), "name=" + r.getName());
         return r.getId();
     }
 
@@ -137,12 +163,13 @@ public class OpsCalendarRuleService {
     public void update(SecurityUser user, Long id, RuleCreateRequest req) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        String before = snapshot(r);
         applyRequest(r, req);
         validateReferencedGroups(r);
         // 触发配置可能变化 -> 重置下次扫描点为立即
         r.setNextGenerateAt(null);
         ruleMapper.updateById(r);
-        writeAudit(user.getTenantId(), "update", id, user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "update", id, user.getUserId(), before, snapshot(r), "name=" + r.getName());
     }
 
     private void applyRequest(OpsScheduleRule r, RuleCreateRequest req) {
@@ -168,12 +195,13 @@ public class OpsCalendarRuleService {
     public void setEnabled(SecurityUser user, Long id, boolean enabled) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        String before = snapshot(r);
         if (enabled) validateAssignable(r);
         if (enabled) validateReferencedGroups(r);
         r.setEnabled(enabled);
         if (enabled) r.setNextGenerateAt(null); // 重新启用立即扫描
         ruleMapper.updateById(r);
-        writeAudit(user.getTenantId(), "update", id, user.getUserId(), enabled ? "enable" : "disable");
+        writeAudit(user.getTenantId(), "update", id, user.getUserId(), before, snapshot(r), enabled ? "enable" : "disable");
     }
 
     /**
@@ -228,11 +256,12 @@ public class OpsCalendarRuleService {
     public void delete(SecurityUser user, Long id) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        String before = snapshot(r);
         r.setDeletedAt(LocalDateTime.now());
         r.setDeletedBy(user.getUserId());
         ruleMapper.updateById(r);
         ruleMapper.deleteById(id);
-        writeAudit(user.getTenantId(), "delete", id, user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "delete", id, user.getUserId(), before, null, "name=" + r.getName());
     }
 
     // ============ 5.9 预览 ============

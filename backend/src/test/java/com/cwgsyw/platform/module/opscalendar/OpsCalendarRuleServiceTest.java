@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.opscalendar;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleRule;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
 import com.cwgsyw.platform.module.opscalendar.dto.RuleCreateRequest;
@@ -52,6 +53,7 @@ class OpsCalendarRuleServiceTest {
     @Mock RbacService rbacService;
     @Mock AuditLogMapper auditLogMapper;
     @Spy ObjectMapper objectMapper = new ObjectMapper();
+    @Spy AuditSnapshotSerializer auditSnapshotSerializer = new AuditSnapshotSerializer(objectMapper);
 
     @InjectMocks OpsCalendarRuleService service;
 

@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.sharedfile;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
@@ -39,6 +41,7 @@ class SharedFileServiceTest {
     @Mock AuthorizationResourceMigrationService resourceMigrationService;
     @Mock AuthorizationService authorizationService;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    @Spy AuditSnapshotSerializer auditSnapshotSerializer = new AuditSnapshotSerializer(new com.fasterxml.jackson.databind.ObjectMapper());
 
     @InjectMocks SharedFileService service;
 
