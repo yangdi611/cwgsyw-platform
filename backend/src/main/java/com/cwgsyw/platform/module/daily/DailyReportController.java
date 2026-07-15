@@ -73,4 +73,15 @@ public class DailyReportController {
         reportService.submit(id, cu.getUserId());
         return R.ok();
     }
+
+    /** 仅清理带 remediationRunId 标记的本地测试日报。 */
+    @DeleteMapping("/{id}/remediation-test")
+    @PreAuthorize("hasPermission('daily_report', 'approve')")
+    public R<Void> purgeRemediationTest(@PathVariable Long id,
+                                        @RequestParam String remediationRunId,
+                                        @AuthenticationPrincipal SecurityUser cu) {
+        reportService.purgeRemediationReport(id, cu.getTenantId(), cu.getUserId(),
+            cu.getGroupScope(), remediationRunId);
+        return R.ok();
+    }
 }

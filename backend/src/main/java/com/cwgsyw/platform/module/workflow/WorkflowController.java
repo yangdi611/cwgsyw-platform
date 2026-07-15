@@ -6,6 +6,9 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.dto.*;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskCompleteCommand;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskSummary;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class WorkflowController {
     private final WorkflowService workflowService;
+    private final WorkflowRuntimeFacade workflowRuntimeFacade;
     private final AuditLogMapper auditLogMapper;
     private final SysConfigService configService;
 
@@ -34,16 +38,42 @@ public class WorkflowController {
     @GetMapping("/tasks/group")
     @PreAuthorize("hasPermission('daily_report', 'approve')")
     public R<List<TaskVO>> groupTasks(@AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(workflowService.getPendingTasksByGroup(cu.getGroupId()));
+        return R.ok(workflowRuntimeFacade.listGroupTasks(cu).stream()
+            .map(this::toLegacyTask)
+            .toList());
     }
 
     @PostMapping("/approve")
     @PreAuthorize("hasPermission('daily_report', 'approve')")
     public R<Void> approve(@Valid @RequestBody ApproveRequest req,
                            @AuthenticationPrincipal SecurityUser cu) {
-        workflowService.approve(req.getTaskId(), cu.getUserId(),
-            req.isApproved(), req.getComment());
+        workflowRuntimeFacade.completeTask(WorkflowTaskCompleteCommand.builder()
+            .tenantId(cu.getTenantId())
+            .taskId(req.getTaskId())
+            .operatorId(cu.getUserId())
+            .approved(req.isApproved())
+            .comment(req.getComment())
+            .build());
         return R.ok();
+    }
+
+    private TaskVO toLegacyTask(WorkflowTaskSummary task) {
+        TaskVO vo = new TaskVO();
+        vo.setTaskId(task.getTaskId());
+        vo.setProcessInstanceId(task.getProcessInstanceId());
+        vo.setTaskName(task.getTaskName());
+        vo.setAssignee(task.getAssignee());
+        vo.setCreateTime(task.getCreateTime());
+        vo.setBusinessKey(task.getBusinessKey());
+        vo.setBusinessType(task.getBusinessType());
+        if (task.getBusinessId() != null) {
+            try {
+                vo.setBusinessId(Long.valueOf(task.getBusinessId()));
+            } catch (NumberFormatException ignored) {
+                // 旧接口仅支持数值业务 ID；非数值业务保持原有空值兼容行为。
+            }
+        }
+        return vo;
     }
 
     /**
