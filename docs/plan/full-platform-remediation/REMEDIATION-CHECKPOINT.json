@@ -198,7 +198,7 @@
     },
     "REM-P1-027": {
       "eventCommit": "3aa2f2137da97ab6e4efeee84724b189576d066d",
-      "mergeCommit": null
+      "mergeCommit": "dc1fd83692b1d0d6e62d247166a48a4035960ddd"
     }
   },
   "l4": {
@@ -230,6 +230,6 @@
     "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes.",
     "REM-P1-026 implementation and L1 passed, but L2-L3 are blocked by BR-005: daily-report, notification and Flowable terminal state lack a product archive/purge lifecycle for exact runId cleanup.",
     "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account. Event commit dd1a6703 merged as 712f23b with this checkpoint advance.",
-    "REM-P1-027 L1-L3 passed: template clone preserved fields/config; referenced templates were protected; runId document and templates were deleted through product APIs. Event commit 3aa2f213 is being merged with this checkpoint advance."
+    "REM-P1-027 L1-L3 passed: template clone preserved fields/config; referenced templates were protected; runId document and templates were deleted through product APIs. Event commit 3aa2f213 merged as dc1fd83 with this checkpoint advance."
   ]
 }
