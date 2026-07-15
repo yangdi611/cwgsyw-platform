@@ -128,7 +128,8 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
               <Label htmlFor="username">用户名</Label>
               <Input
                 id="username"
-                {...register('username', { required: '用户名不能为空' })}
+                {...register('username', { required: '用户名不能为空', maxLength: { value: 64, message: '用户名不能超过64个字符' } })}
+                maxLength={64}
                 disabled={mode === 'edit'}
                 placeholder="请输入用户名"
               />
@@ -142,7 +143,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
 
             <div className="space-y-2">
               <Label htmlFor="email">邮箱</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="请输入邮箱（未填则用户首次登录补全）" />
+              <Input id="email" type="email" {...register('email')} maxLength={128} placeholder="请输入邮箱（未填则用户首次登录补全）" />
             </div>
 
             <div className="space-y-2">

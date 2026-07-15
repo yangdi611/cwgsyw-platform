@@ -1,14 +1,16 @@
 package com.cwgsyw.platform.module.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.util.List;
 
 @Data
 public class UpdateUserRequest {
-    @JsonAlias("real_name") private String realName;
-    private String email;
+    @JsonAlias("real_name") @Size(max = 64) private String realName;
+    @Email @Size(max = 128) private String email;
     // 手机号：国际化宽松格式（见 SPEC 12.1）
     @Pattern(regexp = "^$|^\\+?[0-9]{6,20}$", message = "手机号格式不正确")
     private String phone;

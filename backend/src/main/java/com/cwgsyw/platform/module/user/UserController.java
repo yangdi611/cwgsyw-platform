@@ -53,7 +53,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('user', 'update')")
-    public R<Void> update(@PathVariable Long id, @RequestBody UpdateUserRequest req,
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest req,
                           @AuthenticationPrincipal SecurityUser currentUser) {
         userService.update(id, req, currentUser.getUserId());
         return R.ok();

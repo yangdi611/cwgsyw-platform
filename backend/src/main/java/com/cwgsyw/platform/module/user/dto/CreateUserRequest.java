@@ -7,11 +7,11 @@ import java.util.List;
 
 @Data
 public class CreateUserRequest {
-    @NotBlank private String username;
+    @NotBlank @Size(max = 64) private String username;
     // 密码长度/复杂度不再用 @Size 校验，改由 PasswordPolicyService 强制（SPEC 11.4）
     @NotBlank private String password;
-    @JsonAlias("real_name") private String realName;
-    private String email;
+    @JsonAlias("real_name") @Size(max = 64) private String realName;
+    @Email @Size(max = 128) private String email;
     // 国际化宽松格式，服务层标准化后校验（SPEC 12.1）
     @Pattern(regexp = "^$|^\\+?[0-9 ()\\-]{6,32}$", message = "手机号格式不正确")
     private String phone;

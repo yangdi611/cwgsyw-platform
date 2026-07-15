@@ -7,6 +7,12 @@
 
 BLOCKED 不等于缺陷，也不能伪装成 PASS。本轮 52 个 BLOCKED 主用例及 45 个 BLOCKED 状态/跨模块项，主要来自授权窗口、外部系统、不可逆状态或产品缺少精确清理。下面按解除条件聚类；只有确认产品缺口时才转成新的 REM 事件。
 
+## BR-011：REM-P1-013 临时用户组 purge 保留期（已解除）
+
+- 对象：归档 runId 组 `REM_P1_013_GROUP_1784137960396_u`（id `26`）。
+- 证据：所有 active/historical 引用为 0，purge preflight 唯一 blocker 为 `GROUP_PURGE_RETENTION_NOT_MET`，可清除时间 `2026-08-14T17:52:40.713814`。
+- 解除证据：用户已授权仅隔离开发环境临时设置 `GROUP_LIFECYCLE_PURGE_RETENTION_DAYS=0`；产品 purge API 返回 200，随后恢复 `30`、重建 backend 健康，active/archived group 和用户 runId 查询均为 0。
+
 | Gate | 覆盖用例 | 当前阻塞 | 依赖 / 解除条件 | 责任类型 |
 |---|---|---|---|---|
 | `BR-001` | `AUTH-007/010` | 真实 idle 超时需长等待或可逆配置 | 独占后端窗口；记录原 timeout；重启后复验并恢复 | 测试窗口 |

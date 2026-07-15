@@ -7,6 +7,7 @@ import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.org.dto.GroupMemberVO;
 import com.cwgsyw.platform.module.org.dto.GroupMembershipRequest;
+import com.cwgsyw.platform.module.org.dto.GroupRequest;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleActionRequest;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleListVO;
 import com.cwgsyw.platform.module.org.dto.GroupLifecyclePreflightVO;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -82,10 +84,14 @@ public class GroupController {
 
     @PostMapping
     @PreAuthorize("hasPermission('group', 'create')")
-    public R<Group> create(@RequestBody Group group,
+    public R<Group> create(@Valid @RequestBody GroupRequest request,
                            @AuthenticationPrincipal SecurityUser cu) {
+        Group group = new Group();
         group.setId(null);
         group.setTenantId(cu.getTenantId());
+        group.setName(request.getName().trim());
+        group.setDescription(request.getDescription());
+        group.setLeaderId(request.getLeaderId());
         group.setCode("group_" + UUID.randomUUID().toString().replace("-", ""));
         group.setGroupType("business");
         group.setIsBuiltin(false);
@@ -95,18 +101,16 @@ public class GroupController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('group', 'update')")
-    public R<Void> update(@PathVariable Long id, @RequestBody Group req,
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody GroupRequest request,
                           @AuthenticationPrincipal SecurityUser cu) {
         Group existing = activeGroupReferenceValidator.lockAndRequire(cu.getTenantId(), id);
         if (Boolean.TRUE.equals(existing.getIsBuiltin())) {
             throw new IllegalArgumentException("内置用户组不能编辑");
         }
-        req.setId(id);
-        req.setTenantId(existing.getTenantId());
-        req.setCode(existing.getCode());
-        req.setGroupType(existing.getGroupType());
-        req.setIsBuiltin(existing.getIsBuiltin());
-        groupMapper.updateById(req);
+        existing.setName(request.getName().trim());
+        existing.setDescription(request.getDescription());
+        existing.setLeaderId(request.getLeaderId());
+        groupMapper.updateById(existing);
         return R.ok();
     }
 
