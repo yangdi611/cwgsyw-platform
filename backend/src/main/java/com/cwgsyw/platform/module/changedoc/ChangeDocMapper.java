@@ -10,4 +10,7 @@ import org.apache.ibatis.annotations.Select;
 public interface ChangeDocMapper extends BaseMapper<ChangeDoc> {
     @Select("SELECT COALESCE(MAX(CAST(NULLIF(SPLIT_PART(change_no, '-', 3), '') AS INTEGER)), 0) FROM change_doc WHERE tenant_id = #{tenantId} AND change_no LIKE #{prefix} || '%' AND SPLIT_PART(change_no, '-', 3) ~ '^[0-9]+$'")
     int maxSeqForPrefix(@Param("tenantId") String tenantId, @Param("prefix") String prefix);
+
+    @Select("SELECT COUNT(*) FROM change_doc WHERE tenant_id = #{tenantId} AND is_deleted = FALSE AND (template_id = #{templateId} OR application_template_id = #{templateId} OR plan_template_id = #{templateId})")
+    int countActiveReferences(@Param("tenantId") String tenantId, @Param("templateId") Long templateId);
 }

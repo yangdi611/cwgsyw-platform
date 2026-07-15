@@ -13,7 +13,7 @@ interface FieldListProps {
   editable: boolean
   fieldsData: Record<string, unknown>
   aiLoadingField: string | null
-  onFieldChange: (key: string) => React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>
+  onFieldChange: (key: string) => React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   onTableFieldChange: (key: string) => (rows: TableRow[]) => void
   onAiGenerate: (fieldKey: string) => void
 }
@@ -50,11 +50,12 @@ export function FieldList({
           )
         }
 
-        const value =
-          typeof fieldsData[field.fieldKey] === 'string'
-            ? (fieldsData[field.fieldKey] as string)
-            : ''
+        const rawValue = fieldsData[field.fieldKey]
+        const value = rawValue === null || rawValue === undefined ? '' : String(rawValue)
         const isTextarea = field.fieldType === 'textarea'
+        const enumOptions = Array.isArray((field.config as { options?: unknown } | undefined)?.options)
+          ? ((field.config as { options: { value: string; label: string }[] }).options)
+          : []
 
         return (
           <div key={field.fieldKey} className="space-y-1.5">
@@ -84,6 +85,19 @@ export function FieldList({
                   placeholder={field.placeholder ?? undefined}
                   rows={4}
                 />
+              ) : field.fieldType === 'number' ? (
+                <Input type="number" value={value} onChange={onFieldChange(field.fieldKey)} placeholder={field.placeholder ?? undefined} />
+              ) : field.fieldType === 'enum' ? (
+                <select
+                  value={value}
+                  onChange={onFieldChange(field.fieldKey)}
+                  className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg"
+                >
+                  <option value="">请选择</option>
+                  {enumOptions.map((option) => {
+                    return <option key={option.value} value={option.value}>{option.label}</option>
+                  })}
+                </select>
               ) : field.fieldType === 'date' ? (
                 <Input type="date" value={value} onChange={onFieldChange(field.fieldKey)} />
               ) : field.fieldType === 'datetime' ? (

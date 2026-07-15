@@ -75,10 +75,16 @@ export default function NewChangeDocPage() {
       toast.error('请至少选择一个模板')
       return
     }
+    const defaults = [...appFields, ...planFields].reduce<Record<string, unknown>>((result, field) => {
+      const config = field.config as { defaultValue?: unknown } | undefined
+      if (config?.defaultValue !== undefined) result[field.fieldKey] = config.defaultValue
+      return result
+    }, {})
+    setFieldsData((current) => ({ ...defaults, ...current }))
     setStep(2)
   }
 
-  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFieldsData((f) => ({ ...f, [key]: e.target.value }))
 
   const setTableField = (key: string) => (rows: TableRow[]) =>

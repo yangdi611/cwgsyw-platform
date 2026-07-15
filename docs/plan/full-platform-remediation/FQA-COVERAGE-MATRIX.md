@@ -56,7 +56,7 @@
 | `BUG-FQA-045` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `VERIFIED` | L1-L3 不存在页面/空间 404 与不可操作错误态通过；待最终 L4 |
 | `BUG-FQA-046` | P2 | [`REM-P2-008`：Wiki 未知链接友好渲染](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-047` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-048` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-048` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 copy/字段类型-default-sort/精确清理通过；待最终 L4 |
 | `BUG-FQA-049` | P1 | [`REM-P1-025`：Workflow 模板实例可审计清理生命周期](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) | `VERIFIED` | L1-L3 template delete, reference protection, audit and UI confirmation passed; awaiting L4 |
 | `BUG-FQA-050` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-051` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -91,7 +91,7 @@
 | `BUG-FQA-080` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 input-boundary validation and cleanup passed; awaiting L4 |
 | `BUG-FQA-081` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `VERIFIED` | L1-L3 definition all-version deletion and runtime protection passed; awaiting L4 |
 | `BUG-FQA-082` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
-| `BUG-FQA-083` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
+| `BUG-FQA-083` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 copy/字段类型-default-sort/精确清理通过；待最终 L4 |
 | `BUG-FQA-084` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 candidate group BPMN 往返通过；待最终 L4 |
 | `BUG-FQA-085` | P1 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
 | `BUG-FQA-086` | P1 | [`REM-P1-009`：CMDB 关系与实例删除引用完整性](./03-cmdb-assets/REM-P1-009-cmdb-relation-integrity/README.md) | `VERIFIED` | L1-L3 自环 API/UI 拒绝、清理与 impact 通过；待最终 L4 |
@@ -106,7 +106,7 @@
 | `BUG-FQA-095` | P1 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-096` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | Audit API/UI exposes redacted before/after snapshots; IPAM/shared-file/ops-rule writers covered; 待 L4 |
 | `BUG-FQA-097` | P2 | [`REM-P2-014`：周期规则删除与确认入口](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-098` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
+| `BUG-FQA-098` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 引用保护拒绝、删除审计和精确清理通过；待最终 L4 |
 | `BUG-FQA-099` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `VERIFIED` | L1-L3 suspended start and instance termination lifecycle passed; awaiting L4 |
 | `BUG-FQA-100` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 删除时主对象与衍生 Markdown 回收已实现并验证；待最终 L4 |
 | `BUG-FQA-101` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `NOT_STARTED` | checkpoint.openDefects |
