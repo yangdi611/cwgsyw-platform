@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T20:08:00+08:00",
+  "updatedAt": "2026-07-15T20:10:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -186,7 +186,7 @@
     },
     "REM-P1-024": {
       "eventCommit": "c8372a05c13606ff8dfa3764ca68dba1e924085a",
-      "mergeCommit": null
+      "mergeCommit": "269b3c497d2de53445d4bccb505c790a91e64c72"
     }
   },
   "l4": {
