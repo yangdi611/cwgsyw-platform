@@ -76,6 +76,11 @@ public class WikiSpaceService {
             "wiki_space", spaceId, 5, true);
     }
 
+    public boolean exists(String tenantId, Long spaceId) {
+        WikiSpace space = spaceMapper.selectById(spaceId);
+        return space != null && !Boolean.TRUE.equals(space.getIsDeleted()) && tenantId.equals(space.getTenantId());
+    }
+
     @Transactional
     public WikiSpaceVO createSpace(String tenantId, SecurityUser user, String name, String description,
                                    Long ownerGroupId) {

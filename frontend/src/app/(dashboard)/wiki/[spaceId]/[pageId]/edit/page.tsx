@@ -9,7 +9,8 @@ import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, FileQuestion, Save } from 'lucide-react'
+import { EmptyState } from '@/components/shared'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
 import '@uiw/react-md-editor/markdown-editor.css'
@@ -87,7 +88,7 @@ export default function WikiEditorPage() {
   })
   const currentSpace = spaces?.find((s) => s.id === sid)
 
-  const { data: page } = useQuery<WikiPage>({
+  const { data: page, isError: pageError } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],
     queryFn: () => wikiApi.getPage(pid),
   })
@@ -278,6 +279,10 @@ export default function WikiEditorPage() {
       }),
     [],
   )
+
+  if (pageError || (spaces && !currentSpace)) {
+    return <EmptyState icon={<FileQuestion className="h-5 w-5 text-v2-muted" />} title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
+  }
 
   return (
     <div className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">

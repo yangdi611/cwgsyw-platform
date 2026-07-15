@@ -76,6 +76,8 @@ export default function WikiSpacesPage() {
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
   const username = useAuthStore((s) => s.user?.username)
+  const groupId = useAuthStore((s) => s.groupId)
+  const groupScope = useAuthStore((s) => s.groupScope)
   const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -86,6 +88,8 @@ export default function WikiSpacesPage() {
   const [deleting, setDeleting] = useState<WikiSpace | null>(null)
   const [aclTarget, setAclTarget] = useState<WikiSpace | null>(null)
   const [order, setOrder] = useState<number[]>([])
+
+  const effectiveOwnerGroupId = !editing && groupScope === 'group' ? String(groupId ?? '') : ownerGroupId
 
   useEffect(() => {
     if (!isHydrated) return
@@ -141,7 +145,7 @@ export default function WikiSpacesPage() {
       editing
         ? wikiApi.updateSpace(editing.id, { name: name.trim(), description: description.trim() })
         : wikiApi.createSpace({ name: name.trim(), description: description.trim(),
-          ownerGroupId: ownerGroupId ? Number(ownerGroupId) : undefined }),
+          ownerGroupId: effectiveOwnerGroupId ? Number(effectiveOwnerGroupId) : undefined }),
     onSuccess: (space) => {
       queryClient.invalidateQueries({ queryKey: ['wiki-spaces'] })
       const wasCreate = !editing
@@ -367,13 +371,14 @@ export default function WikiSpacesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            {!editing && groups.length > 0 && (
+            {!editing && (
               <label className="block space-y-1 text-sm text-v2-fg">
-                <span>归属组</span>
-                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>
-                  <option value="">使用主组</option>
+                <span>归属组（必选）</span>
+                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={effectiveOwnerGroupId} disabled={groupScope === 'group'} onChange={(event) => setOwnerGroupId(event.target.value)}>
+                  <option value="">请选择归属组</option>
                   {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
                 </select>
+                {groupScope === 'group' && <span className="text-xs text-v2-muted">组级用户固定为当前会话归属组。</span>}
               </label>
             )}
           </div>
@@ -383,7 +388,7 @@ export default function WikiSpacesPage() {
             </Button>
             <Button
               variant="primary"
-              disabled={!name.trim() || saveMutation.isPending}
+              disabled={!name.trim() || (!editing && !effectiveOwnerGroupId) || saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
             >
               {editing ? '保存' : '创建'}
