@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T20:40:00+08:00",
+  "updatedAt": "2026-07-15T21:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-025_L1_L3_PASS",
-  "nextEvent": "REM-P1-026",
-  "nextBranch": "codex/rem-p1-026-daily-workflow-task-convergence",
-  "nextAction": "Create REM-P1-026 branch from lint-fix and begin upstream impact analysis.",
+  "lastCompletedGate": "REM-P1-026_L1_L3_PASS",
+  "nextEvent": "REM-P1-027",
+  "nextBranch": "codex/rem-p1-027-change-template-lifecycle",
+  "nextAction": "Create the REM-P1-027 event branch from current lint-fix after REM-P1-026 is committed and merged.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 17,
+    "verified": 18,
     "verifying": 0,
-    "notStarted": 24,
+    "notStarted": 23,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -56,7 +56,8 @@
       "REM-P1-022",
       "REM-P1-023",
       "REM-P1-024",
-      "REM-P1-025"
+      "REM-P1-025",
+      "REM-P1-026"
     ],
     "verifying": [],
     "inProgress": [],
@@ -66,7 +67,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-026",
       "REM-P1-027",
       "REM-P1-028",
       "REM-P1-029",
@@ -219,6 +219,8 @@
     "REM-P1-022 existing shared-file update consumer passed L1-L3 without duplicate production code; event commit ab08409 is merged with this checkpoint advance.",
     "REM-P1-023 BPMN validation and roundtrip passed L1-L3; event commit 1429fc8 is merged with this checkpoint advance.",
     "REM-P1-024 L1-L3 passed: all-version non-cascade deletion, binding/runtime protection, suspended-start rejection and instance termination history were revalidated; event and merge commit hashes are recorded when the no-ff merge completes.",
-    "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes."
+    "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-026 implementation and L1 passed, but L2-L3 are blocked by BR-005: daily-report, notification and Flowable terminal state lack a product archive/purge lifecycle for exact runId cleanup.",
+    "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account."
   ]
 }

@@ -20,7 +20,7 @@
 | `BUG-FQA-009` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-010` | P2 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-011` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | IPAM CRUD/allocate/release API audit snapshots PASS；待 L4 |
-| `BUG-FQA-012` | P1 | [`REM-P1-026`：日报审批待办与统一流程任务收敛](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-012` | P1 | [`REM-P1-026`：日报审批待办与统一流程任务收敛](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) | `VERIFIED` | L1-L3 旧/统一待办同集、旧审批和 runId 受限清理通过；待最终 L4 |
 | `BUG-FQA-013` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-014` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-015` | P2 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |

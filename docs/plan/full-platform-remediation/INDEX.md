@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=17`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=24`。
+- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=18`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=23`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -41,7 +41,7 @@
 | `REM-P1-023` | P1 | Workflow BPMN 输入校验与设计往返完整性 | `BUG-FQA-021`、`BUG-FQA-084`、`BUG-FQA-104`、`BUG-FQA-105` | `VERIFIED` | `HIGH` | L1-L3 输入 400、BPMN 创建/更新 v2 往返与清理通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) / [SPEC](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/SPEC.md) / [验证](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-024` | P1 | Workflow 定义版本与实例状态生命周期 | `BUG-FQA-081`、`BUG-FQA-099` | `VERIFIED` | `HIGH` | L1-L3 全版本非级联删除、运行实例保护、挂起发起拒绝及终止历史通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) / [SPEC](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/SPEC.md) / [验证](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-025` | P1 | Workflow 模板实例可审计清理生命周期 | `BUG-FQA-049` | `VERIFIED` | `HIGH` | L1-L3 模板删除、绑定/实例引用保护、审计与真实 UI 确认通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) / [SPEC](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/SPEC.md) / [验证](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/CLAUDE-CODE-PROMPT.md) |
-| `REM-P1-026` | P1 | 日报审批待办与统一流程任务收敛 | `BUG-FQA-012` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) / [SPEC](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/SPEC.md) / [验证](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-026` | P1 | 日报审批待办与统一流程任务收敛 | `BUG-FQA-012` | `VERIFIED` | `HIGH` | L1-L3 旧/统一待办同集、旧审批、受限清理 API 通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) / [SPEC](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/SPEC.md) / [验证](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-027` | P1 | 变更模板复制、字段配置与引用保护生命周期 | `BUG-FQA-048`、`BUG-FQA-083`、`BUG-FQA-098` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) / [SPEC](./05-workflow-change/REM-P1-027-change-template-lifecycle/SPEC.md) / [验证](./05-workflow-change/REM-P1-027-change-template-lifecycle/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-027-change-template-lifecycle/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-028` | P1 | 变更文档模板加载与创建响应合同 | `BUG-FQA-059`、`BUG-FQA-102` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) / [SPEC](./05-workflow-change/REM-P1-028-change-document-create-contract/SPEC.md) / [验证](./05-workflow-change/REM-P1-028-change-document-create-contract/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-028-change-document-create-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-029` | P1 | 运维日历任务、节假日与周期规则输入合同 | `BUG-FQA-014`、`BUG-FQA-020`、`BUG-FQA-082` | `NOT_STARTED` | `HIGH` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) / [SPEC](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/CLAUDE-CODE-PROMPT.md) |
@@ -74,16 +74,16 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P1-004`、`REM-P1-005`、`REM-P1-006`、`REM-P1-007`、`REM-P1-009`、`REM-P1-012`、`REM-P1-014` 与 `REM-P1-016` 均已事件级 `VERIFIED`，等待最终 L4，不重复实施；下一项为 `REM-P1-017`。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P1-004` 至 `REM-P1-026` 中已标记 `VERIFIED` 的事件等待最终 L4，不重复实施；下一项为 `REM-P1-027`。
 
 ## 状态统计
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 34 |
+| `NOT_STARTED` | 23 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 8 |
+| `VERIFIED` | 18 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 

@@ -12,10 +12,16 @@ import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
+import com.cwgsyw.platform.module.notification.NotificationMapper;
+import com.cwgsyw.platform.module.notification.entity.NotificationMessage;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
+import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstanceMapper;
 import lombok.RequiredArgsConstructor;
+import org.flowable.engine.HistoryService;
+import org.flowable.engine.RuntimeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
@@ -34,6 +40,10 @@ public class DailyReportService {
     private final CiInstanceMapper ciInstanceMapper;
     private final CiModelMapper ciModelMapper;
     private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
+    private final NotificationMapper notificationMapper;
+    private final WorkflowBusinessInstanceMapper workflowBusinessInstanceMapper;
+    private final RuntimeService runtimeService;
+    private final HistoryService historyService;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
@@ -173,6 +183,66 @@ public class DailyReportService {
             throw new IllegalArgumentException("日报不存在");
         }
         return toVO(report);
+    }
+
+    /**
+     * 仅用于本地 remediation runId 测试日报的终态清理。
+     *
+     * <p>正常日报没有删除入口。调用方必须是平台级管理员，且 runId 同时出现在日报内容中，
+     * 防止误删非测试日报；关联通知、业务流程映射和 Flowable runtime/history 仅按该日报精确处理。
+     */
+    @Transactional
+    public void purgeRemediationReport(Long id, String tenantId, Long operatorId,
+                                       String groupScope, String remediationRunId) {
+        if (!"platform".equals(groupScope)) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试日报");
+        }
+        if (remediationRunId == null || remediationRunId.isBlank()) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        DailyReport report = reportMapper.selectById(id);
+        if (report == null || Boolean.TRUE.equals(report.getIsDeleted())
+                || !tenantId.equals(report.getTenantId())) {
+            throw new IllegalArgumentException("日报不存在");
+        }
+        if (!containsRunId(report, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试日报");
+        }
+
+        if (report.getProcessInstId() != null && !report.getProcessInstId().isBlank()) {
+            if (runtimeService.createProcessInstanceQuery()
+                .processInstanceId(report.getProcessInstId()).singleResult() != null) {
+                runtimeService.deleteProcessInstance(report.getProcessInstId(), "remediation test cleanup");
+            }
+            historyService.deleteHistoricProcessInstance(report.getProcessInstId());
+        }
+
+        notificationMapper.selectList(new LambdaQueryWrapper<NotificationMessage>()
+                .eq(NotificationMessage::getTenantId, tenantId)
+                .eq(NotificationMessage::getRefType, "daily_report")
+                .eq(NotificationMessage::getRefId, id)
+                .eq(NotificationMessage::getIsDeleted, false))
+            .forEach(notification -> notificationMapper.deleteById(notification.getId()));
+
+        workflowBusinessInstanceMapper.selectList(new LambdaQueryWrapper<WorkflowBusinessInstance>()
+                .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+                .eq(WorkflowBusinessInstance::getBusinessType, "daily_report")
+                .eq(WorkflowBusinessInstance::getBusinessId, String.valueOf(id)))
+            .forEach(instance -> workflowBusinessInstanceMapper.deleteById(instance.getId()));
+
+        reportMapper.deleteById(id);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(tenantId).module("daily_report").action("purge_remediation_test")
+            .targetId(id).targetType("daily_report").operatorId(operatorId)
+            .beforeJson("{\"remediationRunId\":\"" + remediationRunId + "\"}")
+            .remark("清理整改测试日报及其关联流程、通知")
+            .createdAt(LocalDateTime.now()).build());
+    }
+
+    private boolean containsRunId(DailyReport report, String remediationRunId) {
+        return java.util.stream.Stream.of(report.getCompletedItems(), report.getIssues(), report.getTomorrowPlan())
+            .filter(Objects::nonNull)
+            .anyMatch(value -> value.contains(remediationRunId));
     }
 
     private DailyReport getAndCheckOwner(Long id, Long userId) {
