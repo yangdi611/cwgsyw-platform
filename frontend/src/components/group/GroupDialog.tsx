@@ -114,7 +114,8 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
             <Label htmlFor="name">组名称</Label>
             <Input
               id="name"
-              {...register('name', { required: '组名称不能为空' })}
+              {...register('name', { required: '组名称不能为空', maxLength: { value: 64, message: '组名称不能超过64个字符' } })}
+              maxLength={64}
               placeholder="请输入组名称"
             />
             {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
@@ -122,9 +123,10 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
 
           <div className="space-y-2">
             <Label htmlFor="description">描述</Label>
-            <textarea id="description" {...register('description')}
+            <textarea id="description" {...register('description', { maxLength: { value: 255, message: '组描述不能超过255个字符' } })}
               className="w-full rounded-md border border-v2-border bg-background px-3 py-2 text-sm"
-              rows={2} placeholder="请输入组描述" />
+              rows={2} maxLength={255} placeholder="请输入组描述" />
+            {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
           </div>
 
           <div className="space-y-2">

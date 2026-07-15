@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=22`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=19`。
+- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=23`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=18`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -28,7 +28,7 @@
 | `REM-P1-010` | P1 | CMDB 影响分析与历史拓扑重建 | `BUG-FQA-050`、`BUG-FQA-101` | `VERIFIED` | `HIGH` | L1-L3 CTE、历史逆放、API/UI 对比和精确清理通过；等待最终 L4 | [事件卡](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) / [SPEC](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-011` | P1 | CMDB 导航、模型路由与查询合同 | `BUG-FQA-039`、`BUG-FQA-087`、`BUG-FQA-095` | `VERIFIED` | `MEDIUM` | L1-L3 中文模板、update-only、rack 目录/2D/详情与精确清理通过；等待 L4 | [事件卡](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) / [SPEC](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-012` | P1 | 设备、凭据与范围合同 | `BUG-FQA-018`、`BUG-FQA-080`、`BUG-FQA-092`、`BUG-FQA-103` | `VERIFIED` | `HIGH` | 发布候选版 L4 | [事件卡](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) / [SPEC](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/CLAUDE-CODE-PROMPT.md) |
-| `REM-P1-013` | P1 | 账号与组织输入及显式清空合同 | `BUG-FQA-015`、`BUG-FQA-044`、`BUG-FQA-085` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) / [SPEC](./02-account-organization/REM-P1-013-account-input-null-update-contracts/SPEC.md) / [验证](./02-account-organization/REM-P1-013-account-input-null-update-contracts/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-013-account-input-null-update-contracts/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-013` | P1 | 账号与组织输入及显式清空合同 | `BUG-FQA-015`、`BUG-FQA-044`、`BUG-FQA-085` | `VERIFIED` | `MEDIUM` | L1-L3 输入边界、显式清空、授权清理和恢复通过；等待 L4 | [事件卡](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) / [SPEC](./02-account-organization/REM-P1-013-account-input-null-update-contracts/SPEC.md) / [验证](./02-account-organization/REM-P1-013-account-input-null-update-contracts/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-013-account-input-null-update-contracts/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-014` | P1 | IPAM 地址池、分配与范围完整性 | `BUG-FQA-041`、`BUG-FQA-064`、`BUG-FQA-072`、`BUG-FQA-073`、`BUG-FQA-075` | `VERIFIED` | `HIGH` | 发布候选版 L4 | [事件卡](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) / [SPEC](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-015` | P1 | 分页基础设施与审计筛选合同 | `BUG-FQA-023`、`BUG-FQA-024`、`BUG-FQA-040`、`BUG-FQA-054` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) / [SPEC](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/SPEC.md) / [验证](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-016` | P1 | 跨模块写操作审计与快照完整性 | `BUG-FQA-011`、`BUG-FQA-019`、`BUG-FQA-096` | `VERIFIED` | `HIGH` | 发布候选版 L4 | [事件卡](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) / [SPEC](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/SPEC.md) / [验证](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/CLAUDE-CODE-PROMPT.md) |
@@ -74,16 +74,16 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。已标记 `VERIFIED` 的事件等待最终 L4，不重复实施；下一项为 `REM-P1-013`。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。已标记 `VERIFIED` 的事件等待最终 L4，不重复实施；下一项为 `REM-P1-015`。
 
 ## 状态统计
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 19 |
+| `NOT_STARTED` | 18 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 22 |
+| `VERIFIED` | 23 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 
