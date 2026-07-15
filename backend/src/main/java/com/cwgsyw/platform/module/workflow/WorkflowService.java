@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.workflow;
 
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -174,6 +177,7 @@ public class WorkflowService {
      */
     @Transactional
     public ProcessDefinitionVO createDefinition(SaveProcessDefinitionReq req, String tenantId) {
+        validateDefinitionRequest(req);
         long existingCount = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey(req.getKey()).count();
         if (existingCount > 0) {
@@ -187,11 +191,7 @@ public class WorkflowService {
             "<bpmn:process id=\"Process_1\"",
             "<bpmn:process id=\"" + req.getKey() + "\"");
         String resourceName = req.getKey() + ".bpmn20.xml";
-        Deployment deployment = repositoryService.createDeployment()
-            .name(req.getName())
-            .category(req.getCategory())
-            .addString(resourceName, xml)
-            .deploy();
+        Deployment deployment = deployDefinition(req, resourceName, xml);
         var def = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();
         var vo = new ProcessDefinitionVO();
@@ -216,6 +216,7 @@ public class WorkflowService {
      */
     @Transactional
     public ProcessDefinitionVO updateDefinition(String definitionId, SaveProcessDefinitionReq req, String tenantId) {
+        validateDefinitionRequest(req);
         var oldDef = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
@@ -240,11 +241,7 @@ public class WorkflowService {
         }
 
         String resourceName = req.getKey() + ".bpmn20.xml";
-        Deployment deployment = repositoryService.createDeployment()
-            .name(req.getName())
-            .category(req.getCategory())
-            .addString(resourceName, newXml)
-            .deploy();
+        Deployment deployment = deployDefinition(req, resourceName, newXml);
         var newDef = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();
         var vo = new ProcessDefinitionVO();
@@ -260,6 +257,41 @@ public class WorkflowService {
         vo.setSuspended(false);
         vo.setTenantId(tenantId);
         return vo;
+    }
+
+    private Deployment deployDefinition(SaveProcessDefinitionReq req, String resourceName, String xml) {
+        try {
+            return repositoryService.createDeployment()
+                .name(req.getName())
+                .category(req.getCategory())
+                .addString(resourceName, xml)
+                .deploy();
+        } catch (RuntimeException exception) {
+            throw BusinessException.badRequest("BPMN_DEPLOYMENT_INVALID", "BPMN 流程定义无法部署，请检查流程结构和属性");
+        }
+    }
+
+    private void validateDefinitionRequest(SaveProcessDefinitionReq req) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setExpandEntityReferences(false);
+            factory.setNamespaceAware(true);
+            var document = factory.newDocumentBuilder().parse(
+                new org.xml.sax.InputSource(new java.io.StringReader(req.getXml())));
+            String namespace = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+            if (document.getElementsByTagNameNS(namespace, "definitions").getLength() != 1
+                    || document.getElementsByTagNameNS(namespace, "process").getLength() != 1
+                    || document.getElementsByTagNameNS(namespace, "startEvent").getLength() < 1
+                    || document.getElementsByTagNameNS(namespace, "endEvent").getLength() < 1) {
+                throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN 必须包含 definitions、process、开始事件和结束事件");
+            }
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN XML 格式无效");
+        }
     }
 
     /**
