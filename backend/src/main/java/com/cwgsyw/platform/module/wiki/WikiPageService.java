@@ -181,7 +181,7 @@ public class WikiPageService {
         page.setSlug(uniqueSlug(tenantId, req.getSpaceId(), slugify(req.getTitle())));
         page.setContent("");
         page.setStatus("draft");
-        page.setCurrentVersion(1);
+        page.setCurrentVersion(0);
         // 同级末尾追加：取当前同 parent 下最大 sort_order + 1，避免全为 0 导致顺序不稳定
         Integer maxSort = pageMapper.selectList(new LambdaQueryWrapper<WikiPage>()
                 .eq(WikiPage::getTenantId, tenantId)
@@ -200,8 +200,6 @@ public class WikiPageService {
         pageMapper.insert(page);
         resourceMigrationService.initializeCreatedResource(tenantId, "wiki_page", page.getId(),
             userId, user.getGroupId(), 0670);
-
-        saveVersion(tenantId, page, "", userId);
 
         auditLogMapper.insert(buildAudit(tenantId, "create", page.getId(), userId, null, toJson(page),
                 "title=" + page.getTitle()));
@@ -298,6 +296,9 @@ public class WikiPageService {
                 .eq(WikiPageVersion::getVersion, version)
                 .last("LIMIT 1"));
         if (v == null) throw new IllegalArgumentException("版本不存在: " + version);
+        if (v.getTitle() == null || v.getTitle().isBlank() || v.getContent() == null || v.getContent().isBlank()) {
+            throw new IllegalStateException("版本快照内容不完整，无法回退: " + version);
+        }
         SavePageRequest req = new SavePageRequest();
         req.setTitle(v.getTitle());
         req.setContent(v.getContent());
