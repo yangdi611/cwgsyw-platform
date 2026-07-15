@@ -36,7 +36,8 @@ public class WikiController {
     private void checkAcl(SecurityUser u, Long pageId, String perm) {
         requirePageExists(u, pageId);
         int requiredBits = "read".equals(perm) ? 4 : 2;
-        authorizationService.requireWithCompatibility(u, "wiki", "wiki:" + perm,
+        String permissionCode = "read".equals(perm) ? "wiki:read" : "wiki:update";
+        authorizationService.requireWithCompatibility(u, "wiki", permissionCode,
             "wiki_page", pageId, requiredBits,
             () -> aclService.hasPermission(u.getTenantId(), pageId, u.getUserId(), u.getGroupId(),
                 u.getGroupScope(), perm));
@@ -317,6 +318,14 @@ public class WikiController {
                               @AuthenticationPrincipal SecurityUser u) throws Exception {
         checkAcl(u, attachmentService.attachmentPageId(u.getTenantId(), fileId), "read");
         attachmentService.streamTo(u.getTenantId(), fileId, response);
+    }
+
+    @DeleteMapping("/attachments/{fileId}")
+    @PreAuthorize("hasAuthority('wiki:update')")
+    public R<Void> deleteAttachment(@PathVariable Long fileId, @AuthenticationPrincipal SecurityUser u) {
+        checkAcl(u, attachmentService.attachmentPageId(u.getTenantId(), fileId), "write");
+        attachmentService.deleteAttachment(u.getTenantId(), u.getUserId(), fileId);
+        return R.ok(null);
     }
 
     // ===== Search =====

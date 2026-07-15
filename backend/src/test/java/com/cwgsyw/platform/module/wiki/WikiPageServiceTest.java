@@ -37,6 +37,7 @@ class WikiPageServiceTest {
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationService authorizationService;
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService resourceMigrationService;
     @Mock org.flowable.engine.RuntimeService runtimeService;
+    @Mock WikiAttachmentService attachmentService;
 
     @InjectMocks WikiPageService service;
 
@@ -65,6 +66,7 @@ class WikiPageServiceTest {
         p.setContent("c");
         p.setStatus("draft");
         p.setCurrentVersion(1);
+        p.setIsDeleted(false);
         return p;
     }
 
@@ -297,6 +299,20 @@ class WikiPageServiceTest {
         assertThatThrownBy(() -> service.deletePage("default", 88L, stranger))
                 .isInstanceOf(AccessDeniedException.class);
         verify(pageMapper, never()).deleteById(any(Long.class));
+    }
+
+    @Test
+    void deletePage_reclaimsAttachmentsBeforeLogicalDelete() {
+        WikiPage page = page(88L, 100L);
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(pageMapper.findDescendantIds(88L)).thenReturn(List.of(88L));
+        SecurityUser owner = user(5L, "group", Set.of("wiki:delete"));
+
+        service.deletePage("default", 88L, owner);
+
+        var order = inOrder(attachmentService, pageMapper);
+        order.verify(attachmentService).deleteAttachmentsForPages("default", 5L, List.of(88L));
+        order.verify(pageMapper).deleteById(88L);
     }
 
     @Test

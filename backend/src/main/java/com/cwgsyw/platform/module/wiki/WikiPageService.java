@@ -46,6 +46,7 @@ public class WikiPageService {
     private final RuntimeService runtimeService;
     private final AuthorizationService authorizationService;
     private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final WikiAttachmentService attachmentService;
 
     public List<WikiPageTreeVO> getTree(String tenantId, Long spaceId) {
         List<WikiPage> pages = pageMapper.selectList(new LambdaQueryWrapper<WikiPage>()
@@ -235,6 +236,7 @@ public class WikiPageService {
             "wiki_page", pageId, 3, () -> legacyAllows(page, user, "delete"));
         Long userId = user.getUserId();
         List<Long> ids = pageMapper.findDescendantIds(pageId);
+        attachmentService.deleteAttachmentsForPages(tenantId, userId, ids);
         for (Long id : ids) {
             WikiPage p = pageMapper.selectById(id);
             if (p == null || p.getIsDeleted()) continue;

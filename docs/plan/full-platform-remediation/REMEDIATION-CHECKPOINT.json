@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T18:35:00+08:00",
+  "updatedAt": "2026-07-15T19:14:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P1-020_L1_L3_PASS",
+  "activeEvent": "REM-P1-021",
+  "activeBranch": "codex/rem-p1-021-stored-object-delete-compensation",
+  "activeRunId": "REM_P1_021_20260715_184000",
+  "lastCompletedGate": "REM-P1-021_L1_L3_PASS",
   "nextEvent": "REM-P1-021",
   "nextBranch": "codex/rem-p1-021-stored-object-delete-compensation",
-  "nextAction": "Create the REM-P1-021 event branch from latest lint-fix, complete upstream impact and root-cause confirmation before editing.",
+  "nextAction": "Commit verified REM-P1-021, then merge --no-ff into lint-fix and advance to REM-P1-022.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 12,
+    "verified": 13,
     "verifying": 0,
-    "notStarted": 29,
+    "notStarted": 28,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -51,7 +51,8 @@
       "REM-P1-017",
       "REM-P1-018",
       "REM-P1-019",
-      "REM-P1-020"
+      "REM-P1-020",
+      "REM-P1-021"
     ],
     "verifying": [],
     "inProgress": [],
@@ -61,7 +62,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-021",
       "REM-P1-022",
       "REM-P1-023",
       "REM-P1-024",
@@ -98,7 +98,6 @@
     "REM-P1-017",
     "REM-P1-018",
     "REM-P1-019",
-      "REM-P1-021",
     "REM-P1-022",
     "REM-P1-023",
     "REM-P1-024",

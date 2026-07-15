@@ -189,8 +189,28 @@ class SharedFileServiceTest {
         service.deleteFile("default", 13L, 9L, null, "tenant");
 
         var order = inOrder(storageService, fileMapper);
-        order.verify(storageService).delete("shared/13/evidence.docx");
-        order.verify(storageService).delete("shared/13/evidence.md");
+        order.verify(storageService, times(2)).copyOrThrow(any(), any());
+        order.verify(storageService).deleteOrThrow("shared/13/evidence.docx");
+        order.verify(storageService).deleteOrThrow("shared/13/evidence.md");
         order.verify(fileMapper).deleteById(13L);
+    }
+
+    @Test
+    void deleteFile_storageFailureDoesNotLogicallyDeleteRecord() {
+        SharedFile file = new SharedFile();
+        file.setId(13L);
+        file.setTenantId("default");
+        file.setOriginalName("evidence.pdf");
+        file.setMinioKey("shared/13/evidence.pdf");
+        when(fileMapper.selectOne(any())).thenReturn(file);
+        doThrow(BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "storage unavailable"))
+            .when(storageService).deleteOrThrow("shared/13/evidence.pdf");
+
+        assertThatThrownBy(() -> service.deleteFile("default", 13L, 9L, null, "tenant"))
+            .isInstanceOf(BusinessException.class)
+            .extracting("httpStatus").isEqualTo(503);
+
+        verify(fileMapper, never()).deleteById(13L);
+        verify(auditLogMapper, never()).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 }

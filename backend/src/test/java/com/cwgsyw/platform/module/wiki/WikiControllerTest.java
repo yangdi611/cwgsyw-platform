@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class WikiControllerTest {
@@ -66,6 +67,19 @@ class WikiControllerTest {
             .isInstanceOf(BusinessException.class)
             .extracting("httpStatus").isEqualTo(404);
         verify(spaceService, never()).canReadSpace(99L, administrator);
+    }
+
+    @Test
+    void attachmentDeleteMapsWriteAclToExistingUpdatePermission() {
+        SecurityUser editor = new SecurityUser(3L, "editor", "", "default", 1L, "tenant", Set.of("wiki:update"));
+        when(attachmentService.attachmentPageId("default", 42L)).thenReturn(88L);
+        when(pageService.exists("default", 88L)).thenReturn(true);
+
+        controller.deleteAttachment(42L, editor);
+
+        verify(authorizationService).requireWithCompatibility(
+            eq(editor), eq("wiki"), eq("wiki:update"), eq("wiki_page"), eq(88L), eq(2), any(java.util.function.BooleanSupplier.class));
+        verify(attachmentService).deleteAttachment("default", 3L, 42L);
     }
 
     private SecurityUser user(Long userId, Long groupId, String groupScope) {
