@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T00:50:00+08:00",
+  "updatedAt": "2026-07-16T01:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-008_L1_L3_PASS",
-  "nextEvent": "REM-P1-010",
-  "nextBranch": "codex/rem-p1-010-cmdb-impact-history-reconstruction",
-  "nextAction": "Create the REM-P1-010 event branch from current lint-fix after REM-P1-008 is committed and merged.",
+  "lastCompletedGate": "REM-P1-010_L1_L3_PASS",
+  "nextEvent": "REM-P1-011",
+  "nextBranch": "codex/rem-p1-011-cmdb-navigation-query-contracts",
+  "nextAction": "Create the REM-P1-011 event branch from current lint-fix after REM-P1-010 is committed and merged.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 20,
+    "verified": 21,
     "verifying": 0,
-    "notStarted": 21,
+    "notStarted": 20,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -64,7 +64,6 @@
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P1-010",
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
@@ -105,7 +104,6 @@
     "REM-P1-026",
     "REM-P1-027",
     "REM-P1-008",
-    "REM-P1-010",
     "REM-P1-011",
     "REM-P1-013",
     "REM-P1-015",

@@ -77,20 +77,17 @@ public class ImpactAnalysisService {
     private ImpactAnalysisResultVO analyzeWithCte(Long rootId, String direction, int maxDepth,
                                                     String tenantId, long startTime) {
         String sql = buildCteSql(direction);
+        Object[] parameters = switch (direction) {
+            case "downstream", "upstream" -> new Object[]{rootId, rootId, tenantId, maxDepth, tenantId};
+            default -> new Object[]{rootId, rootId, rootId, rootId, rootId, tenantId, maxDepth, tenantId};
+        };
 
         List<Map<String, Object>> edgeRows;
         try {
-            edgeRows = jdbcTemplate.queryForList(sql, rootId, tenantId, maxDepth, TIMEOUT_MS);
+            edgeRows = jdbcTemplate.queryForList(sql, parameters);
         } catch (Exception e) {
-            log.warn("CTE impact analysis timed out or failed, falling back to partial result", e);
-            ImpactAnalysisResultVO partial = new ImpactAnalysisResultVO();
-            partial.setTruncated(true);
-            // Add root layer only
-            List<ImpactLayerVO> layers = new ArrayList<>();
-            layers.add(buildLayer(0, List.of(rootId)));
-            partial.setLayers(layers);
-            partial.setEdges(Collections.emptyList());
-            return partial;
+            log.warn("CTE impact analysis failed", e);
+            throw new IllegalStateException("影响分析查询失败，请稍后重试", e);
         }
 
         boolean truncated = (System.nanoTime() - startTime) > TimeUnit.MILLISECONDS.toNanos(TIMEOUT_MS);
@@ -98,27 +95,44 @@ public class ImpactAnalysisService {
     }
 
     private String buildCteSql(String direction) {
-        String joinCondition = switch (direction) {
-            case "downstream" -> "r.src_id = i.dst_id";
-            case "upstream" -> "r.dst_id = i.src_id";
-            default -> "(r.src_id = i.dst_id OR r.dst_id = i.src_id)";
+        String initialNode = switch (direction) {
+            case "downstream" -> "dst_id";
+            case "upstream" -> "src_id";
+            default -> "CASE WHEN src_id = ? THEN dst_id ELSE src_id END";
+        };
+        String recursiveJoin = switch (direction) {
+            case "downstream" -> "r.src_id = i.node_id";
+            case "upstream" -> "r.dst_id = i.node_id";
+            default -> "(r.src_id = i.node_id OR r.dst_id = i.node_id)";
+        };
+        String recursiveNode = switch (direction) {
+            case "downstream" -> "r.dst_id";
+            case "upstream" -> "r.src_id";
+            default -> "CASE WHEN r.src_id = i.node_id THEN r.dst_id ELSE r.src_id END";
         };
 
         return """
             WITH RECURSIVE impact AS (
-                SELECT id, src_id, dst_id, def_id, 0 AS depth
+                SELECT id, src_id, dst_id, def_id, %s AS node_id,
+                       ARRAY[?, %s]::bigint[] AS path, 1 AS depth
                 FROM ci_instance_rel
-                WHERE (src_id = ? OR dst_id = ?)
+                WHERE %s
                   AND NOT is_deleted AND tenant_id = ?
                 UNION ALL
-                SELECT r.id, r.src_id, r.dst_id, r.def_id, i.depth + 1
+                SELECT r.id, r.src_id, r.dst_id, r.def_id, %s,
+                       i.path || %s, i.depth + 1
                 FROM ci_instance_rel r
                 INNER JOIN impact i ON %s
                 WHERE i.depth < ? AND NOT r.is_deleted AND r.tenant_id = ?
+                  AND NOT (%s = ANY(i.path))
             )
-            SELECT DISTINCT src_id AS src, dst_id AS dst, def_id AS kind, depth
+            SELECT DISTINCT src_id AS src, dst_id AS dst, def_id AS kind, node_id, depth
             FROM impact
-            """.formatted(joinCondition);
+            """.formatted(initialNode, initialNode, switch (direction) {
+                case "downstream" -> "src_id = ?";
+                case "upstream" -> "dst_id = ?";
+                default -> "(src_id = ? OR dst_id = ?)";
+            }, recursiveNode, recursiveNode, recursiveJoin, recursiveNode);
     }
 
     // ─── Java BFS Strategy ────────────────────────────────────────────────────
@@ -241,8 +255,8 @@ public class ImpactAnalysisService {
 
             allNodeIds.add(src);
             allNodeIds.add(dst);
-            depthMap.computeIfAbsent(depth, k -> new LinkedHashSet<>()).add(src);
-            depthMap.computeIfAbsent(depth, k -> new LinkedHashSet<>()).add(dst);
+            Long nodeId = ((Number) row.get("node_id")).longValue();
+            depthMap.computeIfAbsent(depth, k -> new LinkedHashSet<>()).add(nodeId);
 
             String edgeKey = src + "-" + dst + "-" + kind;
             if (seenEdges.add(edgeKey)) {
