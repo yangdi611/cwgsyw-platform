@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T10:05:00+08:00",
+  "updatedAt": "2026-07-15T10:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P1-007",
+  "activeBranch": "codex/rem-p1-007-deleted-role-association-lifecycle",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-006_MERGE_PENDING_COMMIT",
+  "lastCompletedGate": "L1_L3_PASS_PENDING_EVENT_COMMIT",
   "nextEvent": "REM-P1-007",
   "nextBranch": "codex/rem-p1-007-deleted-role-association-lifecycle",
-  "nextAction": "Create the REM-P1-007 branch from this merge commit, mark it IN_PROGRESS, and begin with GitNexus impact analysis.",
+  "nextAction": "Run staged detect_changes and commit REM-P1-007; then merge --no-ff into lint-fix and advance to REM-P1-009 in the merge commit.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 3,
+    "verified": 4,
     "verifying": 0,
     "notStarted": 38,
     "blocked": 0
@@ -42,11 +42,11 @@
     "verified": [
       "REM-P1-004",
       "REM-P1-005",
-      "REM-P1-006"
+      "REM-P1-006",
+      "REM-P1-007"
     ],
     "verifying": [],
     "notStarted": [
-      "REM-P1-007",
       "REM-P1-008",
       "REM-P1-009",
       "REM-P1-010",

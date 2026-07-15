@@ -299,7 +299,7 @@ class WikiSpaceServiceTest {
         assertThat(forced.getReason()).isEqualTo("admin_scope");
         assertThat(forced.getPermissions()).containsExactlyInAnyOrder("create", "update", "delete", "publish");
         // admin scope 分支不查询角色原生权限
-        verify(rbacService, never()).getPermissionsByRoleId(1L);
+        verify(rbacService, never()).getPermissionsByRoleId(anyLong(), anyString());
     }
 
     @Test
@@ -312,7 +312,7 @@ class WikiSpaceServiceTest {
         when(roleMapper.selectList(any())).thenReturn(List.of(member));
         SysPermission wikiUpdate = new SysPermission();
         wikiUpdate.setCode("wiki:update");
-        when(rbacService.getPermissionsByRoleId(2L)).thenReturn(List.of(wikiUpdate));
+        when(rbacService.getPermissionsByRoleId(2L, "default")).thenReturn(List.of(wikiUpdate));
 
         WikiSpaceAclDTO dto = service.getAcl("default", 100L, creator);
 
@@ -329,7 +329,7 @@ class WikiSpaceServiceTest {
         when(spaceMapper.selectById(100L)).thenReturn(mySpace);
         when(spaceAclMapper.selectList(any())).thenReturn(List.of());
         when(roleMapper.selectList(any())).thenReturn(List.of(role(4L, "group", "普通角色")));
-        when(rbacService.getPermissionsByRoleId(4L)).thenReturn(List.of());
+        when(rbacService.getPermissionsByRoleId(4L, "default")).thenReturn(List.of());
 
         WikiSpaceAclDTO dto = service.getAcl("default", 100L, creator);
 

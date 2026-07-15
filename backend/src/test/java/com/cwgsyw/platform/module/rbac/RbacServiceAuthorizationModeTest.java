@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.rbac;
 import com.cwgsyw.platform.config.AuthorizationProperties;
 import com.cwgsyw.platform.module.authorization.AuthorizationModeService;
 import com.cwgsyw.platform.module.rbac.entity.SysPermission;
+import com.cwgsyw.platform.module.rbac.entity.SysRole;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,6 +101,28 @@ class RbacServiceAuthorizationModeTest {
         when(roleAssignmentService.findEffectiveRoleIds(7L, "default")).thenReturn(List.of());
 
         assertEquals(java.util.Set.of("wiki:read"), service.getUserPermissions(7L));
+    }
+
+    @Test
+    void deletedOrCrossTenantRoleCannotExposePermissions() {
+        when(roleMapper.selectOne(any())).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+            () -> service.getPermissionsByRoleId(9L, "default"));
+        verifyNoInteractions(rolePermissionMapper, permissionMapper);
+    }
+
+    @Test
+    void activeRolePermissionsRemainReadableWithinTenant() {
+        SysRole role = new SysRole();
+        role.setId(9L);
+        role.setTenantId("default");
+        when(roleMapper.selectOne(any())).thenReturn(role);
+        when(rolePermissionMapper.findPermissionIdsByRoleIds(List.of(9L))).thenReturn(List.of(11L));
+        when(permissionMapper.selectBatchIds(List.of(11L))).thenReturn(List.of(permission(11L, "wiki:read")));
+
+        assertEquals(List.of("wiki:read"), service.getPermissionsByRoleId(9L, "default")
+            .stream().map(SysPermission::getCode).toList());
     }
 
     private SysPermission permission(Long id, String code) {
