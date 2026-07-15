@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T19:37:00+08:00",
+  "updatedAt": "2026-07-15T19:49:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P1-022_L1_L3_PASS",
+  "activeEvent": "REM-P1-023",
+  "activeBranch": "codex/rem-p1-023-workflow-bpmn-roundtrip-validation",
+  "activeRunId": "REM_P1_023_20260715_194900",
+  "lastCompletedGate": "REM-P1-023_L1_L3_PASS",
   "nextEvent": "REM-P1-023",
   "nextBranch": "codex/rem-p1-023-workflow-bpmn-roundtrip-validation",
-  "nextAction": "Create REM-P1-023 branch from lint-fix and begin upstream impact analysis.",
+  "nextAction": "Commit verified REM-P1-023, then merge --no-ff into lint-fix and advance to REM-P1-024.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 14,
+    "verified": 15,
     "verifying": 0,
-    "notStarted": 27,
+    "notStarted": 26,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -53,7 +53,8 @@
       "REM-P1-019",
       "REM-P1-020",
       "REM-P1-021",
-      "REM-P1-022"
+      "REM-P1-022",
+      "REM-P1-023"
     ],
     "verifying": [],
     "inProgress": [],
@@ -63,7 +64,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-023",
       "REM-P1-024",
       "REM-P1-025",
       "REM-P1-026",
@@ -179,6 +179,10 @@
     "REM-P1-022": {
       "eventCommit": "ab0840957fb677cec41e07072b0915823fa160d5",
       "mergeCommit": "88a264414882815f52d22581280a9387648b550a"
+    },
+    "REM-P1-023": {
+      "eventCommit": null,
+      "mergeCommit": null
     }
   },
   "l4": {

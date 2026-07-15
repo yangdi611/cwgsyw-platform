@@ -72,7 +72,7 @@ public class WorkflowController {
     @PostMapping("/definitions")
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<ProcessDefinitionVO> createDefinition(
-            @RequestBody SaveProcessDefinitionReq req,
+            @Valid @RequestBody SaveProcessDefinitionReq req,
             @AuthenticationPrincipal SecurityUser cu) {
         ProcessDefinitionVO vo = workflowService.createDefinition(req, cu.getTenantId());
         auditLogMapper.insert(AuditLog.builder()
@@ -95,7 +95,7 @@ public class WorkflowController {
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<ProcessDefinitionVO> updateDefinition(
             @PathVariable String definitionId,
-            @RequestBody SaveProcessDefinitionReq req,
+            @Valid @RequestBody SaveProcessDefinitionReq req,
             @AuthenticationPrincipal SecurityUser cu) {
         ProcessDefinitionVO vo = workflowService.updateDefinition(definitionId, req, cu.getTenantId());
         auditLogMapper.insert(AuditLog.builder()

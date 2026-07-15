@@ -10,3 +10,11 @@
 - 下一步：独立分支认领，从 `AC-001` 开始追加实际 impact、diff、测试、证据、清理与回滚。
 
 后续只追加，不覆盖历史。
+
+## 2026-07-15：实施与复验结算
+
+- 认领：基线 `lint-fix@62ce56e`，分支 `codex/rem-p1-023-workflow-bpmn-roundtrip-validation`。GitNexus impact：`createDefinition` LOW（一个 Controller 调用）；`updateDefinition` LOW（两个 Controller 入口，含 `updateByKey` 流程）。
+- 根因复现：缺 key、非法 key 与非法 XML 均为未解释 `500`。
+- 修复：`SaveProcessDefinitionReq` 增加 name/key/xml 约束；Controller 使用 `@Valid`；服务在部署前安全解析 XML，要求 BPMN definitions、单一 process、start/end event；Flowable 部署异常映射 `BPMN_DEPLOYMENT_INVALID` / `400`。成功部署、版本、权限与历史定义均不改变。
+- L3：`REM_P1_023_20260715114734` 证明错误输入均为 `400`，包含 candidate group 和条件流的 BPMN 从创建到详情、更新 v2、再次详情完整往返；测试定义通过 DELETE 产品 API 清理，cleanup failure=0。
+- 回滚：还原本事件提交即可恢复旧行为；未执行历史 BPMN 迁移、数据库直改或非测试流程操作。

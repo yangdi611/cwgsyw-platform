@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-023` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@
 - 不迁移所有历史 BPMN
 - 不改变流程权限
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：缺失 key 与非法 XML 已稳定返回 `400`；包含候选组与条件流的 BPMN 可创建、读取、更新至 v2 并保持关键结构，测试流程定义已经产品 API 删除。等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

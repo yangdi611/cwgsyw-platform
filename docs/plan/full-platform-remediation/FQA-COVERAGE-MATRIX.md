@@ -29,7 +29,7 @@
 | `BUG-FQA-018` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 cross-group API/UI scope and cleanup passed; awaiting L4 |
 | `BUG-FQA-019` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | CSV 单行运行时 `created=1/failed=0`，afterJson 合法 JSON；待 L4 |
 | `BUG-FQA-020` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-021` | P2 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-021` | P2 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 invalid input 400、BPMN 保存部署重载再保存通过；待最终 L4 |
 | `BUG-FQA-022` | P2 | [`REM-P2-006`：通用配置拒绝的 HTTP 与业务码一致性](./07-platform-integration/REM-P2-006-configuration-http-status-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-023` | P1 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-024` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -92,7 +92,7 @@
 | `BUG-FQA-081` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-082` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
 | `BUG-FQA-083` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
-| `BUG-FQA-084` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
+| `BUG-FQA-084` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 candidate group BPMN 往返通过；待最终 L4 |
 | `BUG-FQA-085` | P1 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
 | `BUG-FQA-086` | P1 | [`REM-P1-009`：CMDB 关系与实例删除引用完整性](./03-cmdb-assets/REM-P1-009-cmdb-relation-integrity/README.md) | `VERIFIED` | L1-L3 自环 API/UI 拒绝、清理与 impact 通过；待最终 L4 |
 | `BUG-FQA-087` | P1 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -112,8 +112,8 @@
 | `BUG-FQA-101` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-102` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-103` | P2 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 copy feedback and browser crypto compatibility passed; awaiting L4 |
-| `BUG-FQA-104` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-105` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-104` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 条件流命名空间与表达式往返通过；待最终 L4 |
+| `BUG-FQA-105` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 名称、分类、描述、XML 和版本往返通过；待最终 L4 |
 | `BUG-FQA-106` | P2 | [`REM-P2-007`：运维材料导出文件与摘要合同](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 
 ## 规则
