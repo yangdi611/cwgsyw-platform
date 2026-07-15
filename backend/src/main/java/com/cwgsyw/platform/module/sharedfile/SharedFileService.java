@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.AuditSnapshotSerializer;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
@@ -15,6 +16,7 @@ import com.cwgsyw.platform.module.user.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.time.LocalDateTime;
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
@@ -32,6 +35,15 @@ import com.cwgsyw.platform.security.SecurityUser;
 @RequiredArgsConstructor
 @Slf4j
 public class SharedFileService {
+
+    private static final long MAX_UPLOAD_SIZE_BYTES = 20L * 1024 * 1024;
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+        "7z", "bash", "bat", "bmp", "bz2", "cmd", "conf", "csv", "doc", "docx", "dot", "dotx",
+        "env", "gif", "gz", "ini", "jpeg", "jpg", "json", "md", "mjs", "odt", "ods", "pdf",
+        "png", "pot", "potx", "pps", "ppsx", "ppt", "pptx", "properties", "ps1", "rar", "rtf",
+        "sh", "svg", "tar", "tif", "tiff", "tgz", "txt", "webp", "xls", "xlsb", "xlsm", "xlsx",
+        "xml", "xz", "yaml", "yml", "zsh", "zip"
+    );
 
     private final SharedFileMapper fileMapper;
     private final SharedFolderService folderService;
@@ -157,7 +169,9 @@ public class SharedFileService {
     private SharedFileVO uploadFileUnchecked(String tenantId, Long operatorId, MultipartFile file,
                                              Long folderId, List<Long> visibleGroups, Long groupId) {
         List<Long> normalizedVisibleGroups = lockReferencedGroups(tenantId, groupId, visibleGroups);
-        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
+        String originalName = normalizeOriginalName(file);
+        String normalizedName = normalizedName(originalName);
+        rejectNameConflict(tenantId, folderId, normalizedName, null);
         String fileType = detectFileType(originalName);
         String objectKey = "shared/" + UUID.randomUUID() + "/" + originalName;
 
@@ -165,6 +179,9 @@ public class SharedFileService {
             storageService.upload(objectKey, file.getInputStream(), file.getSize(), file.getContentType());
         } catch (IOException e) {
             throw new RuntimeException("文件上传失败: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            storageService.delete(objectKey);
+            throw e;
         }
 
         SharedFile sf = new SharedFile();
@@ -172,6 +189,7 @@ public class SharedFileService {
         sf.setFolderId(folderId);
         sf.setName(originalName.contains(".") ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName);
         sf.setOriginalName(originalName);
+        sf.setNormalizedName(normalizedName);
         sf.setFileType(fileType);
         sf.setSizeBytes(file.getSize());
         sf.setMinioKey(objectKey);
@@ -179,16 +197,24 @@ public class SharedFileService {
         sf.setCreatedBy(operatorId);
         sf.setCreatedAt(LocalDateTime.now());
         sf.setUpdatedAt(LocalDateTime.now());
-        fileMapper.insert(sf);
-        resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", sf.getId(),
-            operatorId, groupId, 0660);
+        try {
+            fileMapper.insert(sf);
+            resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", sf.getId(),
+                operatorId, groupId, 0660);
 
-        auditLogMapper.insert(AuditLog.builder()
-                .tenantId(tenantId).module("shared_file").action("upload")
-                .targetId(sf.getId()).targetType("shared_file")
-                .afterJson(fileSnapshot(sf))
-                .operatorId(operatorId).remark("name=" + originalName + " size=" + file.getSize())
-                .createdAt(LocalDateTime.now()).build());
+            auditLogMapper.insert(AuditLog.builder()
+                    .tenantId(tenantId).module("shared_file").action("upload")
+                    .targetId(sf.getId()).targetType("shared_file")
+                    .afterJson(fileSnapshot(sf))
+                    .operatorId(operatorId).remark("name=" + originalName + " size=" + file.getSize())
+                    .createdAt(LocalDateTime.now()).build());
+        } catch (DataIntegrityViolationException exception) {
+            storageService.delete(objectKey);
+            throw new BusinessException(409, "SHARED_FILE_NAME_CONFLICT", "当前目录已存在同名文件");
+        } catch (RuntimeException exception) {
+            storageService.delete(objectKey);
+            throw exception;
+        }
 
         if ("docx".equals(fileType)) {
             convertToMarkdownAsync(sf.getId(), objectKey, tenantId);
@@ -239,6 +265,10 @@ public class SharedFileService {
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
         String before = fileSnapshot(sf);
 
+        storageService.delete(sf.getMinioKey());
+        if (StringUtils.hasText(sf.getMdKey())) {
+            storageService.delete(sf.getMdKey());
+        }
         fileMapper.deleteById(fileId);
 
         auditLogMapper.insert(AuditLog.builder()
@@ -265,16 +295,23 @@ public class SharedFileService {
                 .eq(SharedFile::getId, fileId));
         if (file == null) throw new IllegalArgumentException("文件不存在: " + fileId);
 
-        String normalizedName = name.trim();
-        if (normalizedName.isEmpty()) throw new IllegalArgumentException("文件名不能为空");
+        String displayName = normalizeDisplayName(name);
         String extension = "";
         int dot = file.getOriginalName().lastIndexOf('.');
         if (dot > 0) extension = file.getOriginalName().substring(dot);
+        String originalName = displayName + extension;
+        String normalizedName = normalizedName(originalName);
+        rejectNameConflict(user.getTenantId(), file.getFolderId(), normalizedName, fileId);
         String before = fileSnapshot(file);
-        file.setName(normalizedName);
-        file.setOriginalName(normalizedName + extension);
+        file.setName(displayName);
+        file.setOriginalName(originalName);
+        file.setNormalizedName(normalizedName);
         file.setUpdatedAt(LocalDateTime.now());
-        fileMapper.updateById(file);
+        try {
+            fileMapper.updateById(file);
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(409, "SHARED_FILE_NAME_CONFLICT", "当前目录已存在同名文件");
+        }
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(user.getTenantId()).module("shared_file").action("update")
                 .targetId(fileId).targetType("shared_file").operatorId(user.getUserId())
@@ -443,6 +480,58 @@ public class SharedFileService {
         if (lower.endsWith(".doc")) return "doc";
         if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) return "xlsx";
         return "other";
+    }
+
+    private String normalizeOriginalName(MultipartFile file) {
+        if (file == null || file.isEmpty() || file.getSize() <= 0) {
+            throw BusinessException.badRequest("SHARED_FILE_EMPTY", "不允许上传空文件");
+        }
+        if (file.getSize() > MAX_UPLOAD_SIZE_BYTES) {
+            throw BusinessException.badRequest("SHARED_FILE_TOO_LARGE", "文件大小不能超过20MB");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName == null) {
+            throw BusinessException.badRequest("SHARED_FILE_NAME_INVALID", "文件名不能为空");
+        }
+        String normalized = normalizeDisplayName(originalName);
+        if (normalized.length() > 255 || normalized.contains("/") || normalized.contains("\\")
+                || normalized.chars().anyMatch(Character::isISOControl)) {
+            throw BusinessException.badRequest("SHARED_FILE_NAME_INVALID", "文件名格式不合法");
+        }
+        int dot = normalized.lastIndexOf('.');
+        if (dot <= 0 || dot == normalized.length() - 1) {
+            throw BusinessException.badRequest("SHARED_FILE_TYPE_UNSUPPORTED", "文件类型不在允许范围内");
+        }
+        String extension = normalized.substring(dot + 1).toLowerCase(Locale.ROOT);
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw BusinessException.badRequest("SHARED_FILE_TYPE_UNSUPPORTED", "文件类型不在允许范围内");
+        }
+        return normalized;
+    }
+
+    private String normalizeDisplayName(String name) {
+        if (name == null) throw BusinessException.badRequest("SHARED_FILE_NAME_INVALID", "文件名不能为空");
+        String normalized = Normalizer.normalize(name, Normalizer.Form.NFC).trim();
+        if (normalized.isEmpty()) throw BusinessException.badRequest("SHARED_FILE_NAME_INVALID", "文件名不能为空");
+        return normalized;
+    }
+
+    private String normalizedName(String originalName) {
+        return Normalizer.normalize(originalName, Normalizer.Form.NFC).trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void rejectNameConflict(String tenantId, Long folderId, String normalizedName, Long excludedFileId) {
+        fileMapper.lockActiveNormalizedName(tenantId + ":" + (folderId == null ? "ROOT" : folderId) + ":" + normalizedName);
+        long count = fileMapper.selectCount(new LambdaQueryWrapper<SharedFile>()
+            .eq(SharedFile::getTenantId, tenantId)
+            .eq(folderId != null, SharedFile::getFolderId, folderId)
+            .isNull(folderId == null, SharedFile::getFolderId)
+            .eq(SharedFile::getNormalizedName, normalizedName)
+            .isNull(SharedFile::getSourceType)
+            .ne(excludedFileId != null, SharedFile::getId, excludedFileId));
+        if (count > 0) {
+            throw new BusinessException(409, "SHARED_FILE_NAME_CONFLICT", "当前目录已存在同名文件");
+        }
     }
 
     private Long primaryGroupId(Long userId) {

@@ -15,6 +15,7 @@ public class SharedFile {
     private Long folderId;
     private String name;
     private String originalName;
+    private String normalizedName;
     private String fileType;
     private Long sizeBytes;
     private String minioKey;

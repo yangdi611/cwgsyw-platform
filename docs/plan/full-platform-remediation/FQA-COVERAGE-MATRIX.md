@@ -73,10 +73,10 @@
 | `BUG-FQA-062` | P1 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-063` | P2 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-064` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 group range API/UI and cleanup passed; awaiting L4 |
-| `BUG-FQA-065` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-066` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-065` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 上传进度、当前列表刷新和取消实现完成；待最终 L4 |
+| `BUG-FQA-066` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 白名单、20MB、规范名冲突与 API/UI 复验通过；待最终 L4 |
 | `BUG-FQA-067` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `VERIFIED` | L1-L3 管理员显式选组、组级用户固定本组通过；待最终 L4 |
-| `BUG-FQA-068` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-068` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 上传中断与数据库失败均精确回收新建对象；待最终 L4 |
 | `BUG-FQA-069` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-070` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-071` | P2 | [`REM-P2-009`：Wiki 搜索入口与历史导航](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -108,7 +108,7 @@
 | `BUG-FQA-097` | P2 | [`REM-P2-014`：周期规则删除与确认入口](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-098` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `NOT_STARTED` | defects.md 已登记，checkpoint.openDefects 漏记 |
 | `BUG-FQA-099` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-100` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-100` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 删除时主对象与衍生 Markdown 回收已实现并验证；待最终 L4 |
 | `BUG-FQA-101` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-102` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-103` | P2 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 copy feedback and browser crypto compatibility passed; awaiting L4 |
