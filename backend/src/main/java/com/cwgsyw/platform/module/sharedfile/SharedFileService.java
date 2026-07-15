@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
@@ -37,6 +38,7 @@ public class SharedFileService {
     private final SharedFolderAclService aclService;
     private final MinioStorageService storageService;
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final UserMapper userMapper;
     private final AuthorizationResourceMigrationService resourceMigrationService;
     private final AuthorizationService authorizationService;
@@ -184,6 +186,7 @@ public class SharedFileService {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("shared_file").action("upload")
                 .targetId(sf.getId()).targetType("shared_file")
+                .afterJson(fileSnapshot(sf))
                 .operatorId(operatorId).remark("name=" + originalName + " size=" + file.getSize())
                 .createdAt(LocalDateTime.now()).build());
 
@@ -234,12 +237,14 @@ public class SharedFileService {
                 .eq(SharedFile::getTenantId, tenantId)
                 .eq(SharedFile::getId, fileId));
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
+        String before = fileSnapshot(sf);
 
         fileMapper.deleteById(fileId);
 
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("shared_file").action("delete")
                 .targetId(fileId).targetType("shared_file")
+                .beforeJson(before)
                 .operatorId(operatorId).remark("name=" + sf.getOriginalName())
                 .createdAt(LocalDateTime.now()).build());
     }
@@ -265,7 +270,7 @@ public class SharedFileService {
         String extension = "";
         int dot = file.getOriginalName().lastIndexOf('.');
         if (dot > 0) extension = file.getOriginalName().substring(dot);
-        String beforeName = file.getOriginalName();
+        String before = fileSnapshot(file);
         file.setName(normalizedName);
         file.setOriginalName(normalizedName + extension);
         file.setUpdatedAt(LocalDateTime.now());
@@ -273,8 +278,8 @@ public class SharedFileService {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(user.getTenantId()).module("shared_file").action("update")
                 .targetId(fileId).targetType("shared_file").operatorId(user.getUserId())
-                .beforeJson("{\"name\":\"" + beforeName + "\"}")
-                .afterJson("{\"name\":\"" + file.getOriginalName() + "\"}")
+                .beforeJson(before)
+                .afterJson(fileSnapshot(file))
                 .createdAt(LocalDateTime.now()).build());
         return toVO(file, Map.of());
     }
@@ -286,6 +291,20 @@ public class SharedFileService {
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
         long actualSize = storageService.objectSize(sf.getMinioKey());
         return new FileContent(sf.getOriginalName(), actualSize, storageService.download(sf.getMinioKey()));
+    }
+
+    private String fileSnapshot(SharedFile file) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", file.getId());
+        values.put("folderId", file.getFolderId());
+        values.put("name", file.getName());
+        values.put("originalName", file.getOriginalName());
+        values.put("fileType", file.getFileType());
+        values.put("sizeBytes", file.getSizeBytes());
+        values.put("visibleGroups", file.getVisibleGroups() == null ? List.of() : file.getVisibleGroups());
+        values.put("sourceType", file.getSourceType());
+        values.put("sourceId", file.getSourceId());
+        return auditSnapshotSerializer.serialize(values);
     }
 
     public record FileContent(String originalName, long sizeBytes, InputStream stream) {

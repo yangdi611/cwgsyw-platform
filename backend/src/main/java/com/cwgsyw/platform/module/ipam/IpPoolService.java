@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.ipam;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
@@ -29,6 +30,7 @@ public class IpPoolService {
     private final IpAllocationMapper ipAllocationMapper;
     private final CiInstanceMapper ciInstanceMapper;
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final UserMapper userMapper;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
@@ -94,7 +96,7 @@ public class IpPoolService {
         pool.setAllocatedCount(0);
         ipPoolMapper.insert(pool);
 
-        writeAudit(tenantId, "create", pool.getId(), operatorId, "name=" + pool.getName() + " cidr=" + pool.getCidr());
+        writeAudit(tenantId, "create", pool.getId(), operatorId, null, poolSnapshot(pool), "name=" + pool.getName());
         return pool;
     }
 
@@ -102,18 +104,20 @@ public class IpPoolService {
     public void update(Long id, UpdateIpPoolRequest req, String tenantId, Long operatorId,
                        Long callerGroupId, String callerGroupScope) {
         IpPool pool = findPoolOrThrow(id, tenantId, callerGroupId, callerGroupScope);
+        String before = poolSnapshot(pool);
         if (req.getName() != null) pool.setName(req.getName());
         if (req.getDescription() != null) pool.setDescription(req.getDescription());
         if (req.getGateway() != null) pool.setGateway(req.getGateway());
         if (req.getDns() != null) pool.setDns(req.getDns());
         validateGatewayAndDns(pool.getCidr(), pool.getGateway(), pool.getDns());
         ipPoolMapper.updateById(pool);
-        writeAudit(tenantId, "update", id, operatorId, "name=" + pool.getName());
+        writeAudit(tenantId, "update", id, operatorId, before, poolSnapshot(pool), "name=" + pool.getName());
     }
 
     @Transactional
     public void delete(Long id, String tenantId, Long operatorId, Long callerGroupId, String callerGroupScope) {
         IpPool pool = findPoolOrThrow(id, tenantId, callerGroupId, callerGroupScope);
+        String before = poolSnapshot(pool);
         // Check for active allocations
         int activeCount = ipPoolMapper.countAllocated(id);
         if (activeCount > 0) {
@@ -123,13 +127,14 @@ public class IpPoolService {
         pool.setDeletedBy(operatorId);
         ipPoolMapper.updateById(pool);
         ipPoolMapper.deleteById(id);
-        writeAudit(tenantId, "delete", id, operatorId, "name=" + pool.getName());
+        writeAudit(tenantId, "delete", id, operatorId, before, null, "name=" + pool.getName());
     }
 
     @Transactional
     public IpAllocationVO allocate(Long poolId, AllocateIpRequest req, String tenantId, Long operatorId,
                                     Long callerGroupId, String callerGroupScope) {
         IpPool pool = findPoolOrThrow(poolId, tenantId, callerGroupId, callerGroupScope);
+        String poolBefore = poolSnapshot(pool);
         if (!"active".equals(pool.getStatus())) {
             throw new IllegalArgumentException("地址池状态不是 active，无法分配");
         }
@@ -153,9 +158,12 @@ public class IpPoolService {
 
         IpAllocation existing = ipAllocationMapper.findByPoolAndIp(poolId, ipAddress);
         if (existing != null && "released".equals(existing.getStatus())) {
+            String allocationBefore = allocationSnapshot(existing);
             reuseReleasedAllocation(existing, req, operatorId);
             incrementAllocationCount(pool);
-            writeAudit(tenantId, "allocate", poolId, operatorId, "ip=" + ipAddress);
+            writeAudit(tenantId, "allocate", poolId, operatorId, auditSnapshotSerializer.serialize(Map.of(
+                    "pool", poolBefore, "allocation", allocationBefore)), auditSnapshotSerializer.serialize(Map.of(
+                    "pool", poolSnapshot(pool), "allocation", allocationSnapshot(existing))), "ip=" + ipAddress);
             return toAllocationVO(existing, resolveUserNames(List.of(existing)), resolveCiNames(List.of(existing)));
         }
 
@@ -173,7 +181,8 @@ public class IpPoolService {
         // Update pool allocated count
         incrementAllocationCount(pool);
 
-        writeAudit(tenantId, "allocate", poolId, operatorId, "ip=" + ipAddress);
+        writeAudit(tenantId, "allocate", poolId, operatorId, poolBefore, auditSnapshotSerializer.serialize(Map.of(
+                "pool", poolSnapshot(pool), "allocation", allocationSnapshot(allocation))), "ip=" + ipAddress);
 
         IpAllocationVO vo = new IpAllocationVO();
         vo.setId(allocation.getId());
@@ -201,6 +210,8 @@ public class IpPoolService {
         if (allocation == null || !"allocated".equals(allocation.getStatus())) {
             throw new IllegalArgumentException("IP " + req.getIpAddress() + " 未分配");
         }
+        String before = auditSnapshotSerializer.serialize(Map.of(
+                "pool", poolSnapshot(pool), "allocation", allocationSnapshot(allocation)));
 
         allocation.setStatus("released");
         allocation.setReleasedAt(LocalDateTime.now());
@@ -214,7 +225,8 @@ public class IpPoolService {
         }
         ipPoolMapper.updateById(pool);
 
-        writeAudit(tenantId, "release", poolId, operatorId, "ip=" + req.getIpAddress());
+        writeAudit(tenantId, "release", poolId, operatorId, before, auditSnapshotSerializer.serialize(Map.of(
+                "pool", poolSnapshot(pool), "allocation", allocationSnapshot(allocation))), "ip=" + req.getIpAddress());
     }
 
     public IpPoolVO utilization(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {
@@ -514,7 +526,37 @@ public class IpPoolService {
                 .collect(Collectors.toMap(CiInstance::getId, CiInstance::getName));
     }
 
-    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId, String remark) {
+    private String poolSnapshot(IpPool pool) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", pool.getId());
+        values.put("groupId", pool.getGroupId());
+        values.put("name", pool.getName());
+        values.put("description", pool.getDescription());
+        values.put("cidr", pool.getCidr());
+        values.put("gateway", pool.getGateway());
+        values.put("dns", pool.getDns());
+        values.put("status", pool.getStatus());
+        values.put("totalCount", pool.getTotalCount());
+        values.put("allocatedCount", pool.getAllocatedCount());
+        return auditSnapshotSerializer.serialize(values);
+    }
+
+    private String allocationSnapshot(IpAllocation allocation) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", allocation.getId());
+        values.put("poolId", allocation.getPoolId());
+        values.put("ipAddress", allocation.getIpAddress());
+        values.put("status", allocation.getStatus());
+        values.put("ciInstanceId", allocation.getCiInstanceId());
+        values.put("description", allocation.getDescription());
+        values.put("allocatedBy", allocation.getAllocatedBy());
+        values.put("allocatedAt", allocation.getAllocatedAt());
+        values.put("releasedAt", allocation.getReleasedAt());
+        return auditSnapshotSerializer.serialize(values);
+    }
+
+    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId,
+                            String beforeJson, String afterJson, String remark) {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId)
                 .module("ip_pool")
@@ -522,6 +564,8 @@ public class IpPoolService {
                 .targetId(targetId)
                 .targetType("ip_pool")
                 .operatorId(operatorId)
+                .beforeJson(beforeJson)
+                .afterJson(afterJson)
                 .remark(remark)
                 .createdAt(LocalDateTime.now())
                 .build());

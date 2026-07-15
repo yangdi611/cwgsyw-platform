@@ -13,6 +13,8 @@ public class AuditLogVO {
     private Long operatorId;
     private String operatorName;
     private String operatorIp;
+    private String beforeJson;
+    private String afterJson;
     private String remark;
     private LocalDateTime createdAt;
 }

@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.audit;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class AuditLogController {
 
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final UserMapper userMapper;
 
     @GetMapping
@@ -58,6 +60,8 @@ public class AuditLogController {
             vo.setOperatorId(log.getOperatorId());
             vo.setOperatorName(names.getOrDefault(log.getOperatorId(), String.valueOf(log.getOperatorId())));
             vo.setOperatorIp(log.getOperatorIp());
+            vo.setBeforeJson(auditSnapshotSerializer.sanitizeJson(log.getBeforeJson()));
+            vo.setAfterJson(auditSnapshotSerializer.sanitizeJson(log.getAfterJson()));
             vo.setRemark(log.getRemark());
             vo.setCreatedAt(log.getCreatedAt());
             return vo;

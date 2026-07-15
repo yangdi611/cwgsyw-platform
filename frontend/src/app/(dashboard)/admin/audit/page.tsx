@@ -20,6 +20,8 @@ interface AuditLogVO {
   operatorId: number
   operatorName: string
   operatorIp: string
+  beforeJson: string | null
+  afterJson: string | null
   remark: string
   createdAt: string
 }
@@ -51,6 +53,15 @@ const ACTION_VARIANT: Record<string, StatusVariant> = {
   view_password: 'neutral',
   submit: 'ok',
   ai_generate: 'neutral',
+}
+
+function snapshotSummary(snapshot: string | null): string {
+  if (!snapshot) return '—'
+  try {
+    return JSON.stringify(JSON.parse(snapshot))
+  } catch {
+    return '快照格式无效'
+  }
 }
 
 export default function AuditLogPage() {
@@ -133,6 +144,15 @@ function AuditLogPageInner() {
       key: 'remark',
       title: '备注',
       render: (r) => <span className="max-w-xs truncate text-xs text-v2-muted">{r.remark}</span>,
+    },
+    {
+      key: 'snapshot',
+      title: '变更快照',
+      render: (r) => (
+        <span className="block max-w-xs truncate font-v2-mono text-xs text-v2-muted" title={`前：${snapshotSummary(r.beforeJson)}\n后：${snapshotSummary(r.afterJson)}`}>
+          前：{snapshotSummary(r.beforeJson)}；后：{snapshotSummary(r.afterJson)}
+        </span>
+      ),
     },
     {
       key: 'operatorIp',

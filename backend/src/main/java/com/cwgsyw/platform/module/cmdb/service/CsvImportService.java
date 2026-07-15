@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.cmdb.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.csv.*;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
@@ -41,6 +42,7 @@ public class CsvImportService {
     private final CiAttributeMapper ciAttributeMapper;
     private final CiInstanceMapper ciInstanceMapper;
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -360,7 +362,7 @@ public class CsvImportService {
                         inst.setFieldsData(fieldsData);
                         ciInstanceMapper.insert(inst);
                         writeAudit(tenantId, "import_create", inst.getId(), "ci_instance",
-                                operatorId, null, "batch_id=" + batchId);
+                                operatorId, null, snapshotInstance(inst), "batch_id=" + batchId);
                         br.created++;
                     }
                     case "update" -> {
@@ -395,7 +397,7 @@ public class CsvImportService {
                         }
                         ciInstanceMapper.updateById(inst);
                         writeAudit(tenantId, "import_update", existingId, "ci_instance",
-                                operatorId, before, "batch_id=" + batchId);
+                                operatorId, before, snapshotInstance(inst), "batch_id=" + batchId);
                         br.updated++;
                     }
                     case "skip" -> br.skipped++;
@@ -583,25 +585,23 @@ public class CsvImportService {
     }
 
     private String snapshotInstance(CiInstance inst) {
-        try {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", inst.getId());
-            map.put("modelId", inst.getModelId());
-            map.put("name", inst.getName());
-            map.put("status", inst.getStatus());
-            map.put("owner", inst.getOwner());
-            map.put("fieldsData", inst.getFieldsData());
-            return objectMapper.writeValueAsString(map);
-        } catch (Exception e) { return "{}"; }
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", inst.getId());
+        map.put("modelId", inst.getModelId());
+        map.put("name", inst.getName());
+        map.put("status", inst.getStatus());
+        map.put("owner", inst.getOwner());
+        map.put("fieldsData", inst.getFieldsData());
+        return auditSnapshotSerializer.serialize(map);
     }
 
     private void writeAudit(String tenantId, String action, Long targetId,
-                            String targetType, Long operatorId, String beforeJson, String remark) {
+                            String targetType, Long operatorId, String beforeJson, String afterJson, String remark) {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("cmdb").action(action)
                 .targetId(targetId).targetType(targetType)
                 .operatorId(operatorId != null ? operatorId : 0L)
-                .beforeJson(beforeJson).afterJson(remark)
+                .beforeJson(beforeJson).afterJson(afterJson).remark(remark)
                 .createdAt(LocalDateTime.now()).build());
     }
 

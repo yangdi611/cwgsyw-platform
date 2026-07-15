@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.ipam;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.ipam.dto.AllocateIpRequest;
 import com.cwgsyw.platform.module.ipam.dto.CreateIpPoolRequest;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +31,7 @@ class IpPoolServiceTest {
     @Mock private AuditLogMapper auditLogMapper;
     @Mock private UserMapper userMapper;
     @Mock private ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    @Spy private AuditSnapshotSerializer auditSnapshotSerializer = new AuditSnapshotSerializer(new com.fasterxml.jackson.databind.ObjectMapper());
     @InjectMocks private IpPoolService service;
 
     @Test
@@ -113,6 +117,17 @@ class IpPoolServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("无权访问该地址池");
         verifyNoInteractions(ipAllocationMapper, auditLogMapper);
+    }
+
+    @Test
+    void createWritesAfterSnapshotWithoutSensitiveValues() {
+        when(ipPoolMapper.selectList(any())).thenReturn(java.util.List.of());
+        service.create(request("10.20.4.0/30", 2L), "default", 1L, null, "tenant");
+
+        ArgumentCaptor<AuditLog> auditCaptor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogMapper).insert(auditCaptor.capture());
+        assertThat(auditCaptor.getValue().getBeforeJson()).isNull();
+        assertThat(auditCaptor.getValue().getAfterJson()).contains("\"cidr\":\"10.20.4.0/30\"");
     }
 
     private CreateIpPoolRequest request(String cidr, Long groupId) {
