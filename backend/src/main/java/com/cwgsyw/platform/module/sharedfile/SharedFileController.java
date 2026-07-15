@@ -6,6 +6,7 @@ import com.cwgsyw.platform.module.sharedfile.dto.FolderAclDTO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.module.sharedfile.dto.CreateFolderRequest;
+import com.cwgsyw.platform.module.sharedfile.dto.UpdateSharedFileRequest;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import org.springframework.security.access.AccessDeniedException;
@@ -166,6 +167,15 @@ public class SharedFileController {
             "shared_file", id, 3, true);
         fileService.deleteFile(user, id);
         return R.ok(null);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('shared_file:update')")
+    public R<SharedFileVO> updateFile(@PathVariable Long id, @RequestBody @jakarta.validation.Valid UpdateSharedFileRequest request,
+                                      @AuthenticationPrincipal SecurityUser user) {
+        authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
+            "shared_file", id, 2, true);
+        return R.ok(fileService.renameFile(user, id, request.getName()));
     }
 
     @GetMapping("/{id}")

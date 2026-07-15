@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T08:55:00+08:00",
+  "updatedAt": "2026-07-15T09:45:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P1-006",
+  "activeBranch": "codex/rem-p1-006-permission-consumer-navigation-parity",
   "activeRunId": null,
-  "lastCompletedGate": "REM_P1_005_MERGED",
+  "lastCompletedGate": "L1_L3_PASS_PENDING_EVENT_COMMIT",
   "nextEvent": "REM-P1-006",
   "nextBranch": "codex/rem-p1-006-permission-consumer-navigation-parity",
-  "nextAction": "Verify REM-P1-005 merge ancestry, safely delete its event branch, then create the REM-P1-006 branch from the latest lint-fix and begin its impact analysis.",
+  "nextAction": "Run staged detect_changes and commit REM-P1-006; then merge --no-ff into lint-fix and advance to REM-P1-007 in the merge commit.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 2,
+    "verified": 3,
     "verifying": 0,
-    "notStarted": 39,
+    "notStarted": 38,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -41,11 +41,11 @@
     ],
     "verified": [
       "REM-P1-004",
-      "REM-P1-005"
+      "REM-P1-005",
+      "REM-P1-006"
     ],
     "verifying": [],
     "notStarted": [
-      "REM-P1-006",
       "REM-P1-007",
       "REM-P1-008",
       "REM-P1-009",

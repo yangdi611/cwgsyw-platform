@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P1-006` |
 | 优先级 | P1 |
 | 领域 | `01-security-authorization` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex Goal |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -31,13 +31,13 @@
 范围：
 - 建立 canonical action 与兼容 alias 清单
 - 逐项收敛 Controller guard、页面 query enabled 和导航可见性
-- 对缺失 consumer 的权限做实现或下架决策
+- 补齐缺失 consumer 的权限能力；不得下架既有可分配权限
 
 非目标：
 - 不重构统一授权引擎
 - 不修改现有 assignment 数据
 - 不顺带调整资源 ACL
 
-下一门禁：实施前逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 先告警。完成 L1-L3 后进入 L4 全量 FQA。
+事件级结论：L1-L3 已通过；等待最终 L4 全量 FQA，不得提前标记 `CLOSED`。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)

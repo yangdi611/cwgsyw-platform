@@ -106,6 +106,7 @@ export default function WikiSpacesPage() {
   const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
     queryKey: ['authorization-groups'],
     queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
+    enabled: hasPermission('group', 'read'),
   })
 
   const canCreate = hasPermission('wiki', 'create')

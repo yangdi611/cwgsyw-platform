@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { usePermission } from '@/hooks/usePermission'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardContent } from '@/components/v2/Card'
 import InstanceBrowserSection from '@/components/cmdb/InstanceBrowserSection'
@@ -138,15 +139,18 @@ function getPaletteVars(palette: GroupPalette): React.CSSProperties {
 }
 
 export default function CmdbOverviewPage() {
+  const { hasPermission } = usePermission()
   const [activeGroupCode, setActiveGroupCode] = useState<string | null>(null)
 
   const { data: modelsData } = useQuery<{ records: CiModelSummary[]; total: number } | undefined>({
     queryKey: ['cmdb-models-overview'],
     queryFn: () => safe(api.get('/cmdb/models', { params: { size: 100 } })),
+    enabled: hasPermission('cmdb_model', 'read'),
   })
   const { data: groupsData } = useQuery<ModelGroupVO[] | undefined>({
     queryKey: ['cmdb-model-groups-overview'],
     queryFn: () => safe(api.get('/cmdb/model-groups')),
+    enabled: hasPermission('cmdb_model', 'read'),
   })
 
   const modelList = useMemo(() => modelsData?.records ?? [], [modelsData?.records])
