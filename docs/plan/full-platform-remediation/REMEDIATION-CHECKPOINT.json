@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T19:16:00+08:00",
+  "updatedAt": "2026-07-15T19:35:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-021_L1_L3_PASS",
-  "nextEvent": "REM-P1-022",
-  "nextBranch": "codex/rem-p1-022-shared-file-update-consumer",
-  "nextAction": "Create REM-P1-022 branch from lint-fix and begin upstream impact analysis.",
+  "lastCompletedGate": "REM-P1-022_L1_L3_PASS",
+  "nextEvent": "REM-P1-023",
+  "nextBranch": "codex/rem-p1-023-workflow-bpmn-roundtrip-validation",
+  "nextAction": "Create REM-P1-023 branch from lint-fix and begin upstream impact analysis.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 13,
+    "verified": 14,
     "verifying": 0,
-    "notStarted": 28,
+    "notStarted": 27,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -52,7 +52,8 @@
       "REM-P1-018",
       "REM-P1-019",
       "REM-P1-020",
-      "REM-P1-021"
+      "REM-P1-021",
+      "REM-P1-022"
     ],
     "verifying": [],
     "inProgress": [],
@@ -62,7 +63,6 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-022",
       "REM-P1-023",
       "REM-P1-024",
       "REM-P1-025",
@@ -175,6 +175,10 @@
     "REM-P1-021": {
       "eventCommit": "784dce52c224da512f2c607f6fb76e68936afd27",
       "mergeCommit": "2ad80f057919b92168351fe0fc05018463a2506c"
+    },
+    "REM-P1-022": {
+      "eventCommit": "ab0840957fb677cec41e07072b0915823fa160d5",
+      "mergeCommit": null
     }
   },
   "l4": {
@@ -199,6 +203,7 @@
     "REM-P1-018 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-019.",
     "REM-P1-019 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
     "REM-P1-020 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
-    "REM-P1-021 L1-L3 storage compensation and Wiki attachment lifecycle passed; event commit 784dce52 is merged with this checkpoint advance."
+    "REM-P1-021 L1-L3 storage compensation and Wiki attachment lifecycle passed; event commit 784dce52 is merged with this checkpoint advance.",
+    "REM-P1-022 existing shared-file update consumer passed L1-L3 without duplicate production code; event commit ab08409 is merged with this checkpoint advance."
   ]
 }
