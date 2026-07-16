@@ -48,10 +48,16 @@ public class SysConfigController {
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<Void> updateGeneric(@AuthenticationPrincipal SecurityUser user,
                                   @RequestBody Map<String, Object> req) {
+        if (req == null || req.isEmpty()) {
+            throw new IllegalArgumentException("配置项不能为空");
+        }
         String tid = user.getTenantId();
         for (Map.Entry<String, Object> entry : req.entrySet()) {
             if (!PROCESS_BINDING_CONFIG_KEYS.contains(entry.getKey())) {
-                return R.fail("不支持的配置项: " + entry.getKey());
+                throw new IllegalArgumentException("不支持的配置项: " + entry.getKey());
+            }
+            if (entry.getValue() != null && !(entry.getValue() instanceof String)) {
+                throw new IllegalArgumentException("配置项值必须为字符串: " + entry.getKey());
             }
         }
         for (String key : PROCESS_BINDING_CONFIG_KEYS) {

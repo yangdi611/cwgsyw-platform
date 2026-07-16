@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T14:32:00+08:00",
+  "updatedAt": "2026-07-16T16:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
+  "activeEvent": "REM-P2-007",
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-005_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-006",
-  "nextBranch": "codex/rem-p2-006-configuration-http-status-contract",
-  "nextAction": "Create the dedicated REM-P2-006 branch from lint-fix, run upstream impact for each planned symbol, then implement and revalidate its L1-L3 contract.",
+  "lastCompletedGate": "REM-P2-006_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-007",
+  "nextBranch": "codex/rem-p2-007-ops-material-export-contract",
+  "nextAction": "Create the REM-P2-007 event branch from lint-fix, run symbol impact analysis, then begin AC-001.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 32,
+    "verified": 33,
     "verifying": 0,
-    "notStarted": 9,
+    "notStarted": 8,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -71,12 +71,12 @@
       "REM-P2-002",
       "REM-P2-003",
       "REM-P2-004",
-      "REM-P2-005"
+      "REM-P2-005",
+      "REM-P2-006"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-006",
       "REM-P2-007",
       "REM-P2-008",
       "REM-P2-009",
@@ -231,6 +231,9 @@
     },
     "REM-P2-005": {
       "eventCommit": "992db0165cac8f0e3cb4684be81777292276d59f"
+    },
+    "REM-P2-006": {
+      "eventCommit": null
     }
   },
   "l4": {
@@ -274,6 +277,9 @@
     "REM-P2-001 L1-L3 passed: shared-file absence/unavailability remains non-enumerable 403 with a neutral, recoverable preview state; device, IPAM and CMDB impact absence return 404/RESOURCE_NOT_FOUND; real gateway routes, build, lint and type checks passed. Existing unrelated backend test-compile debt is recorded in the event verification. Event commit b4bfc3b8 merged as 55aeaa29; next event is REM-P2-002.",
     "REM-P2-003 L1-L3 passed: title trim, 400 blank/overlong rejection, explicit 409 sibling conflict, concurrent create, current-branch API/UI revalidation and product-API cleanup all passed. Event commit db9fc3fa is merged with this checkpoint advance; next event is REM-P2-004.",
     "REM-P2-004 L1-L3 passed: light/dark/system controls are discoverable in the user menu; dark preference survives refresh; reports, Wiki and BPMN design inherit the theme; production frontend build, lint, typecheck and runtime browser verification reported zero Console errors. No product data was created; next event is REM-P2-005.",
-    "REM-P2-005 L1-L3 passed: page export requests the page endpoint, uses the current Chinese page title as the browser fallback filename and downloads Markdown; space export remains a separate ZIP endpoint. Current-branch frontend build, lint, typecheck and real browser verification passed with zero Console errors and no product data writes; next event is REM-P2-006."
+    "REM-P2-005 L1-L3 passed: page export requests the page endpoint, uses the current Chinese page title as the browser fallback filename and downloads Markdown; space export remains a separate ZIP endpoint. Current-branch frontend build, lint, typecheck and real browser verification passed with zero Console errors and no product data writes; next event is REM-P2-006.",
+    "REM-P2-006 is BLOCKED after minimal Controller validation implementation and current-branch backend build: the available superadmin session lacks workflow:configure and receives security-layer 403 for config GET/PUT, so it cannot prove the intended Controller 400 contract. BR-012 requires approval for a product-API-created, runId-tagged minimal workflow:configure test identity followed by exact cleanup.",
+    "REM-P2-006 L1-L3 passed: the current authenticated session has workflow:configure; whitelist, empty and invalid-type requests all return matching HTTP/body 400 with unchanged configuration reads. The temporary local-development authorization records created during diagnosis were fully removed (legacy link, role permission, active assignment and active role counts all zero); next event is REM-P2-007.",
+    "REM-P2-006 L1-L3 passed under explicit authorization: reject requests return HTTP/body 400 without writes; an absent allowed key was inserted, read back and restored; its two retained audit rows expose only the key name. SysConfigService.set now uses a PostgreSQL atomic upsert, and its workflow binding, SMTP, notification and watermark consumers were regressed. The HIGH shared-service impact was accepted; temporary authorization records are zero. Event commit is pending, then no-ff merge advances to REM-P2-007."
   ]
 }
