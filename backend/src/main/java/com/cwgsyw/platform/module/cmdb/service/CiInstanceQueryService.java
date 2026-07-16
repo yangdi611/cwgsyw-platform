@@ -239,16 +239,13 @@ public class CiInstanceQueryService {
     }
 
     public PageResult<ChangeHistoryVO> getInstanceHistory(Long instanceId, int page, int size, String tenantId) {
-        Page<AuditLog> result = auditLogMapper.queryPage(new Page<>(page, size), tenantId, "cmdb", null, null, null);
+        Page<AuditLog> result = auditLogMapper.queryInstanceHistoryPage(
+                new Page<>(page, size), tenantId, instanceId);
 
-        List<AuditLog> filtered = result.getRecords().stream()
-                .filter(a -> "ci_instance".equals(a.getTargetType()) && instanceId.equals(a.getTargetId()))
-                .collect(Collectors.toList());
-
-        Map<Long, String> operatorNames = resolveUserNames(filtered.stream()
+        Map<Long, String> operatorNames = resolveUserNames(result.getRecords().stream()
                 .map(AuditLog::getOperatorId).filter(id -> id != null && id > 0).collect(Collectors.toSet()));
 
-        List<ChangeHistoryVO> historyVOs = filtered.stream().map(a -> {
+        List<ChangeHistoryVO> historyVOs = result.getRecords().stream().map(a -> {
             ChangeHistoryVO vo = new ChangeHistoryVO();
             vo.setId(a.getId()); vo.setAction(a.getAction()); vo.setOperatorId(a.getOperatorId());
             vo.setOperatorName(operatorNames.getOrDefault(a.getOperatorId(), "系统"));
@@ -264,7 +261,7 @@ public class CiInstanceQueryService {
 
     public PageResult<ChangeHistoryVO> getGlobalChanges(String model, Long operatorId,
             String startDate, String endDate, int page, int size, String tenantId) {
-        Page<AuditLog> result = auditLogMapper.queryPage(new Page<>(page, size), tenantId, "cmdb", operatorId, startDate, endDate);
+        Page<AuditLog> result = auditLogMapper.queryPage(new Page<>(page, size), tenantId, "cmdb", null, operatorId, null, startDate, endDate);
 
         Map<Long, String> operatorNames = resolveUserNames(result.getRecords().stream()
                 .map(AuditLog::getOperatorId).filter(id -> id != null && id > 0).collect(Collectors.toSet()));

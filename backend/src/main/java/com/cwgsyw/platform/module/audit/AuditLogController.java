@@ -31,7 +31,9 @@ public class AuditLogController {
     @PreAuthorize("hasAuthority('audit:read')")
     public R<PageResult<AuditLogVO>> list(
             @RequestParam(required = false) String module,
+            @RequestParam(required = false) String action,
             @RequestParam(required = false) Long operatorId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int page,
@@ -40,7 +42,7 @@ public class AuditLogController {
 
         Page<AuditLog> result = auditLogMapper.queryPage(
                 new Page<>(page, size),
-                user.getTenantId(), module, operatorId, startDate, endDate);
+                user.getTenantId(), module, action, operatorId, keyword, startDate, endDate);
 
         Set<Long> operatorIds = result.getRecords().stream()
                 .map(AuditLog::getOperatorId).collect(Collectors.toSet());
