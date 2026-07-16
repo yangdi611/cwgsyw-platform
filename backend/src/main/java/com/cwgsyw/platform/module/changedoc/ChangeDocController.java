@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.module.changedoc.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -26,10 +27,13 @@ public class ChangeDocController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('change_doc:read')")
-    public R<List<ChangeDocVO>> list(
+    public R<PageResult<ChangeDocVO>> list(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.list(user.getTenantId(), status));
+        return R.ok(changeDocService.list(user.getTenantId(), status, keyword, page, size));
     }
 
     @GetMapping("/{id}")

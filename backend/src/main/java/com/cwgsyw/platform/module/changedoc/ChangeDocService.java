@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.ai.AiGatewayService;
@@ -476,7 +478,10 @@ public class ChangeDocService {
         return docs.stream().map(this::toVO).collect(Collectors.toList());
     }
 
-    public List<ChangeDocVO> list(String tenantId, String status) {        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
+    public PageResult<ChangeDocVO> list(String tenantId, String status, String keyword, int page, int size) {
+        int normalizedPage = Math.max(page, 1);
+        int normalizedSize = Math.min(Math.max(size, 1), 100);
+        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
                 .eq(ChangeDoc::getTenantId, tenantId)
                 .orderByDesc(ChangeDoc::getCreatedAt);
 
@@ -484,7 +489,13 @@ public class ChangeDocService {
             wrapper.eq(ChangeDoc::getStatus, status);
         }
 
-        List<ChangeDoc> docs = changeDocMapper.selectList(wrapper);
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(query -> query.like(ChangeDoc::getTitle, keyword)
+                    .or().like(ChangeDoc::getChangeNo, keyword));
+        }
+
+        Page<ChangeDoc> resultPage = changeDocMapper.selectPage(new Page<>(normalizedPage, normalizedSize), wrapper);
+        List<ChangeDoc> docs = resultPage.getRecords();
 
         // Batch-fetch user names to avoid N+1 queries
         Set<Long> userIds = docs.stream()
@@ -508,9 +519,12 @@ public class ChangeDocService {
             });
         }
 
-        return docs.stream()
-                .map(d -> toVO(d, userNames))
-                .collect(Collectors.toList());
+        PageResult<ChangeDocVO> result = new PageResult<>();
+        result.setRecords(docs.stream().map(d -> toVO(d, userNames)).collect(Collectors.toList()));
+        result.setTotal(resultPage.getTotal());
+        result.setPage(resultPage.getCurrent());
+        result.setSize(resultPage.getSize());
+        return result;
     }
 
     public List<ChangeDocSnapshot> listSnapshots(String tenantId, Long id) {
