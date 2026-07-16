@@ -18,6 +18,7 @@ const ROUTE_PERMISSIONS = [
   { path: '/users', permissions: ['user:read'] },
   { path: '/groups', permissions: ['group:read'] },
   { path: '/notifications', permissions: ['notification:read'] },
+  { path: '/daily', permissions: ['daily_report:read'] },
   { path: '/rbac/roles', permissions: ['role:read'] },
   { path: '/rbac/migration-exceptions', permissions: ['role:read', 'role:assign'] },
   {
