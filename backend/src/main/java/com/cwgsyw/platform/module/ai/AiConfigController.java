@@ -32,6 +32,14 @@ public class AiConfigController {
         return R.ok(null);
     }
 
+    @DeleteMapping("/providers/{provider}/api-key")
+    @PreAuthorize("hasAuthority('ai_config:write')")
+    public R<Void> clearProviderApiKey(@PathVariable String provider,
+                                       @AuthenticationPrincipal SecurityUser user) {
+        aiGatewayService.clearProviderApiKey(user.getTenantId(), provider);
+        return R.ok(null);
+    }
+
     @PostMapping("/providers/{provider}/test")
     @PreAuthorize("hasAuthority('ai_config:write')")
     public R<String> testProvider(@PathVariable String provider,

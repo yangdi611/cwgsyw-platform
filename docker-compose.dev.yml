@@ -36,6 +36,25 @@ services:
       - "9010:9000"
       - "9011:9001"
 
+  mailpit:
+    image: axllent/mailpit:v1.23.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - fixtures
+
+  external-api-mock:
+    image: mockserver/mockserver:5.15.0
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json
+    volumes:
+      - ./dev-fixtures/external-api-mock/expectations.json:/config/expectations.json:ro
+    ports:
+      - "1080:1080"
+    networks:
+      - fixtures
+
   backend:
     build:
       context: ./backend
@@ -59,6 +78,9 @@ services:
       GROUP_LIFECYCLE_PURGE_RETENTION_DAYS: ${GROUP_LIFECYCLE_PURGE_RETENTION_DAYS:-30}
     volumes:
       - ./data/backups:/backups
+    networks:
+      - default
+      - fixtures
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,6 +117,10 @@ services:
 
 volumes:
   pgdata_t942c4356:
+
+networks:
+  fixtures:
+    internal: true
 
 secrets:
   maven_settings:

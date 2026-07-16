@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：46 个事件；其中 `CLOSED=4`、`VERIFIED=42`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
+- 事件库：48 个事件；其中 `CLOSED=4`、`VERIFIED=44`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -62,6 +62,7 @@
 | `REM-P2-014` | P2 | 周期规则删除与确认入口 | `BUG-FQA-097` | `VERIFIED` | `LOW` | L1-L3 删除确认/取消、权限、审计、精确清理通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) / [SPEC](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-015` | P2 | 通知目标只读解析端点 | 用户确认的 `REM-P2-011` 增补合同 | `VERIFIED` | `MEDIUM` | L1-L3 最小响应、不可枚举、真实点击、零副作用通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-015-notification-target-resolver/README.md) / [SPEC](./06-ops-collaboration/REM-P2-015-notification-target-resolver/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-015-notification-target-resolver/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-015-notification-target-resolver/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-016` | P2 | Prometheus 配置保存 API 合同 | L4 `FQA_20260716_191500_lintfix` 新发现 | `VERIFIED` | `MEDIUM` | 前端已有调用、后端缺 mapping 的 500；L1-L3 通过，待 no-ff 合并后重跑 L4 | [事件卡](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/README.md) / [SPEC](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/SPEC.md) / [验证](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-017` | P2 | 隔离外部集成验证夹具 | L4 `FQA_20260716_191500_lintfix` 外部集成门禁 | `VERIFIED` | `CRITICAL` | 内部 SMTP、Prometheus、AI mock、显式清钥与恢复 L1-L3 通过；待 no-ff 合并后重跑 L4 | [事件卡](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/README.md) / [SPEC](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/SPEC.md) / [验证](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/CLAUDE-CODE-PROMPT.md) |
 
 ## 建议执行波次
 
