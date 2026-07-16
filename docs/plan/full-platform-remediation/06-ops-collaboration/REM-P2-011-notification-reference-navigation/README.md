@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P2-011` |
 | 优先级 | P2 |
 | 领域 | `06-ops-collaboration` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED`（等待最终 L4） |
 | 风险 | `LOW` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -35,4 +35,11 @@ Wiki 发布通知可以标记已读，但缺少 wiki_page 目标路由映射。
 - 不增加跨用户可见性
 - 不恢复已删除目标
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+## 2026-07-16 L1-L3 结论
+
+- 通知卡片通过受控目标解析页覆盖 `wiki_page`、`change_doc`、`daily_report`、`ci_instance` 和 `ops_task`，再由既有受权限保护的详情 API 解析至真实路由。
+- 真实通知中心点击现有 Wiki 通知进入 `/wiki/8/54`；运维任务引用进入 `/ops-calendar?taskId=9` 并打开任务抽屉，成功路径 Console error 为 0。
+- 已删除与未知目标统一显示“通知目标不可用”，不展示目标详情，也不修改通知已读状态或投递记录。
+- GitNexus：前端 `getHref` 影响为 LOW（仅通知列表）；通知投递 `NotificationService.notify` 为 CRITICAL（11 个直接调用者），未修改。
+
+下一门禁：提交事件证据并按 `--no-ff` 合并到 `lint-fix`，随后进入 `REM-P2-012`。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
