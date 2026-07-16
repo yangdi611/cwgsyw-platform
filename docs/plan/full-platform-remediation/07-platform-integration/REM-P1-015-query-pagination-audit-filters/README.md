@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-015` |
 | 优先级 | P1 |
 | 领域 | `07-platform-integration` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `MEDIUM` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -38,6 +38,6 @@ MyBatis-Plus 分页拦截缺失导致审计和通知返回全量且 total=0，�
 - 不改变审计保留周期
 - 不修改通知权限
 
-下一门禁：实施前逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 先告警。完成 L1-L3 后进入 L4 全量 FQA。
+L1-L3 已通过：审计与通知分页返回准确 `total` 并严格限制 records；审计 action、操作人和关键词筛选已贯通 API/UI。当前分支构建的 backend/frontend 容器健康，真实会话 API 与页面路径复验通过；未创建测试数据，无需清理。下一门禁：等待全量 L4 FQA。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)

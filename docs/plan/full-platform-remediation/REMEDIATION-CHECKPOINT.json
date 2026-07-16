@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T06:43:00+08:00",
+  "updatedAt": "2026-07-16T07:10:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-013_L1_L3_PASS",
-  "nextEvent": "REM-P1-015",
-  "nextBranch": "codex/rem-p1-015-query-pagination-audit-filters",
-  "nextAction": "After REM-P1-013 is committed and no-ff merged, create REM-P1-015 from current lint-fix.",
+  "lastCompletedGate": "REM-P1-015_L1_L3_PASS",
+  "nextEvent": "REM-P1-028",
+  "nextBranch": "codex/rem-p1-028-change-document-create-contract",
+  "nextAction": "After REM-P1-015 is committed and no-ff merged, create REM-P1-028 from current lint-fix.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 23,
+    "verified": 24,
     "verifying": 0,
-    "notStarted": 18,
+    "notStarted": 17,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -62,12 +62,12 @@
       "REM-P1-008",
       "REM-P1-010",
       "REM-P1-011",
-      "REM-P1-013"
+      "REM-P1-013",
+      "REM-P1-015"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P1-015",
       "REM-P1-028",
       "REM-P1-029",
       "REM-P1-030",
@@ -106,7 +106,6 @@
     "REM-P1-027",
     "REM-P1-008",
     "REM-P1-013",
-    "REM-P1-015",
     "REM-P1-028",
     "REM-P1-029",
     "REM-P1-030",
@@ -209,6 +208,9 @@
     },
     "REM-P1-013": {
       "eventCommit": "f91b7d82ce7ffbf16fe389f660b4f8b859294bb6"
+    },
+    "REM-P1-015": {
+      "eventCommit": "f0cee59b4810248234ff53e21d039edf84f5b152"
     }
   },
   "l4": {
@@ -244,6 +246,7 @@
     "REM-P1-008 L1-L3 passed: model/attribute validation, concurrent uniqueness, defaultValue readback and real UI create-edit-refresh passed; runId model, group and attributes were removed by product APIs. Event commit 330e0138 is merged with this checkpoint advance.",
     "REM-P1-010 L1-L3 passed: CTE direction/depth/error contract, topology history create-update-delete-relation reconstruction and real API/UI compare passed; all runId objects were removed by product APIs. Event commit ffdf2ed3 is merged with this checkpoint advance.",
     "REM-P1-011 L1-L3 passed: Chinese template is single-encoded with UTF-8 filename; update-only UI/API allow and deny are aligned; rack catalog/2D/dynamic detail/elevation path passed; all runId objects were removed by product APIs.",
-    "REM-P1-013 L1-L3 passed: group and user input contracts return 400; explicit phone clear and profile status recalculation passed; user-authorized isolated retention override enabled product purge of the sole runId group, then the default retention was restored."
+    "REM-P1-013 L1-L3 passed: group and user input contracts return 400; explicit phone clear and profile status recalculation passed; user-authorized isolated retention override enabled product purge of the sole runId group, then the default retention was restored.",
+    "REM-P1-015 L1-L3 passed: PostgreSQL pagination interceptor returns bounded records and accurate total for audit, notification and representative CMDB list; audit action/operatorId/keyword filters passed API/UI revalidation with no test data. Event commit is recorded before the no-ff merge."
   ]
 }
