@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.module.wiki.dto.SavePageRequest;
+import com.cwgsyw.platform.module.wiki.dto.CreatePageRequest;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -182,7 +184,7 @@ class WikiPageServiceTest {
         when(versionMapper.selectOne(any())).thenReturn(v);
 
         assertThatThrownBy(() -> service.revert("default", 88L, 1, user(5L, "group", Set.of("wiki:update"))))
-            .isInstanceOf(IllegalStateException.class)
+            .isInstanceOf(BusinessException.class)
             .hasMessageContaining("版本快照内容不完整");
         verify(pageMapper, never()).updateById(any(WikiPage.class));
         verify(versionMapper, never()).insert(any(WikiPageVersion.class));
@@ -282,6 +284,95 @@ class WikiPageServiceTest {
         service.createPage("default", owner, req);
 
         verify(versionMapper, never()).insert(any(WikiPageVersion.class));
+    }
+
+    @Test
+    void createPage_trimsTitleBeforePersisting() {
+        SecurityUser owner = user(7L, "group", Set.of("wiki:create"));
+        when(pageMapper.selectCount(any())).thenReturn(0L);
+        when(pageMapper.selectList(any())).thenReturn(List.of());
+        when(pageMapper.insert(any(WikiPage.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, WikiPage.class).setId(45L);
+            return 1;
+        });
+        CreatePageRequest req = new CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setTitle("  新页面  ");
+
+        service.createPage("default", owner, req);
+
+        verify(pageMapper).insert(org.mockito.ArgumentMatchers.<WikiPage>argThat(
+            page -> page.getTitle().equals("新页面")));
+    }
+
+    @Test
+    void createPage_blankTitle_throwsBeforeInsert() {
+        CreatePageRequest req = new CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setTitle("   ");
+
+        assertThatThrownBy(() -> service.createPage("default", user(7L, "group", Set.of("wiki:create")), req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("页面标题不能为空");
+        verify(pageMapper, never()).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void createPage_overlongTitle_throwsBeforeInsert() {
+        CreatePageRequest req = new CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setTitle("x".repeat(256));
+
+        assertThatThrownBy(() -> service.createPage("default", user(7L, "group", Set.of("wiki:create")), req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("页面标题不能超过 255 个字符");
+        verify(pageMapper, never()).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void createPage_duplicateSiblingTitle_throwsBeforeInsert() {
+        SecurityUser owner = user(7L, "group", Set.of("wiki:create"));
+        when(pageMapper.selectCount(any())).thenReturn(1L);
+        CreatePageRequest req = new CreatePageRequest();
+        req.setSpaceId(100L);
+        req.setTitle("已存在");
+
+        assertThatThrownBy(() -> service.createPage("default", owner, req))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("同级页面标题已存在");
+        verify(pageMapper, never()).insert(any(WikiPage.class));
+    }
+
+    @Test
+    void savePage_duplicateSiblingTitle_throwsBeforeUpdateOrVersion() {
+        WikiPage page = page(88L, 100L);
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(pageMapper.selectCount(any())).thenReturn(1L);
+        SecurityUser owner = user(7L, "group", Set.of("wiki:update"));
+        SavePageRequest req = new SavePageRequest();
+        req.setTitle("已存在");
+        req.setContent("正文");
+
+        assertThatThrownBy(() -> service.savePage("default", owner, 88L, req))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("同级页面标题已存在");
+        verify(pageMapper, never()).updateById(any(WikiPage.class));
+        verify(versionMapper, never()).insert(any(WikiPageVersion.class));
+    }
+
+    @Test
+    void movePage_duplicateTargetSiblingTitle_throwsBeforeUpdate() {
+        WikiPage page = page(88L, 100L);
+        page.setTitle("已存在");
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(pageMapper.findDescendantIds(88L)).thenReturn(List.of(88L));
+        when(pageMapper.selectCount(any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.movePage("default", 88L, 22L, 1,
+            user(5L, "group", Set.of("wiki:update"))))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("同级页面标题已存在");
+        verify(pageMapper, never()).updateById(any(WikiPage.class));
     }
 
     // ── deletePage / movePage / publishDirect 权限闸门 ──────────────────
