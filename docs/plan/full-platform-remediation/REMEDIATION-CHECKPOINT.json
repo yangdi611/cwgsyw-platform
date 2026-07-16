@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-014_L1_L3_RUNTIME_REVALIDATION",
+  "lastCompletedGate": "REM-P2-015_L1_L3_RUNTIME_REVALIDATION",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Create codex/fqa-final-l4-revalidation from this clean lint-fix integration head and execute the complete final L4 matrix.",
+  "nextAction": "Commit and --no-ff merge REM-P2-015 into lint-fix, then create the independent final L4 revalidation branch from the clean integration head.",
   "statusCounts": {
-    "total": 45,
+    "total": 46,
     "closed": 4,
-    "verified": 41,
+    "verified": 42,
     "verifying": 0,
     "notStarted": 0,
     "blocked": 0
@@ -80,7 +80,8 @@
       "REM-P2-011",
       "REM-P2-012",
       "REM-P2-013",
-      "REM-P2-014"
+      "REM-P2-014",
+      "REM-P2-015"
     ],
     "verifying": [],
     "inProgress": [],
@@ -119,7 +120,8 @@
     "REM-P2-011",
     "REM-P2-012",
     "REM-P2-013",
-    "REM-P2-014"
+    "REM-P2-014",
+    "REM-P2-015"
   ],
   "eventGit": {
     "REM-P1-005": {
@@ -265,7 +267,7 @@
     "status": "NOT_STARTED",
     "branch": null,
     "runId": null,
-    "eventScopedVerifiedRequired": 41,
+    "eventScopedVerifiedRequired": 42,
     "failures": null,
     "blocked": null,
     "cleanupFailures": null
@@ -312,6 +314,7 @@
     "REM-P2-010 L1-L3 passed: current runtime contains 3 system seed spaces, 49 published seed pages and 56 seed versions; restart made 0 seed updates. API/UI read-only protections, reversible personal order persistence and Console=0 passed without product test data. Event commit ead2ad5 is merged with this checkpoint advance; next event is REM-P2-011.",
     "REM-P2-011 L1-L3 passed: notification references resolve through existing protected detail reads before navigation; Wiki and ops task real routes passed, while deleted/unknown targets remain neutral and non-enumerating. No notification state, authorization, delivery or product object changed. Event commit 9bccf7a is merged with this checkpoint advance; next event is REM-P2-012.",
     "REM-P2-012 L1-L3 passed: shared temporal validation returns HTTP/body 400 for reversed ranges, malformed dates and invalid months; daily date/work-hours inputs are bounded; stats page blocks reversed ranges and recovers cleanly. Current-branch API/UI runtime verification created no data. Event commit ba965576 is merged with this checkpoint advance; next event is REM-P2-013.",
-    "REM-P2-014 L1-L3 passed: existing manage-only DELETE now has a real page entry with confirmation and cancel semantics. Current-branch frontend container and authenticated browser verification passed; unauthenticated delete is 403, deleted/repeated reads are stable 400, audit readback is present, Console and failed requests are zero, and the one runId rule was product-UI deleted with zero residue. Event commit and no-ff merge are pending before L4."
+    "REM-P2-014 L1-L3 passed: existing manage-only DELETE now has a real page entry with confirmation and cancel semantics. Current-branch frontend container and authenticated browser verification passed; unauthenticated delete is 403, deleted/repeated reads are stable 400, audit readback is present, Console and failed requests are zero, and the one runId rule was product-UI deleted with zero residue. Event commit and no-ff merge are pending before L4.",
+    "REM-P2-015 L1-L3 passed: user-approved addendum creates a notification-ID-only, permission-aware resolver. Valid Wiki navigation, uniform unavailable states, unauthenticated 403, unchanged notification read state/count, current-branch API/UI and zero Console/target request failures passed. No test data was created; event commit and no-ff merge are pending before L4."
   ]
 }

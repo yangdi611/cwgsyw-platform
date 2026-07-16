@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=41`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
+- 事件库：46 个事件；其中 `CLOSED=4`、`VERIFIED=42`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -60,6 +60,7 @@
 | `REM-P2-012` | P2 | 日期范围、月份与数值输入统一校验 | `BUG-FQA-029`、`BUG-FQA-030`、`BUG-FQA-031`、`BUG-FQA-032`、`BUG-FQA-033`、`BUG-FQA-034`、`BUG-FQA-037`、`BUG-FQA-060` | `VERIFIED` | `MEDIUM` | L1-L3 日期/月/工时输入、真实 API/UI、零残留通过；等待最终 L4 | [事件卡](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) / [SPEC](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/SPEC.md) / [验证](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/VERIFICATION.md) / [Prompt](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-013` | P2 | Workflow 活动历史与统计读模型 schema | `BUG-FQA-028`、`BUG-FQA-036` | `VERIFIED` | `LOW` | L1-L3 typed camelCase API、完成活动、统计 UI、零 Console/残留通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) / [SPEC](./05-workflow-change/REM-P2-013-workflow-read-model-schema/SPEC.md) / [验证](./05-workflow-change/REM-P2-013-workflow-read-model-schema/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P2-013-workflow-read-model-schema/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-014` | P2 | 周期规则删除与确认入口 | `BUG-FQA-097` | `VERIFIED` | `LOW` | L1-L3 删除确认/取消、权限、审计、精确清理通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) / [SPEC](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-015` | P2 | 通知目标只读解析端点 | 用户确认的 `REM-P2-011` 增补合同 | `VERIFIED` | `MEDIUM` | L1-L3 最小响应、不可枚举、真实点击、零副作用通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-015-notification-target-resolver/README.md) / [SPEC](./06-ops-collaboration/REM-P2-015-notification-target-resolver/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-015-notification-target-resolver/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-015-notification-target-resolver/CLAUDE-CODE-PROMPT.md) |
 
 ## 建议执行波次
 
@@ -74,7 +75,7 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。全部事件均已完成事件级 L1-L3；下一阶段为独立的最终 L4 全平台复验。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。全部事件均已完成事件级 L1-L3；下一阶段为独立最终 L4 全平台复验。
 
 ## 状态统计
 
@@ -83,7 +84,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 41 |
+| `VERIFIED` | 42 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 
