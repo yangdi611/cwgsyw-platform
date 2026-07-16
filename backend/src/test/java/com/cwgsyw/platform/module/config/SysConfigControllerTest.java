@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.config;
 
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.config.dto.NotificationConfigRequest;
+import com.cwgsyw.platform.module.config.dto.PrometheusConfigRequest;
 import com.cwgsyw.platform.module.config.dto.SmtpConfigRequest;
 import com.cwgsyw.platform.module.config.dto.WatermarkConfigRequest;
 import org.junit.jupiter.api.Test;
@@ -87,6 +88,30 @@ class SysConfigControllerTest {
 
         verify(configService).set("default", "watermark.enabled", "true");
         verify(configService).set("default", "watermark.opacity", "0.5");
+    }
+
+    @Test
+    void prometheusUpdates_useSharedConfigurationWritePathAndNormalizeUrl() {
+        PrometheusConfigRequest request = new PrometheusConfigRequest();
+        request.setEnabled(false);
+        request.setUrl("http://127.0.0.1:9090/");
+        request.setScrapeInterval(60);
+
+        controller.updatePrometheus(user(), request);
+
+        verify(configService).set("default", "prometheus.enabled", "false");
+        verify(configService).set("default", "prometheus.url", "http://127.0.0.1:9090");
+        verify(configService).set("default", "prometheus.scrape_interval", "60");
+    }
+
+    @Test
+    void invalidPrometheusUrl_isRejectedBeforeAnyWrite() {
+        PrometheusConfigRequest request = new PrometheusConfigRequest();
+        request.setUrl("ftp://prometheus.example.test");
+
+        assertThatIllegalArgumentException().isThrownBy(() -> controller.updatePrometheus(user(), request));
+
+        verify(configService, never()).set(any(), any(), any());
     }
 
     private SecurityUser user() {

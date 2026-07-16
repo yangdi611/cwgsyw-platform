@@ -61,6 +61,7 @@
 | `REM-P2-013` | P2 | Workflow 活动历史与统计读模型 schema | `BUG-FQA-028`、`BUG-FQA-036` | `VERIFIED` | `LOW` | L1-L3 typed camelCase API、完成活动、统计 UI、零 Console/残留通过；等待最终 L4 | [事件卡](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) / [SPEC](./05-workflow-change/REM-P2-013-workflow-read-model-schema/SPEC.md) / [验证](./05-workflow-change/REM-P2-013-workflow-read-model-schema/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P2-013-workflow-read-model-schema/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-014` | P2 | 周期规则删除与确认入口 | `BUG-FQA-097` | `VERIFIED` | `LOW` | L1-L3 删除确认/取消、权限、审计、精确清理通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) / [SPEC](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-015` | P2 | 通知目标只读解析端点 | 用户确认的 `REM-P2-011` 增补合同 | `VERIFIED` | `MEDIUM` | L1-L3 最小响应、不可枚举、真实点击、零副作用通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-015-notification-target-resolver/README.md) / [SPEC](./06-ops-collaboration/REM-P2-015-notification-target-resolver/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-015-notification-target-resolver/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-015-notification-target-resolver/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-016` | P2 | Prometheus 配置保存 API 合同 | L4 `FQA_20260716_191500_lintfix` 新发现 | `VERIFIED` | `MEDIUM` | 前端已有调用、后端缺 mapping 的 500；L1-L3 通过，待 no-ff 合并后重跑 L4 | [事件卡](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/README.md) / [SPEC](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/SPEC.md) / [验证](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/CLAUDE-CODE-PROMPT.md) |
 
 ## 建议执行波次
 
@@ -84,7 +85,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 42 |
+| `VERIFIED` | 43 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 
