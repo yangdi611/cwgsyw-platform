@@ -133,13 +133,20 @@ export default function ImpactAnalysisPage() {
     <div className="space-y-6">
       {/* 顶部工具栏 */}
       <div className="flex items-center gap-3">
-        <Link
-          href={data ? `/cmdb/instances/by-model/${data.rootModelId}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回实例
-        </Link>
+        {data?.rootModelId ? (
+          <Link
+            href={`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回实例
+          </Link>
+        ) : (
+          <span className="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-semibold text-v2-muted">
+            <ArrowLeft className="h-4 w-4" />
+            返回实例
+          </span>
+        )}
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-v2-fg">
             {data?.rootName ?? `#${instanceId}`}
