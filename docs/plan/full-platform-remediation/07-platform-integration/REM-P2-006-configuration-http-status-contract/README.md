@@ -5,8 +5,8 @@
 | 事件 ID | `REM-P2-006` |
 | 优先级 | P2 |
 | 领域 | `07-platform-integration` |
-| 状态 | `NOT_STARTED` |
-| 风险 | `LOW` |
+| 状态 | `VERIFIED` |
+| 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
@@ -38,6 +38,6 @@
 - 不修改配置值
 - 不测试外部 SMTP/Prometheus
 
-下一门禁：实施前逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 先告警。完成 L1-L3 后进入 L4 全量 FQA。
+L1-L3 已通过：白名单、空对象和非法类型均为 HTTP/body `400`，拒绝前后快照无变化；允许 key 的首次写入、读回与恢复均成功，审计仅保留键名且不含配置值。共享 `SysConfigService.set` 已改为 PostgreSQL 原子 upsert，并完成流程绑定、SMTP、通知及水印写入入口回归。临时授权已恢复为零；等待最终 L4 全量复验。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)
