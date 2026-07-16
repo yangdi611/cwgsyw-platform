@@ -210,6 +210,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const { data: tree } = useQuery<WikiPageTree[]>({
     queryKey: ['wiki-tree', spaceId],
     queryFn: () => wikiApi.getTree(spaceId),
+    enabled: Boolean(currentSpace),
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['wiki-tree', spaceId] })

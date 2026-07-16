@@ -74,28 +74,38 @@ export default function WikiPageReader() {
   const [aclOpen, setAclOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
 
-  const { data: commentsFirstPage } = useQuery<PageResult<WikiComment>>({
-    queryKey: ['wiki-comments-count', pid],
-    queryFn: () => wikiApi.listComments(pid, { page: 1, size: 1 }),
-    enabled: Boolean(pid),
-  })
-
-  const { data: page, isLoading } = useQuery<WikiPage>({
-    queryKey: ['wiki-page', pid],
-    queryFn: () => wikiApi.getPage(pid),
-  })
-
-  const { data: tree } = useQuery<WikiPageTree[]>({
-    queryKey: ['wiki-tree', sid],
-    queryFn: () => wikiApi.getTree(sid),
-  })
-
   const { data: spaces } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
     queryFn: () => wikiApi.listSpaces(),
   })
 
   const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
+  const spaceExists = Boolean(currentSpace)
+
+  const { data: tree, isLoading: treeLoading } = useQuery<WikiPageTree[]>({
+    queryKey: ['wiki-tree', sid],
+    queryFn: () => wikiApi.getTree(sid),
+    enabled: spaceExists,
+  })
+
+  const pageExists = useMemo(() => {
+    const hasPage = (nodes: WikiPageTree[]): boolean => nodes.some((node) =>
+      node.id === pid || (node.children?.length ? hasPage(node.children) : false))
+    return tree ? hasPage(tree) : false
+  }, [pid, tree])
+
+  const { data: page, isLoading: pageLoading, isError: pageError } = useQuery<WikiPage>({
+    queryKey: ['wiki-page', pid],
+    queryFn: () => wikiApi.getPage(pid),
+    enabled: spaceExists && pageExists,
+  })
+
+  const { data: commentsFirstPage } = useQuery<PageResult<WikiComment>>({
+    queryKey: ['wiki-comments-count', pid],
+    queryFn: () => wikiApi.listComments(pid, { page: 1, size: 1 }),
+    enabled: spaceExists && pageExists,
+  })
+
   const readOnly = currentSpace?.readOnly ?? false
 
   useBreadcrumbLabel([currentSpace?.name, page?.title])
@@ -136,10 +146,10 @@ export default function WikiPageReader() {
   const canPublish = page?.canPublish ?? false
   const canManageAcl = page?.canManageAcl ?? false
 
-  if (isLoading) {
+  if (spaces === undefined || (spaceExists && treeLoading) || (pageExists && pageLoading)) {
     return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>
   }
-  if (!page) {
+  if (!spaceExists || !pageExists || pageError || !page) {
     return <div className="py-12 text-center text-sm text-v2-muted">页面不存在或已删除</div>
   }
 
