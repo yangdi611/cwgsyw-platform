@@ -102,6 +102,33 @@ class ImpactAnalysisServiceTest {
         assertThat(parameters.getValue()).containsExactly(1L, 1L, 1L, 1L, 1L, "default", 2, "default");
     }
 
+    @Test
+    void cteKeepsNodesAtTheirShortestDepthWhenCyclesReturnThemLater() {
+        CiInstance root = instance(1L, "root");
+        CiInstance first = instance(2L, "first");
+        CiInstance second = instance(3L, "second");
+        when(ciInstanceMapper.selectBatchIds(any())).thenReturn(List.of(root, first, second));
+        when(ciAssociationKindMapper.selectList(any())).thenReturn(List.of());
+        when(ciAssociationDefMapper.selectList(any())).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class))).thenReturn(List.of(
+                Map.of("src", 1L, "dst", 2L, "kind", "depends_on", "node_id", 2L, "depth", 1),
+                Map.of("src", 2L, "dst", 3L, "kind", "depends_on", "node_id", 3L, "depth", 2),
+                Map.of("src", 3L, "dst", 2L, "kind", "depends_on", "node_id", 2L, "depth", 3)
+        ));
+        ImpactAnalysisRequest request = new ImpactAnalysisRequest();
+        request.setDirection("bidirectional");
+        request.setMaxDepth(3);
+
+        ImpactAnalysisResultVO result = service.analyze(1L, request, "default");
+
+        assertThat(result.getLayers()).flatExtracting(layer -> layer.getNodes())
+                .extracting(node -> node.getId())
+                .containsExactlyInAnyOrder(1L, 2L, 3L);
+        assertThat(result.getLayers()).filteredOn(layer -> layer.getDepth() == 3)
+                .flatExtracting(layer -> layer.getNodes())
+                .isEmpty();
+    }
+
     private CiInstance instance(Long id, String name) {
         CiInstance instance = new CiInstance();
         instance.setId(id);

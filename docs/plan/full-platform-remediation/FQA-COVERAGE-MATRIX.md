@@ -133,3 +133,4 @@
 | `L4-WIKI-022-001`：不存在 Wiki space/page 永久加载并产生 404 Console error | [`REM-P2-018`](./04-content-files/REM-P2-018-wiki-missing-resource-loading/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；阅读页与目录侧栏均已避免无效资源请求，L1-L3 通过，待最终 L4 重跑。 |
 | `L4-WIKI-022-002`：不存在 Wiki 空间首页仍请求 tree 并产生 404 Console error | [`REM-P2-019`](./04-content-files/REM-P2-019-wiki-space-home-missing-resource/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；空间首页仅对可访问 space 读取 tree，L1-L3 通过，待最终 L4 重跑。 |
 | `L4-FLOW-004-001`：流程实例的 `daily_report:<id>` 业务键无详情跳转 | [`REM-P2-021`](./05-workflow-change/REM-P2-021-workflow-instance-business-navigation/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 的严格链接、非日报回退和真实 UI 已通过，待受影响 L4 重跑。 |
+| `L4-CMDB-031-001`：影响分析循环路径跨层重复节点 | [`REM-P2-022`](./03-cmdb-assets/REM-P2-022-cmdb-impact-cycle-deduplication/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 保留最短层级、边集和真实 UI 已通过，待受影响 L4 重跑。 |
