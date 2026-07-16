@@ -316,6 +316,9 @@ public class WikiPageService {
 
     public PageResult<WikiSearchResultVO> search(String tenantId, String keyword, Long spaceId,
                                                 int page, int size, SecurityUser user) {
+        if (authorizationService.isEnforced(user, "wiki")) {
+            return searchWithEnforcedAccess(tenantId, keyword, spaceId, page, size, user);
+        }
         int offset = (page - 1) * size;
         long total;
         List<Map<String, Object>> rows;
@@ -326,7 +329,37 @@ public class WikiPageService {
             total = pageMapper.searchCount(tenantId, keyword);
             rows = pageMapper.search(tenantId, keyword, size, offset);
         }
-        List<WikiSearchResultVO> records = rows.stream().map(r -> {
+        List<WikiSearchResultVO> records = toSearchResults(rows);
+
+        PageResult<WikiSearchResultVO> result = new PageResult<>();
+        result.setRecords(records);
+        result.setTotal(total);
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    private PageResult<WikiSearchResultVO> searchWithEnforcedAccess(String tenantId, String keyword, Long spaceId,
+                                                                      int page, int size, SecurityUser user) {
+        List<Map<String, Object>> candidates = spaceId != null
+            ? pageMapper.searchInSpace(tenantId, spaceId, keyword, Integer.MAX_VALUE, 0)
+            : pageMapper.search(tenantId, keyword, Integer.MAX_VALUE, 0);
+        List<WikiSearchResultVO> visible = toSearchResults(candidates).stream()
+            .filter(result -> authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4)
+                .isAllowed())
+            .toList();
+        int offset = Math.min((page - 1) * size, visible.size());
+        int end = Math.min(offset + size, visible.size());
+        PageResult<WikiSearchResultVO> result = new PageResult<>();
+        result.setRecords(visible.subList(offset, end));
+        result.setTotal(visible.size());
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    private List<WikiSearchResultVO> toSearchResults(List<Map<String, Object>> rows) {
+        return rows.stream().map(r -> {
             WikiSearchResultVO vo = new WikiSearchResultVO();
             vo.setPageId(((Number) r.get("id")).longValue());
             Object sid = r.get("space_id");
@@ -337,16 +370,7 @@ public class WikiPageService {
             if (ua instanceof java.sql.Timestamp ts) vo.setUpdatedAt(ts.toLocalDateTime());
             else if (ua instanceof LocalDateTime ldt) vo.setUpdatedAt(ldt);
             return vo;
-        }).filter(result -> !authorizationService.isEnforced(user, "wiki")
-            || authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4).isAllowed())
-            .collect(Collectors.toList());
-
-        PageResult<WikiSearchResultVO> result = new PageResult<>();
-        result.setRecords(records);
-        result.setTotal(authorizationService.isEnforced(user, "wiki") ? records.size() : total);
-        result.setPage(page);
-        result.setSize(size);
-        return result;
+        }).collect(Collectors.toList());
     }
 
     @Transactional

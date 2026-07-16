@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=29`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=12`。
+- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=36`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=5`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -54,7 +54,7 @@
 | `REM-P2-006` | P2 | 通用配置拒绝的 HTTP 与业务码一致性 | `BUG-FQA-022` | `VERIFIED` | `HIGH` | L1-L3 4xx、首次 upsert、恢复、仅键名审计与受影响配置入口回归通过；等待最终 L4 | [事件卡](./07-platform-integration/REM-P2-006-configuration-http-status-contract/README.md) / [SPEC](./07-platform-integration/REM-P2-006-configuration-http-status-contract/SPEC.md) / [验证](./07-platform-integration/REM-P2-006-configuration-http-status-contract/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-006-configuration-http-status-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-007` | P2 | 运维材料导出文件与摘要合同 | `BUG-FQA-106` | `VERIFIED` | `LOW` | L1-L3 UTF-8 下载头、XLSX 摘要/明细、空范围/400/403 与真实页面下载通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/README.md) / [SPEC](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-008` | P2 | Wiki 未知链接友好渲染 | `BUG-FQA-046` | `VERIFIED` | `LOW` | L1-L3 pending 状态语义、有效/别名链接、无 raw 标签、零 Console 与精确清理通过；待最终 L4 | [事件卡](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) / [SPEC](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/SPEC.md) / [验证](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/CLAUDE-CODE-PROMPT.md) |
-| `REM-P2-009` | P2 | Wiki 搜索入口与历史导航 | `BUG-FQA-071` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) / [SPEC](./04-content-files/REM-P2-009-wiki-search-discovery-history/SPEC.md) / [验证](./04-content-files/REM-P2-009-wiki-search-discovery-history/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-009-wiki-search-discovery-history/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-009` | P2 | Wiki 搜索入口与历史导航 | `BUG-FQA-071` | `VERIFIED` | `LOW` | L1-L3 搜索入口、debounce/URL、授权分页、back/forward、空态与零 Console error 通过；等待最终 L4 | [事件卡](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) / [SPEC](./04-content-files/REM-P2-009-wiki-search-discovery-history/SPEC.md) / [验证](./04-content-files/REM-P2-009-wiki-search-discovery-history/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-009-wiki-search-discovery-history/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-010` | P2 | Wiki 系统手册与只读空间种子 | `BUG-FQA-078` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-010-wiki-system-space-seed/README.md) / [SPEC](./04-content-files/REM-P2-010-wiki-system-space-seed/SPEC.md) / [验证](./04-content-files/REM-P2-010-wiki-system-space-seed/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-010-wiki-system-space-seed/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-011` | P2 | 通知引用目标跳转合同 | `BUG-FQA-025` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/README.md) / [SPEC](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-012` | P2 | 日期范围、月份与数值输入统一校验 | `BUG-FQA-029`、`BUG-FQA-030`、`BUG-FQA-031`、`BUG-FQA-032`、`BUG-FQA-033`、`BUG-FQA-034`、`BUG-FQA-037`、`BUG-FQA-060` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) / [SPEC](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/SPEC.md) / [验证](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/VERIFICATION.md) / [Prompt](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/CLAUDE-CODE-PROMPT.md) |
@@ -74,16 +74,16 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P2-006` 已完成 L1-L3；下一事件为 `REM-P2-007`。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。`REM-P2-009` 已完成 L1-L3；下一事件为 `REM-P2-010`。
 
 ## 状态统计
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 6 |
+| `NOT_STARTED` | 5 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 35 |
+| `VERIFIED` | 36 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 

@@ -79,7 +79,7 @@
 | `BUG-FQA-068` | P2 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 上传中断与数据库失败均精确回收新建对象；待最终 L4 |
 | `BUG-FQA-069` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-070` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
-| `BUG-FQA-071` | P2 | [`REM-P2-009`：Wiki 搜索入口与历史导航](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-071` | P2 | [`REM-P2-009`：Wiki 搜索入口与历史导航](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) | `VERIFIED` | L1-L3 入口、debounce/URL、授权分页、back/forward、焦点、空态与零 Console error 通过；待最终 L4 |
 | `BUG-FQA-072` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 IP host boundary API and cleanup passed; awaiting L4 |
 | `BUG-FQA-073` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 canonical CIDR overlap and concurrency passed; awaiting L4 |
 | `BUG-FQA-074` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
