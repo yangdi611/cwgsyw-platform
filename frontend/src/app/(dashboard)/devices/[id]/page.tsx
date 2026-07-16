@@ -16,8 +16,7 @@ import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
-import { cn } from '@/lib/utils'
-import { getApiErrorMessage } from '@/lib/api-error'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 
 interface Credential {
   id: number
@@ -38,11 +37,6 @@ interface DeviceDetail {
   ciInstanceId: number | null
   ciInstanceName: string | null
   credentials: Credential[]
-}
-
-interface Group {
-  id: number
-  name: string
 }
 
 const DEVICE_TYPES = [
@@ -130,7 +124,7 @@ export default function DeviceDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const groupScope = useAuthStore((s) => s.groupScope)
   const userGroupId = useAuthStore((s) => s.groupId)
 
@@ -139,18 +133,18 @@ export default function DeviceDetailPage() {
   const [addingToGroup, setAddingToGroup] = useState<number | null | undefined>(undefined)
   const [newCred, setNewCred] = useState({ username: '', password: '', description: '' })
 
-  const { data: device, isLoading } = useQuery({
+  const canRead = isHydrated && hasPermission('device', 'read')
+  const { data: device, isLoading, isError, error, refetch } = useQuery<DeviceDetail, unknown>({
     queryKey: ['device', id],
     queryFn: () => api.get(`/devices/${id}`).then((r) => r.data.data as DeviceDetail),
+    enabled: canRead,
+    retry: (failureCount, err: unknown) => {
+      if (isAxiosError(err) && [403, 404].includes(err.response?.status ?? 0)) return false
+      return failureCount < 2
+    },
   })
 
   useBreadcrumbLabel(device?.name)
-
-  const { data: allGroups = [] } = useQuery<Group[]>({
-    queryKey: ['groups'],
-    queryFn: () => api.get('/groups').then((r) => r.data.data?.records ?? r.data.data ?? []),
-    enabled: hasPermission('device', 'update'),
-  })
 
   const addCredMutation = useMutation({
     mutationFn: (groupId: number | null) =>
@@ -203,6 +197,11 @@ export default function DeviceDetailPage() {
   }
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isError) {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const message = status === 404 ? '设备不存在' : status === 403 ? '你没有访问该设备的权限' : `加载设备失败：${getApiErrorMessage(error, '请稍后重试')}`
+    return <ResourceLoadError message={message} onRetry={() => void refetch()} retryable={status !== 403} />
+  }
   if (!device) return <p className="text-v2-danger">设备不存在</p>
 
   const typeLabels: Record<string, string> = {
@@ -459,4 +458,8 @@ export default function DeviceDetailPage() {
       </div>
     </div>
   )
+}
+
+function ResourceLoadError({ message, onRetry, retryable }: { message: string; onRetry: () => void; retryable: boolean }) {
+  return <div className="space-y-3"><p className="text-v2-danger">{message}</p>{retryable && <Button variant="secondary" size="sm" onClick={onRetry}>重试</Button>}</div>
 }

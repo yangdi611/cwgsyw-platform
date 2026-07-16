@@ -110,16 +110,17 @@ export default function FilePreviewPage() {
     if (!hasPermission('shared_file', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: detailData } = useQuery<FileDetailResponse>({
+  const canRead = isHydrated && hasPermission('shared_file', 'read')
+  const { data: detailData, isError: detailError, refetch: refetchDetail } = useQuery<FileDetailResponse>({
     queryKey: ['file-detail', id],
     queryFn: () => api.get(`/files/${id}`).then(r => r.data),
-    enabled: !!id,
+    enabled: !!id && canRead,
   })
 
-  const { data: previewBlob, isError: previewError } = useQuery<Blob>({
+  const { data: previewBlob, isError: previewError, refetch: refetchPreview } = useQuery<Blob>({
     queryKey: ['file-preview-content', id],
     queryFn: () => fetchSharedFileBlob(id, 'preview', 'preview').then((result) => result.blob),
-    enabled: !!id,
+    enabled: !!id && canRead,
   })
 
   const file = detailData?.data
@@ -148,6 +149,12 @@ export default function FilePreviewPage() {
     }
   }
 
+  const loadFailed = detailError || previewError
+  const retry = () => {
+    void refetchDetail()
+    void refetchPreview()
+  }
+
   return (
     <div className="flex h-[calc(100dvh-7rem)] min-h-0 flex-col">
       {/* Header */}
@@ -157,7 +164,9 @@ export default function FilePreviewPage() {
           返回
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-medium truncate text-v2-fg">{file?.name ?? '加载中...'}</h1>
+          <h1 className="text-sm font-medium truncate text-v2-fg">
+            {file?.name ?? (loadFailed ? '无法加载文件' : '加载中...')}
+          </h1>
           {file && (
             <p className="text-xs text-muted-foreground">
               {file.createdByName} · {formatBytes(file.sizeBytes)} ·{' '}
@@ -168,7 +177,7 @@ export default function FilePreviewPage() {
             </p>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={handleDownload}>
+        <Button variant="outline" size="sm" onClick={handleDownload} disabled={!file || loadFailed}>
           <Download className="h-4 w-4 mr-1.5" />
           下载
         </Button>
@@ -176,9 +185,13 @@ export default function FilePreviewPage() {
 
       {/* Preview Area */}
       <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
-        {previewError ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            预览加载失败，请下载后查看。
+        {loadFailed ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+            <p>无法加载文件。文件可能不存在或你没有访问权限。</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={retry}>重试</Button>
+              <Link href="/files" className={buttonVariants({ variant: 'outline', size: 'sm' })}>返回文件列表</Link>
+            </div>
           </div>
         ) : !previewUrl ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">

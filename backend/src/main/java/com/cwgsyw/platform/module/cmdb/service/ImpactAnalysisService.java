@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.cmdb.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.cmdb.dto.impact.*;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationDef;
 import com.cwgsyw.platform.module.cmdb.entity.CiAssociationKind;
@@ -41,7 +42,7 @@ public class ImpactAnalysisService {
         // Validate root instance
         CiInstance root = ciInstanceMapper.selectById(rootInstanceId);
         if (root == null || root.getIsDeleted() || !root.getTenantId().equals(tenantId)) {
-            throw new IllegalArgumentException("实例不存在");
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "实例不存在");
         }
 
         String direction = req.getDirection() != null ? req.getDirection() : "bidirectional";

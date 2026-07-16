@@ -17,7 +17,7 @@
 |---|---|---|---|---|
 | `BUG-FQA-006` | P1 | [`REM-P1-004`：失败登录审计](./02-account-organization/REM-P1-004-failed-login-audit/README.md) | `VERIFIED` | 历史失败；checkpoint 已移除，事件已定向验证 |
 | `BUG-FQA-008` | P1 | [`REM-P1-005`：通知读取权限收敛](./01-security-authorization/REM-P1-005-notification-read-authorization/README.md) | `VERIFIED` | L1-L3 API/UI allow-deny 与精确清理通过；待最终 L4 |
-| `BUG-FQA-009` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-009` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `VERIFIED` | L1-L3 文件不可枚举与中性可恢复预览错误态通过；待最终 L4 |
 | `BUG-FQA-010` | P2 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
 | `BUG-FQA-011` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | IPAM CRUD/allocate/release API audit snapshots PASS；待 L4 |
 | `BUG-FQA-012` | P1 | [`REM-P1-026`：日报审批待办与统一流程任务收敛](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) | `VERIFIED` | L1-L3 旧/统一待办同集、旧审批和 runId 受限清理通过；待最终 L4 |
@@ -50,8 +50,8 @@
 | `BUG-FQA-039` | P2 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `VERIFIED` | L1-L3 中文“应用”模板单次编码、200、UTF-8 文件名和零 Console error 通过；待 L4 |
 | `BUG-FQA-040` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 action/operatorId/keyword 筛选 API/UI 通过；待 L4 |
 | `BUG-FQA-041` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 release/reuse API and cleanup passed; awaiting L4 |
-| `BUG-FQA-042` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-043` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-042` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `VERIFIED` | L1-L3 CMDB impact 404 与可恢复页面错误态通过；待最终 L4 |
+| `BUG-FQA-043` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `VERIFIED` | L1-L3 设备/IPAM 404 与可恢复页面错误态通过；待最终 L4 |
 | `BUG-FQA-044` | P2 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `VERIFIED` | L1-L3 phone clear null readback and profile completion recalculation passed; 待 L4 |
 | `BUG-FQA-045` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `VERIFIED` | L1-L3 不存在页面/空间 404 与不可操作错误态通过；待最终 L4 |
 | `BUG-FQA-046` | P2 | [`REM-P2-008`：Wiki 未知链接友好渲染](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) | `NOT_STARTED` | checkpoint.openDefects |

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T11:40:00+08:00",
+  "updatedAt": "2026-07-16T12:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,13 +17,13 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P2-001",
+  "activeBranch": "codex/rem-p2-001-dynamic-resource-not-found-states",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-030_L1_L3_PASS",
+  "lastCompletedGate": "REM-P2-001_L1_L3_RUNTIME_REVALIDATION",
   "nextEvent": "REM-P2-001",
   "nextBranch": "codex/rem-p2-001-dynamic-resource-not-found-states",
-  "nextAction": "After this REM-P1-030 no-ff merge commit is created and ancestor relation verified, create REM-P2-001 from current lint-fix.",
+  "nextAction": "Run the final event diff review, then create the independent REM-P2-001 commit and merge it with --no-ff into lint-fix; advance to REM-P2-002 only in the merge checkpoint.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
@@ -66,12 +66,12 @@
       "REM-P1-015",
       "REM-P1-028",
       "REM-P1-029",
-      "REM-P1-030"
+      "REM-P1-030",
+      "REM-P2-001"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
       "REM-P2-004",

@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.device;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.config.CryptoService;
@@ -93,9 +94,10 @@ public class DeviceService {
             .collect(Collectors.toList());
     }
 
-    public DeviceVO getById(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {        Device device = deviceMapper.selectById(id);
+    public DeviceVO getById(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {
+        Device device = deviceMapper.selectById(id);
         if (device == null || device.getIsDeleted() || !device.getTenantId().equals(tenantId)) {
-            throw new IllegalArgumentException("设备不存在");
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "设备不存在");
         }
         requireDeviceScope(device, callerGroupId, callerGroupScope);
         Long filterGroupId = "group".equals(callerGroupScope) ? callerGroupId : null;
@@ -180,7 +182,7 @@ public class DeviceService {
 
     private void requireDeviceScope(Device device, Long callerGroupId, String callerGroupScope) {
         if ("group".equals(callerGroupScope) && (callerGroupId == null || !callerGroupId.equals(device.getGroupId()))) {
-            throw new IllegalArgumentException("无权访问该设备");
+            throw BusinessException.forbidden("RESOURCE_FORBIDDEN", "无权访问该设备");
         }
     }
 
