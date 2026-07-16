@@ -105,7 +105,7 @@
 | `BUG-FQA-094` | P1 | [`REM-P1-030`：日报导出权限运行时消费者](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/README.md) | `VERIFIED` | L1-L3 API scope/export-only/deny/audit/cleanup、真实导航与 XLSX 下载通过；等待最终 L4 |
 | `BUG-FQA-095` | P1 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `VERIFIED` | L1-L3 rack 目录、2D 选择、动态详情路由、机柜视图和精确清理通过；待 L4 |
 | `BUG-FQA-096` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | Audit API/UI exposes redacted before/after snapshots; IPAM/shared-file/ops-rule writers covered; 待 L4 |
-| `BUG-FQA-097` | P2 | [`REM-P2-014`：周期规则删除与确认入口](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-097` | P2 | [`REM-P2-014`：周期规则删除与确认入口](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) | `VERIFIED` | L1-L3 管理页面确认/取消/刷新、403、删除后 400、审计与精确清理通过；待最终 L4 |
 | `BUG-FQA-098` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 引用保护拒绝、删除审计和精确清理通过；待最终 L4 |
 | `BUG-FQA-099` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `VERIFIED` | L1-L3 suspended start and instance termination lifecycle passed; awaiting L4 |
 | `BUG-FQA-100` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 删除时主对象与衍生 Markdown 回收已实现并验证；待最终 L4 |
