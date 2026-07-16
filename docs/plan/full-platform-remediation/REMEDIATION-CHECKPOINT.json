@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T10:15:00+08:00",
+  "updatedAt": "2026-07-16T11:40:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-029_L1_L3_PASS",
-  "nextEvent": "REM-P1-030",
-  "nextBranch": "codex/rem-p1-030-daily-report-export-consumer",
-  "nextAction": "After REM-P1-029 is committed and no-ff merged, create REM-P1-030 from current lint-fix.",
+  "lastCompletedGate": "REM-P1-030_L1_L3_PASS",
+  "nextEvent": "REM-P2-001",
+  "nextBranch": "codex/rem-p2-001-dynamic-resource-not-found-states",
+  "nextAction": "After this REM-P1-030 no-ff merge commit is created and ancestor relation verified, create REM-P2-001 from current lint-fix.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 26,
+    "verified": 27,
     "verifying": 0,
-    "notStarted": 15,
+    "notStarted": 14,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -65,12 +65,12 @@
       "REM-P1-013",
       "REM-P1-015",
       "REM-P1-028",
-      "REM-P1-029"
+      "REM-P1-029",
+      "REM-P1-030"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P1-030",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -215,6 +215,9 @@
     },
     "REM-P1-029": {
       "eventCommit": "86359fd79e05bef2d30d19b71bc4ce7225031e30"
+    },
+    "REM-P1-030": {
+      "eventCommit": "cc116bf05faf3880ad74c14ca24367db2e47c9e7"
     }
   },
   "l4": {
@@ -253,6 +256,7 @@
     "REM-P1-013 L1-L3 passed: group and user input contracts return 400; explicit phone clear and profile status recalculation passed; user-authorized isolated retention override enabled product purge of the sole runId group, then the default retention was restored.",
     "REM-P1-015 L1-L3 passed: PostgreSQL pagination interceptor returns bounded records and accurate total for audit, notification and representative CMDB list; audit action/operatorId/keyword filters passed API/UI revalidation with no test data. Event commit is recorded before the no-ff merge.",
     "REM-P1-028 L1-L3 passed: TemplateVO fields are loaded correctly; single and dual template creates return numeric IDs, navigate to readable detail routes and were revalidated through API/UI. All four runId draft documents were removed through product DELETE with zero residue. Event commit is recorded before the no-ff merge.",
-    "REM-P1-029 L1-L3 passed: task, holiday and rule invalid inputs return 400; valid holiday/rule creation and preview due ordering passed API/UI checks, with runId objects removed by product DELETE and no residue. Event commit is recorded before the no-ff merge."
+    "REM-P1-029 L1-L3 passed: task, holiday and rule invalid inputs return 400; valid holiday/rule creation and preview due ordering passed API/UI checks, with runId objects removed by product DELETE and no residue. Event commit is recorded before the no-ff merge.",
+    "REM-P1-030 contract approved: platform/tenant export all tenant approved reports with optional groupId; group is forced to own group; export-only does not require read; no export returns 403 and hides /reports. API scope/export-only/deny/audit/cleanup and current-branch container rebuild passed under REM_P1_030_20260716_112540. Isolated Playwright browser L3 passed under REM_P1_030_UI_20260716_113313: navigation visibility/hidden state, XLSX download request and Console all passed; both test runs were product-API cleaned with zero residue. Event is VERIFIED pending commit and no-ff merge."
   ]
 }

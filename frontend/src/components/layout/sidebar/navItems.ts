@@ -134,7 +134,7 @@ export const navItems: NavEntry[] = [
     storageKey: 'sidebar_reports_v2',
     defaultOpen: false,
     children: [
-      { href: '/reports', label: '综合报表', icon: BarChart2, resource: null, action: null },
+      { href: '/reports', label: '综合报表', icon: BarChart2, resource: 'daily_report', action: 'export' },
       { href: '/cmdb/changes/stats', label: 'CMDB 统计', icon: BarChart2, resource: 'cmdb_change', action: 'read' },
       { href: '/workflow/stats', label: '流程统计', icon: BarChart2, resource: 'workflow', action: 'read' },
     ],
