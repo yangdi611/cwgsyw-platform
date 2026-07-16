@@ -122,3 +122,9 @@
 - `CLOSED/VERIFIED/VERIFYING` 不改写原始 FQA 失败，只在新证据中追加结论。
 - 新发现缺陷先写入源 run 的缺陷台账，再分配 REM；禁止只改 checkpoint 数组。
 - 每次事件状态变化必须同步本矩阵、事件卡和 `INDEX.md`。
+
+## L4 新发现
+
+| L4 发现 | 主整改事件 | 状态 | 结论 |
+|---|---|---|---|
+| `L4-PROMETHEUS-CONFIG-001`：前端保存请求缺后端 mapping，HTTP 500 | [`REM-P2-016`](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/README.md) | `VERIFYING` | 不改变历史 `BUG-FQA-*` 的唯一主映射；修复后重新执行受影响 L4 配置/外部集成范围。 |

@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.config;
 
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.config.dto.NotificationConfigRequest;
+import com.cwgsyw.platform.module.config.dto.PrometheusConfigRequest;
 import com.cwgsyw.platform.module.config.dto.SmtpConfigRequest;
 import com.cwgsyw.platform.module.config.dto.WatermarkConfigRequest;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -101,6 +102,24 @@ public class SysConfigController {
         return R.ok(null);
     }
 
+    @PutMapping("/prometheus")
+    @PreAuthorize("hasAuthority('notification:manage')")
+    public R<Void> updatePrometheus(@AuthenticationPrincipal SecurityUser user,
+                                     @jakarta.validation.Valid @RequestBody PrometheusConfigRequest req) {
+        String tid = user.getTenantId();
+        if (req.getEnabled() != null) {
+            configService.set(tid, "prometheus.enabled", String.valueOf(req.getEnabled()));
+        }
+        if (req.getUrl() != null) {
+            validatePrometheusUrl(req.getUrl());
+            configService.set(tid, "prometheus.url", req.getUrl().trim().replaceAll("/+$", ""));
+        }
+        if (req.getScrapeInterval() != null) {
+            configService.set(tid, "prometheus.scrape_interval", String.valueOf(req.getScrapeInterval()));
+        }
+        return R.ok(null);
+    }
+
     @PutMapping("/watermark")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateWatermark(@AuthenticationPrincipal SecurityUser user,
@@ -111,5 +130,21 @@ public class SysConfigController {
         if (req.getPosition() != null) configService.set(tid, "watermark.position", req.getPosition());
         if (req.getEnabled() != null)  configService.set(tid, "watermark.enabled",  String.valueOf(req.getEnabled()));
         return R.ok(null);
+    }
+
+    private void validatePrometheusUrl(String url) {
+        String normalized = url.trim();
+        if (normalized.isEmpty()) return;
+        try {
+            java.net.URI uri = java.net.URI.create(normalized);
+            if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
+                throw new IllegalArgumentException("Prometheus 地址必须使用 HTTP 或 HTTPS");
+            }
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new IllegalArgumentException("Prometheus 地址必须包含主机名");
+            }
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Prometheus 地址格式不正确", exception);
+        }
     }
 }
