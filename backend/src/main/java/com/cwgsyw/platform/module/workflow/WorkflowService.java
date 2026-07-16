@@ -30,6 +30,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Service
 @RequiredArgsConstructor
 public class WorkflowService {
+    private static final String HISTORICAL_DELETED_DEFINITION_KEY = "historical-deleted-definition";
+    private static final String HISTORICAL_DELETED_DEFINITION_NAME = "历史已删除流程定义";
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final RepositoryService repositoryService;
@@ -454,14 +456,68 @@ public class WorkflowService {
      * Get stats for all process definitions
      */
     public List<ProcessStatsVO> getAllProcessStats() {
-        return repositoryService.createProcessDefinitionQuery().latestVersion().list().stream()
-            .map(def -> {
-                ProcessStatsVO stats = getProcessStats(def.getKey());
-                stats.setName(def.getName());
-                stats.setVersion(def.getVersion());
-                stats.setProcessDefinitionId(def.getId());
-                return stats;
-            }).toList();
+        Map<String, org.flowable.engine.repository.ProcessDefinition> definitionsByKey =
+            repositoryService.createProcessDefinitionQuery().latestVersion().list().stream()
+                .collect(Collectors.toMap(
+                    org.flowable.engine.repository.ProcessDefinition::getKey,
+                    definition -> definition,
+                    (first, ignored) -> first,
+                    LinkedHashMap::new));
+
+        List<HistoricProcessInstance> historicInstances = historyService.createHistoricProcessInstanceQuery().list();
+        Map<String, HistoricProcessInstance> historyByKey = historicInstances.stream()
+            .filter(instance -> instance.getProcessDefinitionKey() != null)
+            .collect(Collectors.toMap(
+                HistoricProcessInstance::getProcessDefinitionKey,
+                instance -> instance,
+                (first, ignored) -> first,
+                LinkedHashMap::new));
+
+        runtimeService.createProcessInstanceQuery().list().stream()
+            .map(ProcessInstance::getProcessDefinitionKey)
+            .filter(Objects::nonNull)
+            .forEach(key -> historyByKey.putIfAbsent(key, null));
+
+        LinkedHashSet<String> keys = new LinkedHashSet<>(definitionsByKey.keySet());
+        keys.addAll(historyByKey.keySet());
+
+        List<ProcessStatsVO> stats = keys.stream().map(key -> {
+            ProcessStatsVO processStats = getProcessStats(key);
+            var definition = definitionsByKey.get(key);
+            if (definition != null) {
+                processStats.setName(definition.getName());
+                processStats.setVersion(definition.getVersion());
+                processStats.setProcessDefinitionId(definition.getId());
+            } else {
+                HistoricProcessInstance historicInstance = historyByKey.get(key);
+                processStats.setName(historicInstance != null && historicInstance.getProcessDefinitionName() != null
+                    ? historicInstance.getProcessDefinitionName() : key);
+                processStats.setVersion(historicInstance != null ? historicInstance.getProcessDefinitionVersion() : null);
+                processStats.setProcessDefinitionId(historicInstance != null ? historicInstance.getProcessDefinitionId() : null);
+            }
+            return processStats;
+        }).toList();
+
+        List<HistoricProcessInstance> unresolvedHistory = historicInstances.stream()
+            .filter(instance -> instance.getProcessDefinitionKey() == null)
+            .toList();
+        if (unresolvedHistory.isEmpty()) return stats;
+
+        ProcessStatsVO historicalStats = new ProcessStatsVO();
+        historicalStats.setProcessDefinitionKey(HISTORICAL_DELETED_DEFINITION_KEY);
+        historicalStats.setName(HISTORICAL_DELETED_DEFINITION_NAME);
+        historicalStats.setTotalStarted(unresolvedHistory.size());
+        historicalStats.setFinishedCount((int) unresolvedHistory.stream()
+            .filter(instance -> instance.getEndTime() != null).count());
+        historicalStats.setRunningCount(0);
+        historicalStats.setSuccessRate(historicalStats.getFinishedCount() * 100.0 / historicalStats.getTotalStarted());
+        historicalStats.setAvgDurationSeconds(unresolvedHistory.stream()
+            .filter(instance -> instance.getDurationInMillis() != null)
+            .mapToLong(HistoricProcessInstance::getDurationInMillis)
+            .average().orElse(0) / 1000.0);
+        List<ProcessStatsVO> result = new ArrayList<>(stats);
+        result.add(historicalStats);
+        return result;
     }
 
     // ========== Generic Process Instance Management ==========
