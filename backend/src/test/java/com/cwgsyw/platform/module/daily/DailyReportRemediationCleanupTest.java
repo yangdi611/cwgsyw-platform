@@ -97,6 +97,33 @@ class DailyReportRemediationCleanupTest {
         verify(auditLogMapper).insert(any(AuditLog.class));
     }
 
+    @Test
+    void purgeRemediationReport_cleansApprovedLegacyFqaMarkerWithMatchingTimestamp() {
+        DailyReport report = report("FQA_MEMBER_DAILY_20260716_2300 completed");
+        report.setStatus("APPROVED");
+        when(reportMapper.selectById(8L)).thenReturn(report);
+        when(notificationMapper.selectList(any())).thenReturn(List.of());
+        when(workflowBusinessInstanceMapper.selectList(any())).thenReturn(List.of());
+
+        service.purgeRemediationReport(8L, "default", 1L, "platform", "FQA_20260716_2300_lintfix");
+
+        verify(reportMapper).deleteById(8L);
+        verify(auditLogMapper).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void purgeRemediationReport_rejectsLegacyFqaMarkerWithDifferentTimestamp() {
+        DailyReport report = report("FQA_MEMBER_DAILY_20260716_2300 completed");
+        when(reportMapper.selectById(8L)).thenReturn(report);
+
+        assertThatThrownBy(() -> service.purgeRemediationReport(
+            8L, "default", 1L, "platform", "FQA_20260717_0000_lintfix"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("仅允许清理内容带 remediationRunId 的测试日报");
+
+        verify(reportMapper, never()).deleteById(any(Long.class));
+    }
+
     private DailyReport report(String completedItems) {
         DailyReport report = new DailyReport();
         report.setTenantId("default");

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T23:25:00+08:00",
+  "updatedAt": "2026-07-17T00:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4_REVALIDATION",
-  "activeEvent": "REM-P2-017",
-  "activeBranch": "codex/rem-p2-017-isolated-external-validation-fixtures",
-  "activeRunId": "FQA_20260716_191500_lintfix",
-  "lastCompletedGate": "REM-P2-017_L1_L3_RUNTIME_REVALIDATION",
+  "activeEvent": "REM-P1-031",
+  "activeBranch": "codex/rem-p1-031-approved-daily-report-cleanup",
+  "activeRunId": "REM_P1_031_20260717_000000",
+  "lastCompletedGate": "REM-P1-031_L1_L3_RUNTIME_REVALIDATION",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit REM-P2-017 and no-ff merge it into lint-fix, then recreate or advance the independent L4 branch from the merge head and execute the complete final matrix.",
+  "nextAction": "Implement and verify the narrowly scoped approved daily-report remediation cleanup, then no-ff merge it into lint-fix and resume L4 from a new integration baseline.",
   "statusCounts": {
-    "total": 48,
+    "total": 49,
     "closed": 4,
-    "verified": 44,
+    "verified": 45,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,

@@ -29,6 +29,8 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -243,9 +245,21 @@ public class DailyReportService {
     }
 
     private boolean containsRunId(DailyReport report, String remediationRunId) {
-        return java.util.stream.Stream.of(report.getCompletedItems(), report.getIssues(), report.getTomorrowPlan())
+        List<String> content = java.util.stream.Stream.of(
+                report.getCompletedItems(), report.getIssues(), report.getTomorrowPlan())
             .filter(Objects::nonNull)
-            .anyMatch(value -> value.contains(remediationRunId));
+            .toList();
+        if (content.stream().anyMatch(value -> value.contains(remediationRunId))) {
+            return true;
+        }
+        Matcher runIdTimestamp = Pattern.compile("^FQA_(\\d{8}_\\d{4})(?:_|$)")
+            .matcher(remediationRunId);
+        if (!runIdTimestamp.find()) {
+            return false;
+        }
+        Pattern legacyMarker = Pattern.compile("\\bFQA_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_"
+            + Pattern.quote(runIdTimestamp.group(1)) + "\\b");
+        return content.stream().anyMatch(value -> legacyMarker.matcher(value).find());
     }
 
     private DailyReport getAndCheckOwner(Long id, Long userId) {
