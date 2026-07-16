@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-005` |
 | 优先级 | P2 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `MEDIUM` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -34,4 +34,4 @@
 - 不新增导出格式
 - 不处理附件存储回收
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：当前页面导出使用单页端点并下载中文页面名 Markdown；空间导出保持 ZIP。无业务数据写入，等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
