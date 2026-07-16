@@ -32,19 +32,24 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
                    #{maxDepth}::int AS p_max_depth
         ),
         topo AS (
-            SELECT r.id, r.src_id, r.dst_id, r.def_id, 0 AS depth
+            SELECT r.id, r.src_id, r.dst_id, r.def_id, 0 AS depth,
+                   CASE WHEN r.src_id = p.p_root_id THEN r.dst_id ELSE r.src_id END AS current_id,
+                   ARRAY[p.p_root_id, CASE WHEN r.src_id = p.p_root_id THEN r.dst_id ELSE r.src_id END] AS visited_ids
             FROM ci_instance_rel r, params p
             WHERE (r.src_id = p.p_root_id OR r.dst_id = p.p_root_id)
               AND NOT r.is_deleted
               AND r.tenant_id = p.p_tenant_id
             UNION ALL
-            SELECT r.id, r.src_id, r.dst_id, r.def_id, t.depth + 1
+            SELECT r.id, r.src_id, r.dst_id, r.def_id, t.depth + 1,
+                   CASE WHEN r.src_id = t.current_id THEN r.dst_id ELSE r.src_id END AS current_id,
+                   t.visited_ids || CASE WHEN r.src_id = t.current_id THEN r.dst_id ELSE r.src_id END AS visited_ids
             FROM ci_instance_rel r
-            INNER JOIN topo t ON (r.src_id = t.dst_id OR r.dst_id = t.src_id)
+            INNER JOIN topo t ON (r.src_id = t.current_id OR r.dst_id = t.current_id)
             INNER JOIN params p ON true
             WHERE t.depth < p.p_max_depth
               AND NOT r.is_deleted
               AND r.tenant_id = p.p_tenant_id
+              AND NOT (CASE WHEN r.src_id = t.current_id THEN r.dst_id ELSE r.src_id END = ANY(t.visited_ids))
         )
         SELECT DISTINCT id, src_id AS srcInstanceId, dst_id AS dstInstanceId, def_id AS defId
         FROM topo
@@ -114,4 +119,3 @@ public interface CiInstanceRelMapper extends BaseMapper<CiInstanceRel> {
     List<com.cwgsyw.platform.module.cmdb.dto.rack.RackMemberRow> findRackMembers(
             @Param("rackId") Long rackId, @Param("tenantId") String tenantId);
 }
-

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T02:52:00+08:00",
+  "updatedAt": "2026-07-17T04:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -18,16 +18,16 @@
   },
   "phase": "FINAL_L4_REVALIDATION",
   "activeEvent": null,
-  "activeBranch": "codex/rem-p2-024-cmdb-impact-return-route",
+  "activeBranch": "codex/rem-p2-025-cmdb-topology-cycle-safety",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-024_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM-P2-025_L1_L3_VERIFIED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit and no-ff merge REM-P2-024 into lint-fix, then recreate final L4 from the merge head and resume CMDB-039.",
+  "nextAction": "Commit and no-ff merge REM-P2-025 into lint-fix, then recreate final L4 from the merge head and resume CMDB-029.",
   "statusCounts": {
-    "total": 57,
+    "total": 58,
     "closed": 4,
-    "verified": 53,
+    "verified": 54,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -93,7 +93,8 @@
       "REM-P2-021",
       "REM-P2-022",
       "REM-P2-023",
-      "REM-P2-024"
+      "REM-P2-024",
+      "REM-P2-025"
     ],
     "verifying": [],
     "inProgress": [],
@@ -289,6 +290,9 @@
     },
     "REM-P2-017": {
       "eventCommit": "823157d3b9c9f1c4eba0b9e3fa8ac7a8ce460d52"
+    },
+    "REM-P2-025": {
+      "eventCommit": "776b4fc35d4d4955dc682e4d622ae93421a02d3f"
     }
   },
   "l4": {
@@ -345,5 +349,6 @@
     "REM-P2-014 L1-L3 passed: existing manage-only DELETE now has a real page entry with confirmation and cancel semantics. Current-branch frontend container and authenticated browser verification passed; unauthenticated delete is 403, deleted/repeated reads are stable 400, audit readback is present, Console and failed requests are zero, and the one runId rule was product-UI deleted with zero residue. Event commit and no-ff merge are pending before L4.",
     "REM-P2-015 L1-L3 passed: user-approved addendum creates a notification-ID-only, permission-aware resolver. Valid Wiki navigation, uniform unavailable states, unauthenticated 403, unchanged notification read state/count, current-branch API/UI and zero Console/target request failures passed. No test data was created; event commit and no-ff merge are pending before L4.",
     "REM-P2-016 L1-L3 passed: typed Prometheus config endpoint restores the existing frontend save contract; success/readback, invalid URL and interval 400, anonymous 403, current-branch backend rebuild and restoration of original values passed. Maven test compilation remains blocked only by four pre-existing unrelated test sources. Event commit is pending before no-ff merge and final L4 resumption."
+    ,"REM-P2-025 L1-L3 passed: topology traversal tracks visited instance paths, so #20 depth 1/2 and compare return HTTP 200. Current-branch backend container and authenticated Playwright graph page both passed with zero Console errors; no test data was created. Event commit is pending before no-ff merge and L4 CMDB-029 resumption."
   ]
 }
