@@ -36,12 +36,13 @@ export default function WikiSpaceHomePage() {
   const sid = Number(spaceId)
 
   const { data: spaces, isError: spaceError } = useQuery({ queryKey: ['wiki-spaces'], queryFn: wikiApi.listSpaces })
+  const space = spaces?.find((item) => item.id === sid)
   const { data: tree, isError: treeError } = useQuery<WikiPageTree[]>({
     queryKey: ['wiki-tree', sid],
     queryFn: () => wikiApi.getTree(sid),
+    enabled: Boolean(space),
   })
 
-  const space = spaces?.find((s) => s.id === sid)
   const pages = useMemo(() => flatten(tree ?? []), [tree])
 
   useBreadcrumbLabel(space?.name)
