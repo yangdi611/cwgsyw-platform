@@ -31,6 +31,7 @@ import {
   ChevronUp,
   ChevronDown,
   Shield,
+  Search,
 } from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
@@ -294,12 +295,18 @@ export default function WikiSpacesPage() {
         title="知识空间"
         subtitle="按团队或主题组织知识空间，集中沉淀运维文档、规范与排障经验。"
         actions={
-          canCreate && (
-            <Button variant="primary" onClick={openCreate}>
-              <Plus className="h-4 w-4" />
-              新建空间
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => router.push('/wiki/search')}>
+              <Search className="h-4 w-4" />
+              搜索知识库
             </Button>
-          )
+            {canCreate && (
+              <Button variant="primary" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                新建空间
+              </Button>
+            )}
+          </div>
         }
       />
 

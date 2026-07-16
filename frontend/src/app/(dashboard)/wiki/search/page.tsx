@@ -10,33 +10,40 @@ import { PageHeader, EmptyState, Pagination } from '@/components/shared'
 import { Search, FileText } from 'lucide-react'
 import type { WikiSearchResult } from '@/types/wiki'
 
-function SearchResults({ urlKeyword }: { urlKeyword: string }) {
+function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: number }) {
   const router = useRouter()
   const [keyword, setKeyword] = useState(urlKeyword)
   const [debouncedKw, setDebouncedKw] = useState(urlKeyword)
-  const [page, setPage] = useState(1)
-  const lastWrittenKeyword = useRef(urlKeyword)
+  const [page, setPage] = useState(urlPage)
+  const lastUrl = useRef({ keyword: urlKeyword, page: urlPage })
   const pageSize = 20
 
   useEffect(() => {
-    if (urlKeyword === lastWrittenKeyword.current) return
-    lastWrittenKeyword.current = urlKeyword
-    // Browser back/forward is an external URL state change that must update the controlled input.
+    if (urlKeyword === lastUrl.current.keyword && urlPage === lastUrl.current.page) return
+    lastUrl.current = { keyword: urlKeyword, page: urlPage }
     setKeyword(urlKeyword)
     setDebouncedKw(urlKeyword)
-    setPage(1)
-  }, [urlKeyword])
+    setPage(urlPage)
+  }, [urlKeyword, urlPage])
+
+  const pushSearchUrl = useCallback((nextKeyword: string, nextPage: number) => {
+    const params = new URLSearchParams()
+    if (nextKeyword) params.set('keyword', nextKeyword)
+    if (nextKeyword && nextPage > 1) params.set('page', String(nextPage))
+    const nextUrl = params.size ? `/wiki/search?${params.toString()}` : '/wiki/search'
+    lastUrl.current = { keyword: nextKeyword, page: nextPage }
+    router.push(nextUrl, { scroll: false })
+  }, [router])
 
   // Debounce typed input
   useEffect(() => {
     const t = setTimeout(() => {
+      if (keyword === urlKeyword) return
       setDebouncedKw(keyword)
-      lastWrittenKeyword.current = keyword
-      const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-      router.replace(`/wiki/search${query}`, { scroll: false })
+      pushSearchUrl(keyword, 1)
     }, 400)
     return () => clearTimeout(t)
-  }, [keyword, router])
+  }, [keyword, pushSearchUrl, urlKeyword])
 
   const { data, isLoading } = useQuery({
     queryKey: ['wiki-search', debouncedKw, page],
@@ -48,6 +55,11 @@ function SearchResults({ urlKeyword }: { urlKeyword: string }) {
     setKeyword(nextKeyword)
     setPage(1)
   }, [])
+
+  const handlePageChange = useCallback((nextPage: number) => {
+    setPage(nextPage)
+    pushSearchUrl(debouncedKw, nextPage)
+  }, [debouncedKw, pushSearchUrl])
 
   const records: WikiSearchResult[] = data?.records ?? []
   const total = data?.total ?? 0
@@ -61,6 +73,7 @@ function SearchResults({ urlKeyword }: { urlKeyword: string }) {
         <Input
           className="pl-9"
           placeholder="搜索知识库…"
+          autoFocus
           value={keyword}
           onChange={(e) => handleSearch(e.target.value)}
         />
@@ -104,7 +117,7 @@ function SearchResults({ urlKeyword }: { urlKeyword: string }) {
               </Card>
             ))}
           </div>
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={handlePageChange} />
         </>
       )}
     </div>
@@ -114,8 +127,10 @@ function SearchResults({ urlKeyword }: { urlKeyword: string }) {
 function WikiSearchContent() {
   const searchParams = useSearchParams()
   const urlKeyword = searchParams.get('keyword') ?? ''
+  const parsedPage = Number(searchParams.get('page') ?? '1')
+  const urlPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
 
-  return <SearchResults urlKeyword={urlKeyword} />
+  return <SearchResults urlKeyword={urlKeyword} urlPage={urlPage} />
 }
 
 export default function WikiSearchPage() {

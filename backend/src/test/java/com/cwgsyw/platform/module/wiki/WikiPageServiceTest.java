@@ -16,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
@@ -70,6 +71,29 @@ class WikiPageServiceTest {
         p.setCurrentVersion(1);
         p.setIsDeleted(false);
         return p;
+    }
+
+    @Test
+    void search_enforcedAccessFiltersBeforePaginating() {
+        SecurityUser reader = user(5L, "platform", Set.of("wiki:read"));
+        when(authorizationService.isEnforced(reader, "wiki")).thenReturn(true);
+        when(pageMapper.search("default", "query", Integer.MAX_VALUE, 0)).thenReturn(List.of(
+            searchRow(1L), searchRow(2L), searchRow(3L)));
+        when(authorizationService.decide(reader, "wiki:read", "wiki_page", 1L, 4))
+            .thenReturn(com.cwgsyw.platform.module.authorization.AuthorizationDecision.builder().allowed(false).build());
+        when(authorizationService.decide(reader, "wiki:read", "wiki_page", 2L, 4))
+            .thenReturn(com.cwgsyw.platform.module.authorization.AuthorizationDecision.builder().allowed(true).build());
+        when(authorizationService.decide(reader, "wiki:read", "wiki_page", 3L, 4))
+            .thenReturn(com.cwgsyw.platform.module.authorization.AuthorizationDecision.builder().allowed(true).build());
+
+        var result = service.search("default", "query", null, 2, 1, reader);
+
+        assertThat(result.getTotal()).isEqualTo(2);
+        assertThat(result.getRecords()).extracting("pageId").containsExactly(3L);
+    }
+
+    private Map<String, Object> searchRow(Long id) {
+        return Map.of("id", id, "space_id", 10L, "title", "page-" + id, "highlight", "query");
     }
 
     // ── OR 叠加：空间未授权但页面级 ACL 单独授予 write 时应成功（SPEC 12.1） ──
