@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T18:14:00+08:00",
+  "updatedAt": "2026-07-16T18:30:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": "REM-P2-012",
+  "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-011_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-012",
-  "nextBranch": "codex/rem-p2-012-temporal-numeric-validation",
-  "nextAction": "Create REM-P2-012 from lint-fix, complete L1-L3 runtime revalidation, then commit and no-ff merge its evidence.",
+  "lastCompletedGate": "REM-P2-012_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-013",
+  "nextBranch": "codex/rem-p2-013-workflow-read-model-schema",
+  "nextAction": "Create REM-P2-013 from the updated lint-fix integration branch and complete its L1-L3 runtime revalidation.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 38,
+    "verified": 39,
     "verifying": 0,
-    "notStarted": 3,
+    "notStarted": 2,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -77,12 +77,12 @@
       "REM-P2-008",
       "REM-P2-009",
       "REM-P2-010",
-      "REM-P2-011"
+      "REM-P2-011",
+      "REM-P2-012"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-012",
       "REM-P2-013",
       "REM-P2-014"
     ],
@@ -249,6 +249,10 @@
     },
     "REM-P2-011": {
       "eventCommit": "9bccf7a285e5eecfdfdfda13e6e7d4918887fa06"
+    },
+    "REM-P2-012": {
+      "eventCommit": "ba965576305d68f3e1dd3bfaea05edfea11d2588",
+      "mergeCommit": "eb2c53d79cbe59d883b4f5940468738a09802ba1"
     }
   },
   "l4": {
@@ -300,6 +304,7 @@
     "REM-P2-008 L1-L3 passed: unknown wiki links render as accessible pending status rather than raw internal tags; valid and alias links retain routes; no pending anchor or sup markup remains. Current-branch frontend container and real browser verification passed with zero Console errors. All runId spaces/pages were product-API deleted and readback as 404. Event commit is pending, then no-ff merge advances to REM-P2-009.",
     "REM-P2-009 L1-L3 passed: Wiki homepage search entry, autofocus, 400ms keyword URL history, authorization-aware page 2, back/forward restoration, direct empty state and Console=0 passed after rebuilding current-branch frontend/backend containers. Two draft-only runId spaces and 42 pages created while diagnosing pagination were product-API deleted; final verification was read-only with active runId space/page counts at zero. Event commit 59f5fb59 merged as 3d0d2eb; next event is REM-P2-010.",
     "REM-P2-010 L1-L3 passed: current runtime contains 3 system seed spaces, 49 published seed pages and 56 seed versions; restart made 0 seed updates. API/UI read-only protections, reversible personal order persistence and Console=0 passed without product test data. Event commit ead2ad5 is merged with this checkpoint advance; next event is REM-P2-011.",
-    "REM-P2-011 L1-L3 passed: notification references resolve through existing protected detail reads before navigation; Wiki and ops task real routes passed, while deleted/unknown targets remain neutral and non-enumerating. No notification state, authorization, delivery or product object changed. Event commit 9bccf7a is merged with this checkpoint advance; next event is REM-P2-012."
+    "REM-P2-011 L1-L3 passed: notification references resolve through existing protected detail reads before navigation; Wiki and ops task real routes passed, while deleted/unknown targets remain neutral and non-enumerating. No notification state, authorization, delivery or product object changed. Event commit 9bccf7a is merged with this checkpoint advance; next event is REM-P2-012.",
+    "REM-P2-012 L1-L3 passed: shared temporal validation returns HTTP/body 400 for reversed ranges, malformed dates and invalid months; daily date/work-hours inputs are bounded; stats page blocks reversed ranges and recovers cleanly. Current-branch API/UI runtime verification created no data. Event commit ba965576 is merged with this checkpoint advance; next event is REM-P2-013."
   ]
 }

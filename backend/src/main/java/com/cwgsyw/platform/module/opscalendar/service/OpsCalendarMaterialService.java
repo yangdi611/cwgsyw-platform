@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.module.opscalendar.dto.ReportMaterialVO;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTaskLink;
@@ -34,8 +35,7 @@ public class OpsCalendarMaterialService {
 
     public ReportMaterialVO collect(String tenantId, String periodType, LocalDate startDate,
                                     LocalDate endDate, Long groupId) {
-        if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate 必填");
-        if (startDate.isAfter(endDate)) throw new IllegalArgumentException("startDate 不能晚于 endDate");
+        TemporalInputValidator.requireOrderedDateRange(startDate, endDate, "startDate", "endDate");
 
         LambdaQueryWrapper<OpsScheduleTask> qw = new LambdaQueryWrapper<OpsScheduleTask>()
                 .eq(OpsScheduleTask::getTenantId, tenantId)

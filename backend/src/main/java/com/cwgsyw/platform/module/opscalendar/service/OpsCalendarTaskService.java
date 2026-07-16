@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
 import com.cwgsyw.platform.module.opscalendar.mapper.*;
@@ -154,7 +155,7 @@ public class OpsCalendarTaskService {
     public List<TaskVO> listTasks(SecurityUser user, LocalDate startDate, LocalDate endDate,
                                   String requestedScope, String taskType, String status,
                                   Long assigneeId, Long groupId) {
-        if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate 必填");
+        TemporalInputValidator.requireOrderedDateRange(startDate, endDate, "startDate", "endDate");
         if (startDate.plusDays(120).isBefore(endDate)) throw new IllegalArgumentException("查询跨度不能超过 120 天");
 
         String scope = visibilityService.resolveScope(user, requestedScope);

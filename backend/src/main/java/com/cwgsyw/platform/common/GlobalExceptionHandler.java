@@ -8,6 +8,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
 import com.cwgsyw.platform.module.org.GroupLifecycleException;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleErrorResponse;
@@ -100,6 +102,12 @@ public class GlobalExceptionHandler {
             .map(FieldError::getDefaultMessage)
             .collect(Collectors.joining("; "));
         return R.fail(400, msg);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R<Void> handleInputConversion(Exception ex) {
+        return R.fail(400, "参数格式错误");
     }
 
     @ExceptionHandler(AccessDeniedException.class)

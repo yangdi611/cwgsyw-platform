@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,15 @@ class OpsCalendarRosterHistoricalGroupTest {
             .containsExactly(true, false);
         verify(groupMapper).findIncludingDeletedByIds("default", Set.of(15L));
         verify(groupMapper).selectBatchIds(Set.of(16L));
+    }
+
+    @Test
+    void list_rejectsReversedDateRangeBeforeQuery() {
+        assertThatIllegalArgumentException().isThrownBy(() -> service.list("default",
+                LocalDate.of(2026, 7, 31), LocalDate.of(2026, 7, 1), null))
+            .withMessage("from不能晚于to");
+
+        org.mockito.Mockito.verifyNoInteractions(rosterMapper);
     }
 
     private OpsDutyRoster roster(Long id, LocalDate dutyDate, Long groupId) {

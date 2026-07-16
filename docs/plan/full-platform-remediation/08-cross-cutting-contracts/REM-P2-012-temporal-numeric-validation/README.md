@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P2-012` |
 | 优先级 | P2 |
 | 领域 | `08-cross-cutting-contracts` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `MEDIUM` |
-| 负责人 | 待实施时认领 |
+| 分支 | `codex/rem-p2-012-temporal-numeric-validation` |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -36,4 +36,4 @@
 - 不修改报表内容
 - 不执行不可清理状态写入
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：统一日期范围/月输入校验、Spring 转换错误 400、日报日期/工时边界和统计页错误/重试均已在当前分支容器运行时复验；所有请求均只读，测试数据残留为零。等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
