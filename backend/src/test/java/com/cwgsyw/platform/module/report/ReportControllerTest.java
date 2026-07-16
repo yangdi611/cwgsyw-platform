@@ -36,6 +36,10 @@ class ReportControllerTest {
         var result = controller.export("2026-07-01", "2026-07-31", null, user);
 
         assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(result.getHeaders().getContentDisposition().getFilename())
+                .isEqualTo("日报汇总_2026-07-01_2026-07-31.xlsx");
+        assertThat(result.getHeaders().getContentDisposition().getCharset())
+                .isEqualTo(java.nio.charset.StandardCharsets.UTF_8);
         verify(reportExportService).exportExcel("default", "2026-07-01", "2026-07-31", 12L);
         ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogMapper).insert(audit.capture());
