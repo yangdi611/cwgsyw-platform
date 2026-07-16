@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T10:45:00+08:00",
+  "updatedAt": "2026-07-17T13:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-026_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM-P2-027_L1_L3_VERIFIED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit and no-ff merge REM-P2-026 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-001.",
+  "nextAction": "Commit and no-ff merge REM-P2-027 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-002.",
   "statusCounts": {
-    "total": 59,
+    "total": 60,
     "closed": 4,
-    "verified": 55,
+    "verified": 56,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -95,7 +95,8 @@
       "REM-P2-023",
       "REM-P2-024",
       "REM-P2-025",
-      "REM-P2-026"
+      "REM-P2-026",
+      "REM-P2-027"
     ],
     "verifying": [],
     "inProgress": [],
@@ -298,6 +299,9 @@
     "REM-P2-026": {
       "eventCommit": "05cfbef2694fc7661f3fffc5199f55e0e21a8ac5",
       "mergeCommit": "32c607210e84fb486ff242b044160076bbb0a60e"
+    },
+    "REM-P2-027": {
+      "eventCommit": "f08f92cce97b799804f0fdd8ac167a49af039a39"
     }
   },
   "l4": {
@@ -356,5 +360,6 @@
     "REM-P2-016 L1-L3 passed: typed Prometheus config endpoint restores the existing frontend save contract; success/readback, invalid URL and interval 400, anonymous 403, current-branch backend rebuild and restoration of original values passed. Maven test compilation remains blocked only by four pre-existing unrelated test sources. Event commit is pending before no-ff merge and final L4 resumption."
     ,"REM-P2-025 L1-L3 passed: topology traversal tracks visited instance paths, so #20 depth 1/2 and compare return HTTP 200. Current-branch backend container and authenticated Playwright graph page both passed with zero Console errors; no test data was created. Event commit is pending before no-ff merge and L4 CMDB-029 resumption."
     ,"REM-P2-026 L1-L3 passed: change-document list now returns tenant-scoped PageResult records/total/page/size with status and title/changeNo keyword filters. Current-branch backend/frontend containers passed authenticated API and Playwright search, status, pagination and detail-drawer checks with zero Console errors. Nineteen runId drafts were deleted through product DELETE and keyword readback found zero residue. Event commit 05cfbef2 merged as 32c60721; recreate final L4 from the merge head and resume CHANGE-001."
+    ,"REM-P2-027 L1-L3 passed: the create DTO accepts UI ciSnapshots and ChangeDocService delegates same-transaction link persistence to tenant-validating ChangeDocLinkService. Current-branch API verified empty CI compatibility and invalid CI HTTP 400 with zero residue; rebuilt containers and Playwright verified CI #32 links to a new draft. Drafts #199/#200 were product-DELETE cleaned. Event commit f08f92cc is being no-ff merged before L4 CHANGE-002 resumption."
   ]
 }
