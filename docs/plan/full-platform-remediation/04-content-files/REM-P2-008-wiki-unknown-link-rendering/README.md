@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-008` |
 | 优先级 | P2 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `LOW` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -34,4 +34,4 @@
 - 不自动创建缺失页面
 - 不泄露无权目标信息
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：未知链接以可访问“待创建”状态提示呈现，不出现原始 `<sup>` 文本或节点；有效和别名内部链接路由保持正确，外部/普通链接不受影响。当前事件前端容器已重建，真实浏览器验证零 Console error；runId 空间和页面已经产品 API 精确清理。等待最终 L4 全量复验。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

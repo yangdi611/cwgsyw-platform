@@ -45,6 +45,18 @@ export function createWikiMarkdownComponents(
   } = options
 
   return {
+    a: ({ href, children, ...props }) => {
+      if (href === '#wiki-pending-link') {
+        return (
+          <span className="inline-flex items-center gap-1" role="status" aria-label="该页面尚未创建">
+            <code>{children}</code>
+            <span className="text-xs text-v2-muted" title="该页面尚未创建">待创建</span>
+          </span>
+        )
+      }
+
+      return <a href={href} {...props}>{children}</a>
+    },
     img: ({ src, alt }) => (
       <WikiImage
         src={typeof src === 'string' ? src : undefined}
