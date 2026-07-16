@@ -83,7 +83,7 @@ export default function WorkflowStatsPage() {
                 <div>
                   <h2 className="text-lg font-bold text-v2-fg">{s.name}</h2>
                   <p className="font-v2-mono text-sm text-v2-muted">
-                    {s.processDefinitionKey} · v{s.version}
+                    {s.processDefinitionKey}{s.version != null ? ` · v${s.version}` : ''}
                   </p>
                 </div>
                 <StatusBadge status={rateVariant(s.successRate)}>

@@ -4,12 +4,14 @@ import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.StartProcessRequest;
+import com.cwgsyw.platform.module.workflow.dto.ProcessStatsVO;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -20,8 +22,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -108,5 +112,32 @@ class WorkflowServiceLifecycleTest {
             .isEqualTo("WORKFLOW_INSTANCE_NOT_FOUND");
 
         verify(runtimeService, never()).deleteProcessInstance(anyString(), anyString());
+    }
+
+    @Test
+    void allStatsIncludesHistoricalInstancesWhoseDefinitionsWereDeleted() {
+        HistoricProcessInstance historical = org.mockito.Mockito.mock(HistoricProcessInstance.class);
+        when(definition.getKey()).thenReturn("active");
+        when(definition.getName()).thenReturn("Active definition");
+        when(definition.getVersion()).thenReturn(2);
+        when(definition.getId()).thenReturn("active:2:1");
+        when(repositoryService.createProcessDefinitionQuery().latestVersion().list()).thenReturn(List.of(definition));
+        when(historyService.createHistoricProcessInstanceQuery().list()).thenReturn(List.of(historical));
+        when(historical.getProcessDefinitionKey()).thenReturn(null);
+        when(historical.getDurationInMillis()).thenReturn(1_000L);
+        when(runtimeService.createProcessInstanceQuery().list()).thenReturn(List.of());
+        when(runtimeService.createProcessInstanceQuery().processDefinitionKey("active").count()).thenReturn(0L);
+        when(historyService.createHistoricProcessInstanceQuery().processDefinitionKey("active").finished().count()).thenReturn(0L);
+
+        List<ProcessStatsVO> stats = service.getAllProcessStats();
+
+        assertThat(stats).extracting(ProcessStatsVO::getProcessDefinitionKey)
+            .containsExactly("active", "historical-deleted-definition");
+        ProcessStatsVO deleted = stats.stream()
+            .filter(stat -> stat.getProcessDefinitionKey().equals("historical-deleted-definition"))
+            .findFirst().orElseThrow();
+        assertThat(deleted.getFinishedCount()).isEqualTo(1);
+        assertThat(deleted.getTotalStarted()).isEqualTo(1);
+        assertThat(deleted.getName()).isEqualTo("历史已删除流程定义");
     }
 }

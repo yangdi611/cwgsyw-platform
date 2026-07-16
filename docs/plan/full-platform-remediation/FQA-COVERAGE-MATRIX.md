@@ -47,6 +47,7 @@
 | `BUG-FQA-036` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `VERIFIED` | L1-L3 typed camelCase activities/stats API/UI、零残留通过；待 L4 |
 | `BUG-FQA-037` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-038` | P2 | [`REM-P2-005`：Wiki 当前页面导出合同](./04-content-files/REM-P2-005-wiki-page-export-contract/README.md) | `VERIFIED` | L4 发现含附件单页导出退化 ZIP；已修复为始终 Markdown，页面/空间导出当前分支 L3 通过，待重新 L4。 |
+| `BUG-FQA-107` | P2 | [`REM-P2-020`：Workflow 统计与实例聚合一致性](./05-workflow-change/REM-P2-020-workflow-stats-instance-aggregation/README.md) | `VERIFIED` | L4 发现统计遗漏已删除定义实例；当前/历史汇总、API/UI `4/4/0` 对账通过，待重新 L4。 |
 | `BUG-FQA-039` | P2 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `VERIFIED` | L1-L3 中文“应用”模板单次编码、200、UTF-8 文件名和零 Console error 通过；待 L4 |
 | `BUG-FQA-040` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 action/operatorId/keyword 筛选 API/UI 通过；待 L4 |
 | `BUG-FQA-041` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 release/reuse API and cleanup passed; awaiting L4 |
