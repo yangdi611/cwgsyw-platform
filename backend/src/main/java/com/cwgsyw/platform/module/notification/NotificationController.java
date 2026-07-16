@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.notification;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.notification.dto.NotificationVO;
+import com.cwgsyw.platform.module.notification.dto.NotificationTargetVO;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class NotificationController {
     private final NotificationService notificationService;
+    private final NotificationTargetResolverService notificationTargetResolverService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('notification:read')")
@@ -28,6 +30,12 @@ public class NotificationController {
     @PreAuthorize("hasAuthority('notification:read')")
     public R<Integer> unreadCount(@AuthenticationPrincipal SecurityUser user) {
         return R.ok(notificationService.countUnread(user.getUserId()));
+    }
+
+    @GetMapping("/{id}/target")
+    @PreAuthorize("hasAuthority('notification:read')")
+    public R<NotificationTargetVO> target(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(notificationTargetResolverService.resolve(id, user));
     }
 
     @PostMapping("/{id}/read")

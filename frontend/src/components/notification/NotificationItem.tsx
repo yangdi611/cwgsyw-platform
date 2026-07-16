@@ -27,14 +27,13 @@ const NOTIFICATION_REFERENCE_TYPES = new Set([
   'ops_task',
 ])
 
-export function getNotificationTargetHref(refType: string | null, refId: number | null): string | null {
-  if (!refType || !refId) return null
-  if (!NOTIFICATION_REFERENCE_TYPES.has(refType)) return null
-  return `/notifications/targets/${refType}/${refId}`
+export function getNotificationTargetHref(notificationId: number, refType: string | null, refId: number | null): string | null {
+  if (!refType || !refId || !NOTIFICATION_REFERENCE_TYPES.has(refType)) return null
+  return `/notifications/targets/resolve/${notificationId}`
 }
 
 export function NotificationItem({ notification: n, onMarkRead }: NotificationItemProps) {
-  const href = getNotificationTargetHref(n.refType, n.refId)
+  const href = getNotificationTargetHref(n.id, n.refType, n.refId)
 
   const inner = (
     <div
@@ -67,7 +66,7 @@ export function NotificationItem({ notification: n, onMarkRead }: NotificationIt
   )
 
   if (href) {
-    return <Link href={href} className="block">{inner}</Link>
+    return <Link href={href} prefetch={false} className="block">{inner}</Link>
   }
   return inner
 }
