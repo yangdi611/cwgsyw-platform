@@ -19,22 +19,22 @@ interface NotificationItemProps {
   onMarkRead: (id: number) => void
 }
 
-function getHref(refType: string | null, refId: number | null): string | null {
+const NOTIFICATION_REFERENCE_TYPES = new Set([
+  'change_doc',
+  'daily_report',
+  'ci_instance',
+  'wiki_page',
+  'ops_task',
+])
+
+export function getNotificationTargetHref(refType: string | null, refId: number | null): string | null {
   if (!refType || !refId) return null
-  switch (refType) {
-    case 'change_doc':
-      return `/change-docs/${refId}`
-    case 'daily_report':
-      return `/daily/${refId}`
-    case 'ci_instance':
-      return `/cmdb/instances/${refId}`
-    default:
-      return null
-  }
+  if (!NOTIFICATION_REFERENCE_TYPES.has(refType)) return null
+  return `/notifications/targets/${refType}/${refId}`
 }
 
 export function NotificationItem({ notification: n, onMarkRead }: NotificationItemProps) {
-  const href = getHref(n.refType, n.refId)
+  const href = getNotificationTargetHref(n.refType, n.refId)
 
   const inner = (
     <div

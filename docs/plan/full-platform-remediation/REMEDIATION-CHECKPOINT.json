@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T17:52:00+08:00",
+  "updatedAt": "2026-07-16T18:10:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "3d0d2eb264589b0c55bf4610a73ed97acc63694e",
+    "observedCommit": "3d7d2b72341310e91be92a97229e15ffb128d863",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -18,18 +18,18 @@
   },
   "phase": "EVENT_REVALIDATION",
   "activeEvent": "REM-P2-011",
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P2-010_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-011",
-  "nextBranch": "codex/rem-p2-011-notification-reference-navigation",
-  "nextAction": "Create REM-P2-011 from lint-fix, complete L1-L3 runtime revalidation, then commit and no-ff merge its evidence.",
+  "activeBranch": "codex/rem-p2-011-notification-reference-navigation",
+  "activeRunId": "REM_P2_011_20260716",
+  "lastCompletedGate": "REM-P2-011_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-012",
+  "nextBranch": "codex/rem-p2-012-temporal-numeric-validation",
+  "nextAction": "Commit REM-P2-011 L1-L3 evidence, no-ff merge into lint-fix, record and verify ancestry, delete its event branch; then create REM-P2-012 from lint-fix.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 37,
+    "verified": 38,
     "verifying": 0,
-    "notStarted": 4,
+    "notStarted": 3,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -76,12 +76,12 @@
       "REM-P2-007",
       "REM-P2-008",
       "REM-P2-009",
-      "REM-P2-010"
+      "REM-P2-010",
+      "REM-P2-011"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-011",
       "REM-P2-012",
       "REM-P2-013",
       "REM-P2-014"
@@ -296,6 +296,7 @@
     "REM-P2-007 L1-L3 passed: UTF-8 filename header survives Tomcat/Nginx, XLSX contains period/summary/status/detail sections, empty range remains exportable, reversed range is 400 and unauthenticated access is 403. Current-branch backend/frontend containers and real Playwright login→management menu→materials→collect→download passed with a Chinese filename and zero Console errors. No test data was created. Event commit is pending, then no-ff merge advances to REM-P2-008.",
     "REM-P2-008 L1-L3 passed: unknown wiki links render as accessible pending status rather than raw internal tags; valid and alias links retain routes; no pending anchor or sup markup remains. Current-branch frontend container and real browser verification passed with zero Console errors. All runId spaces/pages were product-API deleted and readback as 404. Event commit is pending, then no-ff merge advances to REM-P2-009.",
     "REM-P2-009 L1-L3 passed: Wiki homepage search entry, autofocus, 400ms keyword URL history, authorization-aware page 2, back/forward restoration, direct empty state and Console=0 passed after rebuilding current-branch frontend/backend containers. Two draft-only runId spaces and 42 pages created while diagnosing pagination were product-API deleted; final verification was read-only with active runId space/page counts at zero. Event commit 59f5fb59 merged as 3d0d2eb; next event is REM-P2-010.",
-    "REM-P2-010 L1-L3 passed: current runtime contains 3 system seed spaces, 49 published seed pages and 56 seed versions; restart made 0 seed updates. API/UI read-only protections, reversible personal order persistence and Console=0 passed without product test data. Event commit ead2ad5 is merged with this checkpoint advance; next event is REM-P2-011."
+    "REM-P2-010 L1-L3 passed: current runtime contains 3 system seed spaces, 49 published seed pages and 56 seed versions; restart made 0 seed updates. API/UI read-only protections, reversible personal order persistence and Console=0 passed without product test data. Event commit ead2ad5 is merged with this checkpoint advance; next event is REM-P2-011.",
+    "REM-P2-011 L1-L3 passed: notification references resolve through existing protected detail reads before navigation; Wiki and ops task real routes passed, while deleted/unknown targets remain neutral and non-enumerating. No notification state, authorization, delivery or product object changed. Event commit is pending, then no-ff merge advances to REM-P2-012."
   ]
 }
