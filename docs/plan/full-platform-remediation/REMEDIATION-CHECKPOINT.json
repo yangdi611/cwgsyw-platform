@@ -296,7 +296,8 @@
       "eventCommit": "776b4fc35d4d4955dc682e4d622ae93421a02d3f"
     },
     "REM-P2-026": {
-      "eventCommit": "05cfbef2694fc7661f3fffc5199f55e0e21a8ac5"
+      "eventCommit": "05cfbef2694fc7661f3fffc5199f55e0e21a8ac5",
+      "mergeCommit": "32c607210e84fb486ff242b044160076bbb0a60e"
     }
   },
   "l4": {
@@ -354,6 +355,6 @@
     "REM-P2-015 L1-L3 passed: user-approved addendum creates a notification-ID-only, permission-aware resolver. Valid Wiki navigation, uniform unavailable states, unauthenticated 403, unchanged notification read state/count, current-branch API/UI and zero Console/target request failures passed. No test data was created; event commit and no-ff merge are pending before L4.",
     "REM-P2-016 L1-L3 passed: typed Prometheus config endpoint restores the existing frontend save contract; success/readback, invalid URL and interval 400, anonymous 403, current-branch backend rebuild and restoration of original values passed. Maven test compilation remains blocked only by four pre-existing unrelated test sources. Event commit is pending before no-ff merge and final L4 resumption."
     ,"REM-P2-025 L1-L3 passed: topology traversal tracks visited instance paths, so #20 depth 1/2 and compare return HTTP 200. Current-branch backend container and authenticated Playwright graph page both passed with zero Console errors; no test data was created. Event commit is pending before no-ff merge and L4 CMDB-029 resumption."
-    ,"REM-P2-026 L1-L3 passed: change-document list now returns tenant-scoped PageResult records/total/page/size with status and title/changeNo keyword filters. Current-branch backend/frontend containers passed authenticated API and Playwright search, status, pagination and detail-drawer checks with zero Console errors. Nineteen runId drafts were deleted through product DELETE and keyword readback found zero residue. Event commit 05cfbef2 is being no-ff merged; recreate final L4 from the merge head and resume CHANGE-001."
+    ,"REM-P2-026 L1-L3 passed: change-document list now returns tenant-scoped PageResult records/total/page/size with status and title/changeNo keyword filters. Current-branch backend/frontend containers passed authenticated API and Playwright search, status, pagination and detail-drawer checks with zero Console errors. Nineteen runId drafts were deleted through product DELETE and keyword readback found zero residue. Event commit 05cfbef2 merged as 32c60721; recreate final L4 from the merge head and resume CHANGE-001."
   ]
 }
