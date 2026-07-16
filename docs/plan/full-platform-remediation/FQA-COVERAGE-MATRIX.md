@@ -135,3 +135,4 @@
 | `L4-FLOW-004-001`：流程实例的 `daily_report:<id>` 业务键无详情跳转 | [`REM-P2-021`](./05-workflow-change/REM-P2-021-workflow-instance-business-navigation/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 的严格链接、非日报回退和真实 UI 已通过，待受影响 L4 重跑。 |
 | `L4-CMDB-031-001`：影响分析循环路径跨层重复节点 | [`REM-P2-022`](./03-cmdb-assets/REM-P2-022-cmdb-impact-cycle-deduplication/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 保留最短层级、边集和真实 UI 已通过，待受影响 L4 重跑。 |
 | `L4-REPORT-002-001`：日报 XLSX 导出缺少 UTF-8 Content-Disposition | [`REM-P2-023`](./07-platform-integration/REM-P2-023-daily-report-export-content-disposition/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 下载头、字节和真实浏览器文件名通过，待受影响 L4 重跑。 |
+| `L4-CMDB-039-001`：影响分析加载态返回实例使用 `_` 占位路由 | [`REM-P2-024`](./03-cmdb-assets/REM-P2-024-cmdb-impact-return-route/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支仅在 root model 就绪时呈现真实链接，L1-L3 UI 通过，待受影响 L4 重跑。 |
