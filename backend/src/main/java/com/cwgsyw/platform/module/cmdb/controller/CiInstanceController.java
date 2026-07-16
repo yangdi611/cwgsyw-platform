@@ -155,7 +155,7 @@ public class CiInstanceController {
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciChangeService.getGlobalChanges(
-                "ci_instance", null, model, startDate, endDate, operatorId, action,
+                "ci_instance", null, model, null, startDate, endDate, operatorId, action,
                 page, size, cu.getTenantId()));
     }
 

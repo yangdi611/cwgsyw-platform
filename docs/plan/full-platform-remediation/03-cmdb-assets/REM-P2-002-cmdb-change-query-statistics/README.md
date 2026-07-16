@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P2-002` |
 | 优先级 | P2 |
 | 领域 | `03-cmdb-assets` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `MEDIUM` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -37,4 +37,4 @@ Top 10 将 tenantId 错传为 modelId，变更历史忽略关键词，统计卡�
 - 不增加新的统计指标
 - 不改变默认 30 日口径之外的产品决策
 
-下一门禁：逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 告警后才可编辑。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+事件级 L1-L3 已通过；下一门禁为发布候选版全量 L4 复验。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

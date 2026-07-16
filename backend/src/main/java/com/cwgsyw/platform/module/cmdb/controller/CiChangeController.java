@@ -41,6 +41,7 @@ public class CiChangeController {
             @RequestParam(defaultValue = "ci_instance") String entityType,
             @RequestParam(required = false) Long entityId,
             @RequestParam(required = false) String modelId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) Long operatorId,
@@ -49,7 +50,7 @@ public class CiChangeController {
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciChangeService.getGlobalChanges(
-                entityType, entityId, modelId, from, to, operatorId, action,
+                entityType, entityId, modelId, keyword, from, to, operatorId, action,
                 page, size, cu.getTenantId()));
     }
 

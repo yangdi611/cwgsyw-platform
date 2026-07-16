@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T12:25:00+08:00",
+  "updatedAt": "2026-07-16T13:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -18,18 +18,18 @@
   },
   "phase": "EVENT_REVALIDATION",
   "activeEvent": "REM-P2-002",
-  "activeBranch": null,
+  "activeBranch": "codex/rem-p2-002-cmdb-change-query-statistics",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-001_L1_L3_RUNTIME_REVALIDATION",
+  "lastCompletedGate": "REM-P2-002_L1_L3_RUNTIME_REVALIDATION",
   "nextEvent": "REM-P2-002",
   "nextBranch": "codex/rem-p2-002-cmdb-change-query-statistics",
-  "nextAction": "Create the dedicated REM-P2-002 branch from lint-fix, run upstream impact for each planned symbol, then implement and revalidate its L1-L3 contract.",
+  "nextAction": "Run final event diff review, commit REM-P2-002, then merge it with --no-ff into lint-fix; advance to REM-P2-003 only in the merge checkpoint.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 28,
+    "verified": 29,
     "verifying": 0,
-    "notStarted": 13,
+    "notStarted": 12,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -67,12 +67,12 @@
       "REM-P1-028",
       "REM-P1-029",
       "REM-P1-030",
-      "REM-P2-001"
+      "REM-P2-001",
+      "REM-P2-002"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-002",
       "REM-P2-003",
       "REM-P2-004",
       "REM-P2-005",

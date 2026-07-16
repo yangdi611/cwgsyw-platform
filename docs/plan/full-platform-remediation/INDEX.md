@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=28`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=13`。
+- 事件库：45 个事件；其中 `CLOSED=4`、`VERIFIED=29`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=12`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -47,7 +47,7 @@
 | `REM-P1-029` | P1 | 运维日历任务、节假日与周期规则输入合同 | `BUG-FQA-014`、`BUG-FQA-020`、`BUG-FQA-082` | `VERIFIED` | `HIGH` | L1-L3 输入 400、合法 create/preview、API/UI 与精确清理通过；等待 L4 | [事件卡](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) / [SPEC](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-030` | P1 | 日报导出权限运行时消费者 | `BUG-FQA-094` | `VERIFIED` | `HIGH` | L1-L3 API scope/export-only/deny/audit/cleanup、真实导航与 XLSX 下载通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/README.md) / [SPEC](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-001` | P2 | 动态资源不存在与错误态收敛 | `BUG-FQA-009`、`BUG-FQA-042`、`BUG-FQA-043` | `VERIFIED` | `MEDIUM` | L1-L3 API/UI、错误态、不可枚举与精确无副作用复验通过；等待最终 L4 | [事件卡](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) / [SPEC](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/SPEC.md) / [验证](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/VERIFICATION.md) / [Prompt](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/CLAUDE-CODE-PROMPT.md) |
-| `REM-P2-002` | P2 | CMDB 变更查询与统计准确性 | `BUG-FQA-026`、`BUG-FQA-051`、`BUG-FQA-052` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) / [SPEC](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/SPEC.md) / [验证](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-002` | P2 | CMDB 变更查询与统计准确性 | `BUG-FQA-026`、`BUG-FQA-051`、`BUG-FQA-052` | `VERIFIED` | `MEDIUM` | L1-L3 Top10、关键词、同范围统计 API/UI 与无副作用复验通过；等待最终 L4 | [事件卡](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) / [SPEC](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/SPEC.md) / [验证](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-003` | P2 | Wiki 页面标题规范与同级唯一性 | `BUG-FQA-057` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-003-wiki-title-validation/README.md) / [SPEC](./04-content-files/REM-P2-003-wiki-title-validation/SPEC.md) / [验证](./04-content-files/REM-P2-003-wiki-title-validation/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-003-wiki-title-validation/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-004` | P2 | 用户主题切换与偏好持久化 | `BUG-FQA-027` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./07-platform-integration/REM-P2-004-user-theme-preference/README.md) / [SPEC](./07-platform-integration/REM-P2-004-user-theme-preference/SPEC.md) / [验证](./07-platform-integration/REM-P2-004-user-theme-preference/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-004-user-theme-preference/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-005` | P2 | Wiki 当前页面导出合同 | `BUG-FQA-038` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-005-wiki-page-export-contract/README.md) / [SPEC](./04-content-files/REM-P2-005-wiki-page-export-contract/SPEC.md) / [验证](./04-content-files/REM-P2-005-wiki-page-export-contract/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-005-wiki-page-export-contract/CLAUDE-CODE-PROMPT.md) |
@@ -74,16 +74,16 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。已标记 `VERIFIED` 的事件等待最终 L4，不重复实施；`REM-P2-001` 已通过 L1-L3，下一项为 `REM-P2-002`。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。已标记 `VERIFIED` 的事件等待最终 L4，不重复实施；`REM-P2-002` 已通过 L1-L3，下一项为 `REM-P2-003`。
 
 ## 状态统计
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 13 |
+| `NOT_STARTED` | 12 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 28 |
+| `VERIFIED` | 29 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 
