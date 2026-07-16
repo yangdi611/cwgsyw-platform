@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.RosterConflictVO;
 import com.cwgsyw.platform.module.opscalendar.dto.RosterRequest;
@@ -43,6 +44,9 @@ public class OpsCalendarRosterService {
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public List<RosterVO> list(String tenantId, LocalDate from, LocalDate to, Long groupId) {
+        if (from != null && to != null) {
+            TemporalInputValidator.requireOrderedDateRange(from, to, "from", "to");
+        }
         LambdaQueryWrapper<OpsDutyRoster> qw = new LambdaQueryWrapper<OpsDutyRoster>()
                 .eq(OpsDutyRoster::getTenantId, tenantId)
                 .ge(from != null, OpsDutyRoster::getDutyDate, from)

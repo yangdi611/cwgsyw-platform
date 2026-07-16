@@ -3,6 +3,7 @@ package com.cwgsyw.platform.common;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.sql.SQLException;
 
@@ -56,5 +57,14 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(409, response.getStatusCode().value());
         assertEquals("WIKI_PAGE_SIBLING_TITLE_CONFLICT", response.getBody().getErrorCode());
+    }
+
+    @Test
+    void mapsRequestParameterConversionFailureToBadRequest() {
+        R<Void> response = handler.handleInputConversion(new MethodArgumentTypeMismatchException(
+            "invalid", java.time.LocalDate.class, "startDate", null, new IllegalArgumentException()));
+
+        assertEquals(400, response.getCode());
+        assertEquals("参数格式错误", response.getMessage());
     }
 }

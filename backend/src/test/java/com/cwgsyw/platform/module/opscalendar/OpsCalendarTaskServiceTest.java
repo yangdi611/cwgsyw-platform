@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -178,6 +179,17 @@ class OpsCalendarTaskServiceTest {
         org.mockito.InOrder order = org.mockito.Mockito.inOrder(activeGroupReferenceValidator, taskMapper);
         order.verify(activeGroupReferenceValidator).lockAndRequire("default", 1L);
         order.verify(taskMapper).insert(any(OpsScheduleTask.class));
+    }
+
+    @Test
+    void listTasks_rejectsReversedDateRangeBeforeQuery() {
+        assertThatThrownBy(() -> service.listTasks(groupLeader(),
+                LocalDate.of(2026, 7, 12), LocalDate.of(2026, 7, 11),
+                "all", null, null, null, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("startDate不能晚于endDate");
+
+        org.mockito.Mockito.verifyNoInteractions(taskMapper, visibilityService);
     }
 
     @Test

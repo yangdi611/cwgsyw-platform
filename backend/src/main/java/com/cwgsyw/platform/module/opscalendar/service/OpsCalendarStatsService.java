@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.module.opscalendar.dto.StatsVO;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskMapper;
@@ -26,8 +27,7 @@ public class OpsCalendarStatsService {
     private static final int TOP_N = 10;
 
     public StatsVO stats(String tenantId, LocalDate startDate, LocalDate endDate, Long groupId) {
-        if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate 必填");
-        if (startDate.isAfter(endDate)) throw new IllegalArgumentException("startDate 不能晚于 endDate");
+        TemporalInputValidator.requireOrderedDateRange(startDate, endDate, "startDate", "endDate");
 
         List<OpsScheduleTask> tasks = taskMapper.selectList(new LambdaQueryWrapper<OpsScheduleTask>()
                 .eq(OpsScheduleTask::getTenantId, tenantId)

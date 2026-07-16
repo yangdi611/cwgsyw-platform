@@ -18,18 +18,18 @@
   },
   "phase": "EVENT_REVALIDATION",
   "activeEvent": "REM-P2-012",
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P2-011_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-012",
-  "nextBranch": "codex/rem-p2-012-temporal-numeric-validation",
-  "nextAction": "Create REM-P2-012 from lint-fix, complete L1-L3 runtime revalidation, then commit and no-ff merge its evidence.",
+  "activeBranch": "codex/rem-p2-012-temporal-numeric-validation",
+  "activeRunId": "REM_P2_012_20260716_181849",
+  "lastCompletedGate": "REM-P2-012_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-013",
+  "nextBranch": "codex/rem-p2-013-workflow-read-model-schema",
+  "nextAction": "Commit REM-P2-012 evidence, no-ff merge it into lint-fix, record the event and merge commits, then create REM-P2-013 from the updated integration branch.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 38,
+    "verified": 39,
     "verifying": 0,
-    "notStarted": 3,
+    "notStarted": 2,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -77,12 +77,12 @@
       "REM-P2-008",
       "REM-P2-009",
       "REM-P2-010",
-      "REM-P2-011"
+      "REM-P2-011",
+      "REM-P2-012"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-012",
       "REM-P2-013",
       "REM-P2-014"
     ],

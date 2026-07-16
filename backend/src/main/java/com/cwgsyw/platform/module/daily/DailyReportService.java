@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.CiInstanceBriefVO;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
@@ -25,6 +26,7 @@ import org.flowable.engine.RuntimeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,9 +53,9 @@ public class DailyReportService {
             .eq(DailyReport::getReporterId, userId)
             .eq(DailyReport::getIsDeleted, false)
             .orderByDesc(DailyReport::getReportDate);
-        if (month != null && !month.isBlank()) {
-            // month format: "2026-05"
-            LocalDate start = LocalDate.parse(month + "-01");
+        if (month != null) {
+            YearMonth requestedMonth = TemporalInputValidator.parseMonth(month);
+            LocalDate start = requestedMonth.atDay(1);
             LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
             query.between(DailyReport::getReportDate, start, end);
         }
@@ -67,8 +69,9 @@ public class DailyReportService {
             .orderByDesc(DailyReport::getReportDate);
         if (groupId != null) query.eq(DailyReport::getGroupId, groupId);
         if (status != null) query.eq(DailyReport::getStatus, status);
-        if (month != null && !month.isBlank()) {
-            LocalDate start = LocalDate.parse(month + "-01");
+        if (month != null) {
+            YearMonth requestedMonth = TemporalInputValidator.parseMonth(month);
+            LocalDate start = requestedMonth.atDay(1);
             LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
             query.between(DailyReport::getReportDate, start, end);
         }
