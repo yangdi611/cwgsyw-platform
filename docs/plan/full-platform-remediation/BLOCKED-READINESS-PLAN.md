@@ -20,6 +20,7 @@ BLOCKED 不等于缺陷，也不能伪装成 PASS。本轮 52 个 BLOCKED 主用
 | `BR-003` | `CMDB-034/039`、`XL-CMDB-005/008` | 内部 Prometheus mock、零告警同步和配置恢复已由 `REM-P2-017` 证明 | 在最终 L4 执行对应告警/数值详情用例并保持零残留 | 外部夹具 |
 | `BR-004` | `OPS-006..010/016/017`、`ST-OPS-001..014` | 运维任务与 roster 无 delete/archive/purge | 完成产品生命周期事件后执行；若新增缺陷，单独建 REM | 产品生命周期 |
 | `BR-005` | `DAILY-002/005..009`、`FLOW-002`、`CHANGE-008..013/019/020`、`ST-DAILY-001..004`、`ST-CHANGE-001..004`、`XL-EXPORT-002` | 日报/审批/通知/归档文件/流程终态无法精确回收 | `REM-P1-021/024/025/026/027` 完成；另行确认日报/变更终态 archive/purge 合同 | 跨模块生命周期 |
+| `BR-012` | L4 `FQA_20260716_2300_lintfix` 日报审批 | 已审批日报只带历史 FQA 标记，既有清理仅接受完整 runId | 已解除：`REM-P1-031` 仅接受匹配时间戳的历史 FQA 标记；错误时间戳 400，匹配日报已 200 清理 | 日报测试生命周期 |
 | `BR-006` | `WIKI-011/017`、`XL-WIKI-001` | 附件删除无法证明 SharedFile/MinIO 回收 | `REM-P1-021` 完成并证明 DB/MinIO/审计一致 | 存储生命周期 |
 | `BR-007` | `AI-001..003` | 内部 OpenAI mock、test、显式清钥和 provider 恢复已由 `REM-P2-017` 证明 | 在最终 L4 执行 AI 用例并保持 provider 原始配置 | 外部秘密 |
 | `BR-008` | `NOTICE-003` 与通知 read lifecycle | mark-read/read-all 不可逆，缺 scoped 通知夹具 | 使用可删除 runId 通知或隔离账号；`REM-P1-005` 完成权限复验 | 测试数据 |

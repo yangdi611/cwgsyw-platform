@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T23:25:00+08:00",
+  "updatedAt": "2026-07-17T00:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4_REVALIDATION",
-  "activeEvent": "REM-P2-017",
-  "activeBranch": "codex/rem-p2-017-isolated-external-validation-fixtures",
-  "activeRunId": "FQA_20260716_191500_lintfix",
-  "lastCompletedGate": "REM-P2-017_L1_L3_RUNTIME_REVALIDATION",
+  "activeEvent": null,
+  "activeBranch": null,
+  "activeRunId": null,
+  "lastCompletedGate": "REM-P1-031_MERGED_TO_LINT_FIX",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit REM-P2-017 and no-ff merge it into lint-fix, then recreate or advance the independent L4 branch from the merge head and execute the complete final matrix.",
+  "nextAction": "Create a fresh independent L4 branch from the REM-P1-031 merge head and resume the full matrix from the next unexecuted case; preserve the existing B1-B4 evidence only as preconditions, not as complete L4 coverage.",
   "statusCounts": {
-    "total": 48,
+    "total": 49,
     "closed": 4,
-    "verified": 44,
+    "verified": 45,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -126,6 +126,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P1-031": {
+      "eventCommit": "693c2c5adc2ac9290f2a3fc94772d93225642eff"
+    },
     "REM-P1-005": {
       "eventCommit": "2a931872ef3de83716bd7bce9fb2cefd74a71624",
       "mergeCommit": "86225607e5f713f9f68b1bbaae96066187b624d9"
