@@ -1,16 +1,51 @@
 package com.cwgsyw.platform.module.cmdb;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.module.cmdb.dto.changes.ChangeHistoryV2VO;
+import com.cwgsyw.platform.module.cmdb.dto.changes.ChangeStatsVO;
+import com.cwgsyw.platform.module.cmdb.entity.CiChangeRecord;
+import com.cwgsyw.platform.module.cmdb.mapper.CiChangeRecordMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.cmdb.service.CiChangeService;
+import com.cwgsyw.platform.module.user.UserMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class CiChangeServiceTest {
+
+    @Mock private CiChangeRecordMapper changeRecordMapper;
+    @Mock private UserMapper userMapper;
+    @Mock private CiInstanceMapper instanceMapper;
+    @Mock private CiModelMapper modelMapper;
+    @Mock private StringRedisTemplate redisTemplate;
+    @Mock private ValueOperations<String, String> valueOperations;
+
+    private CiChangeService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new CiChangeService(changeRecordMapper, userMapper, instanceMapper, modelMapper,
+                new ObjectMapper(), redisTemplate);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+    }
 
     @Nested
     class ComputeChangedFields {
@@ -150,6 +185,58 @@ class CiChangeServiceTest {
                     CiChangeService.computeChangedFields(before, after);
 
             assertThat(result.getFields()).containsExactly("status");
+        }
+    }
+
+    @Nested
+    class ChangeQueryContracts {
+
+        @Test
+        void globalChanges_passesKeywordToDatabasePagedQuery() {
+            Page<CiChangeRecord> page = new Page<>(1, 20);
+            page.setRecords(List.of());
+            page.setTotal(0);
+            when(changeRecordMapper.queryChanges(any(), eq("tenant-a"), eq(List.of("ci_instance")),
+                    isNull(), isNull(), isNull(), isNull(), eq("needle"), isNull(), isNull()))
+                    .thenReturn(page);
+
+            PageResult<ChangeHistoryV2VO> result = service.getGlobalChanges(
+                    "ci_instance", null, null, " needle ", null, null, null, null, 1, 20, "tenant-a");
+
+            assertThat(result.getTotal()).isZero();
+            verify(changeRecordMapper).queryChanges(any(), eq("tenant-a"), eq(List.of("ci_instance")),
+                    isNull(), isNull(), isNull(), isNull(), eq("needle"), isNull(), isNull());
+        }
+
+        @Test
+        void explicitStatsRange_usesOneWindowForCardsAndTop10() {
+            when(valueOperations.get(anyString())).thenReturn(null);
+            when(changeRecordMapper.queryDailyBreakdown(eq("tenant-a"), eq("2099-01-01T00:00:00"),
+                    eq("2099-01-02T00:00:00"), isNull())).thenReturn(List.of());
+            when(changeRecordMapper.queryTopChangedInstances(eq("tenant-a"), eq("2099-01-01T00:00:00"),
+                    eq("2099-01-02T00:00:00"), isNull())).thenReturn(List.of());
+
+            ChangeStatsVO stats = service.getStats(null, "2099-01-01T00:00:00", "2099-01-02T00:00:00", "tenant-a");
+
+            assertThat(stats.getToday().getTotal()).isZero();
+            assertThat(stats.getThisWeek().getTotal()).isZero();
+            assertThat(stats.getThisMonth().getTotal()).isZero();
+            verify(changeRecordMapper).queryTopChangedInstances("tenant-a", "2099-01-01T00:00:00",
+                    "2099-01-02T00:00:00", null);
+        }
+
+        @Test
+        void statsCacheKey_isTenantScopedAndTop10UsesModelFilter() {
+            when(valueOperations.get(anyString())).thenReturn(null);
+            when(changeRecordMapper.queryDailyBreakdown(eq("tenant-a"), anyString(), anyString(), eq("host")))
+                    .thenReturn(List.of());
+            when(changeRecordMapper.queryTopChangedInstances(eq("tenant-a"), anyString(), anyString(), eq("host")))
+                    .thenReturn(List.of());
+
+            service.getStats("host", null, null, "tenant-a");
+
+            verify(valueOperations).get(startsWith("cmdb:stats:tenant-a:host:"));
+            verify(changeRecordMapper).queryTopChangedInstances(eq("tenant-a"), anyString(), anyString(), eq("host"));
         }
     }
 }

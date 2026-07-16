@@ -34,7 +34,7 @@
 | `BUG-FQA-023` | P1 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 审计分页 records/total、真实 API/UI 通过；待 L4 |
 | `BUG-FQA-024` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 通知分页 total 与 records 边界通过；待 L4 |
 | `BUG-FQA-025` | P2 | [`REM-P2-011`：通知引用目标跳转合同](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-026` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-026` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `VERIFIED` | L1-L3 Top10 model/range 聚合与统计页面复验通过；待最终 L4 |
 | `BUG-FQA-027` | P2 | [`REM-P2-004`：用户主题切换与偏好持久化](./07-platform-integration/REM-P2-004-user-theme-preference/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-028` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-029` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
@@ -59,8 +59,8 @@
 | `BUG-FQA-048` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 copy/字段类型-default-sort/精确清理通过；待最终 L4 |
 | `BUG-FQA-049` | P1 | [`REM-P1-025`：Workflow 模板实例可审计清理生命周期](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) | `VERIFIED` | L1-L3 template delete, reference protection, audit and UI confirmation passed; awaiting L4 |
 | `BUG-FQA-050` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `VERIFIED` | L1-L3 CTE direction/depth/error contract, API and cleanup passed; awaiting L4 |
-| `BUG-FQA-051` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
-| `BUG-FQA-052` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-051` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `VERIFIED` | L1-L3 关键词 SQL/count、API 空结果与页面筛选复验通过；待最终 L4 |
+| `BUG-FQA-052` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `VERIFIED` | L1-L3 显式范围卡片/趋势/Top10 同口径 API/UI 复验通过；待最终 L4 |
 | `BUG-FQA-053` | P1 | [`REM-P1-021`：共享文件与 Wiki 附件存储回收](./04-content-files/REM-P1-021-stored-object-delete-compensation/README.md) | `VERIFIED` | L1-L3 存储失败补偿、附件独立删除和页面级联回收 API 通过；待最终 L4 |
 | `BUG-FQA-054` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 组合与零结果筛选通过；待 L4 |
 | `BUG-FQA-055` | P2 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `VERIFIED` | L1-L3 deleted-role API/UI lifecycle and cleanup passed; awaiting L4 |

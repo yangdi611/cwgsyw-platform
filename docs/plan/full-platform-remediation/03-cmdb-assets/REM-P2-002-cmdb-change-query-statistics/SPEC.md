@@ -13,11 +13,13 @@
 
 当前：Top 10 将 tenantId 错传为 modelId，变更历史忽略关键词，统计卡又不使用用户显式日期范围。
 
-目标：变更热点、筛选结果和时间范围统计均可能误导管理员。对应的风险消失；API、服务、数据库、UI、权限和审计遵循同一合同。
+目标：变更热点、筛选结果和时间范围统计不再误导管理员；API、服务、数据库、UI、权限和审计遵循同一合同。
 
 ## 合同与影响面
 
 - 根因合同：Controller→Service→Mapper 参数传播和统计 DTO 语义不一致。
+- 关键字：匹配实例 ID/名称、模型编码/名称、`fieldChanges` 的字段名与 before/after 值；操作人继续使用独立 `operatorId` 筛选。筛选必须在 SQL 分页与 count 中同时生效。
+- 日期范围：未传范围时保留“今日/本周/本月”卡片与最近 30 天趋势/Top10。传入 `from` 或 `to` 时，卡片收敛为单张“所选范围变更”，其计数、趋势和 Top10 使用同一半开区间 `[from,to)`；Top10 必须同时受上下界限制。
 - 候选文件 / 符号：`backend/src/main/java/com/cwgsyw/platform/module/cmdb/service/CiChangeService.java`、`backend/src/main/java/com/cwgsyw/platform/module/cmdb/mapper/CiChangeRecordMapper.java`、`frontend/src/app/(dashboard)/cmdb/changes/**`
 - 权限：allow/deny、列表/详情、直达路由与导航一致。
 - 数据：必要唯一/检查/引用约束必须有服务层可理解错误和并发测试。

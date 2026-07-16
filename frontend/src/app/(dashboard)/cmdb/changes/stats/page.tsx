@@ -1,13 +1,15 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/v2/Input'
+import { Button } from '@/components/v2/Button'
 
 interface ActionCountVO {
   created: number
@@ -85,6 +87,14 @@ function ActionCountCard({
   )
 }
 
+function toIso(date: string, endOfDay = false): string | undefined {
+  if (!date) return undefined
+  if (!endOfDay) return `${date}T00:00:00`
+  const [year, month, day] = date.split('-').map(Number)
+  const nextDay = new Date(year, month - 1, day + 1)
+  return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}T00:00:00`
+}
+
 function DailyBarChart({ data }: { data: DailyCountVO[] }) {
   if (!data || data.length === 0) return null
 
@@ -125,17 +135,21 @@ function DailyBarChart({ data }: { data: DailyCountVO[] }) {
 }
 
 export default function CmdbChangesStatsPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('cmdb_change', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [hasPermission, isHydrated, router])
 
+  const hasExplicitRange = !!(startDate || endDate)
   const { data: stats, isLoading } = useQuery<ChangeStatsVO>({
-    queryKey: ['cmdb-changes-stats'],
-    queryFn: () => api.get('/cmdb/changes/stats').then((r) => r.data.data),
-    enabled: hasPermission('cmdb_change', 'read'),
+    queryKey: ['cmdb-changes-stats', startDate, endDate],
+    queryFn: () => api.get('/cmdb/changes/stats', { params: { from: toIso(startDate), to: toIso(endDate, true) } }).then((r) => r.data.data),
+    enabled: isHydrated && hasPermission('cmdb_change', 'read'),
   })
 
   const topColumns: ColumnDef<TopInstanceVO>[] = [
@@ -174,10 +188,24 @@ export default function CmdbChangesStatsPage() {
         subtitle="CI 实例变更历史统计与趋势分析，按时间维度与活跃实例查看。"
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <ActionCountCard title="今日变更" data={stats?.today} loading={isLoading} />
-        <ActionCountCard title="本周变更" data={stats?.thisWeek} loading={isLoading} />
-        <ActionCountCard title="本月变更" data={stats?.thisMonth} loading={isLoading} />
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-v2-border bg-v2-surface p-4">
+        <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="w-40" />
+        <span className="text-sm text-v2-muted">至</span>
+        <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="w-40" />
+        {hasExplicitRange && <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate('') }}>清除范围</Button>}
+        <span className="text-xs text-v2-muted">{hasExplicitRange ? '统计卡、趋势与 Top 10 均按所选范围汇总' : '未选择范围时显示当前今日、本周和本月汇总，趋势与 Top 10 默认最近 30 天'}</span>
+      </div>
+
+      <div className={`grid grid-cols-1 gap-4 ${hasExplicitRange ? 'max-w-sm' : 'sm:grid-cols-3'}`}>
+        {hasExplicitRange ? (
+          <ActionCountCard title="所选范围变更" data={stats?.today} loading={isLoading} />
+        ) : (
+          <>
+            <ActionCountCard title="今日变更" data={stats?.today} loading={isLoading} />
+            <ActionCountCard title="本周变更" data={stats?.thisWeek} loading={isLoading} />
+            <ActionCountCard title="本月变更" data={stats?.thisMonth} loading={isLoading} />
+          </>
+        )}
       </div>
 
       <Card>
