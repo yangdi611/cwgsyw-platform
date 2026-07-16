@@ -245,8 +245,8 @@ public class ImpactAnalysisService {
 
         Set<String> seenEdges = new HashSet<>();
         List<ImpactEdgeVO> edges = new ArrayList<>();
-        Set<Long> allNodeIds = new HashSet<>();
-        allNodeIds.add(rootId);
+        Set<Long> assignedNodeIds = new HashSet<>();
+        assignedNodeIds.add(rootId);
 
         for (Map<String, Object> row : edgeRows) {
             Long src = ((Number) row.get("src")).longValue();
@@ -254,10 +254,10 @@ public class ImpactAnalysisService {
             String kind = (String) row.get("kind");
             int depth = ((Number) row.get("depth")).intValue();
 
-            allNodeIds.add(src);
-            allNodeIds.add(dst);
             Long nodeId = ((Number) row.get("node_id")).longValue();
-            depthMap.computeIfAbsent(depth, k -> new LinkedHashSet<>()).add(nodeId);
+            if (assignedNodeIds.add(nodeId)) {
+                depthMap.computeIfAbsent(depth, k -> new LinkedHashSet<>()).add(nodeId);
+            }
 
             String edgeKey = src + "-" + dst + "-" + kind;
             if (seenEdges.add(edgeKey)) {
