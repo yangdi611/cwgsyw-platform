@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-004` |
 | 优先级 | P2 |
 | 领域 | `07-platform-integration` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `LOW` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -38,6 +38,8 @@
 - 不改变用户后端资料 schema
 - 不修复与主题无关的页面布局
 
-下一门禁：实施前逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 先告警。完成 L1-L3 后进入 L4 全量 FQA。
+当前分支：`codex/rem-p2-004-user-theme-preference`（基线 `lint-fix@08cfc33e`）。Provider、Header、RootLayout、Wiki 消费者均已完成 upstream impact，均为 LOW。
+
+L1-L3 已通过：主题入口、light/dark/system、刷新持久化与报表、Wiki、BPMN 页面深色可读性均已复验；等待全平台 L4。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)

@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { Monitor, Moon, Search, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useAuth } from '@/hooks/useAuth'
 import { buttonVariants } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -21,6 +22,7 @@ import { useCommandPalette } from '@/store/commandPaletteStore'
 /** Topbar 头像入口：个人资料 / 修改密码 / 退出登录（SPEC 13.7）。 */
 export function Header() {
   const { user, logout } = useAuth()
+  const { setTheme, theme } = useTheme()
   const router = useRouter()
   const openPalette = useCommandPalette((s) => s.setOpen)
 
@@ -50,7 +52,7 @@ export function Header() {
           <NotificationBell />
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-muted/60">
+            <DropdownMenuTrigger aria-label="打开用户菜单" className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-muted/60">
               <Avatar className="h-8 w-8">
                 {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.realName || user.username} />}
                 <AvatarFallback>{fallbackChar}</AvatarFallback>
@@ -65,6 +67,22 @@ export function Header() {
                     <span className="text-xs text-muted-foreground">@{user?.username}</span>
                   </div>
                 </DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>外观</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  <Sun className="mr-2 h-4 w-4" />
+                  浅色{theme === 'light' ? '（当前）' : ''}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <Moon className="mr-2 h-4 w-4" />
+                  深色{theme === 'dark' ? '（当前）' : ''}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <Monitor className="mr-2 h-4 w-4" />
+                  跟随系统{theme === 'system' ? '（当前）' : ''}
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/account/profile')}>个人资料</DropdownMenuItem>

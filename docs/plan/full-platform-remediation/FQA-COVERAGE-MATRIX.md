@@ -35,7 +35,7 @@
 | `BUG-FQA-024` | P2 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 通知分页 total 与 records 边界通过；待 L4 |
 | `BUG-FQA-025` | P2 | [`REM-P2-011`：通知引用目标跳转合同](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-026` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `VERIFIED` | L1-L3 Top10 model/range 聚合与统计页面复验通过；待最终 L4 |
-| `BUG-FQA-027` | P2 | [`REM-P2-004`：用户主题切换与偏好持久化](./07-platform-integration/REM-P2-004-user-theme-preference/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-027` | P2 | [`REM-P2-004`：用户主题切换与偏好持久化](./07-platform-integration/REM-P2-004-user-theme-preference/README.md) | `VERIFIED` | L1-L3 light/dark/system、刷新持久化、报表/Wiki/BPMN 与零 Console error 通过；待最终 L4 |
 | `BUG-FQA-028` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-029` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-030` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
