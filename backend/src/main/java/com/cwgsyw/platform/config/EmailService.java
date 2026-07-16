@@ -45,12 +45,13 @@ public class EmailService {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(configService.get(tenantId, "smtp.host"));
         sender.setPort(Integer.parseInt(configService.get(tenantId, "smtp.port")));
-        sender.setUsername(configService.get(tenantId, "smtp.username"));
+        String username = configService.get(tenantId, "smtp.username");
+        sender.setUsername(username);
         sender.setPassword(configService.get(tenantId, "smtp.password"));
         sender.setDefaultEncoding("UTF-8");
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
-        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.auth", String.valueOf(username != null && !username.isBlank()));
         boolean ssl = configService.getBoolean(tenantId, "smtp.ssl");
         props.put("mail.smtp.ssl.enable", String.valueOf(ssl));
         props.put("mail.smtp.starttls.enable", String.valueOf(!ssl));

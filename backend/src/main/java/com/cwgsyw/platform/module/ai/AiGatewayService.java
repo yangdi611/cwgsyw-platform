@@ -80,6 +80,18 @@ public class AiGatewayService {
         configMapper.update(null, update);
     }
 
+    public void clearProviderApiKey(String tenantId, String provider) {
+        AiProviderConfig existing = configMapper.findByTenantAndProvider(tenantId, provider);
+        if (existing == null) {
+            throw new IllegalStateException("Provider not found: " + provider);
+        }
+        configMapper.update(null, new LambdaUpdateWrapper<AiProviderConfig>()
+            .eq(AiProviderConfig::getTenantId, tenantId)
+            .eq(AiProviderConfig::getProvider, provider)
+            .set(AiProviderConfig::getApiKeyEnc, "")
+            .set(AiProviderConfig::getUpdatedAt, LocalDateTime.now()));
+    }
+
     /** Returns VO list for all providers — API keys are never included. */
     public List<AiProviderConfigVO> listProviders(String tenantId) {
         List<AiProviderConfig> configs = configMapper.findByTenant(tenantId);

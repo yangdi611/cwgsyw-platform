@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T22:15:00+08:00",
+  "updatedAt": "2026-07-16T23:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,18 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-revalidation",
+  "activeEvent": "REM-P2-017",
+  "activeBranch": "codex/rem-p2-017-isolated-external-validation-fixtures",
   "activeRunId": "FQA_20260716_191500_lintfix",
-  "lastCompletedGate": "REM-P2-016_L1_L3_RUNTIME_REVALIDATION",
+  "lastCompletedGate": "REM-P2-017_L1_L3_RUNTIME_REVALIDATION",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Recreate or advance the independent L4 branch from this merge head, restore L4 evidence commit 97dbb6d as needed, and rerun the Prometheus configuration/external integration scope before full matrix closure.",
+  "nextAction": "Commit REM-P2-017 and no-ff merge it into lint-fix, then recreate or advance the independent L4 branch from the merge head and execute the complete final matrix.",
   "statusCounts": {
-    "total": 47,
+    "total": 48,
     "closed": 4,
-    "verified": 43,
+    "verified": 44,
     "verifying": 0,
+    "inProgress": 0,
     "notStarted": 0,
     "blocked": 0
   },
@@ -268,6 +269,9 @@
     },
     "REM-P2-016": {
       "eventCommit": "8d4691f17cc7574da266b48c7f5e2e84d9ab7140"
+    },
+    "REM-P2-017": {
+      "eventCommit": "PENDING"
     }
   },
   "l4": {
