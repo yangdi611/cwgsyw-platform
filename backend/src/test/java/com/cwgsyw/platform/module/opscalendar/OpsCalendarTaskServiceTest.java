@@ -138,6 +138,23 @@ class OpsCalendarTaskServiceTest {
     }
 
     @Test
+    void createManual_rejectsDatabaseUnsupportedTaskTypeAndPriorityBeforeInsert() {
+        TaskCreateRequest taskTypeRequest = minimalRequest();
+        taskTypeRequest.setTaskType("maintenance");
+        assertThatThrownBy(() -> service.createManual(groupLeader(), taskTypeRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("不支持的任务类型");
+
+        TaskCreateRequest priorityRequest = minimalRequest();
+        priorityRequest.setPriority("medium");
+        assertThatThrownBy(() -> service.createManual(groupLeader(), priorityRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("不支持的优先级");
+
+        org.mockito.Mockito.verify(taskMapper, org.mockito.Mockito.never()).insert(any());
+    }
+
+    @Test
     void createManual_pastDueWithoutStartIsRejected() {
         TaskCreateRequest request = minimalRequest();
         request.setDueAt(LocalDateTime.now().minusMinutes(1));

@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class OpsCalendarRuleServiceTest {
@@ -108,5 +109,40 @@ class OpsCalendarRuleServiceTest {
         order.verify(activeGroupReferenceValidator).lockAndRequire("default", 5L);
         order.verify(activeGroupReferenceValidator).lockAndRequire("default", 7L);
         order.verify(ruleMapper).insert(any(OpsScheduleRule.class));
+    }
+
+    @Test
+    void createRejectsInvalidCronAdvanceAndSameDayPastDueBeforeInsert() {
+        SecurityUser user = new SecurityUser(9L, "operator", "", "default", 1L, "tenant", java.util.Set.of());
+
+        RuleCreateRequest invalidCron = request("cron");
+        invalidCron.setTriggerConfig(Map.of("expression", "not-a-spring-cron"));
+        assertThatThrownBy(() -> service.create(user, invalidCron))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Cron 表达式无效");
+
+        RuleCreateRequest negativeAdvance = request("daily");
+        negativeAdvance.setGenerateDaysAhead(-1);
+        assertThatThrownBy(() -> service.create(user, negativeAdvance))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("提前生成天数");
+
+        RuleCreateRequest pastDue = request("daily");
+        pastDue.setTriggerConfig(Map.of("time", "23:59"));
+        pastDue.setDueConfig(Map.of("offsetDays", 0, "time", "18:00"));
+        assertThatThrownBy(() -> service.create(user, pastDue))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("截止时间不能早于计划开始时间");
+
+        verify(ruleMapper, org.mockito.Mockito.never()).insert(any(OpsScheduleRule.class));
+    }
+
+    private RuleCreateRequest request(String triggerType) {
+        RuleCreateRequest request = new RuleCreateRequest();
+        request.setName("validation rule");
+        request.setTaskType("inspection");
+        request.setTriggerType(triggerType);
+        request.setGenerateDaysAhead(7);
+        request.setTriggerConfig(Map.of("time", "09:00"));
+        request.setDueConfig(Map.of("offsetDays", 1, "time", "18:00"));
+        request.setEnabled(false);
+        return request;
     }
 }

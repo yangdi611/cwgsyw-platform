@@ -34,6 +34,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OpsCalendarTaskService {
 
+    private static final Set<String> TASK_TYPES = Set.of(
+            "inspection", "roster", "report", "compliance", "monitoring", "daily_report", "other");
+    private static final Set<String> PRIORITIES = Set.of("low", "normal", "high", "critical");
+    private static final Set<String> VISIBILITIES = Set.of("private", "group", "public");
+
     private final OpsScheduleTaskMapper taskMapper;
     private final OpsScheduleTaskParticipantMapper participantMapper;
     private final OpsScheduleChecklistItemMapper checklistMapper;
@@ -351,7 +356,9 @@ public class OpsCalendarTaskService {
     @Transactional
     public Long createManual(SecurityUser user, TaskCreateRequest req) {
         if (!notBlank(req.getTitle())) throw new IllegalArgumentException("标题必填");
-        if (!notBlank(req.getTaskType())) throw new IllegalArgumentException("任务类型必填");
+        validateTaskType(req.getTaskType());
+        validatePriority(req.getPriority());
+        validateVisibility(req.getVisibility());
         LocalDateTime plannedStartAt = req.getPlannedStartAt() != null
                 ? req.getPlannedStartAt() : LocalDateTime.now();
         if (req.getDueAt() != null && req.getDueAt().isBefore(plannedStartAt))
@@ -448,6 +455,12 @@ public class OpsCalendarTaskService {
             activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
         }
 
+        LocalDateTime plannedStartAt = req.getPlannedStartAt() != null ? req.getPlannedStartAt() : t.getPlannedStartAt();
+        LocalDateTime dueAt = req.getDueAt() != null ? req.getDueAt() : t.getDueAt();
+        if (dueAt != null && plannedStartAt != null && dueAt.isBefore(plannedStartAt)) throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        validatePriority(req.getPriority());
+        validateVisibility(req.getVisibility());
+
         if (notBlank(req.getTitle())) t.setTitle(req.getTitle());
         if (req.getPlannedStartAt() != null) t.setPlannedStartAt(req.getPlannedStartAt());
         if (req.getDueAt() != null) t.setDueAt(req.getDueAt());
@@ -475,6 +488,19 @@ public class OpsCalendarTaskService {
 
         writeLog(id, user.getTenantId(), "update", user.getUserId(), "编辑任务");
         writeAudit(user.getTenantId(), "update", id, user.getUserId(), null);
+    }
+
+    private void validateTaskType(String taskType) {
+        if (!notBlank(taskType)) throw new IllegalArgumentException("任务类型必填");
+        if (!TASK_TYPES.contains(taskType)) throw new IllegalArgumentException("不支持的任务类型");
+    }
+
+    private void validatePriority(String priority) {
+        if (priority != null && !PRIORITIES.contains(priority)) throw new IllegalArgumentException("不支持的优先级");
+    }
+
+    private void validateVisibility(String visibility) {
+        if (visibility != null && !VISIBILITIES.contains(visibility)) throw new IllegalArgumentException("不支持的可见性");
     }
 
     private boolean d_canEdit(OpsScheduleTask t, SecurityUser user) {
