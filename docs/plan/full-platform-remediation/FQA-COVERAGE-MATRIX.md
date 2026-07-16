@@ -67,7 +67,7 @@
 | `BUG-FQA-056` | P1 | [`REM-P1-003`：未分配组与业务组双向互斥](./02-account-organization/REM-P1-003-unassigned-business-group-exclusivity/README.md) | `CLOSED` | checkpoint 仍列开放，但整改事件已关闭 |
 | `BUG-FQA-057` | P2 | [`REM-P2-003`：Wiki 页面标题规范与同级唯一性](./04-content-files/REM-P2-003-wiki-title-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-058` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `VERIFIED` | L1-L3 root owner 创建子页通过；待最终 L4 |
-| `BUG-FQA-059` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-059` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `VERIFIED` | L1-L3 模板 `fields` 加载、单/双模板 API/UI 创建和详情回读通过；待 L4 |
 | `BUG-FQA-060` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `NOT_STARTED` | checkpoint.openDefects |
 | `BUG-FQA-061` | P1 | [`REM-P1-009`：CMDB 关系与实例删除引用完整性](./03-cmdb-assets/REM-P1-009-cmdb-relation-integrity/README.md) | `VERIFIED` | L1-L3 自环 API/UI 拒绝、清理与 impact 通过；待最终 L4 |
 | `BUG-FQA-062` | P1 | [`REM-P1-020`：共享文件夹重命名、移动与名称合同](./04-content-files/REM-P1-020-shared-folder-crud-validation/README.md) | `VERIFIED` | L1-L3 rename/move、源/目标权限与 UI 树刷新通过；待最终 L4 |
@@ -110,7 +110,7 @@
 | `BUG-FQA-099` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `VERIFIED` | L1-L3 suspended start and instance termination lifecycle passed; awaiting L4 |
 | `BUG-FQA-100` | P1 | [`REM-P1-019`：共享文件上传状态、冲突与可取消生命周期](./04-content-files/REM-P1-019-shared-file-upload-lifecycle/README.md) | `VERIFIED` | L1-L3 删除时主对象与衍生 Markdown 回收已实现并验证；待最终 L4 |
 | `BUG-FQA-101` | P1 | [`REM-P1-010`：CMDB 影响分析与历史拓扑重建](./03-cmdb-assets/REM-P1-010-cmdb-impact-history-reconstruction/README.md) | `VERIFIED` | L1-L3 create/update/delete/relation API/UI comparison and cleanup passed; awaiting L4 |
-| `BUG-FQA-102` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-102` | P1 | [`REM-P1-028`：变更文档模板加载与创建响应合同](./05-workflow-change/REM-P1-028-change-document-create-contract/README.md) | `VERIFIED` | L1-L3 创建响应 numeric ID、详情路由和精确清理通过；待 L4 |
 | `BUG-FQA-103` | P2 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 copy feedback and browser crypto compatibility passed; awaiting L4 |
 | `BUG-FQA-104` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 条件流命名空间与表达式往返通过；待最终 L4 |
 | `BUG-FQA-105` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 名称、分类、描述、XML 和版本往返通过；待最终 L4 |

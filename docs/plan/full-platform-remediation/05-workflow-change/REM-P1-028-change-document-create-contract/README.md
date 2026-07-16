@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-028` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `MEDIUM` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@
 - 不改变模板生命周期
 - 不清理非 runId 草稿
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：模板 `fields` 已正确加载，创建响应仅接受有效数值 ID 并导航到详情；单/双模板 API 与 UI 创建、详情回读和精确清理均通过。下一门禁：最终 L4 全平台 FQA。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

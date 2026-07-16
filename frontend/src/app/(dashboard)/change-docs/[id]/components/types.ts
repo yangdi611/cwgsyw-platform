@@ -31,6 +31,7 @@ export interface TemplateVO {
   docType: DocType
   active: boolean
   hasDocx: boolean
+  fields: FieldConfigVO[]
 }
 
 export interface LinkedCiInstanceVO {
