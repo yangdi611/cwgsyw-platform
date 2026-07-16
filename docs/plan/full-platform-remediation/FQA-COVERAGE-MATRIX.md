@@ -36,7 +36,7 @@
 | `BUG-FQA-025` | P2 | [`REM-P2-011`：通知引用目标跳转合同](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/README.md) | `VERIFIED` | L1-L3 Wiki/运维有效跳转、删除/未知目标中性态和零副作用通过；待最终 L4 |
 | `BUG-FQA-026` | P2 | [`REM-P2-002`：CMDB 变更查询与统计准确性](./03-cmdb-assets/REM-P2-002-cmdb-change-query-statistics/README.md) | `VERIFIED` | L1-L3 Top10 model/range 聚合与统计页面复验通过；待最终 L4 |
 | `BUG-FQA-027` | P2 | [`REM-P2-004`：用户主题切换与偏好持久化](./07-platform-integration/REM-P2-004-user-theme-preference/README.md) | `VERIFIED` | L1-L3 light/dark/system、刷新持久化、报表/Wiki/BPMN 与零 Console error 通过；待最终 L4 |
-| `BUG-FQA-028` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-028` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `VERIFIED` | L1-L3 typed camelCase activities/stats API/UI、零残留通过；待 L4 |
 | `BUG-FQA-029` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-030` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-031` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
@@ -44,7 +44,7 @@
 | `BUG-FQA-033` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-034` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-035` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
-| `BUG-FQA-036` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-036` | P2 | [`REM-P2-013`：Workflow 活动历史与统计读模型 schema](./05-workflow-change/REM-P2-013-workflow-read-model-schema/README.md) | `VERIFIED` | L1-L3 typed camelCase activities/stats API/UI、零残留通过；待 L4 |
 | `BUG-FQA-037` | P2 | [`REM-P2-012`：日期范围、月份与数值输入统一校验](./08-cross-cutting-contracts/REM-P2-012-temporal-numeric-validation/README.md) | `VERIFIED` | L1-L3 report/ops/date-month-workhours API/UI 复验、零残留通过；待 L4 |
 | `BUG-FQA-038` | P2 | [`REM-P2-005`：Wiki 当前页面导出合同](./04-content-files/REM-P2-005-wiki-page-export-contract/README.md) | `VERIFIED` | L1-L3 单页端点、中文文件名、空间 ZIP 与零 Console error 通过；待最终 L4 |
 | `BUG-FQA-039` | P2 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `VERIFIED` | L1-L3 中文“应用”模板单次编码、200、UTF-8 文件名和零 Console error 通过；待 L4 |
