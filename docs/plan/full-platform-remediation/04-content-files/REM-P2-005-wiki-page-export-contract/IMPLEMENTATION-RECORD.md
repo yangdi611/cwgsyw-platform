@@ -11,6 +11,15 @@
 
 后续只追加，不覆盖历史。
 
+## 2026-07-17：L4 回归修复
+
+- 分支：`codex/rem-p2-005-wiki-page-export-contract-l4-regression`；基线：`lint-fix@292c1475`。
+- L4 用既有含附件引用页面重现：单页 endpoint 与前端按钮路径正确，但服务会按附件引用改为 ZIP；这与页面导出固定为 Markdown 的事件合同冲突。
+- GitNexus upstream impact：`WikiExportService.exportPage` 仅有 `WikiController.exportPage` 一个直接调用者，`LOW`；未触及空间导出、ACL、存储写入或权限语义。
+- 实现：`exportPage` 始终以当前页面 Markdown 正文、`.md` 文件名和 Markdown MIME 返回；附件打包仍只属于 `exportSpace`。
+- 验证：主包构建、当前分支 backend 容器健康和真实浏览器页面/空间导出均通过。全量测试编译受四项既有无关测试源码错误阻断，已记录，未掩盖为通过。
+- 数据与回滚：只读下载，无测试数据；回滚仅恢复 `exportPage` 的附件 ZIP 分支，但会重新引入本次 L4 缺陷。
+
 ## 2026-07-16：事件认领与影响分析
 
 - 状态：`IN_PROGRESS`；分支：`codex/rem-p2-005-wiki-page-export-contract`；基线：`lint-fix@c0852d3`。
