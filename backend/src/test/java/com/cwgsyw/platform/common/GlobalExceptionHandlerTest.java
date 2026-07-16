@@ -46,4 +46,15 @@ class GlobalExceptionHandlerTest {
         assertEquals(409, response.getStatusCode().value());
         assertEquals("DATA_INTEGRITY_VIOLATION", response.getBody().getErrorCode());
     }
+
+    @Test
+    void mapsWikiSiblingTitleConflictToExplicitConflict() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+            "writer failed", new SQLException("WIKI_PAGE_SIBLING_TITLE_CONFLICT", "23505"));
+
+        ResponseEntity<R<Void>> response = handler.handleDataIntegrity(exception);
+
+        assertEquals(409, response.getStatusCode().value());
+        assertEquals("WIKI_PAGE_SIBLING_TITLE_CONFLICT", response.getBody().getErrorCode());
+    }
 }

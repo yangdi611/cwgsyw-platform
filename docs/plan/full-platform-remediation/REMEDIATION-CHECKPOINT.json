@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": "REM-P2-003",
+  "activeEvent": "REM-P2-004",
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-002_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-003",
-  "nextBranch": "codex/rem-p2-003-wiki-title-validation",
-  "nextAction": "Create the dedicated REM-P2-003 branch from lint-fix, run upstream impact for each planned symbol, then implement and revalidate its L1-L3 contract.",
+  "lastCompletedGate": "REM-P2-003_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-004",
+  "nextBranch": "codex/rem-p2-004-user-theme-preference",
+  "nextAction": "Create the dedicated REM-P2-004 branch from lint-fix, run upstream impact for each planned symbol, then implement and revalidate its L1-L3 contract.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 29,
+    "verified": 30,
     "verifying": 0,
-    "notStarted": 12,
+    "notStarted": 11,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -68,12 +68,12 @@
       "REM-P1-029",
       "REM-P1-030",
       "REM-P2-001",
-      "REM-P2-002"
+      "REM-P2-002",
+      "REM-P2-003"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-003",
       "REM-P2-004",
       "REM-P2-005",
       "REM-P2-006",

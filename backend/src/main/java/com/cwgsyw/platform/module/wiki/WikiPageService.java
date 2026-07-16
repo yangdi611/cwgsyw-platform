@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.notification.NotificationService;
@@ -164,6 +165,7 @@ public class WikiPageService {
 
     @Transactional
     public WikiPageVO createPage(String tenantId, SecurityUser user, CreatePageRequest req) {
+        String title = normalizeTitle(req.getTitle());
         if (req.getParentId() != null) {
             WikiPage parent = requirePage(tenantId, req.getParentId());
             if (!Objects.equals(parent.getSpaceId(), req.getSpaceId())) {
@@ -173,13 +175,14 @@ public class WikiPageService {
         } else {
             spaceService.checkCanWrite(tenantId, req.getSpaceId(), user, "create");
         }
+        ensureSiblingTitleAvailable(tenantId, req.getSpaceId(), req.getParentId(), title, null);
         Long userId = user.getUserId();
         WikiPage page = new WikiPage();
         page.setTenantId(tenantId);
         page.setSpaceId(req.getSpaceId());
         page.setParentId(req.getParentId());
-        page.setTitle(req.getTitle());
-        page.setSlug(uniqueSlug(tenantId, req.getSpaceId(), slugify(req.getTitle())));
+        page.setTitle(title);
+        page.setSlug(uniqueSlug(tenantId, req.getSpaceId(), slugify(title)));
         page.setContent("");
         page.setStatus("draft");
         page.setCurrentVersion(0);
@@ -213,8 +216,10 @@ public class WikiPageService {
         checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "update");
         Long userId = user.getUserId();
         if ("archived".equals(page.getStatus())) throw new IllegalStateException("已归档页面不可编辑");
+        String title = normalizeTitle(req.getTitle());
+        ensureSiblingTitleAvailable(tenantId, page.getSpaceId(), page.getParentId(), title, pageId);
         String before = toJson(page);
-        page.setTitle(req.getTitle());
+        page.setTitle(title);
         page.setContent(req.getContent());
         page.setCurrentVersion(page.getCurrentVersion() == null ? 1 : page.getCurrentVersion() + 1);
         page.setUpdatedBy(userId);
@@ -263,6 +268,7 @@ public class WikiPageService {
                 throw new IllegalArgumentException("不能移动到自身或子页面下");
             }
         }
+        ensureSiblingTitleAvailable(tenantId, page.getSpaceId(), newParentId, page.getTitle(), pageId);
         String before = toJson(page);
         page.setParentId(newParentId);
         page.setSortOrder(sortOrder);
@@ -464,6 +470,28 @@ public class WikiPageService {
         String s = title.toLowerCase().replaceAll("[^a-z0-9\\u4e00-\\u9fff]+", "-")
                 .replaceAll("(^-+)|(-+$)", "");
         return s.isEmpty() ? "page" : s;
+    }
+
+    private String normalizeTitle(String title) {
+        if (title == null) throw new IllegalArgumentException("页面标题不能为空");
+        String normalized = title.trim();
+        if (normalized.isEmpty()) throw new IllegalArgumentException("页面标题不能为空");
+        if (normalized.length() > 255) throw new IllegalArgumentException("页面标题不能超过 255 个字符");
+        return normalized;
+    }
+
+    private void ensureSiblingTitleAvailable(String tenantId, Long spaceId, Long parentId,
+                                             String title, Long currentPageId) {
+        LambdaQueryWrapper<WikiPage> query = new LambdaQueryWrapper<WikiPage>()
+                .eq(WikiPage::getTenantId, tenantId)
+                .eq(WikiPage::getSpaceId, spaceId)
+                .eq(WikiPage::getTitle, title)
+                .isNull(parentId == null, WikiPage::getParentId)
+                .eq(parentId != null, WikiPage::getParentId, parentId);
+        if (currentPageId != null) query.ne(WikiPage::getId, currentPageId);
+        if (pageMapper.selectCount(query) > 0) {
+            throw new BusinessException(409, "WIKI_PAGE_SIBLING_TITLE_CONFLICT", "同级页面标题已存在");
+        }
     }
 
     private String uniqueSlug(String tenantId, Long spaceId, String base) {

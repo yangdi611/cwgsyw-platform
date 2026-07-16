@@ -7,6 +7,7 @@ import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -169,14 +170,14 @@ public class WikiController {
 
     @PostMapping("/pages")
     @PreAuthorize("hasAuthority('wiki:read')")
-    public R<WikiPageVO> createPage(@RequestBody CreatePageRequest req,
+    public R<WikiPageVO> createPage(@Valid @RequestBody CreatePageRequest req,
                                     @AuthenticationPrincipal SecurityUser u) {
         return R.ok(pageService.createPage(u.getTenantId(), u, req));
     }
 
     @PutMapping("/pages/{id}")
     @PreAuthorize("hasAuthority('wiki:read')")
-    public R<WikiPageVO> savePage(@PathVariable Long id, @RequestBody SavePageRequest req,
+    public R<WikiPageVO> savePage(@PathVariable Long id, @Valid @RequestBody SavePageRequest req,
                                   @AuthenticationPrincipal SecurityUser u) {
         return R.ok(pageService.savePage(u.getTenantId(), u, id, req));
     }

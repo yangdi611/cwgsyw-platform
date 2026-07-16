@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-003` |
 | 优先级 | P2 |
 | 领域 | `04-content-files` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED`（L1-L3 已通过，等待最终 L4） |
 | 风险 | `MEDIUM` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -35,4 +35,4 @@
 - 不批量重命名历史页面
 - 不修改正文编辑
 
-下一门禁：逐符号 GitNexus upstream impact；高风险先告警。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+当前分支：`codex/rem-p2-003-wiki-title-validation`（基线 `lint-fix@3671f9cf`）。标题按 trim 后精确匹配；L1-L3 已通过，最终关闭仍需 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

@@ -27,6 +27,7 @@ const ALLOWED_IMAGE_MIMES = [
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp,.svg,image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
 
 const FMT = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+const WIKI_PAGE_TITLE_MAX_LENGTH = 255
 
 /**
  * 镜像 div 测量法：算出 textarea 中某字符位置光标的像素坐标（相对 textarea 内容左上角）。
@@ -109,7 +110,7 @@ export default function WikiEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: (comment?: string) =>
-      wikiApi.savePage(pid, { title: title.trim() || '无标题', content, comment }),
+      wikiApi.savePage(pid, { title: title.trim(), content, comment }),
     onSuccess: (updated) => {
       setSavedAt(FMT.format(new Date()))
       queryClient.setQueryData<WikiPage>(['wiki-page', pid], updated)
@@ -300,16 +301,18 @@ export default function WikiEditorPage() {
         <Input
           className="h-9 flex-1 text-base font-semibold"
           value={title}
+          maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="页面标题"
         />
+        <span className="shrink-0 text-xs text-v2-subtle">{title.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</span>
         <span className="shrink-0 text-xs text-v2-subtle">
           {savedAt ? `已保存 ${savedAt}` : '未保存'}
         </span>
         <Button
           variant="primary"
           size="sm"
-          disabled={saveMutation.isPending}
+          disabled={!title.trim() || saveMutation.isPending}
           onClick={() => saveMutation.mutate(undefined)}
         >
           <Save className="h-3.5 w-3.5" />
