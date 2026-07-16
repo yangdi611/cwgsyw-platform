@@ -171,7 +171,7 @@ public class WorkflowController {
      */
     @GetMapping("/stats")
     @PreAuthorize("hasPermission('workflow', 'read')")
-    public R<List<Map<String, Object>>> allStats() {
+    public R<List<ProcessStatsVO>> allStats() {
         return R.ok(workflowService.getAllProcessStats());
     }
 
@@ -180,7 +180,7 @@ public class WorkflowController {
      */
     @GetMapping("/stats/{key}")
     @PreAuthorize("hasPermission('workflow', 'read')")
-    public R<Map<String, Object>> processStats(@PathVariable String key) {
+    public R<ProcessStatsVO> processStats(@PathVariable String key) {
         return R.ok(workflowService.getProcessStats(key));
     }
 
@@ -375,7 +375,7 @@ public class WorkflowController {
      */
     @GetMapping("/instances/{id}/activities")
     @PreAuthorize("hasPermission('workflow', 'read')")
-    public R<List<Map<String, Object>>> activities(@PathVariable String id) {
+    public R<List<HistoricActivityVO>> activities(@PathVariable String id) {
         return R.ok(workflowService.getHistoricActivities(id));
     }
 }

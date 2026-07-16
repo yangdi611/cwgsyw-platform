@@ -3,6 +3,8 @@ package com.cwgsyw.platform.module.workflow;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.dto.ApproveRequest;
+import com.cwgsyw.platform.module.workflow.dto.HistoricActivityVO;
+import com.cwgsyw.platform.module.workflow.dto.ProcessStatsVO;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskCompleteCommand;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskSummary;
@@ -80,5 +82,25 @@ class WorkflowControllerCompatibilityTest {
         assertThat(WorkflowCenterController.class.getMethod("complete", WorkflowCenterController.CompleteTaskRequest.class,
             SecurityUser.class).getAnnotation(PreAuthorize.class).value())
             .isEqualTo("hasPermission('daily_report', 'approve')");
+    }
+
+    @Test
+    void workflowReadModels_useTypedCamelCaseContracts() {
+        ProcessStatsVO stats = new ProcessStatsVO();
+        stats.setProcessDefinitionKey("daily_report");
+        stats.setTotalStarted(2);
+        stats.setAvgDurationSeconds(0D);
+        HistoricActivityVO activity = new HistoricActivityVO();
+        activity.setActivityId("end");
+        activity.setEndTime(LocalDateTime.of(2026, 7, 16, 10, 0));
+        when(workflowService.getAllProcessStats()).thenReturn(List.of(stats));
+        when(workflowService.getHistoricActivities("instance-1")).thenReturn(List.of(activity));
+
+        assertThat(controller.allStats().getData()).singleElement().satisfies(result -> {
+            assertThat(result.getProcessDefinitionKey()).isEqualTo("daily_report");
+            assertThat(result.getAvgDurationSeconds()).isZero();
+        });
+        assertThat(controller.activities("instance-1").getData()).singleElement().satisfies(result ->
+            assertThat(result.getEndTime()).isEqualTo(LocalDateTime.of(2026, 7, 16, 10, 0)));
     }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T18:30:00+08:00",
+  "updatedAt": "2026-07-16T18:35:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P2-013",
+  "activeBranch": "codex/rem-p2-013-workflow-read-model-schema",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-012_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-013",
-  "nextBranch": "codex/rem-p2-013-workflow-read-model-schema",
-  "nextAction": "Create REM-P2-013 from the updated lint-fix integration branch and complete its L1-L3 runtime revalidation.",
+  "lastCompletedGate": "REM-P2-013_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-014",
+  "nextBranch": "codex/rem-p2-014-ops-rule-delete-ui",
+  "nextAction": "Commit REM-P2-013 evidence, no-ff merge it into lint-fix, record the event and merge commits, then create REM-P2-014 from the updated integration branch.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 39,
+    "verified": 40,
     "verifying": 0,
-    "notStarted": 2,
+    "notStarted": 1,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -78,12 +78,12 @@
       "REM-P2-009",
       "REM-P2-010",
       "REM-P2-011",
-      "REM-P2-012"
+      "REM-P2-012",
+      "REM-P2-013"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-013",
       "REM-P2-014"
     ],
     "blocked": []
@@ -252,7 +252,7 @@
     },
     "REM-P2-012": {
       "eventCommit": "ba965576305d68f3e1dd3bfaea05edfea11d2588",
-      "mergeCommit": "eb2c53d79cbe59d883b4f5940468738a09802ba1"
+      "mergeCommit": "af04a36ecb5002fc583744dbf31355e6706fab5a"
     }
   },
   "l4": {
