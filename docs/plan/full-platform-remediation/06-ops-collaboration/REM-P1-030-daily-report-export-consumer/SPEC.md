@@ -11,15 +11,16 @@
 
 ## 当前与目标
 
-当前：daily_report:export 可分配，但日报 Controller 和页面没有导出 endpoint 或控件。
+当前：已有综合报表导出 API/UI，但组级 `daily_report:export` 用户可通过 `groupId` 越权导出同租户其他组数据，且侧栏入口未按导出权限守卫。
 
-目标：用户获得无效果权限，授权矩阵与产品能力脱节。对应风险消失，API、服务、DTO、UI、审计和生命周期一致。
+目标：`daily_report:export` 有明确且可运行时强制的消费者；平台/租户范围可导出全租户已审批日报并可按组过滤，组范围只能导出本组；API、UI、审计和生命周期一致。
 
 ## 合同与预计影响
 
-- 根因：permission registry/角色模板先于日报导出能力发布。
-- 候选文件 / 符号：`backend/src/main/java/com/cwgsyw/platform/module/daily/**`、`frontend/src/app/(dashboard)/daily/**`、`backend/src/main/resources/db/migration/**`
-- 范围：决定实现或下架 export action；若实现，提供日期范围下载 API/UI；应用数据范围、文件合同与审计；同步 permission consumer 分类。
+- 根因：已有导出消费者未将 `SecurityUser.groupScope/groupId` 施加到查询范围，导航也未消费 export 权限。
+- 候选文件 / 符号：`ReportController.export`、`ReportExportService.exportExcel`、`navItems` 与现有 `/reports` 页面。
+- 已批准合同（2026-07-16）：platform/tenant 可导出全租户已审批日报并可指定 `groupId`；group 强制为本人组且不能用请求参数越权；仅 `daily_report:export` 可使用本范围导出而不要求 `read`；无 export 必须 403，侧栏不显示入口。
+- 范围：保留现有日期范围 XLSX API/UI，强制数据范围、记录导出审计、同步导航权限消费者。
 - 兼容：保留现有成功响应、路由、query key 和历史业务对象。
 - GitNexus：规划索引已刷新；编辑每个符号前 upstream `impact`。
 

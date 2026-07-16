@@ -102,7 +102,7 @@
 | `BUG-FQA-091` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `VERIFIED` | L1-L3 mapper readback and model-detail contract passed; awaiting L4 |
 | `BUG-FQA-092` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 credential editing, masking, audit and UI persistence passed; awaiting L4 |
 | `BUG-FQA-093` | P1 | [`REM-P1-007`：已删除角色关联读取与清理一致性](./01-security-authorization/REM-P1-007-deleted-role-association-lifecycle/README.md) | `VERIFIED` | L1-L3 deleted-role API/UI lifecycle and cleanup passed; awaiting L4 |
-| `BUG-FQA-094` | P1 | [`REM-P1-030`：日报导出权限运行时消费者](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-094` | P1 | [`REM-P1-030`：日报导出权限运行时消费者](./06-ops-collaboration/REM-P1-030-daily-report-export-consumer/README.md) | `VERIFIED` | L1-L3 API scope/export-only/deny/audit/cleanup、真实导航与 XLSX 下载通过；等待最终 L4 |
 | `BUG-FQA-095` | P1 | [`REM-P1-011`：CMDB 导航、模型路由与查询合同](./03-cmdb-assets/REM-P1-011-cmdb-navigation-query-contracts/README.md) | `VERIFIED` | L1-L3 rack 目录、2D 选择、动态详情路由、机柜视图和精确清理通过；待 L4 |
 | `BUG-FQA-096` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | Audit API/UI exposes redacted before/after snapshots; IPAM/shared-file/ops-rule writers covered; 待 L4 |
 | `BUG-FQA-097` | P2 | [`REM-P2-014`：周期规则删除与确认入口](./06-ops-collaboration/REM-P2-014-ops-rule-delete-ui/README.md) | `NOT_STARTED` | checkpoint.openDefects |
