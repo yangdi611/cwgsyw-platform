@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T10:05:00+08:00",
+  "updatedAt": "2026-07-16T10:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,16 +20,16 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-028_L1_L3_PASS",
-  "nextEvent": "REM-P1-029",
-  "nextBranch": "codex/rem-p1-029-ops-calendar-input-rule-contracts",
-  "nextAction": "After REM-P1-028 is committed and no-ff merged, create REM-P1-029 from current lint-fix.",
+  "lastCompletedGate": "REM-P1-029_L1_L3_PASS",
+  "nextEvent": "REM-P1-030",
+  "nextBranch": "codex/rem-p1-030-daily-report-export-consumer",
+  "nextAction": "After REM-P1-029 is committed and no-ff merged, create REM-P1-030 from current lint-fix.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 25,
+    "verified": 26,
     "verifying": 0,
-    "notStarted": 16,
+    "notStarted": 15,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -64,12 +64,12 @@
       "REM-P1-011",
       "REM-P1-013",
       "REM-P1-015",
-      "REM-P1-028"
+      "REM-P1-028",
+      "REM-P1-029"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P1-029",
       "REM-P1-030",
       "REM-P2-001",
       "REM-P2-002",
@@ -106,7 +106,6 @@
     "REM-P1-027",
     "REM-P1-008",
     "REM-P1-013",
-    "REM-P1-029",
     "REM-P1-030",
     "REM-P2-001",
     "REM-P2-002",
@@ -213,6 +212,9 @@
     },
     "REM-P1-028": {
       "eventCommit": "fe1068430152c61185896c8ce4101e626205fe93"
+    },
+    "REM-P1-029": {
+      "eventCommit": "86359fd79e05bef2d30d19b71bc4ce7225031e30"
     }
   },
   "l4": {
@@ -250,6 +252,7 @@
     "REM-P1-011 L1-L3 passed: Chinese template is single-encoded with UTF-8 filename; update-only UI/API allow and deny are aligned; rack catalog/2D/dynamic detail/elevation path passed; all runId objects were removed by product APIs.",
     "REM-P1-013 L1-L3 passed: group and user input contracts return 400; explicit phone clear and profile status recalculation passed; user-authorized isolated retention override enabled product purge of the sole runId group, then the default retention was restored.",
     "REM-P1-015 L1-L3 passed: PostgreSQL pagination interceptor returns bounded records and accurate total for audit, notification and representative CMDB list; audit action/operatorId/keyword filters passed API/UI revalidation with no test data. Event commit is recorded before the no-ff merge.",
-    "REM-P1-028 L1-L3 passed: TemplateVO fields are loaded correctly; single and dual template creates return numeric IDs, navigate to readable detail routes and were revalidated through API/UI. All four runId draft documents were removed through product DELETE with zero residue. Event commit is recorded before the no-ff merge."
+    "REM-P1-028 L1-L3 passed: TemplateVO fields are loaded correctly; single and dual template creates return numeric IDs, navigate to readable detail routes and were revalidated through API/UI. All four runId draft documents were removed through product DELETE with zero residue. Event commit is recorded before the no-ff merge.",
+    "REM-P1-029 L1-L3 passed: task, holiday and rule invalid inputs return 400; valid holiday/rule creation and preview due ordering passed API/UI checks, with runId objects removed by product DELETE and no residue. Event commit is recorded before the no-ff merge."
   ]
 }

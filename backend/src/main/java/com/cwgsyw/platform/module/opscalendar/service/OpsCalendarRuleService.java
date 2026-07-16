@@ -19,7 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.LocalTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,6 +35,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class OpsCalendarRuleService {
+
+    private static final Set<String> TASK_TYPES = Set.of(
+            "inspection", "roster", "report", "compliance", "monitoring", "daily_report", "other");
+    private static final Set<String> TRIGGER_TYPES = Set.of(
+            "once", "daily", "weekly", "monthly", "quarterly", "semiannual", "yearly", "cron", "holiday_relative");
+    private static final Set<String> VISIBILITIES = Set.of("private", "group", "public");
+    private static final int MAX_GENERATE_DAYS_AHEAD = 366;
 
     private final OpsScheduleRuleMapper ruleMapper;
     private final OpsScheduleTaskMapper taskMapper;
@@ -141,9 +150,7 @@ public class OpsCalendarRuleService {
 
     @Transactional
     public Long create(SecurityUser user, RuleCreateRequest req) {
-        if (!notBlank(req.getName())) throw new IllegalArgumentException("规则名称必填");
-        if (!notBlank(req.getTaskType())) throw new IllegalArgumentException("任务类型必填");
-        if (!notBlank(req.getTriggerType())) throw new IllegalArgumentException("触发类型必填");
+        validateRequest(req);
 
         OpsScheduleRule r = new OpsScheduleRule();
         r.setTenantId(user.getTenantId());
@@ -163,6 +170,7 @@ public class OpsCalendarRuleService {
     public void update(SecurityUser user, Long id, RuleCreateRequest req) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        validateRequest(req);
         String before = snapshot(r);
         applyRequest(r, req);
         validateReferencedGroups(r);
@@ -189,6 +197,80 @@ public class OpsCalendarRuleService {
         if (notBlank(req.getVisibility())) r.setVisibility(req.getVisibility());
         r.setPublicSummary(req.getPublicSummary());
         if (req.getSensitive() != null) r.setSensitive(req.getSensitive());
+    }
+
+    private void validateRequest(RuleCreateRequest req) {
+        if (req == null || !notBlank(req.getName())) throw new IllegalArgumentException("规则名称必填");
+        if (!TASK_TYPES.contains(req.getTaskType())) throw new IllegalArgumentException("不支持的任务类型");
+        if (!TRIGGER_TYPES.contains(req.getTriggerType())) throw new IllegalArgumentException("不支持的触发类型");
+        if (req.getGenerateDaysAhead() != null && (req.getGenerateDaysAhead() < 0
+                || req.getGenerateDaysAhead() > MAX_GENERATE_DAYS_AHEAD)) {
+            throw new IllegalArgumentException("提前生成天数必须在 0 到 " + MAX_GENERATE_DAYS_AHEAD + " 之间");
+        }
+        if (req.getVisibility() != null && !VISIBILITIES.contains(req.getVisibility())) {
+            throw new IllegalArgumentException("不支持的可见性");
+        }
+        validateTriggerConfig(req.getTriggerType(), req.getTriggerConfig());
+        validateDueConfig(req.getTriggerType(), req.getTriggerConfig(), req.getDueConfig());
+    }
+
+    private void validateTriggerConfig(String triggerType, Map<String, Object> config) {
+        Map<String, Object> cfg = config == null ? Map.of() : config;
+        if ("cron".equals(triggerType)) {
+            Object expression = cfg.get("expression");
+            if (!(expression instanceof String cron) || cron.isBlank()) throw new IllegalArgumentException("Cron 表达式必填");
+            try {
+                CronExpression.parse(cron);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Cron 表达式无效", exception);
+            }
+            return;
+        }
+        if (!"cron".equals(triggerType) && cfg.get("time") != null) {
+            try {
+                LocalTime.parse(String.valueOf(cfg.get("time")));
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("触发时间无效", exception);
+            }
+        }
+    }
+
+    private void validateDueConfig(String triggerType, Map<String, Object> triggerConfig,
+                                   Map<String, Object> dueConfig) {
+        Map<String, Object> due = dueConfig == null ? Map.of() : dueConfig;
+        Object offset = due.get("offsetDays");
+        int offsetDays;
+        try {
+            offsetDays = offset instanceof Number number ? number.intValue()
+                    : offset == null ? 0 : Integer.parseInt(String.valueOf(offset));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("截止偏移天数无效", exception);
+        }
+        if (offsetDays < 0) throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        Object time = due.get("time");
+        LocalTime dueTime;
+        try {
+            dueTime = LocalTime.parse(time == null ? "18:00" : String.valueOf(time));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("截止时间无效", exception);
+        }
+        if (offsetDays == 0) {
+            LocalTime triggerTime = resolveTriggerTime(triggerType, triggerConfig);
+            if (triggerTime != null && dueTime.isBefore(triggerTime)) {
+                throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+            }
+        }
+    }
+
+    private LocalTime resolveTriggerTime(String triggerType, Map<String, Object> triggerConfig) {
+        Map<String, Object> cfg = triggerConfig == null ? Map.of() : triggerConfig;
+        if ("cron".equals(triggerType)) {
+            Object expression = cfg.get("expression");
+            if (!(expression instanceof String cron) || cron.isBlank()) return null;
+            return CronExpression.parse(cron).next(LocalDateTime.now()).toLocalTime();
+        }
+        Object time = cfg.get("time");
+        return time == null ? LocalTime.of(9, 0) : LocalTime.parse(String.valueOf(time));
     }
 
     @Transactional
