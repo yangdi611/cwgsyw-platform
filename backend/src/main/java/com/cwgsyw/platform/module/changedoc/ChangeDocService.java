@@ -53,6 +53,7 @@ public class ChangeDocService {
     private final ExportService exportService;
     private final com.cwgsyw.platform.module.sharedfile.SharedFileService sharedFileService;
     private final TableFieldSupport tableFieldSupport;
+    private final ChangeDocLinkService changeDocLinkService;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -213,6 +214,11 @@ public class ChangeDocService {
         doc.setUpdatedAt(LocalDateTime.now());
 
         changeDocMapper.insert(doc);
+        if (req.getCiSnapshots() != null && !req.getCiSnapshots().isEmpty()) {
+            LinkCiRequest linkRequest = new LinkCiRequest();
+            linkRequest.setLinks(req.getCiSnapshots());
+            changeDocLinkService.linkCiInstances(tenantId, doc.getId(), operatorId, linkRequest);
+        }
         saveSnapshot(doc, operatorId, "create");
         writeAuditLog(tenantId, "create", doc.getId(), operatorId, null, toJson(doc), "创建变更文档");
 
