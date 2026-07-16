@@ -129,3 +129,4 @@
 |---|---|---|---|
 | `L4-PROMETHEUS-CONFIG-001`：前端保存请求缺后端 mapping，HTTP 500 | [`REM-P2-016`](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/README.md) | `VERIFYING` | 不改变历史 `BUG-FQA-*` 的唯一主映射；修复后重新执行受影响 L4 配置/外部集成范围。 |
 | `L4-EXTERNAL-FIXTURES-001`：外部 SMTP、Prometheus、AI 缺隔离且可恢复的验证环境 | [`REM-P2-017`](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；内部 mock、显式清钥、产品 API 恢复和 L1-L3 已通过，待最终 L4 重跑。 |
+| `L4-WIKI-022-001`：不存在 Wiki space/page 永久加载并产生 404 Console error | [`REM-P2-018`](./04-content-files/REM-P2-018-wiki-missing-resource-loading/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；阅读页与目录侧栏均已避免无效资源请求，L1-L3 通过，待最终 L4 重跑。 |
