@@ -44,7 +44,7 @@ function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; spaceId
 
 /**
  * 把 [[标题]] / [[标题|别名]] 转换为 markdown 链接。
- * 已知标题 → 真实路由链接；未知标题 → 行内代码 + 「待创建」提示。
+ * 已知标题 → 真实路由链接；未知标题 → 由 Markdown 链接组件识别的受控提示。
  */
 function preprocessWikiLinks(
   content: string,
@@ -57,7 +57,7 @@ function preprocessWikiLinks(
     if (target) {
       return `[${display}](/wiki/${target.spaceId}/${target.id})`
     }
-    return `\`${display}\`<sup title="该页面尚未创建">待创建</sup>`
+    return `[${display}](#wiki-pending-link)`
   })
 }
 

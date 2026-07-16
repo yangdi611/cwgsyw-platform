@@ -53,7 +53,7 @@
 | `REM-P2-005` | P2 | Wiki 当前页面导出合同 | `BUG-FQA-038` | `VERIFIED` | `MEDIUM` | L1-L3 单页端点、中文文件名、空间 ZIP 与零 Console error 通过；等待 L4 | [事件卡](./04-content-files/REM-P2-005-wiki-page-export-contract/README.md) / [SPEC](./04-content-files/REM-P2-005-wiki-page-export-contract/SPEC.md) / [验证](./04-content-files/REM-P2-005-wiki-page-export-contract/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-005-wiki-page-export-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-006` | P2 | 通用配置拒绝的 HTTP 与业务码一致性 | `BUG-FQA-022` | `VERIFIED` | `HIGH` | L1-L3 4xx、首次 upsert、恢复、仅键名审计与受影响配置入口回归通过；等待最终 L4 | [事件卡](./07-platform-integration/REM-P2-006-configuration-http-status-contract/README.md) / [SPEC](./07-platform-integration/REM-P2-006-configuration-http-status-contract/SPEC.md) / [验证](./07-platform-integration/REM-P2-006-configuration-http-status-contract/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P2-006-configuration-http-status-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-007` | P2 | 运维材料导出文件与摘要合同 | `BUG-FQA-106` | `VERIFIED` | `LOW` | L1-L3 UTF-8 下载头、XLSX 摘要/明细、空范围/400/403 与真实页面下载通过；等待最终 L4 | [事件卡](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/README.md) / [SPEC](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/CLAUDE-CODE-PROMPT.md) |
-| `REM-P2-008` | P2 | Wiki 未知链接友好渲染 | `BUG-FQA-046` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) / [SPEC](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/SPEC.md) / [验证](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-008` | P2 | Wiki 未知链接友好渲染 | `BUG-FQA-046` | `VERIFIED` | `LOW` | L1-L3 pending 状态语义、有效/别名链接、无 raw 标签、零 Console 与精确清理通过；待最终 L4 | [事件卡](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) / [SPEC](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/SPEC.md) / [验证](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-009` | P2 | Wiki 搜索入口与历史导航 | `BUG-FQA-071` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-009-wiki-search-discovery-history/README.md) / [SPEC](./04-content-files/REM-P2-009-wiki-search-discovery-history/SPEC.md) / [验证](./04-content-files/REM-P2-009-wiki-search-discovery-history/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-009-wiki-search-discovery-history/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-010` | P2 | Wiki 系统手册与只读空间种子 | `BUG-FQA-078` | `NOT_STARTED` | `MEDIUM` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./04-content-files/REM-P2-010-wiki-system-space-seed/README.md) / [SPEC](./04-content-files/REM-P2-010-wiki-system-space-seed/SPEC.md) / [验证](./04-content-files/REM-P2-010-wiki-system-space-seed/VERIFICATION.md) / [Prompt](./04-content-files/REM-P2-010-wiki-system-space-seed/CLAUDE-CODE-PROMPT.md) |
 | `REM-P2-011` | P2 | 通知引用目标跳转合同 | `BUG-FQA-025` | `NOT_STARTED` | `LOW` | 认领独立分支；逐符号 impact；从 AC-001 开始 | [事件卡](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/README.md) / [SPEC](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/SPEC.md) / [验证](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P2-011-notification-reference-navigation/CLAUDE-CODE-PROMPT.md) |
@@ -80,10 +80,10 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 
 | 状态 | 数量 |
 |---|---:|
-| `NOT_STARTED` | 7 |
+| `NOT_STARTED` | 6 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 34 |
+| `VERIFIED` | 35 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
 

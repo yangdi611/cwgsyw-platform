@@ -54,7 +54,7 @@
 | `BUG-FQA-043` | P2 | [`REM-P2-001`：动态资源不存在与错误态收敛](./08-cross-cutting-contracts/REM-P2-001-dynamic-resource-not-found-states/README.md) | `VERIFIED` | L1-L3 设备/IPAM 404 与可恢复页面错误态通过；待最终 L4 |
 | `BUG-FQA-044` | P2 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `VERIFIED` | L1-L3 phone clear null readback and profile completion recalculation passed; 待 L4 |
 | `BUG-FQA-045` | P1 | [`REM-P1-017`：Wiki 资源授权、归属组与不存在语义](./04-content-files/REM-P1-017-wiki-resource-authorization-semantics/README.md) | `VERIFIED` | L1-L3 不存在页面/空间 404 与不可操作错误态通过；待最终 L4 |
-| `BUG-FQA-046` | P2 | [`REM-P2-008`：Wiki 未知链接友好渲染](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-046` | P2 | [`REM-P2-008`：Wiki 未知链接友好渲染](./04-content-files/REM-P2-008-wiki-unknown-link-rendering/README.md) | `VERIFIED` | L1-L3 未知链接状态语义、有效/别名链接、无 raw 标签与产品 API 清理通过；待最终 L4 |
 | `BUG-FQA-047` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `VERIFIED` | L1-L3 color validation, API/UI revalidation and cleanup passed; awaiting L4 |
 | `BUG-FQA-048` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 copy/字段类型-default-sort/精确清理通过；待最终 L4 |
 | `BUG-FQA-049` | P1 | [`REM-P1-025`：Workflow 模板实例可审计清理生命周期](./05-workflow-change/REM-P1-025-workflow-template-instance-cleanup/README.md) | `VERIFIED` | L1-L3 template delete, reference protection, audit and UI confirmation passed; awaiting L4 |
