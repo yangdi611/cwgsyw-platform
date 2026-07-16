@@ -63,9 +63,11 @@ export default function MaterialsPage() {
       const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       if (!res.ok) throw new Error('导出失败 ' + res.status)
       const blob = await res.blob()
+      const fallbackName = `运维素材_${startDate}_${endDate}.xlsx`
+      const filename = downloadFilename(res.headers.get('content-disposition'), fallbackName)
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = `运维素材_${startDate}_${endDate}.xlsx`
+      a.download = filename
       a.click()
       URL.revokeObjectURL(a.href)
     } catch (e) {
@@ -159,6 +161,14 @@ export default function MaterialsPage() {
       </Card>
     </div>
   )
+}
+
+function downloadFilename(contentDisposition: string | null, fallbackName: string): string {
+  if (!contentDisposition) return fallbackName
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition)
+  const plain = /filename="?([^";]+)"?/i.exec(contentDisposition)
+  if (encoded) return decodeURIComponent(encoded[1])
+  return plain?.[1] ?? fallbackName
 }
 
 function Stat({ label, value, tone = 'text-v2-fg' }: { label: string; value: number; tone?: string }) {

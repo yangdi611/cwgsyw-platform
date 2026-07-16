@@ -35,6 +35,7 @@ public class OpsCalendarMaterialService {
     public ReportMaterialVO collect(String tenantId, String periodType, LocalDate startDate,
                                     LocalDate endDate, Long groupId) {
         if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate 必填");
+        if (startDate.isAfter(endDate)) throw new IllegalArgumentException("startDate 不能晚于 endDate");
 
         LambdaQueryWrapper<OpsScheduleTask> qw = new LambdaQueryWrapper<OpsScheduleTask>()
                 .eq(OpsScheduleTask::getTenantId, tenantId)
@@ -104,27 +105,47 @@ public class OpsCalendarMaterialService {
 
             CellStyle header = headerStyle(wb);
 
-            // Sheet 1: 概览
+            // Sheet 1: 范围与统计概览
             Sheet overview = wb.createSheet("概览");
-            String[] ovHead = {"周期类型", "开始", "结束", "任务总数", "已完成", "已逾期", "异常关闭"};
-            Row oh = overview.createRow(0);
+            overview.createRow(0).createCell(0).setCellValue("统计周期");
+            Row period = overview.createRow(1);
+            period.createCell(0).setCellValue("周期类型");
+            period.createCell(1).setCellValue(periodType == null ? "-" : periodType);
+            period.createCell(2).setCellValue("开始日期");
+            period.createCell(3).setCellValue(vo.getStartDate());
+            period.createCell(4).setCellValue("结束日期");
+            period.createCell(5).setCellValue(vo.getEndDate());
+
+            overview.createRow(3).createCell(0).setCellValue("统计概览");
+            String[] ovHead = {"任务总数", "已完成", "已逾期", "异常关闭"};
+            Row oh = overview.createRow(4);
             for (int i = 0; i < ovHead.length; i++) { Cell c = oh.createCell(i); c.setCellValue(ovHead[i]); c.setCellStyle(header); }
-            Row ov = overview.createRow(1);
-            ov.createCell(0).setCellValue(periodType == null ? "-" : periodType);
-            ov.createCell(1).setCellValue(vo.getStartDate());
-            ov.createCell(2).setCellValue(vo.getEndDate());
-            ov.createCell(3).setCellValue(vo.getTotalTasks());
-            ov.createCell(4).setCellValue(vo.getCompletedTasks());
-            ov.createCell(5).setCellValue(vo.getOverdueTasks());
-            ov.createCell(6).setCellValue(vo.getExceptionTasks());
-            for (int i = 0; i < ovHead.length; i++) overview.setColumnWidth(i, 14 * 256);
+            Row ov = overview.createRow(5);
+            ov.createCell(0).setCellValue(vo.getTotalTasks());
+            ov.createCell(1).setCellValue(vo.getCompletedTasks());
+            ov.createCell(2).setCellValue(vo.getOverdueTasks());
+            ov.createCell(3).setCellValue(vo.getExceptionTasks());
+
+            overview.createRow(7).createCell(0).setCellValue("状态汇总");
+            String[] statusHead = {"状态", "数量"};
+            Row sh = overview.createRow(8);
+            for (int i = 0; i < statusHead.length; i++) { Cell c = sh.createCell(i); c.setCellValue(statusHead[i]); c.setCellStyle(header); }
+            int statusRow = 9;
+            for (Map.Entry<String, Integer> entry : statusBreakdown(vo).entrySet()) {
+                Row row = overview.createRow(statusRow++);
+                row.createCell(0).setCellValue(entry.getKey());
+                row.createCell(1).setCellValue(entry.getValue());
+            }
+            overview.setColumnWidth(0, 18 * 256);
+            for (int i = 1; i < 6; i++) overview.setColumnWidth(i, 14 * 256);
 
             // Sheet 2: 任务明细
             Sheet detail = wb.createSheet("任务明细");
+            detail.createRow(0).createCell(0).setCellValue("任务明细");
             String[] dHead = {"任务ID", "标题", "类型", "状态", "结论", "风险", "完成时间", "负责人", "关联对象"};
-            Row dh = detail.createRow(0);
+            Row dh = detail.createRow(1);
             for (int i = 0; i < dHead.length; i++) { Cell c = dh.createCell(i); c.setCellValue(dHead[i]); c.setCellStyle(header); }
-            int r = 1;
+            int r = 2;
             for (ReportMaterialVO.MaterialItem item : vo.getItems()) {
                 Row row = detail.createRow(r++);
                 row.createCell(0).setCellValue(item.getTaskId() == null ? 0 : item.getTaskId());
@@ -161,6 +182,14 @@ public class OpsCalendarMaterialService {
     }
 
     private String nz(String s) { return s == null ? "" : s; }
+
+    private Map<String, Integer> statusBreakdown(ReportMaterialVO vo) {
+        Map<String, Integer> breakdown = new LinkedHashMap<>();
+        for (ReportMaterialVO.MaterialItem item : vo.getItems()) {
+            breakdown.merge(nz(item.getStatus()), 1, Integer::sum);
+        }
+        return breakdown;
+    }
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
 }
