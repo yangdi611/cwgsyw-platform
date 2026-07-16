@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -53,7 +54,7 @@ public class ReportController {
 
         String filename = "日报汇总_" + startDate + "_" + endDate + ".xlsx";
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build());
         headers.setContentType(MediaType.parseMediaType(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         return ResponseEntity.ok().headers(headers).body(bytes);
