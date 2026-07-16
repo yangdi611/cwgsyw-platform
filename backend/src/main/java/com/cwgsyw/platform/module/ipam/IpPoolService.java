@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.AuditSnapshotSerializer;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
@@ -381,7 +382,7 @@ public class IpPoolService {
         try {
             findPoolOrThrow(poolId, tenantId, callerGroupId, callerGroupScope);
             return true;
-        } catch (IllegalArgumentException ignored) {
+        } catch (BusinessException | IllegalArgumentException ignored) {
             return false;
         }
     }
@@ -464,10 +465,10 @@ public class IpPoolService {
     private IpPool findPoolOrThrow(Long id, String tenantId, Long callerGroupId, String callerGroupScope) {
         IpPool pool = ipPoolMapper.selectById(id);
         if (pool == null || pool.getIsDeleted() || !pool.getTenantId().equals(tenantId)) {
-            throw new IllegalArgumentException("地址池不存在");
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "地址池不存在");
         }
         if ("group".equals(callerGroupScope) && (callerGroupId == null || !callerGroupId.equals(pool.getGroupId()))) {
-            throw new IllegalArgumentException("无权访问该地址池");
+            throw BusinessException.forbidden("RESOURCE_FORBIDDEN", "无权访问该地址池");
         }
         return pool;
     }

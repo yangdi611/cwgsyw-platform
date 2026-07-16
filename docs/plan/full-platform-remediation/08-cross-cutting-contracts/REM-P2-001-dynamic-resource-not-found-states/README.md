@@ -5,9 +5,9 @@
 | 事件 ID | `REM-P2-001` |
 | 优先级 | P2 |
 | 领域 | `08-cross-cutting-contracts` |
-| 状态 | `NOT_STARTED` |
+| 状态 | `VERIFIED` |
 | 风险 | `LOW` |
-| 负责人 | 待实施时认领 |
+| 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
@@ -38,6 +38,6 @@
 - 不恢复已删除资源
 - 不统一改造全部动态路由
 
-下一门禁：实施前逐符号 GitNexus upstream impact；`HIGH/CRITICAL` 先告警。完成 L1-L3 后进入 L4 全量 FQA。
+事件级 L1-L3 已通过；下一门禁为发布候选版全量 L4 复验。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)

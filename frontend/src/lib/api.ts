@@ -50,8 +50,6 @@ api.interceptors.response.use(
         if (window.location.pathname !== '/account/setup') {
           window.location.href = '/account/setup'
         }
-      } else {
-        console.warn('[API 403] Forbidden:', err.config?.url)
       }
     }
     return Promise.reject(err)
