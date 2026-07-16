@@ -114,7 +114,7 @@
 | `BUG-FQA-103` | P2 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 copy feedback and browser crypto compatibility passed; awaiting L4 |
 | `BUG-FQA-104` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 条件流命名空间与表达式往返通过；待最终 L4 |
 | `BUG-FQA-105` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 名称、分类、描述、XML 和版本往返通过；待最终 L4 |
-| `BUG-FQA-106` | P2 | [`REM-P2-007`：运维材料导出文件与摘要合同](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/README.md) | `NOT_STARTED` | checkpoint.openDefects |
+| `BUG-FQA-106` | P2 | [`REM-P2-007`：运维材料导出文件与摘要合同](./06-ops-collaboration/REM-P2-007-ops-material-export-contract/README.md) | `VERIFIED` | L1-L3 UTF-8 下载头、XLSX 摘要、空范围/400/403 与真实页面下载通过；待最终 L4 |
 
 ## 规则
 

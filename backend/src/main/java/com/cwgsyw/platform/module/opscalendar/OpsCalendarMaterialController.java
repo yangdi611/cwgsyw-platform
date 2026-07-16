@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 /**
@@ -48,7 +49,7 @@ public class OpsCalendarMaterialController {
         byte[] bytes = materialService.exportExcel(cu.getTenantId(), periodType, startDate, endDate, groupId);
         String filename = "运维素材_" + startDate + "_" + endDate + ".xlsx";
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build());
         headers.setContentType(MediaType.parseMediaType(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         return ResponseEntity.ok().headers(headers).body(bytes);

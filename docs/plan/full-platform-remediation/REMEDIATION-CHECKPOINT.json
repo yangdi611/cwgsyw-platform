@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T16:20:00+08:00",
+  "updatedAt": "2026-07-16T17:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,19 +17,19 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REVALIDATION",
-  "activeEvent": "REM-P2-007",
+  "activeEvent": "REM-P2-008",
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-006_L1_L3_RUNTIME_REVALIDATION",
-  "nextEvent": "REM-P2-007",
-  "nextBranch": "codex/rem-p2-007-ops-material-export-contract",
-  "nextAction": "Create the REM-P2-007 event branch from lint-fix, run symbol impact analysis, then begin AC-001.",
+  "lastCompletedGate": "REM-P2-007_L1_L3_RUNTIME_REVALIDATION",
+  "nextEvent": "REM-P2-008",
+  "nextBranch": "codex/rem-p2-008-wiki-unknown-link-rendering",
+  "nextAction": "Create the REM-P2-008 event branch from lint-fix, run symbol impact analysis, then begin AC-001.",
   "statusCounts": {
     "total": 45,
     "closed": 4,
-    "verified": 33,
+    "verified": 34,
     "verifying": 0,
-    "notStarted": 8,
+    "notStarted": 7,
     "blocked": 0
   },
   "eventsByStatus": {
@@ -72,12 +72,12 @@
       "REM-P2-003",
       "REM-P2-004",
       "REM-P2-005",
-      "REM-P2-006"
+      "REM-P2-006",
+      "REM-P2-007"
     ],
     "verifying": [],
     "inProgress": [],
     "notStarted": [
-      "REM-P2-007",
       "REM-P2-008",
       "REM-P2-009",
       "REM-P2-010",
@@ -234,6 +234,9 @@
     },
     "REM-P2-006": {
       "eventCommit": "5e016552f54a67ef44bbf025308bda1b36df7540"
+    },
+    "REM-P2-007": {
+      "eventCommit": "a37f47094312fb3d9a262aa63d144b901a0fee27"
     }
   },
   "l4": {
@@ -280,6 +283,7 @@
     "REM-P2-005 L1-L3 passed: page export requests the page endpoint, uses the current Chinese page title as the browser fallback filename and downloads Markdown; space export remains a separate ZIP endpoint. Current-branch frontend build, lint, typecheck and real browser verification passed with zero Console errors and no product data writes; next event is REM-P2-006.",
     "REM-P2-006 is BLOCKED after minimal Controller validation implementation and current-branch backend build: the available superadmin session lacks workflow:configure and receives security-layer 403 for config GET/PUT, so it cannot prove the intended Controller 400 contract. BR-012 requires approval for a product-API-created, runId-tagged minimal workflow:configure test identity followed by exact cleanup.",
     "REM-P2-006 L1-L3 passed: the current authenticated session has workflow:configure; whitelist, empty and invalid-type requests all return matching HTTP/body 400 with unchanged configuration reads. The temporary local-development authorization records created during diagnosis were fully removed (legacy link, role permission, active assignment and active role counts all zero); next event is REM-P2-007.",
-    "REM-P2-006 L1-L3 passed under explicit authorization: reject requests return HTTP/body 400 without writes; an absent allowed key was inserted, read back and restored; its two retained audit rows expose only the key name. SysConfigService.set now uses a PostgreSQL atomic upsert, and its workflow binding, SMTP, notification and watermark consumers were regressed. The HIGH shared-service impact was accepted; temporary authorization records are zero. Event commit is pending, then no-ff merge advances to REM-P2-007."
+    "REM-P2-006 L1-L3 passed under explicit authorization: reject requests return HTTP/body 400 without writes; an absent allowed key was inserted, read back and restored; its two retained audit rows expose only the key name. SysConfigService.set now uses a PostgreSQL atomic upsert, and its workflow binding, SMTP, notification and watermark consumers were regressed. The HIGH shared-service impact was accepted; temporary authorization records are zero. Event commit is pending, then no-ff merge advances to REM-P2-007.",
+    "REM-P2-007 L1-L3 passed: UTF-8 filename header survives Tomcat/Nginx, XLSX contains period/summary/status/detail sections, empty range remains exportable, reversed range is 400 and unauthenticated access is 403. Current-branch backend/frontend containers and real Playwright login→management menu→materials→collect→download passed with a Chinese filename and zero Console errors. No test data was created. Event commit is pending, then no-ff merge advances to REM-P2-008."
   ]
 }
