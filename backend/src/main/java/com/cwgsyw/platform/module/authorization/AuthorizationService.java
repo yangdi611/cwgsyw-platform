@@ -114,7 +114,15 @@ public class AuthorizationService {
         if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
         AuthorizationDecision decision = decideCreate(user, permissionCode, ownerGroupId);
         if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
-        return legacyAllowed.getAsBoolean();
+        boolean legacyDecision = legacyAllowed.getAsBoolean();
+        jdbcTemplate.update("""
+            INSERT INTO authorization_decision_diff
+                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
+                 legacy_allowed, new_allowed, new_reason_code)
+            VALUES (?, ?, ?, ?, 'create', 0, ?, ?, ?)
+            """, user.getTenantId(), user.getUserId(), module, permissionCode,
+            legacyDecision, decision.isAllowed(), decision.getReasonCode());
+        return legacyDecision;
     }
 
     public boolean canUseOwnerGroup(SecurityUser user, Long ownerGroupId) {

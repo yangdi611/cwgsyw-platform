@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T12:45:00+08:00",
+  "updatedAt": "2026-07-17T16:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_REVALIDATION",
+  "phase": "AWAITING_NEW_REMEDIATION_AUTHORIZATION",
   "activeEvent": null,
-  "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260717_1125_final_l4",
-  "lastCompletedGate": "REM-P2-032_MERGED",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Create the independent final L4 branch from the latest lint-fix and execute the full applicable 275+78 acceptance matrix from a new runId; prior L4 first-failure evidence remains historical and cannot substitute for final PASS.",
+  "activeBranch": null,
+  "activeRunId": null,
+  "lastCompletedGate": "REM-P0-003_MERGED",
+  "nextEvent": "NEW_REM_HISTORICAL_WIKI_ACL_DECISION_DIFF",
+  "nextBranch": null,
+  "nextAction": "After this --no-ff merge commits, await explicit user approval before creating a distinct REM event for six existing Wiki resource legacy-versus-unified ACL decision diffs. Do not modify non-test ACL, role, assignment, or cutover. REM-P0-003 is verified with Java 21 L1 and runtime L2-L3 evidence that create coverage reduced unobservedPermissionGrants from 5 to 0 and all runId objects were cleaned.",
   "statusCounts": {
-    "total": 65,
+    "total": 67,
     "closed": 4,
-    "verified": 61,
+    "verified": 63,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -42,6 +42,7 @@
     ],
     "verified": [
       "REM-P1-004",
+      "REM-P0-003",
       "REM-P1-005",
       "REM-P1-006",
       "REM-P1-007",
@@ -99,8 +100,10 @@
       "REM-P2-026",
       "REM-P2-027",
       "REM-P2-028",
+      "REM-P2-029",
       "REM-P2-030",
-      "REM-P2-031"
+      "REM-P2-031",
+      "REM-P2-032"
     ],
     "verifying": [],
     "inProgress": [],
@@ -144,6 +147,10 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P0-003": {
+      "eventCommit": "4d41d75db285a0f210d10a53b6226fc3677a5c70",
+      "mergeCommit": "5c35543bff56abc9ec9ff52ac90189daa1a2588d"
+    },
     "REM-P2-032": {
       "eventCommit": "f54f943f4978e4009656a7b3755f9ba28ce1c408"
     },
