@@ -157,7 +157,8 @@
       "eventCommit": "6ae6b5c3959c67267aef711fd8f51ae8127a8455"
     },
     "REM-P1-037": {
-      "eventCommit": "e1798e5012e28d97f721a037f9c0a07dbce676bc"
+      "eventCommit": "e1798e505dce41f44af614a626c452d746661c72",
+      "mergeCommit": "add9df1eb7610f4dfc73d81e5316dd241ebec3a7"
     },
     "REM-P0-005": {
       "eventCommit": "d053f7324b0d9c9f714fd4bebe0cb1ffbb906f36"
