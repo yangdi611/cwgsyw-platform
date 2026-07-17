@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.workflow.runtime;
 
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
+import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowAdapter;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowAdapterRegistry;
@@ -9,6 +11,7 @@ import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBinding;
 import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstanceMapper;
 import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
 import com.cwgsyw.platform.module.workflow.template.TemplateApproverResolver;
+import com.cwgsyw.platform.security.SecurityUser;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
@@ -23,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +49,7 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
     @Mock com.cwgsyw.platform.module.rbac.RbacService rbacService;
     @Mock com.cwgsyw.platform.module.rbac.SysRoleMapper roleMapper;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    @Mock GroupMapper groupMapper;
     @Mock BusinessWorkflowAdapter adapter;
     @Mock ProcessInstance processInstance;
 
@@ -76,5 +81,26 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
         order.verify(activeGroupReferenceValidator).lockAndRequire("default", 99L);
         order.verify(runtimeService).startProcessInstanceById(anyString(), anyString(), any());
         assertThat(result.getProcessInstanceId()).isEqualTo("pi-1");
+    }
+
+    @Test
+    void platformApproverReceivesAllActiveTenantGroupTokens() throws Exception {
+        Group first = new Group();
+        first.setId(3L);
+        Group second = new Group();
+        second.setId(7L);
+        when(groupMapper.selectList(any())).thenReturn(List.of(first, second));
+        when(rbacService.getUserRoleIds(9L)).thenReturn(List.of());
+        when(approverResolver.groupToken(3L)).thenReturn("group_3");
+        when(approverResolver.groupToken(7L)).thenReturn("group_7");
+
+        var method = WorkflowRuntimeFacadeImpl.class.getDeclaredMethod("candidateGroupTokens", SecurityUser.class);
+        method.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<String> tokens = (List<String>) method.invoke(facade,
+            new SecurityUser(9L, "platform", "", "tenant-a", null, "platform", Set.of("daily_report:approve")));
+
+        assertThat(tokens).containsExactlyInAnyOrder("group_3", "group_7");
+        verify(groupMapper).selectList(any());
     }
 }

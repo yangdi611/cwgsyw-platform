@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T23:50:00+08:00",
+  "updatedAt": "2026-07-17T23:56:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_REVALIDATION_PENDING",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P1-034_MERGED",
-  "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation-2",
-  "nextAction": "Create a new final L4 branch from latest lint-fix, rerun DAILY-006/ST-DAILY-001 and FLOW-001/FLOW-002 because the discovered regression exposed a separate approval-task visibility failure, then resume the full 275+78 matrix.",
+  "phase": "EVENT_VERIFIED_PENDING_MERGE",
+  "activeEvent": "REM-P1-035",
+  "activeBranch": "codex/rem-p1-035-daily-platform-approval-task-visibility",
+  "activeRunId": "FQA_20260717_1245_final_l4_DAILY_STATE",
+  "lastCompletedGate": "REM-P1-035_L1_L3_PASS",
+  "nextEvent": "REM-P1-035",
+  "nextBranch": "codex/rem-p1-035-daily-platform-approval-task-visibility",
+  "nextAction": "Commit REM-P1-035 and merge it with --no-ff into lint-fix. Then create a new L4 branch from latest lint-fix and rerun DAILY-006/ST-DAILY-001/FLOW-001/FLOW-002 before continuing the full 275+78 matrix.",
   "statusCounts": {
-    "total": 70,
+    "total": 71,
     "closed": 4,
-    "verified": 66,
+    "verified": 67,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -75,6 +75,7 @@
       "REM-P1-032",
       "REM-P1-033",
       "REM-P1-034",
+      "REM-P1-035",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -168,6 +169,7 @@
     "REM-P1-034": {
       "eventCommit": "23490e06446d6184df9f1bf8814c71e3b855c5a4"
     },
+    "REM-P1-035": {},
     "REM-P1-031": {
       "eventCommit": "693c2c5adc2ac9290f2a3fc94772d93225642eff"
     },
