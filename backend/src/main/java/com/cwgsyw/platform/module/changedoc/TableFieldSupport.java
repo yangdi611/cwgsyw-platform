@@ -3,6 +3,9 @@ package com.cwgsyw.platform.module.changedoc;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 /**
@@ -181,6 +184,28 @@ public class TableFieldSupport {
                 .anyMatch(option -> String.valueOf(option.get("value")).equals(String.valueOf(value)));
             if (!found) throw new IllegalArgumentException(field.getLabel() + "不是有效选项");
         }
+        validateTemporalValue(field.getLabel(), field.getFieldType(), value);
+    }
+
+    private void validateTemporalValue(String label, String fieldType, Object value) {
+        String text = String.valueOf(value);
+        try {
+            if ("date".equals(fieldType)) {
+                if (!text.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                    throw new DateTimeParseException("Invalid date format", text, 0);
+                }
+                LocalDate.parse(text);
+            }
+            if ("datetime".equals(fieldType)) {
+                if (!text.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,9})?)?")) {
+                    throw new DateTimeParseException("Invalid datetime format", text, 0);
+                }
+                LocalDateTime.parse(text);
+            }
+        } catch (DateTimeParseException exception) {
+            String typeLabel = "datetime".equals(fieldType) ? "日期时间" : "日期";
+            throw new IllegalArgumentException(label + "不是有效" + typeLabel);
+        }
     }
 
     private List<Map<String, Object>> validateTableField(ChangeDocField field, Object rawValue, boolean enforceRequired) {
@@ -276,7 +301,8 @@ public class TableFieldSupport {
                             throw new IllegalArgumentException(label + "第 " + rowIndex + " 行“" + colLabel + "”必须是布尔值");
                         }
                     }
-                    default -> { /* text/textarea/date/datetime 不额外校验类型 */ }
+                    case "date", "datetime" -> validateTemporalValue(label + "第 " + rowIndex + " 行“" + colLabel + "”", type, cellValue);
+                    default -> { /* text/textarea 不额外校验类型 */ }
                 }
             }
             result.add(row);
