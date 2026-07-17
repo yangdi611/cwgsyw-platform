@@ -314,6 +314,31 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void shadowCreateDecisionRecordsCreateObservationAndReturnsLegacyDecision() {
+        when(modeService.effectiveMode("default")).thenReturn(AuthorizationModeService.EffectiveMode.SHADOW);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:create"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+
+        assertTrue(service.decideCreateWithCompatibility(user, "wiki", "wiki:create", 3L, true));
+
+        verify(jdbcTemplate).update(anyString(), eq("default"), eq(7L), eq("wiki"), eq("wiki:create"),
+            eq(true), eq(true), eq("ALLOWED"));
+    }
+
+    @Test
+    void legacyAndEnforcedCreateDecisionsDoNotRecordShadowObservation() {
+        when(modeService.effectiveMode("default")).thenReturn(AuthorizationModeService.EffectiveMode.LEGACY);
+        assertTrue(service.decideCreateWithCompatibility(user, "wiki", "wiki:create", 3L, true));
+
+        when(modeService.effectiveMode("default")).thenReturn(AuthorizationModeService.EffectiveMode.ENFORCED);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:create"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+        assertTrue(service.decideCreateWithCompatibility(user, "wiki", "wiki:create", 3L, true));
+
+        verifyNoInteractions(jdbcTemplate);
+    }
+
+    @Test
     void shadowPolicyDenialRecordsConstrainedDecision() {
         when(modeService.effectiveMode("default")).thenReturn(AuthorizationModeService.EffectiveMode.SHADOW);
 
