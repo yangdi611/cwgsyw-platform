@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T23:56:00+08:00",
+  "updatedAt": "2026-07-18T00:42:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-035_MERGED",
+  "lastCompletedGate": "REM-P1-036_MERGED",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation-20260717-rem-p1-035",
-  "nextAction": "Create a new final L4 branch from latest lint-fix, rerun DAILY-006/ST-DAILY-001/FLOW-001/FLOW-002 with the repaired submit and candidate-task paths, then resume the remaining 275+78 matrix.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-20260718-rem-p1-036",
+  "nextAction": "Create a new final L4 branch from this merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
   "statusCounts": {
-    "total": 71,
+    "total": 72,
     "closed": 4,
-    "verified": 67,
+    "verified": 68,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -76,6 +76,7 @@
       "REM-P1-033",
       "REM-P1-034",
       "REM-P1-035",
+      "REM-P1-036",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -151,6 +152,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P1-036": {
+      "eventCommit": "6ae6b5c3959c67267aef711fd8f51ae8127a8455"
+    },
     "REM-P0-005": {
       "eventCommit": "d053f7324b0d9c9f714fd4bebe0cb1ffbb906f36"
     },
