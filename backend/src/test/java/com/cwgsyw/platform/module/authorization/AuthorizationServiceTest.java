@@ -203,6 +203,78 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void platformSuperAdminBypassesWikiAclButRetainsFunctionalPermissionRequirement() {
+        user = new SecurityUser(7L, "platform-admin", "hash", "default", null, "platform", Set.of("wiki:read"));
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0600, null);
+        resource.setResourceType("wiki_page");
+        resource.setAccessRestricted(true);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "platform", null)));
+        when(scopedPermissionMapper.hasActivePlatformSuperAdminAssignment("default", 7L)).thenReturn(true);
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("platform_super_admin", decision.getResourceClass());
+    }
+
+    @Test
+    void platformSuperAdminBypassesSharedFileAncestors() {
+        user = new SecurityUser(7L, "platform-admin", "hash", "default", null, "platform", Set.of("shared_file:read"));
+        ResourceDescriptor folder = resource(8L, 9L, 1L, 0600, 7L);
+        folder.setResourceType("shared_folder");
+        ResourceDescriptor parent = resource(7L, 9L, 1L, 0600, null);
+        parent.setResourceType("shared_folder");
+        when(resourceRepository.find("default", "shared_folder", 8L)).thenReturn(folder);
+        when(resourceRepository.find("default", "shared_folder", 7L)).thenReturn(parent);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "shared_file:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "platform", null)));
+        when(scopedPermissionMapper.hasActivePlatformSuperAdminAssignment("default", 7L)).thenReturn(true);
+
+        AuthorizationDecision decision = service.decide(user, "shared_file:read", "shared_folder", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("platform_super_admin", decision.getResourceClass());
+    }
+
+    @Test
+    void platformSuperAdminCannotBypassMissingFunctionalPermission() {
+        user = new SecurityUser(7L, "platform-admin", "hash", "default", null, "platform", Set.of());
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0600, null);
+        resource.setResourceType("wiki_page");
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read")).thenReturn(List.of());
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("FUNCTION_PERMISSION_DENIED", decision.getReasonCode());
+        verifyNoInteractions(resourceAclMapper);
+    }
+
+    @Test
+    void platformScopedNonSuperAdminRemainsSubjectToResourceAcl() {
+        user = new SecurityUser(7L, "platform-user", "hash", "default", null, "platform", Set.of("wiki:read"));
+        ResourceDescriptor resource = resource(8L, 9L, 1L, 0600, null);
+        resource.setResourceType("wiki_page");
+        resource.setAccessRestricted(true);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "platform", null)));
+        when(scopedPermissionMapper.hasActivePlatformSuperAdminAssignment("default", 7L)).thenReturn(false);
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of());
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("RESOURCE_ACCESS_DENIED", decision.getReasonCode());
+    }
+
+    @Test
     void namedUserAclDoesNotFallBackToOthers() {
         ResourceDescriptor resource = resource(8L, 9L, 4L, 0004, null);
         resource.setResourceType("shared_file");

@@ -313,6 +313,7 @@ public class AuthorizationService {
 
     private PermissionMatch resourcePermissions(SecurityUser user, ResourceDescriptor resource,
                                                 Set<Long> groupIds, int requiredBits) {
+        if (isPlatformSuperAdmin(user, resource)) return new PermissionMatch("platform_super_admin", 7);
         if (isWritableSystemWikiDocumentAdmin(user, resource)) return new PermissionMatch("document_admin", 7);
         if (isSharedFileTenantAdministrator(user, resource)) return new PermissionMatch("tenant_admin", 7);
         int mode = resource.getPermissionMode();
@@ -356,6 +357,13 @@ public class AuthorizationService {
         if (groupMatched) return new PermissionMatch("group", groupPermissions);
         if (resource.isAccessRestricted()) return new PermissionMatch("restricted", 0);
         return new PermissionMatch("others", mode & 7);
+    }
+
+    private boolean isPlatformSuperAdmin(SecurityUser user, ResourceDescriptor resource) {
+        return (resource.getResourceType().startsWith("wiki")
+            || "shared_file".equals(resource.getResourceType())
+            || "shared_folder".equals(resource.getResourceType()))
+            && scopedPermissionMapper.hasActivePlatformSuperAdminAssignment(user.getTenantId(), user.getUserId());
     }
 
     private boolean isWritableSystemWikiDocumentAdmin(SecurityUser user, ResourceDescriptor resource) {
