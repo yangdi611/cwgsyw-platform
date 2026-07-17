@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.org;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.module.org.entity.Group;
+import com.cwgsyw.platform.module.org.dto.GroupRequest;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class GroupControllerGroupReferenceTest {
         when(activeGroupReferenceValidator.lockAndRequire("default", 11L)).thenReturn(active);
         GroupController controller = new GroupController(groupMapper, userMapper, auditLogMapper,
             groupMembershipService, groupLifecycleService, activeGroupReferenceValidator);
-        Group request = new Group();
+        GroupRequest request = new GroupRequest();
         request.setName("updated group");
         SecurityUser user = new SecurityUser(7L, "operator", "", "default", null,
             "tenant", Set.of("group:update"));

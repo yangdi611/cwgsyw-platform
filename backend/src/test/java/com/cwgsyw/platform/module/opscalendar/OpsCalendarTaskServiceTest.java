@@ -152,7 +152,7 @@ class OpsCalendarTaskServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("不支持的优先级");
 
-        org.mockito.Mockito.verify(taskMapper, org.mockito.Mockito.never()).insert(any());
+        org.mockito.Mockito.verify(taskMapper, org.mockito.Mockito.never()).insert(any(OpsScheduleTask.class));
     }
 
     @Test
