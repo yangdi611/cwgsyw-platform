@@ -1,17 +1,19 @@
 # 全平台整改事件索引
 
-更新时间：2026-07-17
+更新时间：2026-07-18
 来源测试运行：`FQA_20260712_0329_lintfix`
 
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：72 个事件；其中 `CLOSED=4`、`VERIFIED=68`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
+- 事件库：73 个事件；其中 `CLOSED=4`、`VERIFIED=69`、`IN_PROGRESS=0`、`VERIFYING=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-037` | P1 | 共享文件移动生命周期 | `BUG-FQA-107` / L4 `FILE-012` | `VERIFIED` | LOW | L1-L3 API/UI、冲突原子性与精确清理通过；合并后从新集成点重启最终 L4 | [事件卡](./04-content-files/REM-P1-037-shared-file-move-consumer/README.md) / [SPEC](./04-content-files/REM-P1-037-shared-file-move-consumer/SPEC.md) / [验证](./04-content-files/REM-P1-037-shared-file-move-consumer/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-037-shared-file-move-consumer/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P0-005` | P0 | platform 超级管理员资源 ACL 绕过 | L4 Shadow `superadmin` 判定差异 | `VERIFIED` | HIGH | 用户确认 platform 超管绕过 Wiki/共享文件 ACL；L1-L3 Shadow API/UI 和 strict preflight `eligible=true` 通过，未执行切换 | [事件卡](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/README.md) / [SPEC](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/SPEC.md) / [验证](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/CLAUDE-CODE-PROMPT.md) |
 

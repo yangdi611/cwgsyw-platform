@@ -87,6 +87,7 @@
 | `BUG-FQA-075` | P1 | [`REM-P1-014`：IPAM 地址池、分配与范围完整性](./03-cmdb-assets/REM-P1-014-ipam-address-pool-integrity/README.md) | `VERIFIED` | L1-L3 server idempotency and UI submit gate passed; awaiting L4 |
 | `BUG-FQA-076` | P1 | [`REM-P1-018`：Wiki 版本快照与回退完整性](./04-content-files/REM-P1-018-wiki-version-revert-integrity/README.md) | `VERIFIED` | L1-L3 版本 `v1/v2/revert(v1)->v3`、详情/导出、空快照拒绝与 API/UI 清理通过；待最终 L4 |
 | `BUG-FQA-077` | P1 | [`REM-P1-022`：共享文件 write 权限运行时消费者](./04-content-files/REM-P1-022-shared-file-update-consumer/README.md) | `VERIFIED` | L1-L3 既有 `PUT /files/{id}`、write ACL、审计及真实 UI 重命名通过；待最终 L4 |
+| `BUG-FQA-107` | P1 | [`REM-P1-037`：共享文件移动生命周期](./04-content-files/REM-P1-037-shared-file-move-consumer/README.md) | `VERIFIED` | L4 `FILE-012` 发现文件移动 consumer 缺失；L1-L3 源/目标 manage 检查、目标冲突 409、真实 UI 与产品 API 清理通过；待新的最终 L4 |
 | `BUG-FQA-078` | P2 | [`REM-P2-010`：Wiki 系统手册与只读空间种子](./04-content-files/REM-P2-010-wiki-system-space-seed/README.md) | `VERIFIED` | L1-L3 幂等 seed、系统只读 API/UI、个人排序刷新持久与零 Console error 通过；待最终 L4 |
 | `BUG-FQA-079` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `VERIFIED` | L1-L3 fieldKey boundary and duplicate/concurrent contract passed; awaiting L4 |
 | `BUG-FQA-080` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 input-boundary validation and cleanup passed; awaiting L4 |
