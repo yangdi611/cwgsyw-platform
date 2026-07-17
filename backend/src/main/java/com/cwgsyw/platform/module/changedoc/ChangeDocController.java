@@ -99,6 +99,15 @@ public class ChangeDocController {
         return R.ok(null);
     }
 
+    @DeleteMapping("/{id}/remediation-test")
+    @PreAuthorize("hasAuthority('change_doc:delete')")
+    public R<Void> purgeRemediationTest(@PathVariable Long id,
+                                        @RequestParam String remediationRunId,
+                                        @AuthenticationPrincipal SecurityUser user) {
+        changeDocService.purgeRemediationTest(user.getTenantId(), id, user.getUserId(), remediationRunId);
+        return R.ok(null);
+    }
+
     @GetMapping("/{id}/export")
     @PreAuthorize("hasAuthority('change_doc:export')")
     public ResponseEntity<byte[]> export(

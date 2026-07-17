@@ -139,3 +139,4 @@
 | `L4-CMDB-029-001`：拓扑循环关系的 depth 读取返回 HTTP 500 | [`REM-P2-025`](./03-cmdb-assets/REM-P2-025-cmdb-topology-cycle-safety/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；递归查询已加入路径访问保护，当前分支 L1-L3 API/UI 通过，待受影响 L4 重跑。 |
 | `L4-CHANGE-001-001`：变更文档列表缺关键词搜索与服务端分页 | [`REM-P2-026`](./05-workflow-change/REM-P2-026-change-doc-list-query-contract/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 的 API 查询、真实页面搜索/筛选/分页/详情和精确清理均通过，待受影响 L4 重跑。 |
 | `L4-CHANGE-002-001`：新建变更文档忽略已选 CI | [`REM-P2-027`](./05-workflow-change/REM-P2-027-change-doc-create-ci-link-contract/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；当前分支 L1-L3 的创建事务、真实页面 CI 回读、非法 CI 回滚和精确清理均通过，待受影响 L4 重跑。 |
+| `L4-CHANGE-005-001`：终态测试变更文档不能通过产品 API 精确清理 | [`REM-P2-028`](./05-workflow-change/REM-P2-028-change-doc-remediation-terminal-cleanup/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；受 `change_doc:delete`、tenant、runId 和 approved 终态限制的清理端点已通过 L1-L2，待受影响 L4 重跑。 |
