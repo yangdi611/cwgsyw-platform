@@ -187,14 +187,14 @@ public class WikiSpaceService {
             return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
                 "wiki_space", spaceId, requiredBits, false);
         }
-        boolean legacyAllowed = isAdmin(user.getGroupScope())
-            || user.getPermissions().contains("wiki:" + action)
-            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId()));
+        boolean hasFunctionPermission = user.getPermissions().contains(permissionCode);
+        boolean legacyAllowed = hasFunctionPermission && (isAdmin(user.getGroupScope())
+            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId())));
         if (!legacyAllowed) {
             List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
                 .eq(WikiSpaceAcl::getSpaceId, spaceId));
             List<Long> roleIds = rbacService.getUserRoleIds(user.getUserId());
-            legacyAllowed = rows.stream().anyMatch(acl -> acl.getPermissions() != null
+            legacyAllowed = hasFunctionPermission && rows.stream().anyMatch(acl -> acl.getPermissions() != null
                 && acl.getPermissions().contains(action)
                 && matches(acl, user.getUserId(), user.getGroupId(), roleIds));
         }

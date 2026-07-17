@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T16:25:00+08:00",
+  "updatedAt": "2026-07-17T17:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "AWAITING_NEW_REMEDIATION_AUTHORIZATION",
+  "phase": "FINAL_L4_REVALIDATION_READY",
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P0-003_MERGED",
-  "nextEvent": "NEW_REM_HISTORICAL_WIKI_ACL_DECISION_DIFF",
-  "nextBranch": null,
-  "nextAction": "After this --no-ff merge commits, await explicit user approval before creating a distinct REM event for six existing Wiki resource legacy-versus-unified ACL decision diffs. Do not modify non-test ACL, role, assignment, or cutover. REM-P0-003 is verified with Java 21 L1 and runtime L2-L3 evidence that create coverage reduced unobservedPermissionGrants from 5 to 0 and all runId objects were cleaned.",
+  "lastCompletedGate": "REM-P0-004_MERGE_PENDING",
+  "nextEvent": "FINAL_L4_REVALIDATION",
+  "nextBranch": "codex/fqa-final-l4-revalidation",
+  "nextAction": "After this --no-ff merge commits, create the final L4 revalidation branch from newest lint-fix and resume the full 275+78 matrix. Do not execute Rollback or Enforce without a separate user instruction.",
   "statusCounts": {
-    "total": 67,
+    "total": 68,
     "closed": 4,
-    "verified": 63,
+    "verified": 64,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -42,6 +42,7 @@
     ],
     "verified": [
       "REM-P1-004",
+      "REM-P0-004",
       "REM-P0-003",
       "REM-P1-005",
       "REM-P1-006",
@@ -147,6 +148,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P0-004": {
+      "eventCommit": "13d0af2e9e07a3c0720c98dafc551928668a24cc"
+    },
     "REM-P0-003": {
       "eventCommit": "4d41d75db285a0f210d10a53b6226fc3677a5c70"
     },

@@ -220,6 +220,61 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void restrictedWikiPageDoesNotFallBackToOwnerOrResourceMode() {
+        ResourceDescriptor resource = resource(8L, 7L, 3L, 0660, null);
+        resource.setAccessRestricted(true);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("RESOURCE_ACCESS_DENIED", decision.getReasonCode());
+        assertEquals("restricted", decision.getResourceClass());
+    }
+
+    @Test
+    void restrictedWikiPageHonorsExplicitGroupAccessEntry() {
+        ResourceDescriptor resource = resource(8L, 9L, 3L, 0600, null);
+        resource.setAccessRestricted(true);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L))
+            .thenReturn(List.of(new ResourceAclRow("group", 3L, 4)));
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("group", decision.getResourceClass());
+    }
+
+    @Test
+    void wikiPageWriteCanUseExplicitSpaceAccessEntry() {
+        ResourceDescriptor resource = resource(8L, 9L, 3L, 0600, null);
+        resource.setAccessRestricted(true);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:update"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 3L)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(2L);
+        when(resourceAclMapper.findAccessEntries("default", "wiki_space", 2L))
+            .thenReturn(List.of(new ResourceAclRow("group", 3L, 3)));
+
+        AuthorizationDecision decision = service.decide(user, "wiki:update", "wiki_page", 8L, 2);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("group", decision.getResourceClass());
+    }
+
+    @Test
     void missingAncestorTraverseDeniesPageRead() {
         ResourceDescriptor page = resource(8L, 9L, 3L, 0660, null);
         ResourceDescriptor space = ResourceDescriptor.builder().tenantId("default").resourceType("wiki_space")
@@ -348,6 +403,16 @@ class AuthorizationServiceTest {
         verify(jdbcTemplate).update(anyString(), eq("default"), eq(7L), eq("wiki"), eq("wiki:create"),
             eq("wiki_space"), eq(5L), eq(false), eq(false), eq("RESOURCE_POLICY_DENIED"));
         verifyNoInteractions(resourceRepository, scopedPermissionMapper);
+    }
+
+    @Test
+    void policyGrantDoesNotRequireResourceAssignment() {
+        when(modeService.effectiveMode("default")).thenReturn(AuthorizationModeService.EffectiveMode.ENFORCED);
+
+        assertTrue(service.decideWithPolicyCompatibility(user, "wiki", "wiki:update",
+            "wiki_space", 5L, 2, true, false));
+
+        verifyNoInteractions(resourceRepository, scopedPermissionMapper, jdbcTemplate);
     }
 
     @Test

@@ -128,6 +128,7 @@ public class WikiPageService {
     }
 
     private boolean legacyAllows(WikiPage page, SecurityUser user, String action) {
+        if (!user.getPermissions().contains("wiki:" + mapToSpaceAction(action))) return false;
         boolean spaceAllowed = spaceService.hasWritePermission(
             page.getTenantId(), page.getSpaceId(), user, mapToSpaceAction(action));
         return spaceAllowed || aclService.hasExplicitPermission(page.getTenantId(), page.getId(),
@@ -145,6 +146,7 @@ public class WikiPageService {
         int requiredBits = "publish".equals(action) ? 6 : 2;
         boolean allowed = authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
             "wiki_page", pageId, requiredBits, () -> {
+                if (!user.getPermissions().contains(permissionCode)) return false;
                 boolean spaceOk = spaceService.hasWritePermission(
                     tenantId, spaceId, user, mapToSpaceAction(action));
                 return spaceOk || aclService.hasExplicitPermission(

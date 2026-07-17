@@ -85,18 +85,17 @@ class WikiSpaceServiceTest {
     // ── admin/super_admin ────────────────────────────────────────────────
 
     @Test
-    void hasWritePermission_admin_alwaysAllowed_withoutQueryingAcl() {
+    void hasWritePermission_adminWithoutRequiredFunctionPermission_isDenied() {
         SecurityUser admin = user(1L, "tenant", Set.of());
         when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
-        assertThat(service.hasWritePermission("default", 100L, admin, "update")).isTrue();
-        verify(spaceAclMapper, never()).selectList(any());
+        assertThat(service.hasWritePermission("default", 100L, admin, "update")).isFalse();
     }
 
     @Test
-    void hasWritePermission_superAdminPlatformScope_alwaysAllowed() {
+    void hasWritePermission_superAdminWithoutRequiredFunctionPermission_isDenied() {
         SecurityUser superAdmin = user(1L, "platform", Set.of());
         when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
-        assertThat(service.hasWritePermission("default", 100L, superAdmin, "delete")).isTrue();
+        assertThat(service.hasWritePermission("default", 100L, superAdmin, "delete")).isFalse();
     }
 
     // ── 角色自带权限（回归核心用例，见 SPEC 6.1/12.1） ─────────────────────
@@ -104,7 +103,7 @@ class WikiSpaceServiceTest {
     @Test
     void hasWritePermission_memberWithRolePermission_regressionAllowed() {
         SecurityUser member = user(2L, "group", Set.of("wiki:update"));
-        when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 99L));
+        when(spaceMapper.selectById(100L)).thenReturn(userSpace(100L, 2L));
 
         assertThat(service.hasWritePermission("default", 100L, member, "update")).isTrue();
         verify(spaceAclMapper, never()).selectList(any());
@@ -113,13 +112,13 @@ class WikiSpaceServiceTest {
     // ── 创建人分支 ───────────────────────────────────────────────────────
 
     @Test
-    void hasWritePermission_creator_allowedEvenWithoutRolePermission() {
+    void hasWritePermission_creatorWithoutRequiredFunctionPermission_isDenied() {
         SecurityUser viewer = user(3L, "group", Set.of("wiki:read"));
         WikiSpace mySpace = userSpace(100L, 3L);
         when(spaceMapper.selectById(100L)).thenReturn(mySpace);
 
-        assertThat(service.hasWritePermission("default", 100L, viewer, "create")).isTrue();
-        assertThat(service.hasWritePermission("default", 100L, viewer, "delete")).isTrue();
+        assertThat(service.hasWritePermission("default", 100L, viewer, "create")).isFalse();
+        assertThat(service.hasWritePermission("default", 100L, viewer, "delete")).isFalse();
     }
 
     // ── 拒绝：既非创建人也非 admin，角色权限不足，未被 ACL 授权 ──────────
@@ -151,7 +150,7 @@ class WikiSpaceServiceTest {
 
     @Test
     void hasWritePermission_viewerGrantedUpdateByAcl_allowedForUpdateOnly() {
-        SecurityUser viewer = user(5L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(5L, "group", Set.of("wiki:update"));
         WikiSpace otherUsersSpace = userSpace(100L, 999L);
         when(spaceMapper.selectById(100L)).thenReturn(otherUsersSpace);
         when(spaceAclMapper.selectList(any()))
@@ -164,7 +163,7 @@ class WikiSpaceServiceTest {
 
     @Test
     void hasWritePermission_aclDoesNotCrossSpaces() {
-        SecurityUser viewer = user(6L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(6L, "group", Set.of("wiki:update"));
         WikiSpace spaceA = userSpace(100L, 999L);
         when(rbacService.getUserRoleIds(6L)).thenReturn(List.of());
 
@@ -184,7 +183,7 @@ class WikiSpaceServiceTest {
 
     @Test
     void hasWritePermission_roleAcl_matchesByRoleId() {
-        SecurityUser viewer = user(7L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(7L, "group", Set.of("wiki:publish"));
         WikiSpace otherUsersSpace = userSpace(100L, 999L);
         when(spaceMapper.selectById(100L)).thenReturn(otherUsersSpace);
         when(spaceAclMapper.selectList(any()))
@@ -196,7 +195,7 @@ class WikiSpaceServiceTest {
 
     @Test
     void hasWritePermission_groupAcl_matchesByGroupId() {
-        SecurityUser viewer = user(8L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(8L, "group", Set.of("wiki:delete"));
         WikiSpace otherUsersSpace = userSpace(100L, 999L);
         when(spaceMapper.selectById(100L)).thenReturn(otherUsersSpace);
         when(spaceAclMapper.selectList(any()))
