@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T18:12:00+08:00",
+  "updatedAt": "2026-07-17T23:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P0-005_MERGED",
+  "lastCompletedGate": "REM-P1-034_MERGED",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Create the final L4 revalidation branch from newest lint-fix and resume the full 275+78 matrix. Do not execute Rollback or Enforce without a separate user instruction.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-2",
+  "nextAction": "Create a new final L4 branch from latest lint-fix, rerun DAILY-006/ST-DAILY-001 and FLOW-001/FLOW-002 because the discovered regression exposed a separate approval-task visibility failure, then resume the full 275+78 matrix.",
   "statusCounts": {
-    "total": 69,
+    "total": 70,
     "closed": 4,
-    "verified": 65,
+    "verified": 66,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -74,6 +74,7 @@
       "REM-P1-031",
       "REM-P1-032",
       "REM-P1-033",
+      "REM-P1-034",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -163,6 +164,9 @@
     },
     "REM-P1-032": {
       "eventCommit": "225a04dc89030fd17b88be2beebddd70a0fb8a2d"
+    },
+    "REM-P1-034": {
+      "eventCommit": "23490e06446d6184df9f1bf8814c71e3b855c5a4"
     },
     "REM-P1-031": {
       "eventCommit": "693c2c5adc2ac9290f2a3fc94772d93225642eff"
