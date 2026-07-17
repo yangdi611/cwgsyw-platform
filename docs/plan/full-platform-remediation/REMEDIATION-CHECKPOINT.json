@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T16:25:00+08:00",
+  "updatedAt": "2026-07-17T17:12:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "AWAITING_NEW_REMEDIATION_AUTHORIZATION",
-  "activeEvent": null,
-  "activeBranch": null,
+  "phase": "NEW_REMEDIATION_EVENT_VERIFYING",
+  "activeEvent": "REM-P0-004",
+  "activeBranch": "codex/rem-p0-004-historical-authorization-decision-reconciliation",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P0-003_MERGED",
-  "nextEvent": "NEW_REM_HISTORICAL_WIKI_ACL_DECISION_DIFF",
-  "nextBranch": null,
-  "nextAction": "After this --no-ff merge commits, await explicit user approval before creating a distinct REM event for six existing Wiki resource legacy-versus-unified ACL decision diffs. Do not modify non-test ACL, role, assignment, or cutover. REM-P0-003 is verified with Java 21 L1 and runtime L2-L3 evidence that create coverage reduced unobservedPermissionGrants from 5 to 0 and all runId objects were cleaned.",
+  "lastCompletedGate": "REM-P0-004_L1_L3_PASS_READY_TO_COMMIT",
+  "nextEvent": "FINAL_L4_REVALIDATION",
+  "nextBranch": "codex/rem-p0-004-historical-authorization-decision-reconciliation",
+  "nextAction": "Commit and --no-ff merge verified REM-P0-004. Then create the final L4 revalidation branch from the newest lint-fix and resume the full 275+78 matrix; do not execute Rollback or Enforce without a separate user instruction.",
   "statusCounts": {
-    "total": 67,
+    "total": 68,
     "closed": 4,
-    "verified": 63,
+    "verified": 64,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -42,6 +42,7 @@
     ],
     "verified": [
       "REM-P1-004",
+      "REM-P0-004",
       "REM-P0-003",
       "REM-P1-005",
       "REM-P1-006",

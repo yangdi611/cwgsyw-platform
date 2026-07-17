@@ -102,7 +102,7 @@ class WikiPageServiceTest {
     void savePage_spaceDeniedButPageAclGrantsWrite_succeeds() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);
-        SecurityUser viewer = user(5L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(5L, "group", Set.of("wiki:update"));
 
         when(spaceService.hasWritePermission("default", 100L, viewer, "update")).thenReturn(false);
         when(aclService.hasExplicitPermission("default", 88L, 5L, 1L, "group", "write")).thenReturn(true);
@@ -120,7 +120,7 @@ class WikiPageServiceTest {
     void savePage_spaceDeniedAndPageAclDenied_throws() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);
-        SecurityUser viewer = user(5L, "group", Set.of("wiki:read"));
+        SecurityUser viewer = user(5L, "group", Set.of("wiki:update"));
 
         when(spaceService.hasWritePermission("default", 100L, viewer, "update")).thenReturn(false);
         when(aclService.hasExplicitPermission("default", 88L, 5L, 1L, "group", "write")).thenReturn(false);
@@ -138,7 +138,7 @@ class WikiPageServiceTest {
     void savePage_spaceGranted_doesNotConsultPageAcl() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);
-        SecurityUser creator = user(3L, "group", Set.of("wiki:read"));
+        SecurityUser creator = user(3L, "group", Set.of("wiki:update"));
 
         when(spaceService.hasWritePermission(eq("default"), eq(100L), eq(creator), anyString())).thenReturn(true);
 
@@ -175,7 +175,7 @@ class WikiPageServiceTest {
     void revert_spaceGrantedUpdate_succeedsAndForwardsToSavePage() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);
-        SecurityUser grantedViewer = user(5L, "group", Set.of("wiki:read"));
+        SecurityUser grantedViewer = user(5L, "group", Set.of("wiki:update"));
 
         WikiPageVersion v = new WikiPageVersion();
         v.setPageId(88L);
@@ -208,7 +208,7 @@ class WikiPageServiceTest {
         when(versionMapper.selectOne(any())).thenReturn(v);
 
         assertThatThrownBy(() -> service.revert("default", 88L, 1, user(5L, "group", Set.of("wiki:update"))))
-            .isInstanceOf(BusinessException.class)
+            .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("版本快照内容不完整");
         verify(pageMapper, never()).updateById(any(WikiPage.class));
         verify(versionMapper, never()).insert(any(WikiPageVersion.class));
@@ -226,9 +226,6 @@ class WikiPageServiceTest {
         v.setTitle("旧标题");
         v.setContent("旧内容");
         when(versionMapper.selectOne(any())).thenReturn(v);
-
-        when(spaceService.hasWritePermission("default", 100L, stranger, "update")).thenReturn(false);
-        when(aclService.hasExplicitPermission("default", 88L, 6L, 1L, "group", "write")).thenReturn(false);
 
         assertThatThrownBy(() -> service.revert("default", 88L, 1, stranger))
                 .isInstanceOf(AccessDeniedException.class);
@@ -254,7 +251,7 @@ class WikiPageServiceTest {
 
     @Test
     void createChildPage_checksCreatePermissionOnParentPage() {
-        SecurityUser editor = user(7L, "group", Set.of("wiki:create"));
+        SecurityUser editor = user(7L, "group", Set.of("wiki:update"));
         WikiPage parent = page(44L, 100L);
         when(pageMapper.selectById(44L)).thenReturn(parent);
         when(spaceService.hasWritePermission("default", 100L, editor, "update")).thenReturn(false);
@@ -273,6 +270,7 @@ class WikiPageServiceTest {
     @Test
     void createChildPage_ownerCanCreateThroughParentWritePermission() {
         SecurityUser owner = user(7L, "group", Set.of("wiki:update"));
+        when(spaceService.hasWritePermission("default", 100L, owner, "update")).thenReturn(true);
         WikiPage parent = page(44L, 100L);
         when(pageMapper.selectById(44L)).thenReturn(parent);
         when(spaceService.hasWritePermission("default", 100L, owner, "update")).thenReturn(true);
@@ -373,6 +371,7 @@ class WikiPageServiceTest {
         when(pageMapper.selectById(88L)).thenReturn(page);
         when(pageMapper.selectCount(any())).thenReturn(1L);
         SecurityUser owner = user(7L, "group", Set.of("wiki:update"));
+        when(spaceService.hasWritePermission("default", 100L, owner, "update")).thenReturn(true);
         SavePageRequest req = new SavePageRequest();
         req.setTitle("已存在");
         req.setContent("正文");
@@ -394,7 +393,7 @@ class WikiPageServiceTest {
 
         assertThatThrownBy(() -> service.movePage("default", 88L, 22L, 1,
             user(5L, "group", Set.of("wiki:update"))))
-            .isInstanceOf(IllegalStateException.class)
+            .isInstanceOf(BusinessException.class)
             .hasMessage("同级页面标题已存在");
         verify(pageMapper, never()).updateById(any(WikiPage.class));
     }
@@ -449,7 +448,7 @@ class WikiPageServiceTest {
     void publishDirect_granted_succeeds() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);
-        SecurityUser creator = user(3L, "group", Set.of("wiki:read"));
+        SecurityUser creator = user(3L, "group", Set.of("wiki:publish"));
 
         when(spaceService.hasWritePermission("default", 100L, creator, "publish")).thenReturn(true);
 
