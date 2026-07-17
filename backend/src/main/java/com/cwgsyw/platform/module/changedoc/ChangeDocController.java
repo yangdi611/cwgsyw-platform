@@ -33,13 +33,13 @@ public class ChangeDocController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.list(user.getTenantId(), status, keyword, page, size));
+        return R.ok(changeDocService.list(user, status, keyword, page, size));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('change_doc:read')")
     public R<ChangeDocVO> get(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.get(user.getTenantId(), id));
+        return R.ok(changeDocService.get(user, id));
     }
 
     @PostMapping
@@ -54,19 +54,19 @@ public class ChangeDocController {
     public R<ChangeDocVO> update(@PathVariable Long id,
                                   @RequestBody UpdateChangeDocRequest req,
                                   @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.update(user.getTenantId(), id, user.getUserId(), req));
+        return R.ok(changeDocService.update(user, id, req));
     }
 
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasAuthority('change_doc:update')")
     public R<ChangeDocVO> submit(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.submit(user.getTenantId(), id, user.getUserId()));
+        return R.ok(changeDocService.submit(user, id));
     }
 
     @PostMapping("/{id}/submit-plan")
     @PreAuthorize("hasAuthority('change_doc:update')")
     public R<ChangeDocVO> submitPlan(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.submitPlan(user.getTenantId(), id, user.getUserId()));
+        return R.ok(changeDocService.submitPlan(user, id));
     }
 
     @PostMapping("/{id}/approve")
@@ -74,7 +74,7 @@ public class ChangeDocController {
     public R<ChangeDocVO> approve(@PathVariable Long id,
                                    @RequestBody ApproveRequest req,
                                    @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.approve(user.getTenantId(), id, user.getUserId(),
+        return R.ok(changeDocService.approve(user, id,
                 req.getComment(), Boolean.TRUE.equals(req.getApproved())));
     }
 
@@ -83,19 +83,19 @@ public class ChangeDocController {
     public R<String> aiGenerate(@PathVariable Long id,
                                  @RequestBody AiGenerateRequest req,
                                  @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.generateAiContent(user.getTenantId(), id, user.getUserId(), req));
+        return R.ok(changeDocService.generateAiContent(user, id, req));
     }
 
     @GetMapping("/{id}/snapshots")
     @PreAuthorize("hasAuthority('change_doc:read')")
     public R<List<?>> snapshots(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.listSnapshots(user.getTenantId(), id));
+        return R.ok(changeDocService.listSnapshots(user, id));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('change_doc:delete')")
     public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        changeDocService.delete(user.getTenantId(), id, user.getUserId());
+        changeDocService.delete(user, id);
         return R.ok(null);
     }
 
@@ -104,7 +104,7 @@ public class ChangeDocController {
     public R<Void> purgeRemediationTest(@PathVariable Long id,
                                         @RequestParam String remediationRunId,
                                         @AuthenticationPrincipal SecurityUser user) {
-        changeDocService.purgeRemediationTest(user.getTenantId(), id, user.getUserId(), remediationRunId);
+        changeDocService.purgeRemediationTest(user, id, remediationRunId);
         return R.ok(null);
     }
 
@@ -115,7 +115,7 @@ public class ChangeDocController {
             @RequestParam(defaultValue = "pdf") String format,
             @RequestParam(required = false) String which,
             @AuthenticationPrincipal SecurityUser user) {
-        ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
+        ChangeDocVO doc = changeDocService.get(user, id);
 
         // which = "application" | "plan" | null（兼容旧调用，默认走 application 优先回退 plan）
         Long templateId;
@@ -151,7 +151,7 @@ public class ChangeDocController {
     @PreAuthorize("hasAuthority('change_doc:read')")
     public R<String> emailTemplate(@PathVariable Long id,
                                     @AuthenticationPrincipal SecurityUser user) {
-        ChangeDocVO doc = changeDocService.get(user.getTenantId(), id);
+        ChangeDocVO doc = changeDocService.get(user, id);
         return R.ok(emailTemplateService.buildEmailBody(EmailTemplateService.EmailType.CHANGE_DOC_EXPORTED, doc, null));
     }
 
@@ -159,7 +159,7 @@ public class ChangeDocController {
     @PreAuthorize("hasAuthority('change_doc:read')")
     public R<List<LinkedCiInstanceVO>> listCiLinks(@PathVariable Long id,
                                                     @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.listCiLinks(user.getTenantId(), id));
+        return R.ok(changeDocService.listCiLinks(user, id));
     }
 
     @PostMapping("/{id}/ci-links")
@@ -167,7 +167,7 @@ public class ChangeDocController {
     public R<Void> addCiLinks(@PathVariable Long id,
                               @RequestBody AddCiLinkRequest req,
                               @AuthenticationPrincipal SecurityUser user) {
-        changeDocService.addCiLinks(user.getTenantId(), id, user.getUserId(), req.getLinks());
+        changeDocService.addCiLinks(user, id, req.getLinks());
         return R.ok(null);
     }
 
@@ -176,7 +176,7 @@ public class ChangeDocController {
     public R<Void> removeCiLink(@PathVariable Long id,
                                 @PathVariable Long instanceId,
                                 @AuthenticationPrincipal SecurityUser user) {
-        changeDocService.removeCiLink(user.getTenantId(), id, instanceId, user.getUserId());
+        changeDocService.removeCiLink(user, id, instanceId);
         return R.ok(null);
     }
 }

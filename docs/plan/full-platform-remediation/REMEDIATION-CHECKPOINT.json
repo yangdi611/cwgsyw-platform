@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T11:10:00+08:00",
+  "updatedAt": "2026-07-17T11:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4_REVALIDATION",
-  "activeEvent": "REM-P2-031",
-  "activeBranch": "codex/rem-p2-031-backend-test-compile-baseline",
+  "activeEvent": "REM-P1-033",
+  "activeBranch": "codex/rem-p1-033-change-doc-edit-scope-resume",
   "activeRunId": "FQA_20260716_2300_lintfix",
-  "lastCompletedGate": "REM-P2-031_L1_L3_VERIFIED",
-  "nextEvent": "REM-P1-033",
-  "nextBranch": "codex/rem-p1-033-change-doc-edit-scope",
-  "nextAction": "Commit and no-ff merge REM-P2-031, then resume REM-P1-033 focused L1 and L4 CHANGE-008 from the merge head.",
+  "lastCompletedGate": "REM-P1-033_L1_L4_VERIFIED",
+  "nextEvent": null,
+  "nextBranch": "codex/fqa-final-l4-revalidation",
+  "nextAction": "Commit and no-ff merge REM-P1-033, then begin final L4 from the merge head after reconciling the full event ledger.",
   "statusCounts": {
     "total": 64,
     "closed": 4,
-    "verified": 60,
+    "verified": 61,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
