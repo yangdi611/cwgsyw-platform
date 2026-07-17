@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T18:12:00+08:00",
+  "updatedAt": "2026-07-17T23:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_REVALIDATION_PENDING",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P0-005_MERGED",
-  "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Create the final L4 revalidation branch from newest lint-fix and resume the full 275+78 matrix. Do not execute Rollback or Enforce without a separate user instruction.",
+  "phase": "EVENT_VERIFIED_PENDING_MERGE",
+  "activeEvent": "REM-P1-034",
+  "activeBranch": "codex/rem-p1-034-daily-own-draft-submit",
+  "activeRunId": "FQA_20260717_1245_final_l4_DAILY_STATE",
+  "lastCompletedGate": "REM-P1-034_L1_L3_PASS",
+  "nextEvent": "REM-P1-034",
+  "nextBranch": "codex/rem-p1-034-daily-own-draft-submit",
+  "nextAction": "Commit REM-P1-034, merge it with --no-ff into lint-fix, then create a new L4 branch from latest lint-fix and resume the affected DAILY/FLOW cases before the full 275+78 matrix.",
   "statusCounts": {
-    "total": 69,
+    "total": 70,
     "closed": 4,
-    "verified": 65,
+    "verified": 66,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -74,6 +74,7 @@
       "REM-P1-031",
       "REM-P1-032",
       "REM-P1-033",
+      "REM-P1-034",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -164,6 +165,7 @@
     "REM-P1-032": {
       "eventCommit": "225a04dc89030fd17b88be2beebddd70a0fb8a2d"
     },
+    "REM-P1-034": {},
     "REM-P1-031": {
       "eventCommit": "693c2c5adc2ac9290f2a3fc94772d93225642eff"
     },
