@@ -13,7 +13,7 @@ async function login(page) {
   await expect.poll(() => page.evaluate(() => localStorage.getItem('cwgsyw_token'))).not.toBeNull()
 }
 
-test('l4DailyAdminOwnDraftSubmitAndCleanup', async ({ page }, testInfo) => {
+test('l4DailyAdminOwnDraftSubmitApproveAndCleanup', async ({ page }, testInfo) => {
   test.skip(!process.env.FQA_SUPERADMIN_PASSWORD, 'FQA_SUPERADMIN_PASSWORD is required')
 
   const today = new Date().toISOString().slice(0, 10)
@@ -53,7 +53,12 @@ test('l4DailyAdminOwnDraftSubmitAndCleanup', async ({ page }, testInfo) => {
 
   await page.goto(`${baseURL}/daily/${reportId}`)
   await expect(page.getByText('待审批')).toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('daily-submitted.png') })
+  await expect(page.getByRole('button', { name: '审批此日报' })).toBeVisible()
+  await page.getByRole('button', { name: '审批此日报' }).click()
+  await page.getByRole('button', { name: '通过' }).click()
+  await expect(page.getByText('已通过审批')).toBeVisible()
+  await expect(page.getByText('已通过', { exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('daily-approved.png') })
 
   const cleanupStatus = await page.evaluate(async ({ reportId, remediationRunId }) => {
     const token = localStorage.getItem('cwgsyw_token')
