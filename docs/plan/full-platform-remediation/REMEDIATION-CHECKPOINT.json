@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T11:35:00+08:00",
+  "updatedAt": "2026-07-17T12:45:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -19,15 +19,15 @@
   "phase": "FINAL_L4_REVALIDATION",
   "activeEvent": null,
   "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260716_2300_lintfix",
-  "lastCompletedGate": "REM-P1-033_MERGED",
+  "activeRunId": "FQA_20260717_1125_final_l4",
+  "lastCompletedGate": "REM-P2-032_MERGED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Create the independent final L4 branch from lint-fix and execute the full applicable acceptance matrix with zero FAIL/BLOCKED and zero cleanup failures.",
+  "nextAction": "Create the independent final L4 branch from the latest lint-fix and execute the full applicable 275+78 acceptance matrix from a new runId; prior L4 first-failure evidence remains historical and cannot substitute for final PASS.",
   "statusCounts": {
-    "total": 64,
+    "total": 65,
     "closed": 4,
-    "verified": 60,
+    "verified": 61,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -144,6 +144,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P2-032": {
+      "eventCommit": "f54f943f4978e4009656a7b3755f9ba28ce1c408"
+    },
     "REM-P1-032": {
       "eventCommit": "225a04dc89030fd17b88be2beebddd70a0fb8a2d"
     },

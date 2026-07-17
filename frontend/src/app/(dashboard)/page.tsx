@@ -48,6 +48,10 @@ interface ChangeDocVO {
   applicantName: string
   createdAt: string
 }
+interface ChangeDocPageVO {
+  records: ChangeDocVO[]
+  total: number
+}
 interface ChangeRecordVO {
   id: number
   action: string
@@ -86,7 +90,7 @@ export default function DashboardPage() {
   })
   const { data: docs } = useQuery<ChangeDocVO[] | undefined>({
     queryKey: ['change-docs-dashboard'],
-    queryFn: () => safe(api.get('/change-docs')),
+    queryFn: async () => (await safe<ChangeDocPageVO>(api.get('/change-docs')))?.records,
     enabled: canReadChangeDocs,
   })
   const { data: changesData } = useQuery<{ records: ChangeRecordVO[]; total: number } | undefined>({
