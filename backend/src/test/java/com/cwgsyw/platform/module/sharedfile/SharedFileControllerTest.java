@@ -91,7 +91,21 @@ class SharedFileControllerTest {
 
         verify(authorizationService).requireParentWithCompatibility(user, "shared_file",
             "shared_file:update", "shared_file", 9L, 2, true);
-        verify(fileService).renameFile(user, 9L, "renamed document");
+        verify(fileService).updateFile(user, 9L, "renamed document", null, false);
+    }
+
+    @Test
+    void updateFile_checksBothManageBoundariesForMove() {
+        UpdateSharedFileRequest request = new UpdateSharedFileRequest();
+        request.setParentId(3L);
+
+        controller.updateFile(9L, request, user);
+
+        verify(authorizationService).requireParentWithCompatibility(user, "shared_file",
+            "shared_file:manage", "shared_file", 9L, 3, true);
+        verify(authorizationService).requireWithCompatibility(user, "shared_file",
+            "shared_file:manage", "shared_folder", 3L, 3, true);
+        verify(fileService).updateFile(user, 9L, null, 3L, true);
     }
 
     @Test

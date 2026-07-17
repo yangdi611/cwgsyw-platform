@@ -205,9 +205,23 @@ public class SharedFileController {
     @PreAuthorize("hasAuthority('shared_file:update')")
     public R<SharedFileVO> updateFile(@PathVariable Long id, @RequestBody @jakarta.validation.Valid UpdateSharedFileRequest request,
                                       @AuthenticationPrincipal SecurityUser user) {
-        authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
-            "shared_file", id, 2, true);
-        return R.ok(fileService.renameFile(user, id, request.getName()));
+        if (request.getName() == null && !request.isParentIdSpecified()) {
+            throw new IllegalArgumentException("至少需要提供文件名称或目标目录");
+        }
+        if (request.getName() != null) {
+            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
+                "shared_file", id, 2, true);
+        }
+        if (request.isParentIdSpecified()) {
+            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:manage",
+                "shared_file", id, 3, true);
+            if (request.getParentId() != null) {
+                authorizationService.requireWithCompatibility(user, "shared_file", "shared_file:manage",
+                    "shared_folder", request.getParentId(), 3, true);
+            }
+        }
+        return R.ok(fileService.updateFile(user, id, request.getName(), request.getParentId(),
+            request.isParentIdSpecified()));
     }
 
     @GetMapping("/{id}")

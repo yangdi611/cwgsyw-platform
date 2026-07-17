@@ -330,22 +330,34 @@ public class SharedFileService {
 
     @Transactional
     public SharedFileVO renameFile(SecurityUser user, Long fileId, String name) {
+        return updateFile(user, fileId, name, null, false);
+    }
+
+    @Transactional
+    public SharedFileVO updateFile(SecurityUser user, Long fileId, String requestedName, Long requestedFolderId,
+                                   boolean moveRequested) {
         SharedFile file = fileMapper.selectOne(new LambdaQueryWrapper<SharedFile>()
                 .eq(SharedFile::getTenantId, user.getTenantId())
                 .eq(SharedFile::getId, fileId));
         if (file == null) throw new IllegalArgumentException("文件不存在: " + fileId);
 
-        String displayName = normalizeDisplayName(name);
+        Long folderId = moveRequested ? requestedFolderId : file.getFolderId();
+        if (moveRequested && folderId != null) folderService.getFolder(user.getTenantId(), folderId);
+        String displayName = requestedName == null ? file.getName() : normalizeDisplayName(requestedName);
         String extension = "";
         int dot = file.getOriginalName().lastIndexOf('.');
         if (dot > 0) extension = file.getOriginalName().substring(dot);
         String originalName = displayName + extension;
         String normalizedName = normalizedName(originalName);
-        rejectNameConflict(user.getTenantId(), file.getFolderId(), normalizedName, fileId);
+        rejectNameConflict(user.getTenantId(), folderId, normalizedName, fileId);
         String before = fileSnapshot(file);
+        boolean renamed = !Objects.equals(file.getName(), displayName);
+        boolean moved = moveRequested && !Objects.equals(file.getFolderId(), folderId);
+        if (!renamed && !moved) return toVO(file, Map.of());
         file.setName(displayName);
         file.setOriginalName(originalName);
         file.setNormalizedName(normalizedName);
+        file.setFolderId(folderId);
         file.setUpdatedAt(LocalDateTime.now());
         try {
             fileMapper.updateById(file);
@@ -353,7 +365,7 @@ public class SharedFileService {
             throw new BusinessException(409, "SHARED_FILE_NAME_CONFLICT", "当前目录已存在同名文件");
         }
         auditLogMapper.insert(AuditLog.builder()
-                .tenantId(user.getTenantId()).module("shared_file").action("update")
+                .tenantId(user.getTenantId()).module("shared_file").action(moved ? "move" : "update")
                 .targetId(fileId).targetType("shared_file").operatorId(user.getUserId())
                 .beforeJson(before)
                 .afterJson(fileSnapshot(file))

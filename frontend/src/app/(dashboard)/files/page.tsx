@@ -63,6 +63,8 @@ export default function FilesPage() {
   const [fileAclTarget, setFileAclTarget] = useState<SharedFile | null>(null)
   const [renaming, setRenaming] = useState<SharedFile | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [moving, setMoving] = useState<SharedFile | null>(null)
+  const [moveFolderId, setMoveFolderId] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadAbortRef = useRef<AbortController | null>(null)
@@ -137,6 +139,17 @@ export default function FilesPage() {
       setRenaming(null)
       setRenameValue('')
       toast.success('文件已重命名')
+    },
+  })
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, parentId }: { id: number; parentId: string }) =>
+      api.put(`/files/${id}`, { parentId: parentId === '' ? null : Number(parentId) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setMoving(null)
+      setMoveFolderId('')
+      toast.success('文件已移动')
     },
   })
 
@@ -312,6 +325,14 @@ export default function FilesPage() {
               <Pencil className="h-4 w-4" />
             </Button>
           )}
+          {canManage && (
+            <Button variant="ghost" size="sm" className="h-8 px-2" title="移动文件" onClick={() => {
+              setMoving(r)
+              setMoveFolderId(r.folderId === null ? '' : String(r.folderId))
+            }}>
+              移动
+            </Button>
+          )}
           {canDelete && r.canDelete && (
             <Button
               variant="ghost"
@@ -367,6 +388,25 @@ export default function FilesPage() {
             <Button variant="secondary" onClick={() => setRenaming(null)}>取消</Button>
             <Button variant="primary" disabled={!renameValue.trim() || renameMutation.isPending} onClick={() => {
               if (renaming) renameMutation.mutate({ id: renaming.id, name: renameValue.trim() })
+            }}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!moving} onOpenChange={(open) => !open && setMoving(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>移动文件</DialogTitle></DialogHeader>
+          <label className="block space-y-1 text-sm text-v2-fg">
+            <span>移动到</span>
+            <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={moveFolderId} onChange={(event) => setMoveFolderId(event.target.value)}>
+              <option value="">根目录</option>
+              {flatFolders(folders).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+            </select>
+          </label>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setMoving(null)}>取消</Button>
+            <Button variant="primary" disabled={moveMutation.isPending} onClick={() => {
+              if (moving) moveMutation.mutate({ id: moving.id, parentId: moveFolderId })
             }}>保存</Button>
           </DialogFooter>
         </DialogContent>

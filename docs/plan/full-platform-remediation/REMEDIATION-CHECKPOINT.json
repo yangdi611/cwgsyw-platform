@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-18T00:42:00+08:00",
+  "updatedAt": "2026-07-18T02:30:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "3d7d2b72341310e91be92a97229e15ffb128d863",
+  "observedCommit": "d809b38cb3a10e418484d423f8b7629f4a299b62",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-036_MERGED",
+  "lastCompletedGate": "REM-P1-037_MERGED",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation-20260718-rem-p1-036",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-037",
   "nextAction": "Create a new final L4 branch from this merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
   "statusCounts": {
-    "total": 72,
+    "total": 73,
     "closed": 4,
-    "verified": 68,
+    "verified": 69,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -76,7 +76,8 @@
       "REM-P1-033",
       "REM-P1-034",
       "REM-P1-035",
-      "REM-P1-036",
+    "REM-P1-036",
+      "REM-P1-037",
       "REM-P2-001",
       "REM-P2-002",
       "REM-P2-003",
@@ -154,6 +155,9 @@
   "eventGit": {
     "REM-P1-036": {
       "eventCommit": "6ae6b5c3959c67267aef711fd8f51ae8127a8455"
+    },
+    "REM-P1-037": {
+      "eventCommit": "e1798e5012e28d97f721a037f9c0a07dbce676bc"
     },
     "REM-P0-005": {
       "eventCommit": "d053f7324b0d9c9f714fd4bebe0cb1ffbb906f36"
