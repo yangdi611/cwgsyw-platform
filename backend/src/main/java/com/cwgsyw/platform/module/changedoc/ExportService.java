@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import com.cwgsyw.platform.module.changedoc.dto.ChangeDocVO;
+import com.cwgsyw.platform.module.changedoc.dto.FieldConfigVO;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.lowagie.text.*;
 import java.util.Map;
@@ -16,6 +17,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.LinkedHashMap;
 
 @Slf4j
 @Service
@@ -48,11 +51,11 @@ public class ExportService {
                 // Template has no .docx file yet — fall through to programmatic generation
             }
         }
-        return exportDocxProgrammatic(doc);
+        return exportDocxProgrammatic(doc, templateId);
     }
 
-    private byte[] exportDocxProgrammatic(ChangeDocVO doc) {
-        try (XWPFDocument xdoc = buildDocument(doc);
+    private byte[] exportDocxProgrammatic(ChangeDocVO doc, Long templateId) {
+        try (XWPFDocument xdoc = buildDocument(doc, templateId);
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             xdoc.write(out);
             return out.toByteArray();
@@ -119,7 +122,7 @@ public class ExportService {
         }
     }
 
-    private XWPFDocument buildDocument(ChangeDocVO doc) {
+    private XWPFDocument buildDocument(ChangeDocVO doc, Long templateId) {
         XWPFDocument xdoc = new XWPFDocument();
         setPageMargins(xdoc);
 
@@ -151,8 +154,114 @@ public class ExportService {
         addSection(xdoc, "四、回滚计划",           fieldOf(doc, "rollback_plan"));
         addSection(xdoc, "五、验证方法",           fieldOf(doc, "verify_method"));
         addSection(xdoc, "六、相关人员联系方式",   fieldOf(doc, "contacts"));
+        addDynamicTables(xdoc, doc, templateId);
 
         return xdoc;
+    }
+
+    private void addDynamicTables(XWPFDocument xdoc, ChangeDocVO doc, Long templateId) {
+        List<FieldConfigVO> fields = templateId != null && templateId.equals(doc.getPlanTemplateId())
+                ? doc.getPlanFieldConfig()
+                : doc.getApplicationFieldConfig();
+        addDynamicTables(xdoc, fields, doc.getFieldsData());
+    }
+
+    private void addDynamicTables(XWPFDocument xdoc, List<FieldConfigVO> fields, Map<String, Object> fieldsData) {
+        if (fields == null || fieldsData == null) return;
+        for (FieldConfigVO field : fields) {
+            if (!isFixedDocxTable(field)) continue;
+            List<LinkedHashMap<String, Object>> rows = tableRows(fieldsData.get(field.getFieldKey()));
+            addTableHeading(xdoc, field.getLabel());
+            addTable(xdoc, columns(field), rows);
+        }
+    }
+
+    private boolean isFixedDocxTable(FieldConfigVO field) {
+        return "table".equals(field.getFieldType())
+                && field.getConfig() != null
+                && "fixedDocxTable".equals(field.getConfig().get("tableMode"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<LinkedHashMap<String, Object>> tableRows(Object rawRows) {
+        if (!(rawRows instanceof List<?> rows)) return List.of();
+        return rows.stream()
+                .filter(Map.class::isInstance)
+                .map(row -> new LinkedHashMap<>((Map<String, Object>) row))
+                .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> columns(FieldConfigVO field) {
+        Object rawColumns = field.getConfig().get("columns");
+        if (!(rawColumns instanceof List<?> columns)) return List.of();
+        return columns.stream()
+                .filter(Map.class::isInstance)
+                .map(column -> (Map<String, Object>) column)
+                .toList();
+    }
+
+    private void addTableHeading(XWPFDocument xdoc, String label) {
+        XWPFParagraph paragraph = xdoc.createParagraph();
+        paragraph.setSpacingBefore(200);
+        paragraph.setSpacingAfter(100);
+        XWPFRun run = paragraph.createRun();
+        run.setText((label == null || label.isBlank() ? "表格" : label) + "：");
+        run.setBold(true);
+        run.setFontFamily("宋体");
+        run.setFontSize(12);
+    }
+
+    private void addTable(XWPFDocument xdoc, List<Map<String, Object>> columns,
+                          List<LinkedHashMap<String, Object>> rows) {
+        if (columns.isEmpty()) return;
+        XWPFTable table = xdoc.createTable(1, columns.size());
+        for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+            writeTableCell(table.getRow(0).getCell(columnIndex), tableColumnLabel(columns.get(columnIndex)));
+        }
+        for (LinkedHashMap<String, Object> row : rows) {
+            XWPFTableRow tableRow = table.createRow();
+            for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+                Map<String, Object> column = columns.get(columnIndex);
+                writeTableCell(tableRow.getCell(columnIndex), tableCellValue(column, row.get(tableColumnKey(column))));
+            }
+        }
+    }
+
+    private String tableColumnKey(Map<String, Object> column) {
+        Object key = column.get("key");
+        return key instanceof String value ? value : "";
+    }
+
+    private String tableColumnLabel(Map<String, Object> column) {
+        Object label = column.get("label");
+        return label instanceof String value && !value.isBlank() ? value : tableColumnKey(column);
+    }
+
+    private String tableCellValue(Map<String, Object> column, Object value) {
+        if (value == null) return "";
+        if (value instanceof Boolean booleanValue) return booleanValue ? "是" : "否";
+        if ("select".equals(column.get("type"))) {
+            Object options = column.get("options");
+            if (options instanceof List<?> optionList) {
+                for (Object option : optionList) {
+                    if (option instanceof Map<?, ?> optionMap
+                            && String.valueOf(value).equals(String.valueOf(optionMap.get("value")))) {
+                        Object label = optionMap.get("label");
+                        return label == null ? String.valueOf(value) : String.valueOf(label);
+                    }
+                }
+            }
+        }
+        return String.valueOf(value);
+    }
+
+    private void writeTableCell(XWPFTableCell cell, String value) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        XWPFRun run = paragraph.createRun();
+        run.setFontFamily("宋体");
+        run.setFontSize(10);
+        writeMultiline(run, value);
     }
 
     private void setPageMargins(XWPFDocument xdoc) {
