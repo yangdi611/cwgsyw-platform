@@ -130,6 +130,7 @@
 |---|---|---|---|
 | `REM-P1-033` L1 基线：三处无关测试源码阻断 Maven testCompile | [`REM-P2-031`](./08-cross-cutting-contracts/REM-P2-031-backend-test-compile-baseline/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 唯一主映射；Java 21 容器中三处目标测试与变更文档定向测试均通过。 |
 | `L4-CHANGE-008-001`：组级 member 可修改其他创建者的同租户变更文档 | [`REM-P1-033`](./05-workflow-change/REM-P1-033-change-doc-edit-scope/README.md) | `VERIFIED` | 已确认成员/组长/tenant-platform 范围；Java 21 L1 通过，当前分支真实 member 对五个跨创建者入口均为 404 且无写入，runId 夹具已清理。 |
+| `L4-AUTHZ-PLATFORM-ACL-001`：有效 platform super_admin 被 Wiki/共享文件 ACL 拒绝 | [`REM-P0-005`](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/README.md) | `VERIFIED` | 用户确认仅有效 platform super_admin 在具备功能权限前提下绕过 Wiki、shared_file/shared_folder ACL；L1 定向测试与编译、Shadow 后端 API/UI 和严格预检均通过，待最终 L4。 |
 | `L4-PROMETHEUS-CONFIG-001`：前端保存请求缺后端 mapping，HTTP 500 | [`REM-P2-016`](./07-platform-integration/REM-P2-016-prometheus-config-api-contract/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；L1-L3 已通过，等待最终 L4 配置/外部集成范围复验。 |
 | `L4-EXTERNAL-FIXTURES-001`：外部 SMTP、Prometheus、AI 缺隔离且可恢复的验证环境 | [`REM-P2-017`](./07-platform-integration/REM-P2-017-isolated-external-validation-fixtures/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；内部 mock、显式清钥、产品 API 恢复和 L1-L3 已通过，待最终 L4 重跑。 |
 | `L4-WIKI-022-001`：不存在 Wiki space/page 永久加载并产生 404 Console error | [`REM-P2-018`](./04-content-files/REM-P2-018-wiki-missing-resource-loading/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 的唯一主映射；阅读页与目录侧栏均已避免无效资源请求，L1-L3 通过，待最终 L4 重跑。 |

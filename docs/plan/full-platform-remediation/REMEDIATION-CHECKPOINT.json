@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T17:20:00+08:00",
+  "updatedAt": "2026-07-17T18:12:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_REVALIDATION_READY",
+  "phase": "FINAL_L4_REVALIDATION_PENDING",
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P0-004_MERGE_PENDING",
+  "lastCompletedGate": "REM-P0-005_MERGED",
   "nextEvent": "FINAL_L4_REVALIDATION",
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "After this --no-ff merge commits, create the final L4 revalidation branch from newest lint-fix and resume the full 275+78 matrix. Do not execute Rollback or Enforce without a separate user instruction.",
+  "nextAction": "Create the final L4 revalidation branch from newest lint-fix and resume the full 275+78 matrix. Do not execute Rollback or Enforce without a separate user instruction.",
   "statusCounts": {
-    "total": 68,
+    "total": 69,
     "closed": 4,
-    "verified": 64,
+    "verified": 65,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -42,6 +42,7 @@
     ],
     "verified": [
       "REM-P1-004",
+      "REM-P0-005",
       "REM-P0-004",
       "REM-P0-003",
       "REM-P1-005",
@@ -148,6 +149,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P0-005": {
+      "eventCommit": "d053f7324b0d9c9f714fd4bebe0cb1ffbb906f36"
+    },
     "REM-P0-004": {
       "eventCommit": "13d0af2e9e07a3c0720c98dafc551928668a24cc"
     },
