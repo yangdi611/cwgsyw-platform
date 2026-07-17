@@ -18,6 +18,7 @@ import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarRuleService;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.cwgsyw.platform.security.SecurityUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
