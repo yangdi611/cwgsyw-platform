@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T14:05:00+08:00",
+  "updatedAt": "2026-07-17T17:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -23,11 +23,11 @@
   "lastCompletedGate": "REM-P2-028_L1_L2_VERIFIED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit and no-ff merge REM-P2-028 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-005.",
+  "nextAction": "Commit and no-ff merge REM-P2-029 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-005.",
   "statusCounts": {
     "total": 61,
     "closed": 4,
-    "verified": 57,
+    "verified": 58,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -305,7 +305,8 @@
       "eventCommit": "f08f92cce97b799804f0fdd8ac167a49af039a39",
       "mergeCommit": "f8a3fb57567549a6bfdeadb17bd3a37f5040b03e"
     },
-    "REM-P2-028": {}
+    "REM-P2-028": {},
+    "REM-P2-029": {}
   },
   "l4": {
     "status": "RUNNING",
