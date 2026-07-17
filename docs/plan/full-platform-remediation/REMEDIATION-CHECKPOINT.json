@@ -148,8 +148,7 @@
   ],
   "eventGit": {
     "REM-P0-003": {
-      "eventCommit": "4d41d75db285a0f210d10a53b6226fc3677a5c70",
-      "mergeCommit": "5c35543bff56abc9ec9ff52ac90189daa1a2588d"
+      "eventCommit": "4d41d75db285a0f210d10a53b6226fc3677a5c70"
     },
     "REM-P2-032": {
       "eventCommit": "f54f943f4978e4009656a7b3755f9ba28ce1c408"
