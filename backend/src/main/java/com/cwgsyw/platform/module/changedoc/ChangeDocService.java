@@ -13,6 +13,7 @@ import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -606,6 +607,68 @@ public class ChangeDocService {
         changeDocMapper.updateById(doc);
         changeDocMapper.deleteById(id);
         writeAuditLog(tenantId, "delete", id, operatorId, beforeJson, null, "软删除变更文档");
+    }
+
+    @Transactional
+    public void purgeRemediationTest(String tenantId, Long id, Long operatorId, String remediationRunId) {
+        if (!StringUtils.hasText(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null || !tenantId.equals(doc.getTenantId())) {
+            throw new IllegalArgumentException("变更文档不存在");
+        }
+        if ("approved".equals(doc.getStatus())) {
+            throw new IllegalStateException("已审批归档文档不支持 remediation 清理");
+        }
+        String beforeJson = toJson(doc);
+        if (!containsRemediationRunId(beforeJson, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试变更文档");
+        }
+
+        changeDocCiLinkMapper.delete(new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
+                .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getTenantId, tenantId)
+                .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, id));
+        changeDocSnapshotMapper.delete(new LambdaQueryWrapper<ChangeDocSnapshot>()
+                .eq(ChangeDocSnapshot::getChangeDocId, id));
+        doc.setDeletedAt(LocalDateTime.now());
+        doc.setDeletedBy(operatorId);
+        doc.setUpdatedAt(LocalDateTime.now());
+        changeDocMapper.updateById(doc);
+        changeDocMapper.deleteById(id);
+        writeAuditLog(tenantId, "purge_remediation_test", id, operatorId, beforeJson,
+                toJson(Map.of("remediationRunId", remediationRunId)), "清理 remediation 测试变更文档");
+    }
+
+    private boolean containsRemediationRunId(String documentJson, String remediationRunId) {
+        try {
+            return containsTextValue(objectMapper.readTree(documentJson), remediationRunId);
+        } catch (Exception exception) {
+            log.warn("Could not inspect remediation test marker for change document", exception);
+            return false;
+        }
+    }
+
+    private boolean containsTextValue(JsonNode node, String expectedValue) {
+        if (node.isTextual()) {
+            return expectedValue.equals(node.asText());
+        }
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                if (containsTextValue(child, expectedValue)) {
+                    return true;
+                }
+            }
+        }
+        if (node.isObject()) {
+            var fields = node.elements();
+            while (fields.hasNext()) {
+                if (containsTextValue(fields.next(), expectedValue)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // ─── CI Links ─────────────────────────────────────────────────────────

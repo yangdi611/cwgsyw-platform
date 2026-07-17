@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-17T13:15:00+08:00",
+  "updatedAt": "2026-07-17T14:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": null,
-  "lastCompletedGate": "REM-P2-027_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM-P2-028_L1_L2_VERIFIED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation",
-  "nextAction": "Commit and no-ff merge REM-P2-027 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-002.",
+  "nextAction": "Commit and no-ff merge REM-P2-028 into lint-fix, then recreate final L4 from the merge head and resume CHANGE-005.",
   "statusCounts": {
-    "total": 60,
+    "total": 61,
     "closed": 4,
-    "verified": 56,
+    "verified": 57,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -96,7 +96,8 @@
       "REM-P2-024",
       "REM-P2-025",
       "REM-P2-026",
-      "REM-P2-027"
+      "REM-P2-027",
+      "REM-P2-028"
     ],
     "verifying": [],
     "inProgress": [],
@@ -303,7 +304,8 @@
     "REM-P2-027": {
       "eventCommit": "f08f92cce97b799804f0fdd8ac167a49af039a39",
       "mergeCommit": "f8a3fb57567549a6bfdeadb17bd3a37f5040b03e"
-    }
+    },
+    "REM-P2-028": {}
   },
   "l4": {
     "status": "RUNNING",
@@ -362,5 +364,6 @@
     ,"REM-P2-025 L1-L3 passed: topology traversal tracks visited instance paths, so #20 depth 1/2 and compare return HTTP 200. Current-branch backend container and authenticated Playwright graph page both passed with zero Console errors; no test data was created. Event commit is pending before no-ff merge and L4 CMDB-029 resumption."
     ,"REM-P2-026 L1-L3 passed: change-document list now returns tenant-scoped PageResult records/total/page/size with status and title/changeNo keyword filters. Current-branch backend/frontend containers passed authenticated API and Playwright search, status, pagination and detail-drawer checks with zero Console errors. Nineteen runId drafts were deleted through product DELETE and keyword readback found zero residue. Event commit 05cfbef2 merged as 32c60721; recreate final L4 from the merge head and resume CHANGE-001."
     ,"REM-P2-027 L1-L3 passed: the create DTO accepts UI ciSnapshots and ChangeDocService delegates same-transaction link persistence to tenant-validating ChangeDocLinkService. Current-branch API verified empty CI compatibility and invalid CI HTTP 400 with zero residue; rebuilt containers and Playwright verified CI #32 links to a new draft. Drafts #199/#200 were product-DELETE cleaned. Event commit f08f92cc merged as f8a3fb57; recreate final L4 from the merge head and resume CHANGE-002."
+    ,"REM-P2-028 L1-L2 passed under explicit authorization: a delete-permitted, tenant-scoped endpoint accepts only a non-empty runId present in the non-approved document snapshot, deletes that document's CI links and snapshots transactionally, soft-deletes the document and records purge_remediation_test. Wrong runId returned 400 while #212 remained readable; approved #2 returned 409; correct runId deleted #212 and subsequent GET returned not found. Existing L4 #211 and released template #8 were cleaned through product APIs; no Redis, session, volume, SQL or object-store bypass was used. Commit, no-ff merge and CHANGE-005 reverify remain."
   ]
 }
