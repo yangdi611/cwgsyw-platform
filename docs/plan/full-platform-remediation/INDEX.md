@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：75 个事件；其中 `CLOSED=4`、`VERIFIED=71`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：76 个事件；其中 `CLOSED=4`、`VERIFIED=72`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -14,6 +14,7 @@
 ## 当前队列
 
 | `REM-P0-007` | P0 | 授权切换幂等性 | L4 `ST-AUTHZ-020` | `VERIFIED` | CRITICAL | 已 enforced 的重复 Enforce 现被服务/API/UI 拒绝且无状态写入；待提交并 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/CLAUDE-CODE-PROMPT.md) |
+| `REM-P0-008` | P0 | 授权回退幂等性 | L4 `ST-AUTHZ-021` | `VERIFIED` | CRITICAL | 已 rollback 的重复 Rollback 现被服务/API 拒绝且无状态写入；L1-L3 和 Enforced 恢复回归通过，待 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P0-006` | P0 | 迁移工作台 platform scope 拒绝合同 | L4 `AUTHZ-002` | `VERIFIED` | CRITICAL | 非 platform 已认证会话的四个迁移读取端点已统一 HTTP/body `403`；当前分支编译、容器和 Playwright API 复验通过，待 no-ff 合并后全量重置 L4 | [事件卡](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/README.md) / [SPEC](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/SPEC.md) / [验证](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/CLAUDE-CODE-PROMPT.md) |
 
