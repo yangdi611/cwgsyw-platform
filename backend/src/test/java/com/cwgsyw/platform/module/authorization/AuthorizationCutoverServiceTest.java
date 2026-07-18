@@ -124,6 +124,21 @@ class AuthorizationCutoverServiceTest {
         verify(jdbcTemplate, never()).update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any());
     }
 
+    @Test
+    void duplicateRollbackRejectsBeforeChangingAuthorizationState() {
+        AuthorizationCutoverService service = new AuthorizationCutoverService(
+            jdbcTemplate, properties, modeService, groupMembershipService, authorizationWriteLockService,
+            activeGroupReferenceValidator);
+        when(jdbcTemplate.query(anyString(), org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.ResultSetExtractor<String>>any(), eq("default")))
+            .thenReturn("rollback");
+
+        assertThatThrownBy(() -> service.rollback("default", 1L, "platform", "ROLLBACK"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("当前已处于 Rollback 状态，无需重复回退");
+
+        verify(jdbcTemplate, never()).update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any());
+    }
+
     private Map<String, Object> row(Long userId, String username, String realName,
                                     String permissionCode, String permissionName,
                                     boolean legacyAllowed, boolean assignmentAllowed,
