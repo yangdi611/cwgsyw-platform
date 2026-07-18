@@ -13,6 +13,8 @@
 
 ## 当前队列
 
+| `REM-P1-038` | P1 | Wiki 发布审批统一工作流绑定 | L4 `ST-WIKI-001` | `VERIFIED` | MEDIUM | 已切换至统一 runtime；用户批准 `wiki_page -> remp1038wiki`（superadmin 审批）为正式策略。L1-L3、Wiki content/comments/export 通过，合并后从新基线完整 L4 | [事件卡](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/README.md) / [SPEC](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/SPEC.md) / [验证](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/CLAUDE-CODE-PROMPT.md) |
+
 | `REM-P0-007` | P0 | 授权切换幂等性 | L4 `ST-AUTHZ-020` | `VERIFIED` | CRITICAL | 已 enforced 的重复 Enforce 现被服务/API/UI 拒绝且无状态写入；待提交并 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/CLAUDE-CODE-PROMPT.md) |
 | `REM-P0-008` | P0 | 授权回退幂等性 | L4 `ST-AUTHZ-021` | `VERIFIED` | CRITICAL | 已 rollback 的重复 Rollback 现被服务/API 拒绝且无状态写入；L1-L3 和 Enforced 恢复回归通过，待 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/CLAUDE-CODE-PROMPT.md) |
 

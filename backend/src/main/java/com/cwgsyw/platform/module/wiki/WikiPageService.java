@@ -16,10 +16,12 @@ import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.workflow.adapter.WikiWorkflowAdapter;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowStartCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.flowable.engine.RuntimeService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +46,7 @@ public class WikiPageService {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
     private final UserMapper userMapper;
-    private final RuntimeService runtimeService;
+    private final WorkflowRuntimeFacade workflowRuntimeFacade;
     private final AuthorizationService authorizationService;
     private final AuthorizationResourceMigrationService resourceMigrationService;
     private final WikiAttachmentService attachmentService;
@@ -414,18 +416,19 @@ public class WikiPageService {
             throw new IllegalStateException("系统手册页面由平台维护，不可提交审批");
         }
         String before = toJson(page);
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("pageId", pageId);
-        vars.put("tenantId", tenantId);
-        vars.put("submitterId", userId);
-        var pi = runtimeService.startProcessInstanceByKey("wiki_publish", "wikiPage:" + pageId, vars);
+        var instance = workflowRuntimeFacade.startBusinessProcess(WorkflowStartCommand.builder()
+            .tenantId(tenantId)
+            .businessType(WikiWorkflowAdapter.BUSINESS_TYPE)
+            .businessId(String.valueOf(pageId))
+            .submitterId(userId)
+            .build());
         page.setStatus("review");
-        page.setProcessInstanceId(pi.getProcessInstanceId());
+        page.setProcessInstanceId(instance.getProcessInstanceId());
         page.setUpdatedBy(userId);
         page.setUpdatedAt(LocalDateTime.now());
         pageMapper.updateById(page);
         auditLogMapper.insert(buildAudit(tenantId, "submit", pageId, userId, before, toJson(page),
-                "processInstanceId=" + pi.getProcessInstanceId()));
+                "processInstanceId=" + instance.getProcessInstanceId()));
     }
 
     @Transactional
