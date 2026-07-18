@@ -16,10 +16,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,6 +104,24 @@ class AuthorizationCutoverServiceTest {
         order.verify(authorizationWriteLockService).lockGroupAssignment("default", 7L, 9L);
         verify(groupMembershipService).setPrimaryMembership(7L, 5L, "default", 1L);
         verify(activeGroupReferenceValidator).lockAndRequire("default", 5L);
+    }
+
+    @Test
+    void duplicateEnforceRejectsBeforeChangingAuthorizationState() {
+        AuthorizationCutoverService service = new AuthorizationCutoverService(
+            jdbcTemplate, properties, modeService, groupMembershipService, authorizationWriteLockService,
+            activeGroupReferenceValidator);
+        when(properties.getDecisionMode()).thenReturn(AuthorizationProperties.DecisionMode.ENFORCED);
+        when(jdbcTemplate.query(anyString(), org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.ResultSetExtractor<String>>any(), eq("default")))
+            .thenReturn("enforced");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> service.enforce("default", 1L, "platform", "ENFORCE"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("当前已处于 Enforced 状态，无需重复切换");
+
+        verifyNoInteractions(authorizationWriteLockService);
+        verify(jdbcTemplate, never()).update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any());
     }
 
     private Map<String, Object> row(Long userId, String username, String realName,

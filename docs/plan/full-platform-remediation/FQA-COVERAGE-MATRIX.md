@@ -129,6 +129,7 @@
 
 | L4 发现 | 主整改事件 | 状态 | 结论 |
 |---|---|---|---|
+| `L4-ST-AUTHZ-020-001`：已 enforced 的重复 Enforce 返回 200 并重复增加 epoch | [`REM-P0-007`](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/README.md) | `VERIFIED` | 根因是 `AuthorizationCutoverService.enforce` 无条件 upsert。独立分支以事务内状态锁定拒绝重复切换；Java 21 L1 与当前分支 backend L3 证明 409 且状态对象不变，待合并后完整 L4。 |
 | `L4-AUTHZ-002-001`：非 platform 已认证迁移读取 API 返回 `400` 而非授权拒绝 `403` | [`REM-P0-006`](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/README.md) | `VERIFIED` | Controller scope guard 已切至标准 `AccessDeniedException`；四个读取端点、platform allow、cutover 不变及当前分支容器/Playwright API L1-L3 通过，待完整 L4。 |
 | `REM-P1-033` L1 基线：三处无关测试源码阻断 Maven testCompile | [`REM-P2-031`](./08-cross-cutting-contracts/REM-P2-031-backend-test-compile-baseline/README.md) | `VERIFIED` | 不改变历史 `BUG-FQA-*` 唯一主映射；Java 21 容器中三处目标测试与变更文档定向测试均通过。 |
 | `L4-CHANGE-008-001`：组级 member 可修改其他创建者的同租户变更文档 | [`REM-P1-033`](./05-workflow-change/REM-P1-033-change-doc-edit-scope/README.md) | `VERIFIED` | 已确认成员/组长/tenant-platform 范围；Java 21 L1 通过，当前分支真实 member 对五个跨创建者入口均为 404 且无写入，runId 夹具已清理。 |

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-18T15:06:00+08:00",
+  "updatedAt": "2026-07-18T15:40:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "bcc759a7",
+    "observedCommit": "f513e96aa9ba41fd4f2a54414ac6b11210c4c1be",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_REVALIDATION_PENDING",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": null,
-  "lastCompletedGate": "REM-P2-020_L4_REGRESSION_VERIFIED",
+  "phase": "EVENT_READY_TO_COMMIT",
+  "activeEvent": "REM-P0-007",
+  "activeBranch": "codex/rem-p0-007-authorization-cutover-idempotency",
+  "activeRunId": "REM_P0_007_20260718_1530",
+  "lastCompletedGate": "REM-P0-007_VERIFIED",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-018-regression",
-  "nextAction": "After the REM-P2-020 merge, create a new final L4 branch from the new lint-fix merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
+  "nextBranch": "codex/rem-p0-007-authorization-cutover-idempotency",
+  "nextAction": "Run detect_changes and documentation integrity checks; commit REM-P0-007, no-ff merge it to lint-fix, then create a completely new final L4 run from that merge commit.",
   "statusCounts": {
-    "total": 74,
+    "total": 75,
     "closed": 4,
-    "verified": 70,
+    "verified": 71,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -76,7 +76,7 @@
       "REM-P1-033",
       "REM-P1-034",
       "REM-P1-035",
-    "REM-P1-036",
+      "REM-P1-036",
       "REM-P1-037",
       "REM-P2-001",
       "REM-P2-002",
@@ -110,7 +110,8 @@
       "REM-P2-030",
       "REM-P2-031",
       "REM-P2-032",
-      "REM-P0-006"
+      "REM-P0-006",
+      "REM-P0-007"
     ],
     "verifying": [],
     "inProgress": [],
@@ -118,6 +119,7 @@
     "blocked": []
   },
   "executionOrder": [
+    "REM-P0-007",
     "REM-P1-005",
     "REM-P1-006",
     "REM-P1-007",
