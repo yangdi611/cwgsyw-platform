@@ -182,6 +182,12 @@ export default function FilesPage() {
     },
   })
 
+  const closeNewFolderDialog = () => {
+    setNewFolderOpen(false)
+    setNewFolderName('')
+    setOwnerGroupId('')
+  }
+
   const updateFolderMutation = useMutation({
     mutationFn: ({ id, name, parentId }: { id: number; name: string; parentId?: string }) =>
       api.patch(`/files/folders/${id}`, {
@@ -486,7 +492,7 @@ export default function FilesPage() {
       </div>
 
       {/* New Folder Dialog */}
-      <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
+      <Dialog open={newFolderOpen} onOpenChange={(open) => open ? setNewFolderOpen(true) : closeNewFolderDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新建文件夹</DialogTitle>
@@ -513,7 +519,7 @@ export default function FilesPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setNewFolderOpen(false)}>
+            <Button variant="secondary" onClick={closeNewFolderDialog}>
               取消
             </Button>
             <Button
