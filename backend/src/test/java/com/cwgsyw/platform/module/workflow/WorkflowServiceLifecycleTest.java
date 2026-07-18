@@ -12,6 +12,7 @@ import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.history.HistoricProcessInstance;
+import org.flowable.engine.history.HistoricProcessInstanceQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -23,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +38,7 @@ class WorkflowServiceLifecycleTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) RuntimeService runtimeService;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) RepositoryService repositoryService;
     @Mock TaskService taskService;
-    @Mock HistoryService historyService;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) HistoryService historyService;
     @Mock JdbcTemplate jdbcTemplate;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
     @Mock SysConfigService configService;
@@ -117,17 +119,20 @@ class WorkflowServiceLifecycleTest {
     @Test
     void allStatsIncludesHistoricalInstancesWhoseDefinitionsWereDeleted() {
         HistoricProcessInstance historical = org.mockito.Mockito.mock(HistoricProcessInstance.class);
+        HistoricProcessInstanceQuery historicalQuery = org.mockito.Mockito.mock(HistoricProcessInstanceQuery.class, Answers.RETURNS_DEEP_STUBS);
         when(definition.getKey()).thenReturn("active");
         when(definition.getName()).thenReturn("Active definition");
         when(definition.getVersion()).thenReturn(2);
         when(definition.getId()).thenReturn("active:2:1");
         when(repositoryService.createProcessDefinitionQuery().latestVersion().list()).thenReturn(List.of(definition));
-        when(historyService.createHistoricProcessInstanceQuery().list()).thenReturn(List.of(historical));
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(historicalQuery);
+        when(historicalQuery.list()).thenReturn(List.of(historical));
         when(historical.getProcessDefinitionKey()).thenReturn(null);
+        when(historical.getEndTime()).thenReturn(new Date());
         when(historical.getDurationInMillis()).thenReturn(1_000L);
         when(runtimeService.createProcessInstanceQuery().list()).thenReturn(List.of());
         when(runtimeService.createProcessInstanceQuery().processDefinitionKey("active").count()).thenReturn(0L);
-        when(historyService.createHistoricProcessInstanceQuery().processDefinitionKey("active").finished().count()).thenReturn(0L);
+        when(historicalQuery.processDefinitionKey("active").finished().count()).thenReturn(0L);
 
         List<ProcessStatsVO> stats = service.getAllProcessStats();
 
@@ -139,5 +144,29 @@ class WorkflowServiceLifecycleTest {
         assertThat(deleted.getFinishedCount()).isEqualTo(1);
         assertThat(deleted.getTotalStarted()).isEqualTo(1);
         assertThat(deleted.getName()).isEqualTo("历史已删除流程定义");
+    }
+
+    @Test
+    void historicalDeletedDefinitionStatsMatchAllStatsBucket() {
+        HistoricProcessInstance finished = org.mockito.Mockito.mock(HistoricProcessInstance.class);
+        HistoricProcessInstance unfinished = org.mockito.Mockito.mock(HistoricProcessInstance.class);
+        HistoricProcessInstanceQuery historicalQuery = org.mockito.Mockito.mock(HistoricProcessInstanceQuery.class, Answers.RETURNS_DEEP_STUBS);
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(historicalQuery);
+        when(historicalQuery.list()).thenReturn(List.of(finished, unfinished));
+        when(finished.getProcessDefinitionKey()).thenReturn(null);
+        when(finished.getEndTime()).thenReturn(new Date());
+        when(finished.getDurationInMillis()).thenReturn(2_000L);
+        when(unfinished.getProcessDefinitionKey()).thenReturn(null);
+        when(unfinished.getEndTime()).thenReturn(null);
+        when(unfinished.getDurationInMillis()).thenReturn(null);
+
+        ProcessStatsVO stats = service.getProcessStats("historical-deleted-definition");
+
+        assertThat(stats.getName()).isEqualTo("历史已删除流程定义");
+        assertThat(stats.getTotalStarted()).isEqualTo(2);
+        assertThat(stats.getFinishedCount()).isEqualTo(1);
+        assertThat(stats.getRunningCount()).isZero();
+        assertThat(stats.getSuccessRate()).isEqualTo(50.0);
+        assertThat(stats.getAvgDurationSeconds()).isEqualTo(2.0);
     }
 }

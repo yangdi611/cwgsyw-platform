@@ -15,3 +15,13 @@
 - 实现：全量统计以当前定义、可解析历史 key、运行 key 的并集生成；无法恢复 key 的历史实例被明确归入 `historical-deleted-definition` / “历史已删除流程定义”，不篡改或伪造历史定义。前端仅隐藏缺失版本的孤立 `v`。
 - 验证：主包构建、当前分支 backend/frontend 容器和真实 API/UI 对账通过。定向 Maven test 被四项既有无关测试源码编译错误阻断，未将其记为 PASS。
 - 数据与回滚：只读验证，无测试数据；回滚仅撤回本事件提交，将重新出现统计漏项。
+
+## 2026-07-18：最终 L4 发现的保留桶单项统计回归
+
+- 分支：`codex/rem-p2-020-historical-workflow-stats-single-key`；基线：`lint-fix@7d65aef6`。L4 `REPORT-003` 发现全量响应为 `historical-deleted-definition=3/0/3`，相同 key 的单项端点为 `0/0/0`。
+- GitNexus impact：`getProcessStats` 的直接调用者为 `getAllProcessStats` 和 `WorkflowController.processStats`，再上游为 `WorkflowController.allStats`；3 个受影响符号、单模块、LOW 风险。`getAllProcessStats` 仅由 `allStats` 直接调用，同为 LOW。
+- 根因：保留桶仅在 `getAllProcessStats` 尾部组装，`getProcessStats` 将该 synthetic key 当成 Flowable definition key 查询，导致归零。
+- 实现：`getProcessStats` 对唯一保留 key 从不可解析历史实例计算其稳定 read model（总数、完成数、平均耗时），不写入 Flowable、数据库、审计或授权关系；所有普通 definition key 保持原查询路径。
+- L1：增加 `historicalDeletedDefinitionStatsMatchAllStatsBucket`；因本机 Java 26/ByteBuddy 兼容，使用 `JAVA_TOOL_OPTIONS=-Dnet.bytebuddy.experimental=true`。在将 HistoryService 改为 deep stub 并明确历史 query mock 后，6 个 `WorkflowServiceLifecycleTest` 通过。
+- L2/L3：后端主包构建通过；当前分支 backend 容器健康；真实 API 输出 historical 全量/单项字段完全一致；`test/l4-report-stats.spec.js` 通过。未创建、修改或清理测试对象。
+- 回滚：撤回本事件提交即可恢复旧行为；无数据回滚步骤。

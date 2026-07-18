@@ -33,6 +33,6 @@
 - 不更改流程定义生命周期、统计口径以外的审批语义；
 - 不进行全租户数据迁移或 Flowable 历史清理。
 
-L1-L3 已通过：当前/历史定义并集与不可解析的已删除定义汇总都已覆盖；当前分支容器中统计 `4/4/0` 与完成/运行实例列表对账一致。无测试数据或清理项，等待重新 L4。
+2026-07-18 L4 回归：全量统计中的 `historical-deleted-definition` 保留桶为 `3/0/3`，单项统计却返回 `0/0/0`。本次从 `lint-fix@7d65aef6` 的独立分支重新认领；L1-L3 已复验通过，待提交合并后重新初始化最终 L4。
 
 文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)

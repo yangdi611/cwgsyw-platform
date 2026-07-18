@@ -416,6 +416,30 @@ public class WorkflowService {
      * Get statistics for a process definition key
      */
     public ProcessStatsVO getProcessStats(String processDefinitionKey) {
+        if (HISTORICAL_DELETED_DEFINITION_KEY.equals(processDefinitionKey)) {
+            List<HistoricProcessInstance> unresolvedHistory = historyService.createHistoricProcessInstanceQuery().list().stream()
+                .filter(instance -> instance.getProcessDefinitionKey() == null)
+                .toList();
+            long finishedCount = unresolvedHistory.stream()
+                .filter(instance -> instance.getEndTime() != null)
+                .count();
+            double avgDurationSec = unresolvedHistory.stream()
+                .filter(instance -> instance.getDurationInMillis() != null)
+                .mapToLong(HistoricProcessInstance::getDurationInMillis)
+                .average()
+                .orElse(0) / 1000.0;
+
+            ProcessStatsVO stats = new ProcessStatsVO();
+            stats.setProcessDefinitionKey(HISTORICAL_DELETED_DEFINITION_KEY);
+            stats.setName(HISTORICAL_DELETED_DEFINITION_NAME);
+            stats.setTotalStarted(unresolvedHistory.size());
+            stats.setFinishedCount((int) finishedCount);
+            stats.setRunningCount(0);
+            stats.setSuccessRate(unresolvedHistory.isEmpty() ? 0 : finishedCount * 100.0 / unresolvedHistory.size());
+            stats.setAvgDurationSeconds(avgDurationSec);
+            return stats;
+        }
+
         // Running instances
         long runningCount = runtimeService.createProcessInstanceQuery()
             .processDefinitionKey(processDefinitionKey).count();
