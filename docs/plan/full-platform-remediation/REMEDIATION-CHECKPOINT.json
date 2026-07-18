@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-18T13:05:00+08:00",
+  "updatedAt": "2026-07-18T15:06:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-  "observedCommit": "49f22fef0ce0e9ae3e68e1653016cd4d3d586c3e",
+    "observedCommit": "bcc759a7",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,10 +20,10 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-018_L4_REGRESSION_MERGED",
+  "lastCompletedGate": "REM-P2-020_L4_REGRESSION_VERIFIED",
   "nextEvent": "FINAL_L4_REVALIDATION",
   "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-018-regression",
-  "nextAction": "Create a new final L4 branch from this merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
+  "nextAction": "After the REM-P2-020 merge, create a new final L4 branch from the new lint-fix merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
   "statusCounts": {
     "total": 74,
     "closed": 4,
