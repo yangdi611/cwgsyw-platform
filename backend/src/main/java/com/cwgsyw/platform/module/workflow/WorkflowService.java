@@ -26,6 +26,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringReader;
+import java.io.StringWriter;
+import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 
 @Service
 @RequiredArgsConstructor
@@ -191,9 +199,7 @@ public class WorkflowService {
         // Flowable derives the process definition key from <process id="...">,
         // not from the deployment properties. Without this, every new process
         // would use "Process_1" from the editor template.
-        String xml = req.getXml().replaceFirst(
-            "<bpmn:process id=\"Process_1\"",
-            "<bpmn:process id=\"" + req.getKey() + "\"");
+        String xml = syncDefinitionMetadata(req.getXml(), req, req.getKey(), req.getCategory());
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = deployDefinition(req, resourceName, xml);
         var def = repositoryService.createProcessDefinitionQuery()
@@ -225,24 +231,7 @@ public class WorkflowService {
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
 
-        // Read the existing BPMN to extract its targetNamespace
-        String existingXml;
-        try (var bis = repositoryService.getProcessModel(definitionId)) {
-            existingXml = new String(bis.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("读取流程定义XML失败", e);
-        }
-        // Extract targetNamespace from existing XML and apply it to the new XML
-        var nsMatcher = java.util.regex.Pattern.compile("targetNamespace=\"([^\"]+)\"").matcher(existingXml);
-        String oldNs = nsMatcher.find() ? nsMatcher.group(1) : null;
-        // Preserve existing targetNamespace so Flowable recognises this as a new version
-        String newXml = req.getXml();
-        // Inject the correct process key — editor template always uses id="Process_1"
-        newXml = newXml.replaceFirst("<bpmn:process id=\"[^\"]*\"",
-            "<bpmn:process id=\"" + oldDef.getKey() + "\"");
-        if (oldNs != null && !oldNs.isEmpty()) {
-            newXml = newXml.replaceAll("targetNamespace=\"[^\"]*\"", "targetNamespace=\"" + oldNs + "\"");
-        }
+        String newXml = syncDefinitionMetadata(req.getXml(), req, oldDef.getKey(), req.getCategory());
 
         String resourceName = req.getKey() + ".bpmn20.xml";
         Deployment deployment = deployDefinition(req, resourceName, newXml);
@@ -272,6 +261,42 @@ public class WorkflowService {
                 .deploy();
         } catch (RuntimeException exception) {
             throw BusinessException.badRequest("BPMN_DEPLOYMENT_INVALID", "BPMN 流程定义无法部署，请检查流程结构和属性");
+        }
+    }
+
+    static String syncDefinitionMetadata(String xml, SaveProcessDefinitionReq req, String processKey, String category) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setExpandEntityReferences(false);
+            factory.setNamespaceAware(true);
+            var document = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+            String namespace = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+            Element definitions = (Element) document.getElementsByTagNameNS(namespace, "definitions").item(0);
+            Element process = (Element) document.getElementsByTagNameNS(namespace, "process").item(0);
+            process.setAttribute("id", processKey);
+            process.setAttribute("name", req.getName());
+            if (category != null) definitions.setAttribute("targetNamespace", category);
+            var documentationNodes = process.getElementsByTagNameNS(namespace, "documentation");
+            Element documentation;
+            if (documentationNodes.getLength() > 0) {
+                documentation = (Element) documentationNodes.item(0);
+            } else {
+                documentation = document.createElementNS(namespace, "bpmn:documentation");
+                process.insertBefore(documentation, process.getFirstChild());
+            }
+            documentation.setTextContent(req.getDescription() == null ? "" : req.getDescription());
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            var transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(document), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception exception) {
+            throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN XML 格式无效");
         }
     }
 
