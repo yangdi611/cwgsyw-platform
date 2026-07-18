@@ -299,6 +299,16 @@ public class WikiPageService {
         }).collect(Collectors.toList());
     }
 
+    public WikiPageVersion getVersionForExport(String tenantId, Long pageId, int version) {
+        WikiPageVersion snapshot = versionMapper.selectOne(new LambdaQueryWrapper<WikiPageVersion>()
+                .eq(WikiPageVersion::getTenantId, tenantId)
+                .eq(WikiPageVersion::getPageId, pageId)
+                .eq(WikiPageVersion::getVersion, version)
+                .last("LIMIT 1"));
+        if (snapshot == null) throw new IllegalArgumentException("版本不存在: " + version);
+        return snapshot;
+    }
+
     @Transactional
     public WikiPageVO revert(String tenantId, Long pageId, int version, SecurityUser user) {
         WikiPageVersion v = versionMapper.selectOne(new LambdaQueryWrapper<WikiPageVersion>()

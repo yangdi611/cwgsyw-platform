@@ -72,7 +72,7 @@ export function WikiVersionsPanel({ pageId }: { pageId: number }) {
                     <div className="flex shrink-0 gap-1">
                       <button
                         title="导出此版本"
-                        onClick={() => { wikiApi.exportPage(pageId).catch(() => toast.error('导出失败')) }}
+                        onClick={() => { wikiApi.exportPageVersion(pageId, v.version, `${v.title}-v${v.version}.md`).catch(() => toast.error('导出失败')) }}
                         className="flex h-6 w-6 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
                       >
                         <FileDown className="h-3.5 w-3.5" />

@@ -3,7 +3,9 @@ package com.cwgsyw.platform.module.wiki;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.module.wiki.dto.CreateSpaceRequest;
+import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.security.SecurityUser;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -80,6 +82,25 @@ class WikiControllerTest {
         verify(authorizationService).requireWithCompatibility(
             eq(editor), eq("wiki"), eq("wiki:update"), eq("wiki_page"), eq(88L), eq(2), any(java.util.function.BooleanSupplier.class));
         verify(attachmentService).deleteAttachment("default", 3L, 42L);
+    }
+
+    @Test
+    void exportVersionDelegatesTheRequestedSnapshotAfterReadAuthorization() throws Exception {
+        SecurityUser reader = user(3L, 7L, "group");
+        WikiPageVersion version = new WikiPageVersion();
+        version.setPageId(88L);
+        version.setVersion(2);
+        version.setTitle("历史标题");
+        version.setContent("历史正文");
+        HttpServletResponse response = org.mockito.Mockito.mock(HttpServletResponse.class);
+        when(pageService.exists("default", 88L)).thenReturn(true);
+        when(pageService.getVersionForExport("default", 88L, 2)).thenReturn(version);
+
+        controller.exportVersion(88L, 2, response, reader);
+
+        verify(authorizationService).requireWithCompatibility(
+            eq(reader), eq("wiki"), eq("wiki:read"), eq("wiki_page"), eq(88L), eq(4), any(java.util.function.BooleanSupplier.class));
+        verify(exportService).exportVersion(version, response);
     }
 
     private SecurityUser user(Long userId, Long groupId, String groupScope) {

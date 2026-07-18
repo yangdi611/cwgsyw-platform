@@ -234,6 +234,14 @@ public class WikiController {
         exportService.exportPage(id, u.getTenantId(), response);
     }
 
+    @GetMapping("/pages/{id}/versions/{version}/export")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public void exportVersion(@PathVariable Long id, @PathVariable int version, HttpServletResponse response,
+                              @AuthenticationPrincipal SecurityUser u) throws Exception {
+        checkAcl(u, id, "read");
+        exportService.exportVersion(pageService.getVersionForExport(u.getTenantId(), id, version), response);
+    }
+
     @GetMapping("/pages/{id}/backlinks")
     @PreAuthorize("hasAuthority('wiki:read')")
     public R<List<WikiBacklinkVO>> getBacklinks(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {

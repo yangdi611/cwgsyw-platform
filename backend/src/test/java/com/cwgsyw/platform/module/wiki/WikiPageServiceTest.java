@@ -215,6 +215,22 @@ class WikiPageServiceTest {
     }
 
     @Test
+    void getVersionForExport_returnsTheRequestedTenantSnapshot() {
+        WikiPageVersion snapshot = new WikiPageVersion();
+        snapshot.setTenantId("default");
+        snapshot.setPageId(88L);
+        snapshot.setVersion(2);
+        snapshot.setTitle("历史标题");
+        snapshot.setContent("历史正文");
+        when(versionMapper.selectOne(any())).thenReturn(snapshot);
+
+        WikiPageVersion result = service.getVersionForExport("default", 88L, 2);
+
+        assertThat(result.getTitle()).isEqualTo("历史标题");
+        assertThat(result.getContent()).isEqualTo("历史正文");
+    }
+
+    @Test
     void revert_notGranted_throwsAndDoesNotUpdate() {
         WikiPage page = page(88L, 100L);
         when(pageMapper.selectById(88L)).thenReturn(page);

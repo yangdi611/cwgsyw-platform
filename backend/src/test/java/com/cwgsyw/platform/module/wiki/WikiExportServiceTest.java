@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
+import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,5 +38,20 @@ class WikiExportServiceTest {
         assertThat(response.getContentType()).isEqualTo("text/markdown;charset=UTF-8");
         assertThat(response.getHeader("Content-Disposition")).isEqualTo("attachment; filename=\"含图片页面.md\"");
         assertThat(response.getContentAsString(StandardCharsets.UTF_8)).isEqualTo(page.getContent());
+    }
+
+    @Test
+    void exportVersionUsesTheHistoricalSnapshotContentAndTitle() throws Exception {
+        WikiPageVersion version = new WikiPageVersion();
+        version.setVersion(2);
+        version.setTitle("历史标题");
+        version.setContent("历史正文");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        service.exportVersion(version, response);
+
+        assertThat(response.getContentType()).isEqualTo("text/markdown;charset=UTF-8");
+        assertThat(response.getHeader("Content-Disposition")).isEqualTo("attachment; filename=\"历史标题.md\"");
+        assertThat(response.getContentAsString(StandardCharsets.UTF_8)).isEqualTo("历史正文");
     }
 }

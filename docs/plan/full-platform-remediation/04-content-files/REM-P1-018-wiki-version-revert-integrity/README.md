@@ -35,4 +35,4 @@ Wiki 版本回退返回成功，但正文被清空。
 - 不删除历史版本
 - 不自动修复无法判定的空快照
 
-L1-L3 已通过：首次保存生成完整 `v1`，回退精确恢复正文、详情与导出，并写入新版本；空/旧快照在写入前受控拒绝；真实 API/UI 路径和精确清理通过。下一门禁：最终 L4 全平台复验。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L1-L3 已通过：首次保存生成完整 `v1`，回退精确恢复正文、详情与导出，并写入新版本；空/旧快照在写入前受控拒绝；历史版本 UI 导出精确请求所选版本，真实 API/UI 路径和精确清理通过。下一门禁：从本次合并后的最新集成点完整重启最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
