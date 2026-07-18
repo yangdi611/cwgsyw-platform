@@ -1,17 +1,19 @@
 # 全平台整改事件索引
 
-更新时间：2026-07-18
+更新时间：2026-07-19
 来源测试运行：`FQA_20260712_0329_lintfix`
 
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：78 个事件；其中 `CLOSED=4`、`VERIFIED=74`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：79 个事件；其中 `CLOSED=4`、`VERIFIED=75`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-041` | P1 | 文件夹对话框草稿重置 | L4 `COMMON-009` | `VERIFIED` | LOW | 四种关闭路径、零 POST、成功创建/删除、当前分支容器和精确清理通过；待提交、no-ff 合并并重验 `COMMON-009`。 | [事件卡](./04-content-files/REM-P1-041-file-dialog-draft-reset/README.md) / [SPEC](./04-content-files/REM-P1-041-file-dialog-draft-reset/SPEC.md) / [验证](./04-content-files/REM-P1-041-file-dialog-draft-reset/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-041-file-dialog-draft-reset/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-040` | P1 | Workflow 定义元数据往返 | L4 `FLOW-007` | `VERIFIED` | LOW | v2 name/category/description 与 moddle 属性真实 API/UI 往返通过，定义全版本已产品 API 清理；待提交、no-ff 合并并重验 `FLOW-007/008`。 | [事件卡](./05-workflow-change/REM-P1-040-workflow-definition-metadata-roundtrip/README.md) / [SPEC](./05-workflow-change/REM-P1-040-workflow-definition-metadata-roundtrip/SPEC.md) / [验证](./05-workflow-change/REM-P1-040-workflow-definition-metadata-roundtrip/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-040-workflow-definition-metadata-roundtrip/CLAUDE-CODE-PROMPT.md) |
 
@@ -44,7 +46,7 @@
 
 | `REM-P1-036` | P1 | 登录失败反馈保留 | L4 `AUTH-003` 新发现 | `VERIFIED` | HIGH | 登录 401 保留局部错误；其他失效会话仍登出。L1-L3 容器与真实浏览器复验通过，待新完整 L4 | [事件卡](./02-account-organization/REM-P1-036-login-error-feedback/README.md) / [SPEC](./02-account-organization/REM-P1-036-login-error-feedback/SPEC.md) / [验证](./02-account-organization/REM-P1-036-login-error-feedback/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-036-login-error-feedback/CLAUDE-CODE-PROMPT.md) |
 
-| `REM-P2-030` | P2 | 变更文档动态表格导出一致性 | L4 `CHANGE-006` 新发现 | `READY` | MEDIUM | 在独立事件分支补齐 DOCX 模板与程序化回退的表格导出，完成 L1-L3 后重跑 L4 `CHANGE-006` | [事件卡](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/README.md) / [SPEC](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/SPEC.md) / [验证](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/CLAUDE-CODE-PROMPT.md) |
+| `REM-P2-030` | P2 | 变更文档动态表格导出一致性 | L4 `CHANGE-006` 新发现 | `VERIFIED` | MEDIUM | 模板填充与程序化回退、API DOCX 内容、真实浏览器下载和精确清理均通过；等待最终 L4。 | [事件卡](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/README.md) / [SPEC](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/SPEC.md) / [验证](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P2-030-change-doc-dynamic-table-export-consistency/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P2-029` | P2 | 变更文档日期与日期时间有效性校验 | L4 `CHANGE-005` 新发现 | `VERIFIED` | LOW | L1 单测、L2 API、L3 当前分支容器/UI 与精确清理通过，待 no-ff 合并后重跑 L4 | [事件卡](./05-workflow-change/REM-P2-029-change-doc-temporal-validation/README.md) / [SPEC](./05-workflow-change/REM-P2-029-change-doc-temporal-validation/SPEC.md) / [验证](./05-workflow-change/REM-P2-029-change-doc-temporal-validation/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P2-029-change-doc-temporal-validation/CLAUDE-CODE-PROMPT.md) |
 
@@ -148,8 +150,8 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 70 |
-| `READY` | 1 |
+| `VERIFIED` | 75 |
+| `READY` | 0 |
 | `IN_PROGRESS` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |

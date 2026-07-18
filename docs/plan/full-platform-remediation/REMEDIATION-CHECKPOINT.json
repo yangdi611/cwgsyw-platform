@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T01:15:00+08:00",
+  "updatedAt": "2026-07-19T02:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": "FINAL_L4",
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-040_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
+  "lastCompletedGate": "REM-P1-041_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
   "nextEvent": "FINAL_L4",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-040",
-  "nextAction": "Complete this no-ff merge, create the next L4 branch from its merge head, then rerun FLOW-007/FLOW-008 with fresh run-scoped definition evidence and exact cleanup. Preserve all unaffected PASS evidence and the formal wiki_page -> remp1038wiki policy; FLOW-007 remains failed until fresh post-merge evidence passes.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-041",
+  "nextAction": "Complete this no-ff merge, create the next L4 continuation branch from its merge head, rerun COMMON-009, then continue remaining NOT_RUN cases. Preserve the historical FAIL and formal wiki_page -> remp1038wiki policy.",
   "statusCounts": {
-    "total": 78,
+    "total": 79,
     "closed": 4,
-    "verified": 74,
+    "verified": 75,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -115,7 +115,8 @@
       "REM-P1-029",
       "REM-P1-038",
       "REM-P1-039",
-      "REM-P1-040"
+      "REM-P1-040",
+      "REM-P1-041"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -393,17 +394,27 @@
       "sourceRunId": "FQA_20260718_2050_remp1038",
       "sourceDefect": "L4-FLOW-007-001",
       "failureSnapshotCommit": "6db5e8e1",
-      "runId": "REM_P1_040_1784394569677",
-      "eventCommit": "30d3e264f",
+      "runId": "REM_P1_040_1784394961537",
+      "eventCommit": "30d3e2641d4f7981ad5be604784369fab5d58f9b",
+      "mergeCommit": "d749f9965e48e9f166c72216b02382befb6a8f24"
+    },
+    "REM-P1-041": {
+      "branch": "codex/rem-p1-041-file-dialog-draft-reset",
+      "baselineCommit": "d749f9965e48e9f166c72216b02382befb6a8f24",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-009-001",
+      "failureSnapshotCommit": "fe2580283",
+      "runId": "REM_P1_041_20260719",
+      "eventCommit": "1d2b50bdeff26d140b762984b68d5485c59bd135",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     }
   },
   "l4": {
-    "status": "RUNNING",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-038",
+    "status": "STOPPED_FOR_REMEDIATION",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-040",
     "runId": "FQA_20260718_2050_remp1038",
     "eventScopedVerifiedRequired": 71,
-    "failures": 0,
+    "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0
   },
@@ -437,6 +448,7 @@
     "REM-P1-029 L1-L3 passed: task, holiday and rule invalid inputs return 400; valid holiday/rule creation and preview due ordering passed API/UI checks, with runId objects removed by product DELETE and no residue. Event commit is recorded before the no-ff merge.",
     "REM-P1-038 L1-L3 passed: Wiki submit uses WorkflowRuntimeFacade binding rather than the stale wiki_publish key; Java 21 unit tests, current-branch backend, submit/reject/resubmit/approve lifecycle and Wiki content/comments/export regressions passed. User approved wiki_page -> remp1038wiki with superadmin as the formal tenant approval policy. Event commit and no-ff merge are pending; reset L4 from the merge head.",
     "L4 FQA_20260718_2050_remp1038 initially recorded L4-BACKUP-003-001 because its browser test used API path /backups. REM-P1-039 independently corrected it to actual page route /admin/backup and passed on the unchanged lint-fix baseline; APIs remained 403 and all temporary objects were cleaned. The record is a test-path reconciliation, not a product defect, so L4 resumes without a baseline reset.",
+    "L4 FQA_20260718_2050_remp1038 COMMON-009 failed because Escape-closing the new-folder dialog retained ESC_DRAFT; zero folder POSTs and zero residue were observed. REM-P1-041 L1-L3 now passes all four close paths, positive create/delete, current-branch Chromium and exact cleanup; event commit and no-ff merge remain before affected-scope L4 revalidation.",
     "REM-P1-030 contract approved: platform/tenant export all tenant approved reports with optional groupId; group is forced to own group; export-only does not require read; no export returns 403 and hides /reports. API scope/export-only/deny/audit/cleanup and current-branch container rebuild passed under REM_P1_030_20260716_112540. Isolated Playwright browser L3 passed under REM_P1_030_UI_20260716_113313: navigation visibility/hidden state, XLSX download request and Console all passed; both test runs were product-API cleaned with zero residue. Event is VERIFIED pending commit and no-ff merge.",
     "REM-P2-001 L1-L3 passed: shared-file absence/unavailability remains non-enumerable 403 with a neutral, recoverable preview state; device, IPAM and CMDB impact absence return 404/RESOURCE_NOT_FOUND; real gateway routes, build, lint and type checks passed. Existing unrelated backend test-compile debt is recorded in the event verification. Event commit b4bfc3b8 merged as 55aeaa29; next event is REM-P2-002.",
     "REM-P2-003 L1-L3 passed: title trim, 400 blank/overlong rejection, explicit 409 sibling conflict, concurrent create, current-branch API/UI revalidation and product-API cleanup all passed. Event commit db9fc3fa is merged with this checkpoint advance; next event is REM-P2-004.",
