@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-18T21:40:00+08:00",
+  "updatedAt": "2026-07-19T01:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_RUNNING",
-  "activeEvent": "FINAL_L4",
-  "activeBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-038",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-039_NO_CODE_L1_L3_PASS_MERGED",
-  "nextEvent": "FINAL_L4",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-038",
-  "nextAction": "Continue unchanged-baseline FQA_20260718_2050_remp1038 from lint-fix after the REM-P1-039 documentation-only merge. It independently proved the original BACKUP-003 failure used API path /backups instead of page route /admin/backup; no product code changed and no L4 PASS needs reset.",
+  "phase": "EVENT_VERIFIED_AWAITING_COMMIT",
+  "activeEvent": "REM-P1-040",
+  "activeBranch": "codex/rem-p1-040-workflow-definition-metadata-roundtrip",
+  "activeRunId": "REM_P1_040_1784394569677",
+  "lastCompletedGate": "REM-P1-040_L1_L3_PASS_CLEANUP_COMPLETE",
+  "nextEvent": "REM-P1-040",
+  "nextBranch": "codex/rem-p1-040-workflow-definition-metadata-roundtrip",
+  "nextAction": "Run detect_changes, commit REM-P1-040, merge --no-ff into lint-fix, then create a fresh L4 branch from the merge head and rerun FLOW-007/FLOW-008. Preserve the formal wiki_page -> remp1038wiki policy and do not inherit the failed FLOW-007 result as PASS.",
   "statusCounts": {
-    "total": 76,
+    "total": 78,
     "closed": 4,
-    "verified": 72,
+    "verified": 74,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -114,7 +114,8 @@
       "REM-P0-007",
       "REM-P1-029",
       "REM-P1-038",
-      "REM-P1-039"
+      "REM-P1-039",
+      "REM-P1-040"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -385,6 +386,15 @@
       "sourceRunId": "FQA_20260718_2050_remp1038",
       "sourceDefect": "L4-BACKUP-003-001",
       "eventCommit": "d776f268"
+    },
+    "REM-P1-040": {
+      "branch": "codex/rem-p1-040-workflow-definition-metadata-roundtrip",
+      "baselineCommit": "1254925a1ff1a4917db926be0c13d9f7409dee24",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-FLOW-007-001",
+      "failureSnapshotCommit": "6db5e8e1",
+      "runId": "REM_P1_040_1784394569677",
+      "eventCommit": "PENDING"
     }
   },
   "l4": {
