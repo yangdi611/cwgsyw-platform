@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-18T15:40:00+08:00",
+  "updatedAt": "2026-07-18T15:45:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,14 +16,14 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "EVENT_READY_TO_COMMIT",
-  "activeEvent": "REM-P0-007",
-  "activeBranch": "codex/rem-p0-007-authorization-cutover-idempotency",
-  "activeRunId": "REM_P0_007_20260718_1530",
-  "lastCompletedGate": "REM-P0-007_VERIFIED",
+  "phase": "FINAL_L4_REVALIDATION_PENDING",
+  "activeEvent": null,
+  "activeBranch": null,
+  "activeRunId": null,
+  "lastCompletedGate": "REM-P0-007_NO_FF_MERGE_PENDING",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/rem-p0-007-authorization-cutover-idempotency",
-  "nextAction": "Run detect_changes and documentation integrity checks; commit REM-P0-007, no-ff merge it to lint-fix, then create a completely new final L4 run from that merge commit.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p0-007-regression",
+  "nextAction": "Create a new final L4 branch from the REM-P0-007 no-ff merge commit, freeze a unique runId, reset all 275 functional and 78 state cases to NOT_RUN, and execute the complete matrix.",
   "statusCounts": {
     "total": 75,
     "closed": 4,
@@ -361,15 +361,19 @@
     "REM-P2-029": {
       "eventCommit": "d01e04bfd2a9b93bb2e6cc8fb4a9ed60de2a78c7",
       "mergeCommit": "744312726b5027cd9c6b43a61f61c7239d84e96a"
+    },
+    "REM-P0-007": {
+      "eventCommit": "1c20595649fc611a1b44cebb2cc1bf972117d05d",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     }
   },
   "l4": {
-    "status": "RUNNING",
-    "branch": "codex/fqa-final-l4-revalidation",
-    "runId": "FQA_20260716_191500_lintfix",
-    "eventScopedVerifiedRequired": 42,
+    "status": "PENDING_NEW_BASELINE_AFTER_REM_P0_007",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p0-007-regression",
+    "runId": null,
+    "eventScopedVerifiedRequired": 71,
     "failures": 0,
-    "blocked": 1,
+    "blocked": 0,
     "cleanupFailures": 0
   },
   "blockers": [],
@@ -422,6 +426,7 @@
     "REM-P2-027 L1-L3 passed: the create DTO accepts UI ciSnapshots and ChangeDocService delegates same-transaction link persistence to tenant-validating ChangeDocLinkService. Current-branch API verified empty CI compatibility and invalid CI HTTP 400 with zero residue; rebuilt containers and Playwright verified CI #32 links to a new draft. Drafts #199/#200 were product-DELETE cleaned. Event commit f08f92cc merged as f8a3fb57; recreate final L4 from the merge head and resume CHANGE-002.",
     "REM-P2-028 L1-L2 passed under explicit authorization: a delete-permitted, tenant-scoped endpoint accepts only a non-empty runId present in the non-approved document snapshot, deletes that document's CI links and snapshots transactionally, soft-deletes the document and records purge_remediation_test. Wrong runId returned 400 while #212 remained readable; approved #2 returned 409; correct runId deleted #212 and subsequent GET returned not found. Existing L4 #211 and released template #8 were cleaned through product APIs; no Redis, session, volume, SQL or object-store bypass was used. Commit, no-ff merge and CHANGE-005 reverify remain.",
     "L4 CHANGE-006 lifecycle passed for API and real UI with zero runId residue, but export consistency failed: template #4 has no DOCX and ExportService programmatic fallback omits dynamic fixedDocxTable fields. REM-P2-030 is READY; L4 is paused until its independent L1-L3 implementation and affected-case revalidation complete.",
-    "REM-P2-030 L1-L3 passed: programmatic DOCX fallback now renders fixedDocxTable title, columns, stored row order and checkbox values. Existing template-fill plus new fallback tests passed 8/8; current event branch backend API DOCX contained all three rows and product-API cleanup returned keyword total=0. Real Chromium Word download from an existing approved document passed with Console/API failures=0. Event commit 4c2a0fb8 merged as c1678f87; merge-derived L4 CHANGE-006 evidence is recorded separately and L4 continues."
+    "REM-P2-030 L1-L3 passed: programmatic DOCX fallback now renders fixedDocxTable title, columns, stored row order and checkbox values. Existing template-fill plus new fallback tests passed 8/8; current event branch backend API DOCX contained all three rows and product-API cleanup returned keyword total=0. Real Chromium Word download from an existing approved document passed with Console/API failures=0. Event commit 4c2a0fb8 merged as c1678f87; merge-derived L4 CHANGE-006 evidence is recorded separately and L4 continues.",
+    "REM-P0-007 L1-L3 passed: duplicate Enforce now returns 409 before authorization writes, and current-branch backend readback proved epoch/status unchanged. The no-ff merge below is the new L4 baseline."
   ]
 }
