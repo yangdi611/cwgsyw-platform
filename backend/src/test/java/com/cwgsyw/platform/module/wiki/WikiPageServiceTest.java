@@ -3,13 +3,18 @@ package com.cwgsyw.platform.module.wiki;
 import com.cwgsyw.platform.module.wiki.dto.SavePageRequest;
 import com.cwgsyw.platform.module.wiki.dto.CreatePageRequest;
 import com.cwgsyw.platform.common.BusinessException;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
+import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowStartCommand;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,7 +44,7 @@ class WikiPageServiceTest {
     @Mock com.cwgsyw.platform.module.user.UserMapper userMapper;
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationService authorizationService;
     @Mock com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService resourceMigrationService;
-    @Mock org.flowable.engine.RuntimeService runtimeService;
+    @Mock WorkflowRuntimeFacade workflowRuntimeFacade;
     @Mock WikiAttachmentService attachmentService;
 
     @InjectMocks WikiPageService service;
@@ -470,5 +475,48 @@ class WikiPageServiceTest {
 
         service.publishDirect("default", 88L, creator);
         verify(pageMapper).updateById(any(WikiPage.class));
+    }
+
+    @Test
+    void submitForReview_startsBoundBusinessWorkflowAndMarksPageReview() {
+        WikiPage page = page(88L, 100L);
+        SecurityUser creator = user(3L, "group", Set.of("wiki:publish"));
+        WorkflowBusinessInstance instance = new WorkflowBusinessInstance();
+        instance.setProcessInstanceId("process-88");
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(spaceService.hasWritePermission("default", 100L, creator, "publish")).thenReturn(true);
+        when(workflowRuntimeFacade.startBusinessProcess(any())).thenReturn(instance);
+
+        service.submitForReview("default", 88L, creator);
+
+        var command = ArgumentCaptor.forClass(WorkflowStartCommand.class);
+        verify(workflowRuntimeFacade).startBusinessProcess(command.capture());
+        assertThat(command.getValue().getTenantId()).isEqualTo("default");
+        assertThat(command.getValue().getBusinessType()).isEqualTo("wiki_page");
+        assertThat(command.getValue().getBusinessId()).isEqualTo("88");
+        assertThat(command.getValue().getSubmitterId()).isEqualTo(3L);
+        assertThat(page.getStatus()).isEqualTo("review");
+        assertThat(page.getProcessInstanceId()).isEqualTo("process-88");
+        verify(pageMapper).updateById(page);
+        verify(auditLogMapper).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void submitForReview_workflowStartFailureLeavesPageDraftWithoutWrites() {
+        WikiPage page = page(88L, 100L);
+        SecurityUser creator = user(3L, "group", Set.of("wiki:publish"));
+        when(pageMapper.selectById(88L)).thenReturn(page);
+        when(spaceService.hasWritePermission("default", 100L, creator, "publish")).thenReturn(true);
+        when(workflowRuntimeFacade.startBusinessProcess(any()))
+            .thenThrow(new IllegalStateException("missing workflow binding"));
+
+        assertThatThrownBy(() -> service.submitForReview("default", 88L, creator))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("missing workflow binding");
+
+        assertThat(page.getStatus()).isEqualTo("draft");
+        assertThat(page.getProcessInstanceId()).isNull();
+        verify(pageMapper, never()).updateById(any(WikiPage.class));
+        verify(auditLogMapper, never()).insert(any(AuditLog.class));
     }
 }
