@@ -5,7 +5,9 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.TemplateRequest;
 import com.cwgsyw.platform.module.opscalendar.dto.TemplateVO;
+import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleRule;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTemplate;
+import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleRuleMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTemplateMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class OpsCalendarTemplateService {
 
     private final OpsScheduleTemplateMapper templateMapper;
+    private final OpsScheduleRuleMapper ruleMapper;
     private final AuditLogMapper auditLogMapper;
 
     public List<TemplateVO> list(String tenantId, String templateType) {
@@ -63,6 +66,11 @@ public class OpsCalendarTemplateService {
         OpsScheduleTemplate t = templateMapper.selectById(id);
         if (t == null || !tenantId.equals(t.getTenantId())) throw new IllegalArgumentException("模板不存在");
         if (Boolean.TRUE.equals(t.getIsBuiltin())) throw new IllegalArgumentException("内置模板不可删除");
+        long ruleReferences = ruleMapper.selectCount(new LambdaQueryWrapper<OpsScheduleRule>()
+                .eq(OpsScheduleRule::getTenantId, tenantId)
+                .eq(OpsScheduleRule::getTemplateId, id)
+                .eq(OpsScheduleRule::getIsDeleted, false));
+        if (ruleReferences > 0) throw new IllegalArgumentException("模板已被周期规则引用，不能删除");
         t.setDeletedAt(LocalDateTime.now());
         t.setDeletedBy(operatorId);
         templateMapper.updateById(t);

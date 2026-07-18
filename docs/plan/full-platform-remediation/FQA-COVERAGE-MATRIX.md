@@ -22,13 +22,13 @@
 | `BUG-FQA-011` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | IPAM CRUD/allocate/release API audit snapshots PASS；待 L4 |
 | `BUG-FQA-012` | P1 | [`REM-P1-026`：日报审批待办与统一流程任务收敛](./05-workflow-change/REM-P1-026-daily-workflow-task-convergence/README.md) | `VERIFIED` | L1-L3 旧/统一待办同集、旧审批和 runId 受限清理通过；待最终 L4 |
 | `BUG-FQA-013` | P1 | [`REM-P1-006`：权限消费、兼容别名与导航可达性收敛](./01-security-authorization/REM-P1-006-permission-consumer-navigation-parity/README.md) | `VERIFIED` | L1-L3 permission alias、API/UI allow-deny 与清理通过；待最终 L4 |
-| `BUG-FQA-014` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | L1-L3 taskType/priority 400、合法任务合同与 API/UI 通过；待 L4 |
+| `BUG-FQA-014` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | L4 `OPS-011` 发现模板删除未保护规则引用；最小引用保护已完成 L1-L3，待合并后全量 L4 |
 | `BUG-FQA-015` | P2 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `VERIFIED` | L1-L3 group input 400、有效更新与授权精确清理通过；待 L4 |
 | `BUG-FQA-016` | P1 | [`REM-P1-002`：成员列表软删除一致性](./02-account-organization/REM-P1-002-membership-list-soft-delete-consistency/README.md) | `CLOSED` | checkpoint 仍列开放，但整改事件已关闭 |
 | `BUG-FQA-017` | P0 | [`REM-P0-001`：membership 移除后 group assignment 失效](./01-security-authorization/REM-P0-001-membership-removal-group-assignment-invalidation/README.md) | `CLOSED` | checkpoint 仍列开放，但整改事件已关闭 |
 | `BUG-FQA-018` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 cross-group API/UI scope and cleanup passed; awaiting L4 |
 | `BUG-FQA-019` | P1 | [`REM-P1-016`：跨模块写操作审计与快照完整性](./07-platform-integration/REM-P1-016-cross-module-audit-snapshots/README.md) | `VERIFIED` | CSV 单行运行时 `created=1/failed=0`，afterJson 合法 JSON；待 L4 |
-| `BUG-FQA-020` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | L1-L3 holiday 必填/枚举/日期/调休格式 400、合法创建与清理通过；待 L4 |
+| `BUG-FQA-020` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | 原节假日输入合同 L1-L3 保持通过；事件因 L4 `OPS-011` 模板引用完整性回归修复后待全量 L4 |
 | `BUG-FQA-021` | P2 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 invalid input 400、BPMN 保存部署重载再保存通过；待最终 L4 |
 | `BUG-FQA-022` | P2 | [`REM-P2-006`：通用配置拒绝的 HTTP 与业务码一致性](./07-platform-integration/REM-P2-006-configuration-http-status-contract/README.md) | `VERIFIED` | L1-L3 拒绝 HTTP/body 400、首次 upsert、恢复与仅键名审计通过；等待最终 L4 |
 | `BUG-FQA-023` | P1 | [`REM-P1-015`：分页基础设施与审计筛选合同](./07-platform-integration/REM-P1-015-query-pagination-audit-filters/README.md) | `VERIFIED` | L1-L3 审计分页 records/total、真实 API/UI 通过；待 L4 |
@@ -92,7 +92,7 @@
 | `BUG-FQA-079` | P1 | [`REM-P1-008`：CMDB 模型与动态属性合同收敛](./03-cmdb-assets/REM-P1-008-cmdb-model-attribute-contracts/README.md) | `VERIFIED` | L1-L3 fieldKey boundary and duplicate/concurrent contract passed; awaiting L4 |
 | `BUG-FQA-080` | P1 | [`REM-P1-012`：设备、凭据与范围合同](./03-cmdb-assets/REM-P1-012-device-credential-input-contracts/README.md) | `VERIFIED` | L1-L3 input-boundary validation and cleanup passed; awaiting L4 |
 | `BUG-FQA-081` | P1 | [`REM-P1-024`：Workflow 定义版本与实例状态生命周期](./05-workflow-change/REM-P1-024-workflow-definition-instance-lifecycle/README.md) | `VERIFIED` | L1-L3 definition all-version deletion and runtime protection passed; awaiting L4 |
-| `BUG-FQA-082` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | L1-L3 Cron/提前日/due 时序 400、preview 一致性与清理通过；待 L4 |
+| `BUG-FQA-082` | P1 | [`REM-P1-029`：运维日历任务、节假日与周期规则输入合同](./06-ops-collaboration/REM-P1-029-ops-calendar-input-rule-contracts/README.md) | `VERIFIED` | 原规则输入/preview 合同 L1-L3 保持通过；事件因 L4 `OPS-011` 模板引用完整性回归修复后待全量 L4 |
 | `BUG-FQA-083` | P1 | [`REM-P1-027`：变更模板复制、字段配置与引用保护生命周期](./05-workflow-change/REM-P1-027-change-template-lifecycle/README.md) | `VERIFIED` | L1-L3 copy/字段类型-default-sort/精确清理通过；待最终 L4 |
 | `BUG-FQA-084` | P1 | [`REM-P1-023`：Workflow BPMN 输入校验与设计往返完整性](./05-workflow-change/REM-P1-023-workflow-bpmn-roundtrip-validation/README.md) | `VERIFIED` | L1-L3 candidate group BPMN 往返通过；待最终 L4 |
 | `BUG-FQA-085` | P1 | [`REM-P1-013`：账号与组织输入及显式清空合同](./02-account-organization/REM-P1-013-account-input-null-update-contracts/README.md) | `VERIFIED` | L1-L3 invalid email/overlength username 400 and zero persistence passed; 待 L4 |

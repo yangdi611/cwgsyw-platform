@@ -11,6 +11,14 @@
 
 后续只追加，不覆盖历史。
 
+## 2026-07-18：L4 回归修复
+
+- L4 `FQA_20260718_1616_remp0008` 发现 `OPS-011`：一个周期规则引用模板后，模板删除仍返回 `200`，留下悬空 `templateId`。本次 runId fixture 在失败后由产品 API 精确清理，manifest 为零。
+- 分支：`codex/rem-p1-029-ops-template-reference-integrity`，基线：`lint-fix@2615e8ff`。GitNexus upstream impact：`OpsCalendarTemplateService.delete` 只有 `OpsCalendarTemplateController.delete` 一个直接调用者、无受影响流程，LOW 风险。
+- 代码：`OpsCalendarTemplateService.delete` 以 tenant、templateId 和 `isDeleted=false` 统计周期规则引用；存在引用时稳定拒绝，不写模板软删或审计。未迁移历史规则，未改授权、数据库 schema 或外部系统。
+- L1：`mvn -f backend/pom.xml -Dtest=OpsCalendarTemplateServiceTest test` 通过（1/1）。L2/L3：当前分支 backend 镜像重建并 healthy，runId Playwright API 回归证明引用删除 `400`，删除规则后模板可删除；低权限真实 Chromium 路由/API 拒绝回归通过。所有 fixture 经产品 API 清理，manifest 为零。
+- 回滚：移除删除前的引用计数检查和对应测试即可；无 schema 或数据迁移。
+
 ## 2026-07-16：实施与 L1-L3 通过
 
 - 分支：`codex/rem-p1-029-ops-calendar-input-rule-contracts`，基线：`lint-fix@7220046`。

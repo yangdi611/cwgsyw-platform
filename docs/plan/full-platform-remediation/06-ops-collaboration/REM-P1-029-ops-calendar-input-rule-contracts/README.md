@@ -35,4 +35,4 @@
 - 不自动修复存量非法规则
 - 不执行不可清理任务状态链
 
-L1-L3 已通过：任务、节假日、周期规则的非法输入稳定返回 400，合法对象创建、预览与产品 API 精确清理通过；规则/节假日页面加载无 Console error。下一门禁：最终 L4 全平台 FQA。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+L4 发现模板删除未保护周期规则引用：删除返回 `200` 并留下悬空 `templateId`。已在独立回归分支补充同租户、未软删规则引用保护；L1 单测、当前分支容器 API 和浏览器管理路由复验通过，事件恢复为 `VERIFIED`，等待提交与 no-ff 合并。合并后必须创建全新 L4 runId 并重跑完整矩阵。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
