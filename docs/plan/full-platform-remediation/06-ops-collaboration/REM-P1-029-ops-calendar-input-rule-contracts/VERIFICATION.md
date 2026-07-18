@@ -9,6 +9,14 @@
 | `AC-005` | impact/detect/cleanup/rollback | L3 | 规则/任务/节假日服务及 OccurrenceCalculator upstream impact 均 LOW；提交前执行 `detect_changes` | `PASS` |
 | `AC-006` | 全平台 `275+78` | L4 | 新候选 run | `PENDING` |
 
+## 2026-07-18 L4 regression re-verification
+
+| AC | caseId | 层级 | 修复后证据 | 结果 |
+|---|---|---|---|---|
+| `AC-003` | `OPS-011` | L1 | `mvn -f backend/pom.xml -Dtest=OpsCalendarTemplateServiceTest test`：活动规则引用时模板删除抛出 `400`，不执行模板更新、删除或审计 | `PASS` |
+| `AC-003` | `OPS-011` | L2/L3 | 当前分支 backend 容器 healthy；`test/l4-ops-calendar-manage-current-run.spec.js`：引用删除 `400`，删除规则后模板删除成功，manifest 清理为零 | `PASS` |
+| `AC-004` | 管理路由/deny | L3 | `test/l4-ops-calendar-manage-denial.spec.js`：真实 Chromium 管理路由与低权限 API 拒绝通过，Console/API failures 为零 | `PASS` |
+
 历史证据为 `BUG-FQA-014`、`BUG-FQA-020`、`BUG-FQA-082` 对应章节。PASS 要求行为、持久化、权限、审计、清理全部一致；残留或未解释 5xx/Console error 为 FAIL；缺授权或精确清理为 BLOCKED。禁止覆盖历史证据。
 
 ## 2026-07-16 L1-L3 复验记录
