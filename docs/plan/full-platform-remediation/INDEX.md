@@ -6,12 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：76 个事件；其中 `CLOSED=4`、`VERIFIED=71`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：76 个事件；其中 `CLOSED=4`、`VERIFIED=72`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-039` | P1 | 备份页面路由授权误报核对 | L4 `BACKUP-003` | `VERIFIED` | LOW | 初始测试误用 API 路径 `/backups`；真实 `/admin/backup` 已在未改代码的当前容器中对零权限用户回退 `/`，API 仍为 `403`，夹具零残留。 | [事件卡](./07-platform-integration/REM-P1-039-backup-route-authorization-parity/README.md) / [SPEC](./07-platform-integration/REM-P1-039-backup-route-authorization-parity/SPEC.md) / [验证](./07-platform-integration/REM-P1-039-backup-route-authorization-parity/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-039-backup-route-authorization-parity/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-038` | P1 | Wiki 发布审批统一工作流绑定 | L4 `ST-WIKI-001` | `VERIFIED` | MEDIUM | 已切换至统一 runtime；用户批准 `wiki_page -> remp1038wiki`（superadmin 审批）为正式策略。L1-L3、Wiki content/comments/export 通过，合并后从新基线完整 L4 | [事件卡](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/README.md) / [SPEC](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/SPEC.md) / [验证](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/CLAUDE-CODE-PROMPT.md) |
 
