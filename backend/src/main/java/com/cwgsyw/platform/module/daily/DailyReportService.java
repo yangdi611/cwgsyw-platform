@@ -117,7 +117,8 @@ public class DailyReportService {
 
     @Transactional
     public void submit(Long id, Long userId) {
-        DailyReport report = getAndCheckOwner(id, userId);
+        DailyReport report = reportMapper.findActiveByIdForUpdate(id);
+        checkOwner(report, userId);
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
@@ -264,9 +265,13 @@ public class DailyReportService {
 
     private DailyReport getAndCheckOwner(Long id, Long userId) {
         DailyReport report = reportMapper.selectById(id);
+        checkOwner(report, userId);
+        return report;
+    }
+
+    private void checkOwner(DailyReport report, Long userId) {
         if (report == null || report.getIsDeleted()) throw new IllegalArgumentException("日报不存在");
         if (!report.getReporterId().equals(userId)) throw new IllegalArgumentException("无权操作他人日报");
-        return report;
     }
 
     private DailyReportVO toVO(DailyReport r) {

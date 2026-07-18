@@ -16,4 +16,7 @@ public interface DailyReportMapper extends BaseMapper<DailyReport> {
 
     @Select("SELECT * FROM daily_report WHERE ci_instance_ids @> CAST(CAST(#{instanceId} AS text) AS jsonb) AND is_deleted = false ORDER BY report_date DESC")
     List<DailyReport> findByCiInstanceId(@Param("instanceId") Long instanceId);
+
+    @Select("SELECT * FROM daily_report WHERE id = #{id} AND is_deleted = false FOR UPDATE")
+    DailyReport findActiveByIdForUpdate(@Param("id") Long id);
 }

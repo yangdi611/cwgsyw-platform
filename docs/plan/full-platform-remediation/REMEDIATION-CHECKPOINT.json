@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T02:15:00+08:00",
+  "updatedAt": "2026-07-19T03:20:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_AFFECTED_SCOPE_REVALIDATION",
-  "activeEvent": "FINAL_L4",
-  "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-041_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
+  "phase": "EVENT_VERIFIED_PENDING_COMMIT",
+  "activeEvent": "REM-P1-042",
+  "activeBranch": "codex/rem-p1-042-daily-submit-idempotency",
+  "activeRunId": "REM_P1_042_20260719",
+  "lastCompletedGate": "REM-P1-042_L1_L3_VERIFIED",
   "nextEvent": "FINAL_L4",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-041",
-  "nextAction": "Complete this no-ff merge, create the next L4 continuation branch from its merge head, rerun COMMON-009, then continue remaining NOT_RUN cases. Preserve the historical FAIL and formal wiki_page -> remp1038wiki policy.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-042",
+  "nextAction": "Commit REM-P1-042, merge no-ff to lint-fix, rerun DAILY-009 from the merge head, then continue the remaining 84 functional and 58 state NOT_RUN cases.",
   "statusCounts": {
-    "total": 79,
+    "total": 80,
     "closed": 4,
-    "verified": 75,
+    "verified": 76,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -116,7 +116,8 @@
       "REM-P1-038",
       "REM-P1-039",
       "REM-P1-040",
-      "REM-P1-041"
+      "REM-P1-041",
+      "REM-P1-042"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -405,13 +406,23 @@
       "sourceDefect": "L4-COMMON-009-001",
       "failureSnapshotCommit": "fe2580283",
       "runId": "REM_P1_041_20260719",
-      "eventCommit": "1d2b50bdeff26d140b762984b68d5485c59bd135",
+      "eventCommit": "1d2b50bde618c05742b42e579508be35c24f3781",
+      "mergeCommit": "014a3e2d36aa07e7f7840dae4fb63c1f1791a1cf"
+    },
+    "REM-P1-042": {
+      "branch": "codex/rem-p1-042-daily-submit-idempotency",
+      "baselineCommit": "014a3e2d36aa07e7f7840dae4fb63c1f1791a1cf",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-DAILY-009-001",
+      "failureSnapshotCommit": "b3b436c0",
+      "runId": "REM_P1_042_20260719",
+      "eventCommit": "PENDING_CURRENT_EVENT_COMMIT",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     }
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-040",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-041",
     "runId": "FQA_20260718_2050_remp1038",
     "eventScopedVerifiedRequired": 71,
     "failures": 1,
@@ -474,6 +485,8 @@
     "REM-P2-030 L1-L3 passed: programmatic DOCX fallback now renders fixedDocxTable title, columns, stored row order and checkbox values. Existing template-fill plus new fallback tests passed 8/8; current event branch backend API DOCX contained all three rows and product-API cleanup returned keyword total=0. Real Chromium Word download from an existing approved document passed with Console/API failures=0. Event commit 4c2a0fb8 merged as c1678f87; merge-derived L4 CHANGE-006 evidence is recorded separately and L4 continues.",
     "REM-P0-007 L1-L3 passed: duplicate Enforce now returns 409 before authorization writes, and current-branch backend readback proved epoch/status unchanged. The no-ff merge below is the new L4 baseline.",
     "New L4 FQA_20260718_1546_remp0007 from lint-fix@00eed219: B1 read-only 28 functional PASS and authorization guards ST-AUTHZ-019/020 PASS; remaining 247+76 cases are NOT_RUN.",
-    "L4 FQA_20260718_1616_remp0008 discovered OPS-011: a schedule template referenced by an active rule could be deleted with HTTP 200, leaving an orphaned templateId. Fixtures were product-API cleaned; REM-P1-029 is reopened on its independent branch. This L4 run is failed and must not contribute inherited PASS after the fix merges."
+    "L4 FQA_20260718_1616_remp0008 discovered OPS-011: a schedule template referenced by an active rule could be deleted with HTTP 200, leaving an orphaned templateId. Fixtures were product-API cleaned; REM-P1-029 is reopened on its independent branch. This L4 run is failed and must not contribute inherited PASS after the fix merges.",
+    "REM-P1-041 event 1d2b50bd merged no-ff as 014a3e2d; post-merge COMMON-009 passed all four close paths with zero writes or residue.",
+    "L4 DAILY-005 passed and DAILY-009 failed because two concurrent submit requests both returned 200; REM-P1-042 now passes Java 21 tests, current-backend concurrent submit/approve, six-case Daily regression and exact cleanup. Event commit and no-ff merge remain."
   ]
 }

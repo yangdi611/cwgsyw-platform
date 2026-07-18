@@ -156,3 +156,4 @@
 | `L4-DAILY-002-platform-approval-task-visibility`：tenant/platform 审批人看不到本租户其他组日报候选任务 | [`REM-P1-035`](./05-workflow-change/REM-P1-035-daily-platform-approval-task-visibility/README.md) | `VERIFIED` | tenant/platform 会话解析本租户所有活动 group token，组级与角色 token 合同不变；Java 21 L1、当前分支完整 UI 审批和 runId 受限清理通过。 |
 | `L4-AUTH-003-LOGIN-ERROR-RESET`：登录错误凭据 401 重载页面，错误反馈不可见 | [`REM-P1-036`](./02-account-organization/REM-P1-036-login-error-feedback/README.md) | `VERIFIED` | 登录端点 401 仅保留给页面错误处理；其他 API 401 保持登出。当前分支 L1-L3、真实 Nginx Playwright、成功登录与失效 token 回归通过，待全新完整 L4。 |
 | `L4-COMMON-009-001`：文件夹对话框关闭后保留未提交草稿 | [`REM-P1-041`](./04-content-files/REM-P1-041-file-dialog-draft-reset/README.md) | `VERIFIED` | 原始 L4 FAIL 保留；事件分支四种关闭路径、零创建请求、成功创建/删除、当前容器真实 UI 和 runId 零残留均通过，待合并后重验 `COMMON-009`。 |
+| `L4-DAILY-009-001`：并发提交重复启动日报流程 | [`REM-P1-042`](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/README.md) | `VERIFIED` | 原始 L4 两次 200 保留；事件分支事务行锁、单测、当前容器真实并发、唯一待办和精确清理通过，待合并后重验。 |
