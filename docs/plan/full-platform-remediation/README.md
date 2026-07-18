@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 76 个事件：4 个已关闭、72 个已验证、0 个验证中。L4 `FQA_20260718_1715_remp1029` 新发现 Wiki 发布提交使用失效 key 导致 HTTP `500`；`REM-P1-038` 已在独立分支完成 L1-L3，用户批准 `wiki_page -> remp1038wiki` 为正式策略，等待 no-ff 合并后从新集成点完整重置 L4。此前 `AUTHZ-002` 已由 `REM-P0-006` 修复为标准非 platform `403` 拒绝。
+当前规划含 76 个事件：4 个已关闭、72 个已验证、0 个验证中。L4 `FQA_20260718_2050_remp1038` 正在 `lint-fix@4d7b3e1` 上运行；用户批准 `wiki_page -> remp1038wiki` 为正式 Wiki 审批策略。`REM-P1-039` 已独立核对并结算备份路径误报：`/backups` 为 API 而真实页面 `/admin/backup` 已正确拒绝低权访问，因此没有产品代码变更或 L4 基线重置。
 
 ## 目录规则
 
