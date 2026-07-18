@@ -13,6 +13,8 @@
 
 ## 当前队列
 
+| `REM-P0-006` | P0 | 迁移工作台 platform scope 拒绝合同 | L4 `AUTHZ-002` | `VERIFIED` | CRITICAL | 非 platform 已认证会话的四个迁移读取端点已统一 HTTP/body `403`；当前分支编译、容器和 Playwright API 复验通过，待 no-ff 合并后全量重置 L4 | [事件卡](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/README.md) / [SPEC](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/SPEC.md) / [验证](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/CLAUDE-CODE-PROMPT.md) |
+
 | `REM-P1-037` | P1 | 共享文件移动生命周期 | `BUG-FQA-107` / L4 `FILE-012` | `VERIFIED` | LOW | L1-L3 API/UI、冲突原子性与精确清理通过；合并后从新集成点重启最终 L4 | [事件卡](./04-content-files/REM-P1-037-shared-file-move-consumer/README.md) / [SPEC](./04-content-files/REM-P1-037-shared-file-move-consumer/SPEC.md) / [验证](./04-content-files/REM-P1-037-shared-file-move-consumer/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-037-shared-file-move-consumer/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P0-005` | P0 | platform 超级管理员资源 ACL 绕过 | L4 Shadow `superadmin` 判定差异 | `VERIFIED` | HIGH | 用户确认 platform 超管绕过 Wiki/共享文件 ACL；L1-L3 Shadow API/UI 和 strict preflight `eligible=true` 通过，未执行切换 | [事件卡](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/README.md) / [SPEC](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/SPEC.md) / [验证](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-005-platform-superadmin-resource-acl-bypass/CLAUDE-CODE-PROMPT.md) |
@@ -137,7 +139,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 68 |
+| `VERIFIED` | 70 |
 | `READY` | 1 |
 | `IN_PROGRESS` | 0 |
 | `CLOSED` | 4 |

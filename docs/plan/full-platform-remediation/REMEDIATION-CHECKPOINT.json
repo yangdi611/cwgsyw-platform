@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": null,
-  "lastCompletedGate": "REM-P1-037_MERGED",
+  "lastCompletedGate": "REM-P0-006_MERGED",
   "nextEvent": "FINAL_L4_REVALIDATION",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-037",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p0-006",
   "nextAction": "Create a new final L4 branch from this merge commit, freeze a new runId, reset all 275 functional and 78 state cases to NOT_RUN, then execute the complete matrix. Reuse assets and parallelize only read-only, fixture-independent cases; serialize writes, authorization changes, state machines, and cleanup.",
   "statusCounts": {
-    "total": 73,
+    "total": 74,
     "closed": 4,
-    "verified": 69,
+    "verified": 70,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -109,7 +109,8 @@
       "REM-P2-029",
       "REM-P2-030",
       "REM-P2-031",
-      "REM-P2-032"
+      "REM-P2-032",
+      "REM-P0-006"
     ],
     "verifying": [],
     "inProgress": [],
@@ -153,6 +154,9 @@
     "REM-P2-016"
   ],
   "eventGit": {
+    "REM-P0-006": {
+      "eventCommit": "79a191925cd4040820e266239280ece11611cf31"
+    },
     "REM-P1-036": {
       "eventCommit": "6ae6b5c3959c67267aef711fd8f51ae8127a8455"
     },
