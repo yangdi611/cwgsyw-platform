@@ -34,3 +34,13 @@
 - 验证：`mvn -q -Dtest=WikiPageServiceTest test`、后端 `mvn -q test`、`npx tsc --noEmit`、`npm run lint` 通过；lint 为 0 error / 41 个既有 warning。当前分支 backend 已重建，健康检查 `UP`。
 - 提交前 `detect-changes` 识别 9 个文件、6 个符号与 9 条 Wiki 创建流程，整体为 HIGH；范围均为初始版本语义及其回归测试，未扩展到非 Wiki 模块。
 - 回滚：revert 本事件提交即可恢复先前版本编号和快照行为；未修改数据库 schema、非测试 ACL、Redis、卷或非测试数据。
+
+## 2026-07-18：L4 WIKI-016 回归补救与 L1-L3 重验
+
+- L4 发现历史版本面板导出使用当前页面导出端点，不能证明用户选择的旧版本内容；本次独立回归分支从 `lint-fix@3ca6e605` 创建，只补齐历史版本导出合同。
+- GitNexus upstream impact：`WikiVersionsPanel` 为 LOW，1 个直接调用方 `WikiPageReader`、1 条受影响流程；相邻版本/导出路径为 LOW，未出现 HIGH/CRITICAL 风险。
+- 实现：新增 tenant/page/version 精确快照导出端点；服务拒绝不存在或不完整快照，前端“导出此版本”以所选版本调用该端点。未改变回退、ACL、数据库 schema 或非测试数据。
+- L1：前端 `npx tsc --noEmit`、后端 `mvn -q -DskipTests package` 通过；受限于本机 Java 26 与 Mockito/ByteBuddy 不兼容，定向单测无法启动，属于环境阻断而非断言失败；Controller、Service 与 ExportService 回归测试已补齐。
+- L2/L3：当前分支源码重建 backend/frontend，backend 健康 `UP`、前端 HTTP 200。真实 API 对 v1/v2 快照验证：`/versions/1/export` 返回 v1 正文，不存在版本受控失败；浏览器真实点击版本历史中 v1 的“导出此版本”，网络记录确认 `GET /api/wiki/pages/210/versions/1/export` 返回 200，附件名含 `v1`，无应用 Console error。
+- 测试数据：`REM_P1_018_UI2_20260718_125419` 的 page `210` 与 space `88` 均仅经产品 API 删除，删除后 page 与 space 回读均为 404；先前 UI 夹具 page `209`/space `87` 已清理。
+- 回滚：revert 本次事件提交将移除版本精确导出端点与 UI 调用；无迁移、无外部服务或授权模式切换。

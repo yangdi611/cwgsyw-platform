@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
+import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +32,19 @@ public class WikiExportService {
     public void exportPage(Long pageId, String tenantId, HttpServletResponse response) throws Exception {
         WikiPage page = pageMapper.selectById(pageId);
         if (page == null) throw new IllegalArgumentException("页面不存在");
-        String filename = sanitizeFilename(page.getTitle()) + ".md";
+        exportMarkdown(page.getTitle(), page.getContent(), response);
+    }
+
+    public void exportVersion(WikiPageVersion version, HttpServletResponse response) throws Exception {
+        exportMarkdown(version.getTitle(), version.getContent(), response);
+    }
+
+    private void exportMarkdown(String title, String content, HttpServletResponse response) throws Exception {
+        String filename = sanitizeFilename(title) + ".md";
         response.setContentType("text/markdown;charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
         response.getOutputStream().write(
-                (page.getContent() != null ? page.getContent() : "").getBytes(StandardCharsets.UTF_8));
+                (content != null ? content : "").getBytes(StandardCharsets.UTF_8));
     }
 
     public void exportSpace(Long spaceId, String tenantId, HttpServletResponse response) throws Exception {
