@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T16:55:00+08:00",
+  "updatedAt": "2026-07-19T17:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": null,
+  "activeEvent": "REM-P1-050",
+  "activeBranch": "codex/rem-p1-050-ops-cross-group-assignee-candidates",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-049_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM-P1-050_L1_L3_PASS_EVENT_COMMIT_PENDING",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-049",
-  "nextAction": "Resume the same L4 run from the REM-P1-049 merge baseline, rerun OPS-006 only, retain unaffected current-run PASS, then continue all NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-050",
+  "nextAction": "Run detect_changes, create the REM-P1-050 event commit, merge it no-ff into lint-fix, then resume the same L4 run and rerun OPS-007 only before continuing all NOT_RUN cases.",
   "statusCounts": {
-    "total": 87,
+    "total": 88,
     "closed": 4,
-    "verified": 83,
+    "verified": 84,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -124,7 +124,8 @@
       "REM-P1-046",
       "REM-P1-047",
       "REM-P1-048",
-      "REM-P1-049"
+      "REM-P1-049",
+      "REM-P1-050"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -168,7 +169,8 @@
     "REM-P2-016",
     "REM-P1-039",
     "REM-P1-048",
-    "REM-P1-049"
+    "REM-P1-049",
+    "REM-P1-050"
   ],
   "eventGit": {
     "REM-P0-006": {
@@ -450,6 +452,18 @@
       "eventCommit": "92eaf9a40aaf3232b91691d665b66614fa9b36ca",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     },
+    "REM-P1-050": {
+      "branch": "codex/rem-p1-050-ops-cross-group-assignee-candidates",
+      "baselineCommit": "dd447b5537cc14a47d37366fed46d821647d9b10",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-007-001",
+      "failureSnapshotCommit": "af5b36c4844daba03123255d97d21514bdc8de9f",
+      "runId": "REM_P1_050_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING_EVENT_COMMIT",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
+    },
     "REM-P1-048": {
       "branch": "codex/rem-p1-048-ops-material-group-scope",
       "baselineCommit": "00f342a5cf3a34dde8eb6bcc9596d3ab14286f8b",
@@ -508,9 +522,9 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-049",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-050",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 83,
+    "eventScopedVerifiedRequired": 84,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
@@ -525,6 +539,7 @@
   },
   "blockers": [],
   "notes": [
+    "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",
     "L4 OPS-017 closed after REM-P1-048 event 3e7667a3 merged no-ff as aa17a6f6. OPS-006 then failed because a group-3 ordinary reader directly fetched a group-2 sensitive group task detail with HTTP 200; failure snapshot c4a782ed is clean and REM-P1-049 passed L1-L3 with zero residue.",
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
