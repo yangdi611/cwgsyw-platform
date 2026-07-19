@@ -14,6 +14,7 @@ import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
+import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -92,6 +93,32 @@ public class OpsCalendarRosterService {
         rosterMapper.updateById(r);
         writeAudit(tenantId, "update", id, operatorId, null);
         return toVO(r, null);
+    }
+
+    @Transactional
+    public void purgeRemediationTest(SecurityUser user, Long id, String runId) {
+        if (!"platform".equals(user.getGroupScope())) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试排班");
+        }
+        if (!notBlank(runId)) {
+            throw new IllegalArgumentException("缺少 runId");
+        }
+
+        OpsDutyRoster roster = rosterMapper.selectById(id);
+        if (roster == null || !user.getTenantId().equals(roster.getTenantId())) {
+            throw new IllegalArgumentException("排班记录不存在");
+        }
+        if (roster.getRemark() == null || !roster.getRemark().contains(runId)) {
+            throw new IllegalArgumentException("仅允许清理备注带 runId 的测试排班");
+        }
+
+        rosterMapper.deleteById(id);
+        writeAudit(user.getTenantId(), "purge_remediation_test", id, user.getUserId(),
+                "runId=" + runId);
+    }
+
+    private boolean notBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private void applyRequest(OpsDutyRoster r, RosterRequest req) {

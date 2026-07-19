@@ -55,4 +55,13 @@ public class OpsCalendarRosterController {
                                               @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(rosterService.checkConflicts(cu.getTenantId(), req));
     }
+
+    @DeleteMapping("/{id}/remediation-test")
+    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    public R<Void> purgeRemediationTest(@PathVariable Long id,
+                                        @RequestParam String runId,
+                                        @AuthenticationPrincipal SecurityUser cu) {
+        rosterService.purgeRemediationTest(cu, id, runId);
+        return R.ok();
+    }
 }

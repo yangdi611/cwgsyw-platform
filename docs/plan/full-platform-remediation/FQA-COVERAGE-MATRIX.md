@@ -159,3 +159,4 @@
 | `L4-DAILY-009-001`：并发提交重复启动日报流程 | [`REM-P1-042`](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/README.md) | `VERIFIED` | 原始 L4 两次 200 保留；事件分支事务行锁、单测、当前容器真实并发、唯一待办和精确清理通过，待合并后重验。 |
 | `L4-CONFIG-002-001`：SMTP 配置接受非法 host | [`REM-P1-043`](./07-platform-integration/REM-P1-043-smtp-config-input-validation/README.md) | `VERIFIED` | 原始 L4 200/persist 失败保留；DTO/Controller、7 个 API 边界、真实 UI、Mailpit 正向发送与原配置恢复 L1-L3 通过，待合并后重验。 |
 | `L4-OPS-TASK-CLEANUP-001`：运维任务状态矩阵缺少产品 API 精确清理路径 | [`REM-P1-044`](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/README.md) | `VERIFIED` | L4 在创建任务前安全停止；严格 platform/runId/tenant 清理端点、从表逆序清理、审计和当前分支真实 API/UI L1-L3 通过，待合并后恢复同一 L4 run。 |
+| `L4-OPS-016-CLEANUP-001`：运维排班 CRUD 缺少产品 API 精确清理路径 | [`REM-P1-045`](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/README.md) | `VERIFIED` | 严格 platform/runId/tenant 单排班清理端点、重复/错误请求零额外写入、审计和当前分支真实 CRUD/清理 L1-L3 通过；反向时间失败保留并在恢复 L4 后独立事件化。 |
