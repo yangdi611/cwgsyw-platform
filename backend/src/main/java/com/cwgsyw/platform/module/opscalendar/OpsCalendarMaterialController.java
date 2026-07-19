@@ -35,7 +35,8 @@ public class OpsCalendarMaterialController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long groupId,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(materialService.collect(cu.getTenantId(), periodType, startDate, endDate, groupId));
+        Long effectiveGroupId = "group".equals(cu.getGroupScope()) ? cu.getGroupId() : groupId;
+        return R.ok(materialService.collect(cu.getTenantId(), periodType, startDate, endDate, effectiveGroupId));
     }
 
     @GetMapping("/export")
@@ -46,7 +47,8 @@ public class OpsCalendarMaterialController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long groupId,
             @AuthenticationPrincipal SecurityUser cu) {
-        byte[] bytes = materialService.exportExcel(cu.getTenantId(), periodType, startDate, endDate, groupId);
+        Long effectiveGroupId = "group".equals(cu.getGroupScope()) ? cu.getGroupId() : groupId;
+        byte[] bytes = materialService.exportExcel(cu.getTenantId(), periodType, startDate, endDate, effectiveGroupId);
         String filename = "运维素材_" + startDate + "_" + endDate + ".xlsx";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDisposition(ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build());

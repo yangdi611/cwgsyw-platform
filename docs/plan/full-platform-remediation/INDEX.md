@@ -6,13 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：85 个事件；其中 `CLOSED=4`、`VERIFIED=81`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：86 个事件；其中 `CLOSED=4`、`VERIFIED=82`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
 
+| `REM-P1-048` | P1 | 运维素材组级范围约束 | L4 `OPS-017` | `VERIFIED` | LOW | Controller 4/4、当前 backend、真实两组 API/UI/XLSX 与精确清理 L1-L3 PASS；事件提交 `3e7667a3` 已按顺序进入 `lint-fix`，待同 run 重验。 | [事件卡](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/README.md) / [SPEC](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-047` | P1 | 运维任务文本边界合同 | L4 `OPS-004` | `VERIFIED` | MEDIUM | 创建/更新 255/256、空白、零副作用、Unicode UI、当前容器和产品清理 L1-L3 PASS；待提交合并后同 run 重验。 | [事件卡](./06-ops-collaboration/REM-P1-047-ops-task-text-boundaries/README.md) / [SPEC](./06-ops-collaboration/REM-P1-047-ops-task-text-boundaries/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-047-ops-task-text-boundaries/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-047-ops-task-text-boundaries/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-046` | P1 | 运维排班时间顺序校验 | L4 `OPS-016` | `VERIFIED` | LOW | create/update 反向及相等时间拒绝、合法跨日、当前 backend、完整 OPS-016 与精确清理通过；待 no-ff 合并。 | [事件卡](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/README.md) / [SPEC](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/VERIFICATION.md) |
 | `REM-P1-045` | P1 | 运维排班精确测试清理 | L4 `OPS-016` | `VERIFIED` | LOW | 严格 platform/runId/tenant 单记录清理、审计、当前 backend 与真实 CRUD/清理通过；待 no-ff 合并后恢复同一 L4 run。 | [事件卡](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/README.md) / [SPEC](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/SPEC.md) / [验证](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/CLAUDE-CODE-PROMPT.md) |
@@ -149,7 +150,7 @@
 
 同一波次不代表允许把事件合并为一个提交；每个 REM 仍需独立分支、验证、回滚和状态结算。存在依赖时先完成被依赖事件，例如存储回收 `REM-P1-021` 先于附件/审批终态复验。
 
-Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。全部事件均已完成事件级 L1-L3；下一阶段为独立最终 L4 全平台复验。
+Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrder` 为准。最终 L4 发现的 `OPS-017` 组级素材范围缺陷已完成独立 `REM-P1-048` L1-L3 并按顺序进入 `lint-fix`；现在恢复同一 L4 run。
 
 ## 状态统计
 
@@ -158,7 +159,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 80 |
+| `VERIFIED` | 82 |
 | `READY` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |

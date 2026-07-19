@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 85 个事件：4 个已关闭、81 个已验证、0 个进行中。`REM-P1-047` 已完成任务标题 255 字符合同的 L1-L3 与精确清理，待独立提交、no-ff 合并后在同一 L4 run `FQA_20260718_2050_remp1038` 重跑 `OPS-004`；同 run 已有未受影响 PASS 保留。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
+当前规划含 86 个事件：4 个已关闭、82 个已验证、0 个进行中。最终 L4 的 `OPS-018/019` 已通过；`OPS-017` 组级素材范围缺陷已在独立 `REM-P1-048` 完成 Controller、当前 backend、真实两组 API/UI/XLSX 和精确清理 L1-L3，事件提交 `3e7667a3` 已按顺序进入 `lint-fix`，下一步同 run 重验。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
 
 ## 目录规则
 

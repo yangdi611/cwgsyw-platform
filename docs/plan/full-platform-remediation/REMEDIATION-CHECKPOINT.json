@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T14:50:00+08:00",
+  "updatedAt": "2026-07-19T16:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-047_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM-P1-048_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-047",
-  "nextAction": "Resume the same L4 run, rerun the complete OPS-004 case against the REM-P1-047 merge, close L4-OPS-004-001 on PASS, then execute all remaining NOT_RUN cases under the accelerated contract.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-048",
+  "nextAction": "Resume the same L4 run from the REM-P1-048 merge baseline, rerun OPS-017 only, retain unaffected current-run PASS, then continue all NOT_RUN cases.",
   "statusCounts": {
-    "total": 85,
+    "total": 86,
     "closed": 4,
-    "verified": 81,
+    "verified": 82,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -122,7 +122,8 @@
       "REM-P1-044",
       "REM-P1-045",
       "REM-P1-046",
-      "REM-P1-047"
+      "REM-P1-047",
+      "REM-P1-048"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -164,7 +165,8 @@
     "REM-P2-014",
     "REM-P2-015",
     "REM-P2-016",
-    "REM-P1-039"
+    "REM-P1-039",
+    "REM-P1-048"
   ],
   "eventGit": {
     "REM-P0-006": {
@@ -434,6 +436,18 @@
       "eventCommit": "9f15ba6891fdff7a6558e5082be892cbdc8b3b27",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     },
+    "REM-P1-048": {
+      "branch": "codex/rem-p1-048-ops-material-group-scope",
+      "baselineCommit": "00f342a5cf3a34dde8eb6bcc9596d3ab14286f8b",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-017-001",
+      "failureSnapshotCommit": "de9b693b4f9c731d6302cb2490f03a2a53eacf1b",
+      "runId": "REM_P1_048_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "3e7667a3a7e2db558f8e78143590fc182debd2e5",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",
       "mergeCommit": "4d7b3e1bf9432d6c7fcf4f8237f671ac046d0b28",
@@ -480,9 +494,9 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-046",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-048",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 81,
+    "eventScopedVerifiedRequired": 82,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
@@ -497,6 +511,7 @@
   },
   "blockers": [],
   "notes": [
+    "L4 OPS-018 and OPS-019 passed in the current run. OPS-017 failed because group-scoped report-material collection/export accepted tenant-wide or forged other-group scope. Failure snapshot de9b693b is preserved; REM-P1-048 event 3e7667a3 passed L1-L3 with zero residue and is merged no-ff before same-run OPS-017 revalidation.",
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
     "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
     "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560.",
