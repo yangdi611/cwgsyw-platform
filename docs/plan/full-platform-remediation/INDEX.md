@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：81 个事件；其中 `CLOSED=4`、`VERIFIED=77`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：82 个事件；其中 `CLOSED=4`、`VERIFIED=78`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -14,6 +14,7 @@
 ## 当前队列
 
 | `REM-P1-043` | P1 | SMTP 配置输入校验 | L4 `CONFIG-002` | `VERIFIED` | LOW | DTO/Controller L1、真实 API/UI、当前 backend、Mailpit 正向发送和原配置恢复通过；待提交、no-ff 合并并重验配置范围。 | [事件卡](./07-platform-integration/REM-P1-043-smtp-config-input-validation/README.md) / [SPEC](./07-platform-integration/REM-P1-043-smtp-config-input-validation/SPEC.md) / [验证](./07-platform-integration/REM-P1-043-smtp-config-input-validation/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-043-smtp-config-input-validation/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-044` | P1 | 运维任务精确测试清理 | L4 `OPS-003..010` / `ST-OPS-001..014` | `VERIFIED` | LOW | 严格 platform/runId/tenant 限制、五类从表逆序清理、审计、当前 backend 与真实 API/UI 通过；待 no-ff 合并后恢复 OPS 状态矩阵。 | [事件卡](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/README.md) / [SPEC](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/SPEC.md) / [验证](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-042` | P1 | 日报提交幂等性 | L4 `DAILY-009` | `VERIFIED` | LOW | 行锁、Java 21、当前 backend 容器、真实并发、日报聚类和精确清理通过；待提交、no-ff 合并并重验。 | [事件卡](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/README.md) / [SPEC](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/CLAUDE-CODE-PROMPT.md) |
 

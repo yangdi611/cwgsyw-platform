@@ -116,4 +116,13 @@ public class OpsCalendarTaskController {
         taskService.remind(cu, id);
         return R.ok();
     }
+
+    @DeleteMapping("/{id}/remediation-test")
+    @PreAuthorize("hasPermission('ops_calendar', 'update')")
+    public R<Void> purgeRemediationTest(@PathVariable Long id,
+                                        @RequestParam String remediationRunId,
+                                        @AuthenticationPrincipal SecurityUser cu) {
+        taskService.purgeRemediationTest(cu, id, remediationRunId);
+        return R.ok();
+    }
 }
