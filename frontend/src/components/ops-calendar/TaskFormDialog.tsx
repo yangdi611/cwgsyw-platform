@@ -29,6 +29,7 @@ const EMPTY = {
 export function TaskFormDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState({ ...EMPTY })
+  const titleLength = Array.from(form.title).length
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-for-ops-task'],
@@ -64,6 +65,7 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
 
   function submit() {
     if (!form.title.trim()) { toast.error('请填写标题'); return }
+    if (titleLength > 255) { toast.error('标题不能超过 255 个字符'); return }
     createMutation.mutate()
   }
 
@@ -75,7 +77,10 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
           <div className="space-y-1.5">
             <Label>标题 *</Label>
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="如：节前数据库巡检" />
+              aria-describedby="ops-task-title-count" placeholder="如：节前数据库巡检" />
+            <div id="ops-task-title-count" className={titleLength > 255 ? 'text-xs text-red-600' : 'text-xs text-v2-muted'}>
+              {titleLength}/255
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

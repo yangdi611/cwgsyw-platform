@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OpsCalendarTaskService {
 
+    private static final int MAX_TITLE_CODE_POINTS = 255;
     private static final Set<String> TASK_TYPES = Set.of(
             "inspection", "roster", "report", "compliance", "monitoring", "daily_report", "other");
     private static final Set<String> PRIORITIES = Set.of("low", "normal", "high", "critical");
@@ -82,6 +83,13 @@ public class OpsCalendarTaskService {
     }
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
+
+    private void validateTitle(String title, boolean required) {
+        if (title == null && !required) return;
+        if (!notBlank(title)) throw new IllegalArgumentException("标题必填");
+        if (title.codePointCount(0, title.length()) > MAX_TITLE_CODE_POINTS)
+            throw new IllegalArgumentException("标题不能超过 255 个字符");
+    }
 
     private List<Long> participantUserIds(Long taskId) {
         return participantMapper.selectList(new LambdaQueryWrapper<OpsScheduleTaskParticipant>()
@@ -357,7 +365,7 @@ public class OpsCalendarTaskService {
 
     @Transactional
     public Long createManual(SecurityUser user, TaskCreateRequest req) {
-        if (!notBlank(req.getTitle())) throw new IllegalArgumentException("标题必填");
+        validateTitle(req.getTitle(), true);
         validateTaskType(req.getTaskType());
         validatePriority(req.getPriority());
         validateVisibility(req.getVisibility());
@@ -452,6 +460,8 @@ public class OpsCalendarTaskService {
             throw new IllegalArgumentException("当前状态不可编辑");
         if (!d_canEdit(t, user))
             throw new IllegalArgumentException("无权编辑该任务");
+
+        validateTitle(req.getTitle(), false);
 
         if (req.getGroupId() != null) {
             activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
