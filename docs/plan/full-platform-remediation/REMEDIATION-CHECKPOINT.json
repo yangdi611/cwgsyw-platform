@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4_AFFECTED_SCOPE_REVALIDATION",
-  "activeEvent": "FINAL_L4",
-  "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-043_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
-  "nextEvent": "FINAL_L4",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-043",
-  "nextAction": "Create the L4 continuation branch from this merge head, rerun CONFIG-002, then continue the complete remaining functional and state matrices.",
+  "phase": "EVENT_VERIFIED_PENDING_COMMIT",
+  "activeEvent": "REM-P1-044",
+  "activeBranch": "codex/rem-p1-044-ops-task-remediation-cleanup",
+  "activeRunId": "REM_P1_044_20260719",
+  "lastCompletedGate": "REM-P1-044_L1_L2_L3_PASS",
+  "nextEvent": "REM-P1-044",
+  "nextBranch": "codex/rem-p1-044-ops-task-remediation-cleanup",
+  "nextAction": "Create the REM-P1-044 event commit, no-ff merge to lint-fix, prove ancestry, then resume the same L4 run without rerunning existing PASS cases.",
   "statusCounts": {
-    "total": 81,
+    "total": 82,
     "closed": 4,
-    "verified": 77,
+    "verified": 78,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -118,7 +118,8 @@
       "REM-P1-040",
       "REM-P1-041",
       "REM-P1-042",
-      "REM-P1-043"
+      "REM-P1-043",
+      "REM-P1-044"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -385,7 +386,14 @@
       "failureSnapshotCommit": "c7e3c70a",
       "runId": "REM_P1_043_20260719",
       "eventCommit": "97e786caa1d895a761dda138da5031ae03850832",
-      "mergeCommit": "PENDING_NO_FF_MERGE"
+      "mergeCommit": "08a3df963ea4b0a664d7f7879525e441141b5c63"
+    },
+    "REM-P1-044": {
+      "branch": "codex/rem-p1-044-ops-task-remediation-cleanup",
+      "baselineCommit": "08a3df963ea4b0a664d7f7879525e441141b5c63",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-TASK-CLEANUP-001",
+      "runId": "REM_P1_044_20260719"
     },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",
@@ -433,10 +441,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-042",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-043",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 77,
-    "failures": 1,
+    "eventScopedVerifiedRequired": 78,
+    "failures": 0,
     "blocked": 0,
     "cleanupFailures": 0
   },

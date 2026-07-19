@@ -1,10 +1,12 @@
 package com.cwgsyw.platform.module.opscalendar;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.TaskCreateRequest;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTaskParticipant;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleChecklistItemMapper;
+import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleNotificationLogMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskLinkMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskLogMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskMapper;
@@ -32,6 +34,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +46,7 @@ class OpsCalendarTaskServiceTest {
     @Mock OpsScheduleChecklistItemMapper checklistMapper;
     @Mock OpsScheduleTaskLogMapper logMapper;
     @Mock OpsScheduleTaskLinkMapper linkMapper;
+    @Mock OpsScheduleNotificationLogMapper notificationLogMapper;
     @Mock OpsCalendarVisibilityService visibilityService;
     @Mock OpsCalendarNotificationService notificationService;
     @Mock UserMapper userMapper;
@@ -54,6 +59,11 @@ class OpsCalendarTaskServiceTest {
     private SecurityUser groupLeader() {
         return new SecurityUser(6L, "lead_manage", "", "default", 1L, "group",
                 Set.of("ops_calendar:create", "ops_calendar:complete"));
+    }
+
+    private SecurityUser platformAdmin() {
+        return new SecurityUser(1L, "superadmin", "", "default", null, "platform",
+                Set.of("ops_calendar:update"));
     }
 
     private TaskCreateRequest minimalRequest() {
@@ -205,6 +215,84 @@ class OpsCalendarTaskServiceTest {
     @Test
     void cancelledTask_usesTenantBoundHistoricalGroupLookup() {
         assertHistoricalTaskUsesArchivedGroup("cancelled");
+    }
+
+    @Test
+    void purgeRemediationTest_rejectsNonPlatformUserBeforeLoadingTask() {
+        assertThatThrownBy(() -> service.purgeRemediationTest(groupLeader(), 105L, "REM_P1_044_run"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("仅平台管理员可以清理整改测试运维任务");
+
+        verify(taskMapper, never()).selectById(any());
+    }
+
+    @Test
+    void purgeRemediationTest_rejectsBlankRunIdBeforeLoadingTask() {
+        assertThatThrownBy(() -> service.purgeRemediationTest(platformAdmin(), 105L, " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("缺少 remediationRunId");
+
+        verify(taskMapper, never()).selectById(any());
+    }
+
+    @Test
+    void purgeRemediationTest_rejectsCrossTenantTask() {
+        OpsScheduleTask task = remediationTask("REM_P1_044_run");
+        task.setTenantId("other");
+        when(taskMapper.selectById(105L)).thenReturn(task);
+
+        assertThatThrownBy(() -> service.purgeRemediationTest(platformAdmin(), 105L, "REM_P1_044_run"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务不存在");
+
+        verify(taskMapper, never()).deleteById(any(Long.class));
+    }
+
+    @Test
+    void purgeRemediationTest_rejectsTaskWithoutMatchingRunId() {
+        when(taskMapper.selectById(105L)).thenReturn(remediationTask("REM_P1_044_other"));
+
+        assertThatThrownBy(() -> service.purgeRemediationTest(platformAdmin(), 105L, "REM_P1_044_run"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("仅允许清理内容带 remediationRunId 的测试运维任务");
+
+        verify(taskMapper, never()).deleteById(any(Long.class));
+        verify(auditLogMapper, never()).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void purgeRemediationTest_deletesExactTaskDependenciesThenWritesAudit() {
+        String runId = "REM_P1_044_run";
+        when(taskMapper.selectById(105L)).thenReturn(remediationTask(runId));
+
+        service.purgeRemediationTest(platformAdmin(), 105L, runId);
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(linkMapper, checklistMapper, participantMapper,
+                logMapper, notificationLogMapper, taskMapper, auditLogMapper);
+        order.verify(linkMapper).delete(any());
+        order.verify(checklistMapper).delete(any());
+        order.verify(participantMapper).delete(any());
+        order.verify(logMapper).delete(any());
+        order.verify(notificationLogMapper).delete(any());
+        order.verify(taskMapper).deleteById(105L);
+        order.verify(auditLogMapper).insert(any(AuditLog.class));
+
+        ArgumentCaptor<AuditLog> auditCaptor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogMapper).insert(auditCaptor.capture());
+        assertThat(auditCaptor.getValue().getTenantId()).isEqualTo("default");
+        assertThat(auditCaptor.getValue().getAction()).isEqualTo("purge_remediation_test");
+        assertThat(auditCaptor.getValue().getTargetId()).isEqualTo(105L);
+        assertThat(auditCaptor.getValue().getOperatorId()).isEqualTo(1L);
+        assertThat(auditCaptor.getValue().getRemark()).contains(runId);
+    }
+
+    private OpsScheduleTask remediationTask(String runId) {
+        OpsScheduleTask task = new OpsScheduleTask();
+        task.setId(105L);
+        task.setTenantId("default");
+        task.setTitle("整改测试运维任务");
+        task.setContent("remediationRunId=" + runId);
+        return task;
     }
 
     private void assertHistoricalTaskUsesArchivedGroup(String status) {

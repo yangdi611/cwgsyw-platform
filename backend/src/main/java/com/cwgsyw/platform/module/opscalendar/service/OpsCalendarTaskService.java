@@ -45,6 +45,7 @@ public class OpsCalendarTaskService {
     private final OpsScheduleChecklistItemMapper checklistMapper;
     private final OpsScheduleTaskLogMapper logMapper;
     private final OpsScheduleTaskLinkMapper linkMapper;
+    private final OpsScheduleNotificationLogMapper notificationLogMapper;
     private final OpsCalendarVisibilityService visibilityService;
     private final OpsCalendarNotificationService notificationService;
     private final UserMapper userMapper;
@@ -672,6 +673,51 @@ public class OpsCalendarTaskService {
                 .forEach(p -> targets.add(p.getUserId()));
         notificationService.sendManual(t, targets);
         writeLog(id, user.getTenantId(), "notify", user.getUserId(), "手动重发提醒");
+    }
+
+    @Transactional
+    public void purgeRemediationTest(SecurityUser user, Long id, String remediationRunId) {
+        if (!"platform".equals(user.getGroupScope())) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试运维任务");
+        }
+        if (!notBlank(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+
+        OpsScheduleTask task = taskMapper.selectById(id);
+        if (task == null || !user.getTenantId().equals(task.getTenantId())) {
+            throw new IllegalArgumentException("任务不存在");
+        }
+        if (!containsRemediationRunId(task, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试运维任务");
+        }
+
+        linkMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskLink>()
+                .eq(OpsScheduleTaskLink::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskLink::getTaskId, id));
+        checklistMapper.delete(new LambdaQueryWrapper<OpsScheduleChecklistItem>()
+                .eq(OpsScheduleChecklistItem::getTenantId, user.getTenantId())
+                .eq(OpsScheduleChecklistItem::getTaskId, id));
+        participantMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskParticipant>()
+                .eq(OpsScheduleTaskParticipant::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskParticipant::getTaskId, id));
+        logMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskLog>()
+                .eq(OpsScheduleTaskLog::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskLog::getTaskId, id));
+        notificationLogMapper.delete(new LambdaQueryWrapper<OpsScheduleNotificationLog>()
+                .eq(OpsScheduleNotificationLog::getTenantId, user.getTenantId())
+                .eq(OpsScheduleNotificationLog::getTaskId, id));
+        taskMapper.deleteById(id);
+        writeAudit(user.getTenantId(), "purge_remediation_test", id, user.getUserId(),
+                "remediationRunId=" + remediationRunId);
+    }
+
+    private boolean containsRemediationRunId(OpsScheduleTask task, String remediationRunId) {
+        return Arrays.asList(task.getOccurrenceKey(), task.getTitle(), task.getContent(), task.getPublicSummary(),
+                        task.getResultSummary(), task.getCloseReason())
+                .stream()
+                .filter(Objects::nonNull)
+                .anyMatch(value -> value.contains(remediationRunId));
     }
 
     // ============ 5.8 工作台卡片 ============
