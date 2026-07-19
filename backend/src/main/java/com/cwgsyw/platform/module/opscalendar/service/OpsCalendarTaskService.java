@@ -264,13 +264,15 @@ public class OpsCalendarTaskService {
             throw new IllegalArgumentException("任务不存在");
 
         List<Long> pids = participantUserIds(id);
+        if (!visibilityService.canAccessDetail(t, user, pids))
+            throw new IllegalArgumentException("任务不存在");
         boolean canView = visibilityService.canViewDetail(t, user, pids);
         boolean canOp = visibilityService.canOperate(t, user, operableUserIds(id));
 
         TaskDetailVO d = new TaskDetailVO();
         d.setTask(toVO(t, user, null, null));
 
-        boolean masked = Boolean.TRUE.equals(t.getSensitive()) && !canView;
+        boolean masked = !canView;
         if (!masked) {
             d.setContent(t.getContent());
             d.setResultSummary(t.getResultSummary());

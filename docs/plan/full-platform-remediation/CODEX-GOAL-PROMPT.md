@@ -193,7 +193,7 @@ L3 强制要求：
 
 只有以下条件同时成立，才能把 Goal 标记为完成：
 
-- 86 个已登记事件均有完整、相互一致的最终状态和证据；待整改事件全部为 `CLOSED`，不存在 `IN_PROGRESS`、`VERIFYING`、`VERIFIED`、`FAIL` 或 `BLOCKED` 遗留。
+- 87 个已登记事件均有完整、相互一致的最终状态和证据；待整改事件全部为 `CLOSED`，不存在 `IN_PROGRESS`、`VERIFYING`、`VERIFIED`、`FAIL` 或 `BLOCKED` 遗留。
 - 100 个 `BUG-FQA-*` 仍保持唯一主事件映射，且每个修复后结论可追溯到新的 L4 证据。
 - L4 全平台复验完成，适用范围内 `FAIL=0`、`BLOCKED=0`，测试数据和临时权限精确清理。
 - 每个事件都有自己的 event commit 和 `lint-fix` merge commit，可证明祖先关系；没有未合并事件分支。
