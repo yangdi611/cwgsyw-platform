@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T17:25:00+08:00",
+  "updatedAt": "2026-07-19T22:48:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -18,16 +18,16 @@
   },
   "phase": "FINAL_L4",
   "activeEvent": null,
-  "activeBranch": null,
+  "activeBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-052",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-051_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
+  "lastCompletedGate": "REM_P1_052_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-051",
-  "nextAction": "Complete the REM-P1-051 no-ff merge, create an L4 continuation from the merge head, replay snapshot 5dc89ca2, and rerun OPS-010 affected-only before continuing all NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-052",
+  "nextAction": "Finish the REM-P1-052 no-ff merge, create the same-run L4 continuation, revalidate CMDB-040 affected-only, then continue all remaining NOT_RUN cases.",
   "statusCounts": {
-    "total": 89,
+    "total": 90,
     "closed": 4,
-    "verified": 85,
+    "verified": 86,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -126,7 +126,8 @@
       "REM-P1-048",
       "REM-P1-049",
       "REM-P1-050",
-      "REM-P1-051"
+      "REM-P1-051",
+      "REM-P1-052"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -172,9 +173,22 @@
     "REM-P1-048",
     "REM-P1-049",
     "REM-P1-050",
-    "REM-P1-051"
+    "REM-P1-051",
+    "REM-P1-052"
   ],
   "eventGit": {
+    "REM-P1-052": {
+      "branch": "codex/rem-p1-052-cmdb-instance-reference-delete-guards",
+      "baselineCommit": "73ec4273523f6715d66c7f91241e62b4e6d286ab",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "CMDB-040",
+      "failureSnapshotCommit": "4a80a9d4",
+      "runId": "REM_P1_052_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "b79db71b",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
     "REM-P0-006": {
       "eventCommit": "79a191925cd4040820e266239280ece11611cf31",
       "mergeCommit": "b10bcf8513df89407a0d2a0377e8ec9aeb1f5d5c"
@@ -536,9 +550,9 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-050",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-052",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 84,
+    "eventScopedVerifiedRequired": 86,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
