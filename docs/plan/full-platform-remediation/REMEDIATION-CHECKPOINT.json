@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T12:12:00+08:00",
+  "updatedAt": "2026-07-19T12:18:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,10 +20,10 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-045_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM-P1-045_MERGED_L4_CONTRACT_APPROVED",
   "nextEvent": null,
   "nextBranch": "codex/l4-acceleration-contract",
-  "nextAction": "Integrate the approved L4 acceleration contract on an independent documentation branch, then resume the same L4 run and execute affected OPS-016 plus all NOT_RUN cases.",
+  "nextAction": "Commit and no-ff merge the approved L4 acceleration contract, then resume the same L4 run and execute affected OPS-016 plus all NOT_RUN cases.",
   "statusCounts": {
     "total": 83,
     "closed": 4,
@@ -407,7 +407,7 @@
       "verification": "L1_L3_PASS",
       "cleanupFailures": 0,
       "eventCommit": "ca2f9c7fdda7e4f11fdf60f10806327fcb62091e",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "51239de6c3b0edacf641bad77bdbe6716f9a905b"
     },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",
@@ -460,7 +460,15 @@
     "eventScopedVerifiedRequired": 79,
     "failures": 0,
     "blocked": 0,
-    "cleanupFailures": 0
+    "cleanupFailures": 0,
+    "contract": {
+      "scope": "275+78_FULL_DENOMINATOR",
+      "continuationRun": true,
+      "retainUnaffectedCurrentRunPass": true,
+      "parallelReadOnlyOnly": true,
+      "serializedWritesAndCleanup": true,
+      "approvedSourceCommit": "351fad8a1a988101342b91722772eb51849167c5"
+    }
   },
   "blockers": [],
   "notes": [
