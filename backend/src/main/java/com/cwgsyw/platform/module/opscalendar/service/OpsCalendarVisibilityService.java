@@ -93,6 +93,17 @@ public class OpsCalendarVisibilityService {
         return !Boolean.TRUE.equals(task.getSensitive()) && "public".equals(task.getVisibility()) && false;
     }
 
+    public boolean canAccessDetail(OpsScheduleTask task, SecurityUser user, List<Long> participantUserIds) {
+        if (isAdmin(user) || has(user, "read_all")) return true;
+        Long userId = user.getUserId();
+        if (userId.equals(task.getAssigneeId())
+                || userId.equals(task.getCreatedBy())
+                || (participantUserIds != null && participantUserIds.contains(userId))) return true;
+        if (has(user, "read_group") && user.getGroupId() != null
+                && user.getGroupId().equals(task.getGroupId())) return true;
+        return "public".equals(task.getVisibility());
+    }
+
     /**
      * 是否能执行（确认/开始/完成）。按 spec 7.2 仅限：负责人、协同人、管理员。
      * 组长（read_group）不得默认代替执行人闭环任务，避免越权。

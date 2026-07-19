@@ -274,6 +274,98 @@ class OpsCalendarTaskServiceTest {
     }
 
     @Test
+    void detail_rejectsTaskOutsideVisibleScopeBeforeBuildingResponse() {
+        OpsScheduleTask task = detailTask("group", true);
+        SecurityUser user = groupLeader();
+        when(taskMapper.selectById(108L)).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canAccessDetail(task, user, List.of())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.detail(user, 108L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务不存在");
+
+        verify(visibilityService, never()).canViewDetail(any(), any(), any());
+        verify(visibilityService, never()).canOperate(any(), any(), any());
+        org.mockito.Mockito.verifyNoInteractions(checklistMapper, linkMapper, logMapper);
+    }
+
+    @Test
+    void detail_masksPublicTaskWhenReaderLacksDetailPermission() {
+        OpsScheduleTask task = detailTask("public", false);
+        SecurityUser user = groupLeader();
+        when(taskMapper.selectById(108L)).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canAccessDetail(task, user, List.of())).thenReturn(true);
+        when(visibilityService.canViewDetail(task, user, List.of())).thenReturn(false);
+        when(visibilityService.canOperate(task, user, List.of())).thenReturn(false);
+
+        var detail = service.detail(user, 108L);
+
+        assertThat(detail.getTask().getTitle()).isEqualTo("公开任务");
+        assertThat(detail.getContent()).isNull();
+        assertThat(detail.getParticipants()).isEmpty();
+        assertThat(detail.getChecklist()).isEmpty();
+        assertThat(detail.getLinks()).isEmpty();
+        assertThat(detail.getLogs()).isEmpty();
+    }
+
+    @Test
+    void detail_returnsFullContentForVisibleRelatedTask() {
+        OpsScheduleTask task = detailTask("private", true);
+        SecurityUser user = groupLeader();
+        task.setCreatedBy(user.getUserId());
+        when(taskMapper.selectById(108L)).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(checklistMapper.selectList(any())).thenReturn(List.of());
+        when(linkMapper.selectList(any())).thenReturn(List.of());
+        when(logMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canAccessDetail(task, user, List.of())).thenReturn(true);
+        when(visibilityService.canViewDetail(task, user, List.of())).thenReturn(true);
+        when(visibilityService.canOperate(task, user, List.of())).thenReturn(false);
+
+        var detail = service.detail(user, 108L);
+
+        assertThat(detail.getContent()).isEqualTo("完整正文");
+        assertThat(detail.getParticipants()).isEmpty();
+        assertThat(detail.getChecklist()).isEmpty();
+        assertThat(detail.getLinks()).isEmpty();
+        assertThat(detail.getLogs()).isEmpty();
+    }
+
+    @Test
+    void detail_rejectsTaskOutsideCallerVisibilityBeforeDetailReads() {
+        OpsScheduleTask task = editableTask();
+        SecurityUser user = groupLeader();
+        when(taskMapper.selectById(107L)).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canAccessDetail(task, user, List.of())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.detail(user, 107L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务不存在");
+
+        verify(visibilityService, never()).canViewDetail(any(), any(), any());
+        org.mockito.Mockito.verifyNoInteractions(checklistMapper, logMapper, linkMapper, userMapper, groupMapper);
+    }
+
+    @Test
+    void detail_preservesAllowedTaskResponsePath() {
+        OpsScheduleTask task = editableTask();
+        SecurityUser user = groupLeader();
+        when(taskMapper.selectById(107L)).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canAccessDetail(task, user, List.of())).thenReturn(true);
+        when(visibilityService.canViewDetail(task, user, List.of())).thenReturn(true);
+        when(visibilityService.canOperate(task, user, List.of())).thenReturn(false);
+
+        var detail = service.detail(user, 107L);
+
+        assertThat(detail.getTask().getId()).isEqualTo(107L);
+        assertThat(detail.getContent()).isNull();
+    }
+
+    @Test
     void completedTask_usesTenantBoundHistoricalGroupLookup() {
         assertHistoricalTaskUsesArchivedGroup("completed");
     }
@@ -374,6 +466,19 @@ class OpsCalendarTaskServiceTest {
         task.setStatus("pending_confirm");
         task.setPriority("normal");
         task.setVisibility("private");
+        return task;
+    }
+
+    private OpsScheduleTask detailTask(String visibility, boolean sensitive) {
+        OpsScheduleTask task = new OpsScheduleTask();
+        task.setId(108L);
+        task.setTenantId("default");
+        task.setTitle("公开任务");
+        task.setContent("完整正文");
+        task.setStatus("not_started");
+        task.setVisibility(visibility);
+        task.setSensitive(sensitive);
+        task.setGroupId(2L);
         return task;
     }
 
