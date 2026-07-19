@@ -157,3 +157,4 @@
 | `L4-AUTH-003-LOGIN-ERROR-RESET`：登录错误凭据 401 重载页面，错误反馈不可见 | [`REM-P1-036`](./02-account-organization/REM-P1-036-login-error-feedback/README.md) | `VERIFIED` | 登录端点 401 仅保留给页面错误处理；其他 API 401 保持登出。当前分支 L1-L3、真实 Nginx Playwright、成功登录与失效 token 回归通过，待全新完整 L4。 |
 | `L4-COMMON-009-001`：文件夹对话框关闭后保留未提交草稿 | [`REM-P1-041`](./04-content-files/REM-P1-041-file-dialog-draft-reset/README.md) | `VERIFIED` | 原始 L4 FAIL 保留；事件分支四种关闭路径、零创建请求、成功创建/删除、当前容器真实 UI 和 runId 零残留均通过，待合并后重验 `COMMON-009`。 |
 | `L4-DAILY-009-001`：并发提交重复启动日报流程 | [`REM-P1-042`](./06-ops-collaboration/REM-P1-042-daily-submit-idempotency/README.md) | `VERIFIED` | 原始 L4 两次 200 保留；事件分支事务行锁、单测、当前容器真实并发、唯一待办和精确清理通过，待合并后重验。 |
+| `L4-CONFIG-002-001`：SMTP 配置接受非法 host | [`REM-P1-043`](./07-platform-integration/REM-P1-043-smtp-config-input-validation/README.md) | `VERIFIED` | 原始 L4 200/persist 失败保留；DTO/Controller、7 个 API 边界、真实 UI、Mailpit 正向发送与原配置恢复 L1-L3 通过，待合并后重验。 |

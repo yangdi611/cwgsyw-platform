@@ -20,14 +20,14 @@
   "activeEvent": "FINAL_L4",
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-042_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
+  "lastCompletedGate": "REM-P1-043_EVENT_COMMIT_READY_FOR_NO_FF_MERGE",
   "nextEvent": "FINAL_L4",
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-042",
-  "nextAction": "Complete this no-ff merge, create the next L4 continuation branch from its merge head, rerun DAILY-009, then continue the remaining 84 functional and 58 state NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-043",
+  "nextAction": "Create the L4 continuation branch from this merge head, rerun CONFIG-002, then continue the complete remaining functional and state matrices.",
   "statusCounts": {
-    "total": 80,
+    "total": 81,
     "closed": 4,
-    "verified": 76,
+    "verified": 77,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -117,7 +117,8 @@
       "REM-P1-039",
       "REM-P1-040",
       "REM-P1-041",
-      "REM-P1-042"
+      "REM-P1-042",
+      "REM-P1-043"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -374,7 +375,17 @@
     },
     "REM-P0-007": {
       "eventCommit": "1c20595649fc611a1b44cebb2cc1bf972117d05d",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "95e6fff6c34205f6444a8ad6ec8c0d5fbd0ffa39"
+    },
+    "REM-P1-043": {
+      "branch": "codex/rem-p1-043-smtp-config-input-validation",
+      "baselineCommit": "95e6fff6c34205f6444a8ad6ec8c0d5fbd0ffa39",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CONFIG-002-001",
+      "failureSnapshotCommit": "c7e3c70a",
+      "runId": "REM_P1_043_20260719",
+      "eventCommit": "97e786caa1d895a761dda138da5031ae03850832",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
     },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",
@@ -422,9 +433,9 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-041",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-042",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 71,
+    "eventScopedVerifiedRequired": 77,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0
@@ -487,6 +498,7 @@
     "New L4 FQA_20260718_1546_remp0007 from lint-fix@00eed219: B1 read-only 28 functional PASS and authorization guards ST-AUTHZ-019/020 PASS; remaining 247+76 cases are NOT_RUN.",
     "L4 FQA_20260718_1616_remp0008 discovered OPS-011: a schedule template referenced by an active rule could be deleted with HTTP 200, leaving an orphaned templateId. Fixtures were product-API cleaned; REM-P1-029 is reopened on its independent branch. This L4 run is failed and must not contribute inherited PASS after the fix merges.",
     "REM-P1-041 event 1d2b50bd merged no-ff as 014a3e2d; post-merge COMMON-009 passed all four close paths with zero writes or residue.",
-    "L4 DAILY-005 passed and DAILY-009 failed because two concurrent submit requests both returned 200; REM-P1-042 now passes Java 21 tests, current-backend concurrent submit/approve, six-case Daily regression and exact cleanup. Event commit and no-ff merge remain."
+    "L4 DAILY-005 passed and DAILY-009 failed because two concurrent submit requests both returned 200; REM-P1-042 event 07a24f30 merged no-ff as 95e6fff6 and post-merge DAILY-005/009 passed with exact cleanup.",
+    "L4 CONFIG-002 accepted and persisted an invalid SMTP host. REM-P1-043 now passes DTO/Controller/EmailService Java 21 tests, seven real API boundaries, current-branch backend/UI, Mailpit delivery and exact configuration/report cleanup; event commit and no-ff merge remain."
   ]
 }

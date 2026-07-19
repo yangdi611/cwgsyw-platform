@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 80 个事件：4 个已关闭、76 个已验证、0 个验证中。L4 `FQA_20260718_2050_remp1038` 在 `lint-fix@014a3e2d` 的 `DAILY-009` 发现并发提交重复启动流程；`REM-P1-042` 已完成 L1-L3，待独立提交、no-ff 合并并重验受影响范围。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
+当前规划含 81 个事件：4 个已关闭、77 个已验证、0 个验证中。L4 `FQA_20260718_2050_remp1038` 的 `CONFIG-002` 发现 SMTP host 缺少输入校验；`REM-P1-043` 已完成 L1-L3，待独立提交、no-ff 合并并重验配置受影响范围。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
 
 ## 目录规则
 
