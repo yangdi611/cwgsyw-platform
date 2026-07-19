@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T13:05:00+08:00",
+  "updatedAt": "2026-07-19T14:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-046_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM-P1-047_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-046",
-  "nextAction": "Resume the same L4 run, rerun OPS-016 against the REM-P1-046 merge, close its historical FAIL on PASS, then execute all remaining NOT_RUN cases under the accelerated contract.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-047",
+  "nextAction": "Resume the same L4 run, rerun the complete OPS-004 case against the REM-P1-047 merge, close L4-OPS-004-001 on PASS, then execute all remaining NOT_RUN cases under the accelerated contract.",
   "statusCounts": {
-    "total": 84,
+    "total": 85,
     "closed": 4,
-    "verified": 80,
+    "verified": 81,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -121,7 +121,8 @@
       "REM-P1-043",
       "REM-P1-044",
       "REM-P1-045",
-      "REM-P1-046"
+      "REM-P1-046",
+      "REM-P1-047"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -419,6 +420,18 @@
       "verification": "L1_L3_PASS",
       "cleanupFailures": 0,
       "eventCommit": "367b594a10d17fbc88f0a5073609e4e2d020adc5",
+      "mergeCommit": "1cfccf0e366ed9f91456029b8989a06b8017a908"
+    },
+    "REM-P1-047": {
+      "branch": "codex/rem-p1-047-ops-task-text-boundaries",
+      "baselineCommit": "1cfccf0e366ed9f91456029b8989a06b8017a908",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-004-001",
+      "failureSnapshotCommit": "cff4587291745f511039cc12c4d26f55d3e0f0c7",
+      "runId": "REM_P1_047_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "9f15ba6891fdff7a6558e5082be892cbdc8b3b27",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     },
     "REM-P1-038": {
@@ -467,10 +480,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-043",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-046",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 79,
-    "failures": 0,
+    "eventScopedVerifiedRequired": 81,
+    "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
     "contract": {
@@ -479,7 +492,7 @@
       "retainUnaffectedCurrentRunPass": true,
       "parallelReadOnlyOnly": true,
       "serializedWritesAndCleanup": true,
-      "approvedSourceCommit": "351fad8a1a988101342b91722772eb51849167c5"
+      "approvedSourceCommit": "a0706d92cdfe0be14418e74a2ad313176a526552"
     }
   },
   "blockers": [],

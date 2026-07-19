@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.opscalendar;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.TaskCreateRequest;
+import com.cwgsyw.platform.module.opscalendar.dto.TaskUpdateRequest;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTaskParticipant;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleChecklistItemMapper;
@@ -192,6 +193,76 @@ class OpsCalendarTaskServiceTest {
     }
 
     @Test
+    void createManual_accepts255CodePointTitleWithoutTruncation() {
+        TaskCreateRequest request = minimalRequest();
+        request.setTitle("任".repeat(255));
+        when(taskMapper.insert(any(OpsScheduleTask.class))).thenAnswer(invocation -> {
+            OpsScheduleTask task = invocation.getArgument(0);
+            task.setId(106L);
+            return 1;
+        });
+        when(participantMapper.selectCount(any())).thenReturn(0L);
+
+        service.createManual(groupLeader(), request);
+
+        ArgumentCaptor<OpsScheduleTask> taskCaptor = ArgumentCaptor.forClass(OpsScheduleTask.class);
+        verify(taskMapper).insert(taskCaptor.capture());
+        assertThat(taskCaptor.getValue().getTitle()).isEqualTo(request.getTitle());
+    }
+
+    @Test
+    void createManual_rejects256CodePointTitleBeforeAnyWrite() {
+        TaskCreateRequest request = minimalRequest();
+        request.setTitle("😀".repeat(256));
+
+        assertThatThrownBy(() -> service.createManual(groupLeader(), request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("标题不能超过 255 个字符");
+
+        org.mockito.Mockito.verifyNoInteractions(taskMapper, participantMapper, checklistMapper, logMapper,
+                auditLogMapper, notificationService, activeGroupReferenceValidator);
+    }
+
+    @Test
+    void update_accepts255CodePointTitleWithoutTruncation() {
+        OpsScheduleTask task = editableTask();
+        SecurityUser user = platformAdmin();
+        TaskUpdateRequest request = new TaskUpdateRequest();
+        request.setTitle("更".repeat(255));
+        when(taskMapper.selectById(107L)).thenReturn(task);
+        when(visibilityService.canCancel(task, user)).thenReturn(true);
+
+        service.update(user, 107L, request);
+
+        assertThat(task.getTitle()).isEqualTo(request.getTitle());
+        verify(taskMapper).updateById(task);
+    }
+
+    @Test
+    void update_rejectsBlankAnd256CodePointTitlesWithoutWrites() {
+        OpsScheduleTask task = editableTask();
+        SecurityUser user = platformAdmin();
+        when(taskMapper.selectById(107L)).thenReturn(task);
+        when(visibilityService.canCancel(task, user)).thenReturn(true);
+
+        TaskUpdateRequest blank = new TaskUpdateRequest();
+        blank.setTitle("   ");
+        assertThatThrownBy(() -> service.update(user, 107L, blank))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("标题必填");
+
+        TaskUpdateRequest overlong = new TaskUpdateRequest();
+        overlong.setTitle("😀".repeat(256));
+        assertThatThrownBy(() -> service.update(user, 107L, overlong))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("标题不能超过 255 个字符");
+
+        verify(taskMapper, never()).updateById(any(OpsScheduleTask.class));
+        org.mockito.Mockito.verifyNoInteractions(participantMapper, logMapper, auditLogMapper,
+                notificationService, activeGroupReferenceValidator);
+    }
+
+    @Test
     void listTasks_rejectsReversedDateRangeBeforeQuery() {
         assertThatThrownBy(() -> service.listTasks(groupLeader(),
                 LocalDate.of(2026, 7, 12), LocalDate.of(2026, 7, 11),
@@ -292,6 +363,17 @@ class OpsCalendarTaskServiceTest {
         task.setTenantId("default");
         task.setTitle("整改测试运维任务");
         task.setContent("remediationRunId=" + runId);
+        return task;
+    }
+
+    private OpsScheduleTask editableTask() {
+        OpsScheduleTask task = new OpsScheduleTask();
+        task.setId(107L);
+        task.setTenantId("default");
+        task.setTitle("原标题");
+        task.setStatus("pending_confirm");
+        task.setPriority("normal");
+        task.setVisibility("private");
         return task;
     }
 
