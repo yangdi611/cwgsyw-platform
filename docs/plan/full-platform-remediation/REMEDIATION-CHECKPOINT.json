@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T12:22:00+08:00",
+  "updatedAt": "2026-07-19T12:55:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": null,
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "L4_ACCELERATION_CONTRACT_COMMITTED_NO_FF_MERGE_PENDING",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-045",
-  "nextAction": "Resume the same L4 run FQA_20260718_2050_remp1038 from the latest lint-fix integration point; retain only unaffected current-run PASS, rerun affected OPS-016, and execute all NOT_RUN cases under the accelerated contract.",
+  "phase": "EVENT_IMPLEMENTATION",
+  "activeEvent": "REM-P1-046",
+  "activeBranch": "codex/rem-p1-046-ops-roster-temporal-validation",
+  "activeRunId": "REM_P1_046_20260719",
+  "lastCompletedGate": "REM-P1-046_L1_L3_VERIFIED_PENDING_EVENT_COMMIT",
+  "nextEvent": "REM-P1-046",
+  "nextBranch": "codex/rem-p1-046-ops-roster-temporal-validation",
+  "nextAction": "Commit REM-P1-046, no-ff merge into lint-fix, then resume the same L4 run and rerun OPS-016 plus all NOT_RUN cases.",
   "statusCounts": {
-    "total": 83,
+    "total": 84,
     "closed": 4,
-    "verified": 79,
+    "verified": 80,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -120,7 +120,8 @@
       "REM-P1-042",
       "REM-P1-043",
       "REM-P1-044",
-      "REM-P1-045"
+      "REM-P1-045",
+      "REM-P1-046"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -408,6 +409,15 @@
       "cleanupFailures": 0,
       "eventCommit": "ca2f9c7fdda7e4f11fdf60f10806327fcb62091e",
       "mergeCommit": "51239de6c3b0edacf641bad77bdbe6716f9a905b"
+    },
+    "REM-P1-046": {
+      "branch": "codex/rem-p1-046-ops-roster-temporal-validation",
+      "baselineCommit": "4aee460ef0568b24fa1542ef958c749ef2881d1c",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-016-001",
+      "runId": "REM_P1_046_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0
     },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",

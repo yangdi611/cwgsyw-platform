@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.time.LocalDateTime;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -127,6 +128,30 @@ class OpsCalendarRosterHistoricalGroupTest {
         verify(rosterMapper).deleteById(6L);
         verify(auditLogMapper).insert(any(AuditLog.class));
         verify(auditLogMapper, org.mockito.Mockito.times(1)).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void createAndUpdate_rejectNonIncreasingTimeBeforeWrites() {
+        var reverse = request(LocalDateTime.of(2098, 12, 30, 18, 0),
+                LocalDateTime.of(2098, 12, 30, 9, 0));
+        var equal = request(LocalDateTime.of(2098, 12, 30, 9, 0),
+                LocalDateTime.of(2098, 12, 30, 9, 0));
+
+        assertThatIllegalArgumentException().isThrownBy(() -> service.create(reverse, "default", 1L))
+                .withMessage("结束时间必须晚于开始时间");
+        assertThatIllegalArgumentException().isThrownBy(() -> service.update(1L, equal, "default", 1L))
+                .withMessage("结束时间必须晚于开始时间");
+
+        org.mockito.Mockito.verifyNoInteractions(rosterMapper, activeGroupReferenceValidator, auditLogMapper);
+    }
+
+    private com.cwgsyw.platform.module.opscalendar.dto.RosterRequest request(
+            LocalDateTime startAt, LocalDateTime endAt) {
+        var request = new com.cwgsyw.platform.module.opscalendar.dto.RosterRequest();
+        request.setStartAt(startAt);
+        request.setEndAt(endAt);
+        request.setGroupId(15L);
+        return request;
     }
 
     private OpsDutyRoster roster(Long id, LocalDate dutyDate, Long groupId) {

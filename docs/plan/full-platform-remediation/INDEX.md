@@ -13,6 +13,7 @@
 
 ## 当前队列
 
+| `REM-P1-046` | P1 | 运维排班时间顺序校验 | L4 `OPS-016` | `VERIFIED` | LOW | create/update 反向及相等时间拒绝、合法跨日、当前 backend、完整 OPS-016 与精确清理通过；待 no-ff 合并。 | [事件卡](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/README.md) / [SPEC](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-046-ops-roster-temporal-validation/VERIFICATION.md) |
 | `REM-P1-045` | P1 | 运维排班精确测试清理 | L4 `OPS-016` | `VERIFIED` | LOW | 严格 platform/runId/tenant 单记录清理、审计、当前 backend 与真实 CRUD/清理通过；待 no-ff 合并后恢复同一 L4 run。 | [事件卡](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/README.md) / [SPEC](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/SPEC.md) / [验证](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-045-ops-roster-remediation-cleanup/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-043` | P1 | SMTP 配置输入校验 | L4 `CONFIG-002` | `VERIFIED` | LOW | DTO/Controller L1、真实 API/UI、当前 backend、Mailpit 正向发送和原配置恢复通过；待提交、no-ff 合并并重验配置范围。 | [事件卡](./07-platform-integration/REM-P1-043-smtp-config-input-validation/README.md) / [SPEC](./07-platform-integration/REM-P1-043-smtp-config-input-validation/SPEC.md) / [验证](./07-platform-integration/REM-P1-043-smtp-config-input-validation/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-043-smtp-config-input-validation/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-044` | P1 | 运维任务精确测试清理 | L4 `OPS-003..010` / `ST-OPS-001..014` | `VERIFIED` | LOW | 严格 platform/runId/tenant 限制、五类从表逆序清理、审计、当前 backend 与真实 API/UI 通过；待 no-ff 合并后恢复 OPS 状态矩阵。 | [事件卡](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/README.md) / [SPEC](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/SPEC.md) / [验证](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-044-ops-task-remediation-cleanup/CLAUDE-CODE-PROMPT.md) |
@@ -156,7 +157,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 79 |
+| `VERIFIED` | 80 |
 | `READY` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |
