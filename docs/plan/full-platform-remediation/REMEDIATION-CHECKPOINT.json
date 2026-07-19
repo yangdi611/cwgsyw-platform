@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T12:22:00+08:00",
+  "updatedAt": "2026-07-19T13:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "L4_ACCELERATION_CONTRACT_COMMITTED_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM-P1-046_EVENT_COMMITTED_AND_NO_FF_MERGE_PENDING",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-045",
-  "nextAction": "Resume the same L4 run FQA_20260718_2050_remp1038 from the latest lint-fix integration point; retain only unaffected current-run PASS, rerun affected OPS-016, and execute all NOT_RUN cases under the accelerated contract.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-046",
+  "nextAction": "Resume the same L4 run, rerun OPS-016 against the REM-P1-046 merge, close its historical FAIL on PASS, then execute all remaining NOT_RUN cases under the accelerated contract.",
   "statusCounts": {
-    "total": 83,
+    "total": 84,
     "closed": 4,
-    "verified": 79,
+    "verified": 80,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -120,7 +120,8 @@
       "REM-P1-042",
       "REM-P1-043",
       "REM-P1-044",
-      "REM-P1-045"
+      "REM-P1-045",
+      "REM-P1-046"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -408,6 +409,17 @@
       "cleanupFailures": 0,
       "eventCommit": "ca2f9c7fdda7e4f11fdf60f10806327fcb62091e",
       "mergeCommit": "51239de6c3b0edacf641bad77bdbe6716f9a905b"
+    },
+    "REM-P1-046": {
+      "branch": "codex/rem-p1-046-ops-roster-temporal-validation",
+      "baselineCommit": "4aee460ef0568b24fa1542ef958c749ef2881d1c",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-016-001",
+      "runId": "REM_P1_046_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "367b594a10d17fbc88f0a5073609e4e2d020adc5",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     },
     "REM-P1-038": {
       "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",

@@ -75,6 +75,7 @@ public class OpsCalendarRosterService {
 
     @Transactional
     public RosterVO create(RosterRequest req, String tenantId, Long operatorId) {
+        validateTimeRange(req);
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         OpsDutyRoster r = new OpsDutyRoster();
         r.setTenantId(tenantId);
@@ -86,6 +87,7 @@ public class OpsCalendarRosterService {
 
     @Transactional
     public RosterVO update(Long id, RosterRequest req, String tenantId, Long operatorId) {
+        validateTimeRange(req);
         OpsDutyRoster r = rosterMapper.selectById(id);
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("排班记录不存在");
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
@@ -119,6 +121,13 @@ public class OpsCalendarRosterService {
 
     private boolean notBlank(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private void validateTimeRange(RosterRequest req) {
+        if (req.getStartAt() != null && req.getEndAt() != null
+                && !req.getEndAt().isAfter(req.getStartAt())) {
+            throw new IllegalArgumentException("结束时间必须晚于开始时间");
+        }
     }
 
     private void applyRequest(OpsDutyRoster r, RosterRequest req) {

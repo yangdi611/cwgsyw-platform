@@ -19,6 +19,20 @@ test('remP1045RosterCrudAndRunIdCleanup', async () => {
     expect(group).toBeTruthy()
     const dutyDate = '2098-12-30'
 
+    const invalid = await api.post('/api/ops-calendar/rosters', {
+      headers,
+      data: {
+        dutyDate,
+        startAt: `${dutyDate}T18:00:00`,
+        endAt: `${dutyDate}T09:00:00`,
+        shiftName: runId,
+        assigneeId: loginData.userId,
+        groupId: group.id,
+        remark: runId,
+      },
+    })
+    expect(invalid.status()).toBe(400)
+
     const created = await api.post('/api/ops-calendar/rosters', {
       headers,
       data: {
@@ -36,12 +50,26 @@ test('remP1045RosterCrudAndRunIdCleanup', async () => {
     expect(created.status()).toBe(200)
     rosterId = (await created.json()).data.id
 
-    const updated = await api.put(`/api/ops-calendar/rosters/${rosterId}`, {
+    const equalUpdate = await api.put(`/api/ops-calendar/rosters/${rosterId}`, {
       headers,
       data: {
         dutyDate,
         startAt: `${dutyDate}T10:00:00`,
-        endAt: `${dutyDate}T19:00:00`,
+        endAt: `${dutyDate}T10:00:00`,
+        shiftName: `${runId}_invalid_update`,
+        assigneeId: loginData.userId,
+        groupId: group.id,
+        remark: runId,
+      },
+    })
+    expect(equalUpdate.status()).toBe(400)
+
+    const updated = await api.put(`/api/ops-calendar/rosters/${rosterId}`, {
+      headers,
+      data: {
+        dutyDate,
+        startAt: `${dutyDate}T22:00:00`,
+        endAt: '2098-12-31T06:00:00',
         shiftName: `${runId}_updated`,
         assigneeId: loginData.userId,
         backupAssigneeId: loginData.userId,
@@ -56,6 +84,7 @@ test('remP1045RosterCrudAndRunIdCleanup', async () => {
       shiftName: `${runId}_updated`,
       backupAssigneeId: loginData.userId,
       phoneOverride: '13900139000',
+      endAt: '2098-12-31T06:00:00',
     })
 
     const wrongRun = await api.delete(`/api/ops-calendar/rosters/${rosterId}/remediation-test`, {
