@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 88 个事件：4 个已关闭、84 个已验证、0 个进行中。L4 `OPS-007` 发现任务 API 接受跨组负责人但真实 UI 候选缺失；独立 `REM-P1-050` 已按用户批准语义完成 Java 21、当前 backend/frontend、真实 API/UI 和精确清理 L1-L3，event `ba5e4740` 正在 no-ff 合并，随后在同 run 重验。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
+当前规划含 89 个事件：4 个已关闭、85 个已验证、0 个进行中。L4 `OPS-010` 发现真实双击确认产生重复状态副作用；独立 `REM-P1-051` 已通过 Java 21 36/36、当前 backend、真实 API 并发/UI 双击、日志/审计唯一性和精确清理 L1-L3，待事件提交与 no-ff 合并后在同 run affected-only 重验。用户批准的 `wiki_page -> remp1038wiki`、审批人 `superadmin` 为正式 Wiki 审批策略，保持不变且不作为测试数据清理。
 
 ## 目录规则
 

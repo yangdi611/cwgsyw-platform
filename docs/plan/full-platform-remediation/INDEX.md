@@ -6,13 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：88 个事件；其中 `CLOSED=4`、`VERIFIED=84`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：89 个事件；其中 `CLOSED=4`、`VERIFIED=85`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
 
+| `REM-P1-051` | P1 | 运维任务确认幂等 | L4 `OPS-010` | `VERIFIED` | MEDIUM | 事务行锁串行确认；Java 21 36/36、当前 backend、真实 API 并发/UI 双击、日志/审计唯一性和精确清理 L1-L3 PASS；待提交合并后同 run affected-only 重验。 | [事件卡](./06-ops-collaboration/REM-P1-051-ops-confirm-idempotency/README.md) / [SPEC](./06-ops-collaboration/REM-P1-051-ops-confirm-idempotency/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-051-ops-confirm-idempotency/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-051-ops-confirm-idempotency/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-050` | P1 | 运维任务跨组负责人候选 | L4 `OPS-007` | `VERIFIED` | HIGH | 专用同租户启用用户最小候选、任务人员写前资格校验、Java 21 35/35、当前容器真实 API/UI 和精确清理 L1-L3 PASS；event `ba5e4740` 正在 no-ff 合并，随后同 run 重验。 | [事件卡](./06-ops-collaboration/REM-P1-050-ops-cross-group-assignee-candidates/README.md) / [SPEC](./06-ops-collaboration/REM-P1-050-ops-cross-group-assignee-candidates/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-050-ops-cross-group-assignee-candidates/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-050-ops-cross-group-assignee-candidates/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-049` | P1 | 运维任务详情数据范围 | L4 `OPS-006` | `VERIFIED` | HIGH | Java 21、当前 backend、跨组拒绝与 public/related/read_group/read_all 正向 API/UI、精确清理 L1-L3 PASS；事件提交 `92eaf9a4` 已创建，当前 no-ff 合并后同 run 重验。 | [事件卡](./06-ops-collaboration/REM-P1-049-ops-task-detail-scope/README.md) / [SPEC](./06-ops-collaboration/REM-P1-049-ops-task-detail-scope/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-049-ops-task-detail-scope/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-049-ops-task-detail-scope/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-048` | P1 | 运维素材组级范围约束 | L4 `OPS-017` | `VERIFIED` | LOW | Controller 4/4、当前 backend、真实两组 API/UI/XLSX 与精确清理 L1-L3 PASS；事件提交 `3e7667a3` 已按顺序进入 `lint-fix`，待同 run 重验。 | [事件卡](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/README.md) / [SPEC](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/SPEC.md) / [验证](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/VERIFICATION.md) / [Prompt](./06-ops-collaboration/REM-P1-048-ops-material-group-scope/CLAUDE-CODE-PROMPT.md) |
