@@ -52,6 +52,12 @@ public class OpsCalendarTaskController {
         return R.ok(taskService.dashboard(cu));
     }
 
+    @GetMapping("/assignee-candidates")
+    @PreAuthorize("hasPermission('ops_calendar', 'create') or hasPermission('ops_calendar', 'update') or hasPermission('ops_calendar', 'manage')")
+    public R<List<TaskAssigneeCandidateVO>> assigneeCandidates(@AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(taskService.assigneeCandidates(cu));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('ops_calendar', 'read') or hasPermission('ops_calendar', 'read_group') or hasPermission('ops_calendar', 'read_all')")
     public R<TaskDetailVO> detail(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {

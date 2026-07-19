@@ -33,8 +33,8 @@ export function TaskFormDialog({ open, onOpenChange }: Props) {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-for-ops-task'],
-    queryFn: () => api.get('/users', { params: { page: 1, size: 200 } })
-      .then((r) => (r.data.data.records ?? r.data.data) as UserOpt[])
+    queryFn: () => api.get('/ops-calendar/tasks/assignee-candidates')
+      .then((r) => r.data.data as UserOpt[])
       .catch(() => [] as UserOpt[]),
     enabled: open,
   })

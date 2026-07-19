@@ -365,6 +365,19 @@ public class OpsCalendarTaskService {
 
     // ============ 5.4 创建临时任务 ============
 
+    public List<TaskAssigneeCandidateVO> assigneeCandidates(SecurityUser user) {
+        return userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .eq(User::getTenantId, user.getTenantId())
+                        .eq(User::getStatus, 1)
+                        .orderByAsc(User::getRealName)
+                        .orderByAsc(User::getUsername)
+                        .orderByAsc(User::getId))
+                .stream()
+                .map(candidate -> new TaskAssigneeCandidateVO(candidate.getId(), candidate.getUsername(),
+                        candidate.getRealName(), candidate.getGroupId()))
+                .toList();
+    }
+
     @Transactional
     public Long createManual(SecurityUser user, TaskCreateRequest req) {
         validateTitle(req.getTitle(), true);
@@ -375,6 +388,8 @@ public class OpsCalendarTaskService {
                 ? req.getPlannedStartAt() : LocalDateTime.now();
         if (req.getDueAt() != null && req.getDueAt().isBefore(plannedStartAt))
             throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        validateTaskUsers(user.getTenantId(), req.getAssigneeId(), req.getParticipantIds(),
+                req.getRecipientIds(), req.getEscalationUserIds());
 
         Long referencedGroupId = req.getGroupId() != null ? req.getGroupId() : user.getGroupId();
         activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), referencedGroupId);
@@ -464,6 +479,8 @@ public class OpsCalendarTaskService {
             throw new IllegalArgumentException("无权编辑该任务");
 
         validateTitle(req.getTitle(), false);
+        validateTaskUsers(user.getTenantId(), req.getAssigneeId(), req.getParticipantIds(),
+                req.getRecipientIds(), req.getEscalationUserIds());
 
         if (req.getGroupId() != null) {
             activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
@@ -515,6 +532,26 @@ public class OpsCalendarTaskService {
 
     private void validateVisibility(String visibility) {
         if (visibility != null && !VISIBILITIES.contains(visibility)) throw new IllegalArgumentException("不支持的可见性");
+    }
+
+    private void validateTaskUsers(String tenantId, Long assigneeId, List<Long> participantIds,
+                                   List<Long> recipientIds, List<Long> escalationUserIds) {
+        Set<Long> userIds = new LinkedHashSet<>();
+        if (assigneeId != null) userIds.add(assigneeId);
+        if (participantIds != null) userIds.addAll(participantIds);
+        if (recipientIds != null) userIds.addAll(recipientIds);
+        if (escalationUserIds != null) userIds.addAll(escalationUserIds);
+        if (userIds.isEmpty()) return;
+        if (userIds.contains(null)) throw new IllegalArgumentException("任务人员无效");
+
+        Map<Long, User> users = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, candidate -> candidate));
+        boolean invalid = userIds.stream().anyMatch(userId -> {
+            User candidate = users.get(userId);
+            return candidate == null || !tenantId.equals(candidate.getTenantId())
+                    || !Integer.valueOf(1).equals(candidate.getStatus());
+        });
+        if (invalid) throw new IllegalArgumentException("任务人员不存在或不可用");
     }
 
     private boolean d_canEdit(OpsScheduleTask t, SecurityUser user) {

@@ -19,6 +19,7 @@ import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.cwgsyw.platform.module.user.entity.User;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -177,6 +178,86 @@ class OpsCalendarTaskServiceTest {
     }
 
     @Test
+    void assigneeCandidates_returnsEnabledTenantUsersAcrossGroups() {
+        User sameGroup = candidateUser(10L, "default", 1, 1L, "同组用户");
+        User crossGroup = candidateUser(11L, "default", 1, 2L, "跨组用户");
+        when(userMapper.selectList(any())).thenReturn(List.of(sameGroup, crossGroup));
+
+        var candidates = service.assigneeCandidates(groupLeader());
+
+        assertThat(candidates).extracting("id").containsExactly(10L, 11L);
+        assertThat(candidates).extracting("realName").containsExactly("同组用户", "跨组用户");
+        assertThat(candidates).extracting("groupId").containsExactly(1L, 2L);
+    }
+
+    @Test
+    void createManual_acceptsEnabledCrossGroupAssignee() {
+        TaskCreateRequest request = minimalRequest();
+        request.setAssigneeId(11L);
+        when(userMapper.selectBatchIds(Set.of(11L)))
+                .thenReturn(List.of(candidateUser(11L, "default", 1, 2L, "跨组用户")));
+        when(taskMapper.insert(any(OpsScheduleTask.class))).thenAnswer(invocation -> {
+            OpsScheduleTask task = invocation.getArgument(0);
+            task.setId(109L);
+            return 1;
+        });
+        when(participantMapper.selectCount(any())).thenReturn(0L);
+
+        service.createManual(groupLeader(), request);
+
+        ArgumentCaptor<OpsScheduleTask> taskCaptor = ArgumentCaptor.forClass(OpsScheduleTask.class);
+        verify(taskMapper).insert(taskCaptor.capture());
+        assertThat(taskCaptor.getValue().getAssigneeId()).isEqualTo(11L);
+    }
+
+    @Test
+    void createManual_rejectsUnavailableTaskUserBeforeAnyWrite() {
+        TaskCreateRequest request = minimalRequest();
+        request.setAssigneeId(99L);
+        when(userMapper.selectBatchIds(Set.of(99L)))
+                .thenReturn(List.of(candidateUser(99L, "other", 1, 2L, "其他租户")));
+
+        assertThatThrownBy(() -> service.createManual(groupLeader(), request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务人员不存在或不可用");
+
+        verify(taskMapper, never()).insert(any(OpsScheduleTask.class));
+        verify(participantMapper, never()).insert(any(OpsScheduleTaskParticipant.class));
+        verify(activeGroupReferenceValidator, never()).lockAndRequire(any(), any());
+    }
+
+    @Test
+    void createManual_rejectsMissingTaskUserBeforeAnyWrite() {
+        TaskCreateRequest request = minimalRequest();
+        request.setParticipantIds(List.of(98L));
+        when(userMapper.selectBatchIds(Set.of(98L))).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.createManual(groupLeader(), request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务人员不存在或不可用");
+
+        verify(taskMapper, never()).insert(any(OpsScheduleTask.class));
+        verify(participantMapper, never()).insert(any(OpsScheduleTaskParticipant.class));
+        verify(activeGroupReferenceValidator, never()).lockAndRequire(any(), any());
+    }
+
+    @Test
+    void createManual_rejectsDisabledTaskUserBeforeAnyWrite() {
+        TaskCreateRequest request = minimalRequest();
+        request.setRecipientIds(List.of(97L));
+        when(userMapper.selectBatchIds(Set.of(97L)))
+                .thenReturn(List.of(candidateUser(97L, "default", 0, 2L, "停用用户")));
+
+        assertThatThrownBy(() -> service.createManual(groupLeader(), request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务人员不存在或不可用");
+
+        verify(taskMapper, never()).insert(any(OpsScheduleTask.class));
+        verify(participantMapper, never()).insert(any(OpsScheduleTaskParticipant.class));
+        verify(activeGroupReferenceValidator, never()).lockAndRequire(any(), any());
+    }
+
+    @Test
     void createManual_validatesEffectiveGroupBeforeInsert() {
         when(taskMapper.insert(any(OpsScheduleTask.class))).thenAnswer(invocation -> {
             OpsScheduleTask task = invocation.getArgument(0);
@@ -260,6 +341,29 @@ class OpsCalendarTaskServiceTest {
         verify(taskMapper, never()).updateById(any(OpsScheduleTask.class));
         org.mockito.Mockito.verifyNoInteractions(participantMapper, logMapper, auditLogMapper,
                 notificationService, activeGroupReferenceValidator);
+    }
+
+    @Test
+    void update_rejectsUnavailableTaskUserBeforeAnyWrite() {
+        OpsScheduleTask task = editableTask();
+        SecurityUser user = platformAdmin();
+        TaskUpdateRequest request = new TaskUpdateRequest();
+        request.setAssigneeId(96L);
+        request.setParticipantIds(List.of(95L));
+        when(taskMapper.selectById(107L)).thenReturn(task);
+        when(visibilityService.canCancel(task, user)).thenReturn(true);
+        when(userMapper.selectBatchIds(Set.of(96L, 95L)))
+                .thenReturn(List.of(candidateUser(96L, "default", 1, 2L, "有效用户")));
+
+        assertThatThrownBy(() -> service.update(user, 107L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("任务人员不存在或不可用");
+
+        verify(taskMapper, never()).updateById(any(OpsScheduleTask.class));
+        verify(participantMapper, never()).delete(any());
+        verify(participantMapper, never()).insert(any(OpsScheduleTaskParticipant.class));
+        org.mockito.Mockito.verifyNoInteractions(logMapper, auditLogMapper, notificationService,
+                activeGroupReferenceValidator);
     }
 
     @Test
@@ -480,6 +584,17 @@ class OpsCalendarTaskServiceTest {
         task.setSensitive(sensitive);
         task.setGroupId(2L);
         return task;
+    }
+
+    private User candidateUser(Long id, String tenantId, int status, Long groupId, String realName) {
+        User user = new User();
+        user.setId(id);
+        user.setTenantId(tenantId);
+        user.setStatus(status);
+        user.setGroupId(groupId);
+        user.setUsername("user" + id);
+        user.setRealName(realName);
+        return user;
     }
 
     private void assertHistoricalTaskUsesArchivedGroup(String status) {
