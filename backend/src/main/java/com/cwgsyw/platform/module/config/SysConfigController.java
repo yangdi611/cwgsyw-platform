@@ -73,7 +73,7 @@ public class SysConfigController {
     @PutMapping("/smtp")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateSmtp(@AuthenticationPrincipal SecurityUser user,
-                               @RequestBody SmtpConfigRequest req) {
+                               @jakarta.validation.Valid @RequestBody SmtpConfigRequest req) {
         String tid = user.getTenantId();
         if (req.getEnabled() != null)  configService.set(tid, "smtp.enabled",   String.valueOf(req.getEnabled()));
         if (req.getHost() != null)     configService.set(tid, "smtp.host",      req.getHost());
