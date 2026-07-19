@@ -5,6 +5,7 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.TaskCreateRequest;
 import com.cwgsyw.platform.module.opscalendar.dto.TaskUpdateRequest;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTask;
+import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTaskLog;
 import com.cwgsyw.platform.module.opscalendar.entity.OpsScheduleTaskParticipant;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleChecklistItemMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleNotificationLogMapper;
@@ -128,7 +129,7 @@ class OpsCalendarTaskServiceTest {
         creator.setTaskId(102L);
         creator.setUserId(6L);
         creator.setRole("collaborator");
-        when(taskMapper.selectById(102L)).thenReturn(created);
+        when(taskMapper.selectByIdForUpdate(102L, "default")).thenReturn(created);
         when(participantMapper.selectList(any())).thenReturn(List.of(creator));
         when(visibilityService.canOperate(created, creatorUser, List.of(6L))).thenReturn(true);
 
@@ -137,6 +138,27 @@ class OpsCalendarTaskServiceTest {
         assertThat(created.getStatus()).isEqualTo("not_started");
         assertThat(created.getConfirmedBy()).isEqualTo(6L);
         assertThat(created.getConfirmedAt()).isNotNull();
+    }
+
+    @Test
+    void confirm_rejectsSecondAttemptWithoutDuplicateSideEffects() {
+        SecurityUser creatorUser = groupLeader();
+        OpsScheduleTask task = new OpsScheduleTask();
+        task.setId(110L);
+        task.setTenantId("default");
+        task.setStatus("pending_confirm");
+        when(taskMapper.selectByIdForUpdate(110L, "default")).thenReturn(task);
+        when(participantMapper.selectList(any())).thenReturn(List.of());
+        when(visibilityService.canOperate(task, creatorUser, List.of())).thenReturn(true);
+
+        service.confirm(creatorUser, 110L);
+
+        assertThatThrownBy(() -> service.confirm(creatorUser, 110L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("仅待确认任务可确认");
+        verify(taskMapper).updateById(task);
+        verify(logMapper).insert(any(OpsScheduleTaskLog.class));
+        verify(auditLogMapper).insert(any(AuditLog.class));
     }
 
     @Test

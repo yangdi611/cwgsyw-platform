@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-19T17:12:00+08:00",
+  "updatedAt": "2026-07-19T17:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": null,
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM-P1-050_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
+  "lastCompletedGate": "REM-P1-051_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-050",
-  "nextAction": "Complete the current no-ff merge into lint-fix, then resume the same L4 run and rerun OPS-007 only before continuing all NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-051",
+  "nextAction": "Complete the REM-P1-051 no-ff merge, create an L4 continuation from the merge head, replay snapshot 5dc89ca2, and rerun OPS-010 affected-only before continuing all NOT_RUN cases.",
   "statusCounts": {
-    "total": 88,
+    "total": 89,
     "closed": 4,
-    "verified": 84,
+    "verified": 85,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -125,7 +125,8 @@
       "REM-P1-047",
       "REM-P1-048",
       "REM-P1-049",
-      "REM-P1-050"
+      "REM-P1-050",
+      "REM-P1-051"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -170,7 +171,8 @@
     "REM-P1-039",
     "REM-P1-048",
     "REM-P1-049",
-    "REM-P1-050"
+    "REM-P1-050",
+    "REM-P1-051"
   ],
   "eventGit": {
     "REM-P0-006": {
@@ -462,6 +464,18 @@
       "verification": "L1_L3_PASS",
       "cleanupFailures": 0,
       "eventCommit": "ba5e4740b36e9c85535693e6494d9f11e901b2b7",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
+    },
+    "REM-P1-051": {
+      "branch": "codex/rem-p1-051-ops-confirm-idempotency",
+      "baselineCommit": "7af9f24a31cb23a18c1ce8813f73d84250f878d4",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-010-001",
+      "failureSnapshotCommit": "5dc89ca21141d79047ee808b0617bdb5db6cb580",
+      "runId": "REM_P1_051_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "305d527e3e21f8e469546bbf136f59ce3e1c02f2",
       "mergeCommit": "PENDING_NO_FF_MERGE"
     },
     "REM-P1-048": {

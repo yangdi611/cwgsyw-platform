@@ -569,6 +569,13 @@ public class OpsCalendarTaskService {
         return t;
     }
 
+    private OpsScheduleTask loadOwnedForUpdate(SecurityUser user, Long id) {
+        OpsScheduleTask t = taskMapper.selectByIdForUpdate(id, user.getTenantId());
+        if (t == null)
+            throw new IllegalArgumentException("任务不存在");
+        return t;
+    }
+
     // ============ 5.6 状态操作 ============
 
     private void requireOperate(SecurityUser user, OpsScheduleTask t) {
@@ -578,7 +585,7 @@ public class OpsCalendarTaskService {
 
     @Transactional
     public void confirm(SecurityUser user, Long id) {
-        OpsScheduleTask t = loadOwned(user, id);
+        OpsScheduleTask t = loadOwnedForUpdate(user, id);
         requireOperate(user, t);
         if (!"pending_confirm".equals(t.getStatus()))
             throw new IllegalArgumentException("仅待确认任务可确认");
