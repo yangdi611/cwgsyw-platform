@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.workflow.adapter;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.common.AuditRemark;
 import com.cwgsyw.platform.module.daily.DailyReportMapper;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
 import com.cwgsyw.platform.module.notification.NotificationService;
@@ -130,8 +131,8 @@ public class DailyReportWorkflowAdapter implements BusinessWorkflowAdapter {
             .targetId(report.getId())
             .targetType("daily_report")
             .operatorId(event.getApproverId() != null ? event.getApproverId() : 0L)
-            .remark("流程结束回写: " + oldStatus + " -> " + newStatus
-                + (event.getComment() != null ? " (" + event.getComment() + ")" : ""))
+            .remark(AuditRemark.bounded("流程结束回写: " + oldStatus + " -> " + newStatus
+                + (event.getComment() != null ? " (" + event.getComment() + ")" : "")))
             .createdAt(LocalDateTime.now())
             .build());
 
