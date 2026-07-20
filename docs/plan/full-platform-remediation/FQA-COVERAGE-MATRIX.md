@@ -180,3 +180,4 @@
 | `L4-AI-002-001`：非法 Provider URL/model 被接受 | [`REM-P1-062`](./07-platform-integration/REM-P1-062-ai-provider-input-validation/README.md) | `VERIFIED` | 双层校验；非法输入 400/无部分写入、规范化、key 保留与精确恢复通过。 |
 | `L4-AI-003-001`：Provider 测试失败返回未处理 500 | [`REM-P1-063`](./07-platform-integration/REM-P1-063-ai-provider-test-error-contract/README.md) | `VERIFIED` | 测试入口映射稳定 400/errorCode；真实 UI 成功/失败、无秘密、无未处理 5xx 和精确恢复通过。 |
 | `L4-CONFIG-003-001`：通知配置未同步正式日报规则 | [`REM-P1-064`](./07-platform-integration/REM-P1-064-notification-config-ops-rule-sync/README.md) | `VERIFIED` | 配置与唯一正式规则事务同步；Java 21、真实 UI/API、自然 scheduler 模板通知、精确恢复和任务/通知清理 L1-L3 通过。 |
+| `L4-FLOW-010-001`：流程绑定缺少编辑、启停与删除生命周期 | [`REM-P1-065`](./05-workflow-change/REM-P1-065-workflow-binding-lifecycle/README.md) | `VERIFIED` | 软删除、无 legacy 回退、存量实例保护、重启用复验、审计与 UI/API 生命周期 L1-L3 通过；待同 run affected-only。 |
