@@ -1,17 +1,19 @@
 # 全平台整改事件索引
 
-更新时间：2026-07-19
+更新时间：2026-07-20
 来源测试运行：`FQA_20260712_0329_lintfix`
 
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：93 个事件；其中 `CLOSED=4`、`VERIFIED=89`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：94 个事件；其中 `CLOSED=4`、`VERIFIED=90`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-056` | P1 | CMDB 属性 canonical action guard | L4 `CMDB-014` | `VERIFIED` | LOW | canonical 四动作、逐项缺权、legacy-only、六种真实 UI 显隐、双容器与精确清理 L1-L3 PASS；待 event commit/no-ff 后同 run affected-only。 | [事件卡](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/README.md) / [SPEC](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-055` | P1 | CMDB 模型详情抽屉标记合同 | L4 `CMDB-008` / `XL-CMDB-001` | `VERIFIED` | LOW | DTO 映射、Java 33/33、当前 backend、真实十字段抽屉与精确清理 L1-L3 PASS；待提交/no-ff 后同 run affected-only。 | [事件卡](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/README.md) / [SPEC](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-053` | P1 | Workflow 审批审计摘要边界 | L4 `FLOW-002` | `VERIFIED` | LOW | 有界 Unicode 审计摘要；L1 8/8、L2 161/161、当前 backend 与真实日报/Wiki API/UI 通过，manifest 空；待同 run affected-only 重验。 | [事件卡](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/README.md) / [SPEC](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/SPEC.md) / [验证](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/CLAUDE-CODE-PROMPT.md) |
