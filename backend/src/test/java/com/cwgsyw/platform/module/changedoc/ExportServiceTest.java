@@ -14,6 +14,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ExportServiceTest {
@@ -56,6 +57,22 @@ class ExportServiceTest {
             assertThat(table.getRow(0).getCell(0).getText()).isEqualTo("主机");
             assertThat(table.getRow(0).getCell(1).getText()).isEqualTo("启用");
         }
+    }
+
+    @Test
+    void exportPdfDirect_readsConfiguredWatermarkAngle() {
+        SysConfigService configService = mock(SysConfigService.class);
+        when(configService.get("default", "watermark.enabled")).thenReturn("true");
+        when(configService.get("default", "watermark.text")).thenReturn("FQA");
+        when(configService.get("default", "watermark.opacity")).thenReturn("0.5");
+        when(configService.get("default", "watermark.angle")).thenReturn("-30");
+        when(configService.get("default", "watermark.font_size")).thenReturn("36");
+        ExportService service = new ExportService(configService, mock(ChangeDocTemplateService.class));
+
+        byte[] exported = service.exportPdfDirect(new ChangeDocVO(), "default");
+
+        assertThat(exported).startsWith("%PDF".getBytes());
+        verify(configService).get("default", "watermark.angle");
     }
 
     private ChangeDocVO document(List<LinkedHashMap<String, Object>> rows) {

@@ -83,11 +83,13 @@ class SysConfigControllerTest {
         WatermarkConfigRequest request = new WatermarkConfigRequest();
         request.setEnabled(true);
         request.setOpacity(0.5D);
+        request.setAngle(-30);
 
         controller.updateWatermark(user(), request);
 
         verify(configService).set("default", "watermark.enabled", "true");
         verify(configService).set("default", "watermark.opacity", "0.5");
+        verify(configService).set("default", "watermark.angle", "-30");
     }
 
     @Test
