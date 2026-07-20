@@ -34,3 +34,11 @@
 - 使用临时 Playwright 容器经开发 Nginx 入口完成真实登录、模型管理页导航、新建属性、编辑属性、刷新与重新打开编辑对话框。刷新后 defaultValue 为 `updated`、sortOrder 为 `5`。
 - 复验中发现属性列表的图标编辑/删除按钮没有可访问名称，既影响真实辅助技术使用，也无法稳定定位实际操作入口。对 `AttributeList` 的 upstream impact 为 `LOW`（一个直接 UI 使用方）；补充 `aria-label` 和 `title`，未改变权限、API 或业务行为。
 - 最后一次 UI runId 的模型、属性分组和属性已通过产品 API 逆序清理。L1、L2、L3 全部 PASS，事件状态更新为 `VERIFIED`；等待最终 L4。
+
+## 2026-07-20：L4 enum option 缺口修复
+
+- 同一 L4 run `FQA_20260718_2050_remp1038` 发现 `CMDB-011` 失败：重复 enum option ID 的创建请求返回 200 并持久化。失败证据固定在 L4 提交 `229204d0`，所有属性、属性组、模型和模型组已通过产品 API 清理。
+- 独立分支 `codex/rem-p1-008-enum-option-contracts` 从 `lint-fix@78d07cf16` 创建。GitNexus 对 `CiAttributeService.create/update` upstream impact 为 `LOW`，分别 3/2 个直接依赖、0 个执行流。曾评估新增 `CiInstanceMapper` 方法，impact 为 `CRITICAL`（31 个直接依赖、44 个总影响符号），因此放弃该方案，复用现有 `selectList`，未修改共享 Mapper。
+- `CiAttributeService` 统一解析新 `option` 和旧 `enumOptions`，拒绝空/重复 option ID；更新显式选项时检查同租户同模型活动实例，拒绝删除被 `enum` 或 `enummulti` 使用的 ID。未提交 option 的名称/defaultValue 等兼容更新保持原选项不变。
+- Java 21 L1-L2：`CiAttributeServiceContractTest,CmdbMetadataRequestValidationTest,CiFieldSchemaValidatorTableTest,Ci2DViewServiceTest,CmdbVoSerializationTest` 全部通过。当前分支 backend Docker 构建成功，仅重建 backend 容器，健康状态 `UP`。
+- 真实 API：重复创建返回 400；合法 enum 与实例创建成功；删除已用项返回 409；仅改名称返回 200 且两项 option 原样回读。实例、属性、属性组、模型和模型组通过产品 API 逆序删除，模型读回 400；未修改数据库、Redis、MinIO、授权模式或非测试数据。
