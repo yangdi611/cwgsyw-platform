@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T23:00:00+08:00",
+  "updatedAt": "2026-07-21T00:10:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "967d3f988ca63cb15412c7f506ba21bf0f0603d9",
+    "observedCommit": "daa73689ef1e055690cb6ed5f35962a23a7c37b4",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "REMEDIATION",
-  "activeEvent": "REM-P1-063",
-  "activeBranch": "codex/rem-p1-063-ai-provider-test-error-contract",
+  "activeEvent": "REM-P1-064",
+  "activeBranch": "codex/rem-p1-064-notification-config-ops-rule-sync",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_062_MERGED_NO_FF",
-  "nextEvent": "REM-P1-063",
-  "nextBranch": "codex/rem-p1-063-ai-provider-test-error-contract",
-  "nextAction": "Commit verified REM-P1-063, no-ff merge to lint-fix, then revalidate AI-003 in the same L4 run.",
+  "lastCompletedGate": "REM_P1_064_L1_L3_VERIFIED",
+  "nextEvent": "REM-P1-064",
+  "nextBranch": "codex/rem-p1-064-notification-config-ops-rule-sync",
+  "nextAction": "Commit verified REM-P1-064, no-ff merge to lint-fix, then revalidate CONFIG-003 in the same L4 run.",
   "statusCounts": {
-    "total": 102,
+    "total": 103,
     "closed": 4,
-    "verified": 98,
+    "verified": 99,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -139,7 +139,8 @@
       "REM-P1-060",
       "REM-P1-061",
       "REM-P1-062",
-      "REM-P1-063"
+      "REM-P1-063",
+      "REM-P1-064"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -197,9 +198,22 @@
     "REM-P1-060",
     "REM-P1-061",
     "REM-P1-062",
-    "REM-P1-063"
+    "REM-P1-063",
+    "REM-P1-064"
   ],
   "eventGit": {
+    "REM-P1-064": {
+      "branch": "codex/rem-p1-064-notification-config-ops-rule-sync",
+      "baselineCommit": "daa73689e",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CONFIG-003-001",
+      "failureSnapshotCommit": "8ac92182c",
+      "runId": "REM_P1_064_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING",
+      "mergeCommit": "PENDING"
+    },
     "REM-P1-063": {
       "branch": "codex/rem-p1-063-ai-provider-test-error-contract",
       "baselineCommit": "824115b8",
@@ -210,7 +224,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "97200a11",
-      "mergeCommit": "PENDING"
+      "mergeCommit": "daa73689e"
     },
     "REM-P1-062": {
       "branch": "codex/rem-p1-062-ai-provider-input-validation",
@@ -717,10 +731,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-062-ai-provider-validation",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-063-ai-test-error-contract",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 98,
-    "failures": 4,
+    "eventScopedVerifiedRequired": 99,
+    "failures": 5,
     "blocked": 0,
     "cleanupFailures": 0,
     "contract": {
@@ -734,6 +748,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-064 L1-L3 passed after CONFIG-003 proved notification config did not control the formal daily-report rule: Java 21 L1 51/51, affected cluster exit 0, production build/health, real UI/API and natural scheduler 1/1 plus 1/1, exact configuration restoration, and task/notification cleanup zero.",
     "REM-P1-063 L1-L3 passed after AI-003 expected provider failure returned 500: Java 21 14/14, production build/health, real UI/API 1/1, controlled 400/errorCode, no unhandled 5xx and exact restore.",
     "REM-P1-062 L1-L3 passed after AI-002 invalid URL/model failure: Java 21 3/3 and 12/12, production backend build/health, current API 1/1, and exact provider restoration with manifest zero.",
     "REM-P1-061 L1-L3 passed after CHANGE-011 direct-approval notification failure: Java 21 L1 4/4, Changedoc/Workflow L2 42/42, production backend build/health, current backend Playwright 1/1, and product API cleanup manifest zero. Event commit/no-ff merge remain before same-run CHANGE-011/012 revalidation.",

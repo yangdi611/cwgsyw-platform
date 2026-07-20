@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class SysConfigControllerTest {
     @Mock private SysConfigService configService;
+    @Mock private NotificationConfigService notificationConfigService;
     @InjectMocks private SysConfigController controller;
 
     @Test
@@ -75,7 +76,7 @@ class SysConfigControllerTest {
 
         controller.updateNotification(user(), request);
 
-        verify(configService).set("default", "notify.reminder.cron", "0 0 9 * * ?");
+        verify(notificationConfigService).update(any(SecurityUser.class), eq(request));
     }
 
     @Test

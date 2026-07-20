@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.entity.AuditLog;
@@ -120,6 +121,30 @@ public class OpsCalendarRuleService {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
         return toVO(r);
+    }
+
+    @Transactional
+    public void syncDailyReportReminder(SecurityUser user, boolean enabled, String cron, String template) {
+        List<OpsScheduleRule> rules = ruleMapper.selectList(new LambdaQueryWrapper<OpsScheduleRule>()
+                .eq(OpsScheduleRule::getTenantId, user.getTenantId())
+                .eq(OpsScheduleRule::getName, "日报未提交提醒")
+                .eq(OpsScheduleRule::getTaskType, "daily_report"));
+        if (rules.size() != 1) {
+            throw new IllegalArgumentException("日报提醒正式规则必须且只能存在一条");
+        }
+
+        OpsScheduleRule rule = rules.get(0);
+        String before = snapshot(rule);
+        rule.setEnabled(enabled);
+        rule.setTriggerType("cron");
+        rule.setTriggerConfig(toJson(Map.of("expression", cron)));
+        Map<String, Object> reminderConfig = fromJson(rule.getReminderConfig());
+        reminderConfig.put("bodyTemplate", template);
+        rule.setReminderConfig(toJson(reminderConfig));
+        rule.setUpdatedBy(user.getUserId());
+        updateRuleAndResetScan(rule, enabled);
+        writeAudit(user.getTenantId(), "update", rule.getId(), user.getUserId(),
+                before, snapshot(rule), "notification-config-sync");
     }
 
     private RuleVO toVO(OpsScheduleRule r) {
@@ -281,9 +306,15 @@ public class OpsCalendarRuleService {
         if (enabled) validateAssignable(r);
         if (enabled) validateReferencedGroups(r);
         r.setEnabled(enabled);
-        if (enabled) r.setNextGenerateAt(null); // 重新启用立即扫描
-        ruleMapper.updateById(r);
+        updateRuleAndResetScan(r, enabled);
         writeAudit(user.getTenantId(), "update", id, user.getUserId(), before, snapshot(r), enabled ? "enable" : "disable");
+    }
+
+    private void updateRuleAndResetScan(OpsScheduleRule rule, boolean resetScan) {
+        if (resetScan) rule.setNextGenerateAt(null);
+        ruleMapper.update(rule, new LambdaUpdateWrapper<OpsScheduleRule>()
+                .eq(OpsScheduleRule::getId, rule.getId())
+                .set(resetScan, OpsScheduleRule::getNextGenerateAt, null));
     }
 
     /**
@@ -375,7 +406,7 @@ public class OpsCalendarRuleService {
 
         for (LocalDateTime start : occurrences) {
             Long groupId = resolveGroupId(rule);
-            activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId);
+            if (groupId != null) activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId);
             Long assigneeId = resolveAssignee(rule, start);
             String occKey = rule.getId() + ":" + start.toLocalDate() + ":" + rule.getTaskType()
                     + ":" + (assigneeId != null ? "u" + assigneeId : "g" + (rule.getVisibility()));
@@ -399,7 +430,10 @@ public class OpsCalendarRuleService {
             t.setAssigneeId(assigneeId);
             t.setGroupId(groupId);
             t.setPriority("normal");
-            t.setContent(rule.getDescription());
+            Map<String, Object> reminderConfig = fromJson(rule.getReminderConfig());
+            t.setContent("daily_report".equals(rule.getTaskType())
+                    ? Objects.toString(reminderConfig.get("bodyTemplate"), rule.getDescription())
+                    : rule.getDescription());
             t.setVisibility(rule.getVisibility());
             t.setPublicSummary(rule.getPublicSummary());
             t.setSensitive(Boolean.TRUE.equals(rule.getSensitive()));

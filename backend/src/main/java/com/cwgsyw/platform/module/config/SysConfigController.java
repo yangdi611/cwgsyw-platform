@@ -18,6 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SysConfigController {
     private final SysConfigService configService;
+    private final NotificationConfigService notificationConfigService;
 
     /**
      * 流程绑定类配置项白名单 —— 通过通用根 PUT 写入。
@@ -92,13 +93,7 @@ public class SysConfigController {
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateNotification(@AuthenticationPrincipal SecurityUser user,
                                        @RequestBody NotificationConfigRequest req) {
-        String tid = user.getTenantId();
-        if (req.getReminderEnabled() != null)
-            configService.set(tid, "notify.reminder.enabled",  String.valueOf(req.getReminderEnabled()));
-        if (req.getReminderCron() != null)
-            configService.set(tid, "notify.reminder.cron",     req.getReminderCron());
-        if (req.getReminderTemplate() != null)
-            configService.set(tid, "notify.reminder.template", req.getReminderTemplate());
+        notificationConfigService.update(user, req);
         return R.ok(null);
     }
 
