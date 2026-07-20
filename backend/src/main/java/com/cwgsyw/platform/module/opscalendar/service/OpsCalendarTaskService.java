@@ -6,6 +6,8 @@ import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.TemporalInputValidator;
+import com.cwgsyw.platform.module.notification.NotificationMapper;
+import com.cwgsyw.platform.module.notification.entity.NotificationMessage;
 import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
 import com.cwgsyw.platform.module.opscalendar.mapper.*;
@@ -47,6 +49,7 @@ public class OpsCalendarTaskService {
     private final OpsScheduleTaskLogMapper logMapper;
     private final OpsScheduleTaskLinkMapper linkMapper;
     private final OpsScheduleNotificationLogMapper notificationLogMapper;
+    private final NotificationMapper notificationMapper;
     private final OpsCalendarVisibilityService visibilityService;
     private final OpsCalendarNotificationService notificationService;
     private final UserMapper userMapper;
@@ -763,6 +766,10 @@ public class OpsCalendarTaskService {
         notificationLogMapper.delete(new LambdaQueryWrapper<OpsScheduleNotificationLog>()
                 .eq(OpsScheduleNotificationLog::getTenantId, user.getTenantId())
                 .eq(OpsScheduleNotificationLog::getTaskId, id));
+        notificationMapper.delete(new LambdaQueryWrapper<NotificationMessage>()
+                .eq(NotificationMessage::getTenantId, user.getTenantId())
+                .eq(NotificationMessage::getRefType, "ops_task")
+                .eq(NotificationMessage::getRefId, id));
         taskMapper.deleteById(id);
         writeAudit(user.getTenantId(), "purge_remediation_test", id, user.getUserId(),
                 "remediationRunId=" + remediationRunId);

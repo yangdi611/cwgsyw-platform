@@ -1,12 +1,12 @@
 # 全平台整改事件索引
 
-更新时间：2026-07-20
+更新时间：2026-07-21
 来源测试运行：`FQA_20260712_0329_lintfix`
 
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：99 个唯一事件；其中 `CLOSED=4`、`VERIFIED=95`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
+- 事件库：103 个唯一事件；其中 `CLOSED=4`、`VERIFIED=99`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -17,6 +17,7 @@
 | `REM-P1-061` | P1 | 变更文档审批通知一致性 | L4 `CHANGE-011` | `VERIFIED` | LOW | 直接审批与 workflow 共用单次通知投递；Java 21 L1 4/4、L2 42/42、当前 backend Playwright 1/1、manifest 0/0；待 no-ff 后同 run affected-only。 | [事件卡](./05-workflow-change/REM-P1-061-change-doc-approval-notification/README.md) / [SPEC](./05-workflow-change/REM-P1-061-change-doc-approval-notification/SPEC.md) / [验证](./05-workflow-change/REM-P1-061-change-doc-approval-notification/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-061-change-doc-approval-notification/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-062` | P1 | AI Provider 输入边界 | L4 `AI-002` | `VERIFIED` | LOW | Java 21 3/3、L2 12/12、当前 API 1/1、配置恢复与 manifest 0/0。 | [事件卡](./07-platform-integration/REM-P1-062-ai-provider-input-validation/README.md) |
 | `REM-P1-063` | P1 | AI Provider 测试错误合同 | L4 `AI-003` | `VERIFIED` | LOW | Java 21 14/14、当前 UI/API 1/1、失败 400、成功 200、无未处理 5xx、恢复 0/0。 | [事件卡](./07-platform-integration/REM-P1-063-ai-provider-test-error-contract/README.md) |
+| `REM-P1-064` | P1 | 通知配置与正式日报规则同步 | L4 `CONFIG-003` | `VERIFIED` | MEDIUM | Java 21 L1 51/51、L2 聚类退出码 0、当前 backend、真实 UI/API 与自然 scheduler 1/1+1/1、配置恢复及任务/通知清理 0/0。 | [事件卡](./07-platform-integration/REM-P1-064-notification-config-ops-rule-sync/README.md) |
 
 | `REM-P1-058` | P1 | 用户组活动名称唯一性 | L4 `RBAC-007` | `VERIFIED` | HIGH | trim-normalized create/update/restore/并发合同；L1 26/26、L2 114/114、当前 backend API/UI、日志与精确清理 PASS；待顺序合并后同 run affected-only。 | [事件卡](./02-account-organization/REM-P1-058-group-active-name-uniqueness/README.md) / [SPEC](./02-account-organization/REM-P1-058-group-active-name-uniqueness/SPEC.md) / [验证](./02-account-organization/REM-P1-058-group-active-name-uniqueness/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-058-group-active-name-uniqueness/CLAUDE-CODE-PROMPT.md) |
 

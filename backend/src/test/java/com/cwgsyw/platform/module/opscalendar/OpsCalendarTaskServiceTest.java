@@ -14,6 +14,7 @@ import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskLogMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskMapper;
 import com.cwgsyw.platform.module.opscalendar.mapper.OpsScheduleTaskParticipantMapper;
 import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarNotificationService;
+import com.cwgsyw.platform.module.notification.NotificationMapper;
 import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarTaskService;
 import com.cwgsyw.platform.module.opscalendar.service.OpsCalendarVisibilityService;
 import com.cwgsyw.platform.module.org.GroupMapper;
@@ -50,6 +51,7 @@ class OpsCalendarTaskServiceTest {
     @Mock OpsScheduleTaskLogMapper logMapper;
     @Mock OpsScheduleTaskLinkMapper linkMapper;
     @Mock OpsScheduleNotificationLogMapper notificationLogMapper;
+    @Mock NotificationMapper notificationMapper;
     @Mock OpsCalendarVisibilityService visibilityService;
     @Mock OpsCalendarNotificationService notificationService;
     @Mock UserMapper userMapper;
@@ -557,12 +559,13 @@ class OpsCalendarTaskServiceTest {
         service.purgeRemediationTest(platformAdmin(), 105L, runId);
 
         org.mockito.InOrder order = org.mockito.Mockito.inOrder(linkMapper, checklistMapper, participantMapper,
-                logMapper, notificationLogMapper, taskMapper, auditLogMapper);
+                logMapper, notificationLogMapper, notificationMapper, taskMapper, auditLogMapper);
         order.verify(linkMapper).delete(any());
         order.verify(checklistMapper).delete(any());
         order.verify(participantMapper).delete(any());
         order.verify(logMapper).delete(any());
         order.verify(notificationLogMapper).delete(any());
+        order.verify(notificationMapper).delete(any());
         order.verify(taskMapper).deleteById(105L);
         order.verify(auditLogMapper).insert(any(AuditLog.class));
 

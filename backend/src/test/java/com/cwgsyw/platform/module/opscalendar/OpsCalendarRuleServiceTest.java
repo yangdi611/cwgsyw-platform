@@ -37,6 +37,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class OpsCalendarRuleServiceTest {
@@ -91,6 +92,39 @@ class OpsCalendarRuleServiceTest {
     }
 
     @Test
+    void generateForRule_allowsTenantWideDailyReportRuleWithoutGroup() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 10, 0);
+        OpsScheduleRule rule = new OpsScheduleRule();
+        rule.setId(1L);
+        rule.setTenantId("default");
+        rule.setName("日报未提交提醒");
+        rule.setDescription("REM_P1_064 template");
+        rule.setTaskType("daily_report");
+        rule.setTriggerType("cron");
+        rule.setTriggerConfig("{\"expression\":\"0 1 10 * * *\"}");
+        rule.setGenerateDaysAhead(1);
+        rule.setAssigneeRule("{\"type\":\"fixed\",\"userId\":1}");
+        rule.setRecipientRule("{\"type\":\"assignee\"}");
+        rule.setDueConfig("{\"offsetDays\":1,\"time\":\"23:59\"}");
+        rule.setVisibility("group");
+
+        LocalDateTime occurrence = now.plusMinutes(1);
+        when(occurrenceCalculator.calculate(rule, now, now.plusDays(1))).thenReturn(List.of(occurrence));
+        when(taskMapper.selectCount(any())).thenReturn(0L);
+        when(taskMapper.insert(any(OpsScheduleTask.class))).thenAnswer(invocation -> {
+            OpsScheduleTask task = invocation.getArgument(0);
+            task.setId(100L);
+            return 1;
+        });
+
+        assertThat(service.generateForRule(rule, now)).isEqualTo(1);
+
+        verify(activeGroupReferenceValidator, org.mockito.Mockito.never()).lockAndRequire(any(), any());
+        verify(taskMapper).insert(any(OpsScheduleTask.class));
+        verify(notificationService).send(any(OpsScheduleTask.class), org.mockito.ArgumentMatchers.eq("created"), any());
+    }
+
+    @Test
     void createValidatesAllNestedGroupReferencesInAscendingOrderBeforeInsert() {
         RuleCreateRequest request = new RuleCreateRequest();
         request.setName("nested group rule");
@@ -135,6 +169,52 @@ class OpsCalendarRuleServiceTest {
         verify(ruleMapper, org.mockito.Mockito.never()).insert(any(OpsScheduleRule.class));
     }
 
+    @Test
+    void syncDailyReportReminderUpdatesOnlyTheUniqueFormalRule() {
+        OpsScheduleRule rule = new OpsScheduleRule();
+        rule.setId(1L);
+        rule.setTenantId("default");
+        rule.setName("日报未提交提醒");
+        rule.setTaskType("daily_report");
+        rule.setEnabled(true);
+        rule.setTriggerType("daily");
+        rule.setTriggerConfig("{\"time\":\"17:00\"}");
+        rule.setDescription("old template");
+        rule.setReminderConfig("{}");
+        rule.setDueConfig("{}");
+        rule.setAssigneeRule("{}");
+        rule.setRecipientRule("{}");
+        rule.setEscalationRule("{}");
+        rule.setVisibility("group");
+        when(ruleMapper.selectList(any())).thenReturn(List.of(rule));
+
+        service.syncDailyReportReminder(user(), false, "0 7 3 * * MON-FRI", "new {calendarDate}");
+
+        assertThat(rule.getEnabled()).isFalse();
+        assertThat(rule.getTriggerType()).isEqualTo("cron");
+        assertThat(rule.getTriggerConfig()).contains("0 7 3 * * MON-FRI");
+        assertThat(rule.getDescription()).isEqualTo("old template");
+        assertThat(rule.getReminderConfig()).contains("bodyTemplate", "new {calendarDate}");
+        assertThat(rule.getNextGenerateAt()).isNull();
+        assertThat(rule.getUpdatedBy()).isEqualTo(9L);
+        verify(ruleMapper).update(any(OpsScheduleRule.class), any());
+        verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
+    }
+
+    @Test
+    void syncDailyReportReminderRejectsMissingOrDuplicateFormalRule() {
+        when(ruleMapper.selectList(any())).thenReturn(List.of(), List.of(new OpsScheduleRule(), new OpsScheduleRule()));
+
+        assertThatThrownBy(() -> service.syncDailyReportReminder(user(), true, "0 0 17 * * MON-FRI", "template"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("必须且只能存在一条");
+        assertThatThrownBy(() -> service.syncDailyReportReminder(user(), true, "0 0 17 * * MON-FRI", "template"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("必须且只能存在一条");
+
+        verify(ruleMapper, org.mockito.Mockito.never()).updateById(any(OpsScheduleRule.class));
+        verify(ruleMapper, org.mockito.Mockito.never()).update(any(OpsScheduleRule.class), any());
+        verify(auditLogMapper, org.mockito.Mockito.never()).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
+    }
+
     private RuleCreateRequest request(String triggerType) {
         RuleCreateRequest request = new RuleCreateRequest();
         request.setName("validation rule");
@@ -145,5 +225,9 @@ class OpsCalendarRuleServiceTest {
         request.setDueConfig(Map.of("offsetDays", 1, "time", "18:00"));
         request.setEnabled(false);
         return request;
+    }
+
+    private SecurityUser user() {
+        return new SecurityUser(9L, "operator", "", "default", 1L, "tenant", java.util.Set.of());
     }
 }
