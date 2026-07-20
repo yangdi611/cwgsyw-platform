@@ -211,7 +211,7 @@
       "runId": "REM_P1_064_20260720",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "PENDING",
+      "eventCommit": "f63cc0c9",
       "mergeCommit": "PENDING"
     },
     "REM-P1-063": {
