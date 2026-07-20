@@ -178,3 +178,4 @@
 | `L4-CHANGE-ARCHIVE-CLEANUP-001`：缺失 MinIO 对象令归档 SharedFile 孤儿元数据无法产品清理 | [`REM-P1-060`](./05-workflow-change/REM-P1-060-change-doc-submit-idempotency/README.md) | `VERIFIED` | 仅明确 `NoSuchKey` 允许删除对应孤儿元数据；其他存储故障仍为 503 且不逻辑删除，产品 API 清理证据通过。 |
 | `L4-CHANGE-011-001`：直接审批未向申请人发送变更文档通知 | [`REM-P1-061`](./05-workflow-change/REM-P1-061-change-doc-approval-notification/README.md) | `VERIFIED` | 直接审批与 workflow 共用 service 事务内通知；Java 21 4/4 与 42/42、当前 backend Playwright 1/1、长/空意见、引用、跨组拒绝和精确清理通过，待同 run affected-only。 |
 | `L4-AI-002-001`：非法 Provider URL/model 被接受 | [`REM-P1-062`](./07-platform-integration/REM-P1-062-ai-provider-input-validation/README.md) | `VERIFIED` | 双层校验；非法输入 400/无部分写入、规范化、key 保留与精确恢复通过。 |
+| `L4-AI-003-001`：Provider 测试失败返回未处理 500 | [`REM-P1-063`](./07-platform-integration/REM-P1-063-ai-provider-test-error-contract/README.md) | `VERIFIED` | 测试入口映射稳定 400/errorCode；真实 UI 成功/失败、无秘密、无未处理 5xx 和精确恢复通过。 |
