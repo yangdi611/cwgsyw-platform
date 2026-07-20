@@ -19,3 +19,4 @@
 - `/tmp/rem-p1-061-l3-r1` 真实 Playwright 1/1 PASS：同组审批通知、1024 字符 Unicode、空意见拒绝、跨组拒绝及产品 API 清理通过。
 - 事件 manifest `objects=[]`、`cleanupFailures=0`；backend 无未解释 ERROR/5xx。未使用 SQL 写入、restore、对象存储直接删除、Redis、卷清空或授权切换。
 - 当前工作区保留用户既有 `test-results` 删除和四个测试文件改动，事件提交不得暂存这些路径。
+- 事件提交为 `7c89f836`；待 `--no-ff` 合并到 `lint-fix`。
