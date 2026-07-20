@@ -200,8 +200,8 @@
       "runId": "REM_P1_059_20260720",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "PENDING",
-      "mergeCommit": "PENDING"
+      "eventCommit": "1c46d1a04",
+      "mergeCommit": "b5643946d"
     },
     "REM-P1-058": {
       "branch": "codex/rem-p1-058-group-active-name-uniqueness",
@@ -669,7 +669,7 @@
   },
   "blockers": [],
   "notes": [
-    "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event commit/no-ff merge remain before same-run affected revalidation.",
+    "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event `1c46d1a04` merged no-ff as `b5643946d`; resume same-run affected-only XL-CMDB-003.",
     "REM-P1-058 L1-L3 passed after L4 RBAC-007 failed at snapshot 592f775c: Java 21 focused tests 26/26, org/group cluster 114/114, current backend API/UI 1/1, V78/index active, no ERROR/5xx, manifest and active marker zero with product archive cleanup and no restore/purge. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event 25ee1823 merged no-ff as e1738b04 before same-run affected revalidation.",
     "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",
