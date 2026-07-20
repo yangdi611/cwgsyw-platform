@@ -66,6 +66,8 @@ public class AiGatewayService {
         if (existing == null) {
             throw new IllegalStateException("Provider not found: " + provider);
         }
+        String baseUrl = req.getBaseUrl() != null ? normalizeBaseUrl(req.getBaseUrl()) : null;
+        String model = req.getModel() != null ? requireModel(req.getModel()) : null;
         LambdaUpdateWrapper<AiProviderConfig> update = new LambdaUpdateWrapper<AiProviderConfig>()
             .eq(AiProviderConfig::getTenantId, tenantId)
             .eq(AiProviderConfig::getProvider, provider)
@@ -73,11 +75,36 @@ public class AiGatewayService {
         if (req.getApiKey() != null && !req.getApiKey().isBlank() && !req.getApiKey().startsWith("••")) {
             update.set(AiProviderConfig::getApiKeyEnc, cryptoService.encrypt(req.getApiKey()));
         }
-        if (req.getBaseUrl() != null)      update.set(AiProviderConfig::getBaseUrl, req.getBaseUrl());
-        if (req.getModel() != null)        update.set(AiProviderConfig::getModel, req.getModel());
+        if (baseUrl != null)               update.set(AiProviderConfig::getBaseUrl, baseUrl);
+        if (model != null)                 update.set(AiProviderConfig::getModel, model);
         if (req.getEnabled() != null)      update.set(AiProviderConfig::getEnabled, req.getEnabled());
         if (req.getSystemPrompt() != null) update.set(AiProviderConfig::getSystemPrompt, req.getSystemPrompt());
         configMapper.update(null, update);
+    }
+
+    private String normalizeBaseUrl(String value) {
+        String normalized = value.trim().replaceAll("/+$", "");
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("AI Provider Base URL 不能为空");
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(normalized);
+            if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                    || uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new IllegalArgumentException("AI Provider Base URL 必须是有效的 HTTP(S) 地址");
+            }
+            return normalized;
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("AI Provider Base URL 格式不正确", exception);
+        }
+    }
+
+    private String requireModel(String value) {
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("AI Provider 模型不能为空");
+        }
+        return normalized;
     }
 
     public void clearProviderApiKey(String tenantId, String provider) {
