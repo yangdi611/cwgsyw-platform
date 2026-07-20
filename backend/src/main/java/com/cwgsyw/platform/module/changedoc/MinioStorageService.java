@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import com.cwgsyw.platform.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +89,25 @@ public class MinioStorageService {
                 .build());
         } catch (Exception e) {
             log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, e.getMessage());
+            throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
+        }
+    }
+
+    /** Copies an object when present, allowing cleanup to remove stale metadata for a missing object. */
+    public boolean copyIfPresent(String sourceKey, String targetKey) {
+        try {
+            minioClient.copyObject(CopyObjectArgs.builder()
+                .bucket(bucket)
+                .object(targetKey)
+                .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                .build());
+            return true;
+        } catch (ErrorResponseException exception) {
+            if ("NoSuchKey".equals(exception.errorResponse().code())) return false;
+            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, exception.getMessage());
+            throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
+        } catch (Exception exception) {
+            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, exception.getMessage());
             throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         }
     }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T17:48:00+08:00",
+  "updatedAt": "2026-07-20T20:52:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
+  "activeEvent": "REM-P1-060",
+  "activeBranch": "codex/rem-p1-060-change-doc-submit-idempotency",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_059_VERIFIED_L1_L3",
+  "lastCompletedGate": "REM_P1_060_VERIFIED_L1_L3",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
-  "nextAction": "Commit REM-P1-059, no-ff merge into lint-fix, then resume the same L4 run and rerun affected XL-CMDB-003 only before remaining cases.",
+  "nextAction": "Run detect_changes, commit REM-P1-060, no-ff merge into lint-fix, then resume the same L4 run and rerun CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
   "statusCounts": {
-    "total": 97,
+    "total": 99,
     "closed": 4,
-    "verified": 93,
+    "verified": 95,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -134,7 +134,9 @@
       "REM-P1-056",
       "REM-P1-057",
       "REM-P1-058",
-      "REM-P1-059"
+      "REM-P1-059",
+      "REM-P0-008",
+      "REM-P1-060"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -188,9 +190,30 @@
     "REM-P1-056",
     "REM-P1-057",
     "REM-P1-058",
-    "REM-P1-059"
+    "REM-P1-059",
+    "REM-P1-060"
   ],
   "eventGit": {
+    "REM-P1-060": {
+      "branch": "codex/rem-p1-060-change-doc-submit-idempotency",
+      "baselineCommit": "a5482a7757a19bd69e04c30ee2f16ec2342b2536",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-019-001",
+      "runId": "REM_P1_060_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "6ff31208",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P0-008": {
+      "branch": "codex/rem-p0-008-authorization-rollback-idempotency",
+      "baselineCommit": "00eed2194f2a5bff367b18b2e999f3a62ca259c9",
+      "sourceRunId": "FQA_20260718_1550_remp0007",
+      "sourceDefect": "L4-ST-AUTHZ-021-001",
+      "verification": "VERIFIED",
+      "eventCommit": "3421524f95b05b85c49da3dac0be39e581627369",
+      "mergeCommit": "2615e8ffec2adf6f120dd89024a53be8e92546aa"
+    },
     "REM-P1-059": {
       "branch": "codex/rem-p1-059-cmdb-device-bidirectional-navigation",
       "baselineCommit": "738e2686",
