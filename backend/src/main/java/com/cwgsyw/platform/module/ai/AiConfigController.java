@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.ai;
 
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.ai.dto.AiProviderConfigVO;
 import com.cwgsyw.platform.module.ai.dto.SaveAiProviderConfigRequest;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -44,7 +45,10 @@ public class AiConfigController {
     @PreAuthorize("hasAuthority('ai_config:write')")
     public R<String> testProvider(@PathVariable String provider,
                                    @AuthenticationPrincipal SecurityUser user) {
-        String reply = aiGatewayService.testProvider(user.getTenantId(), provider);
-        return R.ok(reply);
+        try {
+            return R.ok(aiGatewayService.testProvider(user.getTenantId(), provider));
+        } catch (RuntimeException exception) {
+            throw BusinessException.badRequest("AI_PROVIDER_TEST_FAILED", "AI 服务测试失败");
+        }
     }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T22:42:00+08:00",
+  "updatedAt": "2026-07-20T23:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "REMEDIATION",
-  "activeEvent": "REM-P1-062",
-  "activeBranch": "codex/rem-p1-062-ai-provider-input-validation",
+  "activeEvent": "REM-P1-063",
+  "activeBranch": "codex/rem-p1-063-ai-provider-test-error-contract",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_061_MERGED_NO_FF",
-  "nextEvent": "REM-P1-062",
-  "nextBranch": "codex/rem-p1-062-ai-provider-input-validation",
-  "nextAction": "Commit verified REM-P1-062, no-ff merge to lint-fix, then revalidate AI-002/003 in the same L4 run.",
+  "lastCompletedGate": "REM_P1_062_MERGED_NO_FF",
+  "nextEvent": "REM-P1-063",
+  "nextBranch": "codex/rem-p1-063-ai-provider-test-error-contract",
+  "nextAction": "Commit verified REM-P1-063, no-ff merge to lint-fix, then revalidate AI-003 in the same L4 run.",
   "statusCounts": {
-    "total": 101,
+    "total": 102,
     "closed": 4,
-    "verified": 97,
+    "verified": 98,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -138,7 +138,8 @@
       "REM-P0-008",
       "REM-P1-060",
       "REM-P1-061",
-      "REM-P1-062"
+      "REM-P1-062",
+      "REM-P1-063"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -195,9 +196,22 @@
     "REM-P1-059",
     "REM-P1-060",
     "REM-P1-061",
-    "REM-P1-062"
+    "REM-P1-062",
+    "REM-P1-063"
   ],
   "eventGit": {
+    "REM-P1-063": {
+      "branch": "codex/rem-p1-063-ai-provider-test-error-contract",
+      "baselineCommit": "824115b8",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-AI-003-001",
+      "failureSnapshotCommit": "19604f8f",
+      "runId": "REM_P1_063_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING",
+      "mergeCommit": "PENDING"
+    },
     "REM-P1-062": {
       "branch": "codex/rem-p1-062-ai-provider-input-validation",
       "baselineCommit": "c6495ae9",
@@ -208,7 +222,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "1d31d648",
-      "mergeCommit": "PENDING"
+      "mergeCommit": "824115b82"
     },
     "REM-P1-061": {
       "branch": "codex/rem-p1-061-change-doc-approval-notification",
@@ -219,8 +233,8 @@
       "runId": "REM_P1_061_20260720",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "7c89f836",
-      "mergeCommit": "PENDING"
+      "eventCommit": "936ca2f1",
+      "mergeCommit": "c6495ae97"
     },
     "REM-P1-060": {
       "branch": "codex/rem-p1-060-change-doc-submit-idempotency",
@@ -703,10 +717,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-061-change-approval-notification",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-062-ai-provider-validation",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 97,
-    "failures": 3,
+    "eventScopedVerifiedRequired": 98,
+    "failures": 4,
     "blocked": 0,
     "cleanupFailures": 0,
     "contract": {
@@ -720,6 +734,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-063 L1-L3 passed after AI-003 expected provider failure returned 500: Java 21 14/14, production build/health, real UI/API 1/1, controlled 400/errorCode, no unhandled 5xx and exact restore.",
     "REM-P1-062 L1-L3 passed after AI-002 invalid URL/model failure: Java 21 3/3 and 12/12, production backend build/health, current API 1/1, and exact provider restoration with manifest zero.",
     "REM-P1-061 L1-L3 passed after CHANGE-011 direct-approval notification failure: Java 21 L1 4/4, Changedoc/Workflow L2 42/42, production backend build/health, current backend Playwright 1/1, and product API cleanup manifest zero. Event commit/no-ff merge remain before same-run CHANGE-011/012 revalidation.",
     "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event `1c46d1a04` merged no-ff as `b5643946d`; resume same-run affected-only XL-CMDB-003.",
