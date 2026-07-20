@@ -12,3 +12,4 @@
 - Controller 启用 `@Valid`，DTO 限长，service 在写入前验证 HTTP(S) host、空白 URL/model 并规范化。
 - Java 21 L1 3/3、L2 12/12、生产构建/健康和真实 API 1/1 通过。
 - Provider 精确恢复；manifest 0/0，无未解释 ERROR/5xx。
+- 事件提交 `1d31d648`；待 no-ff 合并。
