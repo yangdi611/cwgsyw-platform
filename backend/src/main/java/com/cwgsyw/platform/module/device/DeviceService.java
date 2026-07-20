@@ -327,6 +327,7 @@ public class DeviceService {
                 // CMDB is the single source of truth for name/IP/type
                 vo.setName(ci.getName());
                 vo.setCiInstanceName(ci.getName());
+                vo.setCiModelCode(ci.getModelId());
                 vo.setIp(extractIp(ci));
                 vo.setDeviceType(mapModelToDeviceType(ci.getModelId()));
                 applyModelGroup(vo, ci.getModelId(), d.getTenantId());

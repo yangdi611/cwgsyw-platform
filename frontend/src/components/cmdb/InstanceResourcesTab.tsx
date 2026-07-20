@@ -9,10 +9,10 @@ import { Badge } from '@/components/ui/badge'
 /* ------ Types ------ */
 
 interface DeviceVO {
-  deviceId: number
+  id: number
   name: string
-  ipAddr: string
-  credentialType: string
+  ip: string | null
+  deviceType: string
 }
 
 interface ChangeDocVO {
@@ -57,18 +57,18 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
       {/* 关联设备凭证 */}
       <Section icon={<Server className="h-4 w-4" />} title="关联设备凭证" emptyMsg="暂无关联设备凭证">
         {devices.data?.map(d => (
-          <div key={d.deviceId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
+          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3 min-w-0">
               <Server className="h-4 w-4 text-v2-muted shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{d.name}</p>
-                <p className="text-xs text-v2-muted">{d.ipAddr}</p>
+                <p className="text-xs text-v2-muted">{d.ip || '-'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="secondary" className="text-xs">{d.credentialType}</Badge>
+              <Badge variant="secondary" className="text-xs">{d.deviceType}</Badge>
               <Link
-                href={`/devices/${d.deviceId}`}
+                href={`/devices/${d.id}`}
                 className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
               >
                 查看 <ExternalLink className="h-3 w-3" />
