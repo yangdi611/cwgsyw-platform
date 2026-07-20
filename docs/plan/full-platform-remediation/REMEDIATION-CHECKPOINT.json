@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T14:44:00+08:00",
+  "updatedAt": "2026-07-20T14:46:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,7 +20,7 @@
   "activeEvent": null,
   "activeBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_057_EVENT_COMMITTED_NO_FF_MERGE_PENDING",
+  "lastCompletedGate": "REM_P1_057_NO_FF_MERGED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
   "nextAction": "After the REM-P1-057 no-ff merge is recorded, resume the same L4 run and revalidate affected WIKI-024 only before continuing the 57 remaining NOT_RUN cases.",
@@ -197,7 +197,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "25ee1823c2c5d6e5d4b19430de134e6ccdfc6fd8",
-      "mergeCommit": "PENDING_NO_FF_MERGE"
+      "mergeCommit": "e1738b04d7f5b26d28cfe5a6a510b8a1a16dbe0e"
     },
     "REM-P1-056": {
       "branch": "codex/rem-p1-056-cmdb-attribute-canonical-action-guards",
@@ -641,7 +641,7 @@
   },
   "blockers": [],
   "notes": [
-    "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event commit 25ee1823 is ready in the pending no-ff merge before same-run affected revalidation.",
+    "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event 25ee1823 merged no-ff as e1738b04 before same-run affected revalidation.",
     "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",
     "L4 OPS-017 closed after REM-P1-048 event 3e7667a3 merged no-ff as aa17a6f6. OPS-006 then failed because a group-3 ordinary reader directly fetched a group-2 sensitive group task detail with HTTP 200; failure snapshot c4a782ed is clean and REM-P1-049 passed L1-L3 with zero residue.",
     "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
