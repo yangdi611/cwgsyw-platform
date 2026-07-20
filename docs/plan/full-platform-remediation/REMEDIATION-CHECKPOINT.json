@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T04:55:00+08:00",
+  "updatedAt": "2026-07-21T05:00:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "b7f1d51ee8776c83590c1d0aaf28b2d808b49fd0",
+    "observedCommit": "e82e0d7de878e7e235f42fdbb480ca9c5b6705ef",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,10 +20,10 @@
   "activeEvent": null,
   "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-065-workflow-binding-lifecycle",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_065_MERGE_PENDING_NO_FF_COMMIT",
+  "lastCompletedGate": "REM_P1_065_MERGED_NO_FF",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-065-workflow-binding-lifecycle",
-  "nextAction": "Create the REM-P1-065 no-ff merge commit, prove ancestry, then revalidate FLOW-010 and continue all remaining cases in the same L4 run.",
+  "nextAction": "Create the L4 continuation from lint-fix@e82e0d7d, retain same-run evidence through 9dc80cd0, revalidate FLOW-010, then continue all remaining cases.",
   "statusCounts": {
     "total": 104,
     "closed": 4,
@@ -214,7 +214,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "7f43a36dc1cfe1de65f956e191742a1eee6b3c87",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "e82e0d7de878e7e235f42fdbb480ca9c5b6705ef"
     },
     "REM-P1-064": {
       "branch": "codex/rem-p1-064-notification-config-ops-rule-sync",

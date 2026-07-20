@@ -42,3 +42,4 @@
 - 未修改 daily/wiki/change/device 正式 binding，未直接 SQL 写入，未 restore、purge、清 Redis/会话、操作外部系统或执行 push。
 - 事件实现与 L1-L3 证据提交：`7f43a36dc1cfe1de65f956e191742a1eee6b3c87`；提交前 GitNexus staged 审计为 MEDIUM，26 个已索引符号、3 条预期流程，无意外范围。
 - 事件分支证据头：`67404ccd5800d16783ecbe06bcf9c37c44cc1839`；`lint-fix@02270f10` 的 no-ff 合并已无冲突进入待提交状态，下一步生成 merge commit 并证明祖先关系。
+- 事件分支头 `67404ccd` 已以 `--no-ff` 合并到 `lint-fix`，merge commit `e82e0d7de878e7e235f42fdbb480ca9c5b6705ef`；实现提交与证据头祖先关系均已证明。
