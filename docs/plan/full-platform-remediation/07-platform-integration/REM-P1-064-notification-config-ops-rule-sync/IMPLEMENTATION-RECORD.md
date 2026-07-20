@@ -34,3 +34,4 @@
 - 正式配置已恢复为 disabled、`0 0 17 * * MON-FRI` 和原中文模板；正式规则恢复 enabled、daily/17:00、原 stages、负责人/收件人合同。真实 scheduler 将 `lastGeneratedAt` 正常推进至 `2026-07-20T16:01:00.001111`，这是运行元数据，不回退也不宣称时间戳完全恢复。
 - 回滚只需回滚事件提交；无迁移、历史回填、直接 SQL 写入、restore、授权切换或外部系统修改。
 - 事件实现与 L1-L3 证据提交：`f63cc0c9`；提交前 GitNexus staged 审计为 LOW，21 个事件文件、20 个已索引符号、0 条受影响执行流。
+- 事件分支头 `831d8dcb` 以 `--no-ff` 合并到 `lint-fix`，merge commit `b7f1d51e`；`f63cc0c9` 与 `831d8dcb` 的祖先关系均已证明，事件分支已安全删除。
