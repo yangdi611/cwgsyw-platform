@@ -88,6 +88,9 @@ public class AuthorizationResourceMigrationService {
                                           Long ownerUserId, Long ownerGroupId, Integer mode) {
         String table = table(resourceType);
         ResourceDescriptor parent = createdResourceParent(tenantId, resourceType, resourceId);
+        if (ownerGroupId == null && parent != null) {
+            ownerGroupId = parent.getOwnerGroupId();
+        }
         if (parent != null && parent.getPermissionMode() != null
                 && (parent.getPermissionMode() & 02000) != 0) {
             ownerGroupId = parent.getOwnerGroupId();
