@@ -26,7 +26,7 @@ public class AiConfigController {
     @PutMapping("/providers/{provider}")
     @PreAuthorize("hasAuthority('ai_config:write')")
     public R<Void> saveProvider(@PathVariable String provider,
-                                 @RequestBody SaveAiProviderConfigRequest req,
+                                 @Valid @RequestBody SaveAiProviderConfigRequest req,
                                  @AuthenticationPrincipal SecurityUser user) {
         aiGatewayService.saveProviderConfig(user.getTenantId(), provider, req);
         return R.ok(null);
