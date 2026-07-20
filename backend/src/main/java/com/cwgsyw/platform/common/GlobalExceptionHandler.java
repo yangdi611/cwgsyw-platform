@@ -46,6 +46,11 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(R.fail(409, "WIKI_PAGE_SIBLING_TITLE_CONFLICT", "同级页面标题已存在"));
         }
+        if (failure.contains("GROUP_ACTIVE_NAME_CONFLICT")
+                || failure.contains("uq_sys_group_tenant_name_active")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(R.fail(400, "GROUP_ACTIVE_NAME_CONFLICT", "用户组名称已存在"));
+        }
         log.error("Unhandled data integrity violation", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
             .body(R.fail(409, "DATA_INTEGRITY_VIOLATION", "数据约束冲突"));

@@ -723,10 +723,11 @@ class GroupLifecycleMigrationIntegrationTest {
             INSERT INTO wiki_page (tenant_id, space_id, slug, title, content)
             VALUES (?, ?, ?, ?, '') RETURNING id
             """, tenantId, wikiSpaceId, unique("slug"), unique("title"));
+        String folderName = unique("folder");
         long folderId = insertId(connection, """
-            INSERT INTO shared_folder (tenant_id, name, created_by)
-            VALUES (?, ?, 0) RETURNING id
-            """, tenantId, unique("folder"));
+            INSERT INTO shared_folder (tenant_id, name, normalized_name, created_by)
+            VALUES (?, ?, lower(btrim(?)), 0) RETURNING id
+            """, tenantId, folderName, folderName);
         return new Fixture(tenantId, groupId, userId, roleId, deviceId, wikiSpaceId, wikiPageId, folderId);
     }
 
@@ -788,8 +789,9 @@ class GroupLifecycleMigrationIntegrationTest {
                 """.formatted(tenant, fixture.wikiSpaceId(), literal(unique("owned-slug")),
                     literal(unique("owned-title")), group)),
             new WriterCase("shared-folder-owner", """
-                INSERT INTO shared_folder (tenant_id, name, created_by, owner_group_id)
-                VALUES (%s, %s, 0, %d)
+                INSERT INTO shared_folder
+                    (tenant_id, name, normalized_name, created_by, owner_group_id)
+                VALUES (%1$s, %2$s, lower(btrim(%2$s)), 0, %3$d)
                 """.formatted(tenant, literal(unique("owned-folder")), group)),
             new WriterCase("shared-file-owner", sharedFileSql(fixture, "'[]'::JSONB", group)),
             new WriterCase("resource-acl", """

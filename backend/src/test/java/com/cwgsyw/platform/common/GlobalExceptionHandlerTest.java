@@ -60,6 +60,18 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void mapsConcurrentGroupNameConflictToBadRequest() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+            "writer failed", new SQLException(
+                "duplicate key violates unique constraint uq_sys_group_tenant_name_active", "23505"));
+
+        ResponseEntity<R<Void>> response = handler.handleDataIntegrity(exception);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("GROUP_ACTIVE_NAME_CONFLICT", response.getBody().getErrorCode());
+    }
+
+    @Test
     void mapsRequestParameterConversionFailureToBadRequest() {
         R<Void> response = handler.handleInputConversion(new MethodArgumentTypeMismatchException(
             "invalid", java.time.LocalDate.class, "startDate", null, new IllegalArgumentException()));

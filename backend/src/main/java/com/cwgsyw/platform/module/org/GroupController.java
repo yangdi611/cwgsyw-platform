@@ -86,10 +86,12 @@ public class GroupController {
     @PreAuthorize("hasPermission('group', 'create')")
     public R<Group> create(@Valid @RequestBody GroupRequest request,
                            @AuthenticationPrincipal SecurityUser cu) {
+        String name = request.getName().trim();
+        requireUniqueActiveName(cu.getTenantId(), name, null);
         Group group = new Group();
         group.setId(null);
         group.setTenantId(cu.getTenantId());
-        group.setName(request.getName().trim());
+        group.setName(name);
         group.setDescription(request.getDescription());
         group.setLeaderId(request.getLeaderId());
         group.setCode("group_" + UUID.randomUUID().toString().replace("-", ""));
@@ -107,11 +109,19 @@ public class GroupController {
         if (Boolean.TRUE.equals(existing.getIsBuiltin())) {
             throw new IllegalArgumentException("内置用户组不能编辑");
         }
-        existing.setName(request.getName().trim());
+        String name = request.getName().trim();
+        requireUniqueActiveName(cu.getTenantId(), name, id);
+        existing.setName(name);
         existing.setDescription(request.getDescription());
         existing.setLeaderId(request.getLeaderId());
         groupMapper.updateById(existing);
         return R.ok();
+    }
+
+    private void requireUniqueActiveName(String tenantId, String name, Long groupId) {
+        if (groupMapper.countActiveNameConflict(tenantId, name, groupId) > 0) {
+            throw new IllegalArgumentException("用户组名称已存在");
+        }
     }
 
     @GetMapping("/{id}/members")

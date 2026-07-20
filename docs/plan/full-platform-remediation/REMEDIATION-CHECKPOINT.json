@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T14:46:00+08:00",
+  "updatedAt": "2026-07-20T15:42:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -18,16 +18,16 @@
   },
   "phase": "FINAL_L4",
   "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
+  "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_057_NO_FF_MERGED",
+  "lastCompletedGate": "REM_P1_058_MERGED",
   "nextEvent": null,
   "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
-  "nextAction": "After the REM-P1-057 no-ff merge is recorded, resume the same L4 run and revalidate affected WIKI-024 only before continuing the 57 remaining NOT_RUN cases.",
+  "nextAction": "Resume the same L4 run from failure snapshot 592f775c, rerun affected RBAC-007, then execute the remaining 57 cases under the adjusted continuation contract.",
   "statusCounts": {
-    "total": 95,
+    "total": 96,
     "closed": 4,
-    "verified": 91,
+    "verified": 92,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -132,7 +132,8 @@
       "REM-P1-054",
       "REM-P1-055",
       "REM-P1-056",
-      "REM-P1-057"
+      "REM-P1-057",
+      "REM-P1-058"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -184,9 +185,22 @@
     "REM-P1-054",
     "REM-P1-055",
     "REM-P1-056",
-    "REM-P1-057"
+    "REM-P1-057",
+    "REM-P1-058"
   ],
   "eventGit": {
+    "REM-P1-058": {
+      "branch": "codex/rem-p1-058-group-active-name-uniqueness",
+      "baselineCommit": "cd903e7bb2820573be2fdcdf18a96dc9e6a51fb3",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-007-001",
+      "failureSnapshotCommit": "592f775cc18e4cf6f266cf50ae42be1e8df9ffe0",
+      "runId": "REM_P1_058_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "ef3df211279fd9ae43b23b6fce91593872254023",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
     "REM-P1-057": {
       "branch": "codex/rem-p1-057-wiki-child-owner-group-inheritance",
       "baselineCommit": "6559358f6a16bdace10062f0197f4c66a8f61bae",
@@ -624,9 +638,9 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-056-cmdb-attribute-canonical-action-guards",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 91,
+    "eventScopedVerifiedRequired": 92,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
@@ -641,6 +655,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-058 L1-L3 passed after L4 RBAC-007 failed at snapshot 592f775c: Java 21 focused tests 26/26, org/group cluster 114/114, current backend API/UI 1/1, V78/index active, no ERROR/5xx, manifest and active marker zero with product archive cleanup and no restore/purge. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event 25ee1823 merged no-ff as e1738b04 before same-run affected revalidation.",
     "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",
     "L4 OPS-017 closed after REM-P1-048 event 3e7667a3 merged no-ff as aa17a6f6. OPS-006 then failed because a group-3 ordinary reader directly fetched a group-2 sensitive group task detail with HTTP 200; failure snapshot c4a782ed is clean and REM-P1-049 passed L1-L3 with zero residue.",

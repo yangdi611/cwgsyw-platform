@@ -246,10 +246,11 @@ class GroupLifecycleBlockerIntegrationTest {
             INSERT INTO wiki_page (tenant_id, space_id, slug, title, content)
             VALUES (?, ?, ?, ?, '') RETURNING id
             """, tenantId, wikiSpaceId, "fqa-page-" + suffix, "FQA page " + suffix);
+        String folderName = "FQA folder " + suffix;
         long folderId = id("""
-            INSERT INTO shared_folder (tenant_id, name, created_by)
-            VALUES (?, ?, 0) RETURNING id
-            """, tenantId, "FQA folder " + suffix);
+            INSERT INTO shared_folder (tenant_id, name, normalized_name, created_by)
+            VALUES (?, ?, lower(btrim(?)), 0) RETURNING id
+            """, tenantId, folderName, folderName);
         return new Fixture(tenantId, groupId, groupName, userId, roleId, deviceId,
             wikiSpaceId, wikiPageId, folderId, suffix);
     }
