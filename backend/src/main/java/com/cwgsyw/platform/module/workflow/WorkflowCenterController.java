@@ -80,6 +80,28 @@ public class WorkflowCenterController {
             req.getProcessDefinitionId(), req.getTemplateInstanceId(), cu.getUserId(), req.getRemark()));
     }
 
+    @PostMapping("/bindings/{bindingId}/enable")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<WorkflowProcessBinding> enableBinding(@PathVariable Long bindingId,
+                                                    @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(bindingService.enable(cu.getTenantId(), bindingId, cu.getUserId()));
+    }
+
+    @PostMapping("/bindings/{bindingId}/disable")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<WorkflowProcessBinding> disableBinding(@PathVariable Long bindingId,
+                                                     @AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(bindingService.disable(cu.getTenantId(), bindingId, cu.getUserId()));
+    }
+
+    @DeleteMapping("/bindings/{bindingId}")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> deleteBinding(@PathVariable Long bindingId,
+                                 @AuthenticationPrincipal SecurityUser cu) {
+        bindingService.delete(cu.getTenantId(), bindingId, cu.getUserId());
+        return R.ok();
+    }
+
     @Data
     public static class CompleteTaskRequest {
         private String taskId;

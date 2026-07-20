@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.workflow.binding;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
  * <p>一个租户下一个 businessType 只保留一条当前绑定（唯一约束 tenant_id + business_type）。
  * 切换绑定只影响新启动的流程实例，不追溯已运行实例。
  *
- * <p>不继承 BaseEntity —— 无软删语义，绑定切换用覆盖更新表达。
+ * <p>不继承 BaseEntity；生命周期删除使用本实体自己的软删除字段。
  */
 @Data
 @TableName("workflow_process_binding")
@@ -27,6 +28,10 @@ public class WorkflowProcessBinding {
     private Integer processDefinitionVersion;
     private Long templateInstanceId;
     private Boolean enabled;
+    @TableLogic
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
+    private Long deletedBy;
     private Long createdBy;
     private LocalDateTime createdAt;
     private Long updatedBy;

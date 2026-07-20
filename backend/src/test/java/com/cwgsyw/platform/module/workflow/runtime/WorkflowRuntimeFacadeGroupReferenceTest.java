@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
@@ -54,6 +55,20 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
     @Mock ProcessInstance processInstance;
 
     @InjectMocks WorkflowRuntimeFacadeImpl facade;
+
+    @Test
+    void startBusinessProcessRejectsWhenBindingIsDisabledOrDeleted() {
+        when(adapterRegistry.require("daily_report")).thenReturn(adapter);
+        when(bindingService.getActiveBinding("default", "daily_report")).thenReturn(null);
+
+        assertThatThrownBy(() -> facade.startBusinessProcess(WorkflowStartCommand.builder()
+            .tenantId("default").businessType("daily_report").businessId("9").build()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("业务类型未绑定流程定义: daily_report");
+
+        verify(runtimeService, org.mockito.Mockito.never())
+            .startProcessInstanceById(anyString(), anyString(), any());
+    }
 
     @Test
     void startBusinessProcess_validatesFinalAdapterAndCommandGroupVariablesOnceInOrder() {

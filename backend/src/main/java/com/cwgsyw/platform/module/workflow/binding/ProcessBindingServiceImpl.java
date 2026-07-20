@@ -6,12 +6,14 @@ import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.template.model.WorkflowTemplateInstance;
 import com.cwgsyw.platform.module.workflow.template.model.WorkflowTemplateInstanceMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,8 +49,9 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
             .eq(WorkflowProcessBinding::getEnabled, true)
             .last("LIMIT 1"));
         if (binding != null) {
-            return binding;
+            return Boolean.TRUE.equals(binding.getEnabled()) ? binding : null;
         }
+        if (bindingMapper.countIncludingDeleted(tenantId, businessType) > 0) return null;
         // 兼容：回退到旧 admin/config 配置项
         String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
         if (legacyKey == null) {
@@ -136,10 +139,99 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
     }
 
     @Override
+    @Transactional
+    public WorkflowProcessBinding enable(String tenantId, Long bindingId, Long operatorId) {
+        WorkflowProcessBinding binding = requireBinding(tenantId, bindingId);
+        if (Boolean.TRUE.equals(binding.getEnabled())) return binding;
+        validateBindable(tenantId, binding.getBusinessType(), binding.getProcessDefinitionId());
+        String beforeJson = snapshot(binding);
+        binding.setEnabled(true);
+        binding.setUpdatedBy(operatorId);
+        binding.setUpdatedAt(LocalDateTime.now());
+        bindingMapper.updateById(binding);
+        syncLegacyConfig(binding.getBusinessType(), tenantId, binding.getProcessDefinitionId());
+        writeAudit(binding, operatorId, "enable_binding", beforeJson, snapshot(binding));
+        return binding;
+    }
+
+    @Override
+    @Transactional
+    public WorkflowProcessBinding disable(String tenantId, Long bindingId, Long operatorId) {
+        WorkflowProcessBinding binding = requireBinding(tenantId, bindingId);
+        if (!Boolean.TRUE.equals(binding.getEnabled())) return binding;
+        String beforeJson = snapshot(binding);
+        binding.setEnabled(false);
+        binding.setUpdatedBy(operatorId);
+        binding.setUpdatedAt(LocalDateTime.now());
+        bindingMapper.updateById(binding);
+        clearLegacyConfig(binding.getBusinessType(), tenantId);
+        writeAudit(binding, operatorId, "disable_binding", beforeJson, snapshot(binding));
+        return binding;
+    }
+
+    @Override
+    @Transactional
+    public void delete(String tenantId, Long bindingId, Long operatorId) {
+        WorkflowProcessBinding binding = requireBinding(tenantId, bindingId);
+        String beforeJson = snapshot(binding);
+        binding.setEnabled(false);
+        binding.setDeletedAt(LocalDateTime.now());
+        binding.setDeletedBy(operatorId);
+        binding.setUpdatedBy(operatorId);
+        binding.setUpdatedAt(binding.getDeletedAt());
+        bindingMapper.updateById(binding);
+        bindingMapper.deleteById(bindingId);
+        clearLegacyConfig(binding.getBusinessType(), tenantId);
+        writeAudit(binding, operatorId, "delete_binding", beforeJson, snapshot(binding));
+    }
+
+    @Override
     public List<WorkflowProcessBinding> listBindings(String tenantId) {
         return bindingMapper.selectList(new LambdaQueryWrapper<WorkflowProcessBinding>()
             .eq(WorkflowProcessBinding::getTenantId, tenantId)
             .orderByAsc(WorkflowProcessBinding::getBusinessType));
+    }
+
+    private WorkflowProcessBinding requireBinding(String tenantId, Long bindingId) {
+        WorkflowProcessBinding binding = bindingMapper.selectOne(new LambdaQueryWrapper<WorkflowProcessBinding>()
+            .eq(WorkflowProcessBinding::getTenantId, tenantId)
+            .eq(WorkflowProcessBinding::getId, bindingId));
+        if (binding == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "WORKFLOW_BINDING_NOT_FOUND", "流程绑定不存在");
+        }
+        return binding;
+    }
+
+    private void syncLegacyConfig(String businessType, String tenantId, String processDefinitionId) {
+        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
+        if (legacyKey != null) configService.set(tenantId, legacyKey, processDefinitionId);
+    }
+
+    private void clearLegacyConfig(String businessType, String tenantId) {
+        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
+        if (legacyKey != null) configService.set(tenantId, legacyKey, "");
+    }
+
+    private String snapshot(WorkflowProcessBinding binding) {
+        return "{\"businessType\":\"" + binding.getBusinessType()
+            + "\",\"processDefinitionId\":\"" + binding.getProcessDefinitionId()
+            + "\",\"enabled\":" + binding.getEnabled() + "}";
+    }
+
+    private void writeAudit(WorkflowProcessBinding binding, Long operatorId, String action,
+                            String beforeJson, String afterJson) {
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(binding.getTenantId())
+            .module("workflow")
+            .action(action)
+            .targetType("workflow_process_binding")
+            .targetId(binding.getId())
+            .operatorId(operatorId)
+            .beforeJson(beforeJson)
+            .afterJson(afterJson)
+            .remark(action + " " + binding.getBusinessType())
+            .createdAt(LocalDateTime.now())
+            .build());
     }
 
     @Override

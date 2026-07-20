@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T00:22:00+08:00",
+  "updatedAt": "2026-07-21T04:55:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-064-notification-config-ops-rule-sync",
+  "phase": "REMEDIATION",
+  "activeEvent": "REM-P1-065",
+  "activeBranch": "codex/rem-p1-065-workflow-binding-lifecycle",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_064_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_065_L1_L3_VERIFIED",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-064-notification-config-ops-rule-sync",
-  "nextAction": "Create the L4 continuation from lint-fix@b7f1d51e, retain same-run evidence, revalidate CONFIG-003, then continue all remaining cases.",
+  "nextBranch": "codex/rem-p1-065-workflow-binding-lifecycle",
+  "nextAction": "Commit REM-P1-065, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate FLOW-010 affected-only.",
   "statusCounts": {
-    "total": 103,
+    "total": 104,
     "closed": 4,
-    "verified": 99,
+    "verified": 100,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -140,7 +140,8 @@
       "REM-P1-061",
       "REM-P1-062",
       "REM-P1-063",
-      "REM-P1-064"
+      "REM-P1-064",
+      "REM-P1-065"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -199,9 +200,20 @@
     "REM-P1-061",
     "REM-P1-062",
     "REM-P1-063",
-    "REM-P1-064"
+    "REM-P1-064",
+    "REM-P1-065"
   ],
   "eventGit": {
+    "REM-P1-065": {
+      "branch": "codex/rem-p1-065-workflow-binding-lifecycle",
+      "baselineCommit": "02270f10e",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-FLOW-010-001",
+      "failureSnapshotCommit": "9dc80cd0",
+      "runId": "REM_P1_065_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0
+    },
     "REM-P1-064": {
       "branch": "codex/rem-p1-064-notification-config-ops-rule-sync",
       "baselineCommit": "daa73689e",
