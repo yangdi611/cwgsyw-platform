@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -35,6 +36,29 @@ class DeviceServiceTest {
     @Mock private GroupMapper groupMapper;
     @Mock private ActiveGroupReferenceValidator activeGroupReferenceValidator;
     @InjectMocks private DeviceService service;
+
+    @Test
+    void getByIdIncludesLinkedCiModelCode() {
+        Device device = new Device();
+        device.setId(42L);
+        device.setTenantId("default");
+        device.setCiInstanceId(88L);
+        device.setIsDeleted(false);
+        CiInstance instance = new CiInstance();
+        instance.setId(88L);
+        instance.setTenantId("default");
+        instance.setModelId("application");
+        instance.setName("linked-app");
+        instance.setIsDeleted(false);
+        when(deviceMapper.selectById(42L)).thenReturn(device);
+        when(ciInstanceMapper.selectById(88L)).thenReturn(instance);
+
+        var result = service.getById(42L, "default", null, "platform");
+
+        assertThat(result.getCiInstanceId()).isEqualTo(88L);
+        assertThat(result.getCiInstanceName()).isEqualTo("linked-app");
+        assertThat(result.getCiModelCode()).isEqualTo("application");
+    }
 
     @Test
     void createRejectsDuplicateActiveDeviceForCi() {

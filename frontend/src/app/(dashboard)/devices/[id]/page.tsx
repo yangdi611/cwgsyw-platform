@@ -36,6 +36,7 @@ interface DeviceDetail {
   description: string
   ciInstanceId: number | null
   ciInstanceName: string | null
+  ciModelCode: string | null
   credentials: Credential[]
 }
 
@@ -339,14 +340,14 @@ export default function DeviceDetailPage() {
               <CardContent className="font-v2-mono text-sm text-v2-fg">{device.ip}</CardContent>
             </Card>
           )}
-          {device.ciInstanceId && (
+          {device.ciInstanceId && device.ciModelCode && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">关联 CMDB 实例</CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 <Link
-                  href={`/cmdb/instances/by-model/host/${device.ciInstanceId}`}
+                  href={`/cmdb/instances/by-model/${device.ciModelCode}/${device.ciInstanceId}`}
                   className="font-semibold text-v2-primary hover:text-v2-primary-hover"
                 >
                   {device.ciInstanceName ?? `实例 #${device.ciInstanceId}`}

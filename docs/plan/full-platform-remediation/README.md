@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 96 个事件：4 个已关闭、92 个已验证。`REM-P1-058` 的 L1 26/26、L2 114/114、当前 backend 真实 API/UI 与精确清理均通过；等待事件提交并顺序合并后恢复同 run `RBAC-007` affected-only 与剩余 L4。已有同 run PASS 证据保持不变。
+当前规划含 97 个事件：4 个已关闭、93 个已验证。`REM-P1-059` 的 L1-L3 已通过，等待事件提交并顺序合并后恢复同 run `XL-CMDB-003` affected-only；已有同 run PASS 证据保持不变。
 
 ## 目录规则
 
