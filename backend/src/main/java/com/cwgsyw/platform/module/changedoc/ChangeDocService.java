@@ -16,6 +16,7 @@ import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.notification.NotificationService;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +61,7 @@ public class ChangeDocService {
     private final com.cwgsyw.platform.module.sharedfile.SharedFileService sharedFileService;
     private final TableFieldSupport tableFieldSupport;
     private final ChangeDocLinkService changeDocLinkService;
+    private final NotificationService notificationService;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -438,6 +440,7 @@ public class ChangeDocService {
         if (approved) {
             archiveApprovedDoc(doc, tenantId, approverId, id);
         }
+        notifyApplicantOfApproval(doc, approved, comment);
 
         return toVO(doc);
     }
@@ -503,6 +506,19 @@ public class ChangeDocService {
         if (approved) {
             archiveApprovedDoc(doc, tenantId, approverId, id);
         }
+        notifyApplicantOfApproval(doc, approved, comment);
+    }
+
+    private void notifyApplicantOfApproval(ChangeDoc doc, boolean approved, String comment) {
+        if (doc.getApplicantId() == null) {
+            return;
+        }
+        String title = approved ? "变更文档审批通过" : "变更文档审批被拒绝";
+        String content = approved
+                ? "《" + doc.getTitle() + "》已审批通过。"
+                : "《" + doc.getTitle() + "》审批被拒绝：" + (comment != null ? comment : "");
+        notificationService.notify(doc.getTenantId(), doc.getApplicantId(), title, content,
+                "change_doc_approval", "change_doc", doc.getId());
     }
 
     public String generateAiContent(SecurityUser user, Long id, AiGenerateRequest req) {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T20:52:00+08:00",
+  "updatedAt": "2026-07-20T22:18:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
+  "phase": "REMEDIATION",
+  "activeEvent": "REM-P1-061",
+  "activeBranch": "codex/rem-p1-061-change-doc-approval-notification",
   "activeRunId": "FQA_20260718_2050_remp1038",
   "lastCompletedGate": "REM_P1_060_MERGED_NO_FF",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-060-change-doc-submit-idempotency",
-  "nextAction": "Verify the REM-P1-060 event commit is an ancestor of lint-fix, then resume the same L4 run and rerun CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
+  "nextEvent": "REM-P1-061",
+  "nextBranch": "codex/rem-p1-061-change-doc-approval-notification",
+  "nextAction": "Commit verified REM-P1-061, no-ff merge it to lint-fix, then resume the same L4 run and revalidate CHANGE-011/012.",
   "statusCounts": {
-    "total": 99,
+    "total": 100,
     "closed": 4,
-    "verified": 95,
+    "verified": 96,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -136,7 +136,8 @@
       "REM-P1-058",
       "REM-P1-059",
       "REM-P0-008",
-      "REM-P1-060"
+      "REM-P1-060",
+      "REM-P1-061"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -191,9 +192,22 @@
     "REM-P1-057",
     "REM-P1-058",
     "REM-P1-059",
-    "REM-P1-060"
+    "REM-P1-060",
+    "REM-P1-061"
   ],
   "eventGit": {
+    "REM-P1-061": {
+      "branch": "codex/rem-p1-061-change-doc-approval-notification",
+      "baselineCommit": "2f19e1f4b",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-011-001",
+      "failureSnapshotCommit": "68fc5d3e3",
+      "runId": "REM_P1_061_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "7c89f836",
+      "mergeCommit": "PENDING"
+    },
     "REM-P1-060": {
       "branch": "codex/rem-p1-060-change-doc-submit-idempotency",
       "baselineCommit": "a5482a7757a19bd69e04c30ee2f16ec2342b2536",
@@ -675,10 +689,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
+    "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-060-change-doc-submit-idempotency",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 95,
-    "failures": 1,
+    "eventScopedVerifiedRequired": 96,
+    "failures": 2,
     "blocked": 0,
     "cleanupFailures": 0,
     "contract": {
@@ -692,6 +706,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-061 L1-L3 passed after CHANGE-011 direct-approval notification failure: Java 21 L1 4/4, Changedoc/Workflow L2 42/42, production backend build/health, current backend Playwright 1/1, and product API cleanup manifest zero. Event commit/no-ff merge remain before same-run CHANGE-011/012 revalidation.",
     "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event `1c46d1a04` merged no-ff as `b5643946d`; resume same-run affected-only XL-CMDB-003.",
     "REM-P1-060 L1-L3 passed after CHANGE-019 concurrent submit/approve failures: Java 21 L1 12/12, affected Changedoc/Sharedfile L2 52/52, current backend terminal Playwright 1/1, and product API cleanup manifest zero. Event `b7394350` is ready for no-ff merge; resume same-run CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
     "REM-P1-058 L1-L3 passed after L4 RBAC-007 failed at snapshot 592f775c: Java 21 focused tests 26/26, org/group cluster 114/114, current backend API/UI 1/1, V78/index active, no ERROR/5xx, manifest and active marker zero with product archive cleanup and no restore/purge. Event commit/no-ff merge remain before same-run affected revalidation.",
