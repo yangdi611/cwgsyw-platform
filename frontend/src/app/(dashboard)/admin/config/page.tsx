@@ -27,6 +27,14 @@ const WATERMARK_POSITION_LABELS: Record<WatermarkPosition, string> = {
   center: '居中',
 }
 
+const WATERMARK_POSITION_CLASSES: Record<WatermarkPosition, string> = {
+  'top-left': 'left-4 top-4',
+  'top-right': 'right-4 top-4',
+  'bottom-left': 'bottom-4 left-4',
+  'bottom-right': 'bottom-4 right-4',
+  center: 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+}
+
 function ProcessVersionSelector({ value, onSave }: {
   value: string
   onSave: (definitionId: string) => Promise<void>
@@ -139,6 +147,7 @@ export default function AdminConfigPage() {
   const [watermarkEnabled, setWatermarkEnabled] = useState(false)
   const [watermarkText, setWatermarkText] = useState('')
   const [watermarkOpacity, setWatermarkOpacity] = useState('0.3')
+  const [watermarkAngle, setWatermarkAngle] = useState('45')
   const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>('bottom-right')
 
   const [prometheusEnabled, setPrometheusEnabled] = useState(false)
@@ -165,6 +174,7 @@ export default function AdminConfigPage() {
     setWatermarkEnabled(config['watermark.enabled'] === 'true')
     setWatermarkText(config['watermark.text'] ?? '')
     setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
+    setWatermarkAngle(config['watermark.angle'] ?? '45')
     setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
     setPrometheusEnabled(config['prometheus.enabled'] === 'true')
     setPrometheusUrl(config['prometheus.url'] ?? '')
@@ -185,7 +195,13 @@ export default function AdminConfigPage() {
   })
 
   const watermarkMutation = useMutation({
-    mutationFn: () => api.put('/admin/config/watermark', { enabled: watermarkEnabled, text: watermarkText, opacity: Number(watermarkOpacity), position: watermarkPosition }),
+    mutationFn: () => api.put('/admin/config/watermark', {
+      enabled: watermarkEnabled,
+      text: watermarkText,
+      opacity: Number(watermarkOpacity),
+      angle: Number(watermarkAngle),
+      position: watermarkPosition,
+    }),
     onSuccess: () => { toast.success('水印配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
     onError: () => toast.error('保存失败'),
   })
@@ -354,11 +370,24 @@ export default function AdminConfigPage() {
                   <Label>水印文字</Label>
                   <Input value={watermarkText} onChange={e => setWatermarkText(e.target.value)} placeholder="内部资料 请勿外传" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-1.5">
                     <Label>透明度 (0-1)</Label>
                     <Input type="number" min="0" max="1" step="0.05" value={watermarkOpacity} onChange={e => setWatermarkOpacity(e.target.value)} placeholder="0.3" />
                     <p className="text-xs text-muted-foreground">0 为完全透明，1 为完全不透明</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="watermark-angle">角度 (-180° 至 180°)</Label>
+                    <Input
+                      id="watermark-angle"
+                      type="number"
+                      min="-180"
+                      max="180"
+                      step="1"
+                      value={watermarkAngle}
+                      onChange={e => setWatermarkAngle(e.target.value)}
+                      placeholder="45"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label>水印位置</Label>
@@ -376,6 +405,29 @@ export default function AdminConfigPage() {
                         <SelectItem value="center">居中</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>即时预览</Label>
+                  <div
+                    data-testid="watermark-preview"
+                    className="relative h-48 overflow-hidden rounded-lg border bg-v2-surface text-v2-muted"
+                  >
+                    <div className="absolute inset-4 rounded border border-dashed border-v2-border" />
+                    {watermarkEnabled ? (
+                      <span
+                        data-testid="watermark-preview-text"
+                        className={`absolute max-w-[80%] whitespace-nowrap font-semibold text-v2-fg ${WATERMARK_POSITION_CLASSES[watermarkPosition]}`}
+                        style={{
+                          opacity: Math.min(1, Math.max(0, Number(watermarkOpacity) || 0)),
+                          rotate: `${Math.min(180, Math.max(-180, Number(watermarkAngle) || 0))}deg`,
+                        }}
+                      >
+                        {watermarkText || 'IT运维平台'}
+                      </span>
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center text-sm">水印已关闭</span>
+                    )}
                   </div>
                 </div>
                 <Button onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>

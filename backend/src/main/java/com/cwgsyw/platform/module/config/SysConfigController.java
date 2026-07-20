@@ -123,10 +123,11 @@ public class SysConfigController {
     @PutMapping("/watermark")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateWatermark(@AuthenticationPrincipal SecurityUser user,
-                                    @RequestBody WatermarkConfigRequest req) {
+                                    @jakarta.validation.Valid @RequestBody WatermarkConfigRequest req) {
         String tid = user.getTenantId();
         if (req.getText() != null)     configService.set(tid, "watermark.text",     req.getText());
         if (req.getOpacity() != null)  configService.set(tid, "watermark.opacity",  String.valueOf(req.getOpacity()));
+        if (req.getAngle() != null)    configService.set(tid, "watermark.angle",    String.valueOf(req.getAngle()));
         if (req.getPosition() != null) configService.set(tid, "watermark.position", req.getPosition());
         if (req.getEnabled() != null)  configService.set(tid, "watermark.enabled",  String.valueOf(req.getEnabled()));
         return R.ok(null);
