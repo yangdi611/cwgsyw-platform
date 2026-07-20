@@ -344,6 +344,7 @@ public class CiModelService {
         vo.setIsUnique(a.getIsUnique());
         vo.setIsBuiltIn(a.getIsBuiltIn());
         vo.setIsListShow(a.getIsListShow());
+        vo.setIsDrawerShow(a.getIsDrawerShow());
         vo.setDefaultValue(a.getDefaultValue());
         vo.setEnumOptions(a.getEnumOptions());
         vo.setOption(a.getOption());

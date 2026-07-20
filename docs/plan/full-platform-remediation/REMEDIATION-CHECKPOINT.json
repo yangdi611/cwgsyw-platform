@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T11:50:00+08:00",
+  "updatedAt": "2026-07-20T12:23:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "344d6f04d4328bf2581ae200d974942cb78cc105",
+    "observedCommit": "bc72f2e30",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_008_ENUM_OPTION_MERGED",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-008-enum-options",
-  "nextAction": "Create the same-run L4 continuation from lint-fix@344d6f04, revalidate CMDB-011 affected-only, then continue all remaining NOT_RUN cases.",
+  "activeEvent": "REM-P1-055",
+  "activeBranch": "codex/rem-p1-055-cmdb-model-detail-drawer-flag",
+  "activeRunId": "REM_P1_055_20260720",
+  "lastCompletedGate": "REM_P1_055_L1_L3_PASS",
+  "nextEvent": "REM-P1-055",
+  "nextBranch": "codex/rem-p1-055-cmdb-model-detail-drawer-flag",
+  "nextAction": "Run document and GitNexus gates, commit REM-P1-055, no-ff merge into lint-fix, then resume affected-only cases in FQA_20260718_2050_remp1038.",
   "statusCounts": {
-    "total": 92,
+    "total": 93,
     "closed": 4,
-    "verified": 88,
+    "verified": 89,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -129,7 +129,8 @@
       "REM-P1-051",
       "REM-P1-052",
       "REM-P1-053",
-      "REM-P1-054"
+      "REM-P1-054",
+      "REM-P1-055"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -178,9 +179,22 @@
     "REM-P1-051",
     "REM-P1-052",
     "REM-P1-053",
-    "REM-P1-054"
+    "REM-P1-054",
+    "REM-P1-055"
   ],
   "eventGit": {
+    "REM-P1-055": {
+      "branch": "codex/rem-p1-055-cmdb-model-detail-drawer-flag",
+      "baselineCommit": "bc72f2e30",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "CMDB-008,XL-CMDB-001",
+      "failureSnapshotCommit": "c6f77028",
+      "runId": "REM_P1_055_20260720",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": null,
+      "mergeCommit": null
+    },
     "REM-P1-054": {
       "branch": "codex/rem-p1-054-watermark-angle-preview-contract",
       "baselineCommit": "43e1a940538619cadccbb4341fa5ccc9be93f892",

@@ -6,13 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：92 个事件；其中 `CLOSED=4`、`VERIFIED=88`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：93 个事件；其中 `CLOSED=4`、`VERIFIED=89`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
 
+| `REM-P1-055` | P1 | CMDB 模型详情抽屉标记合同 | L4 `CMDB-008` / `XL-CMDB-001` | `VERIFIED` | LOW | DTO 映射、Java 33/33、当前 backend、真实十字段抽屉与精确清理 L1-L3 PASS；待提交/no-ff 后同 run affected-only。 | [事件卡](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/README.md) / [SPEC](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-055-cmdb-model-detail-drawer-flag/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-053` | P1 | Workflow 审批审计摘要边界 | L4 `FLOW-002` | `VERIFIED` | LOW | 有界 Unicode 审计摘要；L1 8/8、L2 161/161、当前 backend 与真实日报/Wiki API/UI 通过，manifest 空；待同 run affected-only 重验。 | [事件卡](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/README.md) / [SPEC](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/SPEC.md) / [验证](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-053-workflow-approval-audit-remark-boundary/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-054` | P1 | 水印角度与即时预览合同 | L4 `CONFIG-004` | `VERIFIED` | LOW | angle API/UI/即时预览与既有 PDF 消费键修复；Java 14/14、frontend/backend build、当前容器、真实 Playwright 和精确恢复通过；待同 run affected-only 重验。 | [事件卡](./07-platform-integration/REM-P1-054-watermark-angle-preview-contract/README.md) / [SPEC](./07-platform-integration/REM-P1-054-watermark-angle-preview-contract/SPEC.md) / [验证](./07-platform-integration/REM-P1-054-watermark-angle-preview-contract/VERIFICATION.md) / [Prompt](./07-platform-integration/REM-P1-054-watermark-angle-preview-contract/CLAUDE-CODE-PROMPT.md) |
 | `REM-P1-052` | P1 | CMDB 实例引用删除保护 | L4 `CMDB-040` | `VERIFIED` | MEDIUM | 关系/设备/活动文档/日报四类保护；Java 21 5/5、相关聚类 28/28、当前 backend、真实 API/UI、单次审计和精确清理 L1-L3 PASS；待提交、no-ff 合并并同 run affected-only 重验。 | [事件卡](./03-cmdb-assets/REM-P1-052-cmdb-instance-reference-delete-guards/README.md) / [SPEC](./03-cmdb-assets/REM-P1-052-cmdb-instance-reference-delete-guards/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-052-cmdb-instance-reference-delete-guards/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-052-cmdb-instance-reference-delete-guards/CLAUDE-CODE-PROMPT.md) |
