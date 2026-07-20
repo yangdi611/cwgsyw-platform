@@ -66,6 +66,17 @@ public interface GroupMapper extends BaseMapper<Group> {
                                  @Param("code") String code,
                                  @Param("groupId") Long groupId);
 
+    @Select("""
+        SELECT COUNT(*) FROM sys_group
+        WHERE tenant_id = #{tenantId}
+          AND BTRIM(name) = #{name}
+          AND is_deleted = FALSE
+          AND (CAST(#{groupId} AS BIGINT) IS NULL OR id <> CAST(#{groupId} AS BIGINT))
+        """)
+    long countActiveNameConflict(@Param("tenantId") String tenantId,
+                                 @Param("name") String name,
+                                 @Param("groupId") Long groupId);
+
     @Update("""
         UPDATE sys_group
         SET is_deleted = TRUE,
