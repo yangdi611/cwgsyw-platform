@@ -212,7 +212,8 @@
       "failureSnapshotCommit": "9dc80cd0",
       "runId": "REM_P1_065_20260721",
       "verification": "VERIFIED",
-      "cleanupFailures": 0
+      "cleanupFailures": 0,
+      "eventCommit": "7f43a36dc1cfe1de65f956e191742a1eee6b3c87"
     },
     "REM-P1-064": {
       "branch": "codex/rem-p1-064-notification-config-ops-rule-sync",

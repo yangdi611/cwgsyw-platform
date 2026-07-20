@@ -40,3 +40,4 @@
 - 真实 v1 运行实例在 binding 切换 v2、停用和删除后仍可从 running API 读取，随后通过产品实例删除 API 精确终止；定义、binding、账号、assignment 和 role 均通过产品 API 逆序清理。
 - 最终 manifest 为 `objects=[]`、`cleanupFailures=0`；活动 runId binding/定义/实例/用户/角色为 0。只读数据库核对证明软删墓碑保留 `deleted_at/deleted_by`。
 - 未修改 daily/wiki/change/device 正式 binding，未直接 SQL 写入，未 restore、purge、清 Redis/会话、操作外部系统或执行 push。
+- 事件实现与 L1-L3 证据提交：`7f43a36dc1cfe1de65f956e191742a1eee6b3c87`；提交前 GitNexus staged 审计为 MEDIUM，26 个已索引符号、3 条预期流程，无意外范围。
