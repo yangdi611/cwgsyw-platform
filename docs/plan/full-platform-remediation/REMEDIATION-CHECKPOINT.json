@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T03:40:00+08:00",
+  "updatedAt": "2026-07-20T11:49:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "f513e96aa9ba41fd4f2a54414ac6b11210c4c1be",
+    "observedCommit": "78d07cf16a988bd4464c767e86fccdb7d0ea21f5",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,10 +20,10 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_054_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
+  "lastCompletedGate": "REM_P1_008_ENUM_OPTION_EVENT_COMMITTED_NO_FF_MERGE_IN_PROGRESS",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-054",
-  "nextAction": "Finish the REM-P1-054 no-ff merge, create the same-run L4 continuation, revalidate CONFIG-004 affected-only, then continue all remaining NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-008-enum-options",
+  "nextAction": "Finish the REM-P1-008 enum-option no-ff merge, create the same-run L4 continuation, revalidate CMDB-011 affected-only, then continue all remaining NOT_RUN cases.",
   "statusCounts": {
     "total": 92,
     "closed": 4,
@@ -329,7 +329,11 @@
       "mergeCommit": "dc1fd83692b1d0d6e62d247166a48a4035960ddd"
     },
     "REM-P1-008": {
-      "eventCommit": "330e01387ef7cccf713dc4585d9ea326069b618d"
+      "eventCommit": "6792762f",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE",
+      "supersedes": {
+        "eventCommit": "330e01387ef7cccf713dc4585d9ea326069b618d"
+      }
     },
     "REM-P1-010": {
       "eventCommit": "ffdf2ed3d3ab9f8530b83eda1042ec18cc906cdd"

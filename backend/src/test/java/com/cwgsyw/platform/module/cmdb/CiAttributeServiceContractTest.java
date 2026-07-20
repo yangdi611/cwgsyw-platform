@@ -5,10 +5,12 @@ import com.cwgsyw.platform.module.cmdb.dto.attribute.CiAttributeVO;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.CreateAttributeRequest;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.UpdateAttributeRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
+import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeGroupMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.service.CiAttributeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,7 @@ class CiAttributeServiceContractTest {
     @Mock private CiAttributeMapper ciAttributeMapper;
     @Mock private CiAttributeGroupMapper ciAttributeGroupMapper;
     @Mock private CiModelMapper ciModelMapper;
+    @Mock private CiInstanceMapper ciInstanceMapper;
     @Mock private AuditLogMapper auditLogMapper;
 
     private CiAttributeService service;
@@ -39,7 +42,7 @@ class CiAttributeServiceContractTest {
     @BeforeEach
     void setUp() {
         service = new CiAttributeService(ciAttributeMapper, ciAttributeGroupMapper, ciModelMapper,
-                auditLogMapper, new ObjectMapper());
+                ciInstanceMapper, auditLogMapper, new ObjectMapper());
         CiModel model = new CiModel();
         model.setModelId("host");
         model.setTenantId("default");
@@ -98,6 +101,70 @@ class CiAttributeServiceContractTest {
         assertThatThrownBy(() -> service.create("host", request("environment"), "default", 1L))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("字段标识已存在: environment");
+    }
+
+    @Test
+    void duplicateEnumOptionIsRejectedBeforeInsert() {
+        when(ciAttributeMapper.selectCount(any())).thenReturn(0L);
+        CreateAttributeRequest request = request("environment");
+        request.setFieldType("enum");
+        request.setOption(java.util.List.of(java.util.Map.of("id", "prod", "name", "生产"),
+                java.util.Map.of("id", "prod", "name", "重复")));
+
+        assertThatThrownBy(() -> service.create("host", request, "default", 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("不可为空或重复");
+        org.mockito.Mockito.verify(ciAttributeMapper, org.mockito.Mockito.never()).insert(any(CiAttribute.class));
+    }
+
+    @Test
+    void updateRejectsRemovingEnumValueUsedByInstance() {
+        CiAttribute attribute = existingAttribute();
+        attribute.setFieldType("enum");
+        attribute.setFieldKey("environment");
+        when(ciAttributeMapper.selectById(7L)).thenReturn(attribute);
+        CiInstance instance = new CiInstance();
+        instance.setTenantId("default");
+        instance.setModelId("host");
+        instance.setFieldsData(java.util.Map.of("environment", "prod"));
+        when(ciInstanceMapper.selectList(any())).thenReturn(java.util.List.of(instance));
+        UpdateAttributeRequest request = new UpdateAttributeRequest();
+        request.setOption(java.util.List.of(java.util.Map.of("id", "test", "name", "测试")));
+
+        assertThatThrownBy(() -> service.update("host", 7L, request, "default", 1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("不能删除选项");
+    }
+
+    @Test
+    void legacyEnumOptionsAreNormalizedAndDuplicateIdsRejected() {
+        when(ciAttributeMapper.selectCount(any())).thenReturn(0L);
+        CreateAttributeRequest request = request("environment");
+        request.setFieldType("enum");
+        request.setEnumOptions("[{\"id\":\"prod\",\"name\":\"生产\"},{\"id\":\"prod\",\"name\":\"重复\"}]");
+
+        assertThatThrownBy(() -> service.create("host", request, "default", 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("不可为空或重复");
+    }
+
+    @Test
+    void updateRejectsRemovingMultiEnumValueUsedByInstance() {
+        CiAttribute attribute = existingAttribute();
+        attribute.setFieldType("enummulti");
+        attribute.setFieldKey("environment");
+        when(ciAttributeMapper.selectById(7L)).thenReturn(attribute);
+        CiInstance instance = new CiInstance();
+        instance.setTenantId("default");
+        instance.setModelId("host");
+        instance.setFieldsData(java.util.Map.of("environment", "[\"prod\",\"test\"]"));
+        when(ciInstanceMapper.selectList(any())).thenReturn(java.util.List.of(instance));
+        UpdateAttributeRequest request = new UpdateAttributeRequest();
+        request.setOption(java.util.List.of(java.util.Map.of("id", "test", "name", "测试")));
+
+        assertThatThrownBy(() -> service.update("host", 7L, request, "default", 1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("prod");
     }
 
     private CreateAttributeRequest request(String fieldKey) {

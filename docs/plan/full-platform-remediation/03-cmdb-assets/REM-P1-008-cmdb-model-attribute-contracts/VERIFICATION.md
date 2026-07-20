@@ -32,3 +32,11 @@
 - 新建属性对话框输入 fieldKey、名称、defaultValue 与 sortOrder 后创建成功；属性卡的图标按钮补充了可访问名称，随后可通过真实编辑动作更新 defaultValue/sortOrder。
 - 页面刷新后重新打开编辑对话框，defaultValue 回填为 `updated`、sortOrder 回填为 `5`，证明 UI 读取、提交、失效刷新和回读一致。
 - 使用唯一 runId 创建模型、属性分组和属性；复验结束后均通过产品 API 逆序删除，未留下活跃测试对象。
+
+## 2026-07-20 L4 缺口复验
+
+- 首次失败：L4 `CMDB-011` 重复 option ID 返回 200 并持久化；证据 `test/l4-cmdb-fieldtype-contract-current-run.spec.js`、`/tmp/fqa-2050-cmdb-types-r3`、提交 `229204d0`。失败夹具已产品 API 清理，manifest 为空。
+- L1：Java 21 `CiAttributeServiceContractTest` 8/8 PASS，覆盖新/旧 option 输入、重复 ID、enum/enummulti 已用项删除和无 option 兼容更新。
+- L2：`CiAttributeServiceContractTest,CmdbMetadataRequestValidationTest,CiFieldSchemaValidatorTableTest,Ci2DViewServiceTest,CmdbVoSerializationTest` 全部 PASS。
+- L3：当前分支 backend 镜像构建并替换容器，健康 `UP`。真实 API 得到重复创建 400、删除已用项 409、兼容更新 200 和原 option 不变；测试对象全部产品 API 逆序清理，模型读回 400。
+- 结论：事件恢复为 `VERIFIED`；最终关闭仍依赖同一 L4 run 的 `CMDB-011` 受影响复验及完整 L4 收敛。

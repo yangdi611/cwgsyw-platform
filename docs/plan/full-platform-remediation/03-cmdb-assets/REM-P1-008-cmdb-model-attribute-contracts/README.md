@@ -8,7 +8,7 @@
 | 状态 | `VERIFIED` |
 | 风险 | `HIGH` |
 | 负责人 | Codex |
-| 创建 / 更新 | 2026-07-15 |
+| 创建 / 更新 | 2026-07-15 / 2026-07-20 |
 | 来源 | `FQA_20260712_0329_lintfix` |
 
 ## 问题与影响
@@ -38,4 +38,4 @@
 - 不自动合并存量重复字段
 - 不改变实例 fieldsData schema
 
-下一门禁：等待最终 L4 全平台复验。L1-L3 已通过，测试对象已精确清理。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+2026-07-20 最终 L4 发现重复 enum option ID 仍可保存，事件重新进入独立分支并补齐创建/更新唯一性与已用项删除保护。L1-L3 已重新通过，测试对象已精确清理；下一门禁为同一 L4 run 的 `CMDB-011` 受影响复验。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
