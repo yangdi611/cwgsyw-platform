@@ -203,7 +203,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "b7394350",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "633115c03dba632c0b7e9e45a1ace224c73f49b1"
     },
     "REM-P0-008": {
       "branch": "codex/rem-p0-008-authorization-rollback-idempotency",
