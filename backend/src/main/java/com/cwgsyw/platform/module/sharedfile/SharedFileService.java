@@ -271,18 +271,21 @@ public class SharedFileService {
         if (StringUtils.hasText(sf.getMdKey())) objectKeys.add(sf.getMdKey());
         String backupPrefix = "shared/delete-backup/" + UUID.randomUUID() + "/";
         List<String> backupKeys = new ArrayList<>();
+        List<String> existingObjectKeys = new ArrayList<>();
         try {
             for (int index = 0; index < objectKeys.size(); index++) {
                 String backupKey = backupPrefix + index;
-                storageService.copyOrThrow(objectKeys.get(index), backupKey);
-                backupKeys.add(backupKey);
+                if (storageService.copyIfPresent(objectKeys.get(index), backupKey)) {
+                    backupKeys.add(backupKey);
+                    existingObjectKeys.add(objectKeys.get(index));
+                }
             }
-            for (String objectKey : objectKeys) storageService.deleteOrThrow(objectKey);
+            for (String objectKey : existingObjectKeys) storageService.deleteOrThrow(objectKey);
         } catch (RuntimeException exception) {
-            restoreObjects(backupKeys, objectKeys, exception);
+            restoreObjects(backupKeys, existingObjectKeys, exception);
             throw exception;
         }
-        registerObjectCleanup(backupKeys, objectKeys);
+        registerObjectCleanup(backupKeys, existingObjectKeys);
         fileMapper.deleteById(fileId);
 
         auditLogMapper.insert(AuditLog.builder()

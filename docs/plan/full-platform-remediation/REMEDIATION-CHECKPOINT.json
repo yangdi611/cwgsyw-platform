@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-20T17:48:00+08:00",
+  "updatedAt": "2026-07-20T20:52:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_059_VERIFIED_L1_L3",
+  "lastCompletedGate": "REM_P1_060_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
-  "nextAction": "Commit REM-P1-059, no-ff merge into lint-fix, then resume the same L4 run and rerun affected XL-CMDB-003 only before remaining cases.",
+  "nextBranch": "codex/fqa-final-l4-revalidation-after-rem-p1-060-change-doc-submit-idempotency",
+  "nextAction": "Verify the REM-P1-060 event commit is an ancestor of lint-fix, then resume the same L4 run and rerun CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
   "statusCounts": {
-    "total": 97,
+    "total": 99,
     "closed": 4,
-    "verified": 93,
+    "verified": 95,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -134,7 +134,9 @@
       "REM-P1-056",
       "REM-P1-057",
       "REM-P1-058",
-      "REM-P1-059"
+      "REM-P1-059",
+      "REM-P0-008",
+      "REM-P1-060"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -188,9 +190,30 @@
     "REM-P1-056",
     "REM-P1-057",
     "REM-P1-058",
-    "REM-P1-059"
+    "REM-P1-059",
+    "REM-P1-060"
   ],
   "eventGit": {
+    "REM-P1-060": {
+      "branch": "codex/rem-p1-060-change-doc-submit-idempotency",
+      "baselineCommit": "a5482a7757a19bd69e04c30ee2f16ec2342b2536",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-019-001",
+      "runId": "REM_P1_060_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "b7394350",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P0-008": {
+      "branch": "codex/rem-p0-008-authorization-rollback-idempotency",
+      "baselineCommit": "00eed2194f2a5bff367b18b2e999f3a62ca259c9",
+      "sourceRunId": "FQA_20260718_1550_remp0007",
+      "sourceDefect": "L4-ST-AUTHZ-021-001",
+      "verification": "VERIFIED",
+      "eventCommit": "3421524f95b05b85c49da3dac0be39e581627369",
+      "mergeCommit": "2615e8ffec2adf6f120dd89024a53be8e92546aa"
+    },
     "REM-P1-059": {
       "branch": "codex/rem-p1-059-cmdb-device-bidirectional-navigation",
       "baselineCommit": "738e2686",
@@ -654,7 +677,7 @@
     "status": "STOPPED_FOR_REMEDIATION",
     "branch": "codex/fqa-final-l4-revalidation-after-rem-p1-057-wiki-child-owner-group-inheritance",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 92,
+    "eventScopedVerifiedRequired": 95,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
@@ -670,6 +693,7 @@
   "blockers": [],
   "notes": [
     "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event `1c46d1a04` merged no-ff as `b5643946d`; resume same-run affected-only XL-CMDB-003.",
+    "REM-P1-060 L1-L3 passed after CHANGE-019 concurrent submit/approve failures: Java 21 L1 12/12, affected Changedoc/Sharedfile L2 52/52, current backend terminal Playwright 1/1, and product API cleanup manifest zero. Event `b7394350` is ready for no-ff merge; resume same-run CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
     "REM-P1-058 L1-L3 passed after L4 RBAC-007 failed at snapshot 592f775c: Java 21 focused tests 26/26, org/group cluster 114/114, current backend API/UI 1/1, V78/index active, no ERROR/5xx, manifest and active marker zero with product archive cleanup and no restore/purge. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event 25ee1823 merged no-ff as e1738b04 before same-run affected revalidation.",
     "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",

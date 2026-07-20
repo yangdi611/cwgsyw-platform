@@ -25,6 +25,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.inOrder;
@@ -185,11 +186,12 @@ class SharedFileServiceTest {
         file.setMinioKey("shared/13/evidence.docx");
         file.setMdKey("shared/13/evidence.md");
         when(fileMapper.selectOne(any())).thenReturn(file);
+        when(storageService.copyIfPresent(any(), any())).thenReturn(true);
 
         service.deleteFile("default", 13L, 9L, null, "tenant");
 
         var order = inOrder(storageService, fileMapper);
-        order.verify(storageService, times(2)).copyOrThrow(any(), any());
+        order.verify(storageService, times(2)).copyIfPresent(any(), any());
         order.verify(storageService).deleteOrThrow("shared/13/evidence.docx");
         order.verify(storageService).deleteOrThrow("shared/13/evidence.md");
         order.verify(fileMapper).deleteById(13L);
@@ -203,6 +205,7 @@ class SharedFileServiceTest {
         file.setOriginalName("evidence.pdf");
         file.setMinioKey("shared/13/evidence.pdf");
         when(fileMapper.selectOne(any())).thenReturn(file);
+        when(storageService.copyIfPresent(any(), any())).thenReturn(true);
         doThrow(BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "storage unavailable"))
             .when(storageService).deleteOrThrow("shared/13/evidence.pdf");
 
@@ -212,5 +215,22 @@ class SharedFileServiceTest {
 
         verify(fileMapper, never()).deleteById(13L);
         verify(auditLogMapper, never()).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
+    }
+
+    @Test
+    void deleteFile_removesStaleMetadataWhenStoredObjectIsAlreadyMissing() {
+        SharedFile file = new SharedFile();
+        file.setId(13L);
+        file.setTenantId("default");
+        file.setOriginalName("evidence.pdf");
+        file.setMinioKey("shared/13/evidence.pdf");
+        when(fileMapper.selectOne(any())).thenReturn(file);
+        when(storageService.copyIfPresent(eq("shared/13/evidence.pdf"), any())).thenReturn(false);
+
+        service.deleteFile("default", 13L, 9L, null, "tenant");
+
+        verify(storageService, never()).deleteOrThrow(any());
+        verify(fileMapper).deleteById(13L);
+        verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 }

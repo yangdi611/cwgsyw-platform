@@ -6,16 +6,18 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：96 个事件；其中 `CLOSED=4`、`VERIFIED=92`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：99 个唯一事件；其中 `CLOSED=4`、`VERIFIED=95`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
 
+| `REM-P1-060` | P1 | 变更文档终端状态幂等与归档清理 | L4 `CHANGE-019` / `ST-CHANGE-001/004` / `CHANGE-013` | `VERIFIED` | HIGH | submit/approve 租户行锁、缺失 MinIO 对象孤儿元数据清理；Java 21 L1 12/12、L2 52/52、当前 backend Playwright 1/1、manifest 0/0；待 event commit/no-ff 后同 run affected-only。 | [事件卡](./05-workflow-change/REM-P1-060-change-doc-submit-idempotency/README.md) / [SPEC](./05-workflow-change/REM-P1-060-change-doc-submit-idempotency/SPEC.md) / [验证](./05-workflow-change/REM-P1-060-change-doc-submit-idempotency/VERIFICATION.md) / [Prompt](./05-workflow-change/REM-P1-060-change-doc-submit-idempotency/CLAUDE-CODE-PROMPT.md) |
+
 | `REM-P1-058` | P1 | 用户组活动名称唯一性 | L4 `RBAC-007` | `VERIFIED` | HIGH | trim-normalized create/update/restore/并发合同；L1 26/26、L2 114/114、当前 backend API/UI、日志与精确清理 PASS；待顺序合并后同 run affected-only。 | [事件卡](./02-account-organization/REM-P1-058-group-active-name-uniqueness/README.md) / [SPEC](./02-account-organization/REM-P1-058-group-active-name-uniqueness/SPEC.md) / [验证](./02-account-organization/REM-P1-058-group-active-name-uniqueness/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-058-group-active-name-uniqueness/CLAUDE-CODE-PROMPT.md) |
 
-| `REM-P1-059` | P1 | CMDB 与设备双向导航 | L4 `XL-CMDB-003` | `VERIFIED` | API 关联字段、CI→设备与设备→CI 真实路由；L1-L3 PASS，L2 保留 2 个既有异常类型断言差异，manifest 空；待事件提交、no-ff 合并后同 run affected-only。 | [事件卡](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/README.md) / [SPEC](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/SPEC.md) / [验证](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/VERIFICATION.md) / [Prompt](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/CLAUDE-CODE-PROMPT.md) |
+| `REM-P1-059` | P1 | CMDB 与设备双向导航 | L4 `XL-CMDB-003` | `VERIFIED` | API 关联字段、CI→设备与设备→CI 真实路由；L1-L3 PASS，event `1c46d1a04` 已 no-ff 合并为 `b5643946d`，同 run affected-only 已通过。 | [事件卡](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/README.md) / [SPEC](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/SPEC.md) / [验证](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/VERIFICATION.md) / [Prompt](./03-cmdb-device/REM-P1-059-cmdb-device-bidirectional-navigation/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-057` | P1 | Wiki 子页 owner group 继承 | L4 `WIKI-024` | `VERIFIED` | HIGH | 空组继承、显式/setgid 回归、Java 96/96、当前 backend、真实 allow/ancestor-deny/non-leak 与精确清理 L1-L3 PASS；待 event commit/no-ff 后同 run affected-only。 | [事件卡](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/README.md) / [SPEC](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/SPEC.md) / [验证](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/CLAUDE-CODE-PROMPT.md) |
 
@@ -46,7 +48,7 @@
 | `REM-P1-038` | P1 | Wiki 发布审批统一工作流绑定 | L4 `ST-WIKI-001` | `VERIFIED` | MEDIUM | 已切换至统一 runtime；用户批准 `wiki_page -> remp1038wiki`（superadmin 审批）为正式策略。L1-L3、Wiki content/comments/export 通过，合并后从新基线完整 L4 | [事件卡](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/README.md) / [SPEC](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/SPEC.md) / [验证](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-038-wiki-publish-workflow-binding/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P0-007` | P0 | 授权切换幂等性 | L4 `ST-AUTHZ-020` | `VERIFIED` | CRITICAL | 已 enforced 的重复 Enforce 现被服务/API/UI 拒绝且无状态写入；待提交并 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-007-authorization-cutover-idempotency/CLAUDE-CODE-PROMPT.md) |
-| `REM-P0-008` | P0 | 授权回退幂等性 | L4 `ST-AUTHZ-021` | `VERIFIED` | CRITICAL | 已 rollback 的重复 Rollback 现被服务/API 拒绝且无状态写入；L1-L3 和 Enforced 恢复回归通过，待 no-ff 合并后完整重置 L4 | [事件卡](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/CLAUDE-CODE-PROMPT.md) |
+| `REM-P0-008` | P0 | 授权回退幂等性 | L4 `ST-AUTHZ-021` | `VERIFIED` | CRITICAL | 已 rollback 的重复 Rollback 现被服务/API 拒绝且无状态写入；L1-L3 和 Enforced 恢复回归通过，event `3421524f9` 已 no-ff 合并为 `2615e8ffe`。 | [事件卡](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/README.md) / [SPEC](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/SPEC.md) / [验证](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-008-authorization-rollback-idempotency/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P0-006` | P0 | 迁移工作台 platform scope 拒绝合同 | L4 `AUTHZ-002` | `VERIFIED` | CRITICAL | 非 platform 已认证会话的四个迁移读取端点已统一 HTTP/body `403`；当前分支编译、容器和 Playwright API 复验通过，待 no-ff 合并后全量重置 L4 | [事件卡](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/README.md) / [SPEC](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/SPEC.md) / [验证](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/VERIFICATION.md) / [Prompt](./01-security-authorization/REM-P0-006-migration-platform-scope-forbidden/CLAUDE-CODE-PROMPT.md) |
 
@@ -174,7 +176,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 88 |
+| `VERIFIED` | 95 |
 | `READY` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |

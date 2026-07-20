@@ -354,7 +354,9 @@ public class ChangeDocService {
     public ChangeDocVO submit(SecurityUser user, Long id) {
         String tenantId = user.getTenantId();
         Long operatorId = user.getUserId();
-        ChangeDoc doc = requireAccessibleDoc(user, id);
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"draft".equals(doc.getStatus())) {
             throw new IllegalStateException("只有草稿状态的文档可以提交");
         }
@@ -412,7 +414,9 @@ public class ChangeDocService {
     public ChangeDocVO approve(SecurityUser user, Long id, String comment, boolean approved) {
         String tenantId = user.getTenantId();
         Long approverId = user.getUserId();
-        ChangeDoc doc = requireAccessibleDoc(user, id);
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"pending".equals(doc.getStatus())) {
             throw new IllegalStateException("只有待审批状态的文档可以审批");
         }
