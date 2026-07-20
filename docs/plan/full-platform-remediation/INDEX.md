@@ -6,12 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：94 个事件；其中 `CLOSED=4`、`VERIFIED=90`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
+- 事件库：95 个事件；其中 `CLOSED=4`、`VERIFIED=91`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-057` | P1 | Wiki 子页 owner group 继承 | L4 `WIKI-024` | `VERIFIED` | HIGH | 空组继承、显式/setgid 回归、Java 96/96、当前 backend、真实 allow/ancestor-deny/non-leak 与精确清理 L1-L3 PASS；待 event commit/no-ff 后同 run affected-only。 | [事件卡](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/README.md) / [SPEC](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/SPEC.md) / [验证](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/VERIFICATION.md) / [Prompt](./04-content-files/REM-P1-057-wiki-child-owner-group-inheritance/CLAUDE-CODE-PROMPT.md) |
 
 | `REM-P1-056` | P1 | CMDB 属性 canonical action guard | L4 `CMDB-014` | `VERIFIED` | LOW | canonical 四动作、逐项缺权、legacy-only、六种真实 UI 显隐、双容器与精确清理 L1-L3 PASS；待 event commit/no-ff 后同 run affected-only。 | [事件卡](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/README.md) / [SPEC](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/SPEC.md) / [验证](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/VERIFICATION.md) / [Prompt](./03-cmdb-assets/REM-P1-056-cmdb-attribute-canonical-action-guards/CLAUDE-CODE-PROMPT.md) |
 

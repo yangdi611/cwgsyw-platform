@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 94 个事件：4 个已关闭、90 个已验证、0 个进行中。最终 L4 在 `CMDB-014` 发现的 `cmdb_attribute:*` consumer 漂移已由独立 `REM-P1-056` 完成 L1-L3，正等待事件提交与 no-ff 合并后恢复同一 L4 run。已有同 run PASS 证据保持不变，正式 Wiki 审批策略保持不变。
+当前规划含 95 个事件：4 个已关闭、91 个已验证、0 个进行中。最终 L4 在 `WIKI-024` 发现子页 owner group 空值缺陷，独立 `REM-P1-057` 已完成 L1-L3，正等待事件提交与 no-ff 合并后恢复同一 L4 run。已有同 run PASS 证据保持不变，正式 Wiki 审批策略保持不变。
 
 ## 目录规则
 
