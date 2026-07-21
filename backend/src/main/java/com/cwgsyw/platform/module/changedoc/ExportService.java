@@ -65,6 +65,13 @@ public class ExportService {
     }
 
     public byte[] exportPdfDirect(ChangeDocVO doc, String tenantId) {
+        Long templateId = doc.getApplicationTemplateId() != null
+                ? doc.getApplicationTemplateId()
+                : doc.getPlanTemplateId();
+        return exportPdfDirect(doc, tenantId, templateId);
+    }
+
+    public byte[] exportPdfDirect(ChangeDocVO doc, String tenantId, Long templateId) {
         boolean wmEnabled = !"false".equals(configService.get(tenantId, "watermark.enabled"));
         String wmText    = configService.get(tenantId, "watermark.text");
         float  wmOpacity = parseFloat(configService.get(tenantId, "watermark.opacity"), 0.15f);
@@ -93,6 +100,7 @@ public class ExportService {
             addPdfField(pdf, "影响范围",     fieldOf(doc, "impact_scope"), labelFont, bodyFont);
             addPdfField(pdf, "变更时间窗口", fieldOf(doc, "change_window"), labelFont, bodyFont);
             addPdfField(pdf, "资源支持说明", fieldOf(doc, "resource_support"), labelFont, bodyFont);
+            addPdfField(pdf, "审批状态", approvalStatus(doc.getStatus()), labelFont, bodyFont);
             if ("approved".equals(doc.getStatus())) {
                 addPdfField(pdf, "审批人",   doc.getApproverName(), labelFont, bodyFont);
                 addPdfField(pdf, "审批时间", doc.getApprovedAt() != null ? doc.getApprovedAt().format(FMT) : "", labelFont, bodyFont);
@@ -111,6 +119,7 @@ public class ExportService {
             addPdfSection(pdf, "四、回滚计划",           fieldOf(doc, "rollback_plan"), headingFont, bodyFont);
             addPdfSection(pdf, "五、验证方法",           fieldOf(doc, "verify_method"), headingFont, bodyFont);
             addPdfSection(pdf, "六、相关人员联系方式",   fieldOf(doc, "contacts"), headingFont, bodyFont);
+            addPdfDynamicTables(pdf, doc, templateId, labelFont, bodyFont);
 
             pdf.close();
             byte[] pdfBytes = out.toByteArray();
@@ -135,6 +144,7 @@ public class ExportService {
         addField(xdoc, "影响范围",     fieldOf(doc, "impact_scope"));
         addField(xdoc, "变更时间窗口", fieldOf(doc, "change_window"));
         addField(xdoc, "资源支持说明", fieldOf(doc, "resource_support"));
+        addField(xdoc, "审批状态", approvalStatus(doc.getStatus()));
 
         if ("approved".equals(doc.getStatus())) {
             addField(xdoc, "审批人",   doc.getApproverName());
@@ -160,10 +170,61 @@ public class ExportService {
     }
 
     private void addDynamicTables(XWPFDocument xdoc, ChangeDocVO doc, Long templateId) {
-        List<FieldConfigVO> fields = templateId != null && templateId.equals(doc.getPlanTemplateId())
+        List<FieldConfigVO> fields = fieldsForTemplate(doc, templateId);
+        addDynamicTables(xdoc, fields, doc.getFieldsData());
+    }
+
+    private void addPdfDynamicTables(com.lowagie.text.Document pdf, ChangeDocVO doc, Long templateId,
+                                     com.lowagie.text.Font headingFont,
+                                     com.lowagie.text.Font bodyFont) throws DocumentException {
+        List<FieldConfigVO> fields = fieldsForTemplate(doc, templateId);
+        if (fields == null || doc.getFieldsData() == null) return;
+        for (FieldConfigVO field : fields) {
+            if (!isFixedDocxTable(field)) continue;
+            List<Map<String, Object>> columns = columns(field);
+            if (columns.isEmpty()) continue;
+            Paragraph heading = new Paragraph(
+                    (field.getLabel() == null || field.getLabel().isBlank() ? "表格" : field.getLabel()) + "：",
+                    headingFont);
+            heading.setSpacingBefore(10);
+            heading.setSpacingAfter(4);
+            pdf.add(heading);
+            PdfPTable table = new PdfPTable(columns.size());
+            table.setWidthPercentage(100);
+            for (Map<String, Object> column : columns) {
+                table.addCell(pdfTableCell(tableColumnLabel(column), headingFont));
+            }
+            for (LinkedHashMap<String, Object> row : tableRows(doc.getFieldsData().get(field.getFieldKey()))) {
+                for (Map<String, Object> column : columns) {
+                    table.addCell(pdfTableCell(
+                            tableCellValue(column, row.get(tableColumnKey(column))), bodyFont));
+                }
+            }
+            pdf.add(table);
+        }
+    }
+
+    private PdfPCell pdfTableCell(String value, com.lowagie.text.Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(value == null ? "" : stripHtml(value), font));
+        cell.setPadding(4);
+        return cell;
+    }
+
+    private List<FieldConfigVO> fieldsForTemplate(ChangeDocVO doc, Long templateId) {
+        return templateId != null && templateId.equals(doc.getPlanTemplateId())
                 ? doc.getPlanFieldConfig()
                 : doc.getApplicationFieldConfig();
-        addDynamicTables(xdoc, fields, doc.getFieldsData());
+    }
+
+    private String approvalStatus(String status) {
+        if (status == null) return "";
+        return switch (status) {
+            case "draft" -> "草稿 (draft)";
+            case "pending" -> "待审批 (pending)";
+            case "approved" -> "审批通过 (approved)";
+            case "rejected" -> "已驳回 (rejected)";
+            default -> status;
+        };
     }
 
     private void addDynamicTables(XWPFDocument xdoc, List<FieldConfigVO> fields, Map<String, Object> fieldsData) {

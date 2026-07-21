@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-22T00:06:56+08:00",
+  "updatedAt": "2026-07-22T00:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_074_MERGED_NO_FF",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
-  "nextAction": "Create the same-run L4 continuation from the REM-P1-074 no-ff merge, retain unaffected current-run PASS evidence, revalidate complete XL-CMDB-006 only, then continue the remaining NOT_RUN cases.",
+  "phase": "EVENT_REMEDIATION",
+  "activeEvent": "REM-P1-075",
+  "activeBranch": "codex/rem-p1-075-change-export-approval-table-contract",
+  "activeRunId": "REM_P1_075_20260722",
+  "lastCompletedGate": "REM_P1_075_L1_L3_VERIFIED",
+  "nextEvent": "REM-P1-075",
+  "nextBranch": "codex/rem-p1-075-change-export-approval-table-contract",
+  "nextAction": "Run detect_changes, commit this event, no-ff merge into latest lint-fix, then same-run affected-only XL-EXPORT-002 revalidation.",
   "statusCounts": {
-    "total": 113,
+    "total": 114,
     "closed": 4,
-    "verified": 109,
+    "verified": 110,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -150,7 +150,8 @@
       "REM-P1-071",
       "REM-P1-072",
       "REM-P1-073",
-      "REM-P1-074"
+      "REM-P1-074",
+      "REM-P1-075"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -219,7 +220,8 @@
     "REM-P1-071",
     "REM-P1-072",
     "REM-P1-073",
-    "REM-P1-074"
+    "REM-P1-074",
+    "REM-P1-075"
   ],
   "eventGit": {
     "REM-P1-074": {
@@ -867,11 +869,23 @@
       "runId": "REM_P1_042_20260719",
       "eventCommit": "07a24f30936759816b3d44d3fea17d436f7172f9",
       "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-075": {
+      "branch": "codex/rem-p1-075-change-export-approval-table-contract",
+      "baselineCommit": "414037c2f19d85525bea1cfd6cf5bdcc33bba6ac",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-EXPORT-002-001",
+      "failureSnapshotCommit": "df18f988e",
+      "runId": "REM_P1_075_20260722",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "209ca9a9d415b829d9972bd01d59c1f7c1253c3e",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
     }
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-073-changedoc-unified-workflow",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
     "runId": "FQA_20260718_2050_remp1038",
     "eventScopedVerifiedRequired": 99,
     "failures": 1,
@@ -883,7 +897,7 @@
       "retainUnaffectedCurrentRunPass": true,
       "parallelReadOnlyOnly": true,
       "serializedWritesAndCleanup": true,
-      "approvedSourceCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9"
+      "approvedSourceCommit": "414037c2f19d85525bea1cfd6cf5bdcc33bba6ac"
     }
   },
   "blockers": [],

@@ -139,7 +139,7 @@ public class ChangeDocController {
             bytes = exportService.exportDocxFor(doc, user.getTenantId(), templateId);
             mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         } else {
-            bytes = exportService.exportPdfDirect(doc, user.getTenantId());
+            bytes = exportService.exportPdfDirect(doc, user.getTenantId(), templateId);
             mediaType = MediaType.APPLICATION_PDF;
         }
         HttpHeaders headers = new HttpHeaders();
