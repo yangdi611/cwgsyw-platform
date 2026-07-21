@@ -6,7 +6,7 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：106 个唯一事件；其中 `CLOSED=4`、`VERIFIED=102`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
+- 事件库：107 个唯一事件；其中 `CLOSED=4`、`VERIFIED=103`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
@@ -21,6 +21,7 @@
 | `REM-P1-065` | P1 | 流程绑定完整生命周期 | L4 `FLOW-010` | `VERIFIED` | CRITICAL | Java 21 定向 18/18、Workflow/Daily/Wiki 167/167、生产双构建、Flyway V79、真实 UI/API 与存量实例保护 1/1、权限/审计/软删及清理 0/0。 | [事件卡](./05-workflow-change/REM-P1-065-workflow-binding-lifecycle/README.md) |
 | `REM-P1-066` | P1 | CMDB 导入对话框异步关闭重置 | L4 `COMMON-010` | `VERIFIED` | LOW | lifecycle 代次隔离旧 preview/execute 回调；typecheck、lint、生产构建、专用 2/2 与原场景 1/1 PASS，产品写入 0。 | [事件卡](./08-cross-cutting-contracts/REM-P1-066-cmdb-import-dialog-async-reset/README.md) |
 | `REM-P1-067` | P1 | 日报整改清理孤儿流程一致性 | L4 `COMMON-012` | `VERIFIED` | MEDIUM | 存储 ID 与精确 businessKey 汇总 runtime/history 清理；Java、生产构建、专用 1/1 与零残留 PASS。 | [事件卡](./08-cross-cutting-contracts/REM-P1-067-daily-orphan-workflow-cleanup/README.md) |
+| `REM-P1-068` | P1 | CMDB 关联资源 UI 数据合同 | L4 `XL-CMDB-004/005` | `VERIFIED` | LOW | DTO 字段与真实详情路由对齐；typecheck、lint、生产构建、专用 UI 1/1、零写入/错误 PASS。 | [事件卡](./08-cross-cutting-contracts/REM-P1-068-cmdb-related-resource-ui-contract/README.md) |
 
 | `REM-P1-058` | P1 | 用户组活动名称唯一性 | L4 `RBAC-007` | `VERIFIED` | HIGH | trim-normalized create/update/restore/并发合同；L1 26/26、L2 114/114、当前 backend API/UI、日志与精确清理 PASS；待顺序合并后同 run affected-only。 | [事件卡](./02-account-organization/REM-P1-058-group-active-name-uniqueness/README.md) / [SPEC](./02-account-organization/REM-P1-058-group-active-name-uniqueness/SPEC.md) / [验证](./02-account-organization/REM-P1-058-group-active-name-uniqueness/VERIFICATION.md) / [Prompt](./02-account-organization/REM-P1-058-group-active-name-uniqueness/CLAUDE-CODE-PROMPT.md) |
 
