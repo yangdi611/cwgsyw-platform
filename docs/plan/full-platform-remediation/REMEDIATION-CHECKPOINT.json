@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T15:55:00+08:00",
+  "updatedAt": "2026-07-21T16:49:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "7c06b1a4b769ad272b08559d2094476312d11e6a",
+    "observedCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_070_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_071_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-070-method-security-functional-reason-code",
-  "nextAction": "Create the same-run L4 continuation from the REM-P1-070 merge, retain unaffected PASS through 79c1ffec, rerun RBAC-025/XL-RBAC-006, then continue the remaining authorization migration chain.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-071-cmdb-alert-remediation-cleanup",
+  "nextAction": "Create the same-run L4 continuation from the REM-P1-071 merge, retain unaffected PASS through ea40aaec, rerun complete CMDB-034/XL-CMDB-008 acceptance and cleanup, then continue remaining NOT_RUN cases.",
   "statusCounts": {
-    "total": 109,
+    "total": 110,
     "closed": 4,
-    "verified": 105,
+    "verified": 106,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -146,7 +146,8 @@
       "REM-P1-067",
       "REM-P1-068",
       "REM-P1-069",
-      "REM-P1-070"
+      "REM-P1-070",
+      "REM-P1-071"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -211,9 +212,22 @@
     "REM-P1-067",
     "REM-P1-068",
     "REM-P1-069",
-    "REM-P1-070"
+    "REM-P1-070",
+    "REM-P1-071"
   ],
   "eventGit": {
+    "REM-P1-071": {
+      "branch": "codex/rem-p1-071-cmdb-alert-remediation-cleanup",
+      "baselineCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CMDB-034-XL-CMDB-008-CLEANUP-001",
+      "failureSnapshotCommit": "ea40aaec",
+      "runId": "REM_P1_071_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "6156271eb",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
     "REM-P1-070": {
       "branch": "codex/rem-p1-070-method-security-functional-reason-code",
       "baselineCommit": "407f1abe14118156d21e4dd0d02d768a37fb73ed",
@@ -224,7 +238,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "4a605fab",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d"
     },
     "REM-P1-069": {
       "branch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
@@ -236,7 +250,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "fc258cbd",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "407f1abe14118156d21e4dd0d02d768a37fb73ed"
     },
     "REM-P1-068": {
       "branch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
