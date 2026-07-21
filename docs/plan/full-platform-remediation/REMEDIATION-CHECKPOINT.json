@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T09:25:00+08:00",
+  "updatedAt": "2026-07-21T15:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-067-daily-orphan-workflow-cleanup",
+  "phase": "REMEDIATION",
+  "activeEvent": "REM-P1-068",
+  "activeBranch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_067_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_068_L1_L3_VERIFIED",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-067-daily-orphan-workflow-cleanup",
-  "nextAction": "Retain same-run evidence through 48c78eaa, request authorization to terminate orphan instance 475a4859-82d5-11f1-9bb8-fe07cd4a258f, then revalidate COMMON-012 affected-only.",
+  "nextBranch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
+  "nextAction": "Commit REM-P1-068, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate XL-CMDB-004/005 affected-only.",
   "statusCounts": {
-    "total": 106,
+    "total": 107,
     "closed": 4,
-    "verified": 102,
+    "verified": 103,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -143,7 +143,8 @@
       "REM-P1-064",
       "REM-P1-065",
       "REM-P1-066",
-      "REM-P1-067"
+      "REM-P1-067",
+      "REM-P1-068"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -205,9 +206,21 @@
     "REM-P1-064",
     "REM-P1-065",
     "REM-P1-066",
-    "REM-P1-067"
+    "REM-P1-067",
+    "REM-P1-068"
   ],
   "eventGit": {
+    "REM-P1-068": {
+      "branch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
+      "baselineCommit": "7bbd9915",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-CMDB-004-005-UI-001",
+      "failureSnapshotCommit": "e57f8407",
+      "runId": "REM_P1_068_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "4349419d57aa2d44df13c73f95bb5fccede90edb"
+    },
     "REM-P1-067": {
       "branch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
       "baselineCommit": "4bd4ae56",

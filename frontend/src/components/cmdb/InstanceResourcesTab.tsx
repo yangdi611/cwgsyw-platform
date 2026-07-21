@@ -16,16 +16,21 @@ interface DeviceVO {
 }
 
 interface ChangeDocVO {
-  docId: number
+  id: number
+  changeNo: string
   title: string
   status: string
-  updatedAt: string
+  applicantName: string | null
+  impactLevel: string | null
+  linkCreatedAt: string | null
 }
 
 interface DailyReportVO {
-  reportId: number
-  date: string
-  authorName: string
+  id: number
+  reporterName: string
+  reportDate: string
+  status: string
+  completedItemsBrief: string | null
 }
 
 /* ------ Component ------ */
@@ -81,18 +86,20 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
       {/* 关联变更文档 */}
       <Section icon={<FileText className="h-4 w-4" />} title="关联变更文档" emptyMsg="暂无关联变更文档">
         {changeDocs.data?.map(d => (
-          <div key={d.docId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
+          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3 min-w-0">
               <FileText className="h-4 w-4 text-v2-muted shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{d.title}</p>
-                <p className="text-xs text-v2-muted">{new Date(d.updatedAt).toLocaleString('zh-CN')}</p>
+                <p className="text-xs text-v2-muted">
+                  {d.changeNo}{d.linkCreatedAt ? ` · ${new Date(d.linkCreatedAt).toLocaleString('zh-CN')}` : ''}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge variant="outline" className="text-xs">{d.status}</Badge>
               <Link
-                href={`/change-docs/${d.docId}`}
+                href={`/change-docs/${d.id}`}
                 className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
               >
                 查看 <ExternalLink className="h-3 w-3" />
@@ -105,16 +112,16 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
       {/* 关联运维日报 */}
       <Section icon={<Calendar className="h-4 w-4" />} title="关联运维日报" emptyMsg="暂无关联运维日报">
         {dailyReports.data?.map(d => (
-          <div key={d.reportId} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
+          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-v2-muted shrink-0" />
               <div>
-                <p className="text-sm font-medium">{d.date}</p>
-                <p className="text-xs text-v2-muted">{d.authorName}</p>
+                <p className="text-sm font-medium">{d.reportDate}</p>
+                <p className="text-xs text-v2-muted">{d.reporterName}</p>
               </div>
             </div>
             <Link
-              href={`/daily-reports/${d.reportId}`}
+              href={`/daily/${d.id}`}
               className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
             >
               查看 <ExternalLink className="h-3 w-3" />
