@@ -46,6 +46,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   const [preview, setPreview] = useState<CsvImportPreviewVO | null>(null)
   const [result, setResult] = useState<CsvImportResultVO | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const lifecycleRef = useRef(0)
 
   const reset = useCallback(() => {
     setStep(0); setFormat('csv'); setFile(null); setConflictStrategy('override'); setEncoding('UTF-8')
@@ -54,7 +55,11 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   }, [])
 
   const handleClose = (v: boolean) => {
-    if (!v) { onOpenChange(false); setTimeout(reset, 200) }
+    if (!v) {
+      lifecycleRef.current += 1
+      reset()
+      onOpenChange(false)
+    }
   }
 
   // Download template
@@ -75,6 +80,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   // Preview mutation
   const previewMutation = useMutation({
     mutationFn: async () => {
+      const lifecycle = lifecycleRef.current
       if (!file) throw new Error('请选择文件')
       const fd = new FormData()
       fd.append('file', file)
@@ -85,16 +91,17 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
         const res = await api.post('/cmdb/instances/import/json/preview', fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        return res.data.data as CsvImportPreviewVO
+        return { data: res.data.data as CsvImportPreviewVO, lifecycle }
       }
       fd.append('conflictStrategy', conflictStrategy)
       if (encoding) fd.append('encoding', encoding)
       const res = await api.post('/cmdb/instances/import/preview', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      return res.data.data as CsvImportPreviewVO
+      return { data: res.data.data as CsvImportPreviewVO, lifecycle }
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, lifecycle }) => {
+      if (lifecycle !== lifecycleRef.current) return
       setPreview(data)
       setBatchId(data.batchId)
       setStep(1)
@@ -105,12 +112,14 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
   // Execute mutation
   const executeMutation = useMutation({
     mutationFn: () => {
+      const lifecycle = lifecycleRef.current
       const url = format === 'json'
         ? '/cmdb/instances/import/json/execute'
         : '/cmdb/instances/import/execute'
-      return api.post(url, { batchId }).then(r => r.data.data as CsvImportResultVO)
+      return api.post(url, { batchId }).then(r => ({ data: r.data.data as CsvImportResultVO, lifecycle }))
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, lifecycle }) => {
+      if (lifecycle !== lifecycleRef.current) return
       setResult(data)
       setStep(2)
       if (data.failed > 0) toast.warning(`导入完成，${data.failed} 条失败`)

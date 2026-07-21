@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T05:00:00+08:00",
+  "updatedAt": "2026-07-21T08:45:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-065-workflow-binding-lifecycle",
+  "phase": "REMEDIATION",
+  "activeEvent": "REM-P1-066",
+  "activeBranch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_065_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_066_L1_L3_VERIFIED",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-065-workflow-binding-lifecycle",
-  "nextAction": "Create the L4 continuation from lint-fix@e82e0d7d, retain same-run evidence through 9dc80cd0, revalidate FLOW-010, then continue all remaining cases.",
+  "nextBranch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
+  "nextAction": "Commit REM-P1-066, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate COMMON-010 affected-only.",
   "statusCounts": {
-    "total": 104,
+    "total": 105,
     "closed": 4,
-    "verified": 100,
+    "verified": 101,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -141,7 +141,8 @@
       "REM-P1-062",
       "REM-P1-063",
       "REM-P1-064",
-      "REM-P1-065"
+      "REM-P1-065",
+      "REM-P1-066"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -201,9 +202,20 @@
     "REM-P1-062",
     "REM-P1-063",
     "REM-P1-064",
-    "REM-P1-065"
+    "REM-P1-065",
+    "REM-P1-066"
   ],
   "eventGit": {
+    "REM-P1-066": {
+      "branch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
+      "baselineCommit": "84e55ae93",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-010-001",
+      "failureSnapshotCommit": "de3b4e63f",
+      "runId": "REM_P1_066_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0
+    },
     "REM-P1-065": {
       "branch": "codex/rem-p1-065-workflow-binding-lifecycle",
       "baselineCommit": "02270f10e",
