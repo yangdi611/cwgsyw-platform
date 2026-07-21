@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T09:15:00+08:00",
+  "updatedAt": "2026-07-21T09:25:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "b870eebb0a3d625845fbf8a1b89d8afa819b86e5",
+    "observedCommit": "013ffec4496bc3a378f04b15caf83dba1d89ca22",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -16,14 +16,14 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "REMEDIATION",
-  "activeEvent": "REM-P1-067",
-  "activeBranch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
+  "phase": "FINAL_L4",
+  "activeEvent": null,
+  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-067-daily-orphan-workflow-cleanup",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_067_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM_P1_067_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
-  "nextAction": "Commit REM-P1-067, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate COMMON-012 affected-only after authorization for the existing orphan instance.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-067-daily-orphan-workflow-cleanup",
+  "nextAction": "Retain same-run evidence through 48c78eaa, request authorization to terminate orphan instance 475a4859-82d5-11f1-9bb8-fe07cd4a258f, then revalidate COMMON-012 affected-only.",
   "statusCounts": {
     "total": 106,
     "closed": 4,
@@ -217,7 +217,8 @@
       "runId": "REM_P1_067_20260721",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "4a4c51b45cffc7830eb331cb0b1de45a4d134971"
+      "eventCommit": "4a4c51b45cffc7830eb331cb0b1de45a4d134971",
+      "mergeCommit": "013ffec4496bc3a378f04b15caf83dba1d89ca22"
     },
     "REM-P1-066": {
       "branch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",

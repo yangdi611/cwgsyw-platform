@@ -15,3 +15,4 @@
 - 专用 Playwright 创建日报 `102`、提交生成流程、调用受限清理后日报 400 且相同 businessKey 的 running/finished 均为空；1/1 PASS，1.1 秒。
 - 新夹具产品 API 精确清理，`cleanupFailures=0`；未处理现存 `daily_report:57` 孤儿。
 - 事件实现与 L1-L3 证据提交：`4a4c51b45cffc7830eb331cb0b1de45a4d134971`。
+- `lint-fix` 顺序 no-ff 合并：`013ffec4496bc3a378f04b15caf83dba1d89ca22`。
