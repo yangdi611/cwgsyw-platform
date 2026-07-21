@@ -28,7 +28,7 @@ public class JsonImportController {
 
     /** multipart 文件预览。 */
     @PostMapping("/preview")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportPreviewVO> preview(@RequestParam("file") MultipartFile file,
                                           @RequestParam("model") String model,
                                           @RequestParam(value = "mode", defaultValue = "merge") String mode,
@@ -40,7 +40,7 @@ public class JsonImportController {
 
     /** raw body 预览（Content-Type: application/x-ndjson 或 application/json）。 */
     @PostMapping(value = "/preview-raw")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportPreviewVO> previewRaw(@RequestBody String content,
                                              @RequestParam("model") String model,
                                              @RequestParam(value = "mode", defaultValue = "merge") String mode,
@@ -50,7 +50,7 @@ public class JsonImportController {
     }
 
     @PostMapping("/execute")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportResultVO> execute(@Valid @RequestBody CsvImportExecuteRequest req,
                                          @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(jsonImportService.execute(req.getBatchId(), cu.getTenantId(), cu.getUserId()));

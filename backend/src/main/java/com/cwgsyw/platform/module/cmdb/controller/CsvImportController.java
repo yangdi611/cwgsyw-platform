@@ -26,7 +26,7 @@ public class CsvImportController {
     private final CsvImportService csvImportService;
 
     @GetMapping("/template")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public ResponseEntity<byte[]> downloadTemplate(@RequestParam String model,
                                                      @AuthenticationPrincipal SecurityUser cu) {
         String csv = csvImportService.generateTemplate(model, cu.getTenantId());
@@ -42,7 +42,7 @@ public class CsvImportController {
     }
 
     @PostMapping("/preview")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportPreviewVO> preview(@RequestParam("file") MultipartFile file,
                                           @RequestParam("model") String model,
                                           @RequestParam(value = "conflictStrategy", defaultValue = "override") String conflictStrategy,
@@ -53,21 +53,21 @@ public class CsvImportController {
     }
 
     @PostMapping("/execute")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportResultVO> execute(@Valid @RequestBody CsvImportExecuteRequest req,
                                          @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(csvImportService.execute(req.getBatchId(), cu.getTenantId(), cu.getUserId()));
     }
 
     @GetMapping("/{batchId}/progress")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public R<CsvImportProgressVO> getProgress(@PathVariable String batchId,
                                                 @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(csvImportService.getProgress(batchId));
     }
 
     @GetMapping("/{batchId}/failed-rows")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public ResponseEntity<byte[]> downloadFailedRows(@PathVariable String batchId,
                                                        @AuthenticationPrincipal SecurityUser cu) {
         byte[] csv = csvImportService.downloadFailedRows(batchId, cu.getTenantId());

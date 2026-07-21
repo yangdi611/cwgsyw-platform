@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { DetailDrawer } from '@/components/shared/DetailDrawer'
 import { Button } from '@/components/v2/Button'
 import { GitBranch, FileText, ArrowRight } from 'lucide-react'
+import { usePermission } from '@/hooks/usePermission'
 
 interface Props {
   instanceId: number | null
@@ -13,6 +14,7 @@ interface Props {
 
 export function CiInstanceDrawer({ instanceId, onClose }: Props) {
   const router = useRouter()
+  const { hasPermission } = usePermission()
 
   const { data: inst } = useQuery({
     queryKey: ['cmdb-instance-drawer', instanceId],
@@ -39,11 +41,13 @@ export function CiInstanceDrawer({ instanceId, onClose }: Props) {
       subtitle={inst && <span className="text-xs text-v2-muted font-mono">{inst.modelId}</span>}
       footer={inst && (
         <div className="flex items-center justify-end gap-2">
-          <Button variant="secondary" size="sm"
-            onClick={() => router.push(`/cmdb/topology/${inst.id}`)}>
-            <GitBranch className="h-4 w-4" />
-            查看拓扑
-          </Button>
+          {hasPermission('cmdb_topology', 'read') && (
+            <Button variant="secondary" size="sm"
+              onClick={() => router.push(`/cmdb/topology/${inst.id}`)}>
+              <GitBranch className="h-4 w-4" />
+              查看拓扑
+            </Button>
+          )}
           <Button variant="primary" size="sm"
             onClick={() => { router.push(`/cmdb/instances/by-model/${inst.modelId}/${inst.id}`); onClose() }}>
             <FileText className="h-4 w-4" />

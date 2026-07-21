@@ -291,14 +291,16 @@ export default function InstanceBrowserSection() {
           footer={
             selected ? (
               <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
-                >
-                  <GitBranch className="h-4 w-4" />
-                  查看拓扑
-                </Button>
+                {hasPermission('cmdb_topology', 'read') && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
+                  >
+                    <GitBranch className="h-4 w-4" />
+                    查看拓扑
+                  </Button>
+                )}
                 <Button
                   variant="primary"
                   size="sm"

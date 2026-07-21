@@ -67,12 +67,12 @@ export default function ImpactAnalysisPage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_instance', 'impact')) {
+    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_impact', 'read')) {
       router.replace('/')
     }
   }, [isHydrated, hasPermission, router])
 
-  const canAnalyze = isHydrated && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_instance', 'impact')
+  const canAnalyze = isHydrated && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_impact', 'read')
   const { data, isLoading, isError, error, refetch } = useQuery<ImpactResult, unknown>({
     queryKey: ['cmdb-impact', instanceId, direction, maxDepth],
     queryFn: async () => (await api.post(`/cmdb/instances/${instanceId}/impact`, {

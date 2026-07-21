@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-22T00:50:00+08:00",
+  "updatedAt": "2026-07-22T03:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "EVENT_REMEDIATION",
-  "activeEvent": "REM-P1-075",
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
-  "activeRunId": "REM_P1_075_20260722",
-  "lastCompletedGate": "REM_P1_075_L1_L3_VERIFIED",
-  "nextEvent": "REM-P1-075",
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
-  "nextAction": "Run detect_changes, commit this event, no-ff merge into latest lint-fix, then same-run affected-only XL-EXPORT-002 revalidation.",
+  "activeEvent": "REM-P1-076",
+  "activeBranch": "codex/rem-p1-076-cmdb-canonical-permission-consumers",
+  "activeRunId": "REM_P1_076_20260722",
+  "lastCompletedGate": "REM_P1_076_L1_L3_VERIFIED",
+  "nextEvent": "REM-P1-076",
+  "nextBranch": "codex/rem-p1-076-cmdb-canonical-permission-consumers",
+  "nextAction": "Run detect_changes, commit REM-P1-076, no-ff merge into latest lint-fix, then resume the same L4 run for affected RBAC-013 rows without resetting unaffected PASS evidence.",
   "statusCounts": {
-    "total": 114,
+    "total": 115,
     "closed": 4,
-    "verified": 110,
+    "verified": 111,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -151,7 +151,8 @@
       "REM-P1-072",
       "REM-P1-073",
       "REM-P1-074",
-      "REM-P1-075"
+      "REM-P1-075",
+      "REM-P1-076"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -221,7 +222,8 @@
     "REM-P1-072",
     "REM-P1-073",
     "REM-P1-074",
-    "REM-P1-075"
+    "REM-P1-075",
+    "REM-P1-076"
   ],
   "eventGit": {
     "REM-P1-074": {
@@ -881,13 +883,25 @@
       "cleanupFailures": 0,
       "eventCommit": "209ca9a9d415b829d9972bd01d59c1f7c1253c3e",
       "mergeCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425"
+    },
+    "REM-P1-076": {
+      "branch": "codex/rem-p1-076-cmdb-canonical-permission-consumers",
+      "baselineCommit": "920274e904f9d70b5b0938bb548b5d03606e8157",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-013-001",
+      "failureSnapshotCommit": "b8dbe90c906427f8ebf5861842a92817eefedcd4",
+      "runId": "REM_P1_076_20260722",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING_EVENT_COMMIT",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
     }
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
     "branch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
     "runId": "FQA_20260718_2050_remp1038",
-    "eventScopedVerifiedRequired": 99,
+    "eventScopedVerifiedRequired": 100,
     "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
@@ -902,6 +916,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-076 L1-L3 passed after RBAC-013 exposed four assignable canonical CMDB actions with legacy runtime consumers: Java 21 L1 3/3, CMDB L2 55/55, frontend typecheck/lint, production backend/frontend builds, current runtime API/UI Playwright 1/1, Console/pageerror/5xx 0/0/0 and manifest 0/0. Event commit/no-ff merge remain before same-run affected RBAC-013 revalidation; aggregate RBAC-013 still requires complete 99-action current-run evidence.",
     "REM-P1-074 L1-L3 passed: Java 21 command tests 11/11, CMDB module 76/76, final production backend image 0687ce22 healthy, and Playwright r5 1/1 proved status change/canonical diff/notification/UI/same-status silence/real batch 2/2 with per-instance notifications. Manifest objects and cleanupFailures are 0/0. Event commit 0364ee0e0cd12fdd1f7c16a695ee14184f83dc83 is entering the current no-ff merge; then revalidate only same-run XL-CMDB-006.",
     "L4 XL-CMDB-006 failed on current lint-fix@1f4e3138: a run-scoped CI online->offline update wrote canonical ci_change_record before/after but created zero notification_message rows. GitNexus confirms CiNotificationService.notifyStatusChange has zero upstream callers; all CI/model fixtures were product-cleaned. AUTHZ-014 passed 1/1 with cutover restored enforced and break-glass key/manifest zero. Exact totals: functional 270 PASS/0 FAIL/1 N/A/4 NOT_RUN; state 72 PASS/1 FAIL/1 N/A/4 NOT_RUN. Stop for independent REM-P1-074.",
     "Same-run CHANGE-020 passed 1/1 after REM-P1-073 event 8c5aa594 merged no-ff as 1f4e3138: exact unified task/link, real /workflow/todo navigation, legacy approve 409/no mutation, terminal callback with snapshot/audit/notification and product cleanup all passed. Document #299 runtime/history/mapping/active notification/document/snapshot and manifest are zero. Catalog namespace reconciliation moved the already-passed XL-EXPORT-004 from functional to state. Exact totals are functional 269 PASS/0 FAIL/1 N/A/5 NOT_RUN and state 72 PASS/0 FAIL/1 N/A/5 NOT_RUN.",

@@ -6,12 +6,14 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：114 个唯一事件；其中 `CLOSED=4`、`VERIFIED=110`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
+- 事件库：115 个唯一事件；其中 `CLOSED=4`、`VERIFIED=111`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
+
+| `REM-P1-076` | P1 | CMDB canonical 权限消费一致性 | L4 `RBAC-013` | `VERIFIED` | LOW | Java 21 L1 `3/3`、CMDB L2 `55/55`、当前 backend/frontend、真实 canonical allow/legacy 403 API/UI `1/1`、Console/5xx 与 manifest `0/0`；待提交/no-ff 后同 run affected-only。 | [事件卡](./03-cmdb-assets/REM-P1-076-cmdb-canonical-permission-consumers/README.md) |
 
 | `REM-P1-075` | P1 | 变更文档导出审批与表格合同 | L4 `XL-EXPORT-002` | `VERIFIED` | LOW | Java 21、当前 backend、真实统一审批、4 次 DOCX/PDF 下载、4 个归档文件、双模板隔离、403/UI 隐藏与 manifest 0/0 全部 PASS；待同 run affected-only。 | [事件卡](./05-workflow-change/REM-P1-075-change-export-approval-table-contract/README.md) |
 
@@ -192,7 +194,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 110 |
+| `VERIFIED` | 111 |
 | `READY` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |

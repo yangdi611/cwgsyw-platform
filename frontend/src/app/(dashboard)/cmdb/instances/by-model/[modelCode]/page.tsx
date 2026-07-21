@@ -173,7 +173,7 @@ export default function InstanceListPage() {
                 批量编辑（{selectedIds.length}）
               </Button>
             )}
-            {hasPermission('cmdb_instance', 'import') && (
+            {hasPermission('cmdb_import', 'execute') && (
               <Button variant="secondary" onClick={() => setCsvOpen(true)}>
                 <Upload className="h-4 w-4" />
                 导入 CSV

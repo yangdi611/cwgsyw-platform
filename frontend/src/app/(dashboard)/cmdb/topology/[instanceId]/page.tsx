@@ -48,7 +48,7 @@ export default function TopologyPage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
+    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_topology', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
   const { data, isLoading, isError } = useQuery<CiTopologyResult>({
@@ -61,7 +61,8 @@ export default function TopologyPage() {
         return { nodes: [], edges: [] }
       }
     },
-    enabled: typeof window !== 'undefined',
+    enabled: typeof window !== 'undefined' && isHydrated
+      && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_topology', 'read'),
   })
 
   const nodes = data?.nodes ?? []
