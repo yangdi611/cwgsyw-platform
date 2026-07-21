@@ -3,6 +3,9 @@ package com.cwgsyw.platform.module.cmdb;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.changedoc.ChangeDocCiLinkMapper;
+import com.cwgsyw.platform.module.cmdb.dto.instance.BatchUpdateInstanceRequest;
+import com.cwgsyw.platform.module.cmdb.dto.instance.BatchUpdateResultVO;
+import com.cwgsyw.platform.module.cmdb.dto.instance.UpdateInstanceRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiChangeRecord;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeMapper;
@@ -15,6 +18,7 @@ import com.cwgsyw.platform.module.cmdb.service.CiFieldSchemaValidator;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceCommandService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceQueryService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceUniquenessValidator;
+import com.cwgsyw.platform.module.cmdb.service.CiNotificationService;
 import com.cwgsyw.platform.module.device.DeviceMapper;
 import com.cwgsyw.platform.module.device.entity.Device;
 import com.cwgsyw.platform.module.daily.DailyReportMapper;
@@ -23,13 +27,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class CiInstanceCommandServiceTest {
@@ -45,6 +56,8 @@ class CiInstanceCommandServiceTest {
     @Mock private CiChangeRecordMapper ciChangeRecordMapper;
     @Mock private ObjectMapper objectMapper;
     @Mock private CiChangeService ciChangeService;
+    @Mock private CiNotificationService ciNotificationService;
+    @Mock private PlatformTransactionManager transactionManager;
     @Mock private CiFieldSchemaValidator schemaValidator;
     @Mock private CiInstanceUniquenessValidator uniquenessValidator;
     @Mock private CiInstanceQueryService ciInstanceQueryService;
@@ -56,13 +69,119 @@ class CiInstanceCommandServiceTest {
         instance.setTenantId("default");
         instance.setModelId("host");
         instance.setName("test-host");
+        instance.setStatus("online");
         instance.setIsDeleted(false);
         return instance;
     }
 
     @BeforeEach
     void setUp() {
-        when(ciInstanceMapper.findActiveByIdForUpdate(42L, "default")).thenReturn(activeInstance());
+        lenient().when(ciInstanceMapper.findActiveByIdForUpdate(42L, "default")).thenReturn(activeInstance());
+    }
+
+    @Test
+    void updateWithChangedStatusNotifiesExactlyOnce() {
+        CiInstance instance = activeInstance();
+        when(ciInstanceMapper.selectById(42L)).thenReturn(instance);
+        UpdateInstanceRequest request = new UpdateInstanceRequest();
+        request.setStatus("offline");
+
+        service.update(42L, request, "default", 1L);
+
+        InOrder order = inOrder(ciInstanceMapper, auditLogMapper, ciChangeRecordMapper, ciNotificationService);
+        order.verify(ciInstanceMapper).updateById(instance);
+        order.verify(auditLogMapper).insert(any(AuditLog.class));
+        ArgumentCaptor<CiChangeRecord> changeCaptor = ArgumentCaptor.forClass(CiChangeRecord.class);
+        order.verify(ciChangeRecordMapper).insert(changeCaptor.capture());
+        order.verify(ciNotificationService).notifyStatusChange(instance, "online", "offline", 1L);
+        assertThat(changeCaptor.getValue().getFieldChanges()).containsExactly(
+                Map.of("field", "status", "before", "online", "after", "offline"));
+    }
+
+    @Test
+    void updateWithoutStatusDoesNotNotify() {
+        CiInstance instance = activeInstance();
+        when(ciInstanceMapper.selectById(42L)).thenReturn(instance);
+        UpdateInstanceRequest request = new UpdateInstanceRequest();
+        request.setDescription("updated");
+
+        service.update(42L, request, "default", 1L);
+
+        assertThat(instance.getStatus()).isEqualTo("online");
+        verifyNoInteractions(ciNotificationService);
+    }
+
+    @Test
+    void updateWithSameStatusDoesNotNotify() {
+        CiInstance instance = activeInstance();
+        when(ciInstanceMapper.selectById(42L)).thenReturn(instance);
+        UpdateInstanceRequest request = new UpdateInstanceRequest();
+        request.setStatus("online");
+
+        service.update(42L, request, "default", 1L);
+
+        verify(ciNotificationService, never()).notifyStatusChange(any(), any(), any(), any());
+    }
+
+    @Test
+    void batchUpdateWithChangedStatusNotifiesEachInstanceExactlyOnce() {
+        CiInstance first = activeInstance();
+        CiInstance second = activeInstance();
+        second.setId(43L);
+        second.setName("test-host-2");
+        when(ciInstanceMapper.selectById(42L)).thenReturn(first);
+        when(ciInstanceMapper.selectById(43L)).thenReturn(second);
+        BatchUpdateInstanceRequest request = new BatchUpdateInstanceRequest();
+        request.setIds(List.of(42L, 43L));
+        request.setFields(Map.of("status", "offline"));
+
+        BatchUpdateResultVO result = service.batchUpdate(request, "default", 1L);
+
+        assertThat(result.getTotal()).isEqualTo(2);
+        assertThat(result.getSucceeded()).isEqualTo(2);
+        assertThat(result.getFailed()).isZero();
+        verify(ciNotificationService).notifyStatusChange(first, "online", "offline", 1L);
+        verify(ciNotificationService).notifyStatusChange(second, "online", "offline", 1L);
+        verifyNoMoreInteractions(ciNotificationService);
+    }
+
+    @Test
+    void batchUpdateRollsBackFailedNotificationAndReportsFailure() {
+        CiInstance instance = activeInstance();
+        when(ciInstanceMapper.selectById(42L)).thenReturn(instance);
+        doThrow(new IllegalStateException("notification failed"))
+                .when(ciNotificationService).notifyStatusChange(instance, "online", "offline", 1L);
+        BatchUpdateInstanceRequest request = new BatchUpdateInstanceRequest();
+        request.setIds(List.of(42L));
+        request.setFields(Map.of("status", "offline"));
+
+        BatchUpdateResultVO result = service.batchUpdate(request, "default", 1L);
+
+        assertThat(result.getTotal()).isOne();
+        assertThat(result.getSucceeded()).isZero();
+        assertThat(result.getFailed()).isOne();
+        assertThat(result.getFailures()).singleElement()
+                .extracting(BatchUpdateResultVO.FailItem::getError)
+                .isEqualTo("notification failed");
+        verify(transactionManager).rollback(any());
+        verify(transactionManager, never()).commit(any());
+    }
+
+    @Test
+    void updatePropagatesNotificationFailure() {
+        CiInstance instance = activeInstance();
+        when(ciInstanceMapper.selectById(42L)).thenReturn(instance);
+        UpdateInstanceRequest request = new UpdateInstanceRequest();
+        request.setStatus("offline");
+        doThrow(new IllegalStateException("notification failed"))
+                .when(ciNotificationService).notifyStatusChange(instance, "online", "offline", 1L);
+
+        assertThatThrownBy(() -> service.update(42L, request, "default", 1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("notification failed");
+
+        verify(ciInstanceQueryService, never()).getDetail(any(), any());
+        verify(ciChangeService, never()).invalidateStatsCache();
     }
 
     @Test

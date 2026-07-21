@@ -17,7 +17,9 @@ import com.cwgsyw.platform.module.daily.DailyReportMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -46,6 +48,8 @@ public class CiInstanceCommandService {
     // @Lazy no longer needed: CiChangeService now reads ci_change_record directly
     // (Issue #64 AC6) and no longer participates in any injection cycle with this service.
     private final CiChangeService ciChangeService;
+    private final CiNotificationService ciNotificationService;
+    private final PlatformTransactionManager transactionManager;
 
     private final CiFieldSchemaValidator schemaValidator;
     private final CiInstanceUniquenessValidator uniquenessValidator;
@@ -149,6 +153,7 @@ public class CiInstanceCommandService {
     @Transactional
     public CiInstanceDetailVO update(Long id, UpdateInstanceRequest req, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
+        String oldStatus = inst.getStatus();
         String before = snapshotInstance(inst);
         Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
 
@@ -173,6 +178,9 @@ public class CiInstanceCommandService {
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
         writeChangeRecord(tenantId, "update", id, inst.getModelId(), operatorId,
                 diffSnapshots(beforeSnap, buildChangeSnapshot(inst)));
+        if (!Objects.equals(oldStatus, inst.getStatus())) {
+            ciNotificationService.notifyStatusChange(inst, oldStatus, inst.getStatus(), operatorId);
+        }
         ciChangeService.invalidateStatsCache();
         return ciInstanceQueryService.getDetail(id, tenantId);
     }
@@ -184,6 +192,7 @@ public class CiInstanceCommandService {
      */
     public BatchUpdateResultVO batchUpdate(BatchUpdateInstanceRequest req, String tenantId, Long operatorId) {
         BatchUpdateResultVO result = new BatchUpdateResultVO();
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         List<Long> ids = req.getIds();
         Map<String, Object> fields = req.getFields();
         result.setTotal(ids.size());
@@ -202,7 +211,7 @@ public class CiInstanceCommandService {
                     }
                 }
                 if (!attrFields.isEmpty()) single.setFieldsData(attrFields);
-                update(id, single, tenantId, operatorId);
+                transaction.executeWithoutResult(status -> update(id, single, tenantId, operatorId));
                 result.setSucceeded(result.getSucceeded() + 1);
             } catch (Exception ex) {
                 result.setFailed(result.getFailed() + 1);

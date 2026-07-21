@@ -6,14 +6,15 @@
 ## 覆盖摘要
 
 - 缺陷台账：100 个 `BUG-FQA-*`，已实现 **100/100 唯一事件映射**。
-- 事件库：112 个唯一事件；其中 `CLOSED=4`、`VERIFIED=108`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
+- 事件库：113 个唯一事件；其中 `CLOSED=4`、`VERIFIED=109`、`VERIFYING=0`、`IN_PROGRESS=0`、`NOT_STARTED=0`。`REM-P1-034` 的两个历史目录共用同一事件 ID，不重复计数；`REM-P0-008` 已按可验证 event/no-ff merge 证据补录。
 - 新建计划：`REM-P1-006..030`（25 个）与 `REM-P2-001..014`（14 个）。
 - 详细对账见 [FQA-COVERAGE-MATRIX.md](./FQA-COVERAGE-MATRIX.md)；BLOCKED 解除条件见 [BLOCKED-READINESS-PLAN.md](./BLOCKED-READINESS-PLAN.md)。
 - Codex 顺序执行合同见 [CODEX-GOAL-PROMPT.md](./CODEX-GOAL-PROMPT.md)；中断后从 [REMEDIATION-CHECKPOINT.json](./REMEDIATION-CHECKPOINT.json) 恢复并用 Git 与事件证据复核。
 
 ## 当前队列
 
-| `REM-P1-073` | P1 | 变更文档接入统一工作流 | L4 `CHANGE-020` | `VERIFIED` | LOW（调用 HIGH binding 查询） | Java 21 L1 37/37、L2 124/124、共享回归 43/43、当前 backend 与真实 `/workflow/todo` 1/1、精确清理 0/0 通过；event `8c5aa594` 进入当前顺序 no-ff 合并，随后同 run affected-only。 | [事件卡](./05-workflow-change/REM-P1-073-changedoc-unified-workflow/README.md) |
+| `REM-P1-074` | P1 | CMDB 状态变更通知链 | L4 `XL-CMDB-006` | `VERIFIED` | LOW | Java 21 L1 11/11、CMDB 76/76、当前 backend、真实状态/change/通知/UI/batch 1/1、同状态静默与清理 0/0 PASS；待提交/no-ff。 | [事件卡](./03-cmdb-assets/REM-P1-074-cmdb-status-change-notification-chain/README.md) |
+| `REM-P1-073` | P1 | 变更文档接入统一工作流 | L4 `CHANGE-020` | `VERIFIED` | LOW（调用 HIGH binding 查询） | Java 21 L1 37/37、L2 124/124、共享回归 43/43、当前 backend 与真实 `/workflow/todo` 1/1、精确清理 0/0 通过；event `8c5aa594` no-ff 合并为 `1f4e3138`，同 run affected-only PASS。 | [事件卡](./05-workflow-change/REM-P1-073-changedoc-unified-workflow/README.md) |
 | `REM-P1-072` | P1 | CMDB CSV 导入失败行下载 | L4 `XL-EXPORT-004` | `VERIFIED` | LOW | batch tenant owner、失败结果 600 秒 TTL、Commons CSV 与公式注入防护；Java 21 5/5、生产 backend、真实 execute/download 1/1、清理 0/0 通过。 | [事件卡](./03-cmdb-assets/REM-P1-072-cmdb-import-failed-row-download/README.md) |
 | `REM-P1-071` | P1 | CMDB 告警整改测试精确清理 | L4 `CMDB-034` / `XL-CMDB-008` | `VERIFIED` | LOW（持久化清理边界） | platform/同租户/精确 runId 逻辑删除；Java 21、生产 backend、真实 Prometheus 同步、拒绝/审计/恢复与零残留 1/1 通过。 | [事件卡](./03-cmdb-assets/REM-P1-071-cmdb-alert-remediation-cleanup/README.md) |
 | `REM-P1-070` | P1 | 方法级功能权限拒绝 reason code | L4 `RBAC-025` / `XL-RBAC-006` | `VERIFIED` | LOW（全局安全边界） | filter/MVC 统一 reason code；Java 21 定向簇、生产 backend、真实撤销最后 assignment 1/1、清理 0 通过。 | [事件卡](./01-security-authorization/REM-P1-070-method-security-functional-reason-code/README.md) |
@@ -189,7 +190,7 @@ Codex Goal 的确定性顺序以 `REMEDIATION-CHECKPOINT.json` 的 `executionOrd
 | `NOT_STARTED` | 0 |
 | `IN_PROGRESS` | 0 |
 | `VERIFYING` | 0 |
-| `VERIFIED` | 108 |
+| `VERIFIED` | 109 |
 | `READY` | 0 |
 | `CLOSED` | 4 |
 | `BLOCKED / ROLLED_BACK / SUPERSEDED` | 0 |

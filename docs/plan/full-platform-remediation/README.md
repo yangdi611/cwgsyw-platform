@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 112 个唯一事件：4 个已关闭、108 个已验证。`REM-P1-073` 已完成 ChangeDoc 统一工作流的 L1-L3，event `8c5aa594` 正在顺序 no-ff 合并；随后恢复同 run `CHANGE-020` affected-only，已有 269 个功能 PASS 与 71 个状态 PASS 证据保持不变。
+当前规划含 113 个唯一事件：4 个已关闭、109 个已验证。`REM-P1-074` 已完成 Java 21、当前 backend、真实状态/change/通知/UI 和清理 L1-L3，待事件提交与 no-ff 合并后在同一 L4 run 仅重跑 `XL-CMDB-006`。当前 L4 为功能 270 PASS、状态 72 PASS / 1 FAIL，剩余 4+4 个 NOT_RUN。
 
 ## 目录规则
 
