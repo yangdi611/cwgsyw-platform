@@ -218,7 +218,8 @@
       "failureSnapshotCommit": "e57f8407",
       "runId": "REM_P1_068_20260721",
       "verification": "VERIFIED",
-      "cleanupFailures": 0
+      "cleanupFailures": 0,
+      "eventCommit": "4349419d57aa2d44df13c73f95bb5fccede90edb"
     },
     "REM-P1-067": {
       "branch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
