@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T16:49:00+08:00",
+  "updatedAt": "2026-07-21T18:40:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d",
+    "observedCommit": "ea1a653106b0ae31b41540b4e812e9d7eb1d0c6c",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_071_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_072_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-071-cmdb-alert-remediation-cleanup",
-  "nextAction": "Create the same-run L4 continuation from the REM-P1-071 merge, retain unaffected PASS through ea40aaec, rerun complete CMDB-034/XL-CMDB-008 acceptance and cleanup, then continue remaining NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-072-cmdb-import-failed-row-download",
+  "nextAction": "Create the same-run L4 continuation from the REM-P1-072 merge, retain unaffected current-run PASS evidence, rerun complete XL-EXPORT-004 acceptance and cleanup, then continue the remaining NOT_RUN cases.",
   "statusCounts": {
-    "total": 110,
+    "total": 111,
     "closed": 4,
-    "verified": 106,
+    "verified": 107,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -147,7 +147,8 @@
       "REM-P1-068",
       "REM-P1-069",
       "REM-P1-070",
-      "REM-P1-071"
+      "REM-P1-071",
+      "REM-P1-072"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -213,9 +214,22 @@
     "REM-P1-068",
     "REM-P1-069",
     "REM-P1-070",
-    "REM-P1-071"
+    "REM-P1-071",
+    "REM-P1-072"
   ],
   "eventGit": {
+    "REM-P1-072": {
+      "branch": "codex/rem-p1-072-cmdb-import-failed-row-download",
+      "baselineCommit": "ea1a653106b0ae31b41540b4e812e9d7eb1d0c6c",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-EXPORT-004-001",
+      "failureSnapshotCommit": "d43e8637",
+      "runId": "REM_P1_072_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "8f257338",
+      "mergeCommit": "CURRENT_NO_FF_MERGE"
+    },
     "REM-P1-071": {
       "branch": "codex/rem-p1-071-cmdb-alert-remediation-cleanup",
       "baselineCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d",
@@ -846,6 +860,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-072 event 8f257338 is merged no-ff by the current lint-fix merge after Java 21 CsvImportServiceTest 5/5, current backend package/Docker build/health and final real Playwright 1/1 passed. Resume same-run XL-EXPORT-004 affected-only without resetting unaffected PASS evidence; manifest remains 0/0.",
     "REM-P1-070 L1-L3 passed after RBAC-025/XL-RBAC-006 proved method-security HTTP 403 omitted FUNCTION_PERMISSION_DENIED: Java 21 security/authorization focused tests exited 0, production backend build/health and Flyway V79 passed, real old-session API 1/1 returned the exact reason code after final assignment removal, and all page/space/assignment/user/role fixtures were product-API cleaned. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-064 L1-L3 passed after CONFIG-003 proved notification config did not control the formal daily-report rule: Java 21 L1 51/51, affected cluster exit 0, production build/health, real UI/API and natural scheduler 1/1 plus 1/1, exact configuration restoration, and task/notification cleanup zero.",
     "REM-P1-063 L1-L3 passed after AI-003 expected provider failure returned 500: Java 21 14/14, production build/health, real UI/API 1/1, controlled 400/errorCode, no unhandled 5xx and exact restore.",
