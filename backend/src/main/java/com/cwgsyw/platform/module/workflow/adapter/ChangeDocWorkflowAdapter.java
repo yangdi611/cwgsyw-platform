@@ -48,6 +48,10 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
 
     @Override
     public BusinessWorkflowSummary buildSummary(String tenantId, String businessId, SecurityUser viewer) {
+        if (viewer == null || !viewer.getPermissions().contains("change_doc:read")) {
+            return BusinessWorkflowSummary.builder()
+                .available(false).businessType(BUSINESS_TYPE).businessId(businessId).build();
+        }
         ChangeDoc doc = changeDocService.getForWorkflow(tenantId, safeLong(businessId));
         if (doc == null) {
             return BusinessWorkflowSummary.builder()
@@ -72,7 +76,8 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
     @Override
     public boolean canApprove(String tenantId, String businessId, SecurityUser user) {
         if (user == null) return false;
-        return user.getPermissions().contains("change_doc:approve");
+        if (!user.getPermissions().contains("change_doc:approve")) return false;
+        return changeDocService.getForWorkflow(tenantId, safeLong(businessId)) != null;
     }
 
     @Override

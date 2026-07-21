@@ -18,6 +18,9 @@ public interface ProcessBindingService {
      */
     WorkflowProcessBinding getActiveBinding(String tenantId, String businessType);
 
+    /** 是否曾为该业务类型建立统一绑定（包括停用和软删除记录）。 */
+    boolean hasBindingHistory(String tenantId, String businessType);
+
     /** 绑定业务类型到指定流程定义版本，覆盖旧绑定并记录审计。 */
     WorkflowProcessBinding bind(String tenantId, String businessType, String processDefinitionId,
                                 Long templateInstanceId, Long operatorId, String remark);

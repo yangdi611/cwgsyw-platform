@@ -76,12 +76,12 @@ class WorkflowControllerCompatibilityTest {
     }
 
     @Test
-    void unifiedGroupEndpoints_keepDailyApprovalPermissionCompatibleWithLegacyEndpoints() throws Exception {
+    void unifiedGroupEndpointsUseWorkflowReadAndDelegateBusinessApprovalToAdapters() throws Exception {
         assertThat(WorkflowCenterController.class.getMethod("groupTasks", SecurityUser.class)
-            .getAnnotation(PreAuthorize.class).value()).isEqualTo("hasPermission('daily_report', 'approve')");
+            .getAnnotation(PreAuthorize.class).value()).isEqualTo("hasPermission('workflow', 'read')");
         assertThat(WorkflowCenterController.class.getMethod("complete", WorkflowCenterController.CompleteTaskRequest.class,
             SecurityUser.class).getAnnotation(PreAuthorize.class).value())
-            .isEqualTo("hasPermission('daily_report', 'approve')");
+            .isEqualTo("hasPermission('workflow', 'read')");
     }
 
     @Test

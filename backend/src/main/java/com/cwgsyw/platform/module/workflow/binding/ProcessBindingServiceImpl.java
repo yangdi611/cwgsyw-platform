@@ -80,6 +80,11 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
     }
 
     @Override
+    public boolean hasBindingHistory(String tenantId, String businessType) {
+        return bindingMapper.countIncludingDeleted(tenantId, businessType) > 0;
+    }
+
+    @Override
     @Transactional
     public WorkflowProcessBinding bind(String tenantId, String businessType, String processDefinitionId,
                                        Long templateInstanceId, Long operatorId, String remark) {

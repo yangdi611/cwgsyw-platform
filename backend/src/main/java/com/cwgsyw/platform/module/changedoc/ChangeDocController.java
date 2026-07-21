@@ -22,6 +22,7 @@ import java.util.List;
 @Validated
 public class ChangeDocController {
     private final ChangeDocService changeDocService;
+    private final ChangeDocWorkflowOrchestrator workflowOrchestrator;
     private final ExportService exportService;
     private final EmailTemplateService emailTemplateService;
 
@@ -60,13 +61,13 @@ public class ChangeDocController {
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasAuthority('change_doc:update')")
     public R<ChangeDocVO> submit(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.submit(user, id));
+        return R.ok(workflowOrchestrator.submit(user, id));
     }
 
     @PostMapping("/{id}/submit-plan")
     @PreAuthorize("hasAuthority('change_doc:update')")
     public R<ChangeDocVO> submitPlan(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.submitPlan(user, id));
+        return R.ok(workflowOrchestrator.submitPlan(user, id));
     }
 
     @PostMapping("/{id}/approve")
@@ -74,7 +75,7 @@ public class ChangeDocController {
     public R<ChangeDocVO> approve(@PathVariable Long id,
                                    @RequestBody ApproveRequest req,
                                    @AuthenticationPrincipal SecurityUser user) {
-        return R.ok(changeDocService.approve(user, id,
+        return R.ok(workflowOrchestrator.approve(user, id,
                 req.getComment(), Boolean.TRUE.equals(req.getApproved())));
     }
 
@@ -104,7 +105,7 @@ public class ChangeDocController {
     public R<Void> purgeRemediationTest(@PathVariable Long id,
                                         @RequestParam String remediationRunId,
                                         @AuthenticationPrincipal SecurityUser user) {
-        changeDocService.purgeRemediationTest(user, id, remediationRunId);
+        workflowOrchestrator.purgeRemediationTest(user, id, remediationRunId);
         return R.ok(null);
     }
 

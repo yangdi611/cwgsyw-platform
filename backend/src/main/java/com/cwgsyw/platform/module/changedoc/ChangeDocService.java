@@ -389,7 +389,9 @@ public class ChangeDocService {
     public ChangeDocVO submitPlan(SecurityUser user, Long id) {
         String tenantId = user.getTenantId();
         Long operatorId = user.getUserId();
-        ChangeDoc doc = requireAccessibleDoc(user, id);
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"plan_pending".equals(doc.getStatus())) {
             throw new IllegalStateException("只有待补填方案状态的文档可以提交方案");
         }
@@ -443,6 +445,15 @@ public class ChangeDocService {
         notifyApplicantOfApproval(doc, approved, comment);
 
         return toVO(doc);
+    }
+
+    public void lockPendingForWorkflowDecision(SecurityUser user, Long id) {
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(user.getTenantId(), id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
+        if (!"pending".equals(doc.getStatus())) {
+            throw new IllegalStateException("只有待审批状态的文档可以审批");
+        }
     }
 
     /** 审批通过后自动归档到共享文件库。归档失败不阻断审批，只记日志。 */
@@ -709,6 +720,19 @@ public class ChangeDocService {
         changeDocMapper.deleteById(id);
         writeAuditLog(tenantId, "purge_remediation_test", id, operatorId, beforeJson,
                 toJson(Map.of("remediationRunId", remediationRunId)), "清理 remediation 测试变更文档");
+    }
+
+    public void validateRemediationTest(SecurityUser user, Long id, String remediationRunId) {
+        if (!StringUtils.hasText(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        ChangeDoc doc = requireAccessibleDoc(user, id);
+        if ("approved".equals(doc.getStatus())) {
+            throw new IllegalStateException("已审批归档文档不支持 remediation 清理");
+        }
+        if (!containsRemediationRunId(toJson(doc), remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试变更文档");
+        }
     }
 
     private boolean containsRemediationRunId(String documentJson, String remediationRunId) {

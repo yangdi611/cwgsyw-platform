@@ -285,6 +285,15 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         return toSummaries(tasks, user);
     }
 
+    @Override
+    public boolean hasRunningBusinessProcess(String tenantId, String businessType, String businessId) {
+        return businessInstanceMapper.selectCount(new LambdaQueryWrapper<WorkflowBusinessInstance>()
+            .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+            .eq(WorkflowBusinessInstance::getBusinessType, businessType)
+            .eq(WorkflowBusinessInstance::getBusinessId, businessId)
+            .eq(WorkflowBusinessInstance::getStatus, "running")) > 0;
+    }
+
     /** 当前用户的候选组 token 集合：可审批范围内用户组 + 所有角色组 role_{code}。 */
     private List<String> candidateGroupTokens(SecurityUser user) {
         Set<String> tokens = new LinkedHashSet<>();
@@ -339,6 +348,36 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         instance.setResult("cancelled");
         instance.setEndedAt(LocalDateTime.now());
         businessInstanceMapper.updateById(instance);
+    }
+
+    @Override
+    @Transactional
+    public void purgeBusinessProcessForRemediation(String tenantId, String businessType, String businessId) {
+        String businessKey = businessType + ":" + businessId;
+        Set<String> processInstanceIds = new LinkedHashSet<>();
+        List<WorkflowBusinessInstance> mappings = businessInstanceMapper.selectList(
+            new LambdaQueryWrapper<WorkflowBusinessInstance>()
+                .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+                .eq(WorkflowBusinessInstance::getBusinessType, businessType)
+                .eq(WorkflowBusinessInstance::getBusinessId, businessId));
+        mappings.stream().map(WorkflowBusinessInstance::getProcessInstanceId)
+            .filter(java.util.Objects::nonNull).forEach(processInstanceIds::add);
+        runtimeService.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+
+        processInstanceIds.forEach(processInstanceId -> {
+            if (runtimeService.createProcessInstanceQuery()
+                    .processInstanceId(processInstanceId).singleResult() != null) {
+                runtimeService.deleteProcessInstance(processInstanceId, "remediation test cleanup");
+            }
+            if (historyService.createHistoricProcessInstanceQuery()
+                    .processInstanceId(processInstanceId).singleResult() != null) {
+                historyService.deleteHistoricProcessInstance(processInstanceId);
+            }
+        });
+        mappings.forEach(mapping -> businessInstanceMapper.deleteById(mapping.getId()));
     }
 
     // ── 辅助方法 ──────────────────────────────────────────────────────────
