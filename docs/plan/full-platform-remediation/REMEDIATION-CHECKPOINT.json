@@ -214,7 +214,8 @@
       "failureSnapshotCommit": "de3b4e63f",
       "runId": "REM_P1_066_20260721",
       "verification": "VERIFIED",
-      "cleanupFailures": 0
+      "cleanupFailures": 0,
+      "eventCommit": "850c6b6b95608e9fb8fe2e13cf9f9cc13005fa24"
     },
     "REM-P1-065": {
       "branch": "codex/rem-p1-065-workflow-binding-lifecycle",

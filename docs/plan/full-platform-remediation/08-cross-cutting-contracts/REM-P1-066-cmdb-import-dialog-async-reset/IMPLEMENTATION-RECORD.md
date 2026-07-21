@@ -16,3 +16,4 @@
 - 专用 Playwright 使用真实登录和当前页面、route mock preview/execute，覆盖两条关闭竞态和重新打开 reset；2/2 PASS。
 - 原 `COMMON-010` 组合场景在当前事件镜像通过 1/1（4.0 秒），证据 `/tmp/rem-p1-066-runtime-r3`。
 - 所有导入 mutation 都被 route mock 接管，未写产品数据；未执行 SQL、restore、purge、Redis/session 清理或外部系统操作。
+- 事件实现与 L1-L3 证据提交：`850c6b6b95608e9fb8fe2e13cf9f9cc13005fa24`。
