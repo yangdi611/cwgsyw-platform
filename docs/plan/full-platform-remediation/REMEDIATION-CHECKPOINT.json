@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T08:45:00+08:00",
+  "updatedAt": "2026-07-21T08:50:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "e82e0d7de878e7e235f42fdbb480ca9c5b6705ef",
+    "observedCommit": "b870eebb0a3d625845fbf8a1b89d8afa819b86e5",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -16,14 +16,14 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "REMEDIATION",
-  "activeEvent": "REM-P1-066",
-  "activeBranch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
+  "phase": "FINAL_L4",
+  "activeEvent": null,
+  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-066-cmdb-import-dialog-async-reset",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_066_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM_P1_066_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
-  "nextAction": "Commit REM-P1-066, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate COMMON-010 affected-only.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-066-cmdb-import-dialog-async-reset",
+  "nextAction": "Create the L4 continuation from lint-fix@b870eebb, retain same-run evidence through de3b4e63f, revalidate COMMON-010 affected-only, then continue all remaining cases.",
   "statusCounts": {
     "total": 105,
     "closed": 4,
@@ -215,7 +215,8 @@
       "runId": "REM_P1_066_20260721",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "850c6b6b95608e9fb8fe2e13cf9f9cc13005fa24"
+      "eventCommit": "850c6b6b95608e9fb8fe2e13cf9f9cc13005fa24",
+      "mergeCommit": "b870eebb0a3d625845fbf8a1b89d8afa819b86e5"
     },
     "REM-P1-065": {
       "branch": "codex/rem-p1-065-workflow-binding-lifecycle",
