@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T23:05:00+08:00",
+  "updatedAt": "2026-07-22T00:06:56+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -20,14 +20,14 @@
   "activeEvent": null,
   "activeBranch": "lint-fix",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_073_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_074_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-073-changedoc-unified-workflow",
-  "nextAction": "Create the same-run L4 continuation from the REM-P1-073 merge, retain unaffected current-run PASS evidence, rerun complete CHANGE-020 acceptance and cleanup, then continue the remaining NOT_RUN cases.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
+  "nextAction": "Create the same-run L4 continuation from the REM-P1-074 no-ff merge, retain unaffected current-run PASS evidence, revalidate complete XL-CMDB-006 only, then continue the remaining NOT_RUN cases.",
   "statusCounts": {
-    "total": 112,
+    "total": 113,
     "closed": 4,
-    "verified": 108,
+    "verified": 109,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -149,7 +149,8 @@
       "REM-P1-070",
       "REM-P1-071",
       "REM-P1-072",
-      "REM-P1-073"
+      "REM-P1-073",
+      "REM-P1-074"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -217,9 +218,22 @@
     "REM-P1-070",
     "REM-P1-071",
     "REM-P1-072",
-    "REM-P1-073"
+    "REM-P1-073",
+    "REM-P1-074"
   ],
   "eventGit": {
+    "REM-P1-074": {
+      "branch": "codex/rem-p1-074-cmdb-status-change-notification-chain",
+      "baselineCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-CMDB-006-001",
+      "failureSnapshotCommit": "caaa5da38623839724f09fbb6e269c80840fbe1c",
+      "runId": "REM_P1_074_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "0364ee0e0cd12fdd1f7c16a695ee14184f83dc83",
+      "mergeCommit": "CURRENT_NO_FF_MERGE"
+    },
     "REM-P1-073": {
       "branch": "codex/rem-p1-073-changedoc-unified-workflow",
       "baselineCommit": "a82119cd441f4a256100a23a7ba1afe183695f45",
@@ -230,7 +244,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "8c5aa59495843e3d344f5e1b9ae6120ffd238055",
-      "mergeCommit": "CURRENT_NO_FF_MERGE"
+      "mergeCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9"
     },
     "REM-P1-072": {
       "branch": "codex/rem-p1-072-cmdb-import-failed-row-download",
@@ -857,7 +871,7 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-072-cmdb-import-failed-row-download",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-073-changedoc-unified-workflow",
     "runId": "FQA_20260718_2050_remp1038",
     "eventScopedVerifiedRequired": 99,
     "failures": 1,
@@ -869,11 +883,14 @@
       "retainUnaffectedCurrentRunPass": true,
       "parallelReadOnlyOnly": true,
       "serializedWritesAndCleanup": true,
-      "approvedSourceCommit": "a82119cd441f4a256100a23a7ba1afe183695f45"
+      "approvedSourceCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9"
     }
   },
   "blockers": [],
   "notes": [
+    "REM-P1-074 L1-L3 passed: Java 21 command tests 11/11, CMDB module 76/76, final production backend image 0687ce22 healthy, and Playwright r5 1/1 proved status change/canonical diff/notification/UI/same-status silence/real batch 2/2 with per-instance notifications. Manifest objects and cleanupFailures are 0/0. Event commit 0364ee0e0cd12fdd1f7c16a695ee14184f83dc83 is entering the current no-ff merge; then revalidate only same-run XL-CMDB-006.",
+    "L4 XL-CMDB-006 failed on current lint-fix@1f4e3138: a run-scoped CI online->offline update wrote canonical ci_change_record before/after but created zero notification_message rows. GitNexus confirms CiNotificationService.notifyStatusChange has zero upstream callers; all CI/model fixtures were product-cleaned. AUTHZ-014 passed 1/1 with cutover restored enforced and break-glass key/manifest zero. Exact totals: functional 270 PASS/0 FAIL/1 N/A/4 NOT_RUN; state 72 PASS/1 FAIL/1 N/A/4 NOT_RUN. Stop for independent REM-P1-074.",
+    "Same-run CHANGE-020 passed 1/1 after REM-P1-073 event 8c5aa594 merged no-ff as 1f4e3138: exact unified task/link, real /workflow/todo navigation, legacy approve 409/no mutation, terminal callback with snapshot/audit/notification and product cleanup all passed. Document #299 runtime/history/mapping/active notification/document/snapshot and manifest are zero. Catalog namespace reconciliation moved the already-passed XL-EXPORT-004 from functional to state. Exact totals are functional 269 PASS/0 FAIL/1 N/A/5 NOT_RUN and state 72 PASS/0 FAIL/1 N/A/5 NOT_RUN.",
     "REM-P1-073 L1-L3 passed after same-run CHANGE-020 found that pending ChangeDoc submissions did not start the enabled unified workflow: Java 21 L1 37/37, Changedoc/Workflow L2 124/124, Daily/Wiki/binding regression 43/43, production backend build/health and real /workflow/todo Playwright 1/1 passed. Document #298 runtime/history/mapping/active notification/active document/snapshot and event manifest are zero. Event commit/no-ff merge remain before same-run CHANGE-020 affected-only revalidation; the historical L4 FAIL remains open.",
     "CHANGE-020 failed in the same L4 run at snapshot 231bc59b0b1117b227f5173c271c5227b813ca90: complete application+plan submission returned pending but unified workflow tasks contained no change_doc task. All fixtures and manifest were product-cleaned to 0/0. Functional totals remain 269 PASS/1 FAIL/1 N/A/4 NOT_RUN; state totals remain 71 PASS/0 FAIL/1 N/A/6 NOT_RUN.",
     "REM-P1-072 event 8f257338 is merged no-ff by the current lint-fix merge after Java 21 CsvImportServiceTest 5/5, current backend package/Docker build/health and final real Playwright 1/1 passed. Resume same-run XL-EXPORT-004 affected-only without resetting unaffected PASS evidence; manifest remains 0/0.",
