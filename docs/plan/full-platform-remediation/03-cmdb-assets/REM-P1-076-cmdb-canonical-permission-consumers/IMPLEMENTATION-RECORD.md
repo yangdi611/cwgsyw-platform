@@ -19,3 +19,4 @@
 - r1 暴露测试清理按 keyword 未命中导入实例，实例/模型/模型组随后通过产品 API 精确删除，按 model 回读为 0；测试改为按 model 枚举后 r2-r4 每轮 manifest 均回到 0/0。未使用 SQL、restore、Redis 清理或非测试对象修改。
 - 提交前 GitNexus `detect_changes(all)` 聚合为 CRITICAL：26 个 changed symbols、18 个 affected processes，均为本 SPEC 明确覆盖的 import/impact/topology Controller 与前端入口执行流；没有发现范围外模块、迁移或数据合同。该聚合等级来自多个 consumer 流程汇总，逐符号编辑前 upstream impact 均为 LOW，L2/L3 已覆盖对应 API/UI 流程。
 - 事件提交：`75f57f93468a162fa7c1ec10a745630365231770`；正在以 `--no-ff` 合入 `lint-fix`，合并完成后恢复同一 L4 run。
+- no-ff merge：`ca3e7cb384aba51f28e125a713aaccffced1c078`；event commit 已验证为 `lint-fix` 祖先。

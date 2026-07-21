@@ -4,7 +4,7 @@
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "ea1a653106b0ae31b41540b4e812e9d7eb1d0c6c",
+    "observedCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -20,7 +20,7 @@
   "activeEvent": "L4-FQA_20260718_2050_remp1038",
   "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_076_EVENT_COMMITTED_ENTERING_NO_FF_MERGE",
+  "lastCompletedGate": "REM_P1_076_NO_FF_MERGED",
   "nextEvent": "L4-RBAC-013",
   "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
   "nextAction": "Complete this no-ff merge, merge the new lint-fix baseline into the same L4 continuation branch, then revalidate affected RBAC-013 rows and continue the remaining 99-action matrix without resetting unaffected PASS evidence.",
@@ -436,7 +436,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "ef3df211279fd9ae43b23b6fce91593872254023",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078"
     },
     "REM-P1-057": {
       "branch": "codex/rem-p1-057-wiki-child-owner-group-inheritance",
@@ -911,7 +911,7 @@
       "retainUnaffectedCurrentRunPass": true,
       "parallelReadOnlyOnly": true,
       "serializedWritesAndCleanup": true,
-      "approvedSourceCommit": "414037c2f19d85525bea1cfd6cf5bdcc33bba6ac"
+      "approvedSourceCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078"
     }
   },
   "blockers": [],
