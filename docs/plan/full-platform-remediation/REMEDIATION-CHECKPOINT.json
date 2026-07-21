@@ -216,7 +216,8 @@
       "failureSnapshotCommit": "48c78eaa",
       "runId": "REM_P1_067_20260721",
       "verification": "VERIFIED",
-      "cleanupFailures": 0
+      "cleanupFailures": 0,
+      "eventCommit": "4a4c51b45cffc7830eb331cb0b1de45a4d134971"
     },
     "REM-P1-066": {
       "branch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
