@@ -106,6 +106,39 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void nonPrimaryEffectiveGroupAndMatchingScopeAllowGroupModeRead() {
+        ResourceDescriptor resource = resource(8L, 9L, 4L, 0660, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "group", 4L)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of(3L, 4L));
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertTrue(decision.isAllowed());
+        assertEquals("group", decision.getResourceClass());
+        assertEquals(4L, decision.getMatchedScopeId());
+    }
+
+    @Test
+    void stalePrimaryGroupWithoutEffectiveMembershipCannotUseGroupMode() {
+        ResourceDescriptor resource = resource(8L, 9L, 3L, 0660, null);
+        when(resourceRepository.find("default", "wiki_page", 8L)).thenReturn(resource);
+        when(scopedPermissionMapper.findAssignments("default", 7L, "wiki:read"))
+            .thenReturn(List.of(new ScopedPermissionRow(20L, "tenant", null)));
+        when(membershipMapper.findEffectiveActiveBusinessGroupIds("default", 7L)).thenReturn(List.of());
+        when(resourceAclMapper.findAccessEntries("default", "wiki_page", 8L)).thenReturn(List.of());
+        when(resourceRepository.wikiPageSpaceId("default", 8L)).thenReturn(null);
+
+        AuthorizationDecision decision = service.decide(user, "wiki:read", "wiki_page", 8L, 4);
+
+        assertFalse(decision.isAllowed());
+        assertEquals("others", decision.getResourceClass());
+    }
+
+    @Test
     void nonOwnerGroupMembershipWithoutNamedAclFallsBackToOthersMode() {
         user = new SecurityUser(7L, "tester", "hash", "default", 4L, "tenant", Set.of("wiki:read"));
         ResourceDescriptor resource = resource(8L, 9L, 3L, 0004, null);

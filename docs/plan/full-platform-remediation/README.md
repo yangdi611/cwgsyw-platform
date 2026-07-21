@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 107 个唯一事件：4 个已关闭、103 个已验证。`REM-P1-068` 已修复 CMDB 关联资源 UI DTO 与路由合同，L1-L3 通过，等待顺序 no-ff 合并后恢复同 run `XL-CMDB-004/005` affected-only；已有同 run PASS 证据保持不变。
+当前规划含 108 个唯一事件：4 个已关闭、104 个已验证。`REM-P1-069` 已完成多组 owner-group mode 最小修复与 L1-L3，等待顺序 no-ff 合并后恢复同 run `XL-RBAC-002` affected-only；已有 PASS 证据保持不变。
 
 ## 目录规则
 

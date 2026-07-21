@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T15:15:00+08:00",
+  "updatedAt": "2026-07-21T15:32:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-068-cmdb-related-resource-ui-contract",
-  "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_068_MERGED_NO_FF",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-068-cmdb-related-resource-ui-contract",
-  "nextAction": "Retain same-run evidence through e57f8407, rerun the complete reversible CMDB/change/export chain on lint-fix@7c06b1a4, then continue remaining L4 cases.",
+  "phase": "EVENT_REMEDIATION",
+  "activeEvent": "REM-P1-069",
+  "activeBranch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
+  "activeRunId": "REM_P1_069_20260721",
+  "lastCompletedGate": "REM_P1_069_L1_L3_PASS",
+  "nextEvent": "REM-P1-069",
+  "nextBranch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
+  "nextAction": "Run detect_changes and documentation checks, commit REM-P1-069, merge no-ff to lint-fix, then resume the same L4 run with affected RBAC revalidation.",
   "statusCounts": {
-    "total": 107,
+    "total": 108,
     "closed": 4,
-    "verified": 103,
+    "verified": 104,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -144,7 +144,8 @@
       "REM-P1-065",
       "REM-P1-066",
       "REM-P1-067",
-      "REM-P1-068"
+      "REM-P1-068",
+      "REM-P1-069"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -207,9 +208,22 @@
     "REM-P1-065",
     "REM-P1-066",
     "REM-P1-067",
-    "REM-P1-068"
+    "REM-P1-068",
+    "REM-P1-069"
   ],
   "eventGit": {
+    "REM-P1-069": {
+      "branch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
+      "baselineCommit": "962bd2344d13c6f062bf6f44d2615508af575f85",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-RBAC-002-001",
+      "failureSnapshotCommit": "bcdaaf57",
+      "runId": "REM_P1_069_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING",
+      "mergeCommit": "PENDING"
+    },
     "REM-P1-068": {
       "branch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
       "baselineCommit": "7bbd9915",
