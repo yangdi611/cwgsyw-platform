@@ -26,6 +26,7 @@ BLOCKED 不等于缺陷，也不能伪装成 PASS。本轮 52 个 BLOCKED 主用
 | `BR-008` | `NOTICE-003` 与通知 read lifecycle | mark-read/read-all 不可逆，缺 scoped 通知夹具 | 使用可删除 runId 通知或隔离账号；`REM-P1-005` 完成权限复验 | 测试数据 |
 | `BR-009` | `FLOW-010`、`CHANGE-020` | binding 只有 GET/POST，覆盖租户现有 binding 且无法恢复 | 新建独立 Workflow binding lifecycle 事件或提供 unbind/disable/restore 产品合同 | 产品生命周期 |
 | `BR-010` | `CONFIG-001..005`、`BACKUP-004` | 已获授权；隔离 SMTP/Prometheus 配置快照、运行时验证和恢复已由 `REM-P2-017` 证明 | 在最终 L4 执行其余配置/备份独占复验并恢复快照 | 外部/全局变更 |
+| `BR-071` | `CMDB-034`、`XL-CMDB-008` | Prometheus 告警此前缺少 runId 受限的产品清理入口；`REM-P1-071` 已完成 L1-L3 | no-ff 合并后在同 run 完成负责人确认、成员拒绝、实例导航、状态/审计读回及产品清理 0/0 | 产品生命周期 |
 
 ## 执行规则
 
