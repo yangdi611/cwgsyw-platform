@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T08:50:00+08:00",
+  "updatedAt": "2026-07-21T09:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -16,18 +16,18 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-066-cmdb-import-dialog-async-reset",
+  "phase": "REMEDIATION",
+  "activeEvent": "REM-P1-067",
+  "activeBranch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_066_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_067_L1_L3_VERIFIED",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-066-cmdb-import-dialog-async-reset",
-  "nextAction": "Create the L4 continuation from lint-fix@b870eebb, retain same-run evidence through de3b4e63f, revalidate COMMON-010 affected-only, then continue all remaining cases.",
+  "nextBranch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
+  "nextAction": "Commit REM-P1-067, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate COMMON-012 affected-only after authorization for the existing orphan instance.",
   "statusCounts": {
-    "total": 105,
+    "total": 106,
     "closed": 4,
-    "verified": 101,
+    "verified": 102,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -142,7 +142,8 @@
       "REM-P1-063",
       "REM-P1-064",
       "REM-P1-065",
-      "REM-P1-066"
+      "REM-P1-066",
+      "REM-P1-067"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -203,9 +204,20 @@
     "REM-P1-063",
     "REM-P1-064",
     "REM-P1-065",
-    "REM-P1-066"
+    "REM-P1-066",
+    "REM-P1-067"
   ],
   "eventGit": {
+    "REM-P1-067": {
+      "branch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
+      "baselineCommit": "4bd4ae56",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-012-001",
+      "failureSnapshotCommit": "48c78eaa",
+      "runId": "REM_P1_067_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0
+    },
     "REM-P1-066": {
       "branch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
       "baselineCommit": "84e55ae93",
