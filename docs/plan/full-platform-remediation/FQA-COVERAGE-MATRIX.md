@@ -182,3 +182,4 @@
 | `L4-CONFIG-003-001`：通知配置未同步正式日报规则 | [`REM-P1-064`](./07-platform-integration/REM-P1-064-notification-config-ops-rule-sync/README.md) | `VERIFIED` | 配置与唯一正式规则事务同步；Java 21、真实 UI/API、自然 scheduler 模板通知、精确恢复和任务/通知清理 L1-L3 通过。 |
 | `L4-FLOW-010-001`：流程绑定缺少编辑、启停与删除生命周期 | [`REM-P1-065`](./05-workflow-change/REM-P1-065-workflow-binding-lifecycle/README.md) | `VERIFIED` | 软删除、无 legacy 回退、存量实例保护、重启用复验、审计与 UI/API 生命周期 L1-L3 通过；待同 run affected-only。 |
 | `L4-COMMON-010-001`：CMDB 导入对话框关闭后被旧异步回调污染 | [`REM-P1-066`](./08-cross-cutting-contracts/REM-P1-066-cmdb-import-dialog-async-reset/README.md) | `VERIFIED` | lifecycle 代次令关闭前 preview/execute 回调失效；重新打开同步 reset，专用 2/2、原组合场景 1/1、当前前端容器和产品零写入 L1-L3 通过。 |
+| `L4-COMMON-012-001`：整改日报已清理但相同 businessKey 运行流程残留并暴露死链接 | [`REM-P1-067`](./08-cross-cutting-contracts/REM-P1-067-daily-orphan-workflow-cleanup/README.md) | `VERIFIED` | 受限清理按存储 ID 与精确 businessKey 汇总 runtime/history；Java、当前 backend 专用 1/1、相同业务键零残留 L1-L3 通过。 |

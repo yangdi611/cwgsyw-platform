@@ -16,6 +16,7 @@ import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstanceMapper;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,9 +46,10 @@ class DailyReportRemediationCleanupTest {
     @Mock NotificationMapper notificationMapper;
     @Mock WorkflowBusinessInstanceMapper workflowBusinessInstanceMapper;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) RuntimeService runtimeService;
-    @Mock HistoryService historyService;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) HistoryService historyService;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
     @Mock ProcessInstance processInstance;
+    @Mock HistoricProcessInstance historicProcessInstance;
 
     @InjectMocks DailyReportService service;
 
@@ -84,6 +86,14 @@ class DailyReportRemediationCleanupTest {
         when(reportMapper.selectById(8L)).thenReturn(report);
         when(runtimeService.createProcessInstanceQuery().processInstanceId("pi-1").singleResult())
             .thenReturn(processInstance);
+        when(runtimeService.createProcessInstanceQuery().processInstanceBusinessKey("daily_report:8").list())
+            .thenReturn(List.of(processInstance));
+        when(processInstance.getId()).thenReturn("pi-1");
+        when(historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey("daily_report:8").list())
+            .thenReturn(List.of(historicProcessInstance));
+        when(historicProcessInstance.getId()).thenReturn("pi-1");
+        when(historyService.createHistoricProcessInstanceQuery().processInstanceId("pi-1").singleResult())
+            .thenReturn(historicProcessInstance);
         when(notificationMapper.selectList(any())).thenReturn(List.of(notification));
         when(workflowBusinessInstanceMapper.selectList(any())).thenReturn(List.of(businessInstance));
 
@@ -95,6 +105,31 @@ class DailyReportRemediationCleanupTest {
         verify(workflowBusinessInstanceMapper).deleteById(6L);
         verify(reportMapper).deleteById(8L);
         verify(auditLogMapper).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void purgeRemediationReport_cleansBusinessKeyProcessWhenStoredInstanceIdIsMissing() {
+        String runId = "REM_P1_067_x";
+        DailyReport report = report("test " + runId);
+        when(reportMapper.selectById(8L)).thenReturn(report);
+        when(runtimeService.createProcessInstanceQuery().processInstanceBusinessKey("daily_report:8").list())
+            .thenReturn(List.of(processInstance));
+        when(processInstance.getId()).thenReturn("orphan-pi");
+        when(runtimeService.createProcessInstanceQuery().processInstanceId("orphan-pi").singleResult())
+            .thenReturn(processInstance);
+        when(historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey("daily_report:8").list())
+            .thenReturn(List.of(historicProcessInstance));
+        when(historicProcessInstance.getId()).thenReturn("orphan-pi");
+        when(historyService.createHistoricProcessInstanceQuery().processInstanceId("orphan-pi").singleResult())
+            .thenReturn(historicProcessInstance);
+        when(notificationMapper.selectList(any())).thenReturn(List.of());
+        when(workflowBusinessInstanceMapper.selectList(any())).thenReturn(List.of());
+
+        service.purgeRemediationReport(8L, "default", 1L, "platform", runId);
+
+        verify(runtimeService).deleteProcessInstance("orphan-pi", "remediation test cleanup");
+        verify(historyService).deleteHistoricProcessInstance("orphan-pi");
+        verify(reportMapper).deleteById(8L);
     }
 
     @Test

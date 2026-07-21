@@ -215,13 +215,25 @@ public class DailyReportService {
             throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试日报");
         }
 
+        String businessKey = "daily_report:" + id;
+        Set<String> processInstanceIds = new LinkedHashSet<>();
         if (report.getProcessInstId() != null && !report.getProcessInstId().isBlank()) {
-            if (runtimeService.createProcessInstanceQuery()
-                .processInstanceId(report.getProcessInstId()).singleResult() != null) {
-                runtimeService.deleteProcessInstance(report.getProcessInstId(), "remediation test cleanup");
-            }
-            historyService.deleteHistoricProcessInstance(report.getProcessInstId());
+            processInstanceIds.add(report.getProcessInstId());
         }
+        runtimeService.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        processInstanceIds.forEach(processInstanceId -> {
+            if (runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult() != null) {
+                runtimeService.deleteProcessInstance(processInstanceId, "remediation test cleanup");
+            }
+            if (historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult() != null) {
+                historyService.deleteHistoricProcessInstance(processInstanceId);
+            }
+        });
 
         notificationMapper.selectList(new LambdaQueryWrapper<NotificationMessage>()
                 .eq(NotificationMessage::getTenantId, tenantId)
