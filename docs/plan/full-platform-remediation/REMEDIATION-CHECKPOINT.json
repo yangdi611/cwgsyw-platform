@@ -18,11 +18,11 @@
   },
   "phase": "EVENT_REMEDIATION",
   "activeEvent": "REM-P1-075",
-  "activeBranch": "codex/rem-p1-075-change-export-approval-table-contract",
+  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
   "activeRunId": "REM_P1_075_20260722",
   "lastCompletedGate": "REM_P1_075_L1_L3_VERIFIED",
   "nextEvent": "REM-P1-075",
-  "nextBranch": "codex/rem-p1-075-change-export-approval-table-contract",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
   "nextAction": "Run detect_changes, commit this event, no-ff merge into latest lint-fix, then same-run affected-only XL-EXPORT-002 revalidation.",
   "statusCounts": {
     "total": 114,
@@ -880,7 +880,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "209ca9a9d415b829d9972bd01d59c1f7c1253c3e",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425"
     }
   },
   "l4": {
