@@ -16,13 +16,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,7 @@ public class CsvImportService {
 
     private static final int BATCH_SIZE = 100;
     private static final long PROGRESS_TTL_SECONDS = 600; // 10 min
+    private static final long FAILED_ROWS_TTL_SECONDS = 600; // 10 min
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
     private final CiModelMapper ciModelMapper;
@@ -181,6 +185,9 @@ public class CsvImportService {
             redisTemplate.opsForValue().set(
                     "cmdb:import:preview:" + batchId, rowsJson,
                     PROGRESS_TTL_SECONDS, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(
+                    "cmdb:import:tenant:" + batchId, tenantId,
+                    PROGRESS_TTL_SECONDS, TimeUnit.SECONDS);
 
             CsvImportPreviewVO vo = new CsvImportPreviewVO();
             vo.setBatchId(batchId);
@@ -212,6 +219,10 @@ public class CsvImportService {
         if (previewJson == null) {
             throw new IllegalArgumentException("预览数据已过期，请重新上传");
         }
+        String batchTenantId = redisTemplate.opsForValue().get("cmdb:import:tenant:" + batchId);
+        if (!tenantId.equals(batchTenantId)) {
+            throw new IllegalArgumentException("无权执行该导入批次");
+        }
 
         List<Map<String, Object>> allRows;
         try {
@@ -241,8 +252,11 @@ public class CsvImportService {
             updateProgress(batchId, end, created, updated, skipped, failed);
         }
 
+        storeFailedRows(batchId, tenantId, failedRows);
+
         // Cleanup
         redisTemplate.delete("cmdb:import:preview:" + batchId);
+        redisTemplate.delete("cmdb:import:tenant:" + batchId);
         markProgressCompleted(batchId, created, updated, skipped, failed);
 
         long durationMs = System.currentTimeMillis() - startTime;
@@ -284,43 +298,83 @@ public class CsvImportService {
      * Download failed rows as CSV.
      */
     public byte[] downloadFailedRows(String batchId, String tenantId) {
-        String previewJson = redisTemplate.opsForValue().get("cmdb:import:preview:" + batchId);
-        // If preview is gone, try to reconstruct from audit log — for now just throw
-        if (previewJson == null) {
+        String failedRowsJson = redisTemplate.opsForValue().get("cmdb:import:failed:" + batchId);
+        if (failedRowsJson == null) {
             throw new IllegalArgumentException("导入数据已过期，无法下载失败行");
         }
-
         try {
-            List<Map<String, Object>> allRows = objectMapper.readValue(previewJson, new TypeReference<>() {});
-            List<CsvFailedRowVO> failedRows = new ArrayList<>();
-            int rowNum = 2;
-            for (Map<String, Object> row : allRows) {
-                // Re-validate to find failures — or retrieve from progress
-                rowNum++;
+            Map<String, Object> snapshot = objectMapper.readValue(
+                    failedRowsJson, new TypeReference<Map<String, Object>>() {});
+            if (!tenantId.equals(snapshot.get("tenantId"))) {
+                throw new IllegalArgumentException("无权下载该导入结果");
             }
-
-            // For simplicity, output the raw rows that have _action != skip
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            OutputStreamWriter writer = new OutputStreamWriter(baos);
-
-            if (!allRows.isEmpty()) {
-                Set<String> allKeys = new LinkedHashSet<>();
-                for (Map<String, Object> row : allRows) {
-                    allKeys.addAll(row.keySet());
-                }
-                allKeys.remove("_action");
-                allKeys.remove("_existingId");
-                allKeys.add("失败原因");
-
-                writer.write(String.join(",", allKeys) + "\n");
-            }
-            writer.flush();
-            return baos.toByteArray();
+            List<CsvFailedRowVO> failedRows = objectMapper.convertValue(
+                    snapshot.getOrDefault("failedRows", List.of()),
+                    new TypeReference<List<CsvFailedRowVO>>() {});
+            return buildFailedRowsCsv(failedRows);
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("生成失败行CSV出错: " + e.getMessage());
         }
+    }
+
+    private void storeFailedRows(String batchId, String tenantId, List<CsvFailedRowVO> failedRows) {
+        try {
+            Map<String, Object> snapshot = new LinkedHashMap<>();
+            snapshot.put("tenantId", tenantId);
+            snapshot.put("failedRows", failedRows);
+            redisTemplate.opsForValue().set(
+                    "cmdb:import:failed:" + batchId,
+                    objectMapper.writeValueAsString(snapshot),
+                    FAILED_ROWS_TTL_SECONDS, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("Failed to store CSV failed rows for batch {}", batchId, e);
+            throw new IllegalStateException("失败行结果保存失败");
+        }
+    }
+
+    private byte[] buildFailedRowsCsv(List<CsvFailedRowVO> failedRows) throws IOException {
+        LinkedHashSet<String> headers = new LinkedHashSet<>();
+        for (CsvFailedRowVO failedRow : failedRows) {
+            if (failedRow.getRowData() != null) {
+                headers.addAll(failedRow.getRowData().keySet());
+            }
+        }
+        headers.remove("_action");
+        headers.remove("_existingId");
+        headers.add("行号");
+        headers.add("失败原因");
+
+        StringWriter writer = new StringWriter();
+        try (CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT)) {
+            printer.printRecord(headers);
+            for (CsvFailedRowVO failedRow : failedRows) {
+                Map<String, Object> rowData = failedRow.getRowData() == null
+                        ? Map.of() : failedRow.getRowData();
+                List<String> values = new ArrayList<>();
+                for (String header : headers) {
+                    Object value = "行号".equals(header) ? failedRow.getRowNumber()
+                            : "失败原因".equals(header) ? failedRow.getReason() : rowData.get(header);
+                    values.add(csvCell(value));
+                }
+                printer.printRecord(values);
+            }
+        }
+        return writer.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String csvCell(Object value) {
+        if (value == null) return "";
+        String text = String.valueOf(value);
+        int firstVisible = 0;
+        while (firstVisible < text.length() && Character.isWhitespace(text.charAt(firstVisible))) {
+            firstVisible++;
+        }
+        if (firstVisible < text.length() && "=+-@".indexOf(text.charAt(firstVisible)) >= 0) {
+            text = "'" + text;
+        }
+        return text;
     }
 
     // ─── Batch Processing ──────────────────────────────────────────────────────
