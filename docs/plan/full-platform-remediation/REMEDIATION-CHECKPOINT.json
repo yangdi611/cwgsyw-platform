@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T15:35:00+08:00",
+  "updatedAt": "2026-07-21T15:52:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
+  "activeEvent": "REM-P1-070",
+  "activeBranch": "codex/rem-p1-070-method-security-functional-reason-code",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_069_MERGED_NO_FF",
+  "lastCompletedGate": "REM_P1_070_L1_L3_VERIFIED",
   "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-069-multi-group-owner-mode-authorization",
-  "nextAction": "Create the same-run L4 continuation from this merge, retain unaffected PASS through bcdaaf57, rerun the affected RBAC matrix, then continue the remaining authorization migration chain.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-070-method-security-functional-reason-code",
+  "nextAction": "Commit REM-P1-070, merge it no-ff into lint-fix, then create the same-run L4 continuation retaining unaffected PASS through 79c1ffec and rerun RBAC-025/XL-RBAC-006.",
   "statusCounts": {
-    "total": 108,
+    "total": 109,
     "closed": 4,
-    "verified": 104,
+    "verified": 105,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -145,7 +145,8 @@
       "REM-P1-066",
       "REM-P1-067",
       "REM-P1-068",
-      "REM-P1-069"
+      "REM-P1-069",
+      "REM-P1-070"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -209,9 +210,22 @@
     "REM-P1-066",
     "REM-P1-067",
     "REM-P1-068",
-    "REM-P1-069"
+    "REM-P1-069",
+    "REM-P1-070"
   ],
   "eventGit": {
+    "REM-P1-070": {
+      "branch": "codex/rem-p1-070-method-security-functional-reason-code",
+      "baselineCommit": "407f1abe14118156d21e4dd0d02d768a37fb73ed",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-025-XL-RBAC-006-001",
+      "failureSnapshotCommit": "79c1ffec",
+      "runId": "REM_P1_070_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "PENDING_EVENT_COMMIT",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
+    },
     "REM-P1-069": {
       "branch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
       "baselineCommit": "962bd2344d13c6f062bf6f44d2615508af575f85",
@@ -818,6 +832,7 @@
   },
   "blockers": [],
   "notes": [
+    "REM-P1-070 L1-L3 passed after RBAC-025/XL-RBAC-006 proved method-security HTTP 403 omitted FUNCTION_PERMISSION_DENIED: Java 21 security/authorization focused tests exited 0, production backend build/health and Flyway V79 passed, real old-session API 1/1 returned the exact reason code after final assignment removal, and all page/space/assignment/user/role fixtures were product-API cleaned. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-064 L1-L3 passed after CONFIG-003 proved notification config did not control the formal daily-report rule: Java 21 L1 51/51, affected cluster exit 0, production build/health, real UI/API and natural scheduler 1/1 plus 1/1, exact configuration restoration, and task/notification cleanup zero.",
     "REM-P1-063 L1-L3 passed after AI-003 expected provider failure returned 500: Java 21 14/14, production build/health, real UI/API 1/1, controlled 400/errorCode, no unhandled 5xx and exact restore.",
     "REM-P1-062 L1-L3 passed after AI-002 invalid URL/model failure: Java 21 3/3 and 12/12, production backend build/health, current API 1/1, and exact provider restoration with manifest zero.",
