@@ -460,16 +460,50 @@ public class ChangeDocService {
     private void archiveApprovedDoc(ChangeDoc doc, String tenantId, Long approverId, Long id) {
         try {
             ChangeDocVO vo = toVO(doc);
+            if (doc.getApplicationTemplateId() != null) {
+                vo.setApplicationFieldConfig(changeDocFieldMapper.findByTemplate(doc.getApplicationTemplateId()).stream()
+                        .map(field -> {
+                            FieldConfigVO config = new FieldConfigVO();
+                            config.setId(field.getId());
+                            config.setFieldKey(field.getFieldKey());
+                            config.setLabel(field.getLabel());
+                            config.setFieldType(field.getFieldType());
+                            config.setRequired(field.getRequired());
+                            config.setInForm(field.getInForm());
+                            config.setPlaceholder(field.getPlaceholder());
+                            config.setSortOrder(field.getSortOrder());
+                            config.setConfig(field.getConfig());
+                            return config;
+                        })
+                        .toList());
+            }
+            if (doc.getPlanTemplateId() != null) {
+                vo.setPlanFieldConfig(changeDocFieldMapper.findByTemplate(doc.getPlanTemplateId()).stream()
+                        .map(field -> {
+                            FieldConfigVO config = new FieldConfigVO();
+                            config.setId(field.getId());
+                            config.setFieldKey(field.getFieldKey());
+                            config.setLabel(field.getLabel());
+                            config.setFieldType(field.getFieldType());
+                            config.setRequired(field.getRequired());
+                            config.setInForm(field.getInForm());
+                            config.setPlaceholder(field.getPlaceholder());
+                            config.setSortOrder(field.getSortOrder());
+                            config.setConfig(field.getConfig());
+                            return config;
+                        })
+                        .toList());
+            }
             String changeNo = doc.getChangeNo();
             if (doc.getApplicationTemplateId() != null) {
                 byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getApplicationTemplateId());
-                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId, doc.getApplicationTemplateId());
                 sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
                         changeNo + "_申请单", "application");
             }
             if (doc.getPlanTemplateId() != null) {
                 byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getPlanTemplateId());
-                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId, doc.getPlanTemplateId());
                 sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
                         changeNo + "_方案", "plan");
             }

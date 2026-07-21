@@ -2,7 +2,9 @@ package com.cwgsyw.platform.module.changedoc;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.module.ai.AiGatewayService;
+import com.cwgsyw.platform.module.changedoc.dto.ChangeDocVO;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDoc;
+import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.notification.NotificationService;
@@ -14,11 +16,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -75,6 +80,31 @@ class ChangeDocApprovalNotificationTest {
     }
 
     @Test
+    void approvedArchiveExportsEachTemplateWithItsOwnFieldConfiguration() {
+        ChangeDoc doc = pendingDoc(85L, 20L);
+        doc.setChangeNo("REM-P1-075");
+        doc.setApplicationTemplateId(101L);
+        doc.setPlanTemplateId(202L);
+        when(changeDocMapper.selectById(85L)).thenReturn(doc);
+        when(changeDocMapper.selectForUpdate("default", 85L)).thenReturn(doc);
+        when(changeDocFieldMapper.findByTemplate(101L)).thenReturn(List.of(field(101L, "application_table")));
+        when(changeDocFieldMapper.findByTemplate(202L)).thenReturn(List.of(field(202L, "plan_table")));
+
+        service.approve(platformUser(), 85L, "approved", true);
+
+        ArgumentCaptor<ChangeDocVO> documents = ArgumentCaptor.forClass(ChangeDocVO.class);
+        ArgumentCaptor<Long> templateIds = ArgumentCaptor.forClass(Long.class);
+        verify(exportService, times(2)).exportPdfDirect(documents.capture(), eq("default"), templateIds.capture());
+        assertThat(templateIds.getAllValues()).containsExactly(101L, 202L);
+        assertThat(documents.getAllValues().get(0).getApplicationFieldConfig())
+                .extracting(config -> config.getFieldKey())
+                .containsExactly("application_table");
+        assertThat(documents.getAllValues().get(0).getPlanFieldConfig())
+                .extracting(config -> config.getFieldKey())
+                .containsExactly("plan_table");
+    }
+
+    @Test
     void workflowCompletionNotifiesOnlyForEffectiveTransition() {
         ChangeDoc doc = pendingDoc(83L, 19L);
         when(changeDocMapper.selectById(83L)).thenReturn(doc);
@@ -104,6 +134,14 @@ class ChangeDocApprovalNotificationTest {
         doc.setStatus("pending");
         doc.setApplicantId(applicantId);
         return doc;
+    }
+
+    private ChangeDocField field(Long templateId, String fieldKey) {
+        ChangeDocField field = new ChangeDocField();
+        field.setTemplateId(templateId);
+        field.setFieldKey(fieldKey);
+        field.setFieldType("fixedDocxTable");
+        return field;
     }
 
     private SecurityUser platformUser() {
