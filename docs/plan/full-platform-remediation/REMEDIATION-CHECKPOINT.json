@@ -270,7 +270,7 @@
       "verification": "VERIFIED",
       "cleanupFailures": 0,
       "eventCommit": "6156271eb",
-      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+      "mergeCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425"
     },
     "REM-P1-070": {
       "branch": "codex/rem-p1-070-method-security-functional-reason-code",
