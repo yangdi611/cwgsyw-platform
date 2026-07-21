@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
 import { GitBranch, GitCompare } from 'lucide-react'
+import { usePermission } from '@/hooks/usePermission'
 
 interface Props {
   id: string
@@ -16,9 +17,11 @@ interface Props {
  * its own data while mounted.
  */
 export function InstanceTopologyTab({ id }: Props) {
+  const { hasPermission, isHydrated } = usePermission()
   const { data: topoData, isLoading } = useQuery<{ nodes: TopologyNode[]; edges: TopologyEdge[] }>({
     queryKey: ['cmdb-topology', id],
     queryFn: () => api.get(`/cmdb/topology/${id}`, { params: { depth: 2 } }).then(r => r.data.data),
+    enabled: isHydrated && hasPermission('cmdb_topology', 'read'),
   })
 
   return (

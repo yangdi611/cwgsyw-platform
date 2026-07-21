@@ -79,7 +79,7 @@ export default function TopologyComparePage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
+    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_topology', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
   const compareQuery = useQuery<TopologyCompareVO>({
@@ -94,7 +94,8 @@ export default function TopologyComparePage() {
           },
         })
         .then(r => r.data.data),
-    enabled: compareNonce > 0 && !!fromTime && !!toTime,
+    enabled: compareNonce > 0 && !!fromTime && !!toTime && isHydrated
+      && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_topology', 'read'),
   })
 
   const graphInput = useMemo(() => {
