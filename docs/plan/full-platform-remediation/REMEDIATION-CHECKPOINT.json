@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T18:40:00+08:00",
+  "updatedAt": "2026-07-21T23:05:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
@@ -17,17 +17,17 @@
     "pushAuthorized": false
   },
   "phase": "FINAL_L4",
-  "activeEvent": null,
-  "activeBranch": "lint-fix",
+  "activeEvent": "REM-P1-073",
+  "activeBranch": "codex/rem-p1-073-changedoc-unified-workflow",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_072_MERGED_NO_FF",
-  "nextEvent": null,
-  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-072-cmdb-import-failed-row-download",
-  "nextAction": "Create the same-run L4 continuation from the REM-P1-072 merge, retain unaffected current-run PASS evidence, rerun complete XL-EXPORT-004 acceptance and cleanup, then continue the remaining NOT_RUN cases.",
+  "lastCompletedGate": "REM_P1_073_L1_L3_VERIFIED_PENDING_EVENT_COMMIT",
+  "nextEvent": "REM-P1-073",
+  "nextBranch": "codex/rem-p1-073-changedoc-unified-workflow",
+  "nextAction": "Run final diff/JSON/GitNexus detect_changes checks, commit REM-P1-073, merge it no-ff into lint-fix, then resume same-run CHANGE-020 affected-only without resetting unaffected PASS evidence.",
   "statusCounts": {
-    "total": 111,
+    "total": 112,
     "closed": 4,
-    "verified": 107,
+    "verified": 108,
     "verifying": 0,
     "inProgress": 0,
     "notStarted": 0,
@@ -148,7 +148,8 @@
       "REM-P1-069",
       "REM-P1-070",
       "REM-P1-071",
-      "REM-P1-072"
+      "REM-P1-072",
+      "REM-P1-073"
     ],
     "inProgress": [],
     "notStarted": [],
@@ -215,9 +216,22 @@
     "REM-P1-069",
     "REM-P1-070",
     "REM-P1-071",
-    "REM-P1-072"
+    "REM-P1-072",
+    "REM-P1-073"
   ],
   "eventGit": {
+    "REM-P1-073": {
+      "branch": "codex/rem-p1-073-changedoc-unified-workflow",
+      "baselineCommit": "a82119cd441f4a256100a23a7ba1afe183695f45",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-020-001",
+      "failureSnapshotCommit": "231bc59b0b1117b227f5173c271c5227b813ca90",
+      "runId": "REM_P1_073_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": null,
+      "mergeCommit": null
+    },
     "REM-P1-072": {
       "branch": "codex/rem-p1-072-cmdb-import-failed-row-download",
       "baselineCommit": "ea1a653106b0ae31b41540b4e812e9d7eb1d0c6c",
@@ -843,10 +857,10 @@
   },
   "l4": {
     "status": "STOPPED_FOR_REMEDIATION",
-    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-064-notification-config-ops-rule-sync",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-072-cmdb-import-failed-row-download",
     "runId": "FQA_20260718_2050_remp1038",
     "eventScopedVerifiedRequired": 99,
-    "failures": 5,
+    "failures": 1,
     "blocked": 0,
     "cleanupFailures": 0,
     "contract": {
@@ -855,11 +869,13 @@
       "retainUnaffectedCurrentRunPass": true,
       "parallelReadOnlyOnly": true,
       "serializedWritesAndCleanup": true,
-      "approvedSourceCommit": "a0706d92cdfe0be14418e74a2ad313176a526552"
+      "approvedSourceCommit": "a82119cd441f4a256100a23a7ba1afe183695f45"
     }
   },
   "blockers": [],
   "notes": [
+    "REM-P1-073 L1-L3 passed after same-run CHANGE-020 found that pending ChangeDoc submissions did not start the enabled unified workflow: Java 21 L1 37/37, Changedoc/Workflow L2 124/124, Daily/Wiki/binding regression 43/43, production backend build/health and real /workflow/todo Playwright 1/1 passed. Document #298 runtime/history/mapping/active notification/active document/snapshot and event manifest are zero. Event commit/no-ff merge remain before same-run CHANGE-020 affected-only revalidation; the historical L4 FAIL remains open.",
+    "CHANGE-020 failed in the same L4 run at snapshot 231bc59b0b1117b227f5173c271c5227b813ca90: complete application+plan submission returned pending but unified workflow tasks contained no change_doc task. All fixtures and manifest were product-cleaned to 0/0. Functional totals remain 269 PASS/1 FAIL/1 N/A/4 NOT_RUN; state totals remain 71 PASS/0 FAIL/1 N/A/6 NOT_RUN.",
     "REM-P1-072 event 8f257338 is merged no-ff by the current lint-fix merge after Java 21 CsvImportServiceTest 5/5, current backend package/Docker build/health and final real Playwright 1/1 passed. Resume same-run XL-EXPORT-004 affected-only without resetting unaffected PASS evidence; manifest remains 0/0.",
     "REM-P1-070 L1-L3 passed after RBAC-025/XL-RBAC-006 proved method-security HTTP 403 omitted FUNCTION_PERMISSION_DENIED: Java 21 security/authorization focused tests exited 0, production backend build/health and Flyway V79 passed, real old-session API 1/1 returned the exact reason code after final assignment removal, and all page/space/assignment/user/role fixtures were product-API cleaned. Event commit/no-ff merge remain before same-run affected revalidation.",
     "REM-P1-064 L1-L3 passed after CONFIG-003 proved notification config did not control the formal daily-report rule: Java 21 L1 51/51, affected cluster exit 0, production build/health, real UI/API and natural scheduler 1/1 plus 1/1, exact configuration restoration, and task/notification cleanup zero.",

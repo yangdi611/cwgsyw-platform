@@ -40,14 +40,14 @@ public class WorkflowCenterController {
 
     /** 组待办（含业务摘要）。 */
     @GetMapping("/tasks/group")
-    @PreAuthorize("hasPermission('daily_report', 'approve')")
+    @PreAuthorize("hasPermission('workflow', 'read')")
     public R<List<WorkflowTaskSummary>> groupTasks(@AuthenticationPrincipal SecurityUser cu) {
         return R.ok(runtimeFacade.listGroupTasks(cu));
     }
 
     /** 完成审批任务（权限门控由 facade 内 adapter.canApprove 复核）。 */
     @PostMapping("/tasks/complete")
-    @PreAuthorize("hasPermission('daily_report', 'approve')")
+    @PreAuthorize("hasPermission('workflow', 'read')")
     public R<Void> complete(@RequestBody CompleteTaskRequest req,
                             @AuthenticationPrincipal SecurityUser cu) {
         runtimeFacade.completeTask(WorkflowTaskCompleteCommand.builder()

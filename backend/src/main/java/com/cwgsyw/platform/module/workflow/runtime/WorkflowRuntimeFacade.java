@@ -34,7 +34,16 @@ public interface WorkflowRuntimeFacade {
     /** 当前用户所在组的待办任务（含业务摘要）。 */
     List<WorkflowTaskSummary> listGroupTasks(SecurityUser user);
 
+    /** 指定业务对象是否存在运行中的统一流程。 */
+    boolean hasRunningBusinessProcess(String tenantId, String businessType, String businessId);
+
     /** 取消业务流程（终止运行中实例并回写 cancelled）。 */
     void cancelBusinessProcess(String tenantId, String businessType, String businessId,
                                Long operatorId, String reason);
+
+    /**
+     * 精确清理 remediation 测试业务对象的 runtime/history 和映射。
+     * 调用方必须先完成业务对象 runId 归属校验。
+     */
+    void purgeBusinessProcessForRemediation(String tenantId, String businessType, String businessId);
 }
