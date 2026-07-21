@@ -118,7 +118,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public R<Void> handleAccessDenied(AccessDeniedException ex) {
-        return R.fail(403, "无权限");
+        return R.fail(403, "FUNCTION_PERMISSION_DENIED", "无权限");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

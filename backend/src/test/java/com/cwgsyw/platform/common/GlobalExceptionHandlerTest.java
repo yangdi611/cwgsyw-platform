@@ -3,6 +3,7 @@ package com.cwgsyw.platform.common;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.sql.SQLException;
@@ -78,5 +79,14 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(400, response.getCode());
         assertEquals("参数格式错误", response.getMessage());
+    }
+
+    @Test
+    void mapsMethodSecurityDenialToFunctionalPermissionReasonCode() {
+        R<Void> response = handler.handleAccessDenied(new AccessDeniedException("denied"));
+
+        assertEquals(403, response.getCode());
+        assertEquals("FUNCTION_PERMISSION_DENIED", response.getErrorCode());
+        assertEquals("无权限", response.getMessage());
     }
 }
