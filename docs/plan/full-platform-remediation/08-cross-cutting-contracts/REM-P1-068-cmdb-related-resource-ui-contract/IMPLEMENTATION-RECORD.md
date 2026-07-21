@@ -14,3 +14,4 @@
 - 专用 Playwright route-mock 真实详情页组件；首次补齐完整实例 DTO，第二次定位并 mock 虚拟实例的 reverse-defs 只读请求，最终 `1/1` 在 1.2 秒通过。
 - 产品写入 0，无 manifest 对象，无清理动作，Console/pageerror/5xx 为空。
 - 事件实现与 L1-L3 证据提交：`4349419d57aa2d44df13c73f95bb5fccede90edb`。
+- `lint-fix` 顺序 no-ff 合并：`7c06b1a4b769ad272b08559d2094476312d11e6a`。

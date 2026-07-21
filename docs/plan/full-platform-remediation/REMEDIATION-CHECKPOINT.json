@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T15:05:00+08:00",
+  "updatedAt": "2026-07-21T15:15:00+08:00",
   "sourceRunId": "FQA_20260712_0329_lintfix",
   "baseline": {
     "integrationBranch": "lint-fix",
-    "observedCommit": "013ffec4496bc3a378f04b15caf83dba1d89ca22",
+    "observedCommit": "7c06b1a4b769ad272b08559d2094476312d11e6a",
     "planningBaselineStatus": "COMMITTED",
     "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
   },
@@ -16,14 +16,14 @@
     "mergeStrategy": "--no-ff",
     "pushAuthorized": false
   },
-  "phase": "REMEDIATION",
-  "activeEvent": "REM-P1-068",
-  "activeBranch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
+  "phase": "FINAL_L4",
+  "activeEvent": null,
+  "activeBranch": "codex/fqa-final-l4-continuation-after-rem-p1-068-cmdb-related-resource-ui-contract",
   "activeRunId": "FQA_20260718_2050_remp1038",
-  "lastCompletedGate": "REM_P1_068_L1_L3_VERIFIED",
+  "lastCompletedGate": "REM_P1_068_MERGED_NO_FF",
   "nextEvent": null,
-  "nextBranch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
-  "nextAction": "Commit REM-P1-068, record the event hash, no-ff merge to lint-fix, then resume the same L4 run and revalidate XL-CMDB-004/005 affected-only.",
+  "nextBranch": "codex/fqa-final-l4-continuation-after-rem-p1-068-cmdb-related-resource-ui-contract",
+  "nextAction": "Retain same-run evidence through e57f8407, rerun the complete reversible CMDB/change/export chain on lint-fix@7c06b1a4, then continue remaining L4 cases.",
   "statusCounts": {
     "total": 107,
     "closed": 4,
@@ -219,7 +219,8 @@
       "runId": "REM_P1_068_20260721",
       "verification": "VERIFIED",
       "cleanupFailures": 0,
-      "eventCommit": "4349419d57aa2d44df13c73f95bb5fccede90edb"
+      "eventCommit": "4349419d57aa2d44df13c73f95bb5fccede90edb",
+      "mergeCommit": "7c06b1a4b769ad272b08559d2094476312d11e6a"
     },
     "REM-P1-067": {
       "branch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
