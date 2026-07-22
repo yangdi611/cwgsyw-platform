@@ -11,7 +11,7 @@
 5. 单事件执行时，把事件目录内的 `CLAUDE-CODE-PROMPT.md` 作为该任务的完整入口。
 6. 开始实现后持续更新 `IMPLEMENTATION-RECORD.md`，记录代码变更、GitNexus 影响、验证结果、回滚和遗留项。
 
-当前规划含 115 个唯一事件：4 个已关闭、111 个已验证。`REM-P1-076` 已完成 canonical CMDB permission consumers 的 Java 21、当前 backend/frontend、真实 API/UI 差分与精确清理 L1-L3，待事件提交与 no-ff 合并后在同一 L4 run 重验受影响 RBAC-013 行；RBAC-013 聚合仍需完整 99-action 当前 run 证据。当前 L4 保留既有无影响 PASS，不重置 runId。
+当前规划含 115 个唯一事件，均已 `CLOSED`。最终 L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`。其中六项高风险合同依据用户 2026-07-22 的手工验证确认记录为 `USER-VERIFIED PASS`；历史自动化失败、部分执行和跳过证据保持不变。
 
 ## 目录规则
 

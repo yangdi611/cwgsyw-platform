@@ -4,7 +4,7 @@
 |---|---|
 | 事件 ID | `REM-P1-060` |
 | 优先级 / 领域 | P1 / 流程与变更、共享文件生命周期 |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 来源 | L4 `FQA_20260718_2050_remp1038` / `CHANGE-019`、`ST-CHANGE-001`、`ST-CHANGE-004`、`CHANGE-013` |
 | 分支 | `codex/rem-p1-060-change-doc-submit-idempotency` |
 | 基线 | `lint-fix@a5482a775` |
@@ -18,3 +18,5 @@ L1-L3 已通过：Java 21 定向 12/12、Changedoc/Sharedfile 受影响测试 52
 日志中的中文下载文件名 `Content-Disposition` 警告是既有 Tomcat header 兼容性日志；下载断言、HTTP 状态、文件内容和清理均通过，未产生本事件未解释 5xx。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

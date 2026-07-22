@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-016` |
 | 优先级 | P1 |
 | 领域 | `07-platform-integration` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | Codex remediation goal |
 | 创建 / 更新 | 2026-07-15 |
@@ -42,3 +42,5 @@ IPAM、共享文件、运维等写路径缺失审计快照，CSV 导入还将非
 L1-L3 已通过：统一快照 JSON、脱敏与截断已接入 IPAM、CSV 导入、共享文件和运维规则；全局审计 API/UI 可受控展示快照。下一门禁：最终 L4 全量 FQA。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

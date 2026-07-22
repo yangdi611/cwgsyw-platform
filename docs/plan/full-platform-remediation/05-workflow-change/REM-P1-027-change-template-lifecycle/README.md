@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-027` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -36,3 +36,5 @@
 - 不重做 DOCX 解析
 
 当前进展：模板复制、引用保护删除、字段类型/default/sort 合同和管理 UI 已完成 L1-L3，等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

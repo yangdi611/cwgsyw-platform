@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-014` |
 | 优先级 | P1 |
 | 领域 | `03-cmdb-assets` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -40,3 +40,5 @@
 - 不改变 IPv6 支持范围
 
 结论：L1-L3 已通过。管理员必须选择业务归属组，组级用户固定本组；跨组列表、详情、利用率与写操作均拒绝且无泄露。CIDR 已规范化并串行化检查重叠，网关/DNS 与可分配地址遵循 IPv4 主机范围，released 地址复用不再触发 500。所有 runId 夹具已经产品 API 逆序清理。等待独立 L4 全平台复验后才可 `CLOSED`。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

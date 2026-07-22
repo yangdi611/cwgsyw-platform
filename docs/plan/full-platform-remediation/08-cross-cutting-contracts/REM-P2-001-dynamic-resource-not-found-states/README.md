@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-001` |
 | 优先级 | P2 |
 | 领域 | `08-cross-cutting-contracts` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `LOW` |
 | 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
@@ -41,3 +41,5 @@
 事件级 L1-L3 已通过；下一门禁为发布候选版全量 L4 复验。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

@@ -89,3 +89,5 @@ GitNexus 评估 `RoleAssignmentMapper.findEffectiveRoleIds` 为 `CRITICAL`：17 
 - [REVERIFICATION-REPORT.md](./REVERIFICATION-REPORT.md)：2026-07-13 独立复验结果、缺口和返修门禁。
 - [FINAL-SUMMARY-REPORT.md](./FINAL-SUMMARY-REPORT.md)：2026-07-14 第三轮核心修复复验、剩余关闭门禁与最终结论。
 - [整改总索引](../../INDEX.md)：所有事件状态和下一门禁。
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

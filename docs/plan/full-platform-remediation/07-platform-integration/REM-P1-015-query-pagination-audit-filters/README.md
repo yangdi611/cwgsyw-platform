@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-015` |
 | 优先级 | P1 |
 | 领域 | `07-platform-integration` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `MEDIUM` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -41,3 +41,5 @@ MyBatis-Plus 分页拦截缺失导致审计和通知返回全量且 total=0，�
 L1-L3 已通过：审计与通知分页返回准确 `total` 并严格限制 records；审计 action、操作人和关键词筛选已贯通 API/UI。当前分支构建的 backend/frontend 容器健康，真实会话 API 与页面路径复验通过；未创建测试数据，无需清理。下一门禁：等待全量 L4 FQA。
 
 文件导航：[SPEC](./SPEC.md) / [验证矩阵](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [执行 Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

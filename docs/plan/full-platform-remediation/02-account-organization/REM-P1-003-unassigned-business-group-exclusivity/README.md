@@ -20,3 +20,5 @@
 不修改 assignment 撤销、会话、组生命周期、数据迁移或存量混合状态的自动修复。
 
 详见 `SPEC.md`、`VERIFICATION.md`、`IMPLEMENTATION-RECORD.md` 与 `CLAUDE-CODE-PROMPT.md`。
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

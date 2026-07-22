@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-050` |
 | 优先级 | P1 |
 | 领域 | `06-ops-collaboration` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 分支 | `codex/rem-p1-050-ops-cross-group-assignee-candidates` |
 | 基线 | `lint-fix@dd447b55` |
@@ -18,3 +18,5 @@
 L1-L3 已通过：Java 21 受影响聚类 35/35、前后端生产构建、当前分支容器、候选 API 权限/最小字段、真实 UI 跨组选择与创建均 PASS；manifest、临时用户和角色均为零。下一门禁：完成 detect、事件提交和 no-ff 合并后，同 run 仅重验 `OPS-007`。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

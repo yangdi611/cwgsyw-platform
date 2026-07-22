@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-008` |
 | 优先级 | P1 |
 | 领域 | `03-cmdb-assets` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 / 2026-07-20 |
@@ -39,3 +39,5 @@
 - 不改变实例 fieldsData schema
 
 2026-07-20 最终 L4 发现重复 enum option ID 仍可保存，事件重新进入独立分支并补齐创建/更新唯一性与已用项删除保护。L1-L3 已重新通过，测试对象已精确清理；下一门禁为同一 L4 run 的 `CMDB-011` 受影响复验。文件：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [实施记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。
