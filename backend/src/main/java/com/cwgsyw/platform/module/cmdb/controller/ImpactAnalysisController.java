@@ -18,7 +18,7 @@ public class ImpactAnalysisController {
     private final ImpactAnalysisService impactAnalysisService;
 
     @PostMapping
-    @PreAuthorize("hasPermission('cmdb_instance', 'read') and hasPermission('cmdb_instance', 'impact')")
+    @PreAuthorize("hasPermission('cmdb_impact', 'read') and hasPermission('cmdb_instance', 'read')")
     public R<ImpactAnalysisResultVO> analyze(@PathVariable Long id,
                                               @RequestBody(required = false) ImpactAnalysisRequest req,
                                               @AuthenticationPrincipal SecurityUser cu) {

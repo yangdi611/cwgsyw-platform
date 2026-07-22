@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.config;
 
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.module.config.dto.NotificationConfigRequest;
+import com.cwgsyw.platform.module.config.dto.PrometheusConfigRequest;
 import com.cwgsyw.platform.module.config.dto.SmtpConfigRequest;
 import com.cwgsyw.platform.module.config.dto.WatermarkConfigRequest;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SysConfigController {
     private final SysConfigService configService;
+    private final NotificationConfigService notificationConfigService;
 
     /**
      * 流程绑定类配置项白名单 —— 通过通用根 PUT 写入。
@@ -48,10 +50,16 @@ public class SysConfigController {
     @PreAuthorize("hasPermission('workflow', 'configure')")
     public R<Void> updateGeneric(@AuthenticationPrincipal SecurityUser user,
                                   @RequestBody Map<String, Object> req) {
+        if (req == null || req.isEmpty()) {
+            throw new IllegalArgumentException("配置项不能为空");
+        }
         String tid = user.getTenantId();
         for (Map.Entry<String, Object> entry : req.entrySet()) {
             if (!PROCESS_BINDING_CONFIG_KEYS.contains(entry.getKey())) {
-                return R.fail("不支持的配置项: " + entry.getKey());
+                throw new IllegalArgumentException("不支持的配置项: " + entry.getKey());
+            }
+            if (entry.getValue() != null && !(entry.getValue() instanceof String)) {
+                throw new IllegalArgumentException("配置项值必须为字符串: " + entry.getKey());
             }
         }
         for (String key : PROCESS_BINDING_CONFIG_KEYS) {
@@ -66,7 +74,7 @@ public class SysConfigController {
     @PutMapping("/smtp")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateSmtp(@AuthenticationPrincipal SecurityUser user,
-                               @RequestBody SmtpConfigRequest req) {
+                               @jakarta.validation.Valid @RequestBody SmtpConfigRequest req) {
         String tid = user.getTenantId();
         if (req.getEnabled() != null)  configService.set(tid, "smtp.enabled",   String.valueOf(req.getEnabled()));
         if (req.getHost() != null)     configService.set(tid, "smtp.host",      req.getHost());
@@ -85,25 +93,54 @@ public class SysConfigController {
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateNotification(@AuthenticationPrincipal SecurityUser user,
                                        @RequestBody NotificationConfigRequest req) {
+        notificationConfigService.update(user, req);
+        return R.ok(null);
+    }
+
+    @PutMapping("/prometheus")
+    @PreAuthorize("hasAuthority('notification:manage')")
+    public R<Void> updatePrometheus(@AuthenticationPrincipal SecurityUser user,
+                                     @jakarta.validation.Valid @RequestBody PrometheusConfigRequest req) {
         String tid = user.getTenantId();
-        if (req.getReminderEnabled() != null)
-            configService.set(tid, "notify.reminder.enabled",  String.valueOf(req.getReminderEnabled()));
-        if (req.getReminderCron() != null)
-            configService.set(tid, "notify.reminder.cron",     req.getReminderCron());
-        if (req.getReminderTemplate() != null)
-            configService.set(tid, "notify.reminder.template", req.getReminderTemplate());
+        if (req.getEnabled() != null) {
+            configService.set(tid, "prometheus.enabled", String.valueOf(req.getEnabled()));
+        }
+        if (req.getUrl() != null) {
+            validatePrometheusUrl(req.getUrl());
+            configService.set(tid, "prometheus.url", req.getUrl().trim().replaceAll("/+$", ""));
+        }
+        if (req.getScrapeInterval() != null) {
+            configService.set(tid, "prometheus.scrape_interval", String.valueOf(req.getScrapeInterval()));
+        }
         return R.ok(null);
     }
 
     @PutMapping("/watermark")
     @PreAuthorize("hasAuthority('notification:manage')")
     public R<Void> updateWatermark(@AuthenticationPrincipal SecurityUser user,
-                                    @RequestBody WatermarkConfigRequest req) {
+                                    @jakarta.validation.Valid @RequestBody WatermarkConfigRequest req) {
         String tid = user.getTenantId();
         if (req.getText() != null)     configService.set(tid, "watermark.text",     req.getText());
         if (req.getOpacity() != null)  configService.set(tid, "watermark.opacity",  String.valueOf(req.getOpacity()));
+        if (req.getAngle() != null)    configService.set(tid, "watermark.angle",    String.valueOf(req.getAngle()));
         if (req.getPosition() != null) configService.set(tid, "watermark.position", req.getPosition());
         if (req.getEnabled() != null)  configService.set(tid, "watermark.enabled",  String.valueOf(req.getEnabled()));
         return R.ok(null);
+    }
+
+    private void validatePrometheusUrl(String url) {
+        String normalized = url.trim();
+        if (normalized.isEmpty()) return;
+        try {
+            java.net.URI uri = java.net.URI.create(normalized);
+            if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
+                throw new IllegalArgumentException("Prometheus 地址必须使用 HTTP 或 HTTPS");
+            }
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new IllegalArgumentException("Prometheus 地址必须包含主机名");
+            }
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Prometheus 地址格式不正确", exception);
+        }
     }
 }

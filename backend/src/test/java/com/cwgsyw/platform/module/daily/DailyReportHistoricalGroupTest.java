@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,5 +75,21 @@ class DailyReportHistoricalGroupTest {
         assertThat(result.getGroupArchived()).isNull();
         verify(groupMapper).selectById(15L);
         verify(groupMapper, never()).findByTenantAndIdIncludingDeleted("default", 15L);
+    }
+
+    @Test
+    void listMyReports_rejectsInvalidMonthBeforeQuery() {
+        assertThatIllegalArgumentException().isThrownBy(() -> service.listMyReports(8L, "2026-99", 1, 31))
+            .withMessage("月份格式必须为 yyyy-MM");
+
+        verify(reportMapper, never()).selectPage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void listGroupReports_rejectsBlankMonthBeforeQuery() {
+        assertThatIllegalArgumentException().isThrownBy(() -> service.listGroupReports(null, null, " ", 1, 200))
+            .withMessage("月份格式必须为 yyyy-MM");
+
+        verify(reportMapper, never()).selectPage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 }

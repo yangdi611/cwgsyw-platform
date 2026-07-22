@@ -132,6 +132,7 @@ public class CiTopologyCompareService {
             case "create_instance" -> {
                 // Instance was created after targetTime → remove it
                 snapshot.getNodes().remove(targetId);
+                snapshot.getEdges().removeIf(edge -> edge.getSrc().equals(targetId) || edge.getDst().equals(targetId));
             }
             case "delete_instance" -> {
                 // Instance was deleted after targetTime → restore from beforeJson

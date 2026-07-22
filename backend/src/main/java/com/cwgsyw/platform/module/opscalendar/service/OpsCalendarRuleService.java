@@ -1,7 +1,9 @@
 package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
@@ -18,7 +20,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.LocalTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,6 +36,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class OpsCalendarRuleService {
+
+    private static final Set<String> TASK_TYPES = Set.of(
+            "inspection", "roster", "report", "compliance", "monitoring", "daily_report", "other");
+    private static final Set<String> TRIGGER_TYPES = Set.of(
+            "once", "daily", "weekly", "monthly", "quarterly", "semiannual", "yearly", "cron", "holiday_relative");
+    private static final Set<String> VISIBILITIES = Set.of("private", "group", "public");
+    private static final int MAX_GENERATE_DAYS_AHEAD = 366;
 
     private final OpsScheduleRuleMapper ruleMapper;
     private final OpsScheduleTaskMapper taskMapper;
@@ -47,15 +58,17 @@ public class OpsCalendarRuleService {
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
     private final RbacService rbacService;
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final ObjectMapper objectMapper;
 
     // ============ helpers ============
 
-    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId, String remark) {
+    private void writeAudit(String tenantId, String action, Long targetId, Long operatorId,
+                            String beforeJson, String afterJson, String remark) {
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("ops_calendar").action(action)
                 .targetId(targetId).targetType("ops_schedule_rule")
-                .operatorId(operatorId).remark(remark)
+                .operatorId(operatorId).beforeJson(beforeJson).afterJson(afterJson).remark(remark)
                 .createdAt(LocalDateTime.now()).build());
     }
 
@@ -72,6 +85,29 @@ public class OpsCalendarRuleService {
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
 
+    private String snapshot(OpsScheduleRule rule) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", rule.getId());
+        values.put("name", rule.getName());
+        values.put("description", Objects.toString(rule.getDescription(), ""));
+        values.put("taskType", rule.getTaskType());
+        values.put("enabled", rule.getEnabled());
+        values.put("triggerType", rule.getTriggerType());
+        values.put("triggerConfig", fromJson(rule.getTriggerConfig()));
+        values.put("generateDaysAhead", rule.getGenerateDaysAhead());
+        values.put("reminderConfig", fromJson(rule.getReminderConfig()));
+        values.put("dueConfig", fromJson(rule.getDueConfig()));
+        values.put("assigneeRule", fromJson(rule.getAssigneeRule()));
+        values.put("recipientRule", fromJson(rule.getRecipientRule()));
+        values.put("escalationRule", fromJson(rule.getEscalationRule()));
+        values.put("templateId", Objects.toString(rule.getTemplateId(), ""));
+        values.put("checklistTemplateId", Objects.toString(rule.getChecklistTemplateId(), ""));
+        values.put("visibility", rule.getVisibility());
+        values.put("publicSummary", Objects.toString(rule.getPublicSummary(), ""));
+        values.put("sensitive", rule.getSensitive());
+        return auditSnapshotSerializer.serialize(values);
+    }
+
     // ============ CRUD ============
 
     public List<RuleVO> list(String tenantId) {
@@ -85,6 +121,30 @@ public class OpsCalendarRuleService {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
         return toVO(r);
+    }
+
+    @Transactional
+    public void syncDailyReportReminder(SecurityUser user, boolean enabled, String cron, String template) {
+        List<OpsScheduleRule> rules = ruleMapper.selectList(new LambdaQueryWrapper<OpsScheduleRule>()
+                .eq(OpsScheduleRule::getTenantId, user.getTenantId())
+                .eq(OpsScheduleRule::getName, "日报未提交提醒")
+                .eq(OpsScheduleRule::getTaskType, "daily_report"));
+        if (rules.size() != 1) {
+            throw new IllegalArgumentException("日报提醒正式规则必须且只能存在一条");
+        }
+
+        OpsScheduleRule rule = rules.get(0);
+        String before = snapshot(rule);
+        rule.setEnabled(enabled);
+        rule.setTriggerType("cron");
+        rule.setTriggerConfig(toJson(Map.of("expression", cron)));
+        Map<String, Object> reminderConfig = fromJson(rule.getReminderConfig());
+        reminderConfig.put("bodyTemplate", template);
+        rule.setReminderConfig(toJson(reminderConfig));
+        rule.setUpdatedBy(user.getUserId());
+        updateRuleAndResetScan(rule, enabled);
+        writeAudit(user.getTenantId(), "update", rule.getId(), user.getUserId(),
+                before, snapshot(rule), "notification-config-sync");
     }
 
     private RuleVO toVO(OpsScheduleRule r) {
@@ -115,9 +175,7 @@ public class OpsCalendarRuleService {
 
     @Transactional
     public Long create(SecurityUser user, RuleCreateRequest req) {
-        if (!notBlank(req.getName())) throw new IllegalArgumentException("规则名称必填");
-        if (!notBlank(req.getTaskType())) throw new IllegalArgumentException("任务类型必填");
-        if (!notBlank(req.getTriggerType())) throw new IllegalArgumentException("触发类型必填");
+        validateRequest(req);
 
         OpsScheduleRule r = new OpsScheduleRule();
         r.setTenantId(user.getTenantId());
@@ -129,7 +187,7 @@ public class OpsCalendarRuleService {
         r.setNextGenerateAt(null);
         ruleMapper.insert(r);
 
-        writeAudit(user.getTenantId(), "create", r.getId(), user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "create", r.getId(), user.getUserId(), null, snapshot(r), "name=" + r.getName());
         return r.getId();
     }
 
@@ -137,12 +195,14 @@ public class OpsCalendarRuleService {
     public void update(SecurityUser user, Long id, RuleCreateRequest req) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        validateRequest(req);
+        String before = snapshot(r);
         applyRequest(r, req);
         validateReferencedGroups(r);
         // 触发配置可能变化 -> 重置下次扫描点为立即
         r.setNextGenerateAt(null);
         ruleMapper.updateById(r);
-        writeAudit(user.getTenantId(), "update", id, user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "update", id, user.getUserId(), before, snapshot(r), "name=" + r.getName());
     }
 
     private void applyRequest(OpsScheduleRule r, RuleCreateRequest req) {
@@ -164,16 +224,97 @@ public class OpsCalendarRuleService {
         if (req.getSensitive() != null) r.setSensitive(req.getSensitive());
     }
 
+    private void validateRequest(RuleCreateRequest req) {
+        if (req == null || !notBlank(req.getName())) throw new IllegalArgumentException("规则名称必填");
+        if (!TASK_TYPES.contains(req.getTaskType())) throw new IllegalArgumentException("不支持的任务类型");
+        if (!TRIGGER_TYPES.contains(req.getTriggerType())) throw new IllegalArgumentException("不支持的触发类型");
+        if (req.getGenerateDaysAhead() != null && (req.getGenerateDaysAhead() < 0
+                || req.getGenerateDaysAhead() > MAX_GENERATE_DAYS_AHEAD)) {
+            throw new IllegalArgumentException("提前生成天数必须在 0 到 " + MAX_GENERATE_DAYS_AHEAD + " 之间");
+        }
+        if (req.getVisibility() != null && !VISIBILITIES.contains(req.getVisibility())) {
+            throw new IllegalArgumentException("不支持的可见性");
+        }
+        validateTriggerConfig(req.getTriggerType(), req.getTriggerConfig());
+        validateDueConfig(req.getTriggerType(), req.getTriggerConfig(), req.getDueConfig());
+    }
+
+    private void validateTriggerConfig(String triggerType, Map<String, Object> config) {
+        Map<String, Object> cfg = config == null ? Map.of() : config;
+        if ("cron".equals(triggerType)) {
+            Object expression = cfg.get("expression");
+            if (!(expression instanceof String cron) || cron.isBlank()) throw new IllegalArgumentException("Cron 表达式必填");
+            try {
+                CronExpression.parse(cron);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Cron 表达式无效", exception);
+            }
+            return;
+        }
+        if (!"cron".equals(triggerType) && cfg.get("time") != null) {
+            try {
+                LocalTime.parse(String.valueOf(cfg.get("time")));
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("触发时间无效", exception);
+            }
+        }
+    }
+
+    private void validateDueConfig(String triggerType, Map<String, Object> triggerConfig,
+                                   Map<String, Object> dueConfig) {
+        Map<String, Object> due = dueConfig == null ? Map.of() : dueConfig;
+        Object offset = due.get("offsetDays");
+        int offsetDays;
+        try {
+            offsetDays = offset instanceof Number number ? number.intValue()
+                    : offset == null ? 0 : Integer.parseInt(String.valueOf(offset));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("截止偏移天数无效", exception);
+        }
+        if (offsetDays < 0) throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        Object time = due.get("time");
+        LocalTime dueTime;
+        try {
+            dueTime = LocalTime.parse(time == null ? "18:00" : String.valueOf(time));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("截止时间无效", exception);
+        }
+        if (offsetDays == 0) {
+            LocalTime triggerTime = resolveTriggerTime(triggerType, triggerConfig);
+            if (triggerTime != null && dueTime.isBefore(triggerTime)) {
+                throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+            }
+        }
+    }
+
+    private LocalTime resolveTriggerTime(String triggerType, Map<String, Object> triggerConfig) {
+        Map<String, Object> cfg = triggerConfig == null ? Map.of() : triggerConfig;
+        if ("cron".equals(triggerType)) {
+            Object expression = cfg.get("expression");
+            if (!(expression instanceof String cron) || cron.isBlank()) return null;
+            return CronExpression.parse(cron).next(LocalDateTime.now()).toLocalTime();
+        }
+        Object time = cfg.get("time");
+        return time == null ? LocalTime.of(9, 0) : LocalTime.parse(String.valueOf(time));
+    }
+
     @Transactional
     public void setEnabled(SecurityUser user, Long id, boolean enabled) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        String before = snapshot(r);
         if (enabled) validateAssignable(r);
         if (enabled) validateReferencedGroups(r);
         r.setEnabled(enabled);
-        if (enabled) r.setNextGenerateAt(null); // 重新启用立即扫描
-        ruleMapper.updateById(r);
-        writeAudit(user.getTenantId(), "update", id, user.getUserId(), enabled ? "enable" : "disable");
+        updateRuleAndResetScan(r, enabled);
+        writeAudit(user.getTenantId(), "update", id, user.getUserId(), before, snapshot(r), enabled ? "enable" : "disable");
+    }
+
+    private void updateRuleAndResetScan(OpsScheduleRule rule, boolean resetScan) {
+        if (resetScan) rule.setNextGenerateAt(null);
+        ruleMapper.update(rule, new LambdaUpdateWrapper<OpsScheduleRule>()
+                .eq(OpsScheduleRule::getId, rule.getId())
+                .set(resetScan, OpsScheduleRule::getNextGenerateAt, null));
     }
 
     /**
@@ -228,11 +369,12 @@ public class OpsCalendarRuleService {
     public void delete(SecurityUser user, Long id) {
         OpsScheduleRule r = ruleMapper.selectById(id);
         if (r == null || !user.getTenantId().equals(r.getTenantId())) throw new IllegalArgumentException("规则不存在");
+        String before = snapshot(r);
         r.setDeletedAt(LocalDateTime.now());
         r.setDeletedBy(user.getUserId());
         ruleMapper.updateById(r);
         ruleMapper.deleteById(id);
-        writeAudit(user.getTenantId(), "delete", id, user.getUserId(), "name=" + r.getName());
+        writeAudit(user.getTenantId(), "delete", id, user.getUserId(), before, null, "name=" + r.getName());
     }
 
     // ============ 5.9 预览 ============
@@ -264,7 +406,7 @@ public class OpsCalendarRuleService {
 
         for (LocalDateTime start : occurrences) {
             Long groupId = resolveGroupId(rule);
-            activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId);
+            if (groupId != null) activeGroupReferenceValidator.lockAndRequire(rule.getTenantId(), groupId);
             Long assigneeId = resolveAssignee(rule, start);
             String occKey = rule.getId() + ":" + start.toLocalDate() + ":" + rule.getTaskType()
                     + ":" + (assigneeId != null ? "u" + assigneeId : "g" + (rule.getVisibility()));
@@ -288,7 +430,10 @@ public class OpsCalendarRuleService {
             t.setAssigneeId(assigneeId);
             t.setGroupId(groupId);
             t.setPriority("normal");
-            t.setContent(rule.getDescription());
+            Map<String, Object> reminderConfig = fromJson(rule.getReminderConfig());
+            t.setContent("daily_report".equals(rule.getTaskType())
+                    ? Objects.toString(reminderConfig.get("bodyTemplate"), rule.getDescription())
+                    : rule.getDescription());
             t.setVisibility(rule.getVisibility());
             t.setPublicSummary(rule.getPublicSummary());
             t.setSensitive(Boolean.TRUE.equals(rule.getSensitive()));

@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.device.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -14,7 +15,7 @@ public class CreateDeviceRequest {
     private String name;        // 派生自 CI（兼容旧前端可传，但以 CI 为准）
     private String ip;          // 派生自 CI
     @JsonAlias("device_type") private String deviceType;  // 派生自 CI modelId
-    private String category;    // 用户可补充的分类标签
-    private String description; // 用户可补充的备注
+    @Size(max = 64, message = "分类标签不能超过64个字符") private String category;
+    @Size(max = 2000, message = "备注不能超过2000个字符") private String description;
     @JsonAlias("group_id")    private Long groupId;
 }

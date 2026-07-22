@@ -44,7 +44,7 @@ function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; spaceId
 
 /**
  * 把 [[标题]] / [[标题|别名]] 转换为 markdown 链接。
- * 已知标题 → 真实路由链接；未知标题 → 行内代码 + 「待创建」提示。
+ * 已知标题 → 真实路由链接；未知标题 → 由 Markdown 链接组件识别的受控提示。
  */
 function preprocessWikiLinks(
   content: string,
@@ -57,7 +57,7 @@ function preprocessWikiLinks(
     if (target) {
       return `[${display}](/wiki/${target.spaceId}/${target.id})`
     }
-    return `\`${display}\`<sup title="该页面尚未创建">待创建</sup>`
+    return `[${display}](#wiki-pending-link)`
   })
 }
 
@@ -74,28 +74,38 @@ export default function WikiPageReader() {
   const [aclOpen, setAclOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
 
-  const { data: commentsFirstPage } = useQuery<PageResult<WikiComment>>({
-    queryKey: ['wiki-comments-count', pid],
-    queryFn: () => wikiApi.listComments(pid, { page: 1, size: 1 }),
-    enabled: Boolean(pid),
-  })
-
-  const { data: page, isLoading } = useQuery<WikiPage>({
-    queryKey: ['wiki-page', pid],
-    queryFn: () => wikiApi.getPage(pid),
-  })
-
-  const { data: tree } = useQuery<WikiPageTree[]>({
-    queryKey: ['wiki-tree', sid],
-    queryFn: () => wikiApi.getTree(sid),
-  })
-
   const { data: spaces } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
     queryFn: () => wikiApi.listSpaces(),
   })
 
   const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
+  const spaceExists = Boolean(currentSpace)
+
+  const { data: tree, isLoading: treeLoading } = useQuery<WikiPageTree[]>({
+    queryKey: ['wiki-tree', sid],
+    queryFn: () => wikiApi.getTree(sid),
+    enabled: spaceExists,
+  })
+
+  const pageExists = useMemo(() => {
+    const hasPage = (nodes: WikiPageTree[]): boolean => nodes.some((node) =>
+      node.id === pid || (node.children?.length ? hasPage(node.children) : false))
+    return tree ? hasPage(tree) : false
+  }, [pid, tree])
+
+  const { data: page, isLoading: pageLoading, isError: pageError } = useQuery<WikiPage>({
+    queryKey: ['wiki-page', pid],
+    queryFn: () => wikiApi.getPage(pid),
+    enabled: spaceExists && pageExists,
+  })
+
+  const { data: commentsFirstPage } = useQuery<PageResult<WikiComment>>({
+    queryKey: ['wiki-comments-count', pid],
+    queryFn: () => wikiApi.listComments(pid, { page: 1, size: 1 }),
+    enabled: spaceExists && pageExists,
+  })
+
   const readOnly = currentSpace?.readOnly ?? false
 
   useBreadcrumbLabel([currentSpace?.name, page?.title])
@@ -136,10 +146,10 @@ export default function WikiPageReader() {
   const canPublish = page?.canPublish ?? false
   const canManageAcl = page?.canManageAcl ?? false
 
-  if (isLoading) {
+  if (spaces === undefined || (spaceExists && treeLoading) || (pageExists && pageLoading)) {
     return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>
   }
-  if (!page) {
+  if (!spaceExists || !pageExists || pageError || !page) {
     return <div className="py-12 text-center text-sm text-v2-muted">页面不存在或已删除</div>
   }
 
@@ -181,7 +191,7 @@ export default function WikiPageReader() {
                 </Button>
               )
             )}
-            <Button variant="secondary" size="sm" onClick={() => { wikiApi.exportPage(pid).catch(() => toast.error('导出失败')) }}>
+            <Button variant="secondary" size="sm" onClick={() => { wikiApi.exportPage(pid, `${page.title}.md`).catch(() => toast.error('导出失败')) }}>
               <FileDown className="h-3.5 w-3.5" />
               导出
             </Button>

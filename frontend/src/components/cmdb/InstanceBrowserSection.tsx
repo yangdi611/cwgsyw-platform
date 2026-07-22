@@ -11,7 +11,7 @@ import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
 import { FilterBar, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
-import { Search, GitBranch, FileText, ArrowRight } from 'lucide-react'
+import { Search, GitBranch, FileText, ArrowRight, Download } from 'lucide-react'
 import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
@@ -89,7 +89,7 @@ export default function InstanceBrowserSection() {
         return []
       }
     },
-    enabled: typeof window !== 'undefined',
+    enabled: hasPermission('cmdb_model', 'read'),
   })
 
   // Fetch instances (default: most recent 10)
@@ -158,6 +158,23 @@ export default function InstanceBrowserSection() {
   )
 
   const selectedFields = selected ? Object.entries(selected.fieldsData ?? {}).slice(0, 8) : []
+  const canExport = hasPermission('cmdb_instance', 'export')
+
+  const downloadExport = async () => {
+    const params = new URLSearchParams()
+    if (model) params.set('model', model)
+    if (keyword) params.set('keyword', keyword)
+    if (status) params.set('status', status)
+    const response = await api.get(`/cmdb/instances/export?${params.toString()}`, {
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(response.data)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'cmdb-instances.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   // 判断是否为默认态（无筛选）
   const isDefaultState = model === '' && keyword.trim() === '' && status === ''
@@ -231,6 +248,12 @@ export default function InstanceBrowserSection() {
               <SelectItem value="maintenance">维护中</SelectItem>
             </SelectContent>
           </Select>
+          {canExport && (
+            <Button variant="secondary" size="sm" onClick={downloadExport}>
+              <Download className="h-4 w-4" />
+              导出 CSV
+            </Button>
+          )}
         </FilterBar>
 
         {/* Table */}
@@ -268,14 +291,16 @@ export default function InstanceBrowserSection() {
           footer={
             selected ? (
               <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
-                >
-                  <GitBranch className="h-4 w-4" />
-                  查看拓扑
-                </Button>
+                {hasPermission('cmdb_topology', 'read') && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
+                  >
+                    <GitBranch className="h-4 w-4" />
+                    查看拓扑
+                  </Button>
+                )}
                 <Button
                   variant="primary"
                   size="sm"

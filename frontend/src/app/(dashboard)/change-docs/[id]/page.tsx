@@ -65,7 +65,7 @@ export default function ChangeDocDetailPage() {
   const planEditable = isDraft || isPlanPending || canReedit
 
   const setField =
-    (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setFieldsData((f) => ({ ...f, [key]: e.target.value }))
 
   const setTableField = (key: string) => (rows: TableRow[]) =>

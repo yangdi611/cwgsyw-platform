@@ -9,9 +9,11 @@ import com.cwgsyw.platform.module.cmdb.dto.attribute.CreateAttributeRequest;
 import com.cwgsyw.platform.module.cmdb.dto.attribute.UpdateAttributeRequest;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttributeGroup;
+import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeGroupMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiAttributeMapper;
+import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class CiAttributeService {
     private final CiAttributeMapper ciAttributeMapper;
     private final CiAttributeGroupMapper ciAttributeGroupMapper;
     private final CiModelMapper ciModelMapper;
+    private final CiInstanceMapper ciInstanceMapper;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
 
@@ -62,9 +65,7 @@ public class CiAttributeService {
             throw new IllegalArgumentException("字段标识已存在: " + req.getFieldKey());
         }
 
-        if ("enum".equals(req.getFieldType()) && (req.getEnumOptions() == null || req.getEnumOptions().isBlank())) {
-            throw new IllegalArgumentException("enum 类型字段必须提供 enumOptions");
-        }
+        List<Map<String, Object>> normalizedOptions = normalizeOptions(req.getFieldType(), req.getOption(), req.getEnumOptions());
 
         validateAttrGroup(model.getModelId(), req.getGroupId(), tenantId);
 
@@ -84,21 +85,8 @@ public class CiAttributeService {
         attr.setDefaultValue(req.getDefaultValue());
         attr.setEnumOptions(req.getEnumOptions());
         // Parse enumOptions to option JSONB format
-        if (("enum".equals(req.getFieldType()) || "enummulti".equals(req.getFieldType()))
-                && req.getEnumOptions() != null && !req.getEnumOptions().isBlank()) {
-            try {
-                List<Map<String, Object>> opts = objectMapper.readValue(req.getEnumOptions(),
-                        new TypeReference<List<Map<String, Object>>>() {});
-                attr.setOption(opts);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("enumOptions 格式无效，应为 JSON 数组: " + req.getEnumOptions());
-            }
-        }
-        // option 现为 Object（enum 数组 / table 对象 schema）。非空即原样落库；
-        // 空数组/空对象也视为无效跳过，避免覆盖上面 enumOptions 解析的结果。
-        if (isNonEmptyOption(req.getOption())) {
-            attr.setOption(req.getOption());
-        }
+        if (normalizedOptions != null) attr.setOption(normalizedOptions);
+        else if (isNonEmptyOption(req.getOption())) attr.setOption(req.getOption());
         attr.setSortOrder(req.getSortOrder());
         insertAttribute(attr);
 
@@ -115,6 +103,16 @@ public class CiAttributeService {
         CiModel model = loadModel(modelId, tenantId);
         CiAttribute attr = loadAttribute(attrId, tenantId, model.getModelId());
         String before = snapshot(attr);
+        Object nextOption = req.getOption();
+        if (req.getEnumOptions() != null && (nextOption == null || !isNonEmptyOption(nextOption))) {
+            nextOption = req.getEnumOptions();
+        }
+        List<Map<String, Object>> normalizedOptions = null;
+        if (nextOption != null) {
+            normalizedOptions = normalizeOptions(attr.getFieldType(), nextOption,
+                    nextOption instanceof String ? (String) nextOption : null);
+            validateOptionReferences(attr, normalizedOptions, tenantId, model.getModelId());
+        }
 
         // 内置字段的 fieldKey / fieldType / isUnique 由代码常量依赖（如 PrometheusAlertSyncService 按 inner_ip
         // 匹配主机），UpdateAttributeRequest 本身不暴露这些字段，因此其余字段（name/isRequired/isEditable/
@@ -126,8 +124,8 @@ public class CiAttributeService {
         if (req.getIsListShow() != null) attr.setIsListShow(req.getIsListShow());
         if (req.getIsDrawerShow() != null) attr.setIsDrawerShow(req.getIsDrawerShow());
         if (req.getDefaultValue() != null) attr.setDefaultValue(req.getDefaultValue());
-        if (req.getEnumOptions() != null) attr.setEnumOptions(req.getEnumOptions());
-        if (req.getOption() != null) attr.setOption(req.getOption());
+        if (normalizedOptions != null) attr.setOption(normalizedOptions);
+        else if (req.getOption() != null) attr.setOption(req.getOption());
         if (req.getSortOrder() != null) attr.setSortOrder(req.getSortOrder());
         ciAttributeMapper.updateById(attr);
 
@@ -240,5 +238,63 @@ public class CiAttributeService {
         if (option instanceof Collection<?> c) return !c.isEmpty();
         if (option instanceof Map<?, ?> m) return !m.isEmpty();
         return true;
+    }
+
+    private List<Map<String, Object>> normalizeOptions(String fieldType, Object option, String enumOptions) {
+        if (!"enum".equals(fieldType) && !"enummulti".equals(fieldType)) return null;
+        Object source = isNonEmptyOption(option) ? option : enumOptions;
+        if (source == null || (source instanceof String s && s.isBlank())) {
+            throw new IllegalArgumentException(fieldType + " 类型字段必须提供选项");
+        }
+        try {
+            List<?> raw = source instanceof String s
+                    ? objectMapper.readValue(s, new TypeReference<List<Map<String, Object>>>() {})
+                    : (List<?>) source;
+            if (raw.isEmpty()) throw new IllegalArgumentException(fieldType + " 类型字段必须提供选项");
+            Set<String> ids = new HashSet<>();
+            List<Map<String, Object>> normalized = new ArrayList<>();
+            for (Object item : raw) {
+                if (!(item instanceof Map<?, ?> map)) throw new IllegalArgumentException("枚举选项格式无效");
+                Object rawId = map.get("id");
+                String id = rawId == null ? "" : rawId.toString().trim();
+                if (id.isBlank() || !ids.add(id)) throw new IllegalArgumentException("枚举选项 id 不可为空或重复: " + id);
+                Map<String, Object> copy = new LinkedHashMap<>();
+                map.forEach((key, value) -> copy.put(String.valueOf(key), value));
+                copy.put("id", id);
+                normalized.add(copy);
+            }
+            return normalized;
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("枚举选项格式无效，应为 JSON 数组");
+        }
+    }
+
+    private void validateOptionReferences(CiAttribute attr, List<Map<String, Object>> nextOptions,
+                                          String tenantId, String modelId) {
+        Set<String> validIds = nextOptions.stream().map(item -> String.valueOf(item.get("id"))).collect(Collectors.toSet());
+        LambdaQueryWrapper<CiInstance> query = new LambdaQueryWrapper<CiInstance>()
+                .eq(CiInstance::getTenantId, tenantId)
+                .eq(CiInstance::getModelId, modelId)
+                .eq(CiInstance::getIsDeleted, false);
+        for (CiInstance instance : ciInstanceMapper.selectList(query)) {
+            Object raw = instance.getFieldsData() == null ? null : instance.getFieldsData().get(attr.getFieldKey());
+            if (raw == null) continue;
+            if ("enum".equals(attr.getFieldType()) && !validIds.contains(String.valueOf(raw))) {
+                throw new IllegalStateException("枚举字段仍被实例使用，不能删除选项: " + raw);
+            }
+            if ("enummulti".equals(attr.getFieldType()) && raw instanceof String json) {
+                try {
+                    for (String id : objectMapper.readValue(json, new TypeReference<List<String>>() {})) {
+                        if (!validIds.contains(id)) throw new IllegalStateException("多选枚举字段仍被实例使用，不能删除选项: " + id);
+                    }
+                } catch (IllegalStateException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IllegalStateException("多选枚举字段实例值格式无效，不能修改选项");
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.account;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.SecurityErrorCode;
@@ -60,10 +61,14 @@ public class AccountService {
         if (req.getAvatarUrl() != null) {
             user.setAvatarUrl(req.getAvatarUrl());
         }
-        if (StringUtils.hasText(user.getEmail()) && StringUtils.hasText(user.getPhone())) {
-            user.setProfileCompleted(true);
-        }
-        userMapper.updateById(user);
+        user.setProfileCompleted(StringUtils.hasText(user.getEmail()) && StringUtils.hasText(user.getPhone()));
+        LambdaUpdateWrapper<User> update = new LambdaUpdateWrapper<User>()
+            .eq(User::getId, userId)
+            .set(User::getProfileCompleted, user.getProfileCompleted());
+        if (req.getEmail() != null) update.set(User::getEmail, user.getEmail());
+        if (req.getPhone() != null) update.set(User::getPhone, user.getPhone());
+        if (req.getAvatarUrl() != null) update.set(User::getAvatarUrl, user.getAvatarUrl());
+        userMapper.update(null, update);
 
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(user.getTenantId())

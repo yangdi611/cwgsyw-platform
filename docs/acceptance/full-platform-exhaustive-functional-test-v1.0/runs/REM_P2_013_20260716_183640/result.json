@@ -1,0 +1,15 @@
+{
+  "runId": "REM_P2_013_20260716_183640",
+  "branch": "codex/rem-p2-013-workflow-read-model-schema",
+  "baselineCommit": "af04a36ecb5002fc583744dbf31355e6706fab5a",
+  "apiVerification": "PASS",
+  "finishedInstanceId": "c03a97f0-8045-11f1-b76e-02ffd0bf20cd",
+  "testData": {
+    "created": [],
+    "activeObjects": 0,
+    "cleanupFailures": 0
+  },
+  "notes": [
+    "Workflow stats and activity reads are authenticated read-only requests."
+  ]
+}

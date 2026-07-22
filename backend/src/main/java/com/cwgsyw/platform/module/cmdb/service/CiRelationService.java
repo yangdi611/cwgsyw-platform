@@ -46,6 +46,9 @@ public class CiRelationService {
      */
     @Transactional
     public CiRelationVO create(Long srcInstanceId, CreateRelationRequest req, String tenantId, Long operatorId) {
+        if (srcInstanceId.equals(req.getDstInstanceId())) {
+            throw new IllegalArgumentException("不允许实例与自身建立关联关系");
+        }
         CiInstance src = loadInstance(srcInstanceId, tenantId);
         CiInstance dst = loadInstance(req.getDstInstanceId(), tenantId);
 

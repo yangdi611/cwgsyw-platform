@@ -22,6 +22,7 @@ export interface AttributeAdminItem {
   isDrawerShow: boolean
   groupId: string
   groupName: string | null
+  defaultValue: string | null
   sortOrder: number
   option: CmdbAttributeOptionValue
 }
@@ -67,6 +68,7 @@ export function toAttributeAdminItem(attribute: CiAttributeResponse): AttributeA
     isDrawerShow: attribute.isDrawerShow ?? false,
     groupId: attribute.groupId ?? '',
     groupName: attribute.groupName ?? null,
+    defaultValue: attribute.defaultValue ?? null,
     sortOrder: attribute.sortOrder ?? 0,
     option: attribute.option ?? null,
   }

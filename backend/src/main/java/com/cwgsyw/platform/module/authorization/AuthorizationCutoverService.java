@@ -417,6 +417,13 @@ public class AuthorizationCutoverService {
         if (properties.getDecisionMode() != AuthorizationProperties.DecisionMode.ENFORCED) {
             throw new IllegalStateException("应用未以 AUTHORIZATION_DECISION_MODE=ENFORCED 启动");
         }
+        String currentStatus = jdbcTemplate.query("""
+            SELECT status FROM authorization_tenant_cutover
+            WHERE tenant_id = ? FOR UPDATE
+            """, rs -> rs.next() ? rs.getString("status") : "preparing", tenantId);
+        if ("enforced".equals(currentStatus)) {
+            throw new IllegalStateException("当前已处于 Enforced 状态，无需重复切换");
+        }
 
         lockAuthorizationSources();
         AuthorizationPreflightReport report = preflight(tenantId);
@@ -450,6 +457,13 @@ public class AuthorizationCutoverService {
                                                  String confirmation) {
         requirePlatformAdministrator(operatorScope);
         if (!"ROLLBACK".equals(confirmation)) throw new IllegalArgumentException("请输入 ROLLBACK 确认回退");
+        String currentStatus = jdbcTemplate.query("""
+            SELECT status FROM authorization_tenant_cutover
+            WHERE tenant_id = ? FOR UPDATE
+            """, rs -> rs.next() ? rs.getString("status") : "preparing", tenantId);
+        if ("rollback".equals(currentStatus)) {
+            throw new IllegalStateException("当前已处于 Rollback 状态，无需重复回退");
+        }
         jdbcTemplate.update("""
             INSERT INTO authorization_tenant_cutover (tenant_id, status, updated_at, updated_by)
             VALUES (?, 'rollback', NOW(), ?)

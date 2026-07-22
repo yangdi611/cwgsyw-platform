@@ -56,6 +56,8 @@ const FIELD_TYPES = [
   { value: 'textarea', label: '多行文本' },
   { value: 'date', label: '日期' },
   { value: 'datetime', label: '日期时间' },
+  { value: 'number', label: '数字' },
+  { value: 'enum', label: '枚举' },
   { value: 'readonly', label: '只读（导出用）' },
   { value: 'ci_selector', label: 'CI 选择器' },
   { value: 'table', label: '表格' },
@@ -152,6 +154,13 @@ export default function TemplateFieldsPage() {
   const updateTableConfig = (idx: number, config: TableFieldConfig) => {
     setDirty(true)
     setFields((f) => f.map((field, i) => (i === idx ? { ...field, config } : field)))
+  }
+
+  const updateFieldConfig = (idx: number, patch: Record<string, unknown>) => {
+    setDirty(true)
+    setFields((items) => items.map((field, index) => index === idx
+      ? { ...field, config: { ...(field.config ?? {}), ...patch } }
+      : field))
   }
 
   const addField = () => {
@@ -283,6 +292,41 @@ export default function TemplateFieldsPage() {
                       className="h-8 font-v2-mono text-xs"
                       placeholder="例：change_desc"
                       onChange={(e) => update(idx, 'fieldKey', e.target.value)}
+                    />
+                  </div>
+                  {(field.fieldType === 'text' || field.fieldType === 'textarea' || field.fieldType === 'number' || field.fieldType === 'date' || field.fieldType === 'datetime' || field.fieldType === 'enum') && (
+                    <div className="space-y-1">
+                      <label className="text-xs text-v2-muted">默认值</label>
+                      <Input
+                        value={String((field.config as { defaultValue?: unknown } | undefined)?.defaultValue ?? '')}
+                        className="h-8"
+                        onChange={(event) => updateFieldConfig(idx, { defaultValue: event.target.value })}
+                      />
+                    </div>
+                  )}
+                  {field.fieldType === 'enum' && (
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs text-v2-muted">枚举选项（每行：值|显示名称）</label>
+                      <textarea
+                        value={((field.config as { options?: { value: string; label: string }[] } | undefined)?.options ?? [])
+                          .map((option) => `${option.value}|${option.label}`).join('\n')}
+                        className="min-h-16 w-full rounded-v2-md border border-v2-border bg-v2-surface p-2 text-xs"
+                        onChange={(event) => updateFieldConfig(idx, {
+                          options: event.target.value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+                            const [value, label] = line.split('|', 2)
+                            return { value: value.trim(), label: (label ?? value).trim() }
+                          }),
+                        })}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="text-xs text-v2-muted">排序</label>
+                    <Input
+                      type="number"
+                      value={field.sortOrder ?? 0}
+                      className="h-8"
+                      onChange={(event) => update(idx, 'sortOrder', Number(event.target.value))}
                     />
                   </div>
                   <div className="space-y-1">

@@ -77,7 +77,11 @@ public class RbacService {
         return resourceMapper.selectList(null);
     }
 
-    public List<SysPermission> getPermissionsByRoleId(Long roleId) {
+    public List<SysPermission> getPermissionsByRoleId(Long roleId, String tenantId) {
+        SysRole role = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
+            .eq(SysRole::getId, roleId)
+            .eq(SysRole::getTenantId, tenantId));
+        if (role == null) throw new IllegalArgumentException("角色不存在");
         List<Long> permIds = rolePermMapper.findPermissionIdsByRoleIds(List.of(roleId));
         return permIds.isEmpty() ? List.of() : permMapper.selectBatchIds(permIds);
     }

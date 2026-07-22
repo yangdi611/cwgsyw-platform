@@ -76,6 +76,11 @@ public class WikiSpaceService {
             "wiki_space", spaceId, 5, true);
     }
 
+    public boolean exists(String tenantId, Long spaceId) {
+        WikiSpace space = spaceMapper.selectById(spaceId);
+        return space != null && !Boolean.TRUE.equals(space.getIsDeleted()) && tenantId.equals(space.getTenantId());
+    }
+
     @Transactional
     public WikiSpaceVO createSpace(String tenantId, SecurityUser user, String name, String description,
                                    Long ownerGroupId) {
@@ -182,14 +187,14 @@ public class WikiSpaceService {
             return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
                 "wiki_space", spaceId, requiredBits, false);
         }
-        boolean legacyAllowed = isAdmin(user.getGroupScope())
-            || user.getPermissions().contains("wiki:" + action)
-            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId()));
+        boolean hasFunctionPermission = user.getPermissions().contains(permissionCode);
+        boolean legacyAllowed = hasFunctionPermission && (isAdmin(user.getGroupScope())
+            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId())));
         if (!legacyAllowed) {
             List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
                 .eq(WikiSpaceAcl::getSpaceId, spaceId));
             List<Long> roleIds = rbacService.getUserRoleIds(user.getUserId());
-            legacyAllowed = rows.stream().anyMatch(acl -> acl.getPermissions() != null
+            legacyAllowed = hasFunctionPermission && rows.stream().anyMatch(acl -> acl.getPermissions() != null
                 && acl.getPermissions().contains(action)
                 && matches(acl, user.getUserId(), user.getGroupId(), roleIds));
         }
@@ -231,7 +236,7 @@ public class WikiSpaceService {
         WikiSpaceAclDTO dto = new WikiSpaceAclDTO();
         dto.setSpaceId(spaceId);
         dto.setEntries(rows.stream().map(this::toEntryDTO).collect(Collectors.toList()));
-        dto.setForcedEntries(computeRoleForcedGrants(SPACE_ACL_PERMS));
+        dto.setForcedEntries(computeRoleForcedGrants(tenantId, SPACE_ACL_PERMS));
         return dto;
     }
 
@@ -241,12 +246,13 @@ public class WikiSpaceService {
      * 所以不需要为它们计算强制项（避免"自己给自己囤灰显"的怪异体验）。
      * perms 传入的动词集合决定输出的 permissions 取值范围（空间用 SPACE_ACL_PERMS，页面用页面动词集）。
      */
-    private List<AclForcedGrantDTO> computeRoleForcedGrants(List<String> spaceVerbs) {
-        List<SysRole> roles = roleMapper.selectList(null);
+    private List<AclForcedGrantDTO> computeRoleForcedGrants(String tenantId, List<String> spaceVerbs) {
+        List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<SysRole>()
+            .eq(SysRole::getTenantId, tenantId));
         List<AclForcedGrantDTO> result = new ArrayList<>();
         for (SysRole role : roles) {
             boolean admin = isAdmin(role.getScope());
-            Set<String> nativePerms = admin ? Set.of() : rbacService.getPermissionsByRoleId(role.getId())
+            Set<String> nativePerms = admin ? Set.of() : rbacService.getPermissionsByRoleId(role.getId(), tenantId)
                     .stream().map(SysPermission::getCode)
                     .filter(code -> code != null && code.startsWith("wiki:"))
                     .map(code -> code.substring("wiki:".length()))
@@ -283,7 +289,7 @@ public class WikiSpaceService {
     public List<AclForcedGrantDTO> computePageForcedGrants(String tenantId, Long spaceId) {
         WikiSpace space = requireSpace(tenantId, spaceId);
         List<String> pageVerbs = List.of("update", "delete", "publish"); // 空间动词命名，稍后映射成页面动词
-        List<AclForcedGrantDTO> result = new ArrayList<>(computeRoleForcedGrants(pageVerbs));
+        List<AclForcedGrantDTO> result = new ArrayList<>(computeRoleForcedGrants(tenantId, pageVerbs));
 
         if (space.getSeedKey() == null) {
             if (space.getCreatedBy() != null) {

@@ -2,7 +2,6 @@ package com.cwgsyw.platform.module.workflow.adapter;
 
 import com.cwgsyw.platform.module.changedoc.ChangeDocService;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDoc;
-import com.cwgsyw.platform.module.notification.NotificationService;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.cwgsyw.platform.module.workflow.event.WorkflowCompletedEvent;
@@ -30,7 +29,6 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
 
     private final ChangeDocService changeDocService;
     private final UserMapper userMapper;
-    private final NotificationService notificationService;
 
     @Override
     public String businessType() {
@@ -50,6 +48,10 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
 
     @Override
     public BusinessWorkflowSummary buildSummary(String tenantId, String businessId, SecurityUser viewer) {
+        if (viewer == null || !viewer.getPermissions().contains("change_doc:read")) {
+            return BusinessWorkflowSummary.builder()
+                .available(false).businessType(BUSINESS_TYPE).businessId(businessId).build();
+        }
         ChangeDoc doc = changeDocService.getForWorkflow(tenantId, safeLong(businessId));
         if (doc == null) {
             return BusinessWorkflowSummary.builder()
@@ -74,7 +76,8 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
     @Override
     public boolean canApprove(String tenantId, String businessId, SecurityUser user) {
         if (user == null) return false;
-        return user.getPermissions().contains("change_doc:approve");
+        if (!user.getPermissions().contains("change_doc:approve")) return false;
+        return changeDocService.getForWorkflow(tenantId, safeLong(businessId)) != null;
     }
 
     @Override
@@ -96,16 +99,6 @@ public class ChangeDocWorkflowAdapter implements BusinessWorkflowAdapter {
             return;
         }
         changeDocService.handleWorkflowApproval(id, event.isApproved(), event.getApproverId(), event.getComment());
-
-        ChangeDoc doc = changeDocService.getForWorkflow(event.getTenantId(), id);
-        if (doc != null && doc.getApplicantId() != null) {
-            String title = event.isApproved() ? "变更文档审批通过" : "变更文档审批被拒绝";
-            String body = event.isApproved()
-                ? "《" + doc.getTitle() + "》已审批通过。"
-                : "《" + doc.getTitle() + "》审批被拒绝：" + (event.getComment() != null ? event.getComment() : "");
-            notificationService.notify(doc.getTenantId(), doc.getApplicantId(),
-                title, body, "change_doc_approval", "change_doc", doc.getId());
-        }
     }
 
     private Long safeLong(String s) {

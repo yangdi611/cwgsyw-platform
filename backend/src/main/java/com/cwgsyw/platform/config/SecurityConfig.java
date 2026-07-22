@@ -23,6 +23,7 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final CustomPermissionEvaluator permissionEvaluator;
+    private final FunctionalPermissionAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -33,6 +34,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login", "/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
+            .exceptionHandling(e -> e.accessDeniedHandler(accessDeniedHandler))
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
     }

@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
+import com.cwgsyw.platform.module.notification.NotificationMapper;
+import com.cwgsyw.platform.module.notification.entity.NotificationMessage;
 import com.cwgsyw.platform.module.opscalendar.dto.*;
 import com.cwgsyw.platform.module.opscalendar.entity.*;
 import com.cwgsyw.platform.module.opscalendar.mapper.*;
@@ -34,11 +37,19 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OpsCalendarTaskService {
 
+    private static final int MAX_TITLE_CODE_POINTS = 255;
+    private static final Set<String> TASK_TYPES = Set.of(
+            "inspection", "roster", "report", "compliance", "monitoring", "daily_report", "other");
+    private static final Set<String> PRIORITIES = Set.of("low", "normal", "high", "critical");
+    private static final Set<String> VISIBILITIES = Set.of("private", "group", "public");
+
     private final OpsScheduleTaskMapper taskMapper;
     private final OpsScheduleTaskParticipantMapper participantMapper;
     private final OpsScheduleChecklistItemMapper checklistMapper;
     private final OpsScheduleTaskLogMapper logMapper;
     private final OpsScheduleTaskLinkMapper linkMapper;
+    private final OpsScheduleNotificationLogMapper notificationLogMapper;
+    private final NotificationMapper notificationMapper;
     private final OpsCalendarVisibilityService visibilityService;
     private final OpsCalendarNotificationService notificationService;
     private final UserMapper userMapper;
@@ -75,6 +86,13 @@ public class OpsCalendarTaskService {
     }
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
+
+    private void validateTitle(String title, boolean required) {
+        if (title == null && !required) return;
+        if (!notBlank(title)) throw new IllegalArgumentException("标题必填");
+        if (title.codePointCount(0, title.length()) > MAX_TITLE_CODE_POINTS)
+            throw new IllegalArgumentException("标题不能超过 255 个字符");
+    }
 
     private List<Long> participantUserIds(Long taskId) {
         return participantMapper.selectList(new LambdaQueryWrapper<OpsScheduleTaskParticipant>()
@@ -149,7 +167,7 @@ public class OpsCalendarTaskService {
     public List<TaskVO> listTasks(SecurityUser user, LocalDate startDate, LocalDate endDate,
                                   String requestedScope, String taskType, String status,
                                   Long assigneeId, Long groupId) {
-        if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate 必填");
+        TemporalInputValidator.requireOrderedDateRange(startDate, endDate, "startDate", "endDate");
         if (startDate.plusDays(120).isBefore(endDate)) throw new IllegalArgumentException("查询跨度不能超过 120 天");
 
         String scope = visibilityService.resolveScope(user, requestedScope);
@@ -249,13 +267,15 @@ public class OpsCalendarTaskService {
             throw new IllegalArgumentException("任务不存在");
 
         List<Long> pids = participantUserIds(id);
+        if (!visibilityService.canAccessDetail(t, user, pids))
+            throw new IllegalArgumentException("任务不存在");
         boolean canView = visibilityService.canViewDetail(t, user, pids);
         boolean canOp = visibilityService.canOperate(t, user, operableUserIds(id));
 
         TaskDetailVO d = new TaskDetailVO();
         d.setTask(toVO(t, user, null, null));
 
-        boolean masked = Boolean.TRUE.equals(t.getSensitive()) && !canView;
+        boolean masked = !canView;
         if (!masked) {
             d.setContent(t.getContent());
             d.setResultSummary(t.getResultSummary());
@@ -348,14 +368,31 @@ public class OpsCalendarTaskService {
 
     // ============ 5.4 创建临时任务 ============
 
+    public List<TaskAssigneeCandidateVO> assigneeCandidates(SecurityUser user) {
+        return userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .eq(User::getTenantId, user.getTenantId())
+                        .eq(User::getStatus, 1)
+                        .orderByAsc(User::getRealName)
+                        .orderByAsc(User::getUsername)
+                        .orderByAsc(User::getId))
+                .stream()
+                .map(candidate -> new TaskAssigneeCandidateVO(candidate.getId(), candidate.getUsername(),
+                        candidate.getRealName(), candidate.getGroupId()))
+                .toList();
+    }
+
     @Transactional
     public Long createManual(SecurityUser user, TaskCreateRequest req) {
-        if (!notBlank(req.getTitle())) throw new IllegalArgumentException("标题必填");
-        if (!notBlank(req.getTaskType())) throw new IllegalArgumentException("任务类型必填");
+        validateTitle(req.getTitle(), true);
+        validateTaskType(req.getTaskType());
+        validatePriority(req.getPriority());
+        validateVisibility(req.getVisibility());
         LocalDateTime plannedStartAt = req.getPlannedStartAt() != null
                 ? req.getPlannedStartAt() : LocalDateTime.now();
         if (req.getDueAt() != null && req.getDueAt().isBefore(plannedStartAt))
             throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        validateTaskUsers(user.getTenantId(), req.getAssigneeId(), req.getParticipantIds(),
+                req.getRecipientIds(), req.getEscalationUserIds());
 
         Long referencedGroupId = req.getGroupId() != null ? req.getGroupId() : user.getGroupId();
         activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), referencedGroupId);
@@ -444,9 +481,19 @@ public class OpsCalendarTaskService {
         if (!d_canEdit(t, user))
             throw new IllegalArgumentException("无权编辑该任务");
 
+        validateTitle(req.getTitle(), false);
+        validateTaskUsers(user.getTenantId(), req.getAssigneeId(), req.getParticipantIds(),
+                req.getRecipientIds(), req.getEscalationUserIds());
+
         if (req.getGroupId() != null) {
             activeGroupReferenceValidator.lockAndRequire(user.getTenantId(), req.getGroupId());
         }
+
+        LocalDateTime plannedStartAt = req.getPlannedStartAt() != null ? req.getPlannedStartAt() : t.getPlannedStartAt();
+        LocalDateTime dueAt = req.getDueAt() != null ? req.getDueAt() : t.getDueAt();
+        if (dueAt != null && plannedStartAt != null && dueAt.isBefore(plannedStartAt)) throw new IllegalArgumentException("截止时间不能早于计划开始时间");
+        validatePriority(req.getPriority());
+        validateVisibility(req.getVisibility());
 
         if (notBlank(req.getTitle())) t.setTitle(req.getTitle());
         if (req.getPlannedStartAt() != null) t.setPlannedStartAt(req.getPlannedStartAt());
@@ -477,6 +524,39 @@ public class OpsCalendarTaskService {
         writeAudit(user.getTenantId(), "update", id, user.getUserId(), null);
     }
 
+    private void validateTaskType(String taskType) {
+        if (!notBlank(taskType)) throw new IllegalArgumentException("任务类型必填");
+        if (!TASK_TYPES.contains(taskType)) throw new IllegalArgumentException("不支持的任务类型");
+    }
+
+    private void validatePriority(String priority) {
+        if (priority != null && !PRIORITIES.contains(priority)) throw new IllegalArgumentException("不支持的优先级");
+    }
+
+    private void validateVisibility(String visibility) {
+        if (visibility != null && !VISIBILITIES.contains(visibility)) throw new IllegalArgumentException("不支持的可见性");
+    }
+
+    private void validateTaskUsers(String tenantId, Long assigneeId, List<Long> participantIds,
+                                   List<Long> recipientIds, List<Long> escalationUserIds) {
+        Set<Long> userIds = new LinkedHashSet<>();
+        if (assigneeId != null) userIds.add(assigneeId);
+        if (participantIds != null) userIds.addAll(participantIds);
+        if (recipientIds != null) userIds.addAll(recipientIds);
+        if (escalationUserIds != null) userIds.addAll(escalationUserIds);
+        if (userIds.isEmpty()) return;
+        if (userIds.contains(null)) throw new IllegalArgumentException("任务人员无效");
+
+        Map<Long, User> users = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, candidate -> candidate));
+        boolean invalid = userIds.stream().anyMatch(userId -> {
+            User candidate = users.get(userId);
+            return candidate == null || !tenantId.equals(candidate.getTenantId())
+                    || !Integer.valueOf(1).equals(candidate.getStatus());
+        });
+        if (invalid) throw new IllegalArgumentException("任务人员不存在或不可用");
+    }
+
     private boolean d_canEdit(OpsScheduleTask t, SecurityUser user) {
         return visibilityService.canCancel(t, user); // 创建者/组长/管理员
     }
@@ -492,6 +572,13 @@ public class OpsCalendarTaskService {
         return t;
     }
 
+    private OpsScheduleTask loadOwnedForUpdate(SecurityUser user, Long id) {
+        OpsScheduleTask t = taskMapper.selectByIdForUpdate(id, user.getTenantId());
+        if (t == null)
+            throw new IllegalArgumentException("任务不存在");
+        return t;
+    }
+
     // ============ 5.6 状态操作 ============
 
     private void requireOperate(SecurityUser user, OpsScheduleTask t) {
@@ -501,7 +588,7 @@ public class OpsCalendarTaskService {
 
     @Transactional
     public void confirm(SecurityUser user, Long id) {
-        OpsScheduleTask t = loadOwned(user, id);
+        OpsScheduleTask t = loadOwnedForUpdate(user, id);
         requireOperate(user, t);
         if (!"pending_confirm".equals(t.getStatus()))
             throw new IllegalArgumentException("仅待确认任务可确认");
@@ -645,6 +732,55 @@ public class OpsCalendarTaskService {
                 .forEach(p -> targets.add(p.getUserId()));
         notificationService.sendManual(t, targets);
         writeLog(id, user.getTenantId(), "notify", user.getUserId(), "手动重发提醒");
+    }
+
+    @Transactional
+    public void purgeRemediationTest(SecurityUser user, Long id, String remediationRunId) {
+        if (!"platform".equals(user.getGroupScope())) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试运维任务");
+        }
+        if (!notBlank(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+
+        OpsScheduleTask task = taskMapper.selectById(id);
+        if (task == null || !user.getTenantId().equals(task.getTenantId())) {
+            throw new IllegalArgumentException("任务不存在");
+        }
+        if (!containsRemediationRunId(task, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试运维任务");
+        }
+
+        linkMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskLink>()
+                .eq(OpsScheduleTaskLink::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskLink::getTaskId, id));
+        checklistMapper.delete(new LambdaQueryWrapper<OpsScheduleChecklistItem>()
+                .eq(OpsScheduleChecklistItem::getTenantId, user.getTenantId())
+                .eq(OpsScheduleChecklistItem::getTaskId, id));
+        participantMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskParticipant>()
+                .eq(OpsScheduleTaskParticipant::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskParticipant::getTaskId, id));
+        logMapper.delete(new LambdaQueryWrapper<OpsScheduleTaskLog>()
+                .eq(OpsScheduleTaskLog::getTenantId, user.getTenantId())
+                .eq(OpsScheduleTaskLog::getTaskId, id));
+        notificationLogMapper.delete(new LambdaQueryWrapper<OpsScheduleNotificationLog>()
+                .eq(OpsScheduleNotificationLog::getTenantId, user.getTenantId())
+                .eq(OpsScheduleNotificationLog::getTaskId, id));
+        notificationMapper.delete(new LambdaQueryWrapper<NotificationMessage>()
+                .eq(NotificationMessage::getTenantId, user.getTenantId())
+                .eq(NotificationMessage::getRefType, "ops_task")
+                .eq(NotificationMessage::getRefId, id));
+        taskMapper.deleteById(id);
+        writeAudit(user.getTenantId(), "purge_remediation_test", id, user.getUserId(),
+                "remediationRunId=" + remediationRunId);
+    }
+
+    private boolean containsRemediationRunId(OpsScheduleTask task, String remediationRunId) {
+        return Arrays.asList(task.getOccurrenceKey(), task.getTitle(), task.getContent(), task.getPublicSummary(),
+                        task.getResultSummary(), task.getCloseReason())
+                .stream()
+                .filter(Objects::nonNull)
+                .anyMatch(value -> value.contains(remediationRunId));
     }
 
     // ============ 5.8 工作台卡片 ============

@@ -24,7 +24,7 @@ public class OpsCalendarTaskController {
     private final OpsCalendarTaskService taskService;
 
     @GetMapping
-    @PreAuthorize("hasPermission('ops_calendar', 'read')")
+    @PreAuthorize("hasPermission('ops_calendar', 'read') or hasPermission('ops_calendar', 'read_group') or hasPermission('ops_calendar', 'read_all')")
     public R<List<TaskVO>> list(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -38,7 +38,7 @@ public class OpsCalendarTaskController {
     }
 
     @GetMapping("/day")
-    @PreAuthorize("hasPermission('ops_calendar', 'read')")
+    @PreAuthorize("hasPermission('ops_calendar', 'read') or hasPermission('ops_calendar', 'read_group') or hasPermission('ops_calendar', 'read_all')")
     public R<DayTasksVO> day(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) String scope,
@@ -47,13 +47,19 @@ public class OpsCalendarTaskController {
     }
 
     @GetMapping("/dashboard")
-    @PreAuthorize("hasPermission('ops_calendar', 'read')")
+    @PreAuthorize("hasPermission('ops_calendar', 'read') or hasPermission('ops_calendar', 'read_group') or hasPermission('ops_calendar', 'read_all')")
     public R<DashboardCalendarVO> dashboard(@AuthenticationPrincipal SecurityUser cu) {
         return R.ok(taskService.dashboard(cu));
     }
 
+    @GetMapping("/assignee-candidates")
+    @PreAuthorize("hasPermission('ops_calendar', 'create') or hasPermission('ops_calendar', 'update') or hasPermission('ops_calendar', 'manage')")
+    public R<List<TaskAssigneeCandidateVO>> assigneeCandidates(@AuthenticationPrincipal SecurityUser cu) {
+        return R.ok(taskService.assigneeCandidates(cu));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasPermission('ops_calendar', 'read')")
+    @PreAuthorize("hasPermission('ops_calendar', 'read') or hasPermission('ops_calendar', 'read_group') or hasPermission('ops_calendar', 'read_all')")
     public R<TaskDetailVO> detail(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(taskService.detail(cu, id));
     }
@@ -114,6 +120,15 @@ public class OpsCalendarTaskController {
     @PreAuthorize("hasPermission('ops_calendar', 'update')")
     public R<Void> remind(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         taskService.remind(cu, id);
+        return R.ok();
+    }
+
+    @DeleteMapping("/{id}/remediation-test")
+    @PreAuthorize("hasPermission('ops_calendar', 'update')")
+    public R<Void> purgeRemediationTest(@PathVariable Long id,
+                                        @RequestParam String remediationRunId,
+                                        @AuthenticationPrincipal SecurityUser cu) {
+        taskService.purgeRemediationTest(cu, id, remediationRunId);
         return R.ok();
     }
 }

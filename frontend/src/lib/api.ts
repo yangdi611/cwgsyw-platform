@@ -32,13 +32,17 @@ function redirectToLogin() {
   window.location.href = '/login'
 }
 
+function isLoginRequest(url?: string) {
+  return /(?:^|\/)auth\/login(?:\?.*)?$/.test(url ?? '')
+}
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err.response?.status
     const errorCode = err.response?.data?.errorCode
 
-    if (status === 401) {
+    if (status === 401 && !isLoginRequest(err.config?.url)) {
       if (errorCode && SESSION_ERROR_CODES.has(errorCode)) {
         broadcastLogout(errorCode === 'SESSION_TIMEOUT' ? 'SESSION_TIMEOUT' : 'SESSION_REVOKED')
       }
@@ -50,8 +54,6 @@ api.interceptors.response.use(
         if (window.location.pathname !== '/account/setup') {
           window.location.href = '/account/setup'
         }
-      } else {
-        console.warn('[API 403] Forbidden:', err.config?.url)
       }
     }
     return Promise.reject(err)

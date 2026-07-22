@@ -1,0 +1,32 @@
+{
+  "eventId": "REM-P2-009",
+  "sourceCase": "WIKI-013",
+  "executedAt": "2026-07-16T17:25:00+08:00",
+  "branch": "codex/rem-p2-009-wiki-search-discovery-history",
+  "baseline": "84403626e1d4612da164d6dafa402185bc9a30f5",
+  "runtime": {
+    "frontend": "current event branch container rebuilt",
+    "backend": "current event branch container rebuilt",
+    "gateway": "nginx recreated after backend container replacement",
+    "health": "PASS"
+  },
+  "checks": {
+    "homepageSearchEntry": "PASS",
+    "inputAutofocus": "PASS",
+    "debouncedKeywordUrl": "PASS",
+    "paginationPageTwoUrl": "PASS",
+    "historyBackRestoresKeywordAndPage": "PASS",
+    "historyForwardRestoresKeywordAndPage": "PASS",
+    "emptyState": "PASS",
+    "consoleErrors": 0,
+    "unauthorizedResultsExcludedBeforePagination": "PASS"
+  },
+  "testData": {
+    "created": [],
+    "cleanupFailures": 0,
+    "note": "Pagination used existing published read-only Wiki content. Earlier draft-only runId pages and spaces were product-API deleted; read-only verification created no Wiki content."
+  },
+  "knownEnvironmentLimitations": [
+    "mvn -Dtest=WikiPageServiceTest test cannot start because unrelated testCompile errors exist in OpsCalendarRuleServiceTest, OpsCalendarTaskServiceTest, and GroupControllerGroupReferenceTest."
+  ]
+}

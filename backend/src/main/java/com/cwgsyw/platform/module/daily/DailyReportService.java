@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.dto.CiInstanceBriefVO;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
@@ -12,15 +13,24 @@ import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.cmdb.mapper.CiModelMapper;
 import com.cwgsyw.platform.module.daily.dto.*;
 import com.cwgsyw.platform.module.daily.entity.DailyReport;
+import com.cwgsyw.platform.module.notification.NotificationMapper;
+import com.cwgsyw.platform.module.notification.entity.NotificationMessage;
 import com.cwgsyw.platform.module.org.GroupMapper;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
+import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstanceMapper;
 import lombok.RequiredArgsConstructor;
+import org.flowable.engine.HistoryService;
+import org.flowable.engine.RuntimeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +44,10 @@ public class DailyReportService {
     private final CiInstanceMapper ciInstanceMapper;
     private final CiModelMapper ciModelMapper;
     private final com.cwgsyw.platform.module.notification.NotificationService notificationService;
+    private final NotificationMapper notificationMapper;
+    private final WorkflowBusinessInstanceMapper workflowBusinessInstanceMapper;
+    private final RuntimeService runtimeService;
+    private final HistoryService historyService;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<DailyReportVO> listMyReports(Long userId, String month, int page, int size) {
@@ -41,9 +55,9 @@ public class DailyReportService {
             .eq(DailyReport::getReporterId, userId)
             .eq(DailyReport::getIsDeleted, false)
             .orderByDesc(DailyReport::getReportDate);
-        if (month != null && !month.isBlank()) {
-            // month format: "2026-05"
-            LocalDate start = LocalDate.parse(month + "-01");
+        if (month != null) {
+            YearMonth requestedMonth = TemporalInputValidator.parseMonth(month);
+            LocalDate start = requestedMonth.atDay(1);
             LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
             query.between(DailyReport::getReportDate, start, end);
         }
@@ -57,8 +71,9 @@ public class DailyReportService {
             .orderByDesc(DailyReport::getReportDate);
         if (groupId != null) query.eq(DailyReport::getGroupId, groupId);
         if (status != null) query.eq(DailyReport::getStatus, status);
-        if (month != null && !month.isBlank()) {
-            LocalDate start = LocalDate.parse(month + "-01");
+        if (month != null) {
+            YearMonth requestedMonth = TemporalInputValidator.parseMonth(month);
+            LocalDate start = requestedMonth.atDay(1);
             LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
             query.between(DailyReport::getReportDate, start, end);
         }
@@ -102,7 +117,8 @@ public class DailyReportService {
 
     @Transactional
     public void submit(Long id, Long userId) {
-        DailyReport report = getAndCheckOwner(id, userId);
+        DailyReport report = reportMapper.findActiveByIdForUpdate(id);
+        checkOwner(report, userId);
         if (!"DRAFT".equals(report.getStatus()) && !"REJECTED".equals(report.getStatus())) {
             throw new IllegalArgumentException("只能提交草稿或被拒绝的日报");
         }
@@ -175,11 +191,99 @@ public class DailyReportService {
         return toVO(report);
     }
 
+    /**
+     * 仅用于本地 remediation runId 测试日报的终态清理。
+     *
+     * <p>正常日报没有删除入口。调用方必须是平台级管理员，且 runId 同时出现在日报内容中，
+     * 防止误删非测试日报；关联通知、业务流程映射和 Flowable runtime/history 仅按该日报精确处理。
+     */
+    @Transactional
+    public void purgeRemediationReport(Long id, String tenantId, Long operatorId,
+                                       String groupScope, String remediationRunId) {
+        if (!"platform".equals(groupScope)) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试日报");
+        }
+        if (remediationRunId == null || remediationRunId.isBlank()) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        DailyReport report = reportMapper.selectById(id);
+        if (report == null || Boolean.TRUE.equals(report.getIsDeleted())
+                || !tenantId.equals(report.getTenantId())) {
+            throw new IllegalArgumentException("日报不存在");
+        }
+        if (!containsRunId(report, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试日报");
+        }
+
+        String businessKey = "daily_report:" + id;
+        Set<String> processInstanceIds = new LinkedHashSet<>();
+        if (report.getProcessInstId() != null && !report.getProcessInstId().isBlank()) {
+            processInstanceIds.add(report.getProcessInstId());
+        }
+        runtimeService.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        processInstanceIds.forEach(processInstanceId -> {
+            if (runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult() != null) {
+                runtimeService.deleteProcessInstance(processInstanceId, "remediation test cleanup");
+            }
+            if (historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult() != null) {
+                historyService.deleteHistoricProcessInstance(processInstanceId);
+            }
+        });
+
+        notificationMapper.selectList(new LambdaQueryWrapper<NotificationMessage>()
+                .eq(NotificationMessage::getTenantId, tenantId)
+                .eq(NotificationMessage::getRefType, "daily_report")
+                .eq(NotificationMessage::getRefId, id)
+                .eq(NotificationMessage::getIsDeleted, false))
+            .forEach(notification -> notificationMapper.deleteById(notification.getId()));
+
+        workflowBusinessInstanceMapper.selectList(new LambdaQueryWrapper<WorkflowBusinessInstance>()
+                .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+                .eq(WorkflowBusinessInstance::getBusinessType, "daily_report")
+                .eq(WorkflowBusinessInstance::getBusinessId, String.valueOf(id)))
+            .forEach(instance -> workflowBusinessInstanceMapper.deleteById(instance.getId()));
+
+        reportMapper.deleteById(id);
+        auditLogMapper.insert(AuditLog.builder()
+            .tenantId(tenantId).module("daily_report").action("purge_remediation_test")
+            .targetId(id).targetType("daily_report").operatorId(operatorId)
+            .beforeJson("{\"remediationRunId\":\"" + remediationRunId + "\"}")
+            .remark("清理整改测试日报及其关联流程、通知")
+            .createdAt(LocalDateTime.now()).build());
+    }
+
+    private boolean containsRunId(DailyReport report, String remediationRunId) {
+        List<String> content = java.util.stream.Stream.of(
+                report.getCompletedItems(), report.getIssues(), report.getTomorrowPlan())
+            .filter(Objects::nonNull)
+            .toList();
+        if (content.stream().anyMatch(value -> value.contains(remediationRunId))) {
+            return true;
+        }
+        Matcher runIdTimestamp = Pattern.compile("^FQA_(\\d{8}_\\d{4})(?:_|$)")
+            .matcher(remediationRunId);
+        if (!runIdTimestamp.find()) {
+            return false;
+        }
+        Pattern legacyMarker = Pattern.compile("\\bFQA_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_"
+            + Pattern.quote(runIdTimestamp.group(1)) + "\\b");
+        return content.stream().anyMatch(value -> legacyMarker.matcher(value).find());
+    }
+
     private DailyReport getAndCheckOwner(Long id, Long userId) {
         DailyReport report = reportMapper.selectById(id);
+        checkOwner(report, userId);
+        return report;
+    }
+
+    private void checkOwner(DailyReport report, Long userId) {
         if (report == null || report.getIsDeleted()) throw new IllegalArgumentException("日报不存在");
         if (!report.getReporterId().equals(userId)) throw new IllegalArgumentException("无权操作他人日报");
-        return report;
     }
 
     private DailyReportVO toVO(DailyReport r) {

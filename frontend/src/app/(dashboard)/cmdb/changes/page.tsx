@@ -49,7 +49,10 @@ function actionVariant(a: string): StatusVariant {
 
 function toIso(date: string, endOfDay = false): string | undefined {
   if (!date) return undefined
-  return endOfDay ? `${date}T23:59:59` : `${date}T00:00:00`
+  if (!endOfDay) return `${date}T00:00:00`
+  const [year, month, day] = date.split('-').map(Number)
+  const nextDay = new Date(year, month - 1, day + 1)
+  return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}T00:00:00`
 }
 
 export default function CmdbChangesPage() {
@@ -60,6 +63,7 @@ export default function CmdbChangesPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [operatorId, setOperatorId] = useState('')
+  const [keyword, setKeyword] = useState('')
   const [action, setAction] = useState('')
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(20)
@@ -88,13 +92,14 @@ export default function CmdbChangesPage() {
   const canRead = hasPermission('cmdb_change', 'read') || hasPermission('cmdb_instance', 'read')
 
   const { data, isLoading, isFetching } = useQuery<PageData>({
-    queryKey: ['cmdb-changes-v2', model, startDate, endDate, operatorId, action, page, size],
+    queryKey: ['cmdb-changes-v2', model, startDate, endDate, operatorId, keyword, action, page, size],
     queryFn: () =>
       api
         .get('/cmdb/changes', {
           params: {
             entityType: 'ci_instance',
             modelId: model || undefined,
+            keyword: keyword || undefined,
             from: toIso(startDate, false),
             to: toIso(endDate, true),
             operatorId: operatorId || undefined,
@@ -125,11 +130,12 @@ export default function CmdbChangesPage() {
     setStartDate('')
     setEndDate('')
     setOperatorId('')
+    setKeyword('')
     setAction('')
     resetPage()
   }
 
-  const hasFilters = !!(model || startDate || endDate || operatorId || action)
+  const hasFilters = !!(model || startDate || endDate || operatorId || keyword || action)
 
   return (
     <div className="space-y-6">
@@ -205,6 +211,16 @@ export default function CmdbChangesPage() {
             resetPage()
           }}
           className="w-32"
+        />
+
+        <Input
+          placeholder="搜索实例、模型或变更内容"
+          value={keyword}
+          onChange={(e) => {
+            setKeyword(e.target.value)
+            resetPage()
+          }}
+          className="w-52"
         />
 
         <Select

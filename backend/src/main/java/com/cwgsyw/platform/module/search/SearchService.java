@@ -91,7 +91,7 @@ public class SearchService {
         // ── 变更单 ───────────────────────────────────────────────
         if (has(u, "change_doc:read")) {
             safe("change_doc", () -> {
-                List<ChangeDocVO> hits = changeDocService.searchByTitle(tenantId, kw, perType);
+                List<ChangeDocVO> hits = changeDocService.searchByTitle(u, kw, perType);
                 for (ChangeDocVO d : hits) {
                     results.add(new SearchResultVO(
                         "change_doc", d.getId(), d.getTitle(),

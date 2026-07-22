@@ -1,0 +1,17 @@
+report_inverted	400	{"code":400,"message":"开始日期不能晚于结束日期","data":null}
+task_inverted	400	{"code":400,"message":"startDate不能晚于endDate","data":null}
+task_invalid_date	400	{"code":400,"message":"参数格式错误","data":null}
+roster_inverted	400	{"code":400,"message":"from不能晚于to","data":null}
+roster_invalid_date	400	{"code":400,"message":"参数格式错误","data":null}
+stats_inverted	400	{"code":400,"message":"startDate不能晚于endDate","data":null}
+materials_inverted	400	{"code":400,"message":"startDate不能晚于endDate","data":null}
+materials_invalid_date	400	{"code":400,"message":"参数格式错误","data":null}
+daily_group_invalid_month	400	{"code":400,"message":"月份格式必须为 yyyy-MM","data":null}
+daily_group_invalid_text	400	{"code":400,"message":"月份格式必须为 yyyy-MM","data":null}
+daily_my_valid_month	200	{"code":200,"message":"success","data":{"records":[],"total":0,"page":1,"size":31}}
+daily_invalid_date	400	{"code":400,"message":"参数格式错误","data":null}
+daily_future_date	400	{"code":400,"message":"日报日期不能晚于今天","data":null}
+daily_negative_work_hours	400	{"code":400,"message":"工时不能小于 0","data":null}
+daily_over_limit_work_hours	400	{"code":400,"message":"工时不能大于 24","data":null}
+daily_zero_hours_missing_group	400	{"code":400,"message":"请指定所属组（管理员账号需在请求中传入 group_id）","data":null}
+daily_max_hours_missing_group	400	{"code":400,"message":"请指定所属组（管理员账号需在请求中传入 group_id）","data":null}

@@ -10,11 +10,15 @@ import { Label } from '@/components/v2/Label'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { Sparkles, ArrowLeft } from 'lucide-react'
-import type { TableRow, FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
+import type { TableRow } from '@/components/change-doc/tableFieldTypes'
 import { FieldList } from '@/components/change-doc/FieldList'
 import { TemplateSelector } from './components/TemplateSelector'
 import { CiSelectorModal } from './components/CiSelectorModal'
 import type { TemplateVO, CiSnapshot } from './components/types'
+
+interface ChangeDocCreateResponse {
+  id: number
+}
 
 export default function NewChangeDocPage() {
   const router = useRouter()
@@ -51,14 +55,14 @@ export default function NewChangeDocPage() {
 
   const appFields = useMemo(() => {
     if (!selectedAppTemplate) return []
-    return ((selectedAppTemplate as { fieldConfig?: FieldConfigVO[] }).fieldConfig ?? [])
+    return selectedAppTemplate.fields
       .filter((f) => f.inForm)
       .sort((a, b) => a.sortOrder - b.sortOrder)
   }, [selectedAppTemplate])
 
   const planFields = useMemo(() => {
     if (!selectedPlanTemplate) return []
-    return ((selectedPlanTemplate as { fieldConfig?: FieldConfigVO[] }).fieldConfig ?? [])
+    return selectedPlanTemplate.fields
       .filter((f) => f.inForm)
       .sort((a, b) => a.sortOrder - b.sortOrder)
   }, [selectedPlanTemplate])
@@ -75,10 +79,16 @@ export default function NewChangeDocPage() {
       toast.error('请至少选择一个模板')
       return
     }
+    const defaults = [...appFields, ...planFields].reduce<Record<string, unknown>>((result, field) => {
+      const config = field.config as { defaultValue?: unknown } | undefined
+      if (config?.defaultValue !== undefined) result[field.fieldKey] = config.defaultValue
+      return result
+    }, {})
+    setFieldsData((current) => ({ ...defaults, ...current }))
     setStep(2)
   }
 
-  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const setField = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFieldsData((f) => ({ ...f, [key]: e.target.value }))
 
   const setTableField = (key: string) => (rows: TableRow[]) =>
@@ -125,12 +135,15 @@ export default function NewChangeDocPage() {
         fieldsData,
         ciSnapshots: selectedCis,
       })
-      const docId = res.data.data as number
+      const created = res.data.data as ChangeDocCreateResponse
+      if (!Number.isSafeInteger(created?.id) || created.id <= 0) {
+        throw new Error('创建响应缺少有效文档 ID')
+      }
       toast.success('变更文档已创建')
-      router.push(`/change-docs/${docId}`)
+      router.push(`/change-docs/${created.id}`)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      toast.error(err?.response?.data?.message ?? '创建失败')
+      toast.error(err?.response?.data?.message ?? (e instanceof Error ? e.message : '创建失败'))
     } finally {
       setSubmitting(false)
     }

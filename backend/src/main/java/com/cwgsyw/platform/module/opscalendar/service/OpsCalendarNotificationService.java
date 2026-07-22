@@ -122,7 +122,13 @@ public class OpsCalendarNotificationService {
         // 渲染并发送
         Map<String, String> vars = buildVars(task, userId, phoneOverride);
         String title = render(defaultTitle(stage), vars);
-        String body = render(defaultBody(stage), vars);
+        String bodyTemplate = "rule".equals(task.getSourceType())
+                && "daily_report".equals(task.getTaskType())
+                && "created".equals(stage)
+                && notBlank(task.getContent())
+                ? task.getContent()
+                : defaultBody(stage);
+        String body = render(bodyTemplate, vars);
 
         try {
             notificationService.notify(tenantId, userId, title, body,

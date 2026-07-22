@@ -122,6 +122,32 @@ class TableFieldSupportTest {
     }
 
     @Test
+    void validateAndNormalize_scalarDateAndDatetimeValidValues_pass() {
+        ChangeDocField date = plainField("window_date", "变更日期", false);
+        date.setFieldType("date");
+        ChangeDocField datetime = plainField("window_time", "变更时间", false);
+        datetime.setFieldType("datetime");
+
+        assertThatCode(() -> support.validateAndNormalize(List.of(date, datetime), Map.of(
+                "window_date", "2024-02-29",
+                "window_time", "2026-07-17T13:45:30"), false))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void validateAndNormalize_scalarInvalidTemporalValues_throw() {
+        ChangeDocField date = plainField("window_date", "变更日期", false);
+        date.setFieldType("date");
+        ChangeDocField datetime = plainField("window_time", "变更时间", false);
+        datetime.setFieldType("datetime");
+
+        assertThatThrownBy(() -> support.validateAndNormalize(List.of(date), Map.of("window_date", "2026-99-99"), false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("变更日期不是有效日期");
+        assertThatThrownBy(() -> support.validateAndNormalize(List.of(datetime), Map.of("window_time", "2026-07-17T13:45+08:00"), false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("变更时间不是有效日期时间");
+    }
+
+    @Test
     void validateAndNormalize_tableField_requiredEmpty_enforceTrue_throws() {
         ChangeDocField f = tableField("servers", "服务器列表", true, validTableConfig());
         assertThatThrownBy(() -> support.validateAndNormalize(List.of(f), Map.of(), true))
@@ -213,6 +239,22 @@ class TableFieldSupportTest {
         assertThatThrownBy(() -> support.validateAndNormalize(List.of(f), data, true))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("不是有效数字");
+    }
+
+    @Test
+    void validateAndNormalize_tableField_temporalColumnsValidateCalendarValues() {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("tableMode", "fixedDocxTable");
+        config.put("allowAddRow", true);
+        config.put("allowDeleteRow", true);
+        config.put("columns", List.of(col("date", "日期", "date"), col("datetime", "日期时间", "datetime")));
+        ChangeDocField field = tableField("windows", "变更窗口", false, config);
+        Map<String, Object> valid = Map.of("windows", List.of(Map.of("date", "2024-02-29", "datetime", "2026-07-17T13:45")));
+
+        assertThatCode(() -> support.validateAndNormalize(List.of(field), valid, false)).doesNotThrowAnyException();
+        Map<String, Object> invalid = Map.of("windows", List.of(Map.of("date", "2026-02-29", "datetime", "2026-07-17T25:00")));
+        assertThatThrownBy(() -> support.validateAndNormalize(List.of(field), invalid, false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("不是有效日期");
     }
 
     @Test

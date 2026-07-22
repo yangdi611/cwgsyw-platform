@@ -20,14 +20,14 @@ public class CiTopologyController {
     private final CiTopologyCompareService ciTopologyCompareService;
 
     @GetMapping("/{instanceId}")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_topology', 'read') and hasPermission('cmdb_instance', 'read')")
     public R<TopologyResultVO> getTopology(@PathVariable Long instanceId,
             @RequestParam(defaultValue = "5") int depth, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciTopologyService.getTopology(instanceId, depth, cu.getTenantId()));
     }
 
     @GetMapping("/{instanceId}/compare")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_topology', 'read') and hasPermission('cmdb_instance', 'read')")
     public R<TopologyCompareVO> compare(@PathVariable Long instanceId,
             @RequestParam String fromTime, @RequestParam String toTime,
             @RequestParam(defaultValue = "5") int depth,

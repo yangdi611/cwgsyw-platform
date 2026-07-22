@@ -6,6 +6,8 @@ import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowAdapterRegist
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowContext;
 import com.cwgsyw.platform.module.workflow.adapter.BusinessWorkflowSummary;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
+import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.workflow.binding.ProcessBindingService;
 import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBinding;
 import com.cwgsyw.platform.module.workflow.event.WorkflowBusinessInstance;
@@ -30,6 +32,7 @@ import java.time.ZoneId;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,6 +66,7 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
     private final com.cwgsyw.platform.module.rbac.RbacService rbacService;
     private final com.cwgsyw.platform.module.rbac.SysRoleMapper roleMapper;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    private final GroupMapper groupMapper;
 
     @Override
     @Transactional
@@ -281,10 +285,28 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         return toSummaries(tasks, user);
     }
 
-    /** 当前用户的候选组 token 集合：提交人组 group_{id} + 所有角色组 role_{code}。 */
+    @Override
+    public boolean hasRunningBusinessProcess(String tenantId, String businessType, String businessId) {
+        return businessInstanceMapper.selectCount(new LambdaQueryWrapper<WorkflowBusinessInstance>()
+            .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+            .eq(WorkflowBusinessInstance::getBusinessType, businessType)
+            .eq(WorkflowBusinessInstance::getBusinessId, businessId)
+            .eq(WorkflowBusinessInstance::getStatus, "running")) > 0;
+    }
+
+    /** 当前用户的候选组 token 集合：可审批范围内用户组 + 所有角色组 role_{code}。 */
     private List<String> candidateGroupTokens(SecurityUser user) {
-        List<String> tokens = new ArrayList<>();
-        if (user.getGroupId() != null) {
+        Set<String> tokens = new LinkedHashSet<>();
+        if ("tenant".equals(user.getGroupScope()) || "platform".equals(user.getGroupScope())) {
+            groupMapper.selectList(new LambdaQueryWrapper<Group>()
+                    .eq(Group::getTenantId, user.getTenantId())
+                    .eq(Group::getIsDeleted, false))
+                .stream()
+                .map(Group::getId)
+                .filter(java.util.Objects::nonNull)
+                .map(approverResolver::groupToken)
+                .forEach(tokens::add);
+        } else if (user.getGroupId() != null) {
             tokens.add(approverResolver.groupToken(user.getGroupId()));
         }
         try {
@@ -299,7 +321,7 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         } catch (Exception e) {
             log.warn("解析用户角色候选组失败 userId={}: {}", user.getUserId(), e.getMessage());
         }
-        return tokens;
+        return new ArrayList<>(tokens);
     }
 
     @Override
@@ -326,6 +348,36 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
         instance.setResult("cancelled");
         instance.setEndedAt(LocalDateTime.now());
         businessInstanceMapper.updateById(instance);
+    }
+
+    @Override
+    @Transactional
+    public void purgeBusinessProcessForRemediation(String tenantId, String businessType, String businessId) {
+        String businessKey = businessType + ":" + businessId;
+        Set<String> processInstanceIds = new LinkedHashSet<>();
+        List<WorkflowBusinessInstance> mappings = businessInstanceMapper.selectList(
+            new LambdaQueryWrapper<WorkflowBusinessInstance>()
+                .eq(WorkflowBusinessInstance::getTenantId, tenantId)
+                .eq(WorkflowBusinessInstance::getBusinessType, businessType)
+                .eq(WorkflowBusinessInstance::getBusinessId, businessId));
+        mappings.stream().map(WorkflowBusinessInstance::getProcessInstanceId)
+            .filter(java.util.Objects::nonNull).forEach(processInstanceIds::add);
+        runtimeService.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+        historyService.createHistoricProcessInstanceQuery().processInstanceBusinessKey(businessKey).list()
+            .forEach(instance -> processInstanceIds.add(instance.getId()));
+
+        processInstanceIds.forEach(processInstanceId -> {
+            if (runtimeService.createProcessInstanceQuery()
+                    .processInstanceId(processInstanceId).singleResult() != null) {
+                runtimeService.deleteProcessInstance(processInstanceId, "remediation test cleanup");
+            }
+            if (historyService.createHistoricProcessInstanceQuery()
+                    .processInstanceId(processInstanceId).singleResult() != null) {
+                historyService.deleteHistoricProcessInstance(processInstanceId);
+            }
+        });
+        mappings.forEach(mapping -> businessInstanceMapper.deleteById(mapping.getId()));
     }
 
     // ── 辅助方法 ──────────────────────────────────────────────────────────

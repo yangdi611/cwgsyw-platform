@@ -9,7 +9,8 @@ import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { Input } from '@/components/v2/Input'
 import { Button } from '@/components/v2/Button'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, FileQuestion, Save } from 'lucide-react'
+import { EmptyState } from '@/components/shared'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
 import '@uiw/react-md-editor/markdown-editor.css'
@@ -26,6 +27,7 @@ const ALLOWED_IMAGE_MIMES = [
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp,.svg,image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
 
 const FMT = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+const WIKI_PAGE_TITLE_MAX_LENGTH = 255
 
 /**
  * 镜像 div 测量法：算出 textarea 中某字符位置光标的像素坐标（相对 textarea 内容左上角）。
@@ -87,7 +89,7 @@ export default function WikiEditorPage() {
   })
   const currentSpace = spaces?.find((s) => s.id === sid)
 
-  const { data: page } = useQuery<WikiPage>({
+  const { data: page, isError: pageError } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],
     queryFn: () => wikiApi.getPage(pid),
   })
@@ -108,7 +110,7 @@ export default function WikiEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: (comment?: string) =>
-      wikiApi.savePage(pid, { title: title.trim() || '无标题', content, comment }),
+      wikiApi.savePage(pid, { title: title.trim(), content, comment }),
     onSuccess: (updated) => {
       setSavedAt(FMT.format(new Date()))
       queryClient.setQueryData<WikiPage>(['wiki-page', pid], updated)
@@ -279,6 +281,10 @@ export default function WikiEditorPage() {
     [],
   )
 
+  if (pageError || (spaces && !currentSpace)) {
+    return <EmptyState icon={<FileQuestion className="h-5 w-5 text-v2-muted" />} title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
+  }
+
   return (
     <div className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">
       {/* 卡片：工具栏 + 编辑器统一在一个 surface 容器内，与阅读页风格一致 */}
@@ -295,16 +301,18 @@ export default function WikiEditorPage() {
         <Input
           className="h-9 flex-1 text-base font-semibold"
           value={title}
+          maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="页面标题"
         />
+        <span className="shrink-0 text-xs text-v2-subtle">{title.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</span>
         <span className="shrink-0 text-xs text-v2-subtle">
           {savedAt ? `已保存 ${savedAt}` : '未保存'}
         </span>
         <Button
           variant="primary"
           size="sm"
-          disabled={saveMutation.isPending}
+          disabled={!title.trim() || saveMutation.isPending}
           onClick={() => saveMutation.mutate(undefined)}
         >
           <Save className="h-3.5 w-3.5" />

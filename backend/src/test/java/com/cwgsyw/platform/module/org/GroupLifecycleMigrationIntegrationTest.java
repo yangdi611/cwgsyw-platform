@@ -89,7 +89,7 @@ class GroupLifecycleMigrationIntegrationTest {
                     'enforce_active_group_scalar_reference'
                 )
                 """));
-            assertEquals(17, queryInt(connection, """
+            assertEquals(18, queryInt(connection, """
                 SELECT COUNT(*) FROM pg_trigger
                 WHERE NOT tgisinternal AND tgname LIKE 'trg_%_active_group%'
                 """));
@@ -723,10 +723,11 @@ class GroupLifecycleMigrationIntegrationTest {
             INSERT INTO wiki_page (tenant_id, space_id, slug, title, content)
             VALUES (?, ?, ?, ?, '') RETURNING id
             """, tenantId, wikiSpaceId, unique("slug"), unique("title"));
+        String folderName = unique("folder");
         long folderId = insertId(connection, """
-            INSERT INTO shared_folder (tenant_id, name, created_by)
-            VALUES (?, ?, 0) RETURNING id
-            """, tenantId, unique("folder"));
+            INSERT INTO shared_folder (tenant_id, name, normalized_name, created_by)
+            VALUES (?, ?, lower(btrim(?)), 0) RETURNING id
+            """, tenantId, folderName, folderName);
         return new Fixture(tenantId, groupId, userId, roleId, deviceId, wikiSpaceId, wikiPageId, folderId);
     }
 
@@ -757,6 +758,11 @@ class GroupLifecycleMigrationIntegrationTest {
                 INSERT INTO device (tenant_id, group_id, name, device_type)
                 VALUES (%s, %d, %s, 'server')
                 """.formatted(tenant, group, literal(unique("device-ref")))),
+            new WriterCase("ip-pool", """
+                INSERT INTO ip_pool
+                    (tenant_id, group_id, name, cidr, status, total_count, allocated_count)
+                VALUES (%s, %d, %s, '10.254.0.0/30', 'active', 2, 0)
+                """.formatted(tenant, group, literal(unique("ip-pool-ref")))),
             new WriterCase("device-credential", """
                 INSERT INTO device_credential
                     (tenant_id, device_id, group_id, username, password_enc)
@@ -783,8 +789,9 @@ class GroupLifecycleMigrationIntegrationTest {
                 """.formatted(tenant, fixture.wikiSpaceId(), literal(unique("owned-slug")),
                     literal(unique("owned-title")), group)),
             new WriterCase("shared-folder-owner", """
-                INSERT INTO shared_folder (tenant_id, name, created_by, owner_group_id)
-                VALUES (%s, %s, 0, %d)
+                INSERT INTO shared_folder
+                    (tenant_id, name, normalized_name, created_by, owner_group_id)
+                VALUES (%1$s, %2$s, lower(btrim(%2$s)), 0, %3$d)
                 """.formatted(tenant, literal(unique("owned-folder")), group)),
             new WriterCase("shared-file-owner", sharedFileSql(fixture, "'[]'::JSONB", group)),
             new WriterCase("resource-acl", """

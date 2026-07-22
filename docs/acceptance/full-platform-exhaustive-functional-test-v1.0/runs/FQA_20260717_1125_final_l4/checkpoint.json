@@ -1,0 +1,20 @@
+{
+  "runId": "FQA_20260717_1125_final_l4",
+  "phase": "STOPPED_FOR_REM-P2-032",
+  "lastCompletedCaseId": "AUTH-001-FAIL",
+  "baselineCommit": "de196e8275a8a8891e119e9fa64c75c9cd49d5e3",
+  "browser": {
+    "status": "available",
+    "driver": "isolated Playwright Chromium",
+    "note": "Playwright was authorized and used for real UI execution after in-app and Chrome-extension control bindings were unavailable."
+  },
+  "currentLogin": null,
+  "authorizationMode": null,
+  "activeBreakGlass": [],
+  "functional": {"total": 275, "PASS": 0, "FAIL": 1, "BLOCKED": 0, "N/A": 0, "NOT_RUN": 274},
+  "stateCrossModule": {"total": 78, "PASS": 0, "FAIL": 0, "BLOCKED": 0, "N/A": 0, "NOT_RUN": 78},
+  "activeObjects": 0,
+  "cleanupFailures": 0,
+  "openDefects": ["L4-DASHBOARD-001 -> REM-P2-032"],
+  "blockedCases": []
+}

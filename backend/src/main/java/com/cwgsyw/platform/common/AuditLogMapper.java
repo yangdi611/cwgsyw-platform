@@ -17,7 +17,11 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         SELECT * FROM audit_log
         WHERE tenant_id = #{tenantId}
           AND (#{module}::varchar IS NULL OR module = #{module}::varchar)
+          AND (#{action}::varchar IS NULL OR action = #{action}::varchar)
           AND (#{operatorId}::bigint IS NULL OR operator_id = #{operatorId}::bigint)
+          AND (#{keyword}::varchar IS NULL OR remark ILIKE CONCAT('%', #{keyword}::varchar, '%')
+               OR target_type ILIKE CONCAT('%', #{keyword}::varchar, '%')
+               OR CAST(target_id AS varchar) ILIKE CONCAT('%', #{keyword}::varchar, '%'))
           AND (#{startDate}::varchar IS NULL OR created_at >= #{startDate}::timestamp)
           AND (#{endDate}::varchar IS NULL OR created_at < (#{endDate}::date + INTERVAL '1 day')::timestamp)
         ORDER BY created_at DESC
@@ -25,9 +29,23 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
     Page<AuditLog> queryPage(Page<AuditLog> page,
                               @Param("tenantId")   String tenantId,
                               @Param("module")     String module,
+                              @Param("action")     String action,
                               @Param("operatorId") Long operatorId,
+                              @Param("keyword")    String keyword,
                               @Param("startDate")  String startDate,
                               @Param("endDate")    String endDate);
+
+    @Select("""
+        SELECT * FROM audit_log
+        WHERE tenant_id = #{tenantId}
+          AND module = 'cmdb'
+          AND target_type = 'ci_instance'
+          AND target_id = #{instanceId}
+        ORDER BY created_at DESC
+        """)
+    Page<AuditLog> queryInstanceHistoryPage(Page<AuditLog> page,
+                                             @Param("tenantId") String tenantId,
+                                             @Param("instanceId") Long instanceId);
 
     @Select("""
         <script>
@@ -43,7 +61,7 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
           <if test='targetId != null'>AND al.target_id = #{targetId}</if>
           <if test='action != null'>AND al.action = #{action}</if>
           <if test='operatorId != null'>AND al.operator_id = #{operatorId}</if>
-          <if test='fromDate != null'>AND al.created_at &gt;= #{fromDate}::timestamp</if>
+          <if test='fromDate != null'>AND al.created_at &gt; #{fromDate}::timestamp</if>
           <if test='toDate != null'>AND al.created_at &lt; #{toDate}::timestamp</if>
         ORDER BY al.created_at DESC
         </script>

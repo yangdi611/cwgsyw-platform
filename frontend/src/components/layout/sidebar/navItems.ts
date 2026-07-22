@@ -85,8 +85,8 @@ export const navItems: NavEntry[] = [
   {
     label: '资源管理',
     icon: FolderOpen,
-    resource: 'device',
-    action: 'read',
+    resource: null,
+    action: null,
     storageKey: 'sidebar_resource_v2',
     defaultOpen: false,
     children: [
@@ -134,7 +134,7 @@ export const navItems: NavEntry[] = [
     storageKey: 'sidebar_reports_v2',
     defaultOpen: false,
     children: [
-      { href: '/reports', label: '综合报表', icon: BarChart2, resource: null, action: null },
+      { href: '/reports', label: '综合报表', icon: BarChart2, resource: 'daily_report', action: 'export' },
       { href: '/cmdb/changes/stats', label: 'CMDB 统计', icon: BarChart2, resource: 'cmdb_change', action: 'read' },
       { href: '/workflow/stats', label: '流程统计', icon: BarChart2, resource: 'workflow', action: 'read' },
     ],
@@ -161,14 +161,14 @@ export const navItems: NavEntry[] = [
   {
     label: '系统管理',
     icon: Settings,
-    resource: 'notification',
-    action: 'manage',
+    resource: null,
+    action: null,
     storageKey: 'sidebar_system_v2',
     defaultOpen: false,
     children: [
       { href: '/admin/config', label: '系统配置', icon: Settings, resource: 'notification', action: 'manage' },
-      { href: '/admin/ai', label: 'AI 配置', icon: Settings, resource: 'notification', action: 'manage' },
-      { href: '/admin/audit', label: '审计日志', icon: ClipboardList, resource: null, action: null },
+      { href: '/admin/ai', label: 'AI 配置', icon: Settings, resource: 'ai_config', action: 'read' },
+      { href: '/admin/audit', label: '审计日志', icon: ClipboardList, resource: 'audit', action: 'read' },
       { href: '/admin/backup', label: '备份与恢复', icon: DatabaseBackup, resource: 'backup', action: 'read' },
       { href: '/notifications', label: '通知中心', icon: Bell, resource: 'notification', action: 'read' },
     ],

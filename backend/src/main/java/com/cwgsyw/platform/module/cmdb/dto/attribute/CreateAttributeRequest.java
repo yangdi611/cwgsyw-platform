@@ -3,6 +3,8 @@ package com.cwgsyw.platform.module.cmdb.dto.attribute;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -11,19 +13,19 @@ import java.util.Map;
 @Data
 public class CreateAttributeRequest {
     @JsonProperty("fieldKey")
-    @NotBlank @Pattern(regexp = "^[a-z][a-z0-9_]*$")
+    @NotBlank @Size(max = 64) @Pattern(regexp = "^[a-z][a-z0-9_]*$")
     private String fieldKey;
 
     @JsonProperty("name")
-    @NotBlank
+    @NotBlank @Size(max = 128)
     private String name;
 
     @JsonProperty("groupId")
-    @NotBlank
+    @NotBlank @Size(max = 64)
     private String groupId;
 
     @JsonProperty("fieldType")
-    @NotBlank
+    @NotBlank @Size(max = 32)
     private String fieldType;
 
     private Boolean isRequired = false;
@@ -47,5 +49,6 @@ public class CreateAttributeRequest {
     @JsonProperty("enumOptions")
     private String enumOptions;
 
+    @PositiveOrZero
     private Integer sortOrder = 0;
 }

@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.opscalendar.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.TemporalInputValidator;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.opscalendar.dto.RosterConflictVO;
 import com.cwgsyw.platform.module.opscalendar.dto.RosterRequest;
@@ -13,6 +14,7 @@ import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.entity.Group;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
+import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,9 @@ public class OpsCalendarRosterService {
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public List<RosterVO> list(String tenantId, LocalDate from, LocalDate to, Long groupId) {
+        if (from != null && to != null) {
+            TemporalInputValidator.requireOrderedDateRange(from, to, "from", "to");
+        }
         LambdaQueryWrapper<OpsDutyRoster> qw = new LambdaQueryWrapper<OpsDutyRoster>()
                 .eq(OpsDutyRoster::getTenantId, tenantId)
                 .ge(from != null, OpsDutyRoster::getDutyDate, from)
@@ -70,6 +75,7 @@ public class OpsCalendarRosterService {
 
     @Transactional
     public RosterVO create(RosterRequest req, String tenantId, Long operatorId) {
+        validateTimeRange(req);
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         OpsDutyRoster r = new OpsDutyRoster();
         r.setTenantId(tenantId);
@@ -81,6 +87,7 @@ public class OpsCalendarRosterService {
 
     @Transactional
     public RosterVO update(Long id, RosterRequest req, String tenantId, Long operatorId) {
+        validateTimeRange(req);
         OpsDutyRoster r = rosterMapper.selectById(id);
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("排班记录不存在");
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
@@ -88,6 +95,39 @@ public class OpsCalendarRosterService {
         rosterMapper.updateById(r);
         writeAudit(tenantId, "update", id, operatorId, null);
         return toVO(r, null);
+    }
+
+    @Transactional
+    public void purgeRemediationTest(SecurityUser user, Long id, String runId) {
+        if (!"platform".equals(user.getGroupScope())) {
+            throw new IllegalArgumentException("仅平台管理员可以清理整改测试排班");
+        }
+        if (!notBlank(runId)) {
+            throw new IllegalArgumentException("缺少 runId");
+        }
+
+        OpsDutyRoster roster = rosterMapper.selectById(id);
+        if (roster == null || !user.getTenantId().equals(roster.getTenantId())) {
+            throw new IllegalArgumentException("排班记录不存在");
+        }
+        if (roster.getRemark() == null || !roster.getRemark().contains(runId)) {
+            throw new IllegalArgumentException("仅允许清理备注带 runId 的测试排班");
+        }
+
+        rosterMapper.deleteById(id);
+        writeAudit(user.getTenantId(), "purge_remediation_test", id, user.getUserId(),
+                "runId=" + runId);
+    }
+
+    private boolean notBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private void validateTimeRange(RosterRequest req) {
+        if (req.getStartAt() != null && req.getEndAt() != null
+                && !req.getEndAt().isAfter(req.getStartAt())) {
+            throw new IllegalArgumentException("结束时间必须晚于开始时间");
+        }
     }
 
     private void applyRequest(OpsDutyRoster r, RosterRequest req) {

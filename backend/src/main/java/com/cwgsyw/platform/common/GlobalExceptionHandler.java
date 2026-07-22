@@ -8,6 +8,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
 import com.cwgsyw.platform.module.org.GroupLifecycleException;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleErrorResponse;
@@ -39,6 +41,15 @@ public class GlobalExceptionHandler {
                 || failure.contains("GROUP_REFERENCE_INVALID")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(R.fail(400, "GROUP_REFERENCE_INVALID", "用户组引用格式无效"));
+        }
+        if (failure.contains("WIKI_PAGE_SIBLING_TITLE_CONFLICT")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(R.fail(409, "WIKI_PAGE_SIBLING_TITLE_CONFLICT", "同级页面标题已存在"));
+        }
+        if (failure.contains("GROUP_ACTIVE_NAME_CONFLICT")
+                || failure.contains("uq_sys_group_tenant_name_active")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(R.fail(400, "GROUP_ACTIVE_NAME_CONFLICT", "用户组名称已存在"));
         }
         log.error("Unhandled data integrity violation", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -98,10 +109,16 @@ public class GlobalExceptionHandler {
         return R.fail(400, msg);
     }
 
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R<Void> handleInputConversion(Exception ex) {
+        return R.fail(400, "参数格式错误");
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public R<Void> handleAccessDenied(AccessDeniedException ex) {
-        return R.fail(403, "无权限");
+        return R.fail(403, "FUNCTION_PERMISSION_DENIED", "无权限");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

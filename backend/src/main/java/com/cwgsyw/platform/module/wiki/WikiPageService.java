@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.notification.NotificationService;
@@ -15,10 +16,12 @@ import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.workflow.adapter.WikiWorkflowAdapter;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
+import com.cwgsyw.platform.module.workflow.runtime.WorkflowStartCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.flowable.engine.RuntimeService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,9 +46,10 @@ public class WikiPageService {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
     private final UserMapper userMapper;
-    private final RuntimeService runtimeService;
+    private final WorkflowRuntimeFacade workflowRuntimeFacade;
     private final AuthorizationService authorizationService;
     private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final WikiAttachmentService attachmentService;
 
     public List<WikiPageTreeVO> getTree(String tenantId, Long spaceId) {
         List<WikiPage> pages = pageMapper.selectList(new LambdaQueryWrapper<WikiPage>()
@@ -81,6 +85,11 @@ public class WikiPageService {
     public WikiPageVO getPage(String tenantId, Long pageId, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
         return toVO(page, user);
+    }
+
+    public boolean exists(String tenantId, Long pageId) {
+        WikiPage page = pageMapper.selectById(pageId);
+        return page != null && !Boolean.TRUE.equals(page.getIsDeleted()) && tenantId.equals(page.getTenantId());
     }
 
     private WikiPageVO toVO(WikiPage page, SecurityUser user) {
@@ -121,6 +130,7 @@ public class WikiPageService {
     }
 
     private boolean legacyAllows(WikiPage page, SecurityUser user, String action) {
+        if (!user.getPermissions().contains("wiki:" + mapToSpaceAction(action))) return false;
         boolean spaceAllowed = spaceService.hasWritePermission(
             page.getTenantId(), page.getSpaceId(), user, mapToSpaceAction(action));
         return spaceAllowed || aclService.hasExplicitPermission(page.getTenantId(), page.getId(),
@@ -138,6 +148,7 @@ public class WikiPageService {
         int requiredBits = "publish".equals(action) ? 6 : 2;
         boolean allowed = authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
             "wiki_page", pageId, requiredBits, () -> {
+                if (!user.getPermissions().contains(permissionCode)) return false;
                 boolean spaceOk = spaceService.hasWritePermission(
                     tenantId, spaceId, user, mapToSpaceAction(action));
                 return spaceOk || aclService.hasExplicitPermission(
@@ -158,22 +169,27 @@ public class WikiPageService {
 
     @Transactional
     public WikiPageVO createPage(String tenantId, SecurityUser user, CreatePageRequest req) {
-        String targetType = req.getParentId() == null ? "wiki_space" : "wiki_page";
-        Long targetId = req.getParentId() == null ? req.getSpaceId() : req.getParentId();
-        boolean allowed = authorizationService.decideWithCompatibility(user, "wiki", "wiki:create",
-            targetType, targetId, 3,
-            () -> spaceService.hasWritePermission(tenantId, req.getSpaceId(), user, "create"));
-        if (!allowed) throw new AccessDeniedException("无权限在此位置创建页面");
+        String title = normalizeTitle(req.getTitle());
+        if (req.getParentId() != null) {
+            WikiPage parent = requirePage(tenantId, req.getParentId());
+            if (!Objects.equals(parent.getSpaceId(), req.getSpaceId())) {
+                throw new IllegalArgumentException("父页面不属于当前空间");
+            }
+            checkWritePermission(tenantId, req.getSpaceId(), req.getParentId(), user, "update");
+        } else {
+            spaceService.checkCanWrite(tenantId, req.getSpaceId(), user, "create");
+        }
+        ensureSiblingTitleAvailable(tenantId, req.getSpaceId(), req.getParentId(), title, null);
         Long userId = user.getUserId();
         WikiPage page = new WikiPage();
         page.setTenantId(tenantId);
         page.setSpaceId(req.getSpaceId());
         page.setParentId(req.getParentId());
-        page.setTitle(req.getTitle());
-        page.setSlug(uniqueSlug(tenantId, req.getSpaceId(), slugify(req.getTitle())));
+        page.setTitle(title);
+        page.setSlug(uniqueSlug(tenantId, req.getSpaceId(), slugify(title)));
         page.setContent("");
         page.setStatus("draft");
-        page.setCurrentVersion(1);
+        page.setCurrentVersion(0);
         // 同级末尾追加：取当前同 parent 下最大 sort_order + 1，避免全为 0 导致顺序不稳定
         Integer maxSort = pageMapper.selectList(new LambdaQueryWrapper<WikiPage>()
                 .eq(WikiPage::getTenantId, tenantId)
@@ -193,8 +209,6 @@ public class WikiPageService {
         resourceMigrationService.initializeCreatedResource(tenantId, "wiki_page", page.getId(),
             userId, user.getGroupId(), 0670);
 
-        saveVersion(tenantId, page, "", userId);
-
         auditLogMapper.insert(buildAudit(tenantId, "create", page.getId(), userId, null, toJson(page),
                 "title=" + page.getTitle()));
         return toVO(page, user);
@@ -206,8 +220,10 @@ public class WikiPageService {
         checkWritePermission(tenantId, page.getSpaceId(), pageId, user, "update");
         Long userId = user.getUserId();
         if ("archived".equals(page.getStatus())) throw new IllegalStateException("已归档页面不可编辑");
+        String title = normalizeTitle(req.getTitle());
+        ensureSiblingTitleAvailable(tenantId, page.getSpaceId(), page.getParentId(), title, pageId);
         String before = toJson(page);
-        page.setTitle(req.getTitle());
+        page.setTitle(title);
         page.setContent(req.getContent());
         page.setCurrentVersion(page.getCurrentVersion() == null ? 1 : page.getCurrentVersion() + 1);
         page.setUpdatedBy(userId);
@@ -229,6 +245,7 @@ public class WikiPageService {
             "wiki_page", pageId, 3, () -> legacyAllows(page, user, "delete"));
         Long userId = user.getUserId();
         List<Long> ids = pageMapper.findDescendantIds(pageId);
+        attachmentService.deleteAttachmentsForPages(tenantId, userId, ids);
         for (Long id : ids) {
             WikiPage p = pageMapper.selectById(id);
             if (p == null || p.getIsDeleted()) continue;
@@ -255,6 +272,7 @@ public class WikiPageService {
                 throw new IllegalArgumentException("不能移动到自身或子页面下");
             }
         }
+        ensureSiblingTitleAvailable(tenantId, page.getSpaceId(), newParentId, page.getTitle(), pageId);
         String before = toJson(page);
         page.setParentId(newParentId);
         page.setSortOrder(sortOrder);
@@ -283,6 +301,16 @@ public class WikiPageService {
         }).collect(Collectors.toList());
     }
 
+    public WikiPageVersion getVersionForExport(String tenantId, Long pageId, int version) {
+        WikiPageVersion snapshot = versionMapper.selectOne(new LambdaQueryWrapper<WikiPageVersion>()
+                .eq(WikiPageVersion::getTenantId, tenantId)
+                .eq(WikiPageVersion::getPageId, pageId)
+                .eq(WikiPageVersion::getVersion, version)
+                .last("LIMIT 1"));
+        if (snapshot == null) throw new IllegalArgumentException("版本不存在: " + version);
+        return snapshot;
+    }
+
     @Transactional
     public WikiPageVO revert(String tenantId, Long pageId, int version, SecurityUser user) {
         WikiPageVersion v = versionMapper.selectOne(new LambdaQueryWrapper<WikiPageVersion>()
@@ -290,6 +318,9 @@ public class WikiPageService {
                 .eq(WikiPageVersion::getVersion, version)
                 .last("LIMIT 1"));
         if (v == null) throw new IllegalArgumentException("版本不存在: " + version);
+        if (v.getTitle() == null || v.getTitle().isBlank() || v.getContent() == null || v.getContent().isBlank()) {
+            throw new IllegalStateException("版本快照内容不完整，无法回退: " + version);
+        }
         SavePageRequest req = new SavePageRequest();
         req.setTitle(v.getTitle());
         req.setContent(v.getContent());
@@ -299,6 +330,9 @@ public class WikiPageService {
 
     public PageResult<WikiSearchResultVO> search(String tenantId, String keyword, Long spaceId,
                                                 int page, int size, SecurityUser user) {
+        if (authorizationService.isEnforced(user, "wiki")) {
+            return searchWithEnforcedAccess(tenantId, keyword, spaceId, page, size, user);
+        }
         int offset = (page - 1) * size;
         long total;
         List<Map<String, Object>> rows;
@@ -309,7 +343,37 @@ public class WikiPageService {
             total = pageMapper.searchCount(tenantId, keyword);
             rows = pageMapper.search(tenantId, keyword, size, offset);
         }
-        List<WikiSearchResultVO> records = rows.stream().map(r -> {
+        List<WikiSearchResultVO> records = toSearchResults(rows);
+
+        PageResult<WikiSearchResultVO> result = new PageResult<>();
+        result.setRecords(records);
+        result.setTotal(total);
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    private PageResult<WikiSearchResultVO> searchWithEnforcedAccess(String tenantId, String keyword, Long spaceId,
+                                                                      int page, int size, SecurityUser user) {
+        List<Map<String, Object>> candidates = spaceId != null
+            ? pageMapper.searchInSpace(tenantId, spaceId, keyword, Integer.MAX_VALUE, 0)
+            : pageMapper.search(tenantId, keyword, Integer.MAX_VALUE, 0);
+        List<WikiSearchResultVO> visible = toSearchResults(candidates).stream()
+            .filter(result -> authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4)
+                .isAllowed())
+            .toList();
+        int offset = Math.min((page - 1) * size, visible.size());
+        int end = Math.min(offset + size, visible.size());
+        PageResult<WikiSearchResultVO> result = new PageResult<>();
+        result.setRecords(visible.subList(offset, end));
+        result.setTotal(visible.size());
+        result.setPage(page);
+        result.setSize(size);
+        return result;
+    }
+
+    private List<WikiSearchResultVO> toSearchResults(List<Map<String, Object>> rows) {
+        return rows.stream().map(r -> {
             WikiSearchResultVO vo = new WikiSearchResultVO();
             vo.setPageId(((Number) r.get("id")).longValue());
             Object sid = r.get("space_id");
@@ -320,16 +384,7 @@ public class WikiPageService {
             if (ua instanceof java.sql.Timestamp ts) vo.setUpdatedAt(ts.toLocalDateTime());
             else if (ua instanceof LocalDateTime ldt) vo.setUpdatedAt(ldt);
             return vo;
-        }).filter(result -> !authorizationService.isEnforced(user, "wiki")
-            || authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4).isAllowed())
-            .collect(Collectors.toList());
-
-        PageResult<WikiSearchResultVO> result = new PageResult<>();
-        result.setRecords(records);
-        result.setTotal(authorizationService.isEnforced(user, "wiki") ? records.size() : total);
-        result.setPage(page);
-        result.setSize(size);
-        return result;
+        }).collect(Collectors.toList());
     }
 
     @Transactional
@@ -361,18 +416,19 @@ public class WikiPageService {
             throw new IllegalStateException("系统手册页面由平台维护，不可提交审批");
         }
         String before = toJson(page);
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("pageId", pageId);
-        vars.put("tenantId", tenantId);
-        vars.put("submitterId", userId);
-        var pi = runtimeService.startProcessInstanceByKey("wiki_publish", "wikiPage:" + pageId, vars);
+        var instance = workflowRuntimeFacade.startBusinessProcess(WorkflowStartCommand.builder()
+            .tenantId(tenantId)
+            .businessType(WikiWorkflowAdapter.BUSINESS_TYPE)
+            .businessId(String.valueOf(pageId))
+            .submitterId(userId)
+            .build());
         page.setStatus("review");
-        page.setProcessInstanceId(pi.getProcessInstanceId());
+        page.setProcessInstanceId(instance.getProcessInstanceId());
         page.setUpdatedBy(userId);
         page.setUpdatedAt(LocalDateTime.now());
         pageMapper.updateById(page);
         auditLogMapper.insert(buildAudit(tenantId, "submit", pageId, userId, before, toJson(page),
-                "processInstanceId=" + pi.getProcessInstanceId()));
+                "processInstanceId=" + instance.getProcessInstanceId()));
     }
 
     @Transactional
@@ -433,7 +489,7 @@ public class WikiPageService {
 
     private WikiPage requirePage(String tenantId, Long pageId) {
         WikiPage page = pageMapper.selectById(pageId);
-        if (page == null || !tenantId.equals(page.getTenantId())) {
+        if (page == null || Boolean.TRUE.equals(page.getIsDeleted()) || !tenantId.equals(page.getTenantId())) {
             throw new IllegalArgumentException("页面不存在: " + pageId);
         }
         return page;
@@ -453,6 +509,28 @@ public class WikiPageService {
         String s = title.toLowerCase().replaceAll("[^a-z0-9\\u4e00-\\u9fff]+", "-")
                 .replaceAll("(^-+)|(-+$)", "");
         return s.isEmpty() ? "page" : s;
+    }
+
+    private String normalizeTitle(String title) {
+        if (title == null) throw new IllegalArgumentException("页面标题不能为空");
+        String normalized = title.trim();
+        if (normalized.isEmpty()) throw new IllegalArgumentException("页面标题不能为空");
+        if (normalized.length() > 255) throw new IllegalArgumentException("页面标题不能超过 255 个字符");
+        return normalized;
+    }
+
+    private void ensureSiblingTitleAvailable(String tenantId, Long spaceId, Long parentId,
+                                             String title, Long currentPageId) {
+        LambdaQueryWrapper<WikiPage> query = new LambdaQueryWrapper<WikiPage>()
+                .eq(WikiPage::getTenantId, tenantId)
+                .eq(WikiPage::getSpaceId, spaceId)
+                .eq(WikiPage::getTitle, title)
+                .isNull(parentId == null, WikiPage::getParentId)
+                .eq(parentId != null, WikiPage::getParentId, parentId);
+        if (currentPageId != null) query.ne(WikiPage::getId, currentPageId);
+        if (pageMapper.selectCount(query) > 0) {
+            throw new BusinessException(409, "WIKI_PAGE_SIBLING_TITLE_CONFLICT", "同级页面标题已存在");
+        }
     }
 
     private String uniqueSlug(String tenantId, Long spaceId, String base) {

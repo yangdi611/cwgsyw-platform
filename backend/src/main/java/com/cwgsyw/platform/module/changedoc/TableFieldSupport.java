@@ -3,6 +3,9 @@ package com.cwgsyw.platform.module.changedoc;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 /**
@@ -14,6 +17,8 @@ public class TableFieldSupport {
 
     public static final Set<String> ALLOWED_COLUMN_TYPES =
             Set.of("text", "textarea", "number", "date", "datetime", "select", "checkbox");
+    public static final Set<String> ALLOWED_FIELD_TYPES =
+            Set.of("text", "textarea", "number", "enum", "date", "datetime", "readonly", "ci_selector", "table");
 
     private static final Set<String> ALLOWED_TABLE_MODES = Set.of("fixedDocxTable", "dynamicGeneratedTable");
 
@@ -30,7 +35,11 @@ public class TableFieldSupport {
         if (fieldKey.contains(".") || fieldKey.contains("{") || fieldKey.contains("}")) {
             throw new IllegalArgumentException("字段 key 不允许包含 . { }: " + fieldKey);
         }
+        if (fieldType == null || !ALLOWED_FIELD_TYPES.contains(fieldType)) {
+            throw new IllegalArgumentException("字段 " + fieldKey + " 的类型不合法");
+        }
         if (!"table".equals(fieldType)) {
+            validateScalarConfig(fieldKey, fieldType, config);
             return;
         }
         if (config == null || config.isEmpty()) {
@@ -111,6 +120,24 @@ public class TableFieldSupport {
         }
     }
 
+    private void validateScalarConfig(String fieldKey, String fieldType, Map<String, Object> config) {
+        if (!"enum".equals(fieldType)) return;
+        Object optionsObj = config == null ? null : config.get("options");
+        if (!(optionsObj instanceof List<?> options) || options.isEmpty()) {
+            throw new IllegalArgumentException("枚举字段 " + fieldKey + " 必须配置选项");
+        }
+        Set<String> values = new HashSet<>();
+        for (Object optionObj : options) {
+            if (!(optionObj instanceof Map<?, ?> option) || option.get("value") == null) {
+                throw new IllegalArgumentException("枚举字段 " + fieldKey + " 的选项格式不合法");
+            }
+            String value = String.valueOf(option.get("value")).trim();
+            if (value.isEmpty() || !values.add(value)) {
+                throw new IllegalArgumentException("枚举字段 " + fieldKey + " 的选项值不可重复或为空");
+            }
+        }
+    }
+
     // ─── §8.2 变更文档保存校验（fieldsData） ──────────────────────────────────
 
     /**
@@ -127,6 +154,7 @@ public class TableFieldSupport {
         Map<String, Object> data = fieldsData != null ? new LinkedHashMap<>(fieldsData) : new LinkedHashMap<>();
         for (ChangeDocField field : fields) {
             if (!"table".equals(field.getFieldType())) {
+                validateScalarValue(field, data.get(field.getFieldKey()));
                 if (enforceRequired && Boolean.TRUE.equals(field.getRequired())) {
                     Object v = data.get(field.getFieldKey());
                     if (v == null || (v instanceof String s && s.trim().isEmpty())) {
@@ -138,6 +166,46 @@ public class TableFieldSupport {
             data.put(field.getFieldKey(), validateTableField(field, data.get(field.getFieldKey()), enforceRequired));
         }
         return data;
+    }
+
+    private void validateScalarValue(ChangeDocField field, Object value) {
+        if (value == null || (value instanceof String text && text.isBlank())) return;
+        if ("number".equals(field.getFieldType())) {
+            try {
+                Double.parseDouble(String.valueOf(value));
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException(field.getLabel() + "不是有效数字");
+            }
+        }
+        if ("enum".equals(field.getFieldType())) {
+            Object optionsObj = field.getConfig() == null ? null : field.getConfig().get("options");
+            boolean found = optionsObj instanceof List<?> options && options.stream()
+                .filter(Map.class::isInstance).map(Map.class::cast)
+                .anyMatch(option -> String.valueOf(option.get("value")).equals(String.valueOf(value)));
+            if (!found) throw new IllegalArgumentException(field.getLabel() + "不是有效选项");
+        }
+        validateTemporalValue(field.getLabel(), field.getFieldType(), value);
+    }
+
+    private void validateTemporalValue(String label, String fieldType, Object value) {
+        String text = String.valueOf(value);
+        try {
+            if ("date".equals(fieldType)) {
+                if (!text.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                    throw new DateTimeParseException("Invalid date format", text, 0);
+                }
+                LocalDate.parse(text);
+            }
+            if ("datetime".equals(fieldType)) {
+                if (!text.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,9})?)?")) {
+                    throw new DateTimeParseException("Invalid datetime format", text, 0);
+                }
+                LocalDateTime.parse(text);
+            }
+        } catch (DateTimeParseException exception) {
+            String typeLabel = "datetime".equals(fieldType) ? "日期时间" : "日期";
+            throw new IllegalArgumentException(label + "不是有效" + typeLabel);
+        }
     }
 
     private List<Map<String, Object>> validateTableField(ChangeDocField field, Object rawValue, boolean enforceRequired) {
@@ -233,7 +301,8 @@ public class TableFieldSupport {
                             throw new IllegalArgumentException(label + "第 " + rowIndex + " 行“" + colLabel + "”必须是布尔值");
                         }
                     }
-                    default -> { /* text/textarea/date/datetime 不额外校验类型 */ }
+                    case "date", "datetime" -> validateTemporalValue(label + "第 " + rowIndex + " 行“" + colLabel + "”", type, cellValue);
+                    default -> { /* text/textarea 不额外校验类型 */ }
                 }
             }
             result.add(row);

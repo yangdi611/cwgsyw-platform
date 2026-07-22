@@ -42,6 +42,7 @@ const STATUS_LABEL: Record<WikiStatus, string> = {
   published: '已发布',
   archived: '已归档',
 }
+const WIKI_PAGE_TITLE_MAX_LENGTH = 255
 
 function countDescendants(node: WikiPageTree): number {
   let n = node.children?.length ?? 0
@@ -209,6 +210,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const { data: tree } = useQuery<WikiPageTree[]>({
     queryKey: ['wiki-tree', spaceId],
     queryFn: () => wikiApi.getTree(spaceId),
+    enabled: Boolean(currentSpace),
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['wiki-tree', spaceId] })
@@ -360,12 +362,14 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
             <Input
               placeholder="页面标题"
               value={newTitle}
+              maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newTitle.trim()) createMutation.mutate()
               }}
             />
           </div>
+          <p className="text-right text-xs text-v2-muted">{newTitle.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</p>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
               取消
@@ -390,6 +394,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
           <div className="py-2">
             <Input
               value={renameValue}
+              maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && renameValue.trim() && renameTarget)
@@ -397,6 +402,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
               }}
             />
           </div>
+          <p className="text-right text-xs text-v2-muted">{renameValue.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</p>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setRenameTarget(null)}>
               取消

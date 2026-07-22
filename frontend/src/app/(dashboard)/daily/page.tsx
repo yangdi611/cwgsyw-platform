@@ -15,6 +15,7 @@ import { usePermission } from '@/hooks/usePermission'
 
 interface DailyReport {
   id: number
+  reporterId: number
   reportDate: string
   completedItems: string
   status: string
@@ -53,6 +54,7 @@ export default function DailyReportsPage() {
   const queryClient = useQueryClient()
 
   const groupScope = useAuthStore((s) => s.groupScope)
+  const currentUserId = useAuthStore((s) => s.user?.userId)
   const { hasPermission } = usePermission()
 
   const canViewOthers = hasPermission('daily_report', 'approve')
@@ -251,7 +253,6 @@ export default function DailyReportsPage() {
         <div className="space-y-3">
           {selectedReports.map((report) => {
             const cfg = statusConfig[report.status]
-            const isOwn = !canViewOthers
             return (
               <Card key={report.id} className="p-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -279,7 +280,7 @@ export default function DailyReportsPage() {
                     >
                       查看详情
                     </Link>
-                    {isOwn && (report.status === 'DRAFT' || report.status === 'REJECTED') && (
+                    {report.reporterId === currentUserId && (report.status === 'DRAFT' || report.status === 'REJECTED') && (
                       <Button
                         variant="primary"
                         size="sm"

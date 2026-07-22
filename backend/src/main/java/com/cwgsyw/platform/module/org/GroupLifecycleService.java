@@ -105,8 +105,16 @@ public class GroupLifecycleService {
         validateConfirmation(group, request);
         validateVersion(group, request.getExpectedUpdatedAt());
         String before = lifecycleJson(group, preflight, request.getReason(), "archived", null);
-        int updated = groupMapper.restoreArchived(user.getTenantId(), groupId,
-            user.getUserId(), request.getExpectedUpdatedAt());
+        int updated;
+        try {
+            updated = groupMapper.restoreArchived(user.getTenantId(), groupId,
+                user.getUserId(), request.getExpectedUpdatedAt());
+        } catch (DataIntegrityViolationException exception) {
+            if (isActiveNameConflict(exception)) {
+                throw error(409, "GROUP_RESTORE_NAME_CONFLICT", "存在相同名称的活动用户组");
+            }
+            throw exception;
+        }
         if (updated != 1) throw error(409, "GROUP_VERSION_CONFLICT", "用户组状态或版本已变化");
         Group restored = requireIncludingDeleted(user.getTenantId(), groupId);
         String after = lifecycleJson(restored, preflight, request.getReason(), "active",
@@ -204,6 +212,12 @@ public class GroupLifecycleService {
             blockers.add(blocker("GROUP_RESTORE_CODE_CONFLICT", "activeCodeConflict",
                 "存在相同 code 的活动用户组", "先处理活动用户组 code 冲突"));
         }
+        if ("restore".equals(action) && Boolean.TRUE.equals(group.getIsDeleted())
+                && groupMapper.countActiveNameConflict(
+                    group.getTenantId(), group.getName().trim(), group.getId()) > 0) {
+            blockers.add(blocker("GROUP_RESTORE_NAME_CONFLICT", "activeNameConflict",
+                "存在相同名称的活动用户组", "先处理活动用户组名称冲突"));
+        }
         if ("purge".equals(action) && Boolean.TRUE.equals(group.getIsDeleted())) {
             if (group.getDeletedAt() == null) {
                 blockers.add(blocker("GROUP_PURGE_RETENTION_NOT_MET", "retention",
@@ -221,6 +235,19 @@ public class GroupLifecycleService {
         return new GroupLifecycleBlocker(reasonCode, referenceType, 1, message, resolution);
     }
 
+    private boolean isActiveNameConflict(Throwable root) {
+        Throwable current = root;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && (message.contains("GROUP_ACTIVE_NAME_CONFLICT")
+                    || message.contains("uq_sys_group_tenant_name_active"))) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
     private GroupLifecycleException blocked(GroupLifecyclePreflightVO preflight,
                                              String fallbackCode, String message) {
         String code = preflight.blockers().isEmpty()
@@ -231,7 +258,8 @@ public class GroupLifecycleService {
     private String directBlockerCode(GroupLifecycleBlocker blocker, String fallbackCode) {
         return List.of(
             "GROUP_BUILTIN_PROTECTED", "GROUP_UNASSIGNED_PROTECTED", "GROUP_REFERENCE_INACTIVE",
-            "GROUP_NOT_ARCHIVED", "GROUP_RESTORE_CODE_CONFLICT", "GROUP_PURGE_RETENTION_NOT_MET",
+            "GROUP_NOT_ARCHIVED", "GROUP_RESTORE_CODE_CONFLICT", "GROUP_RESTORE_NAME_CONFLICT",
+            "GROUP_PURGE_RETENTION_NOT_MET",
             "GROUP_REFERENCE_INVENTORY_DRIFT"
         ).contains(blocker.reasonCode()) ? blocker.reasonCode() : fallbackCode;
     }

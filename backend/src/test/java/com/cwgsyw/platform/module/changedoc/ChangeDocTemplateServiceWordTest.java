@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.changedoc;
 
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
+import com.cwgsyw.platform.common.AuditLogMapper;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,8 @@ class ChangeDocTemplateServiceWordTest {
 
     @Mock ChangeDocTemplateMapper templateMapper;
     @Mock ChangeDocFieldMapper fieldMapper;
+    @Mock ChangeDocMapper changeDocMapper;
+    @Mock AuditLogMapper auditLogMapper;
     @Mock MinioStorageService storage;
     @Mock TableFieldSupport tableFieldSupport;
 

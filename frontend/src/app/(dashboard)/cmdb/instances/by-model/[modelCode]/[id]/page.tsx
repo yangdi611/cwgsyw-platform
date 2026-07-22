@@ -94,7 +94,8 @@ export default function InstanceDetailPage() {
   if (!inst) return <p className="text-v2-danger">实例不存在</p>
 
   const isRack = inst.modelId === 'rack'
-  const tabs = BASE_TABS.filter((t) => t.key !== 'rack' || isRack)
+  const tabs = BASE_TABS.filter((t) => (t.key !== 'rack' || isRack)
+    && (t.key !== 'topology' || hasPermission('cmdb_topology', 'read')))
 
   return (
     <div className="space-y-6">
@@ -122,7 +123,7 @@ export default function InstanceDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasPermission('cmdb_instance', 'impact') && (
+            {hasPermission('cmdb_impact', 'read') && (
               <Link
                 href={`/cmdb/impact/${id}`}
                 className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
@@ -131,7 +132,7 @@ export default function InstanceDetailPage() {
                 影响分析
               </Link>
             )}
-            {hasPermission('cmdb_instance', 'read') && (
+            {hasPermission('cmdb_topology', 'read') && (
               <Link
                 href={`/cmdb/topology/${id}/compare`}
                 className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"

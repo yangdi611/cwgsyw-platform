@@ -43,6 +43,26 @@ public interface CiChangeRecordMapper extends BaseMapper<CiChangeRecord> {
           <if test='action != null'>AND action = #{action}</if>
           <if test='operatorId != null'>AND operator_id = #{operatorId}</if>
           <if test='modelId != null'>AND model_code = #{modelId}</if>
+          <if test='keyword != null and keyword != ""'>
+          AND (
+            CAST(instance_id AS varchar) ILIKE CONCAT('%', #{keyword}::varchar, '%')
+            OR model_code ILIKE CONCAT('%', #{keyword}::varchar, '%')
+            OR field_changes::text ILIKE CONCAT('%', #{keyword}::varchar, '%')
+            OR EXISTS (
+              SELECT 1 FROM ci_instance instance
+              WHERE instance.id = ci_change_record.instance_id
+                AND instance.tenant_id = ci_change_record.tenant_id
+                AND instance.name ILIKE CONCAT('%', #{keyword}::varchar, '%')
+            )
+            OR EXISTS (
+              SELECT 1 FROM ci_model model
+              WHERE model.model_id = ci_change_record.model_code
+                AND model.tenant_id = ci_change_record.tenant_id
+                AND (model.name ILIKE CONCAT('%', #{keyword}::varchar, '%')
+                  OR model.display_name ILIKE CONCAT('%', #{keyword}::varchar, '%'))
+            )
+          )
+          </if>
           <if test='fromDate != null'>AND created_at &gt;= #{fromDate}::timestamp</if>
           <if test='toDate != null'>AND created_at &lt; #{toDate}::timestamp</if>
         ORDER BY created_at DESC
@@ -55,6 +75,7 @@ public interface CiChangeRecordMapper extends BaseMapper<CiChangeRecord> {
                                       @Param("action")     String action,
                                       @Param("operatorId") Long operatorId,
                                       @Param("modelId")    String modelId,
+                                      @Param("keyword")    String keyword,
                                       @Param("fromDate")   String fromDate,
                                       @Param("toDate")     String toDate);
 
@@ -69,6 +90,7 @@ public interface CiChangeRecordMapper extends BaseMapper<CiChangeRecord> {
         WHERE tenant_id = #{tenantId}
           AND action IN ('create','update','delete')
           AND created_at &gt;= #{fromDate}::timestamp
+          AND created_at &lt; #{toDate}::timestamp
           AND created_at &lt; #{toDate}::timestamp
           <if test='modelId != null'>AND model_code = #{modelId}</if>
         GROUP BY DATE(created_at), action
@@ -98,5 +120,6 @@ public interface CiChangeRecordMapper extends BaseMapper<CiChangeRecord> {
         """)
     List<Map<String, Object>> queryTopChangedInstances(@Param("tenantId") String tenantId,
                                                        @Param("fromDate") String fromDate,
+                                                       @Param("toDate") String toDate,
                                                        @Param("modelId")  String modelId);
 }

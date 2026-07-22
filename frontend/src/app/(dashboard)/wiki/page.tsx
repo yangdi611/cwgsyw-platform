@@ -31,6 +31,7 @@ import {
   ChevronUp,
   ChevronDown,
   Shield,
+  Search,
 } from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
@@ -76,6 +77,8 @@ export default function WikiSpacesPage() {
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
   const username = useAuthStore((s) => s.user?.username)
+  const groupId = useAuthStore((s) => s.groupId)
+  const groupScope = useAuthStore((s) => s.groupScope)
   const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -86,6 +89,8 @@ export default function WikiSpacesPage() {
   const [deleting, setDeleting] = useState<WikiSpace | null>(null)
   const [aclTarget, setAclTarget] = useState<WikiSpace | null>(null)
   const [order, setOrder] = useState<number[]>([])
+
+  const effectiveOwnerGroupId = !editing && groupScope === 'group' ? String(groupId ?? '') : ownerGroupId
 
   useEffect(() => {
     if (!isHydrated) return
@@ -106,6 +111,7 @@ export default function WikiSpacesPage() {
   const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
     queryKey: ['authorization-groups'],
     queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
+    enabled: hasPermission('group', 'read'),
   })
 
   const canCreate = hasPermission('wiki', 'create')
@@ -140,7 +146,7 @@ export default function WikiSpacesPage() {
       editing
         ? wikiApi.updateSpace(editing.id, { name: name.trim(), description: description.trim() })
         : wikiApi.createSpace({ name: name.trim(), description: description.trim(),
-          ownerGroupId: ownerGroupId ? Number(ownerGroupId) : undefined }),
+          ownerGroupId: effectiveOwnerGroupId ? Number(effectiveOwnerGroupId) : undefined }),
     onSuccess: (space) => {
       queryClient.invalidateQueries({ queryKey: ['wiki-spaces'] })
       const wasCreate = !editing
@@ -289,12 +295,18 @@ export default function WikiSpacesPage() {
         title="知识空间"
         subtitle="按团队或主题组织知识空间，集中沉淀运维文档、规范与排障经验。"
         actions={
-          canCreate && (
-            <Button variant="primary" onClick={openCreate}>
-              <Plus className="h-4 w-4" />
-              新建空间
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => router.push('/wiki/search')}>
+              <Search className="h-4 w-4" />
+              搜索知识库
             </Button>
-          )
+            {canCreate && (
+              <Button variant="primary" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                新建空间
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -366,13 +378,14 @@ export default function WikiSpacesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            {!editing && groups.length > 0 && (
+            {!editing && (
               <label className="block space-y-1 text-sm text-v2-fg">
-                <span>归属组</span>
-                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>
-                  <option value="">使用主组</option>
+                <span>归属组（必选）</span>
+                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={effectiveOwnerGroupId} disabled={groupScope === 'group'} onChange={(event) => setOwnerGroupId(event.target.value)}>
+                  <option value="">请选择归属组</option>
                   {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
                 </select>
+                {groupScope === 'group' && <span className="text-xs text-v2-muted">组级用户固定为当前会话归属组。</span>}
               </label>
             )}
           </div>
@@ -382,7 +395,7 @@ export default function WikiSpacesPage() {
             </Button>
             <Button
               variant="primary"
-              disabled={!name.trim() || saveMutation.isPending}
+              disabled={!name.trim() || (!editing && !effectiveOwnerGroupId) || saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
             >
               {editing ? '保存' : '创建'}

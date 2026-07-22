@@ -26,22 +26,22 @@ public class IpPoolController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ipPoolService.list(keyword, status, page, size, cu.getTenantId()));
+        return R.ok(ipPoolService.list(keyword, status, page, size, cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ip_pool:read')")
     public R<IpPoolDetailVO> getById(@PathVariable Long id,
                                      @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ipPoolService.getById(id, cu.getTenantId()));
+        return R.ok(ipPoolService.getById(id, cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('ip_pool:create')")
     public R<IpPoolVO> create(@Valid @RequestBody CreateIpPoolRequest req,
                               @AuthenticationPrincipal SecurityUser cu) {
-        var pool = ipPoolService.create(req, cu.getTenantId(), cu.getUserId());
-        return R.ok(ipPoolService.utilization(pool.getId(), cu.getTenantId()));
+        var pool = ipPoolService.create(req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
+        return R.ok(ipPoolService.utilization(pool.getId(), cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PutMapping("/{id}")
@@ -49,7 +49,7 @@ public class IpPoolController {
     public R<Void> update(@PathVariable Long id,
                           @RequestBody UpdateIpPoolRequest req,
                           @AuthenticationPrincipal SecurityUser cu) {
-        ipPoolService.update(id, req, cu.getTenantId(), cu.getUserId());
+        ipPoolService.update(id, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -57,7 +57,7 @@ public class IpPoolController {
     @PreAuthorize("hasAuthority('ip_pool:delete')")
     public R<Void> delete(@PathVariable Long id,
                           @AuthenticationPrincipal SecurityUser cu) {
-        ipPoolService.delete(id, cu.getTenantId(), cu.getUserId());
+        ipPoolService.delete(id, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -66,7 +66,7 @@ public class IpPoolController {
     public R<IpAllocationVO> allocate(@PathVariable Long id,
                                       @RequestBody AllocateIpRequest req,
                                       @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ipPoolService.allocate(id, req, cu.getTenantId(), cu.getUserId()));
+        return R.ok(ipPoolService.allocate(id, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @PostMapping("/{id}/release")
@@ -74,7 +74,7 @@ public class IpPoolController {
     public R<Void> release(@PathVariable Long id,
                            @Valid @RequestBody ReleaseIpRequest req,
                            @AuthenticationPrincipal SecurityUser cu) {
-        ipPoolService.release(id, req, cu.getTenantId(), cu.getUserId());
+        ipPoolService.release(id, req, cu.getTenantId(), cu.getUserId(), cu.getGroupId(), cu.getGroupScope());
         return R.ok();
     }
 
@@ -82,13 +82,13 @@ public class IpPoolController {
     @PreAuthorize("hasAuthority('ip_pool:read')")
     public R<IpPoolVO> utilization(@PathVariable Long id,
                                    @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ipPoolService.utilization(id, cu.getTenantId()));
+        return R.ok(ipPoolService.utilization(id, cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 
     @GetMapping("/instances/{ciInstanceId}")
     @PreAuthorize("hasAuthority('ip_pool:read')")
     public R<List<IpAllocationVO>> getByCiInstance(@PathVariable Long ciInstanceId,
                                                    @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ipPoolService.getByCiInstanceId(ciInstanceId, cu.getTenantId()));
+        return R.ok(ipPoolService.getByCiInstanceId(ciInstanceId, cu.getTenantId(), cu.getGroupId(), cu.getGroupScope()));
     }
 }

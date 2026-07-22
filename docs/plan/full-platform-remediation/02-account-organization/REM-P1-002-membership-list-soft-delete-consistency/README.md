@@ -27,3 +27,5 @@
 - `VERIFICATION.md`：验收矩阵和最终全量复验门禁。
 - `IMPLEMENTATION-RECORD.md`：当前实施证据。
 - `CLAUDE-CODE-PROMPT.md`：可独立执行入口。
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。
