@@ -52,6 +52,22 @@ public class ChangeDocTemplateController {
         return R.ok(templateService.updateMeta(user.getTenantId(), id, req));
     }
 
+    @PostMapping("/{id}/clone")
+    @PreAuthorize("hasAuthority('change_doc_template:write')")
+    public R<TemplateVO> cloneTemplate(
+            @PathVariable Long id,
+            @RequestParam String name,
+            @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(templateService.cloneTemplate(user.getTenantId(), user.getUserId(), id, name));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('change_doc_template:write')")
+    public R<Void> deleteTemplate(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
+        templateService.deleteTemplate(user.getTenantId(), user.getUserId(), id);
+        return R.ok(null);
+    }
+
     @PostMapping(value = "/{id}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('change_doc_template:write')")
     public R<Void> uploadDocx(

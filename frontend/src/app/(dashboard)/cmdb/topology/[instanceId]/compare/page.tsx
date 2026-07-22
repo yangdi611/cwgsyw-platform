@@ -79,7 +79,7 @@ export default function TopologyComparePage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
+    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_topology', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
   const compareQuery = useQuery<TopologyCompareVO>({
@@ -88,13 +88,14 @@ export default function TopologyComparePage() {
       api
         .get(`/cmdb/topology/${instanceId}/compare`, {
           params: {
-            fromTime: fromTime ? `${fromTime}T00:00:00` : undefined,
-            toTime: toTime ? `${toTime}T23:59:59` : undefined,
+            fromTime: fromTime || undefined,
+            toTime: toTime || undefined,
             depth: compareDepth,
           },
         })
         .then(r => r.data.data),
-    enabled: compareNonce > 0 && !!fromTime && !!toTime,
+    enabled: compareNonce > 0 && !!fromTime && !!toTime && isHydrated
+      && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_topology', 'read'),
   })
 
   const graphInput = useMemo(() => {
@@ -126,10 +127,10 @@ export default function TopologyComparePage() {
 
       {/* Compare controls */}
       <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30 flex-wrap">
-        <span className="text-xs text-v2-muted">起始日期</span>
-        <Input type="date" value={fromTime} onChange={e => setFromTime(e.target.value)} className="w-40 h-8" />
-        <span className="text-xs text-v2-muted">截止日期</span>
-        <Input type="date" value={toTime} onChange={e => setToTime(e.target.value)} className="w-40 h-8" />
+        <span className="text-xs text-v2-muted">起始时间</span>
+        <Input type="datetime-local" step="1" value={fromTime} onChange={e => setFromTime(e.target.value)} className="w-52 h-8" />
+        <span className="text-xs text-v2-muted">截止时间</span>
+        <Input type="datetime-local" step="1" value={toTime} onChange={e => setToTime(e.target.value)} className="w-52 h-8" />
         <span className="text-xs text-v2-muted">深度</span>
         <Input
           type="number"

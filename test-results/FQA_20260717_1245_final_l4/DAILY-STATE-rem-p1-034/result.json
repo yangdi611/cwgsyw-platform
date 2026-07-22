@@ -1,0 +1,22 @@
+{
+  "runId": "FQA_20260717_1245_final_l4",
+  "eventId": "REM-P1-034",
+  "status": "PASS",
+  "cases": ["DAILY-006 partial", "ST-DAILY-001 partial"],
+  "assertions": {
+    "adminOwnDraftSubmitControlVisibleInAllReportsView": true,
+    "submittedStatusVisibleAfterUiSubmit": true,
+    "remediationCleanupStatus": 200,
+    "afterCleanupReadStatus": 400
+  },
+  "evidence": {
+    "screenshot": "l4-daily-state-lifecycle-l4DailyAdminOwnDraftSubmitAndCleanup/daily-submitted.png"
+  },
+  "safety": {
+    "superadminModified": false,
+    "nonTestObjectsModified": false,
+    "cleanupFailures": 0,
+    "secretsPersisted": false
+  },
+  "scopeNote": "Administrator approval-task visibility remains a separate REM-P1-026 regression and is not claimed by this event."
+}

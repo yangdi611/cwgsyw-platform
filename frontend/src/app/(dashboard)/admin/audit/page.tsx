@@ -20,6 +20,8 @@ interface AuditLogVO {
   operatorId: number
   operatorName: string
   operatorIp: string
+  beforeJson: string | null
+  afterJson: string | null
   remark: string
   createdAt: string
 }
@@ -53,6 +55,15 @@ const ACTION_VARIANT: Record<string, StatusVariant> = {
   ai_generate: 'neutral',
 }
 
+function snapshotSummary(snapshot: string | null): string {
+  if (!snapshot) return '—'
+  try {
+    return JSON.stringify(JSON.parse(snapshot))
+  } catch {
+    return '快照格式无效'
+  }
+}
+
 export default function AuditLogPage() {
   return (
     <Suspense fallback={null}>
@@ -72,16 +83,22 @@ function AuditLogPageInner() {
   }, [isHydrated, hasPermission, router])
 
   const [module, setModule] = useState(searchParams.get('module') ?? '')
+  const [action, setAction] = useState('')
+  const [operatorId, setOperatorId] = useState('')
+  const [keyword, setKeyword] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [page, setPage] = useState(1)
   const size = 20
 
   const { data, isLoading } = useQuery<PageResult>({
-    queryKey: ['audit-logs', module, startDate, endDate, page],
+    queryKey: ['audit-logs', module, action, operatorId, keyword, startDate, endDate, page],
     queryFn: () => {
       const params: Record<string, string | number> = { page, size }
       if (module) params.module = module
+      if (action) params.action = action
+      if (operatorId) params.operatorId = Number(operatorId)
+      if (keyword) params.keyword = keyword
       if (startDate) params.startDate = startDate
       if (endDate) params.endDate = endDate
       return api.get('/audit-logs', { params }).then((r) => r.data.data)
@@ -135,6 +152,15 @@ function AuditLogPageInner() {
       render: (r) => <span className="max-w-xs truncate text-xs text-v2-muted">{r.remark}</span>,
     },
     {
+      key: 'snapshot',
+      title: '变更快照',
+      render: (r) => (
+        <span className="block max-w-xs truncate font-v2-mono text-xs text-v2-muted" title={`前：${snapshotSummary(r.beforeJson)}\n后：${snapshotSummary(r.afterJson)}`}>
+          前：{snapshotSummary(r.beforeJson)}；后：{snapshotSummary(r.afterJson)}
+        </span>
+      ),
+    },
+    {
       key: 'operatorIp',
       title: 'IP',
       render: (r) => <span className="font-v2-mono text-xs text-v2-muted">{r.operatorIp}</span>,
@@ -175,6 +201,44 @@ function AuditLogPageInner() {
           </Select>
         </div>
         <div className="space-y-1.5">
+          <Label className="text-xs">操作</Label>
+          <Input
+            className="w-36"
+            value={action}
+            onChange={(event) => {
+              setAction(event.target.value)
+              setPage(1)
+            }}
+            placeholder="如 create"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">操作人 ID</Label>
+          <Input
+            type="number"
+            min="1"
+            className="w-32"
+            value={operatorId}
+            onChange={(event) => {
+              setOperatorId(event.target.value)
+              setPage(1)
+            }}
+            placeholder="用户 ID"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">关键词</Label>
+          <Input
+            className="w-40"
+            value={keyword}
+            onChange={(event) => {
+              setKeyword(event.target.value)
+              setPage(1)
+            }}
+            placeholder="备注或目标"
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label className="text-xs">开始日期</Label>
           <Input
             type="date"
@@ -203,6 +267,9 @@ function AuditLogPageInner() {
             type="button"
             onClick={() => {
               setModule('')
+              setAction('')
+              setOperatorId('')
+              setKeyword('')
               setStartDate('')
               setEndDate('')
               setPage(1)

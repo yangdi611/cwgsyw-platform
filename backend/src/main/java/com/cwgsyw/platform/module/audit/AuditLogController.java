@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.audit;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
@@ -23,13 +24,16 @@ import java.util.stream.Collectors;
 public class AuditLogController {
 
     private final AuditLogMapper auditLogMapper;
+    private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final UserMapper userMapper;
 
     @GetMapping
     @PreAuthorize("hasAuthority('audit:read')")
     public R<PageResult<AuditLogVO>> list(
             @RequestParam(required = false) String module,
+            @RequestParam(required = false) String action,
             @RequestParam(required = false) Long operatorId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int page,
@@ -38,7 +42,7 @@ public class AuditLogController {
 
         Page<AuditLog> result = auditLogMapper.queryPage(
                 new Page<>(page, size),
-                user.getTenantId(), module, operatorId, startDate, endDate);
+                user.getTenantId(), module, action, operatorId, keyword, startDate, endDate);
 
         Set<Long> operatorIds = result.getRecords().stream()
                 .map(AuditLog::getOperatorId).collect(Collectors.toSet());
@@ -58,6 +62,8 @@ public class AuditLogController {
             vo.setOperatorId(log.getOperatorId());
             vo.setOperatorName(names.getOrDefault(log.getOperatorId(), String.valueOf(log.getOperatorId())));
             vo.setOperatorIp(log.getOperatorIp());
+            vo.setBeforeJson(auditSnapshotSerializer.sanitizeJson(log.getBeforeJson()));
+            vo.setAfterJson(auditSnapshotSerializer.sanitizeJson(log.getAfterJson()));
             vo.setRemark(log.getRemark());
             vo.setCreatedAt(log.getCreatedAt());
             return vo;

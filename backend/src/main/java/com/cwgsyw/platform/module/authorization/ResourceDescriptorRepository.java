@@ -14,9 +14,10 @@ public class ResourceDescriptorRepository {
     public ResourceDescriptor find(String tenantId, String resourceType, Long resourceId) {
         ResourceQuery query = ResourceQuery.of(resourceType);
         return jdbcTemplate.query("""
-                SELECT tenant_id, owner_user_id, owner_group_id, permission_mode, access_version, %s AS parent_id
+                SELECT tenant_id, owner_user_id, owner_group_id, permission_mode, access_version,
+                       %s AS parent_id, %s AS access_restricted
                 FROM %s WHERE id = ? AND tenant_id = ? AND NOT is_deleted
-                """.formatted(query.parentExpression(), query.table()),
+                """.formatted(query.parentExpression(), query.accessRestrictedExpression(), query.table()),
             rs -> rs.next() ? ResourceDescriptor.builder()
                 .tenantId(rs.getString("tenant_id"))
                 .resourceType(resourceType)
@@ -26,6 +27,7 @@ public class ResourceDescriptorRepository {
                 .permissionMode(nullableInteger(rs.getObject("permission_mode")))
                 .accessVersion(nullableLong(rs.getObject("access_version")))
                 .parentId(nullableLong(rs.getObject("parent_id")))
+                .accessRestricted(rs.getBoolean("access_restricted"))
                 .build() : null,
             resourceId, tenantId);
     }
@@ -69,12 +71,12 @@ public class ResourceDescriptorRepository {
         return value instanceof Number number ? number.intValue() : null;
     }
 
-    private record ResourceQuery(String table, String parentExpression) {
+    private record ResourceQuery(String table, String parentExpression, String accessRestrictedExpression) {
         private static final Map<String, ResourceQuery> QUERIES = Map.of(
-            "wiki_space", new ResourceQuery("wiki_space", "NULL::BIGINT"),
-            "wiki_page", new ResourceQuery("wiki_page", "parent_id"),
-            "shared_folder", new ResourceQuery("shared_folder", "parent_id"),
-            "shared_file", new ResourceQuery("shared_file", "folder_id")
+            "wiki_space", new ResourceQuery("wiki_space", "NULL::BIGINT", "FALSE"),
+            "wiki_page", new ResourceQuery("wiki_page", "parent_id", "NOT COALESCE(acl_inherited, TRUE)"),
+            "shared_folder", new ResourceQuery("shared_folder", "parent_id", "FALSE"),
+            "shared_file", new ResourceQuery("shared_file", "folder_id", "FALSE")
         );
 
         private static ResourceQuery of(String resourceType) {

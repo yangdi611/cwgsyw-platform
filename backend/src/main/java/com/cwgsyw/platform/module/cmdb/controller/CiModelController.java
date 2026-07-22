@@ -52,7 +52,7 @@ public class CiModelController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('cmdb_model', 'update')")
-    public R<CiModelVO> update(@PathVariable Long id, @RequestBody UpdateModelRequest req, @AuthenticationPrincipal SecurityUser cu) {
+    public R<CiModelVO> update(@PathVariable Long id, @Valid @RequestBody UpdateModelRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciModelService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
 

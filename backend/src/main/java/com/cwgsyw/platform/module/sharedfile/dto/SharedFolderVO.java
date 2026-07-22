@@ -13,6 +13,7 @@ public class SharedFolderVO {
     private boolean canCreateChild;
     private boolean canUpload;
     private boolean canDelete;
+    private boolean canUpdate;
     private boolean canManageAcl;
     private List<SharedFolderVO> children;
 }

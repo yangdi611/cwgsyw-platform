@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
+import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,42 +32,19 @@ public class WikiExportService {
     public void exportPage(Long pageId, String tenantId, HttpServletResponse response) throws Exception {
         WikiPage page = pageMapper.selectById(pageId);
         if (page == null) throw new IllegalArgumentException("页面不存在");
+        exportMarkdown(page.getTitle(), page.getContent(), response);
+    }
 
-        List<SharedFile> attachments = attachmentService.listAttachments(pageId);
-        Map<Long, SharedFile> attById = new LinkedHashMap<>();
-        for (SharedFile sf : attachments) attById.put(sf.getId(), sf);
+    public void exportVersion(WikiPageVersion version, HttpServletResponse response) throws Exception {
+        exportMarkdown(version.getTitle(), version.getContent(), response);
+    }
 
-        Map<Long, String> fileNameMap = new LinkedHashMap<>();
-        Matcher m = ATT_PATTERN.matcher(page.getContent() != null ? page.getContent() : "");
-        while (m.find()) {
-            Long fid = Long.parseLong(m.group(1));
-            SharedFile sf = attById.get(fid);
-            if (sf != null) fileNameMap.put(fid, sf.getOriginalName() != null ? sf.getOriginalName() : sf.getName());
-        }
-
-        String filename = sanitizeFilename(page.getTitle()) + ".md";
-        if (fileNameMap.isEmpty()) {
-            response.setContentType("text/markdown;charset=UTF-8");
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-            response.getOutputStream().write(
-                    (page.getContent() != null ? page.getContent() : "").getBytes(StandardCharsets.UTF_8));
-        } else {
-            String rewritten = rewriteImageUrls(page.getContent(), fileNameMap);
-            response.setContentType("application/zip");
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + sanitizeFilename(page.getTitle()) + ".zip\"");
-            try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
-                putZipEntry(zos, filename, rewritten.getBytes(StandardCharsets.UTF_8));
-                for (Map.Entry<Long, String> e : fileNameMap.entrySet()) {
-                    SharedFile sf = attById.get(e.getKey());
-                    if (sf == null) continue;
-                    try (InputStream is = minioStorage.download(sf.getMinioKey())) {
-                        zos.putNextEntry(new ZipEntry("images/" + e.getValue()));
-                        is.transferTo(zos);
-                        zos.closeEntry();
-                    }
-                }
-            }
-        }
+    private void exportMarkdown(String title, String content, HttpServletResponse response) throws Exception {
+        String filename = sanitizeFilename(title) + ".md";
+        response.setContentType("text/markdown;charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        response.getOutputStream().write(
+                (content != null ? content : "").getBytes(StandardCharsets.UTF_8));
     }
 
     public void exportSpace(Long spaceId, String tenantId, HttpServletResponse response) throws Exception {

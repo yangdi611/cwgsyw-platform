@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.workflow.adapter;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.common.AuditRemark;
 import com.cwgsyw.platform.module.notification.NotificationService;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -112,7 +113,7 @@ public class WikiWorkflowAdapter implements BusinessWorkflowAdapter {
             .targetId(pageId)
             .targetType("wiki_page")
             .operatorId(event.getApproverId() != null ? event.getApproverId() : 0L)
-            .remark(event.getComment())
+            .remark(AuditRemark.bounded(event.getComment()))
             .createdAt(LocalDateTime.now())
             .build());
 

@@ -1,0 +1,15 @@
+{
+  "runId": "FQA_20260718_1616_remp0008",
+  "branch": "codex/fqa-final-l4-revalidation-after-rem-p0-008-regression",
+  "baselineCommit": "2615e8ffec2adf6f120dd89024a53be8e92546aa",
+  "phase": "PAUSED_FOR_REM_P1_029",
+  "functional": { "total": 275, "notRun": 176, "pass": 98, "fail": 1, "blocked": 0, "na": 0 },
+  "state": { "total": 78, "notRun": 70, "pass": 8, "fail": 0, "blocked": 0, "na": 0 },
+  "activeTestObjects": [],
+  "authorizationMode": "enforced",
+  "breakGlass": "not authorized",
+  "restore": "not authorized",
+  "externalWrites": "not authorized",
+  "browserRuntime": "isolated Playwright Chromium installed and verified",
+  "lastCompletedCases": ["ST-DAILY-001", "ST-AUTHZ-007", "ST-AUTHZ-008", "ST-AUTHZ-015", "ST-AUTHZ-016", "ST-AUTHZ-019", "ST-AUTHZ-020", "ST-AUTHZ-021", "AUTH-001", "AUTH-002", "AUTH-003", "AUTH-004", "AUTH-005", "AUTH-006", "AUTH-007", "AUTH-008", "AUTH-009", "ACCOUNT-010", "HOME-001", "HOME-003", "HOME-004", "HOME-005", "HOME-006", "HOME-007", "HOME-008", "CMDB-001", "CMDB-002", "CMDB-015", "CMDB-018", "CMDB-033", "CMDB-035", "CMDB-036", "CMDB-039", "CHANGE-001", "DEVICE-001", "IPAM-001", "FILE-001", "FILE-012", "WIKI-013", "WIKI-016", "WIKI-017", "WIKI-022", "DAILY-006", "FLOW-001", "FLOW-004", "REPORT-002", "REPORT-003", "NOTICE-002", "AUDIT-001", "AUTHZ-001", "AUTHZ-003", "AUTHZ-010", "AUTHZ-016", "COMMON-006", "OPS-001", "OPS-012", "RBAC-009", "RBAC-012", "RBAC-018", "RBAC-019", "RBAC-020", "RBAC-022", "RBAC-023", "RBAC-024", "ACCOUNT-001", "ACCOUNT-002", "ACCOUNT-003", "ACCOUNT-004", "ACCOUNT-005", "ACCOUNT-006", "ACCOUNT-007", "ACCOUNT-008", "OPS-002", "WIKI-002", "WIKI-006", "WIKI-007", "WIKI-008", "FILE-002", "FILE-003", "FILE-008", "CMDB-003", "CMDB-007", "CMDB-009", "CMDB-010", "CMDB-020", "CMDB-021", "CMDB-012", "CMDB-026", "DEVICE-002", "DEVICE-003", "DEVICE-004", "DEVICE-005", "DEVICE-008", "DEVICE-010", "IPAM-002", "IPAM-003", "IPAM-004", "IPAM-005", "IPAM-006", "IPAM-007", "IPAM-010"]
+}

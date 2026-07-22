@@ -48,7 +48,7 @@ public class CiChangeService {
         Page<CiChangeRecord> p = ciChangeRecordMapper.queryChanges(
                 new Page<>(page, size), tenantId,
                 List.of("ci_instance"), instanceId, mapActionToCanonical(action),
-                operatorId, null, from, to);
+                operatorId, null, null, from, to);
 
         Map<Long, String> operatorNames = resolveOperatorNames(p.getRecords());
         List<ChangeHistoryV2VO> records = p.getRecords().stream()
@@ -66,7 +66,7 @@ public class CiChangeService {
     // ─── Global Changes ─────────────────────────────────────────────────────
 
     public PageResult<ChangeHistoryV2VO> getGlobalChanges(String entityType, Long entityId,
-                                                          String modelId, String from, String to,
+                                                          String modelId, String keyword, String from, String to,
                                                           Long operatorId, String action,
                                                           int page, int size, String tenantId) {
         boolean isRelation = "ci_instance_rel".equals(entityType);
@@ -80,7 +80,7 @@ public class CiChangeService {
         Page<CiChangeRecord> p = ciChangeRecordMapper.queryChanges(
                 new Page<>(page, size), tenantId,
                 targetTypes, entityId, mapActionToCanonical(action),
-                operatorId, modelFilter, from, to);
+                operatorId, modelFilter, normalizeKeyword(keyword), from, to);
 
         Map<Long, String> operatorNames = resolveOperatorNames(p.getRecords());
 
@@ -99,7 +99,7 @@ public class CiChangeService {
     // ─── Stats ──────────────────────────────────────────────────────────────
 
     public ChangeStatsVO getStats(String modelId, String from, String to, String tenantId) {
-        String cacheKey = buildStatsCacheKey(modelId, from, to);
+        String cacheKey = buildStatsCacheKey(tenantId, modelId, from, to);
 
         // Check Redis cache
         try {
@@ -118,22 +118,28 @@ public class CiChangeService {
 
         ChangeStatsVO stats = new ChangeStatsVO();
 
-        // Today / thisWeek / thisMonth counts
-        String todayStart = now.atStartOfDay().toString();
-        String tomorrowStart = now.plusDays(1).atStartOfDay().toString();
-        stats.setToday(computeActionCounts(tenantId, todayStart, tomorrowStart, modelId));
+        boolean hasExplicitRange = from != null || to != null;
+        if (hasExplicitRange) {
+            ActionCountVO selectedRange = computeActionCounts(tenantId, fromResolved, toResolved, modelId);
+            stats.setToday(selectedRange);
+            stats.setThisWeek(selectedRange);
+            stats.setThisMonth(selectedRange);
+        } else {
+            String todayStart = now.atStartOfDay().toString();
+            String tomorrowStart = now.plusDays(1).atStartOfDay().toString();
+            stats.setToday(computeActionCounts(tenantId, todayStart, tomorrowStart, modelId));
 
-        String weekStart = now.minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay().toString();
-        stats.setThisWeek(computeActionCounts(tenantId, weekStart, tomorrowStart, modelId));
+            String weekStart = now.minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay().toString();
+            stats.setThisWeek(computeActionCounts(tenantId, weekStart, tomorrowStart, modelId));
 
-        String monthStart = now.withDayOfMonth(1).atStartOfDay().toString();
-        stats.setThisMonth(computeActionCounts(tenantId, monthStart, tomorrowStart, modelId));
+            String monthStart = now.withDayOfMonth(1).atStartOfDay().toString();
+            stats.setThisMonth(computeActionCounts(tenantId, monthStart, tomorrowStart, modelId));
+        }
 
         // Daily breakdown
         stats.setDailyBreakdown(computeDailyBreakdown(tenantId, fromResolved, toResolved, modelId));
 
-        // Top 10 instances — NOTE: original passed tenantId as the modelId arg; preserved verbatim for behaviour parity (Issue #64 AC6).
-        stats.setTop10Instances(computeTop10Instances(tenantId, fromResolved, tenantId));
+        stats.setTop10Instances(computeTop10Instances(tenantId, fromResolved, toResolved, modelId));
 
         // Cache the result
         try {
@@ -312,8 +318,8 @@ public class CiChangeService {
         return new ArrayList<>(dailyMap.values());
     }
 
-    private List<TopInstanceVO> computeTop10Instances(String tenantId, String fromDate, String modelId) {
-        List<Map<String, Object>> rows = ciChangeRecordMapper.queryTopChangedInstances(tenantId, fromDate, modelId);
+    private List<TopInstanceVO> computeTop10Instances(String tenantId, String fromDate, String toDate, String modelId) {
+        List<Map<String, Object>> rows = ciChangeRecordMapper.queryTopChangedInstances(tenantId, fromDate, toDate, modelId);
 
         List<TopInstanceVO> result = new ArrayList<>();
         for (Map<String, Object> row : rows) {
@@ -340,9 +346,13 @@ public class CiChangeService {
         return result;
     }
 
-    private String buildStatsCacheKey(String modelId, String from, String to) {
+    private String buildStatsCacheKey(String tenantId, String modelId, String from, String to) {
         String mid = (modelId != null) ? modelId : "_all";
-        return STATS_CACHE_PREFIX + mid + ":" + from + ":" + to;
+        return STATS_CACHE_PREFIX + tenantId + ":" + mid + ":" + from + ":" + to;
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        return keyword == null || keyword.isBlank() ? null : keyword.trim();
     }
 
     private Map<Long, String> resolveOperatorNames(List<CiChangeRecord> records) {

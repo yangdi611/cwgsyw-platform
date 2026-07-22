@@ -14,4 +14,5 @@ public class ResourceDescriptor {
     private Integer permissionMode;
     private Long accessVersion;
     private Long parentId;
+    private boolean accessRestricted;
 }

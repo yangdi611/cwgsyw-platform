@@ -72,8 +72,9 @@ public class RoleController {
 
     @GetMapping("/roles/{roleId}/permissions")
     @PreAuthorize("hasPermission('role', 'read')")
-    public R<List<SysPermission>> getRolePermissions(@PathVariable Long roleId) {
-        return R.ok(rbacService.getPermissionsByRoleId(roleId));
+    public R<List<SysPermission>> getRolePermissions(@PathVariable Long roleId,
+                                                      @AuthenticationPrincipal SecurityUser currentUser) {
+        return R.ok(rbacService.getPermissionsByRoleId(roleId, currentUser.getTenantId()));
     }
 
     @PutMapping("/roles/{roleId}/permissions")

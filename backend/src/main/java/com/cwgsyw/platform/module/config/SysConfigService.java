@@ -1,6 +1,5 @@
 package com.cwgsyw.platform.module.config;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.config.entity.SysConfig;
@@ -36,11 +35,7 @@ public class SysConfigService {
     }
 
     public void set(String tenantId, String key, String value) {
-        configMapper.update(null, new LambdaUpdateWrapper<SysConfig>()
-            .eq(SysConfig::getTenantId, tenantId)
-            .eq(SysConfig::getConfigKey, key)
-            .set(SysConfig::getConfigValue, value)
-            .set(SysConfig::getUpdatedAt, LocalDateTime.now()));
+        configMapper.upsertValue(tenantId, key, value);
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("sys_config")

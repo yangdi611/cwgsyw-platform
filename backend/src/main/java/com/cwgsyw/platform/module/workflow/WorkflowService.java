@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.workflow;
 
 import com.cwgsyw.platform.common.PageResult;
+import com.cwgsyw.platform.common.BusinessException;
+import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -22,16 +24,29 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringReader;
+import java.io.StringWriter;
+import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 
 @Service
 @RequiredArgsConstructor
 public class WorkflowService {
+    private static final String HISTORICAL_DELETED_DEFINITION_KEY = "historical-deleted-definition";
+    private static final String HISTORICAL_DELETED_DEFINITION_NAME = "历史已删除流程定义";
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final RepositoryService repositoryService;
     private final HistoryService historyService;
     private final JdbcTemplate jdbcTemplate;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
+    private final SysConfigService configService;
 
     @Transactional
     public String startDailyReportApproval(Long reportId, Long groupId) {
@@ -174,6 +189,7 @@ public class WorkflowService {
      */
     @Transactional
     public ProcessDefinitionVO createDefinition(SaveProcessDefinitionReq req, String tenantId) {
+        validateDefinitionRequest(req);
         long existingCount = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey(req.getKey()).count();
         if (existingCount > 0) {
@@ -183,15 +199,9 @@ public class WorkflowService {
         // Flowable derives the process definition key from <process id="...">,
         // not from the deployment properties. Without this, every new process
         // would use "Process_1" from the editor template.
-        String xml = req.getXml().replaceFirst(
-            "<bpmn:process id=\"Process_1\"",
-            "<bpmn:process id=\"" + req.getKey() + "\"");
+        String xml = syncDefinitionMetadata(req.getXml(), req, req.getKey(), req.getCategory());
         String resourceName = req.getKey() + ".bpmn20.xml";
-        Deployment deployment = repositoryService.createDeployment()
-            .name(req.getName())
-            .category(req.getCategory())
-            .addString(resourceName, xml)
-            .deploy();
+        Deployment deployment = deployDefinition(req, resourceName, xml);
         var def = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();
         var vo = new ProcessDefinitionVO();
@@ -216,35 +226,15 @@ public class WorkflowService {
      */
     @Transactional
     public ProcessDefinitionVO updateDefinition(String definitionId, SaveProcessDefinitionReq req, String tenantId) {
+        validateDefinitionRequest(req);
         var oldDef = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
         if (oldDef == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
 
-        // Read the existing BPMN to extract its targetNamespace
-        String existingXml;
-        try (var bis = repositoryService.getProcessModel(definitionId)) {
-            existingXml = new String(bis.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("读取流程定义XML失败", e);
-        }
-        // Extract targetNamespace from existing XML and apply it to the new XML
-        var nsMatcher = java.util.regex.Pattern.compile("targetNamespace=\"([^\"]+)\"").matcher(existingXml);
-        String oldNs = nsMatcher.find() ? nsMatcher.group(1) : null;
-        // Preserve existing targetNamespace so Flowable recognises this as a new version
-        String newXml = req.getXml();
-        // Inject the correct process key — editor template always uses id="Process_1"
-        newXml = newXml.replaceFirst("<bpmn:process id=\"[^\"]*\"",
-            "<bpmn:process id=\"" + oldDef.getKey() + "\"");
-        if (oldNs != null && !oldNs.isEmpty()) {
-            newXml = newXml.replaceAll("targetNamespace=\"[^\"]*\"", "targetNamespace=\"" + oldNs + "\"");
-        }
+        String newXml = syncDefinitionMetadata(req.getXml(), req, oldDef.getKey(), req.getCategory());
 
         String resourceName = req.getKey() + ".bpmn20.xml";
-        Deployment deployment = repositoryService.createDeployment()
-            .name(req.getName())
-            .category(req.getCategory())
-            .addString(resourceName, newXml)
-            .deploy();
+        Deployment deployment = deployDefinition(req, resourceName, newXml);
         var newDef = repositoryService.createProcessDefinitionQuery()
             .deploymentId(deployment.getId()).singleResult();
         var vo = new ProcessDefinitionVO();
@@ -262,16 +252,98 @@ public class WorkflowService {
         return vo;
     }
 
+    private Deployment deployDefinition(SaveProcessDefinitionReq req, String resourceName, String xml) {
+        try {
+            return repositoryService.createDeployment()
+                .name(req.getName())
+                .category(req.getCategory())
+                .addString(resourceName, xml)
+                .deploy();
+        } catch (RuntimeException exception) {
+            throw BusinessException.badRequest("BPMN_DEPLOYMENT_INVALID", "BPMN 流程定义无法部署，请检查流程结构和属性");
+        }
+    }
+
+    static String syncDefinitionMetadata(String xml, SaveProcessDefinitionReq req, String processKey, String category) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setExpandEntityReferences(false);
+            factory.setNamespaceAware(true);
+            var document = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+            String namespace = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+            Element definitions = (Element) document.getElementsByTagNameNS(namespace, "definitions").item(0);
+            Element process = (Element) document.getElementsByTagNameNS(namespace, "process").item(0);
+            process.setAttribute("id", processKey);
+            process.setAttribute("name", req.getName());
+            if (category != null) definitions.setAttribute("targetNamespace", category);
+            var documentationNodes = process.getElementsByTagNameNS(namespace, "documentation");
+            Element documentation;
+            if (documentationNodes.getLength() > 0) {
+                documentation = (Element) documentationNodes.item(0);
+            } else {
+                documentation = document.createElementNS(namespace, "bpmn:documentation");
+                process.insertBefore(documentation, process.getFirstChild());
+            }
+            documentation.setTextContent(req.getDescription() == null ? "" : req.getDescription());
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            var transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(document), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception exception) {
+            throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN XML 格式无效");
+        }
+    }
+
+    private void validateDefinitionRequest(SaveProcessDefinitionReq req) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setExpandEntityReferences(false);
+            factory.setNamespaceAware(true);
+            var document = factory.newDocumentBuilder().parse(
+                new org.xml.sax.InputSource(new java.io.StringReader(req.getXml())));
+            String namespace = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+            if (document.getElementsByTagNameNS(namespace, "definitions").getLength() != 1
+                    || document.getElementsByTagNameNS(namespace, "process").getLength() != 1
+                    || document.getElementsByTagNameNS(namespace, "startEvent").getLength() < 1
+                    || document.getElementsByTagNameNS(namespace, "endEvent").getLength() < 1) {
+                throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN 必须包含 definitions、process、开始事件和结束事件");
+            }
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw BusinessException.badRequest("BPMN_XML_INVALID", "BPMN XML 格式无效");
+        }
+    }
+
     /**
      * Delete process definition and all versions
      */
     @Transactional
-    public void deleteDefinition(String definitionId) {
+    public void deleteDefinition(String definitionId, String tenantId) {
         var def = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
-        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
-        // Cascade delete: removes all versions + runtime instances + history
-        repositoryService.deleteDeployment(def.getDeploymentId(), true);
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        List<String> definitionIds = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionKey(def.getKey()).list().stream().map(d -> d.getId()).toList();
+        if (isBoundToBusinessProcess(definitionIds, tenantId)) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_BOUND", "流程定义已被业务流程绑定，请先在系统配置中更换绑定");
+        }
+        if (runtimeService.createProcessInstanceQuery().processDefinitionKey(def.getKey()).count() > 0) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_RUNNING_INSTANCES", "流程定义存在运行中的实例，无法删除");
+        }
+        repositoryService.createProcessDefinitionQuery().processDefinitionKey(def.getKey()).list().stream()
+            .map(d -> d.getDeploymentId()).distinct()
+            .forEach(deploymentId -> repositoryService.deleteDeployment(deploymentId, false));
     }
 
     /**
@@ -282,15 +354,19 @@ public class WorkflowService {
     public void deleteDefinitionVersion(String definitionId) {
         var def = repositoryService.createProcessDefinitionQuery()
             .processDefinitionId(definitionId).singleResult();
-        if (def == null) throw new IllegalArgumentException("流程定义不存在: " + definitionId);
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
         // Protect: don't allow deleting the last version
         long versionCount = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey(def.getKey()).count();
         if (versionCount <= 1) {
-            throw new IllegalArgumentException("至少保留一个版本，无法删除");
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_LAST_VERSION", "至少保留一个版本，无法删除");
         }
-        // Cascade delete: removes this version's runtime instances + history
-        repositoryService.deleteDeployment(def.getDeploymentId(), true);
+        if (runtimeService.createProcessInstanceQuery().processDefinitionId(definitionId).count() > 0) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_RUNNING_INSTANCES", "该版本存在运行中的实例，无法删除");
+        }
+        repositoryService.deleteDeployment(def.getDeploymentId(), false);
     }
 
     /**
@@ -318,6 +394,14 @@ public class WorkflowService {
      */
     @Transactional
     public void suspendDefinition(String definitionId) {
+        var def = repositoryService.createProcessDefinitionQuery()
+            .processDefinitionId(definitionId).singleResult();
+        if (def == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        if (def.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_ALREADY_SUSPENDED", "流程定义已处于挂起状态");
+        }
         repositoryService.suspendProcessDefinitionById(definitionId, true, null);
     }
 
@@ -356,7 +440,31 @@ public class WorkflowService {
     /**
      * Get statistics for a process definition key
      */
-    public Map<String, Object> getProcessStats(String processDefinitionKey) {
+    public ProcessStatsVO getProcessStats(String processDefinitionKey) {
+        if (HISTORICAL_DELETED_DEFINITION_KEY.equals(processDefinitionKey)) {
+            List<HistoricProcessInstance> unresolvedHistory = historyService.createHistoricProcessInstanceQuery().list().stream()
+                .filter(instance -> instance.getProcessDefinitionKey() == null)
+                .toList();
+            long finishedCount = unresolvedHistory.stream()
+                .filter(instance -> instance.getEndTime() != null)
+                .count();
+            double avgDurationSec = unresolvedHistory.stream()
+                .filter(instance -> instance.getDurationInMillis() != null)
+                .mapToLong(HistoricProcessInstance::getDurationInMillis)
+                .average()
+                .orElse(0) / 1000.0;
+
+            ProcessStatsVO stats = new ProcessStatsVO();
+            stats.setProcessDefinitionKey(HISTORICAL_DELETED_DEFINITION_KEY);
+            stats.setName(HISTORICAL_DELETED_DEFINITION_NAME);
+            stats.setTotalStarted(unresolvedHistory.size());
+            stats.setFinishedCount((int) finishedCount);
+            stats.setRunningCount(0);
+            stats.setSuccessRate(unresolvedHistory.isEmpty() ? 0 : finishedCount * 100.0 / unresolvedHistory.size());
+            stats.setAvgDurationSeconds(avgDurationSec);
+            return stats;
+        }
+
         // Running instances
         long runningCount = runtimeService.createProcessInstanceQuery()
             .processDefinitionKey(processDefinitionKey).count();
@@ -383,28 +491,82 @@ public class WorkflowService {
         long totalStarted = runningCount + finishedCount;
         double successRate = totalStarted > 0 ? (double) finishedCount / totalStarted * 100 : 0;
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("process_definition_key", processDefinitionKey);
-        stats.put("total_started", totalStarted);
-        stats.put("running_count", runningCount);
-        stats.put("finished_count", finishedCount);
-        stats.put("success_rate", Math.round(successRate * 10) / 10.0); // 1 decimal
-        stats.put("avg_duration_seconds", Math.round(avgDurationSec * 10) / 10.0);
+        ProcessStatsVO stats = new ProcessStatsVO();
+        stats.setProcessDefinitionKey(processDefinitionKey);
+        stats.setTotalStarted(totalStarted);
+        stats.setRunningCount(runningCount);
+        stats.setFinishedCount(finishedCount);
+        stats.setSuccessRate(Math.round(successRate * 10) / 10.0);
+        stats.setAvgDurationSeconds(Math.round(avgDurationSec * 10) / 10.0);
         return stats;
     }
 
     /**
      * Get stats for all process definitions
      */
-    public List<Map<String, Object>> getAllProcessStats() {
-        return repositoryService.createProcessDefinitionQuery().latestVersion().list().stream()
-            .map(def -> {
-                Map<String, Object> stats = getProcessStats(def.getKey());
-                stats.put("name", def.getName());
-                stats.put("version", def.getVersion());
-                stats.put("process_definition_id", def.getId());
-                return stats;
-            }).toList();
+    public List<ProcessStatsVO> getAllProcessStats() {
+        Map<String, org.flowable.engine.repository.ProcessDefinition> definitionsByKey =
+            repositoryService.createProcessDefinitionQuery().latestVersion().list().stream()
+                .collect(Collectors.toMap(
+                    org.flowable.engine.repository.ProcessDefinition::getKey,
+                    definition -> definition,
+                    (first, ignored) -> first,
+                    LinkedHashMap::new));
+
+        List<HistoricProcessInstance> historicInstances = historyService.createHistoricProcessInstanceQuery().list();
+        Map<String, HistoricProcessInstance> historyByKey = historicInstances.stream()
+            .filter(instance -> instance.getProcessDefinitionKey() != null)
+            .collect(Collectors.toMap(
+                HistoricProcessInstance::getProcessDefinitionKey,
+                instance -> instance,
+                (first, ignored) -> first,
+                LinkedHashMap::new));
+
+        runtimeService.createProcessInstanceQuery().list().stream()
+            .map(ProcessInstance::getProcessDefinitionKey)
+            .filter(Objects::nonNull)
+            .forEach(key -> historyByKey.putIfAbsent(key, null));
+
+        LinkedHashSet<String> keys = new LinkedHashSet<>(definitionsByKey.keySet());
+        keys.addAll(historyByKey.keySet());
+
+        List<ProcessStatsVO> stats = keys.stream().map(key -> {
+            ProcessStatsVO processStats = getProcessStats(key);
+            var definition = definitionsByKey.get(key);
+            if (definition != null) {
+                processStats.setName(definition.getName());
+                processStats.setVersion(definition.getVersion());
+                processStats.setProcessDefinitionId(definition.getId());
+            } else {
+                HistoricProcessInstance historicInstance = historyByKey.get(key);
+                processStats.setName(historicInstance != null && historicInstance.getProcessDefinitionName() != null
+                    ? historicInstance.getProcessDefinitionName() : key);
+                processStats.setVersion(historicInstance != null ? historicInstance.getProcessDefinitionVersion() : null);
+                processStats.setProcessDefinitionId(historicInstance != null ? historicInstance.getProcessDefinitionId() : null);
+            }
+            return processStats;
+        }).toList();
+
+        List<HistoricProcessInstance> unresolvedHistory = historicInstances.stream()
+            .filter(instance -> instance.getProcessDefinitionKey() == null)
+            .toList();
+        if (unresolvedHistory.isEmpty()) return stats;
+
+        ProcessStatsVO historicalStats = new ProcessStatsVO();
+        historicalStats.setProcessDefinitionKey(HISTORICAL_DELETED_DEFINITION_KEY);
+        historicalStats.setName(HISTORICAL_DELETED_DEFINITION_NAME);
+        historicalStats.setTotalStarted(unresolvedHistory.size());
+        historicalStats.setFinishedCount((int) unresolvedHistory.stream()
+            .filter(instance -> instance.getEndTime() != null).count());
+        historicalStats.setRunningCount(0);
+        historicalStats.setSuccessRate(historicalStats.getFinishedCount() * 100.0 / historicalStats.getTotalStarted());
+        historicalStats.setAvgDurationSeconds(unresolvedHistory.stream()
+            .filter(instance -> instance.getDurationInMillis() != null)
+            .mapToLong(HistoricProcessInstance::getDurationInMillis)
+            .average().orElse(0) / 1000.0);
+        List<ProcessStatsVO> result = new ArrayList<>(stats);
+        result.add(historicalStats);
+        return result;
     }
 
     // ========== Generic Process Instance Management ==========
@@ -418,12 +580,21 @@ public class WorkflowService {
      */
     @Transactional
     public InstanceVO startProcess(StartProcessRequest req, Long userId, String tenantId) {
+        if (req.getProcessDefinitionId() == null || req.getProcessDefinitionId().isBlank()) {
+            if (req.getProcessDefinitionKey() == null || req.getProcessDefinitionKey().isBlank()) {
+                throw BusinessException.badRequest("WORKFLOW_DEFINITION_REQUIRED", "必须指定流程定义 ID 或 Key");
+            }
+        }
         Map<String, Object> vars = req.getVariables() != null ? req.getVariables() : new HashMap<>();
         ProcessInstance pi;
         if (req.getProcessDefinitionId() != null && !req.getProcessDefinitionId().isBlank()) {
+            requireStartableDefinition(repositoryService.createProcessDefinitionQuery()
+                .processDefinitionId(req.getProcessDefinitionId()).singleResult());
             pi = runtimeService.startProcessInstanceById(
                 req.getProcessDefinitionId(), req.getBusinessKey(), vars);
         } else {
+            requireStartableDefinition(repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(req.getProcessDefinitionKey()).latestVersion().singleResult());
             pi = runtimeService.startProcessInstanceByKey(
                 req.getProcessDefinitionKey(), req.getBusinessKey(), vars);
         }
@@ -452,6 +623,10 @@ public class WorkflowService {
      */
     @Transactional
     public void suspendInstance(String instanceId) {
+        var instance = requireRunningInstance(instanceId);
+        if (instance.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_ALREADY_SUSPENDED", "流程实例已处于挂起状态");
+        }
         runtimeService.suspendProcessInstanceById(instanceId);
     }
 
@@ -460,6 +635,10 @@ public class WorkflowService {
      */
     @Transactional
     public void activateInstance(String instanceId) {
+        var instance = requireRunningInstance(instanceId);
+        if (!instance.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_ALREADY_ACTIVE", "流程实例已处于激活状态");
+        }
         runtimeService.activateProcessInstanceById(instanceId);
     }
 
@@ -468,7 +647,33 @@ public class WorkflowService {
      */
     @Transactional
     public void deleteInstance(String instanceId, String reason) {
+        requireRunningInstance(instanceId);
         runtimeService.deleteProcessInstance(instanceId, reason);
+    }
+
+    private boolean isBoundToBusinessProcess(List<String> definitionIds, String tenantId) {
+        return configService.getAll(tenantId).entrySet().stream()
+            .filter(entry -> entry.getKey().endsWith("_process_definition_id"))
+            .map(Map.Entry::getValue)
+            .anyMatch(definitionIds::contains);
+    }
+
+    private void requireStartableDefinition(org.flowable.engine.repository.ProcessDefinition definition) {
+        if (definition == null) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_NOT_FOUND", "流程定义不存在");
+        }
+        if (definition.isSuspended()) {
+            throw BusinessException.badRequest("WORKFLOW_DEFINITION_SUSPENDED", "流程定义已挂起，无法发起实例");
+        }
+    }
+
+    private ProcessInstance requireRunningInstance(String instanceId) {
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery()
+            .processInstanceId(instanceId).singleResult();
+        if (instance == null) {
+            throw BusinessException.badRequest("WORKFLOW_INSTANCE_NOT_FOUND", "流程实例不存在或已结束");
+        }
+        return instance;
     }
 
     /**
@@ -501,19 +706,19 @@ public class WorkflowService {
     /**
      * Get historic activities for process diagram highlighting
      */
-    public List<Map<String, Object>> getHistoricActivities(String instanceId) {
+    public List<HistoricActivityVO> getHistoricActivities(String instanceId) {
         return historyService.createHistoricActivityInstanceQuery()
             .processInstanceId(instanceId)
             .orderByHistoricActivityInstanceStartTime().asc()
             .list().stream().map(a -> {
-                Map<String, Object> m = new java.util.HashMap<>();
-                m.put("activity_id", a.getActivityId());
-                m.put("activity_name", a.getActivityName());
-                m.put("activity_type", a.getActivityType());
-                m.put("start_time", dateToLocal(a.getStartTime()));
-                m.put("end_time", dateToLocal(a.getEndTime()));
-                m.put("assignee", a.getAssignee() != null ? a.getAssignee() : "");
-                return m;
+                HistoricActivityVO activity = new HistoricActivityVO();
+                activity.setActivityId(a.getActivityId());
+                activity.setActivityName(a.getActivityName());
+                activity.setActivityType(a.getActivityType());
+                activity.setStartTime(dateToLocal(a.getStartTime()));
+                activity.setEndTime(dateToLocal(a.getEndTime()));
+                activity.setAssignee(a.getAssignee() != null ? a.getAssignee() : "");
+                return activity;
             }).toList();
     }
 

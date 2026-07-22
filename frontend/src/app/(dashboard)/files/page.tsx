@@ -27,6 +27,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Pencil,
   File,
   Lock,
 } from 'lucide-react'
@@ -34,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { FolderAclDialog } from './FolderAclDialog'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
 import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
+import axios from 'axios'
 import { FolderTreeNode } from './components/FolderTreeNode'
 import { AuditPanel } from './components/AuditPanel'
 import type { FolderNode, SharedFile } from './components/types'
@@ -53,12 +55,21 @@ export default function FilesPage() {
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [ownerGroupId, setOwnerGroupId] = useState('')
+  const [editingFolder, setEditingFolder] = useState<FolderNode | null>(null)
+  const [folderName, setFolderName] = useState('')
+  const [folderParentId, setFolderParentId] = useState('')
 
   const [aclTarget, setAclTarget] = useState<FolderNode | null>(null)
   const [fileAclTarget, setFileAclTarget] = useState<SharedFile | null>(null)
+  const [renaming, setRenaming] = useState<SharedFile | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [moving, setMoving] = useState<SharedFile | null>(null)
+  const [moveFolderId, setMoveFolderId] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadAbortRef = useRef<AbortController | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -90,16 +101,23 @@ export default function FilesPage() {
   const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
     queryKey: ['authorization-groups'],
     queryFn: () => api.get('/groups').then((response) => response.data.data ?? []),
+    enabled: hasPermission('group', 'read'),
   })
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData()
+      const controller = new AbortController()
+      uploadAbortRef.current = controller
       form.append('file', file)
       if (selectedFolderId !== null) form.append('folder_id', String(selectedFolderId))
       if (selectedFolderId === null && ownerGroupId) form.append('owner_group_id', ownerGroupId)
       return api.post('/files/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        signal: controller.signal,
+        onUploadProgress: (event) => {
+          if (event.total) setUploadProgress(Math.round((event.loaded / event.total) * 100))
+        },
       })
     },
     onSuccess: () => {
@@ -111,6 +129,27 @@ export default function FilesPage() {
     mutationFn: (id: number) => api.delete(`/files/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files'] })
+    },
+  })
+
+  const renameMutation = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => api.put(`/files/${id}`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setRenaming(null)
+      setRenameValue('')
+      toast.success('文件已重命名')
+    },
+  })
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, parentId }: { id: number; parentId: string }) =>
+      api.put(`/files/${id}`, { parentId: parentId === '' ? null : Number(parentId) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setMoving(null)
+      setMoveFolderId('')
+      toast.success('文件已移动')
     },
   })
 
@@ -143,6 +182,28 @@ export default function FilesPage() {
     },
   })
 
+  const closeNewFolderDialog = () => {
+    setNewFolderOpen(false)
+    setNewFolderName('')
+    setOwnerGroupId('')
+  }
+
+  const updateFolderMutation = useMutation({
+    mutationFn: ({ id, name, parentId }: { id: number; name: string; parentId?: string }) =>
+      api.patch(`/files/folders/${id}`, {
+        name,
+        ...(parentId === undefined ? {} : { parentId: parentId === '' ? null : Number(parentId) }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['file-folders'] })
+      setEditingFolder(null)
+      toast.success('文件夹已更新')
+    },
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '更新失败')
+    },
+  })
+
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
@@ -150,8 +211,14 @@ export default function FilesPage() {
       setUploading(true)
       try {
         await uploadMutation.mutateAsync(file)
+        toast.success('文件上传成功')
+      } catch (error) {
+        if (axios.isCancel(error)) toast.message('已取消上传')
+        else toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '上传失败')
       } finally {
         setUploading(false)
+        setUploadProgress(null)
+        uploadAbortRef.current = null
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
@@ -169,9 +236,11 @@ export default function FilesPage() {
   const folders = folderData?.data ?? []
   const files = fileData?.data?.records ?? []
   const total = fileData?.data?.total ?? 0
+  const flatFolders = (nodes: FolderNode[]): FolderNode[] => nodes.flatMap((node) => [node, ...flatFolders(node.children ?? [])])
 
   const canUpload = hasPermission('shared_file', 'upload')
   const canDelete = hasPermission('shared_file', 'delete')
+  const canUpdate = hasPermission('shared_file', 'update')
   const canManage = hasPermission('shared_file', 'manage')
   const canManageAcl = hasPermission('shared_file', 'manage_acl')
 
@@ -254,6 +323,22 @@ export default function FilesPage() {
               <Lock className="h-4 w-4" />
             </Button>
           )}
+          {canUpdate && (
+            <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="重命名" onClick={() => {
+              setRenaming(r)
+              setRenameValue(r.name)
+            }}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {canManage && (
+            <Button variant="ghost" size="sm" className="h-8 px-2" title="移动文件" onClick={() => {
+              setMoving(r)
+              setMoveFolderId(r.folderId === null ? '' : String(r.folderId))
+            }}>
+              移动
+            </Button>
+          )}
           {canDelete && r.canDelete && (
             <Button
               variant="ghost"
@@ -287,16 +372,51 @@ export default function FilesPage() {
               </Button>
             )}
             {canUpload && (
+              <>
               <Button variant="primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4" />
-                {uploading ? '上传中…' : '上传文件'}
+                {uploading ? `上传中${uploadProgress === null ? '…' : ` ${uploadProgress}%`}` : '上传文件'}
               </Button>
+              {uploading && <Button variant="secondary" onClick={() => uploadAbortRef.current?.abort()}>取消上传</Button>}
+              </>
             )}
           </>
         }
       />
 
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+
+      <Dialog open={!!renaming} onOpenChange={(open) => !open && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>重命名文件</DialogTitle></DialogHeader>
+          <Input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} autoFocus />
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setRenaming(null)}>取消</Button>
+            <Button variant="primary" disabled={!renameValue.trim() || renameMutation.isPending} onClick={() => {
+              if (renaming) renameMutation.mutate({ id: renaming.id, name: renameValue.trim() })
+            }}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!moving} onOpenChange={(open) => !open && setMoving(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>移动文件</DialogTitle></DialogHeader>
+          <label className="block space-y-1 text-sm text-v2-fg">
+            <span>移动到</span>
+            <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={moveFolderId} onChange={(event) => setMoveFolderId(event.target.value)}>
+              <option value="">根目录</option>
+              {flatFolders(folders).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+            </select>
+          </label>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setMoving(null)}>取消</Button>
+            <Button variant="primary" disabled={moveMutation.isPending} onClick={() => {
+              if (moving) moveMutation.mutate({ id: moving.id, parentId: moveFolderId })
+            }}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex gap-4">
         {/* Left: Folder Tree */}
@@ -326,6 +446,11 @@ export default function FilesPage() {
                 canManage={canManage}
                 canManageAcl={canManageAcl}
                 onDelete={handleDeleteFolder}
+                onEdit={(node) => {
+                  setEditingFolder(node)
+                  setFolderName(node.name)
+                  setFolderParentId(node.parentId === null ? '' : String(node.parentId))
+                }}
                 onEditAcl={setAclTarget}
               />
             ))}
@@ -367,7 +492,7 @@ export default function FilesPage() {
       </div>
 
       {/* New Folder Dialog */}
-      <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
+      <Dialog open={newFolderOpen} onOpenChange={(open) => open ? setNewFolderOpen(true) : closeNewFolderDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新建文件夹</DialogTitle>
@@ -394,7 +519,7 @@ export default function FilesPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setNewFolderOpen(false)}>
+            <Button variant="secondary" onClick={closeNewFolderDialog}>
               取消
             </Button>
             <Button
@@ -404,6 +529,36 @@ export default function FilesPage() {
             >
               创建
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>编辑文件夹</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input value={folderName} onChange={(event) => setFolderName(event.target.value)} autoFocus />
+            <label className="block space-y-1 text-sm text-v2-fg">
+              <span>移动到</span>
+              <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={folderParentId} onChange={(event) => setFolderParentId(event.target.value)}>
+                <option value="">根目录</option>
+                {flatFolders(folders).filter((folder) => folder.id !== editingFolder?.id).map((folder) => (
+                  <option key={folder.id} value={folder.id}>{folder.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setEditingFolder(null)}>取消</Button>
+            <Button variant="primary" disabled={!folderName.trim() || updateFolderMutation.isPending} onClick={() => {
+              if (editingFolder) updateFolderMutation.mutate({
+                id: editingFolder.id,
+                name: folderName.trim(),
+                parentId: folderParentId === (editingFolder.parentId === null ? '' : String(editingFolder.parentId))
+                  ? undefined
+                  : folderParentId,
+              })
+            }}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

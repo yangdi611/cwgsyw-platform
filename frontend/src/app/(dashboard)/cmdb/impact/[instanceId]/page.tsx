@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink, AlertTriangle, ChevronDown, ChevronRight, Layers } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 
 type Direction = 'bidirectional' | 'upstream' | 'downstream'
 
@@ -66,25 +67,23 @@ export default function ImpactAnalysisPage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_instance', 'impact')) {
+    if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_impact', 'read')) {
       router.replace('/')
     }
   }, [isHydrated, hasPermission, router])
 
-  const { data, isLoading, isError } = useQuery<ImpactResult>({
+  const canAnalyze = isHydrated && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_impact', 'read')
+  const { data, isLoading, isError, error, refetch } = useQuery<ImpactResult, unknown>({
     queryKey: ['cmdb-impact', instanceId, direction, maxDepth],
-    queryFn: async () => {
-      try {
-        const r = await api.post(`/cmdb/instances/${instanceId}/impact`, {
-          direction,
-          maxDepth: maxDepth,
-        })
-        return r.data.data
-      } catch {
-        return { nodes: [], edges: [] }
-      }
+    queryFn: async () => (await api.post(`/cmdb/instances/${instanceId}/impact`, {
+      direction,
+      maxDepth,
+    })).data.data,
+    enabled: typeof window !== 'undefined' && canAnalyze,
+    retry: (failureCount, err: unknown) => {
+      if (isAxiosError(err) && [403, 404].includes(err.response?.status ?? 0)) return false
+      return failureCount < 2
     },
-    enabled: typeof window !== 'undefined',
   })
 
   // depth map: node id → depth
@@ -134,13 +133,20 @@ export default function ImpactAnalysisPage() {
     <div className="space-y-6">
       {/* 顶部工具栏 */}
       <div className="flex items-center gap-3">
-        <Link
-          href={data ? `/cmdb/instances/by-model/${data.rootModelId}/${instanceId}` : `/cmdb/instances/by-model/_/${instanceId}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回实例
-        </Link>
+        {data?.rootModelId ? (
+          <Link
+            href={`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回实例
+          </Link>
+        ) : (
+          <span className="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-semibold text-v2-muted">
+            <ArrowLeft className="h-4 w-4" />
+            返回实例
+          </span>
+        )}
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-v2-fg">
             {data?.rootName ?? `#${instanceId}`}
@@ -181,7 +187,7 @@ export default function ImpactAnalysisPage() {
       {isLoading ? (
         <p className="text-muted-foreground text-sm">分析中...</p>
       ) : isError ? (
-        <p className="text-destructive text-sm">加载失败，请刷新重试</p>
+        <ImpactError error={error} onRetry={() => void refetch()} />
       ) : !data || data.layers.length === 0 ? (
         <p className="text-muted-foreground text-sm">暂无影响数据</p>
       ) : (
@@ -237,6 +243,21 @@ export default function ImpactAnalysisPage() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function ImpactError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const status = isAxiosError(error) ? error.response?.status : undefined
+  const message = status === 404
+    ? '实例不存在或已被删除。'
+    : status === 403
+      ? '你没有查看此实例影响分析的权限。'
+      : `加载影响分析失败${status ? `（${status}）` : ''}：${getApiErrorMessage(error, '请稍后重试')}`
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="text-destructive">{message}</p>
+      {status !== 403 && <button type="button" onClick={onRetry} className="rounded-md border border-v2-border px-3 py-1.5 hover:bg-v2-surface-soft">重试</button>}
     </div>
   )
 }

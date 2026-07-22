@@ -92,7 +92,7 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const maintExpire = inst.fieldsData['maint_expire']
   const baselineVal = inst.fieldsData['_baseline_completeness']
 
-  const canEdit = hasPermission('cmdb_instance', 'manage')
+  const canEdit = hasPermission('cmdb_instance', 'update')
 
   return (
     <div className="space-y-6">

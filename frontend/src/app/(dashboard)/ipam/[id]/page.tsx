@@ -14,7 +14,7 @@ import { DataTable, type ColumnDef } from '@/components/shared'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
-import { getApiErrorMessage } from '@/lib/api-error'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -77,7 +77,7 @@ export default function IpamDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
 
   const [allocateOpen, setAllocateOpen] = useState(false)
   const [allocateForm, setAllocateForm] = useState({
@@ -91,13 +91,19 @@ export default function IpamDetailPage() {
   const [editForm, setEditForm] = useState({ name: '', description: '', gateway: '', dns: '' })
 
   useEffect(() => {
+    if (!isHydrated) return
     if (!hasPermission('ip_pool', 'read')) router.replace('/')
-  }, [hasPermission, router])
+  }, [hasPermission, isHydrated, router])
 
-  const { data: pool, isLoading } = useQuery({
+  const canRead = isHydrated && hasPermission('ip_pool', 'read')
+  const { data: pool, isLoading, isError, error, refetch } = useQuery<IpPoolDetailVO, unknown>({
     queryKey: ['ip-pool', id],
     queryFn: () => api.get(`/ip-pools/${id}`).then((r) => r.data.data as IpPoolDetailVO),
-    enabled: hasPermission('ip_pool', 'read'),
+    enabled: canRead,
+    retry: (failureCount, err: unknown) => {
+      if (isAxiosError(err) && [403, 404].includes(err.response?.status ?? 0)) return false
+      return failureCount < 2
+    },
   })
 
   useBreadcrumbLabel(pool?.name)
@@ -148,6 +154,11 @@ export default function IpamDetailPage() {
   }
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isError) {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const message = status === 404 ? '地址池不存在' : status === 403 ? '你没有访问该地址池的权限' : `加载地址池失败：${getApiErrorMessage(error, '请稍后重试')}`
+    return <ResourceLoadError message={message} onRetry={() => void refetch()} retryable={status !== 403} />
+  }
   if (!pool) return <p className="text-v2-danger">地址池不存在</p>
 
   const pct = pool.utilizationPercent
@@ -447,4 +458,8 @@ export default function IpamDetailPage() {
       </AlertDialog>
     </div>
   )
+}
+
+function ResourceLoadError({ message, onRetry, retryable }: { message: string; onRetry: () => void; retryable: boolean }) {
+  return <div className="space-y-3"><p className="text-v2-danger">{message}</p>{retryable && <Button variant="secondary" size="sm" onClick={onRetry}>重试</Button>}</div>
 }

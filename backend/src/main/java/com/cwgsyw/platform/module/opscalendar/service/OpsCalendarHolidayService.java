@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 节假日历服务：CRUD + 工作日判断（isWorkday）。
@@ -27,6 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class OpsCalendarHolidayService {
+
+    private static final Set<String> HOLIDAY_TYPES = Set.of("legal", "company", "campaign");
 
     private final OpsHolidayCalendarMapper holidayMapper;
     private final AuditLogMapper auditLogMapper;
@@ -103,6 +106,7 @@ public class OpsCalendarHolidayService {
     }
 
     private void applyRequest(OpsHolidayCalendar h, HolidayRequest req) {
+        validateRequest(req);
         h.setName(req.getName());
         h.setStartDate(req.getStartDate());
         h.setEndDate(req.getEndDate());
@@ -110,6 +114,22 @@ public class OpsCalendarHolidayService {
         if (req.getWorkdayOverrides() != null) h.setWorkdayOverrides(req.getWorkdayOverrides());
         if (req.getEnabled() != null) h.setEnabled(req.getEnabled());
         h.setRemark(req.getRemark());
+    }
+
+    private void validateRequest(HolidayRequest req) {
+        if (req == null || req.getName() == null || req.getName().isBlank()) throw new IllegalArgumentException("节假日名称必填");
+        if (req.getStartDate() == null || req.getEndDate() == null) throw new IllegalArgumentException("节假日起止日期必填");
+        if (req.getEndDate().isBefore(req.getStartDate())) throw new IllegalArgumentException("结束日期不能早于开始日期");
+        if (!HOLIDAY_TYPES.contains(req.getHolidayType())) throw new IllegalArgumentException("不支持的节假日类型");
+        if (req.getWorkdayOverrides() != null && !req.getWorkdayOverrides().isBlank()) {
+            try {
+                List<String> dates = objectMapper.readValue(req.getWorkdayOverrides(), objectMapper.getTypeFactory()
+                        .constructCollectionType(List.class, String.class));
+                for (String date : dates) LocalDate.parse(date);
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("调休日期必须是 ISO 日期数组", exception);
+            }
+        }
     }
 
     /** 判断某日是否工作日：在节假日区间内=非工作日，调休补班日=工作日，周末=非工作日，其余=工作日。 */

@@ -7,12 +7,13 @@ import { FIELD_TYPES } from './types'
 
 interface AttributeListProps {
   attributes: AttributeAdminItem[]
-  canManage: boolean
+  canUpdate: boolean
+  canDelete: boolean
   onEdit: (attr: AttributeAdminItem) => void
   onDelete: (attr: AttributeAdminItem) => void
 }
 
-export function AttributeList({ attributes, canManage, onEdit, onDelete }: AttributeListProps) {
+export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDelete }: AttributeListProps) {
   const grouped = attributes.reduce(
     (acc, attr) => {
       const key = attr.groupName ?? '__ungrouped__'
@@ -65,15 +66,25 @@ export function AttributeList({ attributes, canManage, onEdit, onDelete }: Attri
                         <Chip active={attr.isDrawerShow}>详情表单显示</Chip>
                       </div>
                     </div>
-                    {canManage && (
+                    {(canUpdate || canDelete) && (
                       <div className="flex shrink-0 gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(attr)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        {!attr.isBuiltIn && (
+                        {canUpdate && (
                           <Button
                             variant="ghost"
                             size="sm"
+                            aria-label={`编辑属性 ${attr.name}`}
+                            title={`编辑属性 ${attr.name}`}
+                            onClick={() => onEdit(attr)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && !attr.isBuiltIn && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`删除属性 ${attr.name}`}
+                            title={`删除属性 ${attr.name}`}
                             className="text-v2-danger hover:text-v2-danger"
                             onClick={() => {
                               if (

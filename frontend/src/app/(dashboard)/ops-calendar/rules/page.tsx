@@ -9,6 +9,16 @@ import { usePermission } from '@/hooks/usePermission'
 import { PageHeader } from '@/components/shared'
 import { DataTable, type ColumnDef } from '@/components/shared'
 import { Button } from '@/components/v2/Button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { TaskTypeBadge } from '@/components/ops-calendar/TaskBadges'
 import { RuleFormDialog } from '@/components/ops-calendar/RuleFormDialog'
 import { type RuleVO, fmtTime, errMsg } from '@/lib/opsCalendar'
@@ -25,6 +35,7 @@ export default function OpsCalendarRulesPage() {
   const queryClient = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<RuleVO | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<RuleVO | null>(null)
 
   useEffect(() => {
     if (!hasPermission('ops_calendar', 'manage')) router.replace('/ops-calendar')
@@ -44,6 +55,16 @@ export default function OpsCalendarRulesPage() {
       queryClient.invalidateQueries({ queryKey: ['ops-calendar-rules'] })
     },
     onError: (e: unknown) => toast.error(errMsg(e, '操作失败')),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/ops-calendar/rules/${id}`),
+    onSuccess: () => {
+      toast.success('规则已删除')
+      setDeleteTarget(null)
+      queryClient.invalidateQueries({ queryKey: ['ops-calendar-rules'] })
+    },
+    onError: (e: unknown) => toast.error(errMsg(e, '删除失败')),
   })
 
   const columns: ColumnDef<RuleVO>[] = [
@@ -75,6 +96,7 @@ export default function OpsCalendarRulesPage() {
           onClick={() => toggleMutation.mutate({ id: r.id, enabled: !r.enabled })}>
           {r.enabled ? '停用' : '启用'}
         </Button>
+        <Button variant="ghost" size="sm" className="text-v2-danger" onClick={() => setDeleteTarget(r)}>删除</Button>
       </div>
     ) },
   ]
@@ -110,6 +132,27 @@ export default function OpsCalendarRulesPage() {
         rule={editing}
         onOpenChange={(o) => { setFormOpen(o); if (!o) setEditing(null) }}
       />
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除周期规则</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定删除「{deleteTarget?.name}」？删除后该规则不再生成任务。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              {deleteMutation.isPending ? '删除中…' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

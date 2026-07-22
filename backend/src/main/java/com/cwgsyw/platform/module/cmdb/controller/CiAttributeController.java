@@ -22,26 +22,26 @@ public class CiAttributeController {
     private final CiAttributeService ciAttributeService;
 
     @GetMapping
-    @PreAuthorize("hasPermission('cmdb_model', 'read')")
+    @PreAuthorize("hasPermission('cmdb_attribute', 'read')")
     public R<List<CiAttributeVO>> list(@PathVariable String modelId, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.list(modelId, cu.getTenantId()));
     }
 
     @PostMapping
-    @PreAuthorize("hasPermission('cmdb_model', 'update')")
+    @PreAuthorize("hasPermission('cmdb_attribute', 'create')")
     public R<CiAttributeVO> create(@PathVariable String modelId, @Valid @RequestBody CreateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.create(modelId, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{attrId}")
-    @PreAuthorize("hasPermission('cmdb_model', 'update')")
+    @PreAuthorize("hasPermission('cmdb_attribute', 'update')")
     public R<CiAttributeVO> update(@PathVariable String modelId, @PathVariable Long attrId,
-            @RequestBody UpdateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
+            @Valid @RequestBody UpdateAttributeRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciAttributeService.update(modelId, attrId, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @DeleteMapping("/{attrId}")
-    @PreAuthorize("hasPermission('cmdb_model', 'update')")
+    @PreAuthorize("hasPermission('cmdb_attribute', 'delete')")
     public R<Void> delete(@PathVariable String modelId, @PathVariable Long attrId, @AuthenticationPrincipal SecurityUser cu) {
         ciAttributeService.delete(modelId, attrId, cu.getTenantId(), cu.getUserId());
         return R.ok();

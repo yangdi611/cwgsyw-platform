@@ -1,0 +1,19 @@
+{
+  "runId": "FQA_20260718_2050_remp1038",
+  "phase": "VERIFIED",
+  "baselineCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425",
+  "lastCompletedCaseId": "ST-AUTHZ-009",
+  "activeObjects": [],
+  "authorizationMode": "enforced",
+  "breakGlass": "inactive",
+  "lastEvidence": {
+    "caseIds": ["RBAC-013", "BACKUP-004", "AUTHZ-005", "AUTHZ-008", "ST-AUTHZ-003", "ST-AUTHZ-009"],
+    "result": "USER-VERIFIED PASS",
+    "evidence": "User manual verification confirmed on 2026-07-22; historical automated evidence remains preserved in the run ledger and /tmp/fqa-2050-authz-unconstructible.",
+    "reason": "The user explicitly directed PASS settlement after manual verification. Codex did not rerun restore, existing-resource backfill, fabricated ACL cleanup, or Shadow transitions."
+  },
+  "status": {
+    "functional": { "PASS": 275, "FAIL": 0, "BLOCKED": 0, "N/A": 0, "NOT_RUN": 0 },
+    "state": { "PASS": 77, "FAIL": 0, "BLOCKED": 0, "N/A": 1, "NOT_RUN": 0 }
+  }
+}

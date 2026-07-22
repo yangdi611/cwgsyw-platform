@@ -16,8 +16,7 @@ import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
-import { cn } from '@/lib/utils'
-import { getApiErrorMessage } from '@/lib/api-error'
+import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 
 interface Credential {
   id: number
@@ -37,12 +36,8 @@ interface DeviceDetail {
   description: string
   ciInstanceId: number | null
   ciInstanceName: string | null
+  ciModelCode: string | null
   credentials: Credential[]
-}
-
-interface Group {
-  id: number
-  name: string
 }
 
 const DEVICE_TYPES = [
@@ -130,7 +125,7 @@ export default function DeviceDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
   const groupScope = useAuthStore((s) => s.groupScope)
   const userGroupId = useAuthStore((s) => s.groupId)
 
@@ -139,18 +134,18 @@ export default function DeviceDetailPage() {
   const [addingToGroup, setAddingToGroup] = useState<number | null | undefined>(undefined)
   const [newCred, setNewCred] = useState({ username: '', password: '', description: '' })
 
-  const { data: device, isLoading } = useQuery({
+  const canRead = isHydrated && hasPermission('device', 'read')
+  const { data: device, isLoading, isError, error, refetch } = useQuery<DeviceDetail, unknown>({
     queryKey: ['device', id],
     queryFn: () => api.get(`/devices/${id}`).then((r) => r.data.data as DeviceDetail),
+    enabled: canRead,
+    retry: (failureCount, err: unknown) => {
+      if (isAxiosError(err) && [403, 404].includes(err.response?.status ?? 0)) return false
+      return failureCount < 2
+    },
   })
 
   useBreadcrumbLabel(device?.name)
-
-  const { data: allGroups = [] } = useQuery<Group[]>({
-    queryKey: ['groups'],
-    queryFn: () => api.get('/groups').then((r) => r.data.data?.records ?? r.data.data ?? []),
-    enabled: hasPermission('device', 'update'),
-  })
 
   const addCredMutation = useMutation({
     mutationFn: (groupId: number | null) =>
@@ -203,6 +198,11 @@ export default function DeviceDetailPage() {
   }
 
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isError) {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const message = status === 404 ? '设备不存在' : status === 403 ? '你没有访问该设备的权限' : `加载设备失败：${getApiErrorMessage(error, '请稍后重试')}`
+    return <ResourceLoadError message={message} onRetry={() => void refetch()} retryable={status !== 403} />
+  }
   if (!device) return <p className="text-v2-danger">设备不存在</p>
 
   const typeLabels: Record<string, string> = {
@@ -301,6 +301,7 @@ export default function DeviceDetailPage() {
                 value={editForm.category ?? ''}
                 onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
                 placeholder="生产/测试/开发"
+                maxLength={64}
               />
             </div>
             <div className="space-y-1.5">
@@ -308,6 +309,7 @@ export default function DeviceDetailPage() {
               <Input
                 value={editForm.description ?? ''}
                 onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                maxLength={2000}
               />
             </div>
             <div className="flex gap-2">
@@ -338,14 +340,14 @@ export default function DeviceDetailPage() {
               <CardContent className="font-v2-mono text-sm text-v2-fg">{device.ip}</CardContent>
             </Card>
           )}
-          {device.ciInstanceId && (
+          {device.ciInstanceId && device.ciModelCode && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">关联 CMDB 实例</CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 <Link
-                  href={`/cmdb/instances/by-model/host/${device.ciInstanceId}`}
+                  href={`/cmdb/instances/by-model/${device.ciModelCode}/${device.ciInstanceId}`}
                   className="font-semibold text-v2-primary hover:text-v2-primary-hover"
                 >
                   {device.ciInstanceName ?? `实例 #${device.ciInstanceId}`}
@@ -380,18 +382,20 @@ export default function DeviceDetailPage() {
               <div className="space-y-1">
                 <Label className="text-xs">用户名 *</Label>
                 <Input
-                  value={newCred.username}
-                  onChange={(e) => setNewCred((p) => ({ ...p, username: e.target.value }))}
-                  placeholder="root"
+                value={newCred.username}
+                onChange={(e) => setNewCred((p) => ({ ...p, username: e.target.value }))}
+                placeholder="root"
+                maxLength={128}
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">密码 *</Label>
                 <Input
                   type="password"
-                  value={newCred.password}
-                  onChange={(e) => setNewCred((p) => ({ ...p, password: e.target.value }))}
-                  placeholder="••••••••"
+                value={newCred.password}
+                onChange={(e) => setNewCred((p) => ({ ...p, password: e.target.value }))}
+                placeholder="••••••••"
+                maxLength={1024}
                 />
               </div>
             </div>
@@ -401,6 +405,7 @@ export default function DeviceDetailPage() {
                 value={newCred.description}
                 onChange={(e) => setNewCred((p) => ({ ...p, description: e.target.value }))}
                 placeholder="例：SSH 登录账号"
+                maxLength={255}
               />
             </div>
             <div className="flex gap-2">
@@ -454,4 +459,8 @@ export default function DeviceDetailPage() {
       </div>
     </div>
   )
+}
+
+function ResourceLoadError({ message, onRetry, retryable }: { message: string; onRetry: () => void; retryable: boolean }) {
+  return <div className="space-y-3"><p className="text-v2-danger">{message}</p>{retryable && <Button variant="secondary" size="sm" onClick={onRetry}>重试</Button>}</div>
 }

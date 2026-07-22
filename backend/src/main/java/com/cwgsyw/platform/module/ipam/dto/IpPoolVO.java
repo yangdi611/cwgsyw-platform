@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class IpPoolVO {
     private Long id;
+    private Long groupId;
     private String name;
     private String description;
     private String cidr;

@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/v2/Card'
 import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { DashboardOpsCalendarCard } from '@/components/ops-calendar/DashboardOpsCalendarCard'
+import { usePermission } from '@/hooks/usePermission'
 import api from '@/lib/api'
 import {
   ArrowRight,
@@ -47,6 +48,10 @@ interface ChangeDocVO {
   applicantName: string
   createdAt: string
 }
+interface ChangeDocPageVO {
+  records: ChangeDocVO[]
+  total: number
+}
 interface ChangeRecordVO {
   id: number
   action: string
@@ -67,21 +72,31 @@ function timeAgo(iso: string): string {
 }
 
 export default function DashboardPage() {
+  const { hasPermission } = usePermission()
+  const canReadWorkflowTasks = hasPermission('daily_report', 'approve')
+  const canReadAlerts = hasPermission('cmdb_alert', 'read')
+  const canReadChangeDocs = hasPermission('change_doc', 'read')
+  const canReadChanges = hasPermission('cmdb_change', 'read')
+
   const { data: tasks } = useQuery<TaskVO[] | undefined>({
     queryKey: ['workflow-tasks'],
     queryFn: () => safe(api.get('/workflow/tasks/group')),
+    enabled: canReadWorkflowTasks,
   })
   const { data: alertsData } = useQuery<{ records: AlertVO[]; total: number } | undefined>({
     queryKey: ['cmdb-alerts-dashboard'],
     queryFn: () => safe(api.get('/cmdb/alerts', { params: { page: 1, size: 5 } })),
+    enabled: canReadAlerts,
   })
   const { data: docs } = useQuery<ChangeDocVO[] | undefined>({
     queryKey: ['change-docs-dashboard'],
-    queryFn: () => safe(api.get('/change-docs')),
+    queryFn: async () => (await safe<ChangeDocPageVO>(api.get('/change-docs')))?.records,
+    enabled: canReadChangeDocs,
   })
   const { data: changesData } = useQuery<{ records: ChangeRecordVO[]; total: number } | undefined>({
     queryKey: ['cmdb-changes-dashboard'],
     queryFn: () => safe(api.get('/cmdb/changes', { params: { page: 1, size: 6 } })),
+    enabled: canReadChanges,
   })
 
   const pendingTasks = tasks ?? []
@@ -98,6 +113,7 @@ export default function DashboardPage() {
       trendType: pendingTasks.length > 0 ? ('warn' as const) : ('ok' as const),
       description: '流程中心分配给你的审批任务。',
       href: '/workflow/tasks',
+      visible: canReadWorkflowTasks,
     },
     {
       label: 'CMDB 告警',
@@ -108,6 +124,7 @@ export default function DashboardPage() {
         : ('ok' as const),
       description: 'Prometheus 同步的未恢复告警。',
       href: '/cmdb/alerts',
+      visible: canReadAlerts,
     },
     {
       label: '变更文档',
@@ -116,6 +133,7 @@ export default function DashboardPage() {
       trendType: pendingDocs.length > 0 ? ('warn' as const) : ('ok' as const),
       description: '全部变更申请单，含草稿与已归档。',
       href: '/change-docs',
+      visible: canReadChangeDocs,
     },
     {
       label: '近期变更',
@@ -124,8 +142,9 @@ export default function DashboardPage() {
       trendType: 'neutral' as const,
       description: 'CI 实例的创建/更新/删除记录总数。',
       href: '/cmdb/changes',
+      visible: canReadChanges,
     },
-  ]
+  ].filter((metric) => metric.visible)
 
   const quickLinks = [
     {
@@ -133,26 +152,30 @@ export default function DashboardPage() {
       description: '查看模型分类、实例浏览和近期 CI 动态。',
       icon: Database,
       href: '/cmdb',
+      visible: hasPermission('cmdb_instance', 'read'),
     },
     {
       title: '变更文档',
       description: '基于模板新建变更，补充影响分析、审批记录和回滚方案。',
       icon: FileText,
       href: '/change-docs/new',
+      visible: hasPermission('change_doc', 'create'),
     },
     {
       title: '流程任务',
       description: '集中处理审批、转派、驳回、评论和流程实例追踪。',
       icon: CheckSquare,
       href: '/workflow/tasks',
+      visible: canReadWorkflowTasks,
     },
     {
       title: '身份与权限',
       description: '管理用户、用户组、角色和权限矩阵，降低配置分散感。',
       icon: Shield,
       href: '/users',
+      visible: hasPermission('user', 'read'),
     },
-  ]
+  ].filter((link) => link.visible)
 
   return (
     <div className="space-y-6">
@@ -163,20 +186,20 @@ export default function DashboardPage() {
         subtitle="集中处理审批、CMDB 风险、变更文档与近期变更；数据来自后端实时接口。"
         actions={
           <>
-            <Button
+            {canReadWorkflowTasks && <Button
               className="flex-1 sm:flex-none"
               variant="secondary"
               onClick={() => (window.location.href = '/workflow/tasks')}
             >
               查看全部待办
-            </Button>
-            <Button
+            </Button>}
+            {hasPermission('change_doc', 'create') && <Button
               className="flex-1 sm:flex-none"
               variant="primary"
               onClick={() => (window.location.href = '/change-docs/new')}
             >
               发起变更
-            </Button>
+            </Button>}
           </>
         }
       />
@@ -206,7 +229,7 @@ export default function DashboardPage() {
         <DashboardOpsCalendarCard />
 
         {/* 待办任务面板 */}
-        <Card>
+        {canReadWorkflowTasks && <Card>
           <CardHeader>
             <CardTitle>待处理审批</CardTitle>
             <p className="text-sm text-v2-muted mt-1">来自流程中心的待办任务。</p>
@@ -232,7 +255,7 @@ export default function DashboardPage() {
               ))
             )}
           </div>
-        </Card>
+        </Card>}
       </div>
 
       {/* 常用业务入口 */}

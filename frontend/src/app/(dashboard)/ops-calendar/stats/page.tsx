@@ -43,14 +43,16 @@ export default function StatsPage() {
     end: ymd(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['ops-stats', query.start, query.end],
     queryFn: () => api.get('/ops-calendar/stats', { params: { startDate: query.start, endDate: query.end } })
       .then((r) => r.data.data as StatsVO),
+    retry: false,
   })
 
   function run() {
     if (!startDate || !endDate) { toast.error('请选择起止日期'); return }
+    if (startDate > endDate) { toast.error('开始日期不能晚于结束日期'); return }
     setQuery({ start: startDate, end: endDate })
   }
 
@@ -83,7 +85,14 @@ export default function StatsPage() {
 
       {isLoading && <p className="py-12 text-center text-sm text-v2-muted">加载中…</p>}
 
-      {data && (
+      {isError && (
+        <div className="py-12 text-center space-y-3">
+          <p className="text-sm text-v2-danger">统计加载失败，请检查日期范围后重试。</p>
+          <Button variant="secondary" onClick={() => void refetch()}>重试</Button>
+        </div>
+      )}
+
+      {!isError && data && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <Metric label="任务总数" value={data.total} />

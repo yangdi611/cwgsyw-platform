@@ -108,8 +108,11 @@ export const wikiApi = {
   revertPage: (id: number, version: number): Promise<WikiPage> =>
     api.post(`/wiki/pages/${id}/revert/${version}`).then((r) => r.data.data),
 
-  exportPage: (id: number): Promise<void> =>
-    downloadBlob(`/wiki/pages/${id}/export`, `wiki-page-${id}.md`),
+  exportPage: (id: number, filename = `wiki-page-${id}.md`): Promise<void> =>
+    downloadBlob(`/wiki/pages/${id}/export`, filename),
+
+  exportPageVersion: (id: number, version: number, filename = `wiki-page-${id}-v${version}.md`): Promise<void> =>
+    downloadBlob(`/wiki/pages/${id}/versions/${version}/export`, filename),
 
   getBacklinks: (id: number): Promise<WikiBacklink[]> =>
     api.get(`/wiki/pages/${id}/backlinks`).then((r) => r.data.data),

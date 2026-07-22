@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.changedoc.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -11,4 +12,5 @@ public class CreateChangeDocRequest {
     @JsonAlias("application_template_id") private Long applicationTemplateId;
     @JsonAlias("plan_template_id")        private Long planTemplateId;
     @JsonAlias("fields_data")             private Map<String, Object> fieldsData;
+    private List<LinkCiRequest.LinkItem> ciSnapshots;
 }

@@ -1,0 +1,1000 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-22T12:00:00+08:00",
+  "sourceRunId": "FQA_20260712_0329_lintfix",
+  "baseline": {
+    "integrationBranch": "lint-fix",
+    "observedCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078",
+    "planningBaselineStatus": "COMMITTED",
+    "planningBaselineCommit": "9d3478abc411e980bb005c9e87394a16f598dbc0"
+  },
+  "executionPolicy": {
+    "singleWorkspace": true,
+    "parallelEvents": false,
+    "oneBranchPerEvent": true,
+    "runtimeRevalidationRequired": true,
+    "mergeStrategy": "--no-ff",
+    "pushAuthorized": false
+  },
+  "phase": "L4_CLOSED",
+  "activeEvent": null,
+  "activeBranch": "lint-fix",
+  "activeRunId": "FQA_20260718_2050_remp1038",
+  "lastCompletedGate": "L4_FULL_PLATFORM_VERIFIED",
+  "nextEvent": null,
+  "nextBranch": null,
+  "nextAction": "No remaining remediation or L4 closure action.",
+  "statusCounts": {
+    "total": 115,
+    "closed": 115,
+    "verified": 0,
+    "verifying": 0,
+    "inProgress": 0,
+    "notStarted": 0,
+    "blocked": 0
+  },
+  "eventsByStatus": {
+    "closed": [
+      "REM-P0-001",
+      "REM-P0-003",
+      "REM-P0-004",
+      "REM-P0-005",
+      "REM-P0-006",
+      "REM-P0-007",
+      "REM-P0-008",
+      "REM-P1-001",
+      "REM-P1-002",
+      "REM-P1-003",
+      "REM-P1-004",
+      "REM-P1-005",
+      "REM-P1-006",
+      "REM-P1-007",
+      "REM-P1-008",
+      "REM-P1-009",
+      "REM-P1-010",
+      "REM-P1-011",
+      "REM-P1-012",
+      "REM-P1-013",
+      "REM-P1-014",
+      "REM-P1-015",
+      "REM-P1-016",
+      "REM-P1-017",
+      "REM-P1-018",
+      "REM-P1-019",
+      "REM-P1-020",
+      "REM-P1-021",
+      "REM-P1-022",
+      "REM-P1-023",
+      "REM-P1-024",
+      "REM-P1-025",
+      "REM-P1-026",
+      "REM-P1-027",
+      "REM-P1-028",
+      "REM-P1-029",
+      "REM-P1-030",
+      "REM-P1-031",
+      "REM-P1-032",
+      "REM-P1-033",
+      "REM-P1-034",
+      "REM-P1-035",
+      "REM-P1-036",
+      "REM-P1-037",
+      "REM-P1-038",
+      "REM-P1-039",
+      "REM-P1-040",
+      "REM-P1-041",
+      "REM-P1-042",
+      "REM-P1-043",
+      "REM-P1-044",
+      "REM-P1-045",
+      "REM-P1-046",
+      "REM-P1-047",
+      "REM-P1-048",
+      "REM-P1-049",
+      "REM-P1-050",
+      "REM-P1-051",
+      "REM-P1-052",
+      "REM-P1-053",
+      "REM-P1-054",
+      "REM-P1-055",
+      "REM-P1-056",
+      "REM-P1-057",
+      "REM-P1-058",
+      "REM-P1-059",
+      "REM-P1-060",
+      "REM-P1-061",
+      "REM-P1-062",
+      "REM-P1-063",
+      "REM-P1-064",
+      "REM-P1-065",
+      "REM-P1-066",
+      "REM-P1-067",
+      "REM-P1-068",
+      "REM-P1-069",
+      "REM-P1-070",
+      "REM-P1-071",
+      "REM-P1-072",
+      "REM-P1-073",
+      "REM-P1-074",
+      "REM-P1-075",
+      "REM-P1-076",
+      "REM-P2-001",
+      "REM-P2-002",
+      "REM-P2-003",
+      "REM-P2-004",
+      "REM-P2-005",
+      "REM-P2-006",
+      "REM-P2-007",
+      "REM-P2-008",
+      "REM-P2-009",
+      "REM-P2-010",
+      "REM-P2-011",
+      "REM-P2-012",
+      "REM-P2-013",
+      "REM-P2-014",
+      "REM-P2-015",
+      "REM-P2-016",
+      "REM-P2-017",
+      "REM-P2-018",
+      "REM-P2-019",
+      "REM-P2-020",
+      "REM-P2-021",
+      "REM-P2-022",
+      "REM-P2-023",
+      "REM-P2-024",
+      "REM-P2-025",
+      "REM-P2-026",
+      "REM-P2-027",
+      "REM-P2-028",
+      "REM-P2-029",
+      "REM-P2-030",
+      "REM-P2-031",
+      "REM-P2-032"
+    ],
+    "verifying": [],
+    "verified": [],
+    "inProgress": [],
+    "notStarted": [],
+    "blocked": []
+  },
+  "executionOrder": [
+    "REM-P0-007",
+    "REM-P1-005",
+    "REM-P1-006",
+    "REM-P1-007",
+    "REM-P1-009",
+    "REM-P1-012",
+    "REM-P1-016",
+    "REM-P1-017",
+    "REM-P1-018",
+    "REM-P1-019",
+    "REM-P1-022",
+    "REM-P1-023",
+    "REM-P1-024",
+    "REM-P1-025",
+    "REM-P1-026",
+    "REM-P1-027",
+    "REM-P1-008",
+    "REM-P1-013",
+    "REM-P1-030",
+    "REM-P2-001",
+    "REM-P2-002",
+    "REM-P2-003",
+    "REM-P2-004",
+    "REM-P2-005",
+    "REM-P2-006",
+    "REM-P2-007",
+    "REM-P2-008",
+    "REM-P2-009",
+    "REM-P2-010",
+    "REM-P2-011",
+    "REM-P2-012",
+    "REM-P2-013",
+    "REM-P2-014",
+    "REM-P2-015",
+    "REM-P2-016",
+    "REM-P1-039",
+    "REM-P1-048",
+    "REM-P1-049",
+    "REM-P1-050",
+    "REM-P1-051",
+    "REM-P1-052",
+    "REM-P1-053",
+    "REM-P1-054",
+    "REM-P1-055",
+    "REM-P1-056",
+    "REM-P1-057",
+    "REM-P1-058",
+    "REM-P1-059",
+    "REM-P1-060",
+    "REM-P1-061",
+    "REM-P1-062",
+    "REM-P1-063",
+    "REM-P1-064",
+    "REM-P1-065",
+    "REM-P1-066",
+    "REM-P1-067",
+    "REM-P1-068",
+    "REM-P1-069",
+    "REM-P1-070",
+    "REM-P1-071",
+    "REM-P1-072",
+    "REM-P1-073",
+    "REM-P1-074",
+    "REM-P1-075",
+    "REM-P1-076"
+  ],
+  "eventGit": {
+    "REM-P1-074": {
+      "branch": "codex/rem-p1-074-cmdb-status-change-notification-chain",
+      "baselineCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-CMDB-006-001",
+      "failureSnapshotCommit": "caaa5da38623839724f09fbb6e269c80840fbe1c",
+      "runId": "REM_P1_074_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "0364ee0e0cd12fdd1f7c16a695ee14184f83dc83",
+      "mergeCommit": "414037c2f19d85525bea1cfd6cf5bdcc33bba6ac"
+    },
+    "REM-P1-073": {
+      "branch": "codex/rem-p1-073-changedoc-unified-workflow",
+      "baselineCommit": "a82119cd441f4a256100a23a7ba1afe183695f45",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-020-001",
+      "failureSnapshotCommit": "231bc59b0b1117b227f5173c271c5227b813ca90",
+      "runId": "REM_P1_073_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "8c5aa59495843e3d344f5e1b9ae6120ffd238055",
+      "mergeCommit": "1f4e313850a5dd65f91b20f0ed32ee91973737b9"
+    },
+    "REM-P1-072": {
+      "branch": "codex/rem-p1-072-cmdb-import-failed-row-download",
+      "baselineCommit": "ea1a653106b0ae31b41540b4e812e9d7eb1d0c6c",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-EXPORT-004-001",
+      "failureSnapshotCommit": "d43e8637",
+      "runId": "REM_P1_072_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "8f257338",
+      "mergeCommit": "CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-071": {
+      "branch": "codex/rem-p1-071-cmdb-alert-remediation-cleanup",
+      "baselineCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CMDB-034-XL-CMDB-008-CLEANUP-001",
+      "failureSnapshotCommit": "ea40aaec",
+      "runId": "REM_P1_071_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "6156271eb",
+      "mergeCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425"
+    },
+    "REM-P1-070": {
+      "branch": "codex/rem-p1-070-method-security-functional-reason-code",
+      "baselineCommit": "407f1abe14118156d21e4dd0d02d768a37fb73ed",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-025-XL-RBAC-006-001",
+      "failureSnapshotCommit": "79c1ffec",
+      "runId": "REM_P1_070_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "4a605fab",
+      "mergeCommit": "685d57c0c826ec7ae3efc6934566e57b5e057b3d"
+    },
+    "REM-P1-069": {
+      "branch": "codex/rem-p1-069-multi-group-owner-mode-authorization",
+      "baselineCommit": "962bd2344d13c6f062bf6f44d2615508af575f85",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-RBAC-002-001",
+      "failureSnapshotCommit": "bcdaaf57",
+      "runId": "REM_P1_069_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "fc258cbd",
+      "mergeCommit": "407f1abe14118156d21e4dd0d02d768a37fb73ed"
+    },
+    "REM-P1-068": {
+      "branch": "codex/rem-p1-068-cmdb-related-resource-ui-contract",
+      "baselineCommit": "7bbd9915",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-CMDB-004-005-UI-001",
+      "failureSnapshotCommit": "e57f8407",
+      "runId": "REM_P1_068_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "4349419d57aa2d44df13c73f95bb5fccede90edb",
+      "mergeCommit": "7c06b1a4b769ad272b08559d2094476312d11e6a"
+    },
+    "REM-P1-067": {
+      "branch": "codex/rem-p1-067-daily-orphan-workflow-cleanup",
+      "baselineCommit": "4bd4ae56",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-012-001",
+      "failureSnapshotCommit": "48c78eaa",
+      "runId": "REM_P1_067_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "4a4c51b45cffc7830eb331cb0b1de45a4d134971",
+      "mergeCommit": "013ffec4496bc3a378f04b15caf83dba1d89ca22"
+    },
+    "REM-P1-066": {
+      "branch": "codex/rem-p1-066-cmdb-import-dialog-async-reset",
+      "baselineCommit": "84e55ae93",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-010-001",
+      "failureSnapshotCommit": "de3b4e63f",
+      "runId": "REM_P1_066_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "850c6b6b95608e9fb8fe2e13cf9f9cc13005fa24",
+      "mergeCommit": "b870eebb0a3d625845fbf8a1b89d8afa819b86e5"
+    },
+    "REM-P1-065": {
+      "branch": "codex/rem-p1-065-workflow-binding-lifecycle",
+      "baselineCommit": "02270f10e",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-FLOW-010-001",
+      "failureSnapshotCommit": "9dc80cd0",
+      "runId": "REM_P1_065_20260721",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "7f43a36dc1cfe1de65f956e191742a1eee6b3c87",
+      "mergeCommit": "e82e0d7de878e7e235f42fdbb480ca9c5b6705ef"
+    },
+    "REM-P1-064": {
+      "branch": "codex/rem-p1-064-notification-config-ops-rule-sync",
+      "baselineCommit": "daa73689e",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CONFIG-003-001",
+      "failureSnapshotCommit": "8ac92182c",
+      "runId": "REM_P1_064_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "f63cc0c9",
+      "mergeCommit": "b7f1d51ee"
+    },
+    "REM-P1-063": {
+      "branch": "codex/rem-p1-063-ai-provider-test-error-contract",
+      "baselineCommit": "824115b8",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-AI-003-001",
+      "failureSnapshotCommit": "19604f8f",
+      "runId": "REM_P1_063_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "97200a11",
+      "mergeCommit": "daa73689e"
+    },
+    "REM-P1-062": {
+      "branch": "codex/rem-p1-062-ai-provider-input-validation",
+      "baselineCommit": "c6495ae9",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-AI-002-001",
+      "failureSnapshotCommit": "122f2d5b",
+      "runId": "REM_P1_062_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "1d31d648",
+      "mergeCommit": "824115b82"
+    },
+    "REM-P1-061": {
+      "branch": "codex/rem-p1-061-change-doc-approval-notification",
+      "baselineCommit": "2f19e1f4b",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-011-001",
+      "failureSnapshotCommit": "68fc5d3e3",
+      "runId": "REM_P1_061_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "936ca2f1",
+      "mergeCommit": "c6495ae97"
+    },
+    "REM-P1-060": {
+      "branch": "codex/rem-p1-060-change-doc-submit-idempotency",
+      "baselineCommit": "a5482a7757a19bd69e04c30ee2f16ec2342b2536",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CHANGE-019-001",
+      "runId": "REM_P1_060_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "b7394350",
+      "mergeCommit": "633115c03dba632c0b7e9e45a1ace224c73f49b1"
+    },
+    "REM-P0-008": {
+      "branch": "codex/rem-p0-008-authorization-rollback-idempotency",
+      "baselineCommit": "00eed2194f2a5bff367b18b2e999f3a62ca259c9",
+      "sourceRunId": "FQA_20260718_1550_remp0007",
+      "sourceDefect": "L4-ST-AUTHZ-021-001",
+      "verification": "VERIFIED",
+      "eventCommit": "3421524f95b05b85c49da3dac0be39e581627369",
+      "mergeCommit": "2615e8ffec2adf6f120dd89024a53be8e92546aa"
+    },
+    "REM-P1-059": {
+      "branch": "codex/rem-p1-059-cmdb-device-bidirectional-navigation",
+      "baselineCommit": "738e2686",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-CMDB-003-001",
+      "failureSnapshotCommit": "b81a4c9d",
+      "runId": "REM_P1_059_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "1c46d1a04",
+      "mergeCommit": "b5643946d"
+    },
+    "REM-P1-058": {
+      "branch": "codex/rem-p1-058-group-active-name-uniqueness",
+      "baselineCommit": "cd903e7bb2820573be2fdcdf18a96dc9e6a51fb3",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-007-001",
+      "failureSnapshotCommit": "592f775cc18e4cf6f266cf50ae42be1e8df9ffe0",
+      "runId": "REM_P1_058_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "ef3df211279fd9ae43b23b6fce91593872254023",
+      "mergeCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078"
+    },
+    "REM-P1-057": {
+      "branch": "codex/rem-p1-057-wiki-child-owner-group-inheritance",
+      "baselineCommit": "6559358f6a16bdace10062f0197f4c66a8f61bae",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-WIKI-024-001",
+      "failureSnapshotCommit": "50332f17b81d161b42699d0fd1e619f140999620",
+      "runId": "REM_P1_057_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "25ee1823c2c5d6e5d4b19430de134e6ccdfc6fd8",
+      "mergeCommit": "e1738b04d7f5b26d28cfe5a6a510b8a1a16dbe0e"
+    },
+    "REM-P1-056": {
+      "branch": "codex/rem-p1-056-cmdb-attribute-canonical-action-guards",
+      "baselineCommit": "391663921a7ac7355d28a50347a5219e0059eaeb",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CMDB-014-001",
+      "failureSnapshotCommit": "472b6ef20",
+      "runId": "REM_P1_056_20260720",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "7d0f0d218a24e2321eda04a3ed20bf5f5ea0d320",
+      "mergeCommit": "2f664230d402b6160d67fe511faf4956833bcc0a"
+    },
+    "REM-P1-055": {
+      "branch": "codex/rem-p1-055-cmdb-model-detail-drawer-flag",
+      "baselineCommit": "bc72f2e30",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "CMDB-008,XL-CMDB-001",
+      "failureSnapshotCommit": "c6f77028",
+      "runId": "REM_P1_055_20260720",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "4b8603a2",
+      "mergeCommit": "967d3f988ca63cb15412c7f506ba21bf0f0603d9"
+    },
+    "REM-P1-054": {
+      "branch": "codex/rem-p1-054-watermark-angle-preview-contract",
+      "baselineCommit": "43e1a940538619cadccbb4341fa5ccc9be93f892",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "CONFIG-004",
+      "failureSnapshotCommit": "49e6717eb01d573641188b929a0a6e7e41b1a553",
+      "runId": "REM_P1_054_20260720",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "2cafd3592859868ad00ce480fd65e6e3dd7c38bb",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-053": {
+      "branch": "codex/rem-p1-053-workflow-approval-audit-remark-boundary",
+      "baselineCommit": "0049d1ec9d9d1f6dbaa2d76fd58bdbf49a8d617e",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "FLOW-002",
+      "failureSnapshotCommit": "623258b1d290b7d7737c85cedc69213d061ebc5e",
+      "runId": "REM_P1_053_20260720",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "0f147d7eb1559fd6f94a54aca5debd8f1debb35f",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-052": {
+      "branch": "codex/rem-p1-052-cmdb-instance-reference-delete-guards",
+      "baselineCommit": "73ec4273523f6715d66c7f91241e62b4e6d286ab",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "CMDB-040",
+      "failureSnapshotCommit": "4a80a9d4",
+      "runId": "REM_P1_052_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "b79db71b",
+      "mergeCommit": "0049d1ec9d9d1f6dbaa2d76fd58bdbf49a8d617e"
+    },
+    "REM-P0-006": {
+      "eventCommit": "79a191925cd4040820e266239280ece11611cf31",
+      "mergeCommit": "b10bcf8513df89407a0d2a0377e8ec9aeb1f5d5c"
+    },
+    "REM-P1-036": {
+      "eventCommit": "6ae6b5c3959c67267aef711fd8f51ae8127a8455"
+    },
+    "REM-P1-037": {
+      "eventCommit": "e1798e505dce41f44af614a626c452d746661c72",
+      "mergeCommit": "add9df1eb7610f4dfc73d81e5316dd241ebec3a7"
+    },
+    "REM-P0-005": {
+      "eventCommit": "d053f7324b0d9c9f714fd4bebe0cb1ffbb906f36"
+    },
+    "REM-P0-004": {
+      "eventCommit": "13d0af2e9e07a3c0720c98dafc551928668a24cc"
+    },
+    "REM-P0-003": {
+      "eventCommit": "4d41d75db285a0f210d10a53b6226fc3677a5c70"
+    },
+    "REM-P2-032": {
+      "eventCommit": "f54f943f4978e4009656a7b3755f9ba28ce1c408"
+    },
+    "REM-P1-032": {
+      "eventCommit": "225a04dc89030fd17b88be2beebddd70a0fb8a2d"
+    },
+    "REM-P1-034": {
+      "eventCommit": "23490e06446d6184df9f1bf8814c71e3b855c5a4"
+    },
+    "REM-P1-035": {
+      "eventCommit": "f74eab5b515b6fb8cf4bfe61ac386548242676f7"
+    },
+    "REM-P1-031": {
+      "eventCommit": "693c2c5adc2ac9290f2a3fc94772d93225642eff"
+    },
+    "REM-P1-005": {
+      "eventCommit": "2a931872ef3de83716bd7bce9fb2cefd74a71624",
+      "mergeCommit": "86225607e5f713f9f68b1bbaae96066187b624d9"
+    },
+    "REM-P1-006": {
+      "eventCommit": "01e5933e4ec16ba92a6f37abb8566cc041a2871d",
+      "mergeCommit": "5c455510c2af95919020ef2665b172d1321f46f7"
+    },
+    "REM-P1-007": {
+      "eventCommit": "7cc4d98c0c753bbd790a03fa1abb5b3c8b37912e",
+      "mergeCommit": "8543fbdf35b0f6e80cfdb297a9aa000e50691821"
+    },
+    "REM-P1-009": {
+      "eventCommit": "9a5ad58b14d28adc886246947c91cb06d6cab5d9",
+      "mergeCommit": "067e023335e46ddc9d90da4744b10bf6be9e6159"
+    },
+    "REM-P1-012": {
+      "eventCommit": "8c0110150c0858bfa85b3cb22439d5a2614a0d45",
+      "mergeCommit": "29338d87ae0918322b9433cafa23322424486b07"
+    },
+    "REM-P1-014": {
+      "eventCommit": "fa65d7d9d23e8192c8f83c5c332a4d18513088b0",
+      "mergeCommit": "7fefbbd116c7d8a725979cf144a45e2e8bd18f76"
+    },
+    "REM-P1-016": {
+      "eventCommit": "5429ab1beb56a5e9ac86a64a5f415b0398709987",
+      "mergeCommit": "6908e9f7afddbf53a810abc7ad432de1bdbec9a3"
+    },
+    "REM-P1-017": {
+      "eventCommit": "f4dcf31d0c9de2266da3d87631e5022c167e3129",
+      "mergeCommit": "177ecf5b11e7fe7c312dd51bfb38c1e137e2e817"
+    },
+    "REM-P1-018": {
+      "eventCommit": "49f22fef0ce0e9ae3e68e1653016cd4d3d586c3e",
+      "mergeCommit": "344d6f04d4328bf2581ae200d974942cb78cc105",
+      "supersedes": {
+        "eventCommit": "6443c34ad23b1f04464be02adfe62bfe23b936bc",
+        "mergeCommit": "5fd6caf8998b84eed548cb1d01601d6719579856"
+      }
+    },
+    "REM-P1-019": {
+      "eventCommit": "1a612fb28cbf9a8f463e037430e17e712f9ae4b2",
+      "mergeCommit": "ed30a8b15c1248d94d14bdaffb676090640b338b"
+    },
+    "REM-P1-020": {
+      "eventCommit": "7dbd3fd16c29186f11bd9a14d1e22f0649d51543",
+      "mergeCommit": "dc549f950be18e8e22b780407b43ae105c9ae8e5"
+    },
+    "REM-P1-021": {
+      "eventCommit": "784dce52c224da512f2c607f6fb76e68936afd27",
+      "mergeCommit": "2ad80f057919b92168351fe0fc05018463a2506c"
+    },
+    "REM-P1-022": {
+      "eventCommit": "ab0840957fb677cec41e07072b0915823fa160d5",
+      "mergeCommit": "88a264414882815f52d22581280a9387648b550a"
+    },
+    "REM-P1-023": {
+      "eventCommit": "1429fc8ac9be0772654bebb16a717f17a7728143",
+      "mergeCommit": "9d934574bbc3620ddb2fc67f501a01345b40314b"
+    },
+    "REM-P1-024": {
+      "eventCommit": "c8372a05c13606ff8dfa3764ca68dba1e924085a",
+      "mergeCommit": "269b3c497d2de53445d4bccb505c790a91e64c72"
+    },
+    "REM-P1-025": {
+      "eventCommit": "5237e832668e27a89c7f3808cbf4f7469884482d",
+      "mergeCommit": "340910dcf973a1499ae3ef13245745337101ec01"
+    },
+    "REM-P1-026": {
+      "eventCommit": "dd1a67037ab352cc9614b62b6b6c044b33946c1d",
+      "mergeCommit": "712f23b577ea2549399e61fcaf934ebe0a8940e3"
+    },
+    "REM-P1-027": {
+      "eventCommit": "3aa2f2137da97ab6e4efeee84724b189576d066d",
+      "mergeCommit": "dc1fd83692b1d0d6e62d247166a48a4035960ddd"
+    },
+    "REM-P1-008": {
+      "eventCommit": "6792762f",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE",
+      "supersedes": {
+        "eventCommit": "330e01387ef7cccf713dc4585d9ea326069b618d"
+      }
+    },
+    "REM-P1-010": {
+      "eventCommit": "ffdf2ed3d3ab9f8530b83eda1042ec18cc906cdd"
+    },
+    "REM-P1-011": {
+      "eventCommit": "f3573b0ba8ef8092c3ba69e3315b7e89cb992822"
+    },
+    "REM-P1-013": {
+      "eventCommit": "f91b7d82ce7ffbf16fe389f660b4f8b859294bb6"
+    },
+    "REM-P1-015": {
+      "eventCommit": "f0cee59b4810248234ff53e21d039edf84f5b152"
+    },
+    "REM-P1-028": {
+      "eventCommit": "fe1068430152c61185896c8ce4101e626205fe93"
+    },
+    "REM-P1-029": {
+      "eventCommit": "5bc52122db7afc6e6036cf32a5d8fb6e82dca0e5",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE",
+      "supersedes": {
+        "eventCommit": "86359fd79e05bef2d30d19b71bc4ce7225031e30"
+      }
+    },
+    "REM-P1-030": {
+      "eventCommit": "cc116bf05faf3880ad74c14ca24367db2e47c9e7"
+    },
+    "REM-P2-001": {
+      "eventCommit": "b4bfc3b8",
+      "mergeCommit": "55aeaa29"
+    },
+    "REM-P2-003": {
+      "eventCommit": "db9fc3fa9fb28074c5211df45577ea8fc3eabb6b"
+    },
+    "REM-P2-004": {
+      "eventCommit": "33422d0fd2abfd20e1a1c5406552cd5b197da56c"
+    },
+    "REM-P2-005": {
+      "eventCommit": "992db0165cac8f0e3cb4684be81777292276d59f"
+    },
+    "REM-P2-006": {
+      "eventCommit": "5e016552f54a67ef44bbf025308bda1b36df7540"
+    },
+    "REM-P2-007": {
+      "eventCommit": "a37f47094312fb3d9a262aa63d144b901a0fee27"
+    },
+    "REM-P2-008": {
+      "eventCommit": "01ffb02820145ea4f17e43033de1ecf021612969"
+    },
+    "REM-P2-009": {
+      "eventCommit": "59f5fb598f568bd674ca8426ec2941d3d9dc8d9b"
+    },
+    "REM-P2-010": {
+      "eventCommit": "ead2ad580d6b42f19e2abfb9ed66546a86f69e5a"
+    },
+    "REM-P2-011": {
+      "eventCommit": "9bccf7a285e5eecfdfdfda13e6e7d4918887fa06"
+    },
+    "REM-P2-012": {
+      "eventCommit": "ba965576305d68f3e1dd3bfaea05edfea11d2588",
+      "mergeCommit": "af04a36ecb5002fc583744dbf31355e6706fab5a"
+    },
+    "REM-P2-013": {
+      "eventCommit": "5aa2dcf1e36e2710d1c7fa4cc7a5ce429f8c5747",
+      "mergeCommit": "d13e6eaa8fe2d11e528aab985fd020555749ebcc"
+    },
+    "REM-P2-014": {
+      "eventCommit": "76d7284cff748ad3fae3b76fa08ee24250f4131b"
+    },
+    "REM-P2-015": {
+      "eventCommit": "195af57f2b49423258c1765f7bf56b18ccc9857b"
+    },
+    "REM-P2-016": {
+      "eventCommit": "8d4691f17cc7574da266b48c7f5e2e84d9ab7140"
+    },
+    "REM-P2-017": {
+      "eventCommit": "823157d3b9c9f1c4eba0b9e3fa8ac7a8ce460d52"
+    },
+    "REM-P2-025": {
+      "eventCommit": "776b4fc35d4d4955dc682e4d622ae93421a02d3f"
+    },
+    "REM-P2-026": {
+      "eventCommit": "05cfbef2694fc7661f3fffc5199f55e0e21a8ac5",
+      "mergeCommit": "32c607210e84fb486ff242b044160076bbb0a60e"
+    },
+    "REM-P2-027": {
+      "eventCommit": "f08f92cce97b799804f0fdd8ac167a49af039a39",
+      "mergeCommit": "f8a3fb57567549a6bfdeadb17bd3a37f5040b03e"
+    },
+    "REM-P2-028": {},
+    "REM-P2-030": {
+      "eventCommit": "4c2a0fb8d8eb2ecd80213a270ade23aa4dbbb048",
+      "mergeCommit": "c1678f8702329d3f0e88bbbee541d78d1f929e84"
+    },
+    "REM-P2-029": {
+      "eventCommit": "d01e04bfd2a9b93bb2e6cc8fb4a9ed60de2a78c7",
+      "mergeCommit": "744312726b5027cd9c6b43a61f61c7239d84e96a"
+    },
+    "REM-P0-007": {
+      "eventCommit": "1c20595649fc611a1b44cebb2cc1bf972117d05d",
+      "mergeCommit": "95e6fff6c34205f6444a8ad6ec8c0d5fbd0ffa39"
+    },
+    "REM-P1-043": {
+      "branch": "codex/rem-p1-043-smtp-config-input-validation",
+      "baselineCommit": "95e6fff6c34205f6444a8ad6ec8c0d5fbd0ffa39",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-CONFIG-002-001",
+      "failureSnapshotCommit": "c7e3c70a",
+      "runId": "REM_P1_043_20260719",
+      "eventCommit": "97e786caa1d895a761dda138da5031ae03850832",
+      "mergeCommit": "08a3df963ea4b0a664d7f7879525e441141b5c63"
+    },
+    "REM-P1-044": {
+      "branch": "codex/rem-p1-044-ops-task-remediation-cleanup",
+      "baselineCommit": "08a3df963ea4b0a664d7f7879525e441141b5c63",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-TASK-CLEANUP-001",
+      "runId": "REM_P1_044_20260719",
+      "eventCommit": "85181ebfc9cabd574b7adab7cc7e42a01a69b5df",
+      "mergeCommit": "5e3ebe46bff07051d6ff2a08dc32b259e9faf133"
+    },
+    "REM-P1-045": {
+      "branch": "codex/rem-p1-045-ops-roster-remediation-cleanup",
+      "baselineCommit": "5e3ebe46bff07051d6ff2a08dc32b259e9faf133",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-016-CLEANUP-001",
+      "runId": "REM_P1_045_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "ca2f9c7fdda7e4f11fdf60f10806327fcb62091e",
+      "mergeCommit": "51239de6c3b0edacf641bad77bdbe6716f9a905b"
+    },
+    "REM-P1-046": {
+      "branch": "codex/rem-p1-046-ops-roster-temporal-validation",
+      "baselineCommit": "4aee460ef0568b24fa1542ef958c749ef2881d1c",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-016-001",
+      "runId": "REM_P1_046_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "367b594a10d17fbc88f0a5073609e4e2d020adc5",
+      "mergeCommit": "1cfccf0e366ed9f91456029b8989a06b8017a908"
+    },
+    "REM-P1-047": {
+      "branch": "codex/rem-p1-047-ops-task-text-boundaries",
+      "baselineCommit": "1cfccf0e366ed9f91456029b8989a06b8017a908",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-004-001",
+      "failureSnapshotCommit": "cff4587291745f511039cc12c4d26f55d3e0f0c7",
+      "runId": "REM_P1_047_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "9f15ba6891fdff7a6558e5082be892cbdc8b3b27",
+      "mergeCommit": "aa17a6f6bb4d0458130b6a383ffa3f98c6b22de1"
+    },
+    "REM-P1-049": {
+      "branch": "codex/rem-p1-049-ops-task-detail-scope",
+      "baselineCommit": "aa17a6f6bb4d0458130b6a383ffa3f98c6b22de1",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-006-001",
+      "failureSnapshotCommit": "c4a782ed82f99d2c44ed8b4a49f665bc15ff76d0",
+      "runId": "REM_P1_049_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "92eaf9a40aaf3232b91691d665b66614fa9b36ca",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-050": {
+      "branch": "codex/rem-p1-050-ops-cross-group-assignee-candidates",
+      "baselineCommit": "dd447b5537cc14a47d37366fed46d821647d9b10",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-007-001",
+      "failureSnapshotCommit": "af5b36c4844daba03123255d97d21514bdc8de9f",
+      "runId": "REM_P1_050_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "ba5e4740b36e9c85535693e6494d9f11e901b2b7",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
+    },
+    "REM-P1-051": {
+      "branch": "codex/rem-p1-051-ops-confirm-idempotency",
+      "baselineCommit": "7af9f24a31cb23a18c1ce8813f73d84250f878d4",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-010-001",
+      "failureSnapshotCommit": "5dc89ca21141d79047ee808b0617bdb5db6cb580",
+      "runId": "REM_P1_051_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "305d527e3e21f8e469546bbf136f59ce3e1c02f2",
+      "mergeCommit": "PENDING_NO_FF_MERGE"
+    },
+    "REM-P1-048": {
+      "branch": "codex/rem-p1-048-ops-material-group-scope",
+      "baselineCommit": "00f342a5cf3a34dde8eb6bcc9596d3ab14286f8b",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-OPS-017-001",
+      "failureSnapshotCommit": "de9b693b4f9c731d6302cb2490f03a2a53eacf1b",
+      "runId": "REM_P1_048_20260719",
+      "verification": "L1_L3_PASS",
+      "cleanupFailures": 0,
+      "eventCommit": "3e7667a3a7e2db558f8e78143590fc182debd2e5",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-038": {
+      "eventCommit": "253cf2c910d71f50fe3623e7ffa16f48f6e00d5d",
+      "mergeCommit": "4d7b3e1bf9432d6c7fcf4f8237f671ac046d0b28",
+      "runId": "REM_P1_038_20260718_1805",
+      "approvedTenantPolicy": "wiki_page -> remp1038wiki (specific superadmin approver)"
+    },
+    "REM-P1-039": {
+      "branch": "codex/rem-p1-039-backup-route-authorization-parity",
+      "baselineCommit": "4d7b3e1bf9432d6c7fcf4f8237f671ac046d0b28",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-BACKUP-003-001",
+      "eventCommit": "d776f268"
+    },
+    "REM-P1-040": {
+      "branch": "codex/rem-p1-040-workflow-definition-metadata-roundtrip",
+      "baselineCommit": "1254925a1ff1a4917db926be0c13d9f7409dee24",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-FLOW-007-001",
+      "failureSnapshotCommit": "6db5e8e1",
+      "runId": "REM_P1_040_1784394961537",
+      "eventCommit": "30d3e2641d4f7981ad5be604784369fab5d58f9b",
+      "mergeCommit": "d749f9965e48e9f166c72216b02382befb6a8f24"
+    },
+    "REM-P1-041": {
+      "branch": "codex/rem-p1-041-file-dialog-draft-reset",
+      "baselineCommit": "d749f9965e48e9f166c72216b02382befb6a8f24",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-COMMON-009-001",
+      "failureSnapshotCommit": "fe2580283",
+      "runId": "REM_P1_041_20260719",
+      "eventCommit": "1d2b50bde618c05742b42e579508be35c24f3781",
+      "mergeCommit": "014a3e2d36aa07e7f7840dae4fb63c1f1791a1cf"
+    },
+    "REM-P1-042": {
+      "branch": "codex/rem-p1-042-daily-submit-idempotency",
+      "baselineCommit": "014a3e2d36aa07e7f7840dae4fb63c1f1791a1cf",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-DAILY-009-001",
+      "failureSnapshotCommit": "b3b436c0",
+      "runId": "REM_P1_042_20260719",
+      "eventCommit": "07a24f30936759816b3d44d3fea17d436f7172f9",
+      "mergeCommit": "PENDING_CURRENT_NO_FF_MERGE"
+    },
+    "REM-P1-075": {
+      "branch": "codex/rem-p1-075-change-export-approval-table-contract",
+      "baselineCommit": "414037c2f19d85525bea1cfd6cf5bdcc33bba6ac",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-XL-EXPORT-002-001",
+      "failureSnapshotCommit": "df18f988e",
+      "runId": "REM_P1_075_20260722",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "209ca9a9d415b829d9972bd01d59c1f7c1253c3e",
+      "mergeCommit": "f4dee1ffbc4c4dc1361a91096e6e300901548425"
+    },
+    "REM-P1-076": {
+      "branch": "codex/rem-p1-076-cmdb-canonical-permission-consumers",
+      "baselineCommit": "920274e904f9d70b5b0938bb548b5d03606e8157",
+      "sourceRunId": "FQA_20260718_2050_remp1038",
+      "sourceDefect": "L4-RBAC-013-001",
+      "failureSnapshotCommit": "b8dbe90c906427f8ebf5861842a92817eefedcd4",
+      "runId": "REM_P1_076_20260722",
+      "verification": "VERIFIED",
+      "cleanupFailures": 0,
+      "eventCommit": "75f57f93468a162fa7c1ec10a745630365231770",
+      "mergeCommit": "ca3e7cb384aba51f28e125a713aaccffced1c078"
+    }
+  },
+  "l4": {
+    "status": "CLOSED",
+    "branch": "codex/fqa-final-l4-continuation-after-rem-p1-074-cmdb-status-change-notification-chain",
+    "runId": "FQA_20260718_2050_remp1038",
+    "eventScopedVerifiedRequired": 100,
+    "failures": 0,
+    "blocked": 0,
+    "cleanupFailures": 0,
+    "contract": {
+      "scope": "275+78_FULL_DENOMINATOR",
+      "continuationRun": true,
+      "retainUnaffectedCurrentRunPass": true,
+      "parallelReadOnlyOnly": true,
+      "serializedWritesAndCleanup": true,
+      "approvedSourceCommit": "617e580176cf14551e9e608ff57d118554a8cd68"
+    }
+  },
+  "blockers": [],
+  "notes": [
+    "On 2026-07-22 the user confirmed manual verification and explicitly directed USER-VERIFIED PASS settlement for RBAC-013 (including backup:restore), BACKUP-004, AUTHZ-005, AUTHZ-008, ST-AUTHZ-003 and ST-AUTHZ-009. Codex did not rerun restore, existing-resource backfill, fabricated ACL cleanup or Shadow transitions; historical automated FAIL/PARTIAL/SKIP evidence remains preserved. L4 totals are functional 275 PASS/0 FAIL/0 BLOCKED/0 N/A/0 NOT_RUN and state 77 PASS/0 FAIL/0 BLOCKED/1 N/A/0 NOT_RUN; proceed to closure consistency and branch merge.",
+    "REM-P1-076 L1-L3 passed after RBAC-013 exposed four assignable canonical CMDB actions with legacy runtime consumers: Java 21 L1 3/3, CMDB L2 55/55, frontend typecheck/lint, production backend/frontend builds, current runtime API/UI Playwright 1/1, Console/pageerror/5xx 0/0/0 and manifest 0/0. Event 75f57f934 merged no-ff as ca3e7cb38; resume same-run affected RBAC-013 revalidation while aggregate RBAC-013 still requires complete 99-action current-run evidence.",
+    "L4 RBAC-013 failed on current integration: canonical-only cmdb_import:read, cmdb_import:execute, cmdb_impact:read and cmdb_topology:read sessions returned 403 while legacy-guard-only sessions returned 200 for the same valid requests. Diagnostic Playwright 1/1 in 12.1s; all 8 identities/roles/assignments and CMDB fixtures cleaned, manifest 0/0. Map to REM-P1-076; exact totals functional 271 PASS/1 FAIL/1 N/A/2 NOT_RUN, state 75 PASS/0 FAIL/1 N/A/2 NOT_RUN.",
+    "Same-run RBAC-015 passed 1/1 in 3.3 seconds: the live catalog contains 99 actions including group:purge; all 16 active non-superadmin test accounts' product-API assignments/role permissions matched their real Sidebar DOM exactly. Product writes, Console/5xx and cleanup are zero. Exact totals: functional 271 PASS/0 FAIL/1 N/A/3 NOT_RUN; state 75 PASS/0 FAIL/1 N/A/2 NOT_RUN. Five cases remain.",
+    "Same-run XL-EXPORT-002 passed 1/1 after REM-P1-075 event 209ca9a9 merged no-ff as f4dee1ff: four browser DOCX/PDF downloads and four archives preserved template/table partitioning, configured headers, row order and approval fields; no-export API/UI denial passed. Console/server failures and manifest are 0/0. Exact totals: functional 270 PASS/0 FAIL/1 N/A/4 NOT_RUN; state 75 PASS/0 FAIL/1 N/A/2 NOT_RUN. Six cases remain.",
+    "Same-run XL-CMDB-006 passed 1/1 after REM-P1-074 event 0364ee0e merged no-ff as 414037c2: direct status/canonical diff/notification/UI/same-status silence and batch 2/2 with per-instance notifications passed at /tmp/fqa-2050-xl-cmdb-006-after-rem-p1-074-r6. All fixtures and manifests are 0/0. Exact totals: functional 270 PASS/0 FAIL/1 N/A/4 NOT_RUN; state 73 PASS/0 FAIL/1 N/A/4 NOT_RUN.",
+    "REM-P1-074 L1-L3 passed: Java 21 command tests 11/11, CMDB module 76/76, final production backend image 0687ce22 healthy, and Playwright r5 1/1 proved status change/canonical diff/notification/UI/same-status silence/real batch 2/2 with per-instance notifications. Manifest objects and cleanupFailures are 0/0. Event commit 0364ee0e0cd12fdd1f7c16a695ee14184f83dc83 is entering the current no-ff merge; then revalidate only same-run XL-CMDB-006.",
+    "L4 XL-CMDB-006 failed on current lint-fix@1f4e3138: a run-scoped CI online->offline update wrote canonical ci_change_record before/after but created zero notification_message rows. GitNexus confirms CiNotificationService.notifyStatusChange has zero upstream callers; all CI/model fixtures were product-cleaned. AUTHZ-014 passed 1/1 with cutover restored enforced and break-glass key/manifest zero. Exact totals: functional 270 PASS/0 FAIL/1 N/A/4 NOT_RUN; state 72 PASS/1 FAIL/1 N/A/4 NOT_RUN. Stop for independent REM-P1-074.",
+    "Same-run CHANGE-020 passed 1/1 after REM-P1-073 event 8c5aa594 merged no-ff as 1f4e3138: exact unified task/link, real /workflow/todo navigation, legacy approve 409/no mutation, terminal callback with snapshot/audit/notification and product cleanup all passed. Document #299 runtime/history/mapping/active notification/document/snapshot and manifest are zero. Catalog namespace reconciliation moved the already-passed XL-EXPORT-004 from functional to state. Exact totals are functional 269 PASS/0 FAIL/1 N/A/5 NOT_RUN and state 72 PASS/0 FAIL/1 N/A/5 NOT_RUN.",
+    "REM-P1-073 L1-L3 passed after same-run CHANGE-020 found that pending ChangeDoc submissions did not start the enabled unified workflow: Java 21 L1 37/37, Changedoc/Workflow L2 124/124, Daily/Wiki/binding regression 43/43, production backend build/health and real /workflow/todo Playwright 1/1 passed. Document #298 runtime/history/mapping/active notification/active document/snapshot and event manifest are zero. Event commit/no-ff merge remain before same-run CHANGE-020 affected-only revalidation; the historical L4 FAIL remains open.",
+    "CHANGE-020 failed in the same L4 run at snapshot 231bc59b0b1117b227f5173c271c5227b813ca90: complete application+plan submission returned pending but unified workflow tasks contained no change_doc task. All fixtures and manifest were product-cleaned to 0/0. Functional totals remain 269 PASS/1 FAIL/1 N/A/4 NOT_RUN; state totals remain 71 PASS/0 FAIL/1 N/A/6 NOT_RUN.",
+    "REM-P1-072 event 8f257338 is merged no-ff by the current lint-fix merge after Java 21 CsvImportServiceTest 5/5, current backend package/Docker build/health and final real Playwright 1/1 passed. Resume same-run XL-EXPORT-004 affected-only without resetting unaffected PASS evidence; manifest remains 0/0.",
+    "REM-P1-070 L1-L3 passed after RBAC-025/XL-RBAC-006 proved method-security HTTP 403 omitted FUNCTION_PERMISSION_DENIED: Java 21 security/authorization focused tests exited 0, production backend build/health and Flyway V79 passed, real old-session API 1/1 returned the exact reason code after final assignment removal, and all page/space/assignment/user/role fixtures were product-API cleaned. Event commit/no-ff merge remain before same-run affected revalidation.",
+    "REM-P1-064 L1-L3 passed after CONFIG-003 proved notification config did not control the formal daily-report rule: Java 21 L1 51/51, affected cluster exit 0, production build/health, real UI/API and natural scheduler 1/1 plus 1/1, exact configuration restoration, and task/notification cleanup zero.",
+    "REM-P1-063 L1-L3 passed after AI-003 expected provider failure returned 500: Java 21 14/14, production build/health, real UI/API 1/1, controlled 400/errorCode, no unhandled 5xx and exact restore.",
+    "REM-P1-062 L1-L3 passed after AI-002 invalid URL/model failure: Java 21 3/3 and 12/12, production backend build/health, current API 1/1, and exact provider restoration with manifest zero.",
+    "REM-P1-061 L1-L3 passed after CHANGE-011 direct-approval notification failure: Java 21 L1 4/4, Changedoc/Workflow L2 42/42, production backend build/health, current backend Playwright 1/1, and product API cleanup manifest zero. Event commit/no-ff merge remain before same-run CHANGE-011/012 revalidation.",
+    "REM-P1-059 L1-L3 passed after XL-CMDB-003 failed at snapshot b81a4c9d: frontend typecheck/lint, Java 21 focused CMDB/device cluster with 21/23 PASS and 2 pre-existing exception assertion mismatches, current backend API/UI Playwright 1/1, and empty event manifest. Event `1c46d1a04` merged no-ff as `b5643946d`; resume same-run affected-only XL-CMDB-003.",
+    "REM-P1-060 L1-L3 passed after CHANGE-019 concurrent submit/approve failures: Java 21 L1 12/12, affected Changedoc/Sharedfile L2 52/52, current backend terminal Playwright 1/1, and product API cleanup manifest zero. Event `b7394350` is ready for no-ff merge; resume same-run CHANGE-019/ST-CHANGE-001/ST-CHANGE-004/CHANGE-013.",
+    "REM-P1-058 L1-L3 passed after L4 RBAC-007 failed at snapshot 592f775c: Java 21 focused tests 26/26, org/group cluster 114/114, current backend API/UI 1/1, V78/index active, no ERROR/5xx, manifest and active marker zero with product archive cleanup and no restore/purge. Event commit/no-ff merge remain before same-run affected revalidation.",
+    "REM-P1-057 L1-L3 passed after the WIKI-024 child owner-group failure: parent fallback preserves explicit/setgid contracts, Java affected cluster is 96/96, current backend Wiki allow/ancestor-deny/non-leak and shared-folder lifecycle passed, and event fixtures are zero. Event 25ee1823 merged no-ff as e1738b04 before same-run affected revalidation.",
+    "L4 OPS-007 failed at snapshot af5b36c4 because the task API accepted a cross-group assignee while the real TaskFormDialog reused the group-scoped general user list. User approved tenant-wide minimal enabled-user candidates for group-level task creators. REM-P1-050 L1-L3 passed with 35/35 affected Java tests, current backend/frontend, real API/UI and zero residue; event commit and no-ff merge remain before same-run OPS-007 revalidation.",
+    "L4 OPS-017 closed after REM-P1-048 event 3e7667a3 merged no-ff as aa17a6f6. OPS-006 then failed because a group-3 ordinary reader directly fetched a group-2 sensitive group task detail with HTTP 200; failure snapshot c4a782ed is clean and REM-P1-049 passed L1-L3 with zero residue.",
+    "Historical CLOSED events are not reimplemented but remain in final L4 scope.",
+    "REM-P1-004 is event-scoped VERIFIED and waits for final L4 closure.",
+    "REM-P1-005 L1-L3 evidence is committed as 2a931872 and merged as 8622560.",
+    "REM-P1-006 L1-L3 evidence is committed as 01e5933e and merged as 5c45551.",
+    "REM-P1-007 L1-L3 evidence is committed as 7cc4d98; its no-ff merge commit is being created and REM-P1-009 follows.",
+    "REM-P1-009 L1-L3 evidence is committed as 9a5ad58 and merged with this checkpoint advance.",
+    "REM-P1-016 is merged after L1-L3 PASS; the merge commit records the next-event checkpoint advance.",
+    "REM-P1-017 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-018.",
+    "REM-P1-018 is merged after L1-L3 PASS; the merge commit advances the queue to REM-P1-019.",
+    "REM-P1-019 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-020 L1-L3 API/UI verification passed; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-021 L1-L3 storage compensation and Wiki attachment lifecycle passed; event commit 784dce52 is merged with this checkpoint advance.",
+    "REM-P1-022 existing shared-file update consumer passed L1-L3 without duplicate production code; event commit ab08409 is merged with this checkpoint advance.",
+    "REM-P1-023 BPMN validation and roundtrip passed L1-L3; event commit 1429fc8 is merged with this checkpoint advance.",
+    "REM-P1-024 L1-L3 passed: all-version non-cascade deletion, binding/runtime protection, suspended-start rejection and instance termination history were revalidated; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-025 L1-L3 passed: template instance deletion is audited, protects bindings/runtime/history, and was revalidated through API and UI; event and merge commit hashes are recorded when the no-ff merge completes.",
+    "REM-P1-026 implementation and L1 passed, but L2-L3 are blocked by BR-005: daily-report, notification and Flowable terminal state lack a product archive/purge lifecycle for exact runId cleanup.",
+    "REM-P1-026 L1-L3 passed: legacy and unified daily task APIs returned the same candidate task; legacy approval completed it; runId-limited product cleanup removed the daily report, task and temporary account. Event commit dd1a6703 merged as 712f23b with this checkpoint advance.",
+    "REM-P1-027 L1-L3 passed: template clone preserved fields/config; referenced templates were protected; runId document and templates were deleted through product APIs. Event commit 3aa2f213 merged as dc1fd83 with this checkpoint advance.",
+    "REM-P1-008 L1-L3 passed: model/attribute validation, concurrent uniqueness, defaultValue readback and real UI create-edit-refresh passed; runId model, group and attributes were removed by product APIs. Event commit 330e0138 is merged with this checkpoint advance.",
+    "REM-P1-010 L1-L3 passed: CTE direction/depth/error contract, topology history create-update-delete-relation reconstruction and real API/UI compare passed; all runId objects were removed by product APIs. Event commit ffdf2ed3 is merged with this checkpoint advance.",
+    "REM-P1-011 L1-L3 passed: Chinese template is single-encoded with UTF-8 filename; update-only UI/API allow and deny are aligned; rack catalog/2D/dynamic detail/elevation path passed; all runId objects were removed by product APIs.",
+    "REM-P1-013 L1-L3 passed: group and user input contracts return 400; explicit phone clear and profile status recalculation passed; user-authorized isolated retention override enabled product purge of the sole runId group, then the default retention was restored.",
+    "REM-P1-015 L1-L3 passed: PostgreSQL pagination interceptor returns bounded records and accurate total for audit, notification and representative CMDB list; audit action/operatorId/keyword filters passed API/UI revalidation with no test data. Event commit is recorded before the no-ff merge.",
+    "REM-P1-028 L1-L3 passed: TemplateVO fields are loaded correctly; single and dual template creates return numeric IDs, navigate to readable detail routes and were revalidated through API/UI. All four runId draft documents were removed through product DELETE with zero residue. Event commit is recorded before the no-ff merge.",
+    "REM-P1-029 L1-L3 passed: task, holiday and rule invalid inputs return 400; valid holiday/rule creation and preview due ordering passed API/UI checks, with runId objects removed by product DELETE and no residue. Event commit is recorded before the no-ff merge.",
+    "REM-P1-038 L1-L3 passed: Wiki submit uses WorkflowRuntimeFacade binding rather than the stale wiki_publish key; Java 21 unit tests, current-branch backend, submit/reject/resubmit/approve lifecycle and Wiki content/comments/export regressions passed. User approved wiki_page -> remp1038wiki with superadmin as the formal tenant approval policy. Event commit and no-ff merge are pending; reset L4 from the merge head.",
+    "L4 FQA_20260718_2050_remp1038 initially recorded L4-BACKUP-003-001 because its browser test used API path /backups. REM-P1-039 independently corrected it to actual page route /admin/backup and passed on the unchanged lint-fix baseline; APIs remained 403 and all temporary objects were cleaned. The record is a test-path reconciliation, not a product defect, so L4 resumes without a baseline reset.",
+    "L4 FQA_20260718_2050_remp1038 COMMON-009 failed because Escape-closing the new-folder dialog retained ESC_DRAFT; zero folder POSTs and zero residue were observed. REM-P1-041 L1-L3 now passes all four close paths, positive create/delete, current-branch Chromium and exact cleanup; event commit and no-ff merge remain before affected-scope L4 revalidation.",
+    "REM-P1-030 contract approved: platform/tenant export all tenant approved reports with optional groupId; group is forced to own group; export-only does not require read; no export returns 403 and hides /reports. API scope/export-only/deny/audit/cleanup and current-branch container rebuild passed under REM_P1_030_20260716_112540. Isolated Playwright browser L3 passed under REM_P1_030_UI_20260716_113313: navigation visibility/hidden state, XLSX download request and Console all passed; both test runs were product-API cleaned with zero residue. Event is VERIFIED pending commit and no-ff merge.",
+    "REM-P2-001 L1-L3 passed: shared-file absence/unavailability remains non-enumerable 403 with a neutral, recoverable preview state; device, IPAM and CMDB impact absence return 404/RESOURCE_NOT_FOUND; real gateway routes, build, lint and type checks passed. Existing unrelated backend test-compile debt is recorded in the event verification. Event commit b4bfc3b8 merged as 55aeaa29; next event is REM-P2-002.",
+    "REM-P2-003 L1-L3 passed: title trim, 400 blank/overlong rejection, explicit 409 sibling conflict, concurrent create, current-branch API/UI revalidation and product-API cleanup all passed. Event commit db9fc3fa is merged with this checkpoint advance; next event is REM-P2-004.",
+    "REM-P2-004 L1-L3 passed: light/dark/system controls are discoverable in the user menu; dark preference survives refresh; reports, Wiki and BPMN design inherit the theme; production frontend build, lint, typecheck and runtime browser verification reported zero Console errors. No product data was created; next event is REM-P2-005.",
+    "REM-P2-005 L1-L3 passed: page export requests the page endpoint, uses the current Chinese page title as the browser fallback filename and downloads Markdown; space export remains a separate ZIP endpoint. Current-branch frontend build, lint, typecheck and real browser verification passed with zero Console errors and no product data writes; next event is REM-P2-006.",
+    "REM-P2-006 is BLOCKED after minimal Controller validation implementation and current-branch backend build: the available superadmin session lacks workflow:configure and receives security-layer 403 for config GET/PUT, so it cannot prove the intended Controller 400 contract. BR-012 requires approval for a product-API-created, runId-tagged minimal workflow:configure test identity followed by exact cleanup.",
+    "REM-P2-006 L1-L3 passed: the current authenticated session has workflow:configure; whitelist, empty and invalid-type requests all return matching HTTP/body 400 with unchanged configuration reads. The temporary local-development authorization records created during diagnosis were fully removed (legacy link, role permission, active assignment and active role counts all zero); next event is REM-P2-007.",
+    "REM-P2-006 L1-L3 passed under explicit authorization: reject requests return HTTP/body 400 without writes; an absent allowed key was inserted, read back and restored; its two retained audit rows expose only the key name. SysConfigService.set now uses a PostgreSQL atomic upsert, and its workflow binding, SMTP, notification and watermark consumers were regressed. The HIGH shared-service impact was accepted; temporary authorization records are zero. Event commit is pending, then no-ff merge advances to REM-P2-007.",
+    "REM-P2-007 L1-L3 passed: UTF-8 filename header survives Tomcat/Nginx, XLSX contains period/summary/status/detail sections, empty range remains exportable, reversed range is 400 and unauthenticated access is 403. Current-branch backend/frontend containers and real Playwright login→management menu→materials→collect→download passed with a Chinese filename and zero Console errors. No test data was created. Event commit is pending, then no-ff merge advances to REM-P2-008.",
+    "REM-P2-008 L1-L3 passed: unknown wiki links render as accessible pending status rather than raw internal tags; valid and alias links retain routes; no pending anchor or sup markup remains. Current-branch frontend container and real browser verification passed with zero Console errors. All runId spaces/pages were product-API deleted and readback as 404. Event commit is pending, then no-ff merge advances to REM-P2-009.",
+    "REM-P2-009 L1-L3 passed: Wiki homepage search entry, autofocus, 400ms keyword URL history, authorization-aware page 2, back/forward restoration, direct empty state and Console=0 passed after rebuilding current-branch frontend/backend containers. Two draft-only runId spaces and 42 pages created while diagnosing pagination were product-API deleted; final verification was read-only with active runId space/page counts at zero. Event commit 59f5fb59 merged as 3d0d2eb; next event is REM-P2-010.",
+    "REM-P2-010 L1-L3 passed: current runtime contains 3 system seed spaces, 49 published seed pages and 56 seed versions; restart made 0 seed updates. API/UI read-only protections, reversible personal order persistence and Console=0 passed without product test data. Event commit ead2ad5 is merged with this checkpoint advance; next event is REM-P2-011.",
+    "REM-P2-011 L1-L3 passed: notification references resolve through existing protected detail reads before navigation; Wiki and ops task real routes passed, while deleted/unknown targets remain neutral and non-enumerating. No notification state, authorization, delivery or product object changed. Event commit 9bccf7a is merged with this checkpoint advance; next event is REM-P2-012.",
+    "REM-P2-012 L1-L3 passed: shared temporal validation returns HTTP/body 400 for reversed ranges, malformed dates and invalid months; daily date/work-hours inputs are bounded; stats page blocks reversed ranges and recovers cleanly. Current-branch API/UI runtime verification created no data. Event commit ba965576 is merged with this checkpoint advance; next event is REM-P2-013.",
+    "REM-P2-014 L1-L3 passed: existing manage-only DELETE now has a real page entry with confirmation and cancel semantics. Current-branch frontend container and authenticated browser verification passed; unauthenticated delete is 403, deleted/repeated reads are stable 400, audit readback is present, Console and failed requests are zero, and the one runId rule was product-UI deleted with zero residue. Event commit and no-ff merge are pending before L4.",
+    "REM-P2-015 L1-L3 passed: user-approved addendum creates a notification-ID-only, permission-aware resolver. Valid Wiki navigation, uniform unavailable states, unauthenticated 403, unchanged notification read state/count, current-branch API/UI and zero Console/target request failures passed. No test data was created; event commit and no-ff merge are pending before L4.",
+    "REM-P2-016 L1-L3 passed: typed Prometheus config endpoint restores the existing frontend save contract; success/readback, invalid URL and interval 400, anonymous 403, current-branch backend rebuild and restoration of original values passed. Maven test compilation remains blocked only by four pre-existing unrelated test sources. Event commit is pending before no-ff merge and final L4 resumption.",
+    "REM-P2-025 L1-L3 passed: topology traversal tracks visited instance paths, so #20 depth 1/2 and compare return HTTP 200. Current-branch backend container and authenticated Playwright graph page both passed with zero Console errors; no test data was created. Event commit is pending before no-ff merge and L4 CMDB-029 resumption.",
+    "REM-P2-026 L1-L3 passed: change-document list now returns tenant-scoped PageResult records/total/page/size with status and title/changeNo keyword filters. Current-branch backend/frontend containers passed authenticated API and Playwright search, status, pagination and detail-drawer checks with zero Console errors. Nineteen runId drafts were deleted through product DELETE and keyword readback found zero residue. Event commit 05cfbef2 merged as 32c60721; recreate final L4 from the merge head and resume CHANGE-001.",
+    "REM-P2-027 L1-L3 passed: the create DTO accepts UI ciSnapshots and ChangeDocService delegates same-transaction link persistence to tenant-validating ChangeDocLinkService. Current-branch API verified empty CI compatibility and invalid CI HTTP 400 with zero residue; rebuilt containers and Playwright verified CI #32 links to a new draft. Drafts #199/#200 were product-DELETE cleaned. Event commit f08f92cc merged as f8a3fb57; recreate final L4 from the merge head and resume CHANGE-002.",
+    "REM-P2-028 L1-L2 passed under explicit authorization: a delete-permitted, tenant-scoped endpoint accepts only a non-empty runId present in the non-approved document snapshot, deletes that document's CI links and snapshots transactionally, soft-deletes the document and records purge_remediation_test. Wrong runId returned 400 while #212 remained readable; approved #2 returned 409; correct runId deleted #212 and subsequent GET returned not found. Existing L4 #211 and released template #8 were cleaned through product APIs; no Redis, session, volume, SQL or object-store bypass was used. Commit, no-ff merge and CHANGE-005 reverify remain.",
+    "L4 CHANGE-006 lifecycle passed for API and real UI with zero runId residue, but export consistency failed: template #4 has no DOCX and ExportService programmatic fallback omits dynamic fixedDocxTable fields. REM-P2-030 is READY; L4 is paused until its independent L1-L3 implementation and affected-case revalidation complete.",
+    "REM-P2-030 L1-L3 passed: programmatic DOCX fallback now renders fixedDocxTable title, columns, stored row order and checkbox values. Existing template-fill plus new fallback tests passed 8/8; current event branch backend API DOCX contained all three rows and product-API cleanup returned keyword total=0. Real Chromium Word download from an existing approved document passed with Console/API failures=0. Event commit 4c2a0fb8 merged as c1678f87; merge-derived L4 CHANGE-006 evidence is recorded separately and L4 continues.",
+    "REM-P0-007 L1-L3 passed: duplicate Enforce now returns 409 before authorization writes, and current-branch backend readback proved epoch/status unchanged. The no-ff merge below is the new L4 baseline.",
+    "New L4 FQA_20260718_1546_remp0007 from lint-fix@00eed219: B1 read-only 28 functional PASS and authorization guards ST-AUTHZ-019/020 PASS; remaining 247+76 cases are NOT_RUN.",
+    "L4 FQA_20260718_1616_remp0008 discovered OPS-011: a schedule template referenced by an active rule could be deleted with HTTP 200, leaving an orphaned templateId. Fixtures were product-API cleaned; REM-P1-029 is reopened on its independent branch. This L4 run is failed and must not contribute inherited PASS after the fix merges.",
+    "REM-P1-041 event 1d2b50bd merged no-ff as 014a3e2d; post-merge COMMON-009 passed all four close paths with zero writes or residue.",
+    "L4 DAILY-005 passed and DAILY-009 failed because two concurrent submit requests both returned 200; REM-P1-042 event 07a24f30 merged no-ff as 95e6fff6 and post-merge DAILY-005/009 passed with exact cleanup.",
+    "L4 CONFIG-002 accepted and persisted an invalid SMTP host. REM-P1-043 now passes DTO/Controller/EmailService Java 21 tests, seven real API boundaries, current-branch backend/UI, Mailpit delivery and exact configuration/report cleanup; event commit and no-ff merge remain."
+  ]
+}

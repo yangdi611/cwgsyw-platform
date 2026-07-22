@@ -17,10 +17,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -227,6 +229,41 @@ class GroupLifecycleServiceTest {
         assertEquals("GROUP_RESTORE_CODE_CONFLICT", error.getErrorCode());
         assertEquals(preflight.blockers(), error.getPreflight().blockers());
         verify(groupMapper, never()).restoreArchived(any(), any(), any(), any());
+    }
+
+    @Test
+    void restoreNameConflictPreflightAndExecutionUseSameBlocker() {
+        SecurityUser user = legacyUser("tenant", "group:update");
+        Group archived = group(true, false, "business", LocalDateTime.now().minusDays(40));
+        when(groupMapper.findByTenantAndIdIncludingDeleted("default", 11L)).thenReturn(archived);
+        when(groupMapper.lockByTenantAndIdIncludingDeleted("default", 11L)).thenReturn(archived);
+        when(groupMapper.countActiveNameConflict("default", "group name", 11L)).thenReturn(1L);
+
+        GroupLifecyclePreflightVO preflight = service.preflight(11L, "restore", user);
+        assertEquals("GROUP_RESTORE_NAME_CONFLICT", preflight.blockers().getFirst().reasonCode());
+
+        GroupLifecycleException error = assertThrows(GroupLifecycleException.class,
+            () -> service.restore(11L, request(archived), user));
+        assertEquals("GROUP_RESTORE_NAME_CONFLICT", error.getErrorCode());
+        assertEquals(preflight.blockers(), error.getPreflight().blockers());
+        verify(groupMapper, never()).restoreArchived(any(), any(), any(), any());
+    }
+
+    @Test
+    void restoreConcurrentNameConflictKeepsLifecycleContract() {
+        SecurityUser user = legacyUser("tenant", "group:update");
+        Group archived = group(true, false, "business", LocalDateTime.now().minusDays(40));
+        when(groupMapper.lockByTenantAndIdIncludingDeleted("default", 11L)).thenReturn(archived);
+        when(groupMapper.restoreArchived("default", 11L, 7L, archived.getUpdatedAt()))
+            .thenThrow(new DataIntegrityViolationException("writer failed",
+                new SQLException("uq_sys_group_tenant_name_active", "23505")));
+
+        GroupLifecycleException error = assertThrows(GroupLifecycleException.class,
+            () -> service.restore(11L, request(archived), user));
+
+        assertEquals(409, error.getHttpStatus());
+        assertEquals("GROUP_RESTORE_NAME_CONFLICT", error.getErrorCode());
+        verify(auditLogMapper, never()).insert(any(AuditLog.class));
     }
 
     @Test

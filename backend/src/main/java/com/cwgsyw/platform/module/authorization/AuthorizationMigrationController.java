@@ -18,6 +18,7 @@ import com.cwgsyw.platform.common.PageResult;
 import jakarta.validation.Valid;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -149,7 +150,7 @@ public class AuthorizationMigrationController {
 
     private void requirePlatformAdministrator(SecurityUser currentUser) {
         if (!"platform".equals(currentUser.getGroupScope())) {
-            throw new IllegalArgumentException("仅超级管理员可以执行授权迁移预检");
+            throw new AccessDeniedException("仅超级管理员可以执行授权迁移预检");
         }
     }
 

@@ -1,7 +1,10 @@
 package com.cwgsyw.platform.module.changedoc;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.ai.AiGatewayService;
 import com.cwgsyw.platform.module.changedoc.dto.*;
@@ -11,6 +14,11 @@ import com.cwgsyw.platform.module.changedoc.entity.ChangeDocSnapshot;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocField;
 import com.cwgsyw.platform.module.changedoc.entity.ChangeDocTemplate;
 import com.cwgsyw.platform.module.user.UserMapper;
+import com.cwgsyw.platform.module.user.entity.User;
+import com.cwgsyw.platform.module.org.GroupMapper;
+import com.cwgsyw.platform.module.notification.NotificationService;
+import com.cwgsyw.platform.security.SecurityUser;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,10 +55,13 @@ public class ChangeDocService {
     private final AuditLogMapper auditLogMapper;
     private final AiGatewayService aiGatewayService;
     private final UserMapper userMapper;
+    private final GroupMapper groupMapper;
     private final ObjectMapper objectMapper;
     private final ExportService exportService;
     private final com.cwgsyw.platform.module.sharedfile.SharedFileService sharedFileService;
     private final TableFieldSupport tableFieldSupport;
+    private final ChangeDocLinkService changeDocLinkService;
+    private final NotificationService notificationService;
 
     // daily counter: key = "tenantId:yyyyMMdd"
     private final ConcurrentHashMap<String, AtomicInteger> dailyCounters = new ConcurrentHashMap<>();
@@ -132,6 +143,61 @@ public class ChangeDocService {
         }
     }
 
+    private ChangeDoc requireAccessibleDoc(SecurityUser user, Long id) {
+        ChangeDoc doc = changeDocMapper.selectById(id);
+        if (doc == null || !user.getTenantId().equals(doc.getTenantId()) || !canAccess(user, doc)) {
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "变更文档不存在");
+        }
+        return doc;
+    }
+
+    private boolean canAccess(SecurityUser user, ChangeDoc doc) {
+        if ("tenant".equals(user.getGroupScope()) || "platform".equals(user.getGroupScope())) {
+            return true;
+        }
+        if (doc.getApplicantId() == null) {
+            return false;
+        }
+        if (doc.getApplicantId().equals(user.getUserId())) {
+            return true;
+        }
+        if (!"group".equals(user.getGroupScope()) || user.getGroupId() == null) {
+            return false;
+        }
+        User applicant = userMapper.selectById(doc.getApplicantId());
+        if (applicant == null || !user.getTenantId().equals(applicant.getTenantId())
+                || !user.getGroupId().equals(applicant.getGroupId())) {
+            return false;
+        }
+        var group = groupMapper.findByTenantAndIdIncludingDeleted(user.getTenantId(), user.getGroupId());
+        return group != null && user.getUserId().equals(group.getLeaderId());
+    }
+
+    private LambdaQueryWrapper<ChangeDoc> applyAccessScope(LambdaQueryWrapper<ChangeDoc> query, SecurityUser user) {
+        if ("tenant".equals(user.getGroupScope()) || "platform".equals(user.getGroupScope())) {
+            return query;
+        }
+        if (isGroupLeader(user)) {
+            List<Long> groupMemberIds = userMapper.selectList(new LambdaQueryWrapper<User>()
+                            .eq(User::getTenantId, user.getTenantId())
+                            .eq(User::getGroupId, user.getGroupId()))
+                    .stream().map(User::getId).collect(Collectors.toList());
+            if (groupMemberIds.isEmpty()) {
+                return query.apply("1 = 0");
+            }
+            return query.in(ChangeDoc::getApplicantId, groupMemberIds);
+        }
+        return query.eq(ChangeDoc::getApplicantId, user.getUserId());
+    }
+
+    private boolean isGroupLeader(SecurityUser user) {
+        if (!"group".equals(user.getGroupScope()) || user.getGroupId() == null) {
+            return false;
+        }
+        var group = groupMapper.findByTenantAndIdIncludingDeleted(user.getTenantId(), user.getGroupId());
+        return group != null && user.getUserId().equals(group.getLeaderId());
+    }
+
     /** 将 fieldsData 中的普通字段值格式化为字符串；表格数组/对象值返回空字符串。 */
     private String stringOf(Object v) {
         if (v == null) return "";
@@ -211,6 +277,11 @@ public class ChangeDocService {
         doc.setUpdatedAt(LocalDateTime.now());
 
         changeDocMapper.insert(doc);
+        if (req.getCiSnapshots() != null && !req.getCiSnapshots().isEmpty()) {
+            LinkCiRequest linkRequest = new LinkCiRequest();
+            linkRequest.setLinks(req.getCiSnapshots());
+            changeDocLinkService.linkCiInstances(tenantId, doc.getId(), operatorId, linkRequest);
+        }
         saveSnapshot(doc, operatorId, "create");
         writeAuditLog(tenantId, "create", doc.getId(), operatorId, null, toJson(doc), "创建变更文档");
 
@@ -218,11 +289,10 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public ChangeDocVO update(String tenantId, Long id, Long operatorId, UpdateChangeDocRequest req) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public ChangeDocVO update(SecurityUser user, Long id, UpdateChangeDocRequest req) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        ChangeDoc doc = requireAccessibleDoc(user, id);
         boolean isDraft = "draft".equals(doc.getStatus());
         boolean isPlanPending = "plan_pending".equals(doc.getStatus());
         boolean isApproved = "approved".equals(doc.getStatus());
@@ -283,11 +353,12 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public ChangeDocVO submit(String tenantId, Long id, Long operatorId) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public ChangeDocVO submit(SecurityUser user, Long id) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"draft".equals(doc.getStatus())) {
             throw new IllegalStateException("只有草稿状态的文档可以提交");
         }
@@ -315,11 +386,12 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public ChangeDocVO submitPlan(String tenantId, Long id, Long operatorId) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public ChangeDocVO submitPlan(SecurityUser user, Long id) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"plan_pending".equals(doc.getStatus())) {
             throw new IllegalStateException("只有待补填方案状态的文档可以提交方案");
         }
@@ -343,11 +415,12 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public ChangeDocVO approve(String tenantId, Long id, Long approverId, String comment, boolean approved) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public ChangeDocVO approve(SecurityUser user, Long id, String comment, boolean approved) {
+        String tenantId = user.getTenantId();
+        Long approverId = user.getUserId();
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(tenantId, id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
         if (!"pending".equals(doc.getStatus())) {
             throw new IllegalStateException("只有待审批状态的文档可以审批");
         }
@@ -369,24 +442,68 @@ public class ChangeDocService {
         if (approved) {
             archiveApprovedDoc(doc, tenantId, approverId, id);
         }
+        notifyApplicantOfApproval(doc, approved, comment);
 
         return toVO(doc);
+    }
+
+    public void lockPendingForWorkflowDecision(SecurityUser user, Long id) {
+        requireAccessibleDoc(user, id);
+        ChangeDoc doc = changeDocMapper.selectForUpdate(user.getTenantId(), id);
+        if (doc == null) throw new IllegalArgumentException("变更文档不存在");
+        if (!"pending".equals(doc.getStatus())) {
+            throw new IllegalStateException("只有待审批状态的文档可以审批");
+        }
     }
 
     /** 审批通过后自动归档到共享文件库。归档失败不阻断审批，只记日志。 */
     private void archiveApprovedDoc(ChangeDoc doc, String tenantId, Long approverId, Long id) {
         try {
             ChangeDocVO vo = toVO(doc);
+            if (doc.getApplicationTemplateId() != null) {
+                vo.setApplicationFieldConfig(changeDocFieldMapper.findByTemplate(doc.getApplicationTemplateId()).stream()
+                        .map(field -> {
+                            FieldConfigVO config = new FieldConfigVO();
+                            config.setId(field.getId());
+                            config.setFieldKey(field.getFieldKey());
+                            config.setLabel(field.getLabel());
+                            config.setFieldType(field.getFieldType());
+                            config.setRequired(field.getRequired());
+                            config.setInForm(field.getInForm());
+                            config.setPlaceholder(field.getPlaceholder());
+                            config.setSortOrder(field.getSortOrder());
+                            config.setConfig(field.getConfig());
+                            return config;
+                        })
+                        .toList());
+            }
+            if (doc.getPlanTemplateId() != null) {
+                vo.setPlanFieldConfig(changeDocFieldMapper.findByTemplate(doc.getPlanTemplateId()).stream()
+                        .map(field -> {
+                            FieldConfigVO config = new FieldConfigVO();
+                            config.setId(field.getId());
+                            config.setFieldKey(field.getFieldKey());
+                            config.setLabel(field.getLabel());
+                            config.setFieldType(field.getFieldType());
+                            config.setRequired(field.getRequired());
+                            config.setInForm(field.getInForm());
+                            config.setPlaceholder(field.getPlaceholder());
+                            config.setSortOrder(field.getSortOrder());
+                            config.setConfig(field.getConfig());
+                            return config;
+                        })
+                        .toList());
+            }
             String changeNo = doc.getChangeNo();
             if (doc.getApplicationTemplateId() != null) {
                 byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getApplicationTemplateId());
-                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId, doc.getApplicationTemplateId());
                 sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
                         changeNo + "_申请单", "application");
             }
             if (doc.getPlanTemplateId() != null) {
                 byte[] word = exportService.exportDocxFor(vo, tenantId, doc.getPlanTemplateId());
-                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId);
+                byte[] pdf  = exportService.exportPdfDirect(vo, tenantId, doc.getPlanTemplateId());
                 sharedFileService.archiveDocPart(tenantId, approverId, id, word, pdf,
                         changeNo + "_方案", "plan");
             }
@@ -434,13 +551,25 @@ public class ChangeDocService {
         if (approved) {
             archiveApprovedDoc(doc, tenantId, approverId, id);
         }
+        notifyApplicantOfApproval(doc, approved, comment);
     }
 
-    public String generateAiContent(String tenantId, Long id, Long operatorId, AiGenerateRequest req) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
+    private void notifyApplicantOfApproval(ChangeDoc doc, boolean approved, String comment) {
+        if (doc.getApplicantId() == null) {
+            return;
         }
+        String title = approved ? "变更文档审批通过" : "变更文档审批被拒绝";
+        String content = approved
+                ? "《" + doc.getTitle() + "》已审批通过。"
+                : "《" + doc.getTitle() + "》审批被拒绝：" + (comment != null ? comment : "");
+        notificationService.notify(doc.getTenantId(), doc.getApplicantId(), title, content,
+                "change_doc_approval", "change_doc", doc.getId());
+    }
+
+    public String generateAiContent(SecurityUser user, Long id, AiGenerateRequest req) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        ChangeDoc doc = requireAccessibleDoc(user, id);
 
         Map<String, Object> fd = doc.getFieldsData() != null ? doc.getFieldsData() : Map.of();
 
@@ -466,25 +595,38 @@ public class ChangeDocService {
     }
 
     /** 全局搜索：按变更单号或标题模糊匹配，限制返回条数。供统一搜索（/api/search）复用。 */
-    public List<ChangeDocVO> searchByTitle(String tenantId, String keyword, int limit) {
+    public List<ChangeDocVO> searchByTitle(SecurityUser user, String keyword, int limit) {
         if (!StringUtils.hasText(keyword)) return List.of();
-        List<ChangeDoc> docs = changeDocMapper.selectList(new LambdaQueryWrapper<ChangeDoc>()
+        String tenantId = user.getTenantId();
+        LambdaQueryWrapper<ChangeDoc> query = new LambdaQueryWrapper<ChangeDoc>()
                 .eq(ChangeDoc::getTenantId, tenantId)
                 .and(w -> w.like(ChangeDoc::getTitle, keyword).or().like(ChangeDoc::getChangeNo, keyword))
                 .orderByDesc(ChangeDoc::getCreatedAt)
-                .last("LIMIT " + limit));
+                .last("LIMIT " + limit);
+        List<ChangeDoc> docs = changeDocMapper.selectList(applyAccessScope(query, user));
         return docs.stream().map(this::toVO).collect(Collectors.toList());
     }
 
-    public List<ChangeDocVO> list(String tenantId, String status) {        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
+    public PageResult<ChangeDocVO> list(SecurityUser user, String status, String keyword, int page, int size) {
+        String tenantId = user.getTenantId();
+        int normalizedPage = Math.max(page, 1);
+        int normalizedSize = Math.min(Math.max(size, 1), 100);
+        LambdaQueryWrapper<ChangeDoc> wrapper = new LambdaQueryWrapper<ChangeDoc>()
                 .eq(ChangeDoc::getTenantId, tenantId)
                 .orderByDesc(ChangeDoc::getCreatedAt);
+        applyAccessScope(wrapper, user);
 
         if (StringUtils.hasText(status)) {
             wrapper.eq(ChangeDoc::getStatus, status);
         }
 
-        List<ChangeDoc> docs = changeDocMapper.selectList(wrapper);
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(query -> query.like(ChangeDoc::getTitle, keyword)
+                    .or().like(ChangeDoc::getChangeNo, keyword));
+        }
+
+        Page<ChangeDoc> resultPage = changeDocMapper.selectPage(new Page<>(normalizedPage, normalizedSize), wrapper);
+        List<ChangeDoc> docs = resultPage.getRecords();
 
         // Batch-fetch user names to avoid N+1 queries
         Set<Long> userIds = docs.stream()
@@ -500,35 +642,32 @@ public class ChangeDocService {
         if (!userIds.isEmpty()) {
             userIds.forEach(uid -> {
                 try {
-                    var user = userMapper.selectById(uid);
-                    if (user != null) userNames.put(uid, user.getUsername());
+                    var applicantUser = userMapper.selectById(uid);
+                    if (applicantUser != null) userNames.put(uid, applicantUser.getUsername());
                 } catch (Exception e) {
                     log.debug("Could not resolve user name for id {}", uid);
                 }
             });
         }
 
-        return docs.stream()
-                .map(d -> toVO(d, userNames))
-                .collect(Collectors.toList());
+        PageResult<ChangeDocVO> result = new PageResult<>();
+        result.setRecords(docs.stream().map(d -> toVO(d, userNames)).collect(Collectors.toList()));
+        result.setTotal(resultPage.getTotal());
+        result.setPage(resultPage.getCurrent());
+        result.setSize(resultPage.getSize());
+        return result;
     }
 
-    public List<ChangeDocSnapshot> listSnapshots(String tenantId, Long id) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public List<ChangeDocSnapshot> listSnapshots(SecurityUser user, Long id) {
+        ChangeDoc doc = requireAccessibleDoc(user, id);
         return changeDocSnapshotMapper.selectList(
                 new LambdaQueryWrapper<ChangeDocSnapshot>()
                         .eq(ChangeDocSnapshot::getChangeDocId, id)
                         .orderByAsc(ChangeDocSnapshot::getCreatedAt));
     }
 
-    public ChangeDocVO get(String tenantId, Long id) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public ChangeDocVO get(SecurityUser user, Long id) {
+        ChangeDoc doc = requireAccessibleDoc(user, id);
         ChangeDocVO vo = toVO(doc);
         // Enrich with dual field configs from templates
         if (doc.getApplicationTemplateId() != null) {
@@ -569,11 +708,10 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public void delete(String tenantId, Long id, Long operatorId) {
-        ChangeDoc doc = changeDocMapper.selectById(id);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public void delete(SecurityUser user, Long id) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        ChangeDoc doc = requireAccessibleDoc(user, id);
         if (!"draft".equals(doc.getStatus())) {
             throw new IllegalStateException("只有草稿状态的文档可以删除");
         }
@@ -588,14 +726,85 @@ public class ChangeDocService {
         writeAuditLog(tenantId, "delete", id, operatorId, beforeJson, null, "软删除变更文档");
     }
 
+    @Transactional
+    public void purgeRemediationTest(SecurityUser user, Long id, String remediationRunId) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        if (!StringUtils.hasText(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        ChangeDoc doc = requireAccessibleDoc(user, id);
+        if ("approved".equals(doc.getStatus())) {
+            throw new IllegalStateException("已审批归档文档不支持 remediation 清理");
+        }
+        String beforeJson = toJson(doc);
+        if (!containsRemediationRunId(beforeJson, remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试变更文档");
+        }
+
+        changeDocCiLinkMapper.delete(new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
+                .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getTenantId, tenantId)
+                .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, id));
+        changeDocSnapshotMapper.delete(new LambdaQueryWrapper<ChangeDocSnapshot>()
+                .eq(ChangeDocSnapshot::getChangeDocId, id));
+        doc.setDeletedAt(LocalDateTime.now());
+        doc.setDeletedBy(operatorId);
+        doc.setUpdatedAt(LocalDateTime.now());
+        changeDocMapper.updateById(doc);
+        changeDocMapper.deleteById(id);
+        writeAuditLog(tenantId, "purge_remediation_test", id, operatorId, beforeJson,
+                toJson(Map.of("remediationRunId", remediationRunId)), "清理 remediation 测试变更文档");
+    }
+
+    public void validateRemediationTest(SecurityUser user, Long id, String remediationRunId) {
+        if (!StringUtils.hasText(remediationRunId)) {
+            throw new IllegalArgumentException("缺少 remediationRunId");
+        }
+        ChangeDoc doc = requireAccessibleDoc(user, id);
+        if ("approved".equals(doc.getStatus())) {
+            throw new IllegalStateException("已审批归档文档不支持 remediation 清理");
+        }
+        if (!containsRemediationRunId(toJson(doc), remediationRunId)) {
+            throw new IllegalArgumentException("仅允许清理内容带 remediationRunId 的测试变更文档");
+        }
+    }
+
+    private boolean containsRemediationRunId(String documentJson, String remediationRunId) {
+        try {
+            return containsTextValue(objectMapper.readTree(documentJson), remediationRunId);
+        } catch (Exception exception) {
+            log.warn("Could not inspect remediation test marker for change document", exception);
+            return false;
+        }
+    }
+
+    private boolean containsTextValue(JsonNode node, String expectedValue) {
+        if (node.isTextual()) {
+            return expectedValue.equals(node.asText());
+        }
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                if (containsTextValue(child, expectedValue)) {
+                    return true;
+                }
+            }
+        }
+        if (node.isObject()) {
+            var fields = node.elements();
+            while (fields.hasNext()) {
+                if (containsTextValue(fields.next(), expectedValue)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // ─── CI Links ─────────────────────────────────────────────────────────
 
-    public List<com.cwgsyw.platform.module.changedoc.dto.LinkedCiInstanceVO> listCiLinks(String tenantId, Long changeDocId) {
-        // 文档存在性校验（顺便做 tenant 隔离）
-        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public List<com.cwgsyw.platform.module.changedoc.dto.LinkedCiInstanceVO> listCiLinks(SecurityUser user, Long changeDocId) {
+        String tenantId = user.getTenantId();
+        requireAccessibleDoc(user, changeDocId);
 
         List<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink> links = changeDocCiLinkMapper.selectList(
                 new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
@@ -644,12 +853,11 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public void addCiLinks(String tenantId, Long changeDocId, Long operatorId,
+    public void addCiLinks(SecurityUser user, Long changeDocId,
                            List<com.cwgsyw.platform.module.changedoc.dto.AddCiLinkRequest.Item> items) {
-        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        requireAccessibleDoc(user, changeDocId);
         if (items == null || items.isEmpty()) return;
 
         LocalDateTime now = LocalDateTime.now();
@@ -679,11 +887,10 @@ public class ChangeDocService {
     }
 
     @Transactional
-    public void removeCiLink(String tenantId, Long changeDocId, Long instanceId, Long operatorId) {
-        ChangeDoc doc = changeDocMapper.selectById(changeDocId);
-        if (doc == null || !tenantId.equals(doc.getTenantId())) {
-            throw new IllegalArgumentException("变更文档不存在");
-        }
+    public void removeCiLink(SecurityUser user, Long changeDocId, Long instanceId) {
+        String tenantId = user.getTenantId();
+        Long operatorId = user.getUserId();
+        requireAccessibleDoc(user, changeDocId);
         changeDocCiLinkMapper.delete(
                 new LambdaQueryWrapper<com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink>()
                         .eq(com.cwgsyw.platform.module.changedoc.entity.ChangeDocCiLink::getChangeDocId, changeDocId)

@@ -7,15 +7,23 @@ import api from '@/lib/api'
 import { Card, CardHeader, CardTitle } from '@/components/v2/Card'
 import { TaskStatusBadge, TaskTypeBadge } from './TaskBadges'
 import { type DashboardCalendarVO, fmtTime } from '@/lib/opsCalendar'
+import { usePermission } from '@/hooks/usePermission'
 
 /** 工作台「运维日历」卡片，替换原「近期 CMDB 变更」。 */
 export function DashboardOpsCalendarCard() {
   const router = useRouter()
+  const { hasPermission } = usePermission()
+  const canReadCalendar = hasPermission('ops_calendar', 'read')
+    || hasPermission('ops_calendar', 'read_group')
+    || hasPermission('ops_calendar', 'read_all')
 
   const { data } = useQuery<DashboardCalendarVO | undefined>({
     queryKey: ['ops-calendar-dashboard'],
     queryFn: () => api.get('/ops-calendar/tasks/dashboard').then((r) => r.data.data).catch(() => undefined),
+    enabled: canReadCalendar,
   })
+
+  if (!canReadCalendar) return null
 
   const items = data?.items ?? []
   const hints = data?.nextHints ?? []

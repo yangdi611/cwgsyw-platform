@@ -18,6 +18,16 @@ import {
   SelectValue,
 } from '@/components/v2/Select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { PageHeader, EmptyState } from '@/components/shared'
 import { toast } from 'sonner'
 import { Link2, Plus } from 'lucide-react'
@@ -56,10 +66,13 @@ export default function WorkflowBindingsPage() {
   const canConfigure = hasPermission('workflow', 'configure')
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<Binding | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Binding | null>(null)
   const [businessType, setBusinessType] = useState('')
   const [processDefinitionId, setProcessDefinitionId] = useState('')
   const [remark, setRemark] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [actionBindingId, setActionBindingId] = useState<number | null>(null)
 
   const { data: bindings, isLoading, refetch } = useQuery({
     queryKey: ['workflow-bindings'],
@@ -75,9 +88,18 @@ export default function WorkflowBindingsPage() {
         .then((r) => (r.data.data?.records ?? []) as ProcessDef[]),
   })
 
-  const openDialog = () => {
+  const openCreateDialog = () => {
+    setEditing(null)
     setBusinessType('')
     setProcessDefinitionId('')
+    setRemark('')
+    setDialogOpen(true)
+  }
+
+  const openEditDialog = (binding: Binding) => {
+    setEditing(binding)
+    setBusinessType(binding.businessType)
+    setProcessDefinitionId(binding.processDefinitionId)
     setRemark('')
     setDialogOpen(true)
   }
@@ -96,13 +118,42 @@ export default function WorkflowBindingsPage() {
         processDefinitionId,
         remark: remark.trim() || undefined,
       })
-      toast.success('绑定成功')
+      toast.success(editing ? '绑定已更新' : '绑定成功')
       setDialogOpen(false)
-      refetch()
+      setEditing(null)
+      await refetch()
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, '绑定失败'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleToggle = async (binding: Binding) => {
+    setActionBindingId(binding.id)
+    try {
+      await api.post(`/workflow/center/bindings/${binding.id}/${binding.enabled ? 'disable' : 'enable'}`)
+      toast.success(binding.enabled ? '绑定已停用' : '绑定已启用')
+      await refetch()
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, binding.enabled ? '停用失败' : '启用失败'))
+    } finally {
+      setActionBindingId(null)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setActionBindingId(deleteTarget.id)
+    try {
+      await api.delete(`/workflow/center/bindings/${deleteTarget.id}`)
+      toast.success('绑定已删除')
+      setDeleteTarget(null)
+      await refetch()
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, '删除失败'))
+    } finally {
+      setActionBindingId(null)
     }
   }
 
@@ -116,7 +167,7 @@ export default function WorkflowBindingsPage() {
         subtitle="将业务类型绑定到具体的流程定义版本，业务提交时按绑定的流程发起审批。"
         actions={
           canConfigure ? (
-            <Button variant="primary" size="sm" onClick={openDialog}>
+            <Button variant="primary" size="sm" onClick={openCreateDialog}>
               <Plus className="h-4 w-4" />
               新增绑定
             </Button>
@@ -153,8 +204,32 @@ export default function WorkflowBindingsPage() {
                   <span className="ml-2 text-v2-subtle">{b.processDefinitionId}</span>
                 </p>
               </div>
-              <div className="shrink-0 text-xs text-v2-subtle">
-                {b.updatedAt ? new Date(b.updatedAt).toLocaleString('zh-CN') : ''}
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="mr-2 text-xs text-v2-subtle">
+                  {b.updatedAt ? new Date(b.updatedAt).toLocaleString('zh-CN') : ''}
+                </span>
+                {canConfigure && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(b)}>编辑</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={actionBindingId === b.id}
+                      onClick={() => handleToggle(b)}
+                    >
+                      {b.enabled ? '停用' : '启用'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-v2-danger"
+                      disabled={actionBindingId === b.id}
+                      onClick={() => setDeleteTarget(b)}
+                    >
+                      删除
+                    </Button>
+                  </>
+                )}
               </div>
             </Card>
           ))}
@@ -164,15 +239,15 @@ export default function WorkflowBindingsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增流程绑定</DialogTitle>
+            <DialogTitle>{editing ? '编辑流程绑定' : '新增流程绑定'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>
                 业务类型<span className="text-v2-danger"> *</span>
               </Label>
-              <Select value={businessType} onValueChange={(v) => setBusinessType(v ?? '')}>
-                <SelectTrigger>
+              <Select value={businessType} onValueChange={(v) => setBusinessType(v ?? '')} disabled={editing !== null}>
+                <SelectTrigger disabled={editing !== null}>
                   <SelectValue placeholder="选择业务类型">
                     {(v: string) => BUSINESS_TYPES.find((b) => b.value === v)?.label ?? '选择业务类型'}
                   </SelectValue>
@@ -207,7 +282,7 @@ export default function WorkflowBindingsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-v2-muted">绑定后将覆盖该业务类型现有的流程绑定。</p>
+              <p className="text-xs text-v2-muted">{editing ? '更新只影响后续新启动的流程实例。' : '同一业务类型只保留一条活动绑定。'}</p>
             </div>
             <div className="space-y-1.5">
               <Label>备注</Label>
@@ -219,11 +294,32 @@ export default function WorkflowBindingsPage() {
               取消
             </Button>
             <Button variant="primary" onClick={handleBind} disabled={!canSubmit || submitting}>
-              绑定
+              {editing ? '保存' : '绑定'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除流程绑定</AlertDialogTitle>
+            <AlertDialogDescription>
+              删除「{deleteTarget ? businessTypeLabel(deleteTarget.businessType) : ''}」后，新业务将无法启动审批；已有流程实例不受影响。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionBindingId !== null}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={actionBindingId !== null}
+              onClick={handleDelete}
+            >
+              {actionBindingId !== null ? '删除中…' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

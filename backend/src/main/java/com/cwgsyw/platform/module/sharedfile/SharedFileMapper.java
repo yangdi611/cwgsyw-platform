@@ -10,6 +10,12 @@ import java.util.List;
 @Mapper
 public interface SharedFileMapper extends BaseMapper<SharedFile> {
 
+    @Select("""
+            SELECT 1
+            FROM (SELECT pg_advisory_xact_lock(hashtext(#{lockKey}))) AS locked
+            """)
+    int lockActiveNormalizedName(@Param("lockKey") String lockKey);
+
     @Results(id = "sharedFileMap", value = {
         @Result(column = "id", property = "id"),
         @Result(column = "tenant_id", property = "tenantId"),

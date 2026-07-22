@@ -43,4 +43,13 @@ public class WorkflowTemplateController {
                                                 @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(templateService.createInstance(cu.getTenantId(), cu.getUserId(), req));
     }
+
+    /** 删除没有绑定或流程引用的模板实例。 */
+    @DeleteMapping("/instances/{instanceId}")
+    @PreAuthorize("hasPermission('workflow', 'configure')")
+    public R<Void> deleteInstance(@PathVariable Long instanceId,
+                                  @AuthenticationPrincipal SecurityUser cu) {
+        templateService.deleteInstance(cu.getTenantId(), cu.getUserId(), instanceId);
+        return R.ok();
+    }
 }

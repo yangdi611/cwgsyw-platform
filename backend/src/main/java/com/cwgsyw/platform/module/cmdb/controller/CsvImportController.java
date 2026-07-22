@@ -10,6 +10,7 @@ import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,20 +26,23 @@ public class CsvImportController {
     private final CsvImportService csvImportService;
 
     @GetMapping("/template")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public ResponseEntity<byte[]> downloadTemplate(@RequestParam String model,
                                                      @AuthenticationPrincipal SecurityUser cu) {
         String csv = csvImportService.generateTemplate(model, cu.getTenantId());
         byte[] bytes = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + model + "_import_template.csv\"")
+                        ContentDisposition.attachment()
+                                .filename(model + "_import_template.csv", java.nio.charset.StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(bytes);
     }
 
     @PostMapping("/preview")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportPreviewVO> preview(@RequestParam("file") MultipartFile file,
                                           @RequestParam("model") String model,
                                           @RequestParam(value = "conflictStrategy", defaultValue = "override") String conflictStrategy,
@@ -49,21 +53,21 @@ public class CsvImportController {
     }
 
     @PostMapping("/execute")
-    @PreAuthorize("hasPermission('cmdb_instance', 'create') and hasPermission('cmdb_instance', 'update')")
+    @PreAuthorize("hasPermission('cmdb_import', 'execute')")
     public R<CsvImportResultVO> execute(@Valid @RequestBody CsvImportExecuteRequest req,
                                          @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(csvImportService.execute(req.getBatchId(), cu.getTenantId(), cu.getUserId()));
     }
 
     @GetMapping("/{batchId}/progress")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public R<CsvImportProgressVO> getProgress(@PathVariable String batchId,
                                                 @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(csvImportService.getProgress(batchId));
     }
 
     @GetMapping("/{batchId}/failed-rows")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
+    @PreAuthorize("hasPermission('cmdb_import', 'read')")
     public ResponseEntity<byte[]> downloadFailedRows(@PathVariable String batchId,
                                                        @AuthenticationPrincipal SecurityUser cu) {
         byte[] csv = csvImportService.downloadFailedRows(batchId, cu.getTenantId());

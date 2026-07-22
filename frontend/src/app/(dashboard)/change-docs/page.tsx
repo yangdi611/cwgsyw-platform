@@ -12,6 +12,7 @@ import {
   FilterChip,
   DataTable,
   DetailDrawer,
+  Pagination,
   type ColumnDef,
 } from '@/components/shared'
 import { ArrowRight, FileText } from 'lucide-react'
@@ -27,6 +28,13 @@ interface ChangeDocListItem {
   planTemplateName: string | null
   applicantName: string
   createdAt: string
+}
+
+interface PageData {
+  records: ChangeDocListItem[]
+  total: number
+  page: number
+  size: number
 }
 
 type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
@@ -63,6 +71,8 @@ export default function ChangeDocsPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
   const [statusFilter, setStatusFilter] = useState('all')
+  const [keyword, setKeyword] = useState('')
+  const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<ChangeDocListItem | null>(null)
 
   useEffect(() => {
@@ -70,13 +80,26 @@ export default function ChangeDocsPage() {
     if (!hasPermission('change_doc', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: docs = [], isLoading } = useQuery<ChangeDocListItem[]>({
-    queryKey: ['change-docs'],
-    queryFn: () => api.get('/change-docs').then((r) => r.data.data),
+  const { data, isLoading } = useQuery<PageData>({
+    queryKey: ['change-docs', statusFilter, keyword, page],
+    queryFn: () => api.get('/change-docs', {
+      params: {
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        keyword: keyword || undefined,
+        page,
+        size: 20,
+      },
+    }).then((r) => r.data.data),
     enabled: hasPermission('change_doc', 'read'),
   })
 
-  const filtered = docs.filter((d) => statusFilter === 'all' || d.status === statusFilter)
+  const docs = data?.records ?? []
+  const total = data?.total ?? 0
+
+  const updateStatus = (status: string) => {
+    setStatusFilter(status)
+    setPage(1)
+  }
 
   const columns: ColumnDef<ChangeDocListItem>[] = [
     {
@@ -133,34 +156,45 @@ export default function ChangeDocsPage() {
       />
 
       <FilterBar>
-        <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
+        <input
+          value={keyword}
+          onChange={(event) => {
+            setKeyword(event.target.value)
+            setPage(1)
+          }}
+          placeholder="搜索标题或变更单号"
+          className="h-9 w-56 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm outline-none placeholder:text-v2-muted focus:border-v2-primary"
+        />
+        <FilterChip active={statusFilter === 'all'} onClick={() => updateStatus('all')}>
           全部
         </FilterChip>
-        <FilterChip active={statusFilter === 'pending'} onClick={() => setStatusFilter('pending')}>
+        <FilterChip active={statusFilter === 'pending'} onClick={() => updateStatus('pending')}>
           待审批
         </FilterChip>
-        <FilterChip active={statusFilter === 'plan_pending'} onClick={() => setStatusFilter('plan_pending')}>
+        <FilterChip active={statusFilter === 'plan_pending'} onClick={() => updateStatus('plan_pending')}>
           待补填方案
         </FilterChip>
-        <FilterChip active={statusFilter === 'approved'} onClick={() => setStatusFilter('approved')}>
+        <FilterChip active={statusFilter === 'approved'} onClick={() => updateStatus('approved')}>
           已通过
         </FilterChip>
-        <FilterChip active={statusFilter === 'rejected'} onClick={() => setStatusFilter('rejected')}>
+        <FilterChip active={statusFilter === 'rejected'} onClick={() => updateStatus('rejected')}>
           已拒绝
         </FilterChip>
-        <FilterChip active={statusFilter === 'draft'} onClick={() => setStatusFilter('draft')}>
+        <FilterChip active={statusFilter === 'draft'} onClick={() => updateStatus('draft')}>
           草稿
         </FilterChip>
       </FilterBar>
 
       <DataTable
         columns={columns}
-        data={filtered}
+        data={docs}
         rowKey={(r) => r.id}
         loading={isLoading}
         onRowClick={(r) => setSelected(r)}
         empty={{ title: '暂无变更文档', description: '当前状态下没有变更文档，请调整筛选或新建变更。' }}
       />
+
+      <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
 
       <DetailDrawer
         open={!!selected}

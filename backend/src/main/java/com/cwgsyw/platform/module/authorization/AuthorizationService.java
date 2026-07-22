@@ -71,7 +71,7 @@ public class AuthorizationService {
         Set<Long> groupIds = effectiveGroupIds(user);
         AuthorizationDecision traverseFailure = checkAncestors(user, resource, groupIds);
         if (traverseFailure != null) return traverseFailure;
-        PermissionMatch match = resourcePermissions(user, resource, groupIds);
+        PermissionMatch match = resourcePermissions(user, resource, groupIds, requiredBits);
         if ((match.permissions() & requiredBits) != requiredBits) {
             return AuthorizationDecision.builder()
                 .allowed(false).reasonCode("RESOURCE_ACCESS_DENIED")
@@ -114,7 +114,15 @@ public class AuthorizationService {
         if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
         AuthorizationDecision decision = decideCreate(user, permissionCode, ownerGroupId);
         if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
-        return legacyAllowed.getAsBoolean();
+        boolean legacyDecision = legacyAllowed.getAsBoolean();
+        jdbcTemplate.update("""
+            INSERT INTO authorization_decision_diff
+                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
+                 legacy_allowed, new_allowed, new_reason_code)
+            VALUES (?, ?, ?, ?, 'create', 0, ?, ?, ?)
+            """, user.getTenantId(), user.getUserId(), module, permissionCode,
+            legacyDecision, decision.isAllowed(), decision.getReasonCode());
+        return legacyDecision;
     }
 
     public boolean canUseOwnerGroup(SecurityUser user, Long ownerGroupId) {
@@ -167,7 +175,8 @@ public class AuthorizationService {
         AuthorizationModeService.EffectiveMode mode = modeService.effectiveMode(user.getTenantId());
         if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
         AuthorizationDecision decision = policyAllowed
-            ? decide(user, permissionCode, resourceType, resourceId, requiredBits)
+            ? AuthorizationDecision.builder().allowed(true).reasonCode("RESOURCE_POLICY_ALLOWED")
+                .resourceClass("policy").effectivePermissions(7).build()
             : denied("RESOURCE_POLICY_DENIED");
         if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
         boolean legacyDecision = legacyAllowed.getAsBoolean();
@@ -277,7 +286,7 @@ public class AuthorizationService {
         while (current != null) {
             String key = current.getResourceType() + ":" + current.getResourceId();
             if (!visited.add(key) || ++depth > MAX_PARENT_DEPTH) return denied("RESOURCE_PARENT_CYCLE");
-            PermissionMatch match = resourcePermissions(user, current, groupIds);
+            PermissionMatch match = resourcePermissions(user, current, groupIds, 1);
             if ((match.permissions() & 1) == 0) return denied("ANCESTOR_TRAVERSE_DENIED");
             current = parent(current);
         }
@@ -303,13 +312,11 @@ public class AuthorizationService {
     }
 
     private PermissionMatch resourcePermissions(SecurityUser user, ResourceDescriptor resource,
-                                                Set<Long> groupIds) {
+                                                Set<Long> groupIds, int requiredBits) {
+        if (isPlatformSuperAdmin(user, resource)) return new PermissionMatch("platform_super_admin", 7);
         if (isWritableSystemWikiDocumentAdmin(user, resource)) return new PermissionMatch("document_admin", 7);
         if (isSharedFileTenantAdministrator(user, resource)) return new PermissionMatch("tenant_admin", 7);
         int mode = resource.getPermissionMode();
-        if (Objects.equals(user.getUserId(), resource.getOwnerUserId())) {
-            return new PermissionMatch("owner", (mode >> 6) & 7);
-        }
         List<ResourceAclRow> entries = resourceAclMapper.findAccessEntries(
             resource.getTenantId(), resource.getResourceType(), resource.getResourceId());
         ResourceAclRow namedUser = entries.stream()
@@ -318,9 +325,14 @@ public class AuthorizationService {
             .findFirst().orElse(null);
         if (namedUser != null) return new PermissionMatch("named_user", namedUser.permissions());
 
+        if (!resource.isAccessRestricted() && Objects.equals(user.getUserId(), resource.getOwnerUserId())) {
+            return new PermissionMatch("owner", (mode >> 6) & 7);
+        }
+
         int groupPermissions = 0;
         boolean groupMatched = false;
-        if (resource.getOwnerGroupId() != null && groupIds.contains(resource.getOwnerGroupId())) {
+        if (!resource.isAccessRestricted() && resource.getOwnerGroupId() != null
+                && groupIds.contains(resource.getOwnerGroupId())) {
             groupMatched = true;
             groupPermissions |= (mode >> 3) & 7;
         }
@@ -330,8 +342,28 @@ public class AuthorizationService {
                 groupPermissions |= entry.permissions();
             }
         }
+        if ("wiki_page".equals(resource.getResourceType()) && (requiredBits & 2) != 0) {
+            Long spaceId = resourceRepository.wikiPageSpaceId(resource.getTenantId(), resource.getResourceId());
+            if (spaceId != null) {
+                for (ResourceAclRow entry : resourceAclMapper.findAccessEntries(
+                        resource.getTenantId(), "wiki_space", spaceId)) {
+                    if ("group".equals(entry.subjectType()) && groupIds.contains(entry.subjectId())) {
+                        groupMatched = true;
+                        groupPermissions |= entry.permissions();
+                    }
+                }
+            }
+        }
         if (groupMatched) return new PermissionMatch("group", groupPermissions);
+        if (resource.isAccessRestricted()) return new PermissionMatch("restricted", 0);
         return new PermissionMatch("others", mode & 7);
+    }
+
+    private boolean isPlatformSuperAdmin(SecurityUser user, ResourceDescriptor resource) {
+        return (resource.getResourceType().startsWith("wiki")
+            || "shared_file".equals(resource.getResourceType())
+            || "shared_folder".equals(resource.getResourceType()))
+            && scopedPermissionMapper.hasActivePlatformSuperAdminAssignment(user.getTenantId(), user.getUserId());
     }
 
     private boolean isWritableSystemWikiDocumentAdmin(SecurityUser user, ResourceDescriptor resource) {

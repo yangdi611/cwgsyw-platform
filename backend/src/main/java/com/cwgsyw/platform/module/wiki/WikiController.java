@@ -2,10 +2,12 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -33,14 +35,24 @@ public class WikiController {
     private final AuthorizationService authorizationService;
 
     private void checkAcl(SecurityUser u, Long pageId, String perm) {
+        requirePageExists(u, pageId);
         int requiredBits = "read".equals(perm) ? 4 : 2;
-        authorizationService.requireWithCompatibility(u, "wiki", "wiki:" + perm,
+        String permissionCode = "read".equals(perm) ? "wiki:read" : "wiki:update";
+        authorizationService.requireWithCompatibility(u, "wiki", permissionCode,
             "wiki_page", pageId, requiredBits,
             () -> aclService.hasPermission(u.getTenantId(), pageId, u.getUserId(), u.getGroupId(),
                 u.getGroupScope(), perm));
     }
 
+    private void requirePageExists(SecurityUser user, Long pageId) {
+        if (pageService.exists(user.getTenantId(), pageId)) return;
+        throw new BusinessException(404, "RESOURCE_NOT_FOUND", "页面不存在");
+    }
+
     private void checkSpaceRead(SecurityUser user, Long spaceId) {
+        if (!spaceService.exists(user.getTenantId(), spaceId)) {
+            throw new BusinessException(404, "RESOURCE_NOT_FOUND", "空间不存在");
+        }
         if (!spaceService.canReadSpace(spaceId, user)) {
             throw new AccessDeniedException("无权限访问此空间");
         }
@@ -64,7 +76,7 @@ public class WikiController {
     @PreAuthorize("hasAuthority('wiki:create')")
     public R<WikiSpaceVO> createSpace(@RequestBody CreateSpaceRequest req,
                                       @AuthenticationPrincipal SecurityUser u) {
-        Long ownerGroupId = req.getOwnerGroupId() != null ? req.getOwnerGroupId() : u.getGroupId();
+        Long ownerGroupId = resolveOwnerGroupId(req.getOwnerGroupId(), u);
         if (!authorizationService.canUseOwnerGroup(u, ownerGroupId)) {
             throw new AccessDeniedException("不能将空间归属到当前用户未加入的组");
         }
@@ -73,6 +85,19 @@ public class WikiController {
             throw new AccessDeniedException("当前作用域不允许创建 Wiki 空间");
         }
         return R.ok(spaceService.createSpace(u.getTenantId(), u, req.getName(), req.getDescription(), ownerGroupId));
+    }
+
+    private Long resolveOwnerGroupId(Long requestedGroupId, SecurityUser user) {
+        if ("group".equals(user.getGroupScope())) {
+            if (user.getGroupId() == null) {
+                throw BusinessException.badRequest("RESOURCE_GROUP_REQUIRED", "组级用户必须具有归属组");
+            }
+            return user.getGroupId();
+        }
+        if (requestedGroupId == null) {
+            throw BusinessException.badRequest("RESOURCE_GROUP_REQUIRED", "管理员必须选择空间归属组");
+        }
+        return requestedGroupId;
     }
 
     @PutMapping("/spaces/{id}")
@@ -145,14 +170,14 @@ public class WikiController {
 
     @PostMapping("/pages")
     @PreAuthorize("hasAuthority('wiki:read')")
-    public R<WikiPageVO> createPage(@RequestBody CreatePageRequest req,
+    public R<WikiPageVO> createPage(@Valid @RequestBody CreatePageRequest req,
                                     @AuthenticationPrincipal SecurityUser u) {
         return R.ok(pageService.createPage(u.getTenantId(), u, req));
     }
 
     @PutMapping("/pages/{id}")
     @PreAuthorize("hasAuthority('wiki:read')")
-    public R<WikiPageVO> savePage(@PathVariable Long id, @RequestBody SavePageRequest req,
+    public R<WikiPageVO> savePage(@PathVariable Long id, @Valid @RequestBody SavePageRequest req,
                                   @AuthenticationPrincipal SecurityUser u) {
         return R.ok(pageService.savePage(u.getTenantId(), u, id, req));
     }
@@ -207,6 +232,14 @@ public class WikiController {
                            @AuthenticationPrincipal SecurityUser u) throws Exception {
         checkAcl(u, id, "read");
         exportService.exportPage(id, u.getTenantId(), response);
+    }
+
+    @GetMapping("/pages/{id}/versions/{version}/export")
+    @PreAuthorize("hasAuthority('wiki:read')")
+    public void exportVersion(@PathVariable Long id, @PathVariable int version, HttpServletResponse response,
+                              @AuthenticationPrincipal SecurityUser u) throws Exception {
+        checkAcl(u, id, "read");
+        exportService.exportVersion(pageService.getVersionForExport(u.getTenantId(), id, version), response);
     }
 
     @GetMapping("/pages/{id}/backlinks")
@@ -294,6 +327,14 @@ public class WikiController {
                               @AuthenticationPrincipal SecurityUser u) throws Exception {
         checkAcl(u, attachmentService.attachmentPageId(u.getTenantId(), fileId), "read");
         attachmentService.streamTo(u.getTenantId(), fileId, response);
+    }
+
+    @DeleteMapping("/attachments/{fileId}")
+    @PreAuthorize("hasAuthority('wiki:update')")
+    public R<Void> deleteAttachment(@PathVariable Long fileId, @AuthenticationPrincipal SecurityUser u) {
+        checkAcl(u, attachmentService.attachmentPageId(u.getTenantId(), fileId), "write");
+        attachmentService.deleteAttachment(u.getTenantId(), u.getUserId(), fileId);
+        return R.ok(null);
     }
 
     // ===== Search =====

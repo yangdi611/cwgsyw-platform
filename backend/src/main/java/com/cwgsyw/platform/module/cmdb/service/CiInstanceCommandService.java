@@ -3,6 +3,7 @@ package com.cwgsyw.platform.module.cmdb.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
+import com.cwgsyw.platform.module.changedoc.ChangeDocCiLinkMapper;
 import com.cwgsyw.platform.module.cmdb.dto.instance.*;
 import com.cwgsyw.platform.module.cmdb.entity.CiAttribute;
 import com.cwgsyw.platform.module.cmdb.entity.CiChangeRecord;
@@ -10,10 +11,15 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstanceRel;
 import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
+import com.cwgsyw.platform.module.device.DeviceMapper;
+import com.cwgsyw.platform.module.device.entity.Device;
+import com.cwgsyw.platform.module.daily.DailyReportMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,6 +38,9 @@ public class CiInstanceCommandService {
     private final CiModelMapper ciModelMapper;
     private final CiAttributeMapper ciAttributeMapper;
     private final CiInstanceRelMapper ciInstanceRelMapper;
+    private final DeviceMapper deviceMapper;
+    private final ChangeDocCiLinkMapper changeDocCiLinkMapper;
+    private final DailyReportMapper dailyReportMapper;
     private final AuditLogMapper auditLogMapper;
     private final CiChangeRecordMapper ciChangeRecordMapper;
     private final ObjectMapper objectMapper;
@@ -39,6 +48,8 @@ public class CiInstanceCommandService {
     // @Lazy no longer needed: CiChangeService now reads ci_change_record directly
     // (Issue #64 AC6) and no longer participates in any injection cycle with this service.
     private final CiChangeService ciChangeService;
+    private final CiNotificationService ciNotificationService;
+    private final PlatformTransactionManager transactionManager;
 
     private final CiFieldSchemaValidator schemaValidator;
     private final CiInstanceUniquenessValidator uniquenessValidator;
@@ -142,6 +153,7 @@ public class CiInstanceCommandService {
     @Transactional
     public CiInstanceDetailVO update(Long id, UpdateInstanceRequest req, String tenantId, Long operatorId) {
         CiInstance inst = loadInstance(id, tenantId);
+        String oldStatus = inst.getStatus();
         String before = snapshotInstance(inst);
         Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
 
@@ -166,6 +178,9 @@ public class CiInstanceCommandService {
         writeAudit(tenantId, "update_instance", id, "ci_instance", operatorId, before, snapshotInstance(inst));
         writeChangeRecord(tenantId, "update", id, inst.getModelId(), operatorId,
                 diffSnapshots(beforeSnap, buildChangeSnapshot(inst)));
+        if (!Objects.equals(oldStatus, inst.getStatus())) {
+            ciNotificationService.notifyStatusChange(inst, oldStatus, inst.getStatus(), operatorId);
+        }
         ciChangeService.invalidateStatsCache();
         return ciInstanceQueryService.getDetail(id, tenantId);
     }
@@ -177,6 +192,7 @@ public class CiInstanceCommandService {
      */
     public BatchUpdateResultVO batchUpdate(BatchUpdateInstanceRequest req, String tenantId, Long operatorId) {
         BatchUpdateResultVO result = new BatchUpdateResultVO();
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         List<Long> ids = req.getIds();
         Map<String, Object> fields = req.getFields();
         result.setTotal(ids.size());
@@ -195,7 +211,7 @@ public class CiInstanceCommandService {
                     }
                 }
                 if (!attrFields.isEmpty()) single.setFieldsData(attrFields);
-                update(id, single, tenantId, operatorId);
+                transaction.executeWithoutResult(status -> update(id, single, tenantId, operatorId));
                 result.setSucceeded(result.getSucceeded() + 1);
             } catch (Exception ex) {
                 result.setFailed(result.getFailed() + 1);
@@ -246,23 +262,37 @@ public class CiInstanceCommandService {
 
     @Transactional
     public void delete(Long id, String tenantId, Long operatorId) {
-        CiInstance inst = loadInstance(id, tenantId);
-        String before = snapshotInstance(inst);
-        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
-
-        inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
-        ciInstanceMapper.updateById(inst);
-        ciInstanceMapper.deleteById(id);
-
+        CiInstance inst = ciInstanceMapper.findActiveByIdForUpdate(id, tenantId);
+        if (inst == null) {
+            throw new IllegalArgumentException("实例不存在");
+        }
         LambdaQueryWrapper<CiInstanceRel> relQuery = new LambdaQueryWrapper<CiInstanceRel>()
                 .eq(CiInstanceRel::getTenantId, tenantId).eq(CiInstanceRel::getIsDeleted, false)
                 .and(w -> w.eq(CiInstanceRel::getSrcInstanceId, id).or().eq(CiInstanceRel::getDstInstanceId, id));
-        List<CiInstanceRel> rels = ciInstanceRelMapper.selectList(relQuery);
-        for (CiInstanceRel rel : rels) {
-            rel.setDeletedAt(LocalDateTime.now()); rel.setDeletedBy(operatorId);
-            ciInstanceRelMapper.updateById(rel);
-            ciInstanceRelMapper.deleteById(rel.getId());
+        long activeRelationCount = ciInstanceRelMapper.selectCount(relQuery);
+        if (activeRelationCount > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍有关联关系，请先解除后再删除");
         }
+
+        LambdaQueryWrapper<Device> deviceQuery = new LambdaQueryWrapper<Device>()
+                .eq(Device::getTenantId, tenantId)
+                .eq(Device::getCiInstanceId, id)
+                .eq(Device::getIsDeleted, false);
+        if (deviceMapper.selectCount(deviceQuery) > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍关联设备，请先删除设备后再删除实例");
+        }
+        if (changeDocCiLinkMapper.countActiveDocumentReferences(tenantId, id) > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍被变更文档引用，请先解除引用后再删除实例");
+        }
+        if (dailyReportMapper.countActiveByCiInstanceId(tenantId, id) > 0) {
+            throw new IllegalArgumentException("该 CMDB 实例仍被日报引用，请先解除引用后再删除实例");
+        }
+
+        String before = snapshotInstance(inst);
+        Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
+        inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);
+        ciInstanceMapper.updateById(inst);
+        ciInstanceMapper.deleteById(id);
 
         writeAudit(tenantId, "delete_instance", id, "ci_instance", operatorId, before, null);
         writeChangeRecord(tenantId, "delete", id, inst.getModelId(), operatorId,

@@ -27,6 +27,10 @@ export default function ModelDetailPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
+  const canReadAttributes = hasPermission('cmdb_attribute', 'read')
+  const canCreateAttributes = hasPermission('cmdb_attribute', 'create')
+  const canUpdateAttributes = hasPermission('cmdb_attribute', 'update')
+  const canDeleteAttributes = hasPermission('cmdb_attribute', 'delete')
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editingAttr, setEditingAttr] = useState<AttributeAdminItem | null>(null)
@@ -38,6 +42,7 @@ export default function ModelDetailPage() {
 
   const { data: attributes = [] } = useQuery<AttributeAdminItem[]>({
     queryKey: ['cmdb-model-attrs', modelCode],
+    enabled: canReadAttributes,
     queryFn: () =>
       api
         .get(`/cmdb/models/${modelCode}/attributes`)
@@ -46,6 +51,7 @@ export default function ModelDetailPage() {
 
   const { data: groups = [] } = useQuery<AttributeGroupAdminItem[]>({
     queryKey: ['cmdb-model-groups', modelCode],
+    enabled: canCreateAttributes,
     queryFn: () => api.get(`/cmdb/models/${modelCode}/attribute-groups`).then((r) => r.data.data),
   })
 
@@ -82,8 +88,6 @@ export default function ModelDetailPage() {
     onError: (e) => toast.error(getApiErrorMessage(e)),
   })
 
-  const canManage = hasPermission('cmdb_model', 'update')
-
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
@@ -101,7 +105,7 @@ export default function ModelDetailPage() {
             <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{modelCode}</p>
           </div>
         </div>
-        {canManage && (
+        {canCreateAttributes && (
           <Button variant="primary" onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             新建属性
@@ -112,14 +116,17 @@ export default function ModelDetailPage() {
       {/* Attributes List */}
       <Card>
         <CardContent className="p-6">
-          {attributes.length === 0 ? (
+          {!canReadAttributes ? (
+            <p className="py-8 text-center text-sm text-v2-muted">无权查看模型属性。</p>
+          ) : attributes.length === 0 ? (
             <p className="py-8 text-center text-sm text-v2-muted">
               该模型暂无属性。点击右上角「新建属性」开始配置。
             </p>
           ) : (
             <AttributeList
               attributes={attributes}
-              canManage={canManage}
+              canUpdate={canUpdateAttributes}
+              canDelete={canDeleteAttributes}
               onEdit={setEditingAttr}
               onDelete={(attr) => deleteAttrMutation.mutate(attr.id)}
             />

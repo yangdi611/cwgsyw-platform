@@ -75,15 +75,15 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="email">邮箱</Label>
-        <Input id="email" type="email" {...register('email')} placeholder="请输入邮箱" />
+        <Input id="email" type="email" {...register('email')} maxLength={128} placeholder="请输入邮箱" />
       </div>
       <div className="space-y-2">
         <Label htmlFor="phone">手机号</Label>
-        <Input id="phone" {...register('phone')} placeholder="请输入手机号" />
+        <Input id="phone" {...register('phone')} maxLength={32} placeholder="请输入手机号" />
       </div>
       <div className="space-y-2">
         <Label htmlFor="avatarUrl">头像 URL</Label>
-        <Input id="avatarUrl" {...register('avatarUrl')} placeholder="可选，留空则使用默认头像" />
+        <Input id="avatarUrl" {...register('avatarUrl')} maxLength={512} placeholder="可选，留空则使用默认头像" />
       </div>
       <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
         {submitting ? '保存中…' : '保存资料'}
