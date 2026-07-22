@@ -4,7 +4,7 @@
 |---|---|
 | 事件 ID | `REM-P1-073` |
 | 优先级 / 领域 | P1 / ChangeDoc + Workflow |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 来源 | L4 `FQA_20260718_2050_remp1038` / `CHANGE-020` |
 | 分支 | `codex/rem-p1-073-changedoc-unified-workflow` |
 | 基线 | `lint-fix@a82119cd` |
@@ -19,3 +19,5 @@ GitNexus 显示 `ChangeDocService.submit/submitPlan/approve` 与三个 Controlle
 L1 37/37、L2 124/124、共享 Daily/Wiki/binding 回归 43/43、Java 21 package 与当前分支 backend 构建均通过。真实 Playwright 从完整双模板提交进入统一待办，经 `/workflow/todo` 详情跳转和拒绝审批回写 `rejected`；旧审批旁路返回 409 且状态不变，快照/审计/通知齐全。文档 #298 的 runtime/history/mapping、活动通知、活动文档和快照清理读回均为 0，事件 manifest 为 0/0。事件提交为 `8c5aa594`；当前顺序 no-ff 合并完成后恢复同 run `CHANGE-020` affected-only 复验。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-035` |
 | 优先级 | P1 |
 | 领域 | `05-workflow-change` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | MEDIUM |
 | 来源 | L4 `FQA_20260717_1245_final_l4`，`L4-DAILY-002-platform-approval-task-visibility` |
 
@@ -20,3 +20,5 @@
 当前分支容器中，平台管理员真实 UI 完成 runId 日报 `DRAFT -> SUBMITTED -> APPROVED`；候选审批入口显示，终态回读正确，受限清理 API 删除日报、流程和关联通知后读取返回不存在。
 
 文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

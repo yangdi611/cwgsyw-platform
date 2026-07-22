@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-053` |
 | 优先级 | P1 |
 | 领域 | Workflow / 审计 |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | LOW |
 | 来源 | `FQA_20260718_2050_remp1038` / `FLOW-002` |
 | 分支 | `codex/rem-p1-053-workflow-approval-audit-remark-boundary` |
@@ -24,3 +24,5 @@ L1-L3 已完成：Java 定向测试 8/8、Workflow/日报/Wiki/权限聚类 161/
 - [VERIFICATION.md](./VERIFICATION.md)
 - [IMPLEMENTATION-RECORD.md](./IMPLEMENTATION-RECORD.md)
 - [CLAUDE-CODE-PROMPT.md](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

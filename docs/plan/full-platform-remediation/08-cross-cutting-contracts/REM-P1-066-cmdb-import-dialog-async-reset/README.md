@@ -4,7 +4,7 @@
 |---|---|
 | 事件 ID | `REM-P1-066` |
 | 优先级 / 领域 | P1 / 横切异步 UI 合同 |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 来源 | L4 `FQA_20260718_2050_remp1038` / `COMMON-010` |
 | 分支 | `codex/rem-p1-066-cmdb-import-dialog-async-reset` |
 | 基线 | `lint-fix@84e55ae9` |
@@ -18,3 +18,5 @@ CSV 导入执行请求 pending 时关闭对话框，旧请求完成后仍执行 
 L1-L3 已通过：frontend typecheck、目标 lint 0 error、事件分支生产镜像构建与容器替换、专用 Playwright preview/execute 两条竞态回归及原 `COMMON-010` 组合场景均通过。所有导入写请求由 Playwright route mock 接管，产品写入为 0。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

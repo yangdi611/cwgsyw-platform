@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-018` |
 | 优先级 | P1 |
 | 领域 | `04-content-files` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | Codex |
 | 创建 / 更新 | 2026-07-15 |
@@ -36,3 +36,5 @@ Wiki 版本回退返回成功，但正文被清空。
 - 不自动修复无法判定的空快照
 
 L1-L3 已通过：首次保存生成完整 `v1`，回退精确恢复正文、详情与导出，并写入新版本；空/旧快照在写入前受控拒绝；历史版本 UI 导出精确请求所选版本，真实 API/UI 路径和精确清理通过。下一门禁：从本次合并后的最新集成点完整重启最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

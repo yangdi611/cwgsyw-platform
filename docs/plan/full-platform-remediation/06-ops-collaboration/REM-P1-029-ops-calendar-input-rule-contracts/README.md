@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-029` |
 | 优先级 | P1 |
 | 领域 | `06-ops-collaboration` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `HIGH` |
 | 负责人 | 待实施时认领 |
 | 创建 / 更新 | 2026-07-15 |
@@ -36,3 +36,5 @@
 - 不执行不可清理任务状态链
 
 L4 发现模板删除未保护周期规则引用：删除返回 `200` 并留下悬空 `templateId`。已在独立回归分支补充同租户、未软删规则引用保护；L1 单测、当前分支容器 API 和浏览器管理路由复验通过，事件恢复为 `VERIFIED`，等待提交与 no-ff 合并。合并后必须创建全新 L4 runId 并重跑完整矩阵。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

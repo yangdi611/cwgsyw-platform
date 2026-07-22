@@ -4,7 +4,7 @@
 |---|---|
 | 事件 ID | `REM-P1-064` |
 | 优先级 / 领域 | P1 / 配置与运维日历 |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 来源 | L4 `FQA_20260718_2050_remp1038` / `CONFIG-003` |
 | 分支 | `codex/rem-p1-064-notification-config-ops-rule-sync` |
 | 基线 | `lint-fix@daa73689` |
@@ -16,3 +16,5 @@
 L1 51/51、排除无关历史 Mockito stub 后的 L2 聚类、Java 21 生产构建、当前 backend 健康、真实 UI/API 与自然 scheduler 均通过；正式通知正文消费配置模板，配置与规则已精确恢复，测试任务和通知残留为 0。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

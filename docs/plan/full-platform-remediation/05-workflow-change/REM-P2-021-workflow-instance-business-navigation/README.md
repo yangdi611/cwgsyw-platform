@@ -1,6 +1,6 @@
 # REM-P2-021：流程实例业务跳转
 
-- 优先级：P2；领域：Workflow；状态：`VERIFIED`
+- 优先级：P2；领域：Workflow；状态：`CLOSED`
 - 源：L4 `FQA_20260716_2300_lintfix`，`FLOW-004`。
 - 问题：流程实例列表将 `daily_report:<id>` 业务键仅显示为文本，用户不能从实例回到关联日报。
 - 影响：已完成或运行中的日报流程缺少可追溯业务入口。
@@ -15,3 +15,5 @@
 - [VERIFICATION.md](./VERIFICATION.md)
 - [IMPLEMENTATION-RECORD.md](./IMPLEMENTATION-RECORD.md)
 - [CLAUDE-CODE-PROMPT.md](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

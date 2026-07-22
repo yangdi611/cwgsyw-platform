@@ -1,6 +1,6 @@
 # REM-P2-027：变更文档创建 CI 关联合同
 
-- 优先级：P2；领域：变更文档；状态：`VERIFIED`
+- 优先级：P2；领域：变更文档；状态：`CLOSED`
 - 来源：最终 L4 `FQA_20260716_2300_lintfix`，`CHANGE-002`。
 - 问题：新建页可选择 CI 并提交 `ciSnapshots`，但创建 DTO/服务忽略该字段，草稿创建后没有 CI 链接。
 - 用户影响：用户以为已关联受影响资产，详情和 CI 资源页却看不到该变更，影响变更追踪完整性。
@@ -16,3 +16,5 @@
 - [VERIFICATION.md](./VERIFICATION.md)
 - [IMPLEMENTATION-RECORD.md](./IMPLEMENTATION-RECORD.md)
 - [CLAUDE-CODE-PROMPT.md](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P1-048` |
 | 优先级 | P1 |
 | 领域 | `06-ops-collaboration` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `LOW` |
 | 分支 | `codex/rem-p1-048-ops-material-group-scope` |
 | 基线 | `lint-fix@00f342a5` |
@@ -25,3 +25,5 @@
 - 事件提交 `3e7667a3` 已进入 `lint-fix` 的 no-ff 合并门禁；下一门禁是在同一 L4 run 重验 `OPS-017`，保留未受影响 PASS。
 
 [SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

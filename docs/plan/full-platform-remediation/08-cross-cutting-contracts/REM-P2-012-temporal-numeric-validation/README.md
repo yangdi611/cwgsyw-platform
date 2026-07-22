@@ -5,7 +5,7 @@
 | 事件 ID | `REM-P2-012` |
 | 优先级 | P2 |
 | 领域 | `08-cross-cutting-contracts` |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 风险 | `MEDIUM` |
 | 分支 | `codex/rem-p2-012-temporal-numeric-validation` |
 | 创建 / 更新 | 2026-07-15 |
@@ -37,3 +37,5 @@
 - 不执行不可清理状态写入
 
 L1-L3 已通过：统一日期范围/月输入校验、Spring 转换错误 400、日报日期/工时边界和统计页错误/重试均已在当前分支容器运行时复验；所有请求均只读，测试数据残留为零。等待最终 L4。文档：[SPEC](./SPEC.md) / [验证](./VERIFICATION.md) / [记录](./IMPLEMENTATION-RECORD.md) / [Prompt](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。

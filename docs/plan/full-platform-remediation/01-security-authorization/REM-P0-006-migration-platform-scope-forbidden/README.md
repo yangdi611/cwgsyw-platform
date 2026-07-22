@@ -4,7 +4,7 @@
 |---|---|
 | 事件 ID | `REM-P0-006` |
 | 优先级 | P0 |
-| 状态 | `VERIFIED` |
+| 状态 | `CLOSED` |
 | 来源 | L4 `FQA_20260718_0245_remp1037_l4` / `AUTHZ-002` |
 | 分支 | `codex/rem-p0-006-migration-platform-scope-forbidden` |
 | 下一门禁 | no-ff 合并后完整重置 L4 |
@@ -23,3 +23,5 @@ GitNexus upstream impact 为 `CRITICAL`：10 个直接调用端点、7 条授权
 - [VERIFICATION.md](./VERIFICATION.md)
 - [IMPLEMENTATION-RECORD.md](./IMPLEMENTATION-RECORD.md)
 - [CLAUDE-CODE-PROMPT.md](./CLAUDE-CODE-PROMPT.md)
+
+最终关闭：L4 `FQA_20260718_2050_remp1038` 完整分母结算为功能 `275/275 PASS`、状态 `77 PASS + 1 schema-only`，`FAIL/BLOCKED/NOT_RUN=0`，manifest `objects=[]`、`cleanupFailures=0`；本事件据此由 `VERIFIED` 更新为 `CLOSED`。六项高风险合同按用户 2026-07-22 手工验证指令记录为 `USER-VERIFIED PASS`，未伪装为 Codex 自动复验。
