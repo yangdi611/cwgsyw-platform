@@ -7,6 +7,7 @@ import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { DashboardOpsCalendarCard } from '@/components/ops-calendar/DashboardOpsCalendarCard'
 import { usePermission } from '@/hooks/usePermission'
+import { listWorkItems, type WorkItem } from '@/lib/work-item-api'
 import api from '@/lib/api'
 import {
   ArrowRight,
@@ -25,12 +26,6 @@ async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined
   }
 }
 
-interface TaskVO {
-  taskId: string
-  taskName: string
-  businessType: string
-  createTime: string
-}
 interface AlertVO {
   id: number
   severity: string
@@ -73,15 +68,15 @@ function timeAgo(iso: string): string {
 
 export default function DashboardPage() {
   const { hasPermission } = usePermission()
-  const canReadWorkflowTasks = hasPermission('daily_report', 'approve')
+  const canReadWorkItems = hasPermission('work_item', 'read')
   const canReadAlerts = hasPermission('cmdb_alert', 'read')
   const canReadChangeDocs = hasPermission('change_doc', 'read')
   const canReadChanges = hasPermission('cmdb_change', 'read')
 
-  const { data: tasks } = useQuery<TaskVO[] | undefined>({
-    queryKey: ['workflow-tasks'],
-    queryFn: () => safe(api.get('/workflow/tasks/group')),
-    enabled: canReadWorkflowTasks,
+  const { data: approvalItems } = useQuery<WorkItem[] | undefined>({
+    queryKey: ['work-items-dashboard'],
+    queryFn: async () => (await listWorkItems({ tab: 'approve', page: 1, size: 6 })).records,
+    enabled: canReadWorkItems,
   })
   const { data: alertsData } = useQuery<{ records: AlertVO[]; total: number } | undefined>({
     queryKey: ['cmdb-alerts-dashboard'],
@@ -99,7 +94,7 @@ export default function DashboardPage() {
     enabled: canReadChanges,
   })
 
-  const pendingTasks = tasks ?? []
+  const pendingTasks = approvalItems ?? []
   const alerts = alertsData?.records ?? []
   const firingAlerts = alerts.filter((a) => a.status !== 'resolved')
   const docsList = docs ?? []
@@ -111,9 +106,9 @@ export default function DashboardPage() {
       value: pendingTasks.length,
       trend: pendingTasks.length > 0 ? '待处理' : '已清空',
       trendType: pendingTasks.length > 0 ? ('warn' as const) : ('ok' as const),
-      description: '流程中心分配给你的审批任务。',
-      href: '/workflow/tasks',
-      visible: canReadWorkflowTasks,
+      description: '统一任务平台分配给你的审批事项。',
+      href: '/work?tab=approve',
+      visible: canReadWorkItems,
     },
     {
       label: 'CMDB 告警',
@@ -162,11 +157,11 @@ export default function DashboardPage() {
       visible: hasPermission('change_doc', 'create'),
     },
     {
-      title: '流程任务',
-      description: '集中处理审批、转派、驳回、评论和流程实例追踪。',
+      title: '我的工作',
+      description: '集中处理待执行、待审批、我发起和已完成事项。',
       icon: CheckSquare,
-      href: '/workflow/tasks',
-      visible: canReadWorkflowTasks,
+      href: '/work?tab=approve',
+      visible: canReadWorkItems,
     },
     {
       title: '身份与权限',
@@ -186,10 +181,10 @@ export default function DashboardPage() {
         subtitle="集中处理审批、CMDB 风险、变更文档与近期变更；数据来自后端实时接口。"
         actions={
           <>
-            {canReadWorkflowTasks && <Button
+            {canReadWorkItems && <Button
               className="flex-1 sm:flex-none"
               variant="secondary"
-              onClick={() => (window.location.href = '/workflow/tasks')}
+              onClick={() => (window.location.href = '/work?tab=approve')}
             >
               查看全部待办
             </Button>}
@@ -229,10 +224,10 @@ export default function DashboardPage() {
         <DashboardOpsCalendarCard />
 
         {/* 待办任务面板 */}
-        {canReadWorkflowTasks && <Card>
+        {canReadWorkItems && <Card>
           <CardHeader>
             <CardTitle>待处理审批</CardTitle>
-            <p className="text-sm text-v2-muted mt-1">来自流程中心的待办任务。</p>
+            <p className="text-sm text-v2-muted mt-1">统一任务和审批中心分配给你的待办。</p>
           </CardHeader>
           <div className="divide-y divide-v2-border">
             {pendingTasks.length === 0 ? (
@@ -240,16 +235,16 @@ export default function DashboardPage() {
             ) : (
               pendingTasks.slice(0, 6).map((t) => (
                 <Link
-                  key={t.taskId}
-                  href="/workflow/tasks"
+                  key={t.itemId}
+                  href={t.href}
                   className="block px-6 py-4 hover:bg-v2-surface-hover transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-1">
-                    <div className="text-sm font-bold text-v2-fg leading-snug">{t.taskName}</div>
+                    <div className="text-sm font-bold text-v2-fg leading-snug">{t.title}</div>
                     <StatusBadge status="warn">待处理</StatusBadge>
                   </div>
                   <div className="text-xs text-v2-muted">
-                    {t.businessType} · {timeAgo(t.createTime)}
+                    {t.subtitle} · {t.dueAt ? timeAgo(t.dueAt) : '待处理'}
                   </div>
                 </Link>
               ))

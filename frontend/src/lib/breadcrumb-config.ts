@@ -8,6 +8,7 @@ import {
   Shield,
   Settings,
   BookOpen,
+  BriefcaseBusiness,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -32,6 +33,7 @@ const ROOT = {
   changedoc: { label: '变更文档', href: '/change-docs', icon: FileText },
   resource: { label: '资源管理', icon: FolderOpen },
   wiki: { label: '知识库', href: '/wiki', icon: BookOpen },
+  work: { label: '我的工作', href: '/work', icon: BriefcaseBusiness },
   workflow: { label: '流程中心', icon: GitBranch },
   reports: { label: '报表分析', icon: BarChart2 },
   identity: { label: '身份与权限', icon: Shield },
@@ -96,8 +98,20 @@ const ROUTES: RouteDef[] = [
   { pattern: '/wiki', trail: [ROOT.wiki] },
 
   // ── 流程中心 ──
-  { pattern: '/workflow/todo', trail: [ROOT.workflow, { label: '待办中心' }] },
-  { pattern: '/workflow/tasks', trail: [ROOT.workflow, { label: '我的任务' }] },
+  { pattern: '/work', trail: [ROOT.work] },
+  { pattern: '/tasks/templates/new', trail: [ROOT.workflow, { label: '任务模板', href: '/tasks/templates' }, { label: '新建模板' }] },
+  { pattern: '/tasks/templates/:id/versions/:versionId', trail: [ROOT.workflow, { label: '任务模板', href: '/tasks/templates' }, { ...DYN, hrefTemplate: '/tasks/templates/:2' }, { label: '版本设计' }] },
+  { pattern: '/tasks/templates/:id', trail: [ROOT.workflow, { label: '任务模板', href: '/tasks/templates' }, { ...DYN }] },
+  { pattern: '/tasks/templates', trail: [ROOT.workflow, { label: '任务模板' }] },
+  { pattern: '/tasks/plans/new', trail: [ROOT.workflow, { label: '任务计划', href: '/tasks/plans' }, { label: '新建计划' }] },
+  { pattern: '/tasks/plans/:id', trail: [ROOT.workflow, { label: '任务计划', href: '/tasks/plans' }, { ...DYN }] },
+  { pattern: '/tasks/plans', trail: [ROOT.workflow, { label: '任务计划' }] },
+  { pattern: '/tasks/analytics/:id', trail: [ROOT.workflow, { label: '任务统计', href: '/tasks/analytics' }, { ...DYN }] },
+  { pattern: '/tasks/analytics', trail: [ROOT.workflow, { label: '任务统计' }] },
+  { pattern: '/tasks/metrics', trail: [ROOT.workflow, { label: '指标与目标' }] },
+  { pattern: '/tasks/automations', trail: [ROOT.workflow, { label: '任务自动化' }] },
+  { pattern: '/tasks/:id', trail: [ROOT.workflow, { label: '任务列表', href: '/tasks' }, { ...DYN }] },
+  { pattern: '/tasks', trail: [ROOT.workflow, { label: '任务列表' }] },
   { pattern: '/workflow/templates', trail: [ROOT.workflow, { label: '流程模板' }] },
   { pattern: '/workflow/bindings', trail: [ROOT.workflow, { label: '流程绑定' }] },
   { pattern: '/workflow/instances', trail: [ROOT.workflow, { label: '流程实例' }] },
@@ -105,13 +119,6 @@ const ROUTES: RouteDef[] = [
   { pattern: '/workflow/design', trail: [ROOT.workflow, { label: '流程设计' }] },
   { pattern: '/workflow/admin', trail: [ROOT.workflow, { label: '流程配置' }] },
   { pattern: '/workflow/stats', trail: [ROOT.reports, { label: '流程统计' }] },
-  { pattern: '/daily/new', trail: [ROOT.workflow, { label: '日报审批', href: '/daily' }, { label: '新建日报' }] },
-  { pattern: '/daily/:id', trail: [ROOT.workflow, { label: '日报审批', href: '/daily' }, { ...DYN }] },
-  { pattern: '/daily', trail: [ROOT.workflow, { label: '日报审批' }] },
-
-  // ── 报表分析 ──
-  { pattern: '/reports', trail: [ROOT.reports, { label: '综合报表' }] },
-
   // ── 身份与权限 ──
   { pattern: '/users', trail: [ROOT.identity, { label: '用户管理' }] },
   { pattern: '/groups', trail: [ROOT.identity, { label: '用户组' }] },

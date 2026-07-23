@@ -11,6 +11,16 @@ import { useIdleSession } from '@/hooks/useIdleSession'
 const SETUP_PATH = '/account/setup'
 
 const ROUTE_PERMISSIONS = [
+  { path: '/work', permissions: ['work_item:read'] },
+  { path: '/ops-calendar/rosters', permissions: ['calendar_settings:read'] },
+  { path: '/ops-calendar/holidays', permissions: ['calendar_settings:read'] },
+  { path: '/ops-calendar', permissions: ['task:read'] },
+  { path: '/tasks/templates', permissions: ['task_template:read'] },
+  { path: '/tasks/plans', permissions: ['task_plan:read'] },
+  { path: '/tasks/analytics', permissions: ['task_analytics:read'] },
+  { path: '/tasks/metrics', permissions: ['task_analytics:read'] },
+  { path: '/tasks/automations', permissions: ['task_analytics:read'] },
+  { path: '/tasks', permissions: ['task:read'] },
   { path: '/workflow/design', permissions: ['workflow:configure'] },
   { path: '/workflow/admin', permissions: ['workflow:configure'] },
   { path: '/workflow/templates', permissions: ['workflow:configure'] },
@@ -18,9 +28,7 @@ const ROUTE_PERMISSIONS = [
   { path: '/users', permissions: ['user:read'] },
   { path: '/groups', permissions: ['group:read'] },
   { path: '/notifications', permissions: ['notification:read'] },
-  { path: '/daily', permissions: ['daily_report:read'] },
   { path: '/rbac/roles', permissions: ['role:read'] },
-  { path: '/rbac/migration-exceptions', permissions: ['role:read', 'role:assign'] },
   {
     path: '/rbac/permissions',
     permissions: ['resource:read', 'resource:assign', 'role:read'],
@@ -39,12 +47,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const requiredActions = useAuthStore((s) => s.requiredActions)
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const permissions = useAuthStore((s) => s.permissions)
-  const groupScope = useAuthStore((s) => s.groupScope)
   const token = getToken()
   const routePermission = requiredRoutePermission(pathname)
   const canAccessRoute =
-    (!routePermission || routePermission.permissions.every((permission) => permissions.has(permission)))
-      && (pathname !== '/rbac/migration-exceptions' || groupScope === 'platform')
+    !routePermission || routePermission.permissions.every((permission) => permissions.has(permission))
 
   useIdleSession()
 
