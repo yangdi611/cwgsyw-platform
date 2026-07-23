@@ -32,11 +32,15 @@ CLAUDE.md
 /CMDB_API_AUDIT.md
 /changedoc-cmdb-coupling-analysis.md
 
-# docs/ 全部忽略，仅保留 docs/guide/wiki/
+# docs/ 默认忽略，仅保留 Wiki 指南和统一任务平台实施文档
 docs/*
 !docs/guide/
 docs/guide/*
 !docs/guide/wiki/
+!docs/plan/
+docs/plan/*
+!docs/plan/unified_task_platform/
+!docs/plan/unified_task_platform/**
 
 # macOS Finder conflict duplicates
 * 2.*
