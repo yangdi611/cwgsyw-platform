@@ -3,7 +3,6 @@ package com.cwgsyw.platform.module.workflow;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.config.SysConfigService;
-import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.workflow.dto.*;
 import com.cwgsyw.platform.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
@@ -45,77 +44,7 @@ public class WorkflowService {
     private final RepositoryService repositoryService;
     private final HistoryService historyService;
     private final JdbcTemplate jdbcTemplate;
-    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
     private final SysConfigService configService;
-
-    @Transactional
-    public String startDailyReportApproval(Long reportId, Long groupId) {
-        if (groupId == null) throw new IllegalArgumentException("审批候选用户组不能为空");
-        String tenantId = currentTenantId();
-        activeGroupReferenceValidator.lockAndRequire(tenantId, groupId);
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("reportId", reportId);
-        vars.put("groupId", "group_" + groupId);
-        vars.put("approved", false);
-
-        ProcessInstance pi = runtimeService.startProcessInstanceByKey(
-            "dailyReportApproval",
-            "dailyReport:" + reportId,
-            vars
-        );
-        return pi.getId();
-    }
-
-    private String currentTenantId() {
-        var authentication = org.springframework.security.core.context.SecurityContextHolder
-            .getContext().getAuthentication();
-        Object principal = authentication != null ? authentication.getPrincipal() : null;
-        if (principal instanceof SecurityUser user && user.getTenantId() != null
-                && !user.getTenantId().isBlank()) {
-            return user.getTenantId();
-        }
-        throw new IllegalStateException("旧版日报审批启动入口缺少租户上下文");
-    }
-
-    @Transactional
-    public void approve(String taskId, Long approverId, boolean approved, String comment) {
-        Task task = taskService.createTaskQuery()
-            .taskId(taskId)
-            .singleResult();
-        if (task == null) throw new IllegalArgumentException("任务不存在: " + taskId);
-
-        String currentAssignee = task.getAssignee();
-        String approverStr = String.valueOf(approverId);
-        if (currentAssignee != null && !currentAssignee.equals(approverStr)) {
-            throw new IllegalArgumentException("该任务已被其他人认领，无法操作");
-        }
-        if (currentAssignee == null) {
-            taskService.claim(taskId, approverStr);
-        }
-
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("approved", approved);
-        if (comment != null) vars.put("comment", comment);
-
-        taskService.complete(taskId, vars);
-    }
-
-    public List<TaskVO> getPendingTasksByGroup(Long groupId) {
-        String candidateGroup = "group_" + groupId;
-        List<Task> tasks = taskService.createTaskQuery()
-            .taskCandidateGroup(candidateGroup)
-            .orderByTaskCreateTime().desc()
-            .list();
-        return toVOList(tasks);
-    }
-
-    public List<TaskVO> getPendingTasksByUser(Long userId) {
-        List<Task> tasks = taskService.createTaskQuery()
-            .taskCandidateOrAssigned(String.valueOf(userId))
-            .orderByTaskCreateTime().desc()
-            .list();
-        return toVOList(tasks);
-    }
 
     // ========== Process Definition CRUD ==========
 
@@ -796,44 +725,4 @@ public class WorkflowService {
         return vo;
     }
 
-    private List<TaskVO> toVOList(List<Task> tasks) {
-        if (tasks.isEmpty()) return List.of();
-        Set<String> piIds = tasks.stream()
-            .map(Task::getProcessInstanceId)
-            .collect(java.util.stream.Collectors.toSet());
-        Map<String, String> businessKeyMap = runtimeService
-            .createProcessInstanceQuery()
-            .processInstanceIds(piIds)
-            .list()
-            .stream()
-            .collect(java.util.stream.Collectors.toMap(
-                pi -> pi.getId(),
-                pi -> pi.getBusinessKey() != null ? pi.getBusinessKey() : ""
-            ));
-        return tasks.stream()
-            .map(task -> toVO(task, businessKeyMap.getOrDefault(task.getProcessInstanceId(), "")))
-            .collect(java.util.stream.Collectors.toList());
-    }
-
-    private TaskVO toVO(Task task, String businessKey) {
-        TaskVO vo = new TaskVO();
-        vo.setTaskId(task.getId());
-        vo.setProcessInstanceId(task.getProcessInstanceId());
-        vo.setTaskName(task.getName());
-        vo.setAssignee(task.getAssignee());
-        vo.setCreateTime(task.getCreateTime() != null
-            ? task.getCreateTime().toInstant()
-                .atZone(java.time.ZoneId.systemDefault())
-                .toLocalDateTime()
-            : null);
-        vo.setBusinessKey(businessKey);
-        if (businessKey.startsWith("dailyReport:")) {
-            String[] parts = businessKey.split(":", 2);
-            if (parts.length == 2 && !parts[1].isEmpty()) {
-                vo.setBusinessType("daily_report");
-                vo.setBusinessId(Long.parseLong(parts[1]));
-            }
-        }
-        return vo;
-    }
 }

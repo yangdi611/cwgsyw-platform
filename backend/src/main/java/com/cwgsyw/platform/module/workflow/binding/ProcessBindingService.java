@@ -13,8 +13,7 @@ public interface ProcessBindingService {
     /**
      * 查询业务类型当前生效绑定。
      *
-     * <p>优先读 {@code workflow_process_binding}；无绑定时兼容读取 {@code admin/config}
-     * 中的旧配置项（如 {@code daily_report_process_definition_id}）。均无则返回 null。
+     * <p>只读权威的 {@code workflow_process_binding}；无绑定时返回 null。
      */
     WorkflowProcessBinding getActiveBinding(String tenantId, String businessType);
 

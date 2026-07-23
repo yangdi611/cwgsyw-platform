@@ -63,13 +63,13 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
 
     @Test
     void startBusinessProcessRejectsWhenBindingIsDisabledOrDeleted() {
-        when(adapterRegistry.require("daily_report")).thenReturn(adapter);
-        when(bindingService.getActiveBinding("default", "daily_report")).thenReturn(null);
+        when(adapterRegistry.require("change_doc")).thenReturn(adapter);
+        when(bindingService.getActiveBinding("default", "change_doc")).thenReturn(null);
 
         assertThatThrownBy(() -> facade.startBusinessProcess(WorkflowStartCommand.builder()
-            .tenantId("default").businessType("daily_report").businessId("9").build()))
+            .tenantId("default").businessType("change_doc").businessId("9").build()))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessage("业务类型未绑定流程定义: daily_report");
+            .hasMessage("业务类型未绑定流程定义: change_doc");
 
         verify(runtimeService, org.mockito.Mockito.never())
             .startProcessInstanceById(anyString(), anyString(), any());
@@ -81,16 +81,16 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
         binding.setProcessDefinitionId("def-1");
         binding.setProcessDefinitionKey("daily");
         binding.setProcessDefinitionVersion(1);
-        when(adapterRegistry.require("daily_report")).thenReturn(adapter);
-        when(bindingService.getActiveBinding("default", "daily_report")).thenReturn(binding);
-        when(adapter.buildBusinessKey("9")).thenReturn("daily_report:9");
+        when(adapterRegistry.require("change_doc")).thenReturn(adapter);
+        when(bindingService.getActiveBinding("default", "change_doc")).thenReturn(binding);
+        when(adapter.buildBusinessKey("9")).thenReturn("change_doc:9");
         when(adapter.buildStartVariables(any())).thenReturn(Map.of(
             "groupId", "group_5", "nested", Map.of("candidateGroups", List.of("group_3", "group_5"))));
         when(runtimeService.startProcessInstanceById(anyString(), anyString(), any())).thenReturn(processInstance);
         when(processInstance.getId()).thenReturn("pi-1");
 
         WorkflowBusinessInstance result = facade.startBusinessProcess(WorkflowStartCommand.builder()
-            .tenantId("default").businessType("daily_report").businessId("9")
+            .tenantId("default").businessType("change_doc").businessId("9")
             .variables(Map.of("candidateGroup", "group_4", "unrelated", "group_99"))
             .build());
 
@@ -118,7 +118,7 @@ class WorkflowRuntimeFacadeGroupReferenceTest {
         method.setAccessible(true);
         @SuppressWarnings("unchecked")
         List<String> tokens = (List<String>) method.invoke(facade,
-            new SecurityUser(9L, "platform", "", "tenant-a", null, "platform", Set.of("daily_report:approve")));
+            new SecurityUser(9L, "platform", "", "tenant-a", null, "platform", Set.of("workflow:approve")));
 
         assertThat(tokens).containsExactlyInAnyOrder("group_3", "group_7");
         verify(groupMapper).selectList(any());

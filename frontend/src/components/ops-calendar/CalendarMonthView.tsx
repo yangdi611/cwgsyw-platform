@@ -1,109 +1,81 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import {
-  type TaskVO, monthGrid, isToday, ymd, taskDateKey,
-  taskTypeColor, WEEK_LABELS,
-} from '@/lib/opsCalendar'
+import { monthGrid, isToday, ymd, WEEK_LABELS } from '@/lib/opsCalendar'
+import { type CalendarWorkItem, calendarItemColor, calendarItemDate } from '@/lib/calendar-api'
 
 interface Props {
   currentDate: Date
-  tasks: TaskVO[]
+  items: CalendarWorkItem[]
   holidayMap?: Map<string, string>
   onDateClick: (date: string) => void
-  onTaskClick: (taskId: number) => void
+  onItemClick: (item: CalendarWorkItem) => void
 }
 
-export function CalendarMonthView({ currentDate, tasks, holidayMap, onDateClick, onTaskClick }: Props) {
+export function CalendarMonthView({ currentDate, items, holidayMap, onDateClick, onItemClick }: Props) {
   const grid = monthGrid(currentDate)
   const month = currentDate.getMonth()
-
-  // group tasks by date key
-  const byDate = new Map<string, TaskVO[]>()
-  for (const t of tasks) {
-    const key = taskDateKey(t)
-    if (!key) continue
+  const byDate = new Map<string, CalendarWorkItem[]>()
+  for (const item of items.filter((value) => value.itemType !== 'holiday')) {
+    const key = calendarItemDate(item)
     if (!byDate.has(key)) byDate.set(key, [])
-    byDate.get(key)!.push(t)
+    byDate.get(key)!.push(item)
   }
 
   return (
-    <div className="rounded-lg border border-v2-border bg-v2-surface overflow-hidden">
-      {/* weekday header */}
+    <div className="overflow-hidden rounded-v2-md border border-v2-border bg-v2-surface">
       <div className="grid grid-cols-7 border-b border-v2-border bg-v2-surface-soft">
-        {WEEK_LABELS.map((w, i) => (
-          <div key={w} className={cn(
-            'px-2 py-2 text-center text-xs font-medium text-v2-muted',
-            i >= 5 && 'text-v2-subtle'
-          )}>
-            周{w}
+        {WEEK_LABELS.map((week, index) => (
+          <div key={week} className={cn('px-2 py-2 text-center text-xs font-medium text-v2-muted', index >= 5 && 'text-v2-subtle')}>
+            周{week}
           </div>
         ))}
       </div>
-      {/* 6 rows × 7 cols */}
       <div className="grid grid-cols-7">
-        {grid.map((d, idx) => {
-          const key = ymd(d)
-          const dayTasks = byDate.get(key) ?? []
-          const inMonth = d.getMonth() === month
-          const today = isToday(d)
-          const holiday = holidayMap?.get(key) ?? null
-          const visible = dayTasks.slice(0, 3)
-          const more = dayTasks.length - visible.length
+        {grid.map((date, index) => {
+          const key = ymd(date)
+          const dayItems = byDate.get(key) ?? []
+          const visible = dayItems.slice(0, 3)
+          const more = dayItems.length - visible.length
+          const holiday = holidayMap?.get(key)
           return (
             <div
-              key={idx}
+              key={key}
               onClick={() => onDateClick(key)}
               className={cn(
-                'min-h-[104px] border-b border-r border-v2-border p-1.5 cursor-pointer transition-colors hover:bg-v2-surface-soft',
-                !inMonth && 'bg-v2-surface-soft/40',
-                idx % 7 === 6 && 'border-r-0',
+                'min-h-[104px] cursor-pointer border-b border-r border-v2-border p-1.5 transition-colors hover:bg-v2-surface-soft',
+                date.getMonth() !== month && 'bg-v2-surface-soft/40',
+                index % 7 === 6 && 'border-r-0',
               )}
             >
               <div className="flex items-center justify-between">
                 <span className={cn(
                   'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs',
-                  !inMonth ? 'text-v2-subtle' : 'text-v2-fg',
-                  today && 'bg-v2-accent text-white font-semibold',
-                )}>
-                  {d.getDate()}
-                </span>
-                {dayTasks.length > 0 && (
-                  <span className="text-[10px] text-v2-muted">{dayTasks.length}</span>
-                )}
+                  date.getMonth() !== month ? 'text-v2-subtle' : 'text-v2-fg',
+                  isToday(date) && 'bg-v2-accent font-semibold text-white',
+                )}>{date.getDate()}</span>
+                {dayItems.length > 0 && <span className="text-[10px] text-v2-muted">{dayItems.length}</span>}
               </div>
-              {holiday && (
-                <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>
-              )}
+              {holiday && <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>}
               <div className="mt-1 space-y-1">
-                {visible.map((t) => {
-                  const overdue = t.status === 'overdue'
-                  const isPublic = t.visibility === 'public'
+                {visible.map((item) => {
+                  const color = calendarItemColor(item)
                   return (
                     <button
-                      key={t.id}
-                      onClick={(e) => { e.stopPropagation(); onTaskClick(t.id) }}
-                      title={t.title}
-                      className={cn(
-                        'block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] leading-tight',
-                        overdue && 'ring-1 ring-red-400',
-                        isPublic && 'opacity-80',
-                      )}
-                      style={{
-                        background: `${taskTypeColor(t.taskType)}1a`,
-                        color: taskTypeColor(t.taskType),
-                      }}
+                      key={item.id}
+                      type="button"
+                      title={item.title}
+                      onClick={(event) => { event.stopPropagation(); onItemClick(item) }}
+                      className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] leading-tight', item.overdue && 'ring-1 ring-red-400')}
+                      style={{ background: `${color}1a`, color }}
                     >
-                      <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                        style={{ background: taskTypeColor(t.taskType) }} />
-                      {isPublic && <span className="mr-0.5">[公共]</span>}
-                      {t.title}
+                      <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: color }} />
+                      {item.itemType === 'roster' && <span className="mr-0.5">[班]</span>}
+                      {item.title}
                     </button>
                   )
                 })}
-                {more > 0 && (
-                  <div className="px-1.5 text-[10px] text-v2-muted">+{more} 更多</div>
-                )}
+                {more > 0 && <div className="px-1.5 text-[10px] text-v2-muted">+{more} 更多</div>}
               </div>
             </div>
           )

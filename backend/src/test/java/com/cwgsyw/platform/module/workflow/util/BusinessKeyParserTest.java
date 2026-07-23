@@ -7,13 +7,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BusinessKeyParserTest {
 
     @Test
-    void parsesNewFormatDailyReport() {
-        ParsedBusinessKey p = BusinessKeyParser.parse("daily_report:123");
+    void parsesNewFormatTaskSubmission() {
+        ParsedBusinessKey p = BusinessKeyParser.parse("task_submission:123");
         assertThat(p.isRecognized()).isTrue();
-        assertThat(p.getBusinessType()).isEqualTo("daily_report");
+        assertThat(p.getBusinessType()).isEqualTo("task_submission");
         assertThat(p.getBusinessId()).isEqualTo("123");
         assertThat(p.isLegacyFormat()).isFalse();
-        assertThat(p.getRawBusinessKey()).isEqualTo("daily_report:123");
+        assertThat(p.getRawBusinessKey()).isEqualTo("task_submission:123");
     }
 
     @Test
@@ -39,16 +39,6 @@ class BusinessKeyParserTest {
         assertThat(p.isRecognized()).isTrue();
         assertThat(p.getBusinessType()).isEqualTo("device_access");
         assertThat(p.getBusinessId()).isEqualTo("321");
-    }
-
-    @Test
-    void parsesLegacyDailyReport() {
-        ParsedBusinessKey p = BusinessKeyParser.parse("dailyReport:123");
-        assertThat(p.isRecognized()).isTrue();
-        assertThat(p.getBusinessType()).isEqualTo("daily_report");
-        assertThat(p.getBusinessId()).isEqualTo("123");
-        assertThat(p.isLegacyFormat()).isTrue();
-        assertThat(p.getRawBusinessKey()).isEqualTo("dailyReport:123");
     }
 
     @Test
@@ -85,13 +75,13 @@ class BusinessKeyParserTest {
 
     @Test
     void noColonIsUnrecognized() {
-        ParsedBusinessKey p = BusinessKeyParser.parse("daily_report123");
+        ParsedBusinessKey p = BusinessKeyParser.parse("task_submission123");
         assertThat(p.isRecognized()).isFalse();
     }
 
     @Test
     void emptyIdPartIsUnrecognized() {
-        ParsedBusinessKey p = BusinessKeyParser.parse("daily_report:");
+        ParsedBusinessKey p = BusinessKeyParser.parse("task_submission:");
         assertThat(p.isRecognized()).isFalse();
     }
 
@@ -110,7 +100,7 @@ class BusinessKeyParserTest {
 
     @Test
     void buildProducesExpectedFormat() {
-        assertThat(BusinessKeyParser.build("daily_report", 123L)).isEqualTo("daily_report:123");
+        assertThat(BusinessKeyParser.build("task_submission", 123L)).isEqualTo("task_submission:123");
         assertThat(BusinessKeyParser.build("wiki_page", 456)).isEqualTo("wiki_page:456");
     }
 }

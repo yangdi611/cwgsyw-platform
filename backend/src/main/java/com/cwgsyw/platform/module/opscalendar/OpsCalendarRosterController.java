@@ -15,18 +15,16 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * 排班接口。权限 ops_calendar:manage。
- */
+/** 日历设置中的排班管理接口。 */
 @RestController
-@RequestMapping("/api/ops-calendar/rosters")
+@RequestMapping("/api/calendar-settings/rosters")
 @RequiredArgsConstructor
 public class OpsCalendarRosterController {
 
     private final OpsCalendarRosterService rosterService;
 
     @GetMapping
-    @PreAuthorize("hasPermission('ops_calendar', 'read')")
+    @PreAuthorize("hasAuthority('calendar_settings:read')")
     public R<List<RosterVO>> list(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -37,27 +35,34 @@ public class OpsCalendarRosterController {
     }
 
     @PostMapping
-    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    @PreAuthorize("hasAuthority('calendar_settings:manage')")
     public R<RosterVO> create(@RequestBody RosterRequest req, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(rosterService.create(req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    @PreAuthorize("hasAuthority('calendar_settings:manage')")
     public R<RosterVO> update(@PathVariable Long id, @RequestBody RosterRequest req,
                               @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(rosterService.update(id, req, cu.getTenantId(), cu.getUserId()));
     }
 
     @PostMapping("/check-conflicts")
-    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    @PreAuthorize("hasAuthority('calendar_settings:manage')")
     public R<RosterConflictVO> checkConflicts(@RequestBody RosterRequest req,
                                               @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(rosterService.checkConflicts(cu.getTenantId(), req));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('calendar_settings:manage')")
+    public R<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
+        rosterService.delete(id, cu.getTenantId(), cu.getUserId());
+        return R.ok();
+    }
+
     @DeleteMapping("/{id}/remediation-test")
-    @PreAuthorize("hasPermission('ops_calendar', 'manage')")
+    @PreAuthorize("hasAuthority('calendar_settings:manage')")
     public R<Void> purgeRemediationTest(@PathVariable Long id,
                                         @RequestParam String runId,
                                         @AuthenticationPrincipal SecurityUser cu) {

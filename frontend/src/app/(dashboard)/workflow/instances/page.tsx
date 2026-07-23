@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { Button } from '@/components/v2/Button'
@@ -52,11 +51,6 @@ function instanceStatus(inst: InstanceVO): { variant: 'ok' | 'warn' | 'neutral';
   if (inst.suspended) return { variant: 'warn', label: '已挂起' }
   if (inst.ended) return { variant: 'ok', label: '已完成' }
   return { variant: 'neutral', label: '运行中' }
-}
-
-function dailyReportId(businessKey: string): string | null {
-  const match = /^daily_report:([1-9]\d*)$/.exec(businessKey)
-  return match?.[1] ?? null
 }
 
 export default function InstancesPage() {
@@ -147,17 +141,7 @@ export default function InstancesPage() {
     {
       key: 'business_key',
       title: '业务标识',
-      render: (r) => {
-        const reportId = dailyReportId(r.businessKey)
-        if (reportId) {
-          return (
-            <Link href={`/daily/${reportId}`} className="font-v2-mono text-xs text-v2-primary hover:text-v2-primary-hover">
-              {r.businessKey}
-            </Link>
-          )
-        }
-        return <span className="font-v2-mono text-xs text-v2-muted">{r.businessKey || '-'}</span>
-      },
+      render: (r) => <span className="font-v2-mono text-xs text-v2-muted">{r.businessKey || '-'}</span>,
     },
     {
       key: 'start_time',

@@ -1,55 +1,39 @@
 'use client'
 
 import { DataTable, type ColumnDef } from '@/components/shared'
-import { TaskStatusBadge, TaskTypeBadge } from './TaskBadges'
-import { type TaskVO, fmtTime } from '@/lib/opsCalendar'
+import { StatusBadge } from '@/components/v2/StatusBadge'
+import { fmtTime } from '@/lib/opsCalendar'
+import { type CalendarWorkItem, calendarItemTypeLabel, calendarMetaText, calendarStatusLabel } from '@/lib/calendar-api'
 
 interface Props {
-  tasks: TaskVO[]
+  items: CalendarWorkItem[]
   loading: boolean
-  onTaskClick: (taskId: number) => void
+  onItemClick: (item: CalendarWorkItem) => void
 }
 
-export function CalendarListView({ tasks, loading, onTaskClick }: Props) {
-  const columns: ColumnDef<TaskVO>[] = [
-    {
-      key: 'title', title: '任务名称',
-      render: (r) => <span className="font-semibold text-v2-fg">{r.title}</span>,
-    },
-    { key: 'taskType', title: '类型', render: (r) => <TaskTypeBadge taskType={r.taskType} /> },
-    {
-      key: 'plannedStartAt', title: '计划时间',
-      render: (r) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(r.plannedStartAt)}</span>,
-    },
-    {
-      key: 'dueAt', title: '截止时间',
-      render: (r) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(r.dueAt)}</span>,
-    },
+export function CalendarListView({ items, loading, onItemClick }: Props) {
+  const columns: ColumnDef<CalendarWorkItem>[] = [
+    { key: 'title', title: '事项', render: (item) => <span className="font-semibold text-v2-fg">{item.title}</span> },
+    { key: 'itemType', title: '类型', render: (item) => <StatusBadge status="neutral">{calendarItemTypeLabel(item.itemType)}</StatusBadge> },
+    { key: 'startAt', title: '开始时间', render: (item) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(item.startAt)}</span> },
+    { key: 'endAt', title: '结束/截止', render: (item) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(item.endAt)}</span> },
     {
       key: 'assigneeName', title: '负责人',
-      render: (r) => r.assigneeName
-        ? <span className="text-sm text-v2-fg">{r.assigneeName}</span>
+      render: (item) => calendarMetaText(item, 'assigneeName')
+        ? <span className="text-sm text-v2-fg">{calendarMetaText(item, 'assigneeName')}</span>
         : <span className="text-v2-subtle">-</span>,
     },
-    { key: 'status', title: '状态', render: (r) => <TaskStatusBadge status={r.status} /> },
-    {
-      key: 'sourceType', title: '来源',
-      render: (r) => <span className="text-xs text-v2-muted">{sourceLabel(r.sourceType)}</span>,
-    },
+    { key: 'status', title: '状态', render: (item) => <StatusBadge status={item.overdue ? 'danger' : item.status === 'completed' ? 'ok' : 'neutral'}>{item.overdue ? '已逾期' : calendarStatusLabel(item.status)}</StatusBadge> },
   ]
 
   return (
     <DataTable
       columns={columns}
-      data={tasks}
-      rowKey={(r) => r.id}
+      data={items}
+      rowKey={(item) => item.id}
       loading={loading}
-      onRowClick={(r) => onTaskClick(r.id)}
-      empty={{ title: '暂无任务', description: '当前筛选范围内没有运维日历任务' }}
+      onRowClick={onItemClick}
+      empty={{ title: '暂无日历事项', description: '当前筛选范围内没有任务、排班或节假日' }}
     />
   )
-}
-
-function sourceLabel(s: string): string {
-  return { manual: '手动创建', rule: '周期规则', holiday: '节假日', roster: '排班', system: '系统' }[s] ?? s
 }

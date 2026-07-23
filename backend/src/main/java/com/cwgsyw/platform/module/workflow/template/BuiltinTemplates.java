@@ -54,10 +54,10 @@ public final class BuiltinTemplates {
         TemplateDefinition.builder()
             .code(GROUP_ANY_APPROVAL)
             .name("组内任一人审批")
-            .description("组内任意一名候选人审批即可通过（或签），适用于日报审批、Wiki 空间管理员审批、普通组内申请。")
+            .description("组内任意一名候选人审批即可通过（或签），适用于 Wiki 空间管理员审批和普通组内申请。")
             .version(1)
             .enabled(true)
-            .supportedBusinessTypes(List.of("daily_report", "wiki_page", "change_doc"))
+            .supportedBusinessTypes(List.of("wiki_page", "change_doc"))
             .configSchema(List.of(
                 f("candidateSource", "候选组来源", "select", true,
                     List.of("submitter_group_leaders", "submitter_group", "specific_group"), "submitter_group_leaders"),

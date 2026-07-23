@@ -79,6 +79,7 @@ public class OpsCalendarRosterService {
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         OpsDutyRoster r = new OpsDutyRoster();
         r.setTenantId(tenantId);
+        r.setUpdatedBy(operatorId);
         applyRequest(r, req);
         rosterMapper.insert(r);
         writeAudit(tenantId, "create", r.getId(), operatorId, null);
@@ -92,9 +93,22 @@ public class OpsCalendarRosterService {
         if (r == null || !tenantId.equals(r.getTenantId())) throw new IllegalArgumentException("排班记录不存在");
         activeGroupReferenceValidator.lockAndRequire(tenantId, req.getGroupId());
         applyRequest(r, req);
+        r.setUpdatedBy(operatorId);
         rosterMapper.updateById(r);
         writeAudit(tenantId, "update", id, operatorId, null);
         return toVO(r, null);
+    }
+
+    @Transactional
+    public void delete(Long id, String tenantId, Long operatorId) {
+        OpsDutyRoster roster = rosterMapper.selectById(id);
+        if (roster == null || !tenantId.equals(roster.getTenantId())) {
+            throw new IllegalArgumentException("排班记录不存在");
+        }
+        roster.setUpdatedBy(operatorId);
+        rosterMapper.updateById(roster);
+        rosterMapper.deleteById(id);
+        writeAudit(tenantId, "delete", id, operatorId, null);
     }
 
     @Transactional
@@ -183,6 +197,8 @@ public class OpsCalendarRosterService {
         vo.setPhoneOverride(r.getPhoneOverride());
         vo.setGroupId(r.getGroupId());
         vo.setRemark(r.getRemark());
+        vo.setUpdatedBy(r.getUpdatedBy());
+        vo.setUpdatedAt(r.getUpdatedAt());
         if (r.getAssigneeId() != null) {
             User u = userMapper.selectById(r.getAssigneeId());
             if (u != null) {

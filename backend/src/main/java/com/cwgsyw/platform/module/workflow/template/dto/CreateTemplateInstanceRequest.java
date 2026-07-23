@@ -15,7 +15,7 @@ public class CreateTemplateInstanceRequest {
     private String name;
     /** 流程 key（== 生成 BPMN 的 process id），字母开头、3-64 位。 */
     private String processKey;
-    /** 目标业务类型：daily_report / wiki_page / change_doc 等。 */
+    /** 目标业务类型：wiki_page / change_doc / device_access 等。 */
     private String businessType;
     private String description;
     /** 配置项键值（候选组等）。 */

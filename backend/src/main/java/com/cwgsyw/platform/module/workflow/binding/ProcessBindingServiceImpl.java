@@ -3,7 +3,6 @@ package com.cwgsyw.platform.module.workflow.binding;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.template.model.WorkflowTemplateInstance;
 import com.cwgsyw.platform.module.workflow.template.model.WorkflowTemplateInstanceMapper;
 import com.cwgsyw.platform.common.BusinessException;
@@ -17,7 +16,6 @@ import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * {@link ProcessBindingService} 实现。
@@ -30,16 +28,7 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
     private final WorkflowProcessBindingMapper bindingMapper;
     private final WorkflowTemplateInstanceMapper templateInstanceMapper;
     private final RepositoryService repositoryService;
-    private final SysConfigService configService;
     private final AuditLogMapper auditLogMapper;
-
-    /** businessType -> 旧 admin/config 兼容配置项 key。 */
-    private static final Map<String, String> LEGACY_CONFIG_KEYS = Map.of(
-        "daily_report", "daily_report_process_definition_id",
-        "wiki_page", "wiki_publish_process_definition_id",
-        "change_doc", "change_doc_process_definition_id",
-        "device_access", "device_access_process_definition_id"
-    );
 
     @Override
     public WorkflowProcessBinding getActiveBinding(String tenantId, String businessType) {
@@ -51,32 +40,7 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
         if (binding != null) {
             return Boolean.TRUE.equals(binding.getEnabled()) ? binding : null;
         }
-        if (bindingMapper.countIncludingDeleted(tenantId, businessType) > 0) return null;
-        // 兼容：回退到旧 admin/config 配置项
-        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
-        if (legacyKey == null) {
-            return null;
-        }
-        String defId = configService.get(tenantId, legacyKey);
-        if (defId == null || defId.isBlank()) {
-            return null;
-        }
-        ProcessDefinition def = repositoryService.createProcessDefinitionQuery()
-            .processDefinitionId(defId)
-            .singleResult();
-        if (def == null) {
-            log.warn("Legacy binding config {}={} 指向的流程定义已不存在", legacyKey, defId);
-            return null;
-        }
-        // 构造一个瞬态绑定视图（不落库）
-        WorkflowProcessBinding view = new WorkflowProcessBinding();
-        view.setTenantId(tenantId);
-        view.setBusinessType(businessType);
-        view.setProcessDefinitionId(def.getId());
-        view.setProcessDefinitionKey(def.getKey());
-        view.setProcessDefinitionVersion(def.getVersion());
-        view.setEnabled(true);
-        return view;
+        return null;
     }
 
     @Override
@@ -121,12 +85,6 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
             bindingMapper.updateById(binding);
         }
 
-        // 同步更新旧配置项，避免尚未迁移的老逻辑短期失效
-        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
-        if (legacyKey != null) {
-            configService.set(tenantId, legacyKey, def.getId());
-        }
-
         auditLogMapper.insert(AuditLog.builder()
             .tenantId(tenantId)
             .module("workflow")
@@ -154,7 +112,6 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
         binding.setUpdatedBy(operatorId);
         binding.setUpdatedAt(LocalDateTime.now());
         bindingMapper.updateById(binding);
-        syncLegacyConfig(binding.getBusinessType(), tenantId, binding.getProcessDefinitionId());
         writeAudit(binding, operatorId, "enable_binding", beforeJson, snapshot(binding));
         return binding;
     }
@@ -169,7 +126,6 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
         binding.setUpdatedBy(operatorId);
         binding.setUpdatedAt(LocalDateTime.now());
         bindingMapper.updateById(binding);
-        clearLegacyConfig(binding.getBusinessType(), tenantId);
         writeAudit(binding, operatorId, "disable_binding", beforeJson, snapshot(binding));
         return binding;
     }
@@ -186,7 +142,6 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
         binding.setUpdatedAt(binding.getDeletedAt());
         bindingMapper.updateById(binding);
         bindingMapper.deleteById(bindingId);
-        clearLegacyConfig(binding.getBusinessType(), tenantId);
         writeAudit(binding, operatorId, "delete_binding", beforeJson, snapshot(binding));
     }
 
@@ -205,16 +160,6 @@ public class ProcessBindingServiceImpl implements ProcessBindingService {
             throw new BusinessException(HttpStatus.NOT_FOUND, "WORKFLOW_BINDING_NOT_FOUND", "流程绑定不存在");
         }
         return binding;
-    }
-
-    private void syncLegacyConfig(String businessType, String tenantId, String processDefinitionId) {
-        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
-        if (legacyKey != null) configService.set(tenantId, legacyKey, processDefinitionId);
-    }
-
-    private void clearLegacyConfig(String businessType, String tenantId) {
-        String legacyKey = LEGACY_CONFIG_KEYS.get(businessType);
-        if (legacyKey != null) configService.set(tenantId, legacyKey, "");
     }
 
     private String snapshot(WorkflowProcessBinding binding) {

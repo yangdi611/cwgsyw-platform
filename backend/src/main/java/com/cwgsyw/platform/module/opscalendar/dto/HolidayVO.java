@@ -2,6 +2,7 @@ package com.cwgsyw.platform.module.opscalendar.dto;
 
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class HolidayVO {
@@ -13,4 +14,6 @@ public class HolidayVO {
     private String workdayOverrides;
     private Boolean enabled;
     private String remark;
+    private Long updatedBy;
+    private LocalDateTime updatedAt;
 }

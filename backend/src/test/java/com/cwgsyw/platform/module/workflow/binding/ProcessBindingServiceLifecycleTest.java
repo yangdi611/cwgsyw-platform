@@ -1,7 +1,6 @@
 package com.cwgsyw.platform.module.workflow.binding;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
-import com.cwgsyw.platform.module.config.SysConfigService;
 import com.cwgsyw.platform.module.workflow.template.model.WorkflowTemplateInstanceMapper;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.repository.ProcessDefinition;
@@ -25,7 +24,6 @@ class ProcessBindingServiceLifecycleTest {
     @Mock WorkflowProcessBindingMapper bindingMapper;
     @Mock WorkflowTemplateInstanceMapper templateInstanceMapper;
     @Mock RepositoryService repositoryService;
-    @Mock SysConfigService configService;
     @Mock AuditLogMapper auditLogMapper;
     @Mock ProcessDefinition definition;
     @Mock ProcessDefinitionQuery definitionQuery;
@@ -33,35 +31,13 @@ class ProcessBindingServiceLifecycleTest {
     @InjectMocks ProcessBindingServiceImpl service;
 
     @Test
-    void disabledOrDeletedHistoryBlocksLegacyFallback() {
+    void disabledOrDeletedHistoryHasNoActiveBinding() {
         when(bindingMapper.selectOne(any())).thenReturn(null);
-        when(bindingMapper.countIncludingDeleted("tenant-a", "daily_report")).thenReturn(1L);
-
-        assertThat(service.getActiveBinding("tenant-a", "daily_report")).isNull();
-
-        verify(configService, never()).get(any(), any());
+        assertThat(service.getActiveBinding("tenant-a", "task_submission")).isNull();
     }
 
     @Test
-    void neverMigratedBusinessTypeStillUsesLegacyFallback() {
-        when(bindingMapper.selectOne(any())).thenReturn(null);
-        when(bindingMapper.countIncludingDeleted("tenant-a", "daily_report")).thenReturn(0L);
-        when(configService.get("tenant-a", "daily_report_process_definition_id")).thenReturn("def-1");
-        when(repositoryService.createProcessDefinitionQuery()).thenReturn(definitionQuery);
-        when(definitionQuery.processDefinitionId("def-1")).thenReturn(definitionQuery);
-        when(definitionQuery.singleResult()).thenReturn(definition);
-        when(definition.getId()).thenReturn("def-1");
-        when(definition.getKey()).thenReturn("daily");
-        when(definition.getVersion()).thenReturn(2);
-
-        assertThat(service.getActiveBinding("tenant-a", "daily_report"))
-            .extracting(WorkflowProcessBinding::getProcessDefinitionId,
-                WorkflowProcessBinding::getProcessDefinitionVersion)
-            .containsExactly("def-1", 2);
-    }
-
-    @Test
-    void disableClearsLegacyKeyAndAudits() {
+    void disableAuditsWithoutWritingCompatibilityConfig() {
         WorkflowProcessBinding binding = binding(true);
         when(bindingMapper.selectOne(any())).thenReturn(binding);
 
@@ -69,12 +45,11 @@ class ProcessBindingServiceLifecycleTest {
 
         assertThat(result.getEnabled()).isFalse();
         verify(bindingMapper).updateById(binding);
-        verify(configService).set("tenant-a", "daily_report_process_definition_id", "");
         verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 
     @Test
-    void enableRevalidatesAndRestoresLegacyKey() {
+    void enableRevalidatesAndAuditsWithoutWritingCompatibilityConfig() {
         WorkflowProcessBinding binding = binding(false);
         when(bindingMapper.selectOne(any())).thenReturn(binding);
         when(repositoryService.createProcessDefinitionQuery()).thenReturn(definitionQuery);
@@ -86,7 +61,6 @@ class ProcessBindingServiceLifecycleTest {
         WorkflowProcessBinding result = service.enable("tenant-a", 9L, 7L);
 
         assertThat(result.getEnabled()).isTrue();
-        verify(configService).set("tenant-a", "daily_report_process_definition_id", "def-1");
         verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 
@@ -103,12 +77,11 @@ class ProcessBindingServiceLifecycleTest {
             .isInstanceOf(IllegalStateException.class);
 
         verify(bindingMapper, never()).updateById(any(WorkflowProcessBinding.class));
-        verify(configService, never()).set(any(), any(), any());
         verify(auditLogMapper, never()).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 
     @Test
-    void deleteSoftDeletesClearsLegacyAndAudits() {
+    void deleteSoftDeletesAndAuditsWithoutWritingCompatibilityConfig() {
         WorkflowProcessBinding binding = binding(true);
         when(bindingMapper.selectOne(any())).thenReturn(binding);
 
@@ -118,7 +91,6 @@ class ProcessBindingServiceLifecycleTest {
         assertThat(binding.getDeletedBy()).isEqualTo(7L);
         verify(bindingMapper).updateById(binding);
         verify(bindingMapper).deleteById(9L);
-        verify(configService).set("tenant-a", "daily_report_process_definition_id", "");
         verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
     }
 
@@ -137,7 +109,7 @@ class ProcessBindingServiceLifecycleTest {
         WorkflowProcessBinding binding = new WorkflowProcessBinding();
         binding.setId(9L);
         binding.setTenantId("tenant-a");
-        binding.setBusinessType("daily_report");
+        binding.setBusinessType("change_doc");
         binding.setProcessDefinitionId("def-1");
         binding.setProcessDefinitionKey("daily");
         binding.setProcessDefinitionVersion(1);

@@ -52,7 +52,6 @@ interface ProcessDef {
 }
 
 const BUSINESS_TYPES = [
-  { value: 'daily_report', label: '日报审批' },
   { value: 'wiki_page', label: 'Wiki 页面审批' },
   { value: 'change_doc', label: '变更文档审批' },
 ]
