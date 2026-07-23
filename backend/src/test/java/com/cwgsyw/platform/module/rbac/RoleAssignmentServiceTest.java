@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RoleAssignmentServiceTest {
     @Mock RoleAssignmentMapper assignmentMapper;
-    @Mock SysUserRoleMapper userRoleMapper;
     @Mock SysRoleMapper roleMapper;
     @Mock UserMapper userMapper;
     @Mock GroupMapper groupMapper;
@@ -44,7 +43,7 @@ class RoleAssignmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RoleAssignmentService(assignmentMapper, userRoleMapper, roleMapper, userMapper,
+        service = new RoleAssignmentService(assignmentMapper, roleMapper, userMapper,
             groupMapper, auditLogMapper, rolePermissionMapper, permissionMapper, membershipMapper,
             authorizationWriteLockService, activeGroupReferenceValidator);
     }
@@ -179,7 +178,7 @@ class RoleAssignmentServiceTest {
         when(membershipMapper.findActiveGroupIds("default", 8L)).thenReturn(List.of());
         when(assignmentMapper.selectList(any())).thenReturn(List.of());
 
-        service.replaceLegacyRoles(8L, List.of(3L), "default", 9L, 1L);
+        service.replaceManagedRoles(8L, List.of(3L), "default", 9L, 1L);
 
         var inOrder = inOrder(authorizationWriteLockService, roleMapper, membershipMapper, assignmentMapper);
         inOrder.verify(authorizationWriteLockService).lockUserAuthorization("default", 8L);
@@ -203,7 +202,7 @@ class RoleAssignmentServiceTest {
         when(assignmentMapper.selectList(any())).thenReturn(List.of(generated));
         when(assignmentMapper.softDeleteActiveAssignment(12L, "default", 8L, 1L)).thenReturn(1);
 
-        service.replaceLegacyRoles(8L, List.of(), "default", null, 1L);
+        service.replaceManagedRoles(8L, List.of(), "default", null, 1L);
 
         var replaceLocks = inOrder(authorizationWriteLockService);
         replaceLocks.verify(authorizationWriteLockService).lockUserAuthorization("default", 8L);

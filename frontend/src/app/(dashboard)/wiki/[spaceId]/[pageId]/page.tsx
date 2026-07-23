@@ -12,9 +12,7 @@ import { Button } from '@/components/v2/Button'
 import { StatusBadge } from '@/components/v2/StatusBadge'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
-import { WikiAclDialog } from '@/components/wiki/WikiAclDialog'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
-import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
 import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock, MessageCircle } from 'lucide-react'
@@ -66,7 +64,6 @@ export default function WikiPageReader() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { resolvedTheme } = useTheme()
-  const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const sid = Number(spaceId)
   const pid = Number(pageId)
@@ -256,10 +253,8 @@ export default function WikiPageReader() {
       </aside>
 
       {canManageAcl && (
-        authorizationEnforced
-          ? <ResourceAccessDialog resourceType="wiki_page" resourceId={pid} title={page.title}
-              container open={aclOpen} onOpenChange={setAclOpen} />
-          : <WikiAclDialog pageId={pid} pageTitle={page.title} open={aclOpen} onOpenChange={setAclOpen} />
+        <ResourceAccessDialog resourceType="wiki_page" resourceId={pid} title={page.title}
+          container open={aclOpen} onOpenChange={setAclOpen} />
       )}
 
       {/* 右下角评论入口 —— 复用页面 read 权限，无需 wiki:update */}

@@ -14,7 +14,6 @@ import com.cwgsyw.platform.module.user.entity.User;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
 import com.cwgsyw.platform.module.rbac.RoleAssignmentMapper;
-import com.cwgsyw.platform.module.rbac.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +33,6 @@ public class GroupMembershipService {
     private final RbacService rbacService;
     private final SysRoleMapper roleMapper;
     private final RoleAssignmentMapper roleAssignmentMapper;
-    private final SysUserRoleMapper userRoleMapper;
     private final AuthorizationWriteLockService authorizationWriteLockService;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
@@ -351,8 +349,7 @@ public class GroupMembershipService {
     private boolean isSuperAdmin(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) return false;
-        Set<Long> roleIds = new HashSet<>(userRoleMapper.findRoleIdsByUserId(userId));
-        roleIds.addAll(roleAssignmentMapper.findEffectiveRoleIds(user.getTenantId(), userId));
+        Set<Long> roleIds = new HashSet<>(roleAssignmentMapper.findEffectiveRoleIds(user.getTenantId(), userId));
         return !roleIds.isEmpty() && roleMapper.selectBatchIds(roleIds).stream()
             .anyMatch(role -> "super_admin".equals(role.getCode()));
     }

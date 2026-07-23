@@ -5,9 +5,8 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
 import com.cwgsyw.platform.module.notification.NotificationService;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
-import com.cwgsyw.platform.module.rbac.entity.SysUserRole;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
-import com.cwgsyw.platform.module.rbac.SysUserRoleMapper;
+import com.cwgsyw.platform.module.rbac.RoleAssignmentMapper;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,7 @@ public class CiNotificationService {
     private final NotificationService notificationService;
     private final CiInstanceMapper ciInstanceMapper;
     private final UserMapper userMapper;
-    private final SysUserRoleMapper sysUserRoleMapper;
+    private final RoleAssignmentMapper roleAssignmentMapper;
     private final SysRoleMapper sysRoleMapper;
 
     /**
@@ -94,7 +93,12 @@ public class CiNotificationService {
         ).stream().map(SysRole::getId).collect(Collectors.toList());
 
         if (!adminRoleIds.isEmpty()) {
-            List<Long> adminUserIds = sysUserRoleMapper.findUserIdsByRoleIds(adminRoleIds);
+            List<Long> adminUserIds = roleAssignmentMapper.selectList(new LambdaQueryWrapper<
+                    com.cwgsyw.platform.module.rbac.entity.RoleAssignment>()
+                    .in(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getRoleId, adminRoleIds)
+                    .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getTenantId, instance.getTenantId())
+                    .eq(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getIsDeleted, false))
+                .stream().map(com.cwgsyw.platform.module.rbac.entity.RoleAssignment::getUserId).distinct().toList();
             targetIds.addAll(adminUserIds);
         }
 

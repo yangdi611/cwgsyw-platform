@@ -1,10 +1,8 @@
 package com.cwgsyw.platform.module.wiki;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.cwgsyw.platform.module.authorization.AuthorizationModeService;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
-import com.cwgsyw.platform.module.wiki.dto.*;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
 import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
@@ -45,11 +43,9 @@ public class WikiManualSeeder implements ApplicationRunner {
     private final WikiSpaceMapper spaceMapper;
     private final WikiPageMapper pageMapper;
     private final WikiPageVersionMapper versionMapper;
-    private final WikiAclService aclService;
     private final WikiBacklinkService backlinkService;
     private final SysRoleMapper roleMapper;
     private final JdbcTemplate jdbcTemplate;
-    private final AuthorizationModeService authorizationModeService;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -66,7 +62,6 @@ public class WikiManualSeeder implements ApplicationRunner {
                 return;
             }
             SystemOwnership ownership = resolveSystemOwnership();
-            boolean writeLegacyAcl = writesLegacyAcl(authorizationModeService.cutoverStatus(TENANT));
             int totalPages = 0, totalChanged = 0;
             for (Map<String, Object> spaceCfg : spaces) {
                 WikiSpace space = findOrCreateSpace(spaceCfg, ownership);
@@ -76,7 +71,7 @@ public class WikiManualSeeder implements ApplicationRunner {
                 Map<String, Long> keyToId = new HashMap<>();
                 List<Long> changedIds = new ArrayList<>();
                 for (Map<String, Object> entry : pages) {
-                    upsertPage(space, writeScope, entry, keyToId, changedIds, ownership, writeLegacyAcl);
+                    upsertPage(space, writeScope, entry, keyToId, changedIds, ownership);
                 }
                 // 二次遍历：所有页面已存在后再重建变更页的 backlinks（解析 [[标题]] 跨页引用）
                 for (Long pid : changedIds) {
@@ -134,7 +129,7 @@ public class WikiManualSeeder implements ApplicationRunner {
     @SuppressWarnings("unchecked")
     private void upsertPage(WikiSpace space, String writeScope, Map<String, Object> entry,
                             Map<String, Long> keyToId, List<Long> changedIds,
-                            SystemOwnership ownership, boolean writeLegacyAcl) {
+                            SystemOwnership ownership) {
         String key = (String) entry.get("key");
         String title = str(entry.get("title"), key);
         String file = (String) entry.get("file");
@@ -203,9 +198,7 @@ public class WikiManualSeeder implements ApplicationRunner {
         }
         synchronizeSeedResource("wiki_page", pageId, ownership,
             systemPagePermissionMode(writeScope, pageReadOnly));
-        // 每次启动都重新校准 ACL（不只在首次创建时）——否则线上已存在的系统页面在 manifest
-        // 调整 write_scope/read_only 策略后不会跟着变，2026-07-06 修复
-        if (customAcl && writeLegacyAcl) applyAcl(pageId, pageReadOnly ? "none" : writeScope);
+        if (customAcl) applyResourceAcl(pageId, pageReadOnly ? "none" : writeScope);
     }
 
     private SystemOwnership resolveSystemOwnership() {
@@ -226,28 +219,18 @@ public class WikiManualSeeder implements ApplicationRunner {
         if (existing != null) return existing;
 
         Long ownerUserId = jdbcTemplate.query("""
-            SELECT candidate.user_id
-            FROM (
-                SELECT u.id AS user_id, 0 AS source_order
-                FROM sys_user u
-                JOIN sys_user_role ur ON ur.user_id = u.id
-                JOIN sys_role role ON role.id = ur.role_id AND NOT role.is_deleted
-                WHERE u.tenant_id = ? AND NOT u.is_deleted AND u.status = 1
-                  AND role.tenant_id = u.tenant_id AND role.code = 'super_admin'
-                UNION
-                SELECT u.id AS user_id, 1 AS source_order
-                FROM sys_user u
-                JOIN sys_role_assignment assignment ON assignment.user_id = u.id
-                    AND assignment.tenant_id = u.tenant_id AND NOT assignment.is_deleted
-                    AND (assignment.valid_from IS NULL OR assignment.valid_from <= NOW())
-                    AND (assignment.valid_until IS NULL OR assignment.valid_until > NOW())
-                JOIN sys_role role ON role.id = assignment.role_id AND NOT role.is_deleted
-                WHERE u.tenant_id = ? AND NOT u.is_deleted AND u.status = 1
-                  AND role.tenant_id = u.tenant_id AND role.code = 'super_admin'
-            ) candidate
-            ORDER BY candidate.source_order, candidate.user_id
+            SELECT u.id
+            FROM sys_user u
+            JOIN sys_role_assignment assignment ON assignment.user_id = u.id
+                AND assignment.tenant_id = u.tenant_id AND NOT assignment.is_deleted
+                AND (assignment.valid_from IS NULL OR assignment.valid_from <= NOW())
+                AND (assignment.valid_until IS NULL OR assignment.valid_until > NOW())
+            JOIN sys_role role ON role.id = assignment.role_id AND NOT role.is_deleted
+            WHERE u.tenant_id = ? AND NOT u.is_deleted AND u.status = 1
+              AND role.tenant_id = u.tenant_id AND role.code = 'super_admin'
+            ORDER BY u.id
             LIMIT 1
-            """, rs -> rs.next() ? rs.getLong(1) : null, TENANT, TENANT);
+            """, rs -> rs.next() ? rs.getLong(1) : null, TENANT);
         Long ownerGroupId = jdbcTemplate.query("""
             SELECT id FROM sys_group
             WHERE tenant_id = ? AND NOT is_deleted AND group_type <> 'unassigned'
@@ -273,10 +256,6 @@ public class WikiManualSeeder implements ApplicationRunner {
             ownership.userId(), ownership.groupId(), permissionMode, resourceId, TENANT, permissionMode);
     }
 
-    static boolean writesLegacyAcl(String cutoverStatus) {
-        return "rollback".equals(cutoverStatus);
-    }
-
     static int systemSpacePermissionMode(String writeScope) {
         return 0755;
     }
@@ -298,37 +277,26 @@ public class WikiManualSeeder implements ApplicationRunner {
         versionMapper.insert(v);
     }
 
-    /**
-     * 按 write_scope 设置页面 ACL（acl_inherited=false）。
-     * 注意权限动词以 WikiAclService.ALL_PERMS 为准：read/write/delete/publish（编辑用 write，无 update）。
-     * 这里只授予 read/write/publish，绝不授予 delete——delete 完全交给
-     * WikiSpaceService.hasWritePermission 的 isAdmin 分支单独把关（仅 admin/super_admin），
-     * 若在这里也授予 delete 会被 WikiAclService.hasExplicitPermission 的页面级 ACL 直接放行，
-     * 绕过"delete 仅管理员"的限制。
-     *   all              → 所有角色 read/write/publish（不含 delete）
-     *   none/super_admin_only → 锁定：所有角色（含 admin/super_admin）仅 read，只能评论
-     */
-    private void applyAcl(Long pageId, String writeScope) {
+    /** Rebuild the authoritative role ACL for a system page from the manifest policy. */
+    private void applyResourceAcl(Long pageId, String writeScope) {
         List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<>());
-        List<AclEntryDTO> entries = new ArrayList<>();
+        jdbcTemplate.update("""
+            UPDATE resource_acl_entry SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = ?
+            WHERE tenant_id = ? AND resource_type = 'wiki_page' AND resource_id = ?
+              AND subject_type = 'role' AND NOT is_deleted
+            """, SYSTEM_USER, TENANT, pageId);
         for (SysRole r : roles) {
-            AclEntryDTO e = new AclEntryDTO();
-            e.setSubjectType("role");
-            e.setSubjectId(r.getId());
-            e.setPermissions(permsFor(writeScope));
-            entries.add(e);
+            jdbcTemplate.update("""
+                INSERT INTO resource_acl_entry
+                    (tenant_id, resource_type, resource_id, entry_type, subject_type,
+                     subject_id, permissions, created_by)
+                VALUES (?, 'wiki_page', ?, 'access', 'role', ?, ?, ?)
+                """, TENANT, pageId, r.getId(), permissionBitsFor(writeScope), SYSTEM_USER);
         }
-        WikiAclDTO dto = new WikiAclDTO();
-        dto.setPageId(pageId);
-        dto.setInherited(false);
-        dto.setEntries(entries);
-        aclService.setAcl(TENANT, pageId, SYSTEM_USER, dto);
     }
 
-    private List<String> permsFor(String writeScope) {
-        return "all".equals(writeScope)
-                ? List.of("read", "write", "publish")
-                : List.of("read");
+    private int permissionBitsFor(String writeScope) {
+        return "all".equals(writeScope) ? 6 : 4;
     }
 
     private String loadMd(String file) {

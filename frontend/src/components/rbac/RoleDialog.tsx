@@ -41,7 +41,7 @@ const permissionModules = [
   { key: 'identity', label: '身份与权限', resources: ['user', 'group', 'role', 'resource'] },
   { key: 'knowledge', label: '知识与文档', resources: ['wiki', 'shared_file', 'change_doc', 'change_doc_template'] },
   { key: 'cmdb', label: 'CMDB 配置管理', resources: ['cmdb_alert', 'cmdb_attribute', 'cmdb_change', 'cmdb_impact', 'cmdb_import', 'cmdb_instance', 'cmdb_model', 'cmdb_relation', 'cmdb_topology'] },
-  { key: 'operations', label: '运维与协作', resources: ['daily_report', 'ops_calendar', 'workflow', 'notification'] },
+  { key: 'operations', label: '运维与协作', resources: ['task', 'task_template', 'task_plan', 'task_analytics', 'approval', 'work_item', 'calendar_settings', 'workflow', 'notification'] },
   { key: 'infrastructure', label: '基础设施', resources: ['device', 'ip_pool', 'backup'] },
   { key: 'platform', label: '平台治理', resources: ['ai_config', 'audit'] },
 ] as const

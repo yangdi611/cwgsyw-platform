@@ -34,7 +34,6 @@ interface PageResult {
 const MODULE_LABELS: Record<string, string> = {
   device: '设备密码库',
   change_doc: '变更文档',
-  daily_report: '工作日报',
   sys_config: '系统配置',
   user: '用户管理',
   group: '组管理',

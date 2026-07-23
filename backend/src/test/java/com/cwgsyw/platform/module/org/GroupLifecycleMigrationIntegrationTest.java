@@ -85,11 +85,11 @@ class GroupLifecycleMigrationIntegrationTest {
                     'require_active_business_group',
                     'parse_group_reference_id',
                     'require_active_visible_groups',
-                    'require_active_ops_rule_groups',
-                    'enforce_active_group_scalar_reference'
+                    'enforce_active_group_scalar_reference',
+                    'enforce_active_shared_file_group_references'
                 )
                 """));
-            assertEquals(18, queryInt(connection, """
+            assertEquals(GroupReferenceRegistry.requiredTriggers().size(), queryInt(connection, """
                 SELECT COUNT(*) FROM pg_trigger
                 WHERE NOT tgisinternal AND tgname LIKE 'trg_%_active_group%'
                 """));
@@ -239,7 +239,6 @@ class GroupLifecycleMigrationIntegrationTest {
 
             assertInvalidJsonFailure(connection, fixture, "jsonb_build_array('not-a-number')");
             assertInvalidJsonFailure(connection, fixture, "jsonb_build_array(jsonb_build_object('id', 1))");
-            assertInvalidOpsRuleFailure(connection, fixture, "{not-json}");
             connection.rollback();
         }
     }
@@ -552,9 +551,6 @@ class GroupLifecycleMigrationIntegrationTest {
                 SELECT COUNT(*) FROM sys_role_assignment
                 WHERE tenant_id=? AND scope_type='group' AND scope_id=? AND NOT is_deleted
                 """, fixture.tenantId(), fixture.groupId());
-            case "daily-report" -> queryInt(connection,
-                "SELECT COUNT(*) FROM daily_report WHERE tenant_id=? AND group_id=? AND NOT is_deleted",
-                fixture.tenantId(), fixture.groupId());
             case "device" -> queryInt(connection,
                 "SELECT COUNT(*) FROM device WHERE tenant_id=? AND group_id=? AND NOT is_deleted",
                 fixture.tenantId(), fixture.groupId());
@@ -562,13 +558,25 @@ class GroupLifecycleMigrationIntegrationTest {
                 SELECT COUNT(*) FROM device_credential
                 WHERE tenant_id=? AND group_id=? AND NOT is_deleted
                 """, fixture.tenantId(), fixture.groupId());
-            case "ops-task" -> queryInt(connection, """
-                SELECT COUNT(*) FROM ops_schedule_task
-                WHERE tenant_id=? AND group_id=? AND NOT is_deleted
-                """, fixture.tenantId(), fixture.groupId());
             case "ops-roster" -> queryInt(connection, """
                 SELECT COUNT(*) FROM ops_duty_roster
                 WHERE tenant_id=? AND group_id=? AND NOT is_deleted
+                """, fixture.tenantId(), fixture.groupId());
+            case "task-template" -> queryInt(connection, """
+                SELECT COUNT(*) FROM task_template
+                WHERE tenant_id=? AND owner_group_id=? AND NOT is_deleted
+                """, fixture.tenantId(), fixture.groupId());
+            case "approval-scheme" -> queryInt(connection, """
+                SELECT COUNT(*) FROM approval_scheme
+                WHERE tenant_id=? AND owner_group_id=? AND NOT is_deleted
+                """, fixture.tenantId(), fixture.groupId());
+            case "task-instance" -> queryInt(connection, """
+                SELECT COUNT(*) FROM task_instance
+                WHERE tenant_id=? AND group_id=? AND NOT is_deleted
+                """, fixture.tenantId(), fixture.groupId());
+            case "analytics-dashboard" -> queryInt(connection, """
+                SELECT COUNT(*) FROM task_analytics_dashboard
+                WHERE tenant_id=? AND owner_group_id=? AND NOT is_deleted
                 """, fixture.tenantId(), fixture.groupId());
             case "wiki-space-owner" -> queryInt(connection,
                 "SELECT COUNT(*) FROM wiki_space WHERE tenant_id=? AND owner_group_id=? AND NOT is_deleted",
@@ -585,18 +593,6 @@ class GroupLifecycleMigrationIntegrationTest {
                 fixture.tenantId(), fixture.groupId());
             case "resource-acl" -> queryInt(connection, """
                 SELECT COUNT(*) FROM resource_acl_entry
-                WHERE tenant_id=? AND subject_type='group' AND subject_id=? AND NOT is_deleted
-                """, fixture.tenantId(), fixture.groupId());
-            case "wiki-page-acl" -> queryInt(connection, """
-                SELECT COUNT(*) FROM wiki_page_acl
-                WHERE tenant_id=? AND subject_type='group' AND subject_id=? AND NOT is_deleted
-                """, fixture.tenantId(), fixture.groupId());
-            case "wiki-space-acl" -> queryInt(connection, """
-                SELECT COUNT(*) FROM wiki_space_acl
-                WHERE tenant_id=? AND subject_type='group' AND subject_id=? AND NOT is_deleted
-                """, fixture.tenantId(), fixture.groupId());
-            case "shared-folder-acl" -> queryInt(connection, """
-                SELECT COUNT(*) FROM shared_folder_acl
                 WHERE tenant_id=? AND subject_type='group' AND subject_id=? AND NOT is_deleted
                 """, fixture.tenantId(), fixture.groupId());
             case "owner" -> queryInt(connection,
@@ -622,19 +618,6 @@ class GroupLifecycleMigrationIntegrationTest {
                     WHERE parse_group_reference_id(value)=?
                   )
                 """, fixture.tenantId(), fixture.groupId());
-            case "ops-assignee-rule", "ops-recipient-rule", "ops-escalation-rule" -> queryInt(connection, """
-                SELECT COUNT(*) FROM ops_schedule_rule rule
-                WHERE rule.tenant_id=? AND rule.enabled AND NOT rule.is_deleted
-                  AND EXISTS (
-                    SELECT 1 FROM jsonb_path_query(
-                      jsonb_build_array(
-                        COALESCE(NULLIF(BTRIM(rule.assignee_rule),''),'{}')::jsonb,
-                        COALESCE(NULLIF(BTRIM(rule.recipient_rule),''),'{}')::jsonb,
-                        COALESCE(NULLIF(BTRIM(rule.escalation_rule),''),'{}')::jsonb
-                      ), 'strict $.**.groupId') reference(value)
-                    WHERE parse_group_reference_id(reference.value)=?
-                  )
-                """, fixture.tenantId(), fixture.groupId());
             default -> throw new IllegalArgumentException("Unknown writer selector: " + label);
         };
     }
@@ -646,11 +629,10 @@ class GroupLifecycleMigrationIntegrationTest {
 
     private static List<String> concurrentWriterNames() {
         return List.of(
-            "primary-user", "membership", "role-assignment", "daily-report", "device",
-            "device-credential", "ops-task", "ops-roster", "wiki-space-owner", "wiki-page-owner",
-            "shared-folder-owner", "shared-file-owner", "resource-acl", "wiki-page-acl",
-            "wiki-space-acl", "shared-folder-acl", "shared-file-visible-groups",
-            "ops-assignee-rule", "ops-recipient-rule", "ops-escalation-rule"
+            "primary-user", "membership", "role-assignment", "device",
+            "device-credential", "ops-roster", "task-template", "approval-scheme", "task-instance",
+            "analytics-dashboard", "wiki-space-owner", "wiki-page-owner",
+            "shared-folder-owner", "shared-file-owner", "resource-acl", "shared-file-visible-groups"
         );
     }
 
@@ -749,11 +731,6 @@ class GroupLifecycleMigrationIntegrationTest {
                     (tenant_id, user_id, role_id, scope_type, scope_id, origin_type)
                 VALUES (%s, %d, %d, 'group', %d, 'manual')
                 """.formatted(tenant, fixture.userId(), fixture.roleId(), group)),
-            new WriterCase("daily-report", """
-                INSERT INTO daily_report
-                    (tenant_id, group_id, reporter_id, report_date, completed_items, tomorrow_plan, status)
-                VALUES (%s, %d, %d, CURRENT_DATE, 'done', 'next', 'DRAFT')
-                """.formatted(tenant, group, fixture.userId())),
             new WriterCase("device", """
                 INSERT INTO device (tenant_id, group_id, name, device_type)
                 VALUES (%s, %d, %s, 'server')
@@ -768,16 +745,30 @@ class GroupLifecycleMigrationIntegrationTest {
                     (tenant_id, device_id, group_id, username, password_enc)
                 VALUES (%s, %d, %d, 'operator', 'encrypted')
                 """.formatted(tenant, fixture.deviceId(), group)),
-            new WriterCase("ops-task", """
-                INSERT INTO ops_schedule_task
-                    (tenant_id, title, task_type, source_type, status, group_id)
-                VALUES (%s, %s, 'inspection', 'manual', 'not_started', %d)
-                """.formatted(tenant, literal(unique("task")), group)),
             new WriterCase("ops-roster", """
                 INSERT INTO ops_duty_roster
                     (tenant_id, duty_date, shift_name, assignee_id, group_id)
                 VALUES (%s, CURRENT_DATE, 'day', %d, %d)
                 """.formatted(tenant, fixture.userId(), group)),
+            new WriterCase("task-template", """
+                INSERT INTO task_template
+                    (tenant_id, code, name, status, builtin, scope_type, owner_group_id)
+                VALUES (%s, %s, %s, 'draft', FALSE, 'group', %d)
+                """.formatted(tenant, literal(unique("template-code")), literal(unique("template-name")), group)),
+            new WriterCase("approval-scheme", """
+                INSERT INTO approval_scheme
+                    (tenant_id, code, name, status, scope_type, owner_group_id)
+                VALUES (%s, %s, %s, 'draft', 'group', %d)
+                """.formatted(tenant, literal(unique("approval-code")), literal(unique("approval-name")), group)),
+            new WriterCase("task-instance", """
+                INSERT INTO task_instance (tenant_id, template_version_id, title, group_id)
+                VALUES (%s, (SELECT id FROM task_template_version WHERE tenant_id='default' LIMIT 1), %s, %d)
+                """.formatted(tenant, literal(unique("task-title")), group)),
+            new WriterCase("analytics-dashboard", """
+                INSERT INTO task_analytics_dashboard
+                    (tenant_id, code, name, scope_type, owner_group_id)
+                VALUES (%s, %s, %s, 'group', %d)
+                """.formatted(tenant, literal(unique("dashboard-code")), literal(unique("dashboard-name")), group)),
             new WriterCase("wiki-space-owner", """
                 INSERT INTO wiki_space (tenant_id, name, owner_group_id)
                 VALUES (%s, %s, %d)
@@ -799,30 +790,9 @@ class GroupLifecycleMigrationIntegrationTest {
                     (tenant_id, resource_type, resource_id, entry_type, subject_type, subject_id, permissions)
                 VALUES (%s, 'wiki_space', %d, 'access', 'group', %d, 4)
                 """.formatted(tenant, fixture.wikiSpaceId(), group)),
-            new WriterCase("wiki-page-acl", """
-                INSERT INTO wiki_page_acl
-                    (tenant_id, page_id, subject_type, subject_id, permissions)
-                VALUES (%s, %d, 'group', %d, '["read"]')
-                """.formatted(tenant, fixture.wikiPageId(), group)),
-            new WriterCase("wiki-space-acl", """
-                INSERT INTO wiki_space_acl
-                    (tenant_id, space_id, subject_type, subject_id, permissions)
-                VALUES (%s, %d, 'group', %d, '["update"]')
-                """.formatted(tenant, fixture.wikiSpaceId(), group)),
-            new WriterCase("shared-folder-acl", """
-                INSERT INTO shared_folder_acl
-                    (tenant_id, folder_id, subject_type, subject_id, permissions)
-                VALUES (%s, %d, 'group', %d, '["read"]')
-                """.formatted(tenant, fixture.folderId(), group)),
             new WriterCase("shared-file-visible-groups",
                 sharedFileSql(fixture, "jsonb_build_array(%d::BIGINT, %s)".formatted(group,
-                    literal(Long.toString(group))), null)),
-            new WriterCase("ops-assignee-rule", opsRuleSql(fixture,
-                "{\"type\":\"group_leader\",\"groupId\":%d}".formatted(group), "{}", "{}")),
-            new WriterCase("ops-recipient-rule", opsRuleSql(fixture, "{}",
-                "{\"nested\":{\"groupId\":\"%d\"}}".formatted(group), "{}")),
-            new WriterCase("ops-escalation-rule", opsRuleSql(fixture, "{}", "{}",
-                "{\"targets\":[{\"groupId\":%d}]}".formatted(group)))
+                    literal(Long.toString(group))), null))
         );
     }
 
@@ -837,14 +807,6 @@ class GroupLifecycleMigrationIntegrationTest {
                 ownerGroupId == null ? "NULL" : Long.toString(ownerGroupId));
     }
 
-    private static String opsRuleSql(Fixture fixture, String assignee, String recipient, String escalation) {
-        return """
-            INSERT INTO ops_schedule_rule
-                (tenant_id, name, task_type, trigger_type, assignee_rule, recipient_rule, escalation_rule)
-            VALUES (%s, %s, 'inspection', 'daily', %s, %s, %s)
-            """.formatted(literal(fixture.tenantId()), literal(unique("rule")), literal(assignee),
-                literal(recipient), literal(escalation));
-    }
 
     private static void assertHelperFailure(Connection connection, String tenantId, long groupId)
         throws SQLException {
@@ -867,17 +829,6 @@ class GroupLifecycleMigrationIntegrationTest {
         connection.rollback(savepoint);
     }
 
-    private static void assertInvalidOpsRuleFailure(Connection connection, Fixture fixture, String invalidJson)
-        throws SQLException {
-        Savepoint savepoint = connection.setSavepoint();
-        SQLException failure = assertThrows(SQLException.class, () -> {
-            try (Statement statement = connection.createStatement()) {
-                statement.executeUpdate(opsRuleSql(fixture, invalidJson, "{}", "{}"));
-            }
-        });
-        assertSqlFailure(failure, INVALID_SQL_STATE, "GROUP_REFERENCE_INVALID");
-        connection.rollback(savepoint);
-    }
 
     private static void assertSqlFailure(SQLException failure, String sqlState, String message) {
         assertEquals(sqlState, failure.getSQLState());

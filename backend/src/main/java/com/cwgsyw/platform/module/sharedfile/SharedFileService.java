@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.security.SecurityUser;
 
@@ -49,26 +49,17 @@ public class SharedFileService {
 
     private final SharedFileMapper fileMapper;
     private final SharedFolderService folderService;
-    private final SharedFolderAclService aclService;
     private final MinioStorageService storageService;
     private final AuditLogMapper auditLogMapper;
     private final AuditSnapshotSerializer auditSnapshotSerializer;
     private final UserMapper userMapper;
-    private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     private final AuthorizationService authorizationService;
     private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
     public PageResult<SharedFileVO> listFiles(String tenantId, Long folderId, String keyword,
                                               SecurityUser user, int page, int size) {
-        boolean enforced = authorizationService.isEnforced(user, "shared_file");
-        PageResult<SharedFileVO> result = enforced
-            ? queryFiles(tenantId, folderId, keyword, null, null, page, size)
-            : listFiles(tenantId, folderId, keyword, user.getUserId(),
-                user.getGroupId(), user.getGroupScope(), page, size);
-        if (!enforced) {
-            applyCapabilities(result, user);
-            return result;
-        }
+        PageResult<SharedFileVO> result = queryFiles(tenantId, folderId, keyword, null, null, page, size);
         List<SharedFileVO> allowed = result.getRecords().stream()
             .filter(file -> authorizationService.decide(user, "shared_file:read", "shared_file", file.getId(), 4)
                 .isAllowed())
@@ -80,27 +71,16 @@ public class SharedFileService {
     }
 
     private void applyCapabilities(PageResult<SharedFileVO> result, SecurityUser user) {
-        boolean legacyDelete = user.getPermissions().contains("shared_file:delete");
-        boolean legacyManageAcl = user.getPermissions().contains("shared_file:manage_acl");
         for (SharedFileVO file : result.getRecords()) {
-            file.setCanDelete(authorizationService.decideParentWithCompatibility(user, "shared_file",
-                "shared_file:delete", "shared_file", file.getId(), 3, legacyDelete));
-            file.setCanManageAcl(authorizationService.decideWithCompatibility(user, "shared_file",
-                "shared_file:manage_acl", "shared_file", file.getId(), 2, legacyManageAcl));
+            file.setCanDelete(authorizationService.decideParent(user,
+                "shared_file:delete", "shared_file", file.getId(), 3));
+            file.setCanManageAcl(authorizationService.decide(user,
+                "shared_file:manage_acl", "shared_file", file.getId(), 2).isAllowed());
         }
     }
 
     public PageResult<SharedFileVO> listFiles(String tenantId, Long folderId, String keyword,
                                                Long userId, Long userGroupId, String groupScope, int page, int size) {
-        // 文件夹 ACL：无 read 权限直接返回空列表（搜索为全局，folderId 为空时不限制）
-        if (folderId != null && !aclService.hasPermission(tenantId, folderId, userId, userGroupId, groupScope, "read")) {
-            PageResult<SharedFileVO> empty = new PageResult<>();
-            empty.setRecords(List.of());
-            empty.setTotal(0);
-            empty.setPage(page);
-            empty.setSize(size);
-            return empty;
-        }
         return queryFiles(tenantId, folderId, keyword, userGroupId, groupScope, page, size);
     }
 
@@ -162,9 +142,6 @@ public class SharedFileService {
     public SharedFileVO uploadFile(String tenantId, Long operatorId, MultipartFile file,
                                     Long folderId, List<Long> visibleGroups,
                                     Long groupId, String groupScope) {
-        if (folderId != null && !aclService.hasPermission(tenantId, folderId, operatorId, groupId, groupScope, "write")) {
-            throw new IllegalStateException("无权在该文件夹上传文件");
-        }
         return uploadFileUnchecked(tenantId, operatorId, file, folderId, visibleGroups, groupId);
     }
 
@@ -201,7 +178,7 @@ public class SharedFileService {
         sf.setUpdatedAt(LocalDateTime.now());
         try {
             fileMapper.insert(sf);
-            resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", sf.getId(),
+            resourceAuthorizationInitializer.initialize(tenantId, "shared_file", sf.getId(),
                 operatorId, groupId, 0660);
 
             auditLogMapper.insert(AuditLog.builder()
@@ -228,12 +205,8 @@ public class SharedFileService {
     @Transactional
     public SharedFileVO uploadFile(SecurityUser user, MultipartFile file, Long folderId,
                                    List<Long> visibleGroups, Long ownerGroupId) {
-        if (authorizationService.isEnforced(user, "shared_file")) {
-            return uploadFileUnchecked(user.getTenantId(), user.getUserId(), file, folderId,
-                visibleGroups, ownerGroupId);
-        }
-        return uploadFile(user.getTenantId(), user.getUserId(), file, folderId, visibleGroups,
-            ownerGroupId, user.getGroupScope());
+        return uploadFileUnchecked(user.getTenantId(), user.getUserId(), file, folderId,
+            visibleGroups, ownerGroupId);
     }
 
     public SharedFileVO getFile(String tenantId, Long fileId) {
@@ -253,10 +226,6 @@ public class SharedFileService {
                 .eq(SharedFile::getId, fileId));
         if (sf == null) throw new IllegalArgumentException("文件不存在: " + fileId);
 
-        if (sf.getFolderId() != null
-                && !aclService.hasPermission(tenantId, sf.getFolderId(), operatorId, groupId, groupScope, "delete")) {
-            throw new IllegalStateException("无权删除该文件夹下的文件");
-        }
         deleteFileUnchecked(tenantId, fileId, operatorId);
     }
 
@@ -324,11 +293,7 @@ public class SharedFileService {
 
     @Transactional
     public void deleteFile(SecurityUser user, Long fileId) {
-        if (authorizationService.isEnforced(user, "shared_file")) {
-            deleteFileUnchecked(user.getTenantId(), fileId, user.getUserId());
-            return;
-        }
-        deleteFile(user.getTenantId(), fileId, user.getUserId(), user.getGroupId(), user.getGroupScope());
+        deleteFileUnchecked(user.getTenantId(), fileId, user.getUserId());
     }
 
     @Transactional
@@ -482,7 +447,7 @@ public class SharedFileService {
         wordFile.setCreatedAt(LocalDateTime.now());
         wordFile.setUpdatedAt(LocalDateTime.now());
         fileMapper.insert(wordFile);
-        resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", wordFile.getId(),
+        resourceAuthorizationInitializer.initialize(tenantId, "shared_file", wordFile.getId(),
             operatorId, ownerGroupId, 0660);
 
         // Save PDF file record
@@ -501,7 +466,7 @@ public class SharedFileService {
         pdfFile.setCreatedAt(LocalDateTime.now());
         pdfFile.setUpdatedAt(LocalDateTime.now());
         fileMapper.insert(pdfFile);
-        resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", pdfFile.getId(),
+        resourceAuthorizationInitializer.initialize(tenantId, "shared_file", pdfFile.getId(),
             operatorId, ownerGroupId, 0660);
 
         convertToMarkdownAsync(wordFile.getId(), wordKey, tenantId);

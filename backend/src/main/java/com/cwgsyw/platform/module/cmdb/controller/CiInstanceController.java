@@ -10,7 +10,6 @@ import com.cwgsyw.platform.module.cmdb.service.Ci2DViewService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceCommandService;
 import com.cwgsyw.platform.module.cmdb.service.CiInstanceQueryService;
 import com.cwgsyw.platform.module.cmdb.service.CiRelatedResourceService;
-import com.cwgsyw.platform.module.daily.dto.DailyReportBriefVO;
 import com.cwgsyw.platform.module.device.dto.DeviceVO;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -169,12 +168,6 @@ public class CiInstanceController {
     @PreAuthorize("hasPermission('cmdb_instance', 'read')")
     public R<List<LinkedChangeDocVO>> getRelatedChangeDocs(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
         return R.ok(ciRelatedResourceService.getRelatedChangeDocs(id, cu.getTenantId()));
-    }
-
-    @GetMapping("/{id}/daily-reports")
-    @PreAuthorize("hasPermission('cmdb_instance', 'read')")
-    public R<List<DailyReportBriefVO>> getRelatedDailyReports(@PathVariable Long id, @AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(ciRelatedResourceService.getRelatedDailyReports(id, cu.getTenantId()));
     }
 
 }

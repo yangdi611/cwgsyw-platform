@@ -6,16 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Switch } from '@/components/v2/Switch'
-import { Textarea } from '@/components/v2/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { PageHeader } from '@/components/shared'
-import { Mail, Bell, FileText, GitBranch } from 'lucide-react'
-import { ProcessDefinition, ProcessDefinitionVersion } from '@/types/workflow'
-import { extractPaginated } from '@/types/api'
+import { Mail, Bell, FileText } from 'lucide-react'
 
 type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
@@ -35,80 +31,10 @@ const WATERMARK_POSITION_CLASSES: Record<WatermarkPosition, string> = {
   center: 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
 }
 
-function ProcessVersionSelector({ value, onSave }: {
-  value: string
-  onSave: (definitionId: string) => Promise<void>
-}) {
-  const { data: allDefs = [] } = useQuery<ProcessDefinition[]>({
-    queryKey: ['process-defs-selector'],
-    queryFn: () => api.get('/workflow/definitions').then(r => {
-      const { records } = extractPaginated<ProcessDefinition>(r);
-      return records.filter((d) => !d.suspended);
-    }),
-  })
-
-  const [selectedKey, setSelectedKey] = useState('')
-  const configuredKey = allDefs.find((definition) => value.startsWith(definition.key + ':'))?.key ?? ''
-  const effectiveSelectedKey = selectedKey || configuredKey
-
-  const { data: versions = [] } = useQuery<ProcessDefinitionVersion[]>({
-    queryKey: ['process-versions', effectiveSelectedKey],
-    queryFn: () => api.get(`/workflow/definitions/key/${effectiveSelectedKey}/versions`).then(r => r.data.data ?? []),
-    enabled: !!effectiveSelectedKey,
-  })
-
-  const selectedDefId = value
-
-  return (
-    <div className="flex gap-2 items-center flex-wrap">
-      <Select value={effectiveSelectedKey} onValueChange={v => {
-        if (v) setSelectedKey(v)
-      }}>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="选择流程">
-            {(v: string) => allDefs.find((d) => d.key === v)?.name ?? '选择流程'}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {allDefs.map((d) => (
-            <SelectItem key={d.key} value={d.key}>{d.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={selectedDefId}
-        onValueChange={v => {
-          if (v) onSave(v)
-        }}
-      >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder={effectiveSelectedKey ? '选择版本' : '请先选择流程'}>
-            {(v: string) => {
-              const found = versions.find((ver) => ver.id === v)
-              return found ? `v${found.version} (启用)` : (effectiveSelectedKey ? '选择版本' : '请先选择流程')
-            }}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {versions.filter((v) => !v.suspended).map((v) => (
-            <SelectItem key={v.id} value={v.id}>
-              v{v.version} (启用)
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button variant="outline" size="sm" disabled={!selectedDefId}>
-        已选择
-      </Button>
-    </div>
-  )
-}
-
 const tabs = [
   { id: 'smtp', label: '邮箱配置', icon: Mail },
-  { id: 'reminder', label: '日报提醒', icon: Bell },
+  { id: 'monitoring', label: '监控集成', icon: Bell },
   { id: 'watermark', label: '文档水印', icon: FileText },
-  { id: 'workflow', label: '流程配置', icon: GitBranch },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -139,10 +65,6 @@ export default function AdminConfigPage() {
   const [from, setFrom] = useState('')
   const [fromName, setFromName] = useState('IT运维平台')
   const [ssl, setSsl] = useState(true)
-  // Reminder
-  const [reminderEnabled, setReminderEnabled] = useState(false)
-  const [reminderCron, setReminderCron] = useState('0 0 17 * * MON-FRI')
-  const [reminderTemplate, setReminderTemplate] = useState('')
   // Watermark
   const [watermarkEnabled, setWatermarkEnabled] = useState(false)
   const [watermarkText, setWatermarkText] = useState('')
@@ -168,9 +90,6 @@ export default function AdminConfigPage() {
     setFrom(config['smtp.from'] ?? '')
     setFromName(config['smtp.from_name'] ?? 'IT运维平台')
     setSsl(config['smtp.ssl'] !== 'false')
-    setReminderEnabled(config['notify.reminder.enabled'] === 'true')
-    setReminderCron(config['notify.reminder.cron'] ?? '0 0 17 * * MON-FRI')
-    setReminderTemplate(config['notify.reminder.template'] ?? '')
     setWatermarkEnabled(config['watermark.enabled'] === 'true')
     setWatermarkText(config['watermark.text'] ?? '')
     setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
@@ -185,12 +104,6 @@ export default function AdminConfigPage() {
   const smtpMutation = useMutation({
     mutationFn: () => api.put('/admin/config/smtp', { enabled: smtpEnabled, host, port: Number(port), username, password, from, fromName, ssl }),
     onSuccess: () => { toast.success('SMTP 配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
-    onError: () => toast.error('保存失败'),
-  })
-
-  const notifyMutation = useMutation({
-    mutationFn: () => api.put('/admin/config/notification', { reminderEnabled: reminderEnabled, reminderCron: reminderCron, reminderTemplate: reminderTemplate }),
-    onSuccess: () => { toast.success('提醒配置已保存'); queryClient.invalidateQueries({ queryKey: ['admin-config'] }) },
     onError: () => toast.error('保存失败'),
   })
 
@@ -224,7 +137,7 @@ export default function AdminConfigPage() {
       <PageHeader
         eyebrow="系统管理"
         title="系统配置"
-        subtitle="配置邮件服务、日报提醒、文档水印与流程审批等系统级参数。"
+        subtitle="配置邮件服务、监控集成与文档水印等系统级参数。"
       />
       <div className="flex gap-6">
         {/* Left: Tab navigation */}
@@ -301,31 +214,11 @@ export default function AdminConfigPage() {
             </div>
           )}
 
-          {/* Reminder */}
-          {activeTab === 'reminder' && (
+          {/* Monitoring */}
+          {activeTab === 'monitoring' && (
             <div className="border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">日报提醒 + Prometheus 告警</h2>
+              <h2 className="text-lg font-semibold mb-4">Prometheus 告警集成</h2>
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} id="reminder-enabled" />
-                  <Label htmlFor="reminder-enabled">启用日报提交提醒</Label>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Cron 表达式</Label>
-                  <Input value={reminderCron} onChange={e => setReminderCron(e.target.value)} placeholder="0 0 17 * * MON-FRI" />
-                  <p className="text-xs text-muted-foreground">默认：工作日 17:00</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>提醒模板</Label>
-                  <Textarea value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} placeholder="请尽快提交今日日报" rows={3} />
-                </div>
-                <Button onClick={() => notifyMutation.mutate()} disabled={notifyMutation.isPending}>
-                  保存提醒配置
-                </Button>
-
-                <hr className="border-t my-6" />
-
-                <h3 className="text-lg font-semibold mb-4">Prometheus 告警集成</h3>
                 <div className="flex items-center gap-3">
                   <Switch checked={prometheusEnabled} onCheckedChange={setPrometheusEnabled} id="prometheus-enabled" />
                   <Label htmlFor="prometheus-enabled">启用 Prometheus 告警同步</Label>
@@ -437,60 +330,6 @@ export default function AdminConfigPage() {
             </div>
           )}
 
-          {/* Workflow / Process Configuration */}
-          {activeTab === 'workflow' && (
-            <div className="border rounded-lg p-6 space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-2">业务流程配置</h2>
-                <p className="text-sm text-muted-foreground">
-                  为各业务模块指定审批流程。在
-                  <Link href="/workflow/design" className="text-primary hover:underline mx-1">流程设计器</Link>
-                  中修改流程后，下次提交即自动生效。
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="border-t pt-4">
-                  <Label className="font-medium">日报审批</Label>
-                  <p className="text-xs text-muted-foreground mb-2">组员提交日报后使用的审批流程及版本</p>
-                  <ProcessVersionSelector
-                    value={config['daily_report_process_definition_id'] || ''}
-                    onSave={async (definitionId) => {
-                      await api.put('/admin/config', { daily_report_process_definition_id: definitionId })
-                      toast.success('日报审批流程已更新')
-                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
-                    }}
-                  />
-                </div>
-
-                <div className="border-t pt-4">
-                  <Label className="font-medium text-muted-foreground">变更文档审批（待接入）</Label>
-                  <p className="text-xs text-muted-foreground mb-2">变更文档提交后使用的审批流程及版本</p>
-                  <ProcessVersionSelector
-                    value={config['change_doc_process_definition_id'] || ''}
-                    onSave={async (definitionId) => {
-                      await api.put('/admin/config', { change_doc_process_definition_id: definitionId })
-                      toast.success('变更文档审批流程已更新')
-                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
-                    }}
-                  />
-                </div>
-
-                <div className="border-t pt-4">
-                  <Label className="font-medium text-muted-foreground">设备权限申请（待接入）</Label>
-                  <p className="text-xs text-muted-foreground mb-2">设备密码查看权限申请使用的审批流程及版本</p>
-                  <ProcessVersionSelector
-                    value={config['device_access_process_definition_id'] || ''}
-                    onSave={async (definitionId) => {
-                      await api.put('/admin/config', { device_access_process_definition_id: definitionId })
-                      toast.success('设备权限审批流程已更新')
-                      queryClient.invalidateQueries({ queryKey: ['admin-config'] })
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

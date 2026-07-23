@@ -27,7 +27,6 @@ public class WikiController {
 
     private final WikiSpaceService spaceService;
     private final WikiPageService pageService;
-    private final WikiAclService aclService;
     private final WikiBacklinkService backlinkService;
     private final WikiAttachmentService attachmentService;
     private final WikiExportService exportService;
@@ -38,10 +37,7 @@ public class WikiController {
         requirePageExists(u, pageId);
         int requiredBits = "read".equals(perm) ? 4 : 2;
         String permissionCode = "read".equals(perm) ? "wiki:read" : "wiki:update";
-        authorizationService.requireWithCompatibility(u, "wiki", permissionCode,
-            "wiki_page", pageId, requiredBits,
-            () -> aclService.hasPermission(u.getTenantId(), pageId, u.getUserId(), u.getGroupId(),
-                u.getGroupScope(), perm));
+        authorizationService.require(u, permissionCode, "wiki_page", pageId, requiredBits);
     }
 
     private void requirePageExists(SecurityUser user, Long pageId) {
@@ -59,9 +55,8 @@ public class WikiController {
     }
 
     private void requireResource(SecurityUser user, String permissionCode, String resourceType,
-                                 Long resourceId, int requiredBits, boolean legacyAllowed) {
-        authorizationService.requireWithCompatibility(user, "wiki", permissionCode,
-            resourceType, resourceId, requiredBits, legacyAllowed);
+                                 Long resourceId, int requiredBits) {
+        authorizationService.require(user, permissionCode, resourceType, resourceId, requiredBits);
     }
 
     // ===== Spaces =====
@@ -80,8 +75,7 @@ public class WikiController {
         if (!authorizationService.canUseOwnerGroup(u, ownerGroupId)) {
             throw new AccessDeniedException("不能将空间归属到当前用户未加入的组");
         }
-        if (!authorizationService.decideCreateWithCompatibility(
-                u, "wiki", "wiki:create", ownerGroupId, true)) {
+        if (!authorizationService.decideCreate(u, "wiki:create", ownerGroupId).isAllowed()) {
             throw new AccessDeniedException("当前作用域不允许创建 Wiki 空间");
         }
         return R.ok(spaceService.createSpace(u.getTenantId(), u, req.getName(), req.getDescription(), ownerGroupId));
@@ -110,7 +104,7 @@ public class WikiController {
     @DeleteMapping("/spaces/{id}")
     @PreAuthorize("hasAuthority('wiki:delete')")
     public R<Void> deleteSpace(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
-        requireResource(u, "wiki:delete", "wiki_space", id, 2, true);
+        requireResource(u, "wiki:delete", "wiki_space", id, 2);
         spaceService.deleteSpace(u.getTenantId(), id, u.getUserId());
         return R.ok(null);
     }
@@ -135,28 +129,6 @@ public class WikiController {
                             @AuthenticationPrincipal SecurityUser u) throws Exception {
         checkSpaceRead(u, id);
         exportService.exportSpace(id, u.getTenantId(), response);
-    }
-
-    @GetMapping("/spaces/{id}/acl")
-    @PreAuthorize("hasAuthority('wiki:read')")
-    public R<WikiSpaceAclDTO> getSpaceAcl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
-        if (authorizationService.isEnforced(u, "wiki")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口读取 ACL");
-        }
-        requireResource(u, "wiki:manage_acl", "wiki_space", id, 2, true);
-        return R.ok(spaceService.getAcl(u.getTenantId(), id, u));
-    }
-
-    @PutMapping("/spaces/{id}/acl")
-    @PreAuthorize("hasAuthority('wiki:read')")
-    public R<Void> setSpaceAcl(@PathVariable Long id, @RequestBody WikiSpaceAclDTO body,
-                               @AuthenticationPrincipal SecurityUser u) {
-        if (authorizationService.isEnforced(u, "wiki")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口维护 ACL");
-        }
-        requireResource(u, "wiki:manage_acl", "wiki_space", id, 2, true);
-        spaceService.setAcl(u.getTenantId(), id, u.getUserId(), u, body);
-        return R.ok(null);
     }
 
     // ===== Pages =====
@@ -222,7 +194,7 @@ public class WikiController {
     @PreAuthorize("hasAuthority('wiki:read')")
     public R<WikiPageVO> revert(@PathVariable Long id, @PathVariable int version,
                                 @AuthenticationPrincipal SecurityUser u) {
-        requireResource(u, "wiki:update", "wiki_page", id, 2, true);
+        requireResource(u, "wiki:update", "wiki_page", id, 2);
         return R.ok(pageService.revert(u.getTenantId(), id, version, u));
     }
 
@@ -279,28 +251,6 @@ public class WikiController {
                                  @AuthenticationPrincipal SecurityUser u) {
         checkAcl(u, id, "read");
         commentService.deleteComment(u.getTenantId(), id, commentId, u.getUserId(), u.getGroupScope());
-        return R.ok(null);
-    }
-
-    @GetMapping("/pages/{id}/acl")
-    @PreAuthorize("hasAuthority('wiki:manage_acl')")
-    public R<WikiAclDTO> getAcl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser u) {
-        if (authorizationService.isEnforced(u, "wiki")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口读取 ACL");
-        }
-        requireResource(u, "wiki:manage_acl", "wiki_page", id, 2, true);
-        return R.ok(aclService.getAcl(u.getTenantId(), id));
-    }
-
-    @PutMapping("/pages/{id}/acl")
-    @PreAuthorize("hasAuthority('wiki:manage_acl')")
-    public R<Void> setAcl(@PathVariable Long id, @RequestBody WikiAclDTO body,
-                          @AuthenticationPrincipal SecurityUser u) {
-        if (authorizationService.isEnforced(u, "wiki")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口维护 ACL");
-        }
-        requireResource(u, "wiki:manage_acl", "wiki_page", id, 2, true);
-        aclService.setAcl(u.getTenantId(), id, u.getUserId(), body);
         return R.ok(null);
     }
 

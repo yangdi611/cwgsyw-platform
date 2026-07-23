@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AuthorizationResourceMigrationOwnerGroupTest {
+class ResourceAuthorizationInitializerTest {
     @Mock JdbcTemplate jdbcTemplate;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
     @Mock ResultSet childResultSet;
@@ -28,32 +28,32 @@ class AuthorizationResourceMigrationOwnerGroupTest {
 
     @Test
     void childWithoutCreatorGroupInheritsParentOwnerGroup() throws Exception {
-        AuthorizationResourceMigrationService service = serviceWithParent(4L, 0670);
+        ResourceAuthorizationInitializer service = serviceWithParent(4L, 0670);
 
-        service.initializeCreatedResource("default", "wiki_page", 8L, 7L, null, 0670);
+        service.initialize("default", "wiki_page", 8L, 7L, null, 0670);
 
         verifyInitialization(7L, 4L);
     }
 
     @Test
     void childWithCreatorGroupKeepsExplicitGroupWhenParentIsNotSetgid() throws Exception {
-        AuthorizationResourceMigrationService service = serviceWithParent(4L, 0670);
+        ResourceAuthorizationInitializer service = serviceWithParent(4L, 0670);
 
-        service.initializeCreatedResource("default", "wiki_page", 8L, 7L, 5L, 0670);
+        service.initialize("default", "wiki_page", 8L, 7L, 5L, 0670);
 
         verifyInitialization(7L, 5L);
     }
 
     @Test
     void childWithCreatorGroupUsesParentGroupWhenParentIsSetgid() throws Exception {
-        AuthorizationResourceMigrationService service = serviceWithParent(4L, 02770);
+        ResourceAuthorizationInitializer service = serviceWithParent(4L, 02770);
 
-        service.initializeCreatedResource("default", "wiki_page", 8L, 7L, 5L, 0670);
+        service.initialize("default", "wiki_page", 8L, 7L, 5L, 0670);
 
         verifyInitialization(7L, 4L);
     }
 
-    private AuthorizationResourceMigrationService serviceWithParent(Long ownerGroupId, int permissionMode)
+    private ResourceAuthorizationInitializer serviceWithParent(Long ownerGroupId, int permissionMode)
             throws Exception {
         when(childResultSet.next()).thenReturn(true);
         when(childResultSet.getObject("parent_id")).thenReturn(44L);
@@ -66,7 +66,7 @@ class AuthorizationResourceMigrationOwnerGroupTest {
             .thenAnswer(invocation -> invocation.<ResultSetExtractor<?>>getArgument(1).extractData(parentResultSet));
         when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq("default"), eq("wiki_page"), eq(44L)))
             .thenReturn(List.of());
-        return new AuthorizationResourceMigrationService(jdbcTemplate, activeGroupReferenceValidator);
+        return new ResourceAuthorizationInitializer(jdbcTemplate, activeGroupReferenceValidator);
     }
 
     private void verifyInitialization(Long ownerUserId, Long ownerGroupId) {

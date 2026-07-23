@@ -31,7 +31,6 @@ public class CmdbAlertController {
     private final CmdbAlertMapper alertMapper;
     private final CiInstanceMapper ciInstanceMapper;
     private final AuditLogMapper auditLogMapper;
-    private final CmdbAlertRemediationService remediationService;
 
     @GetMapping
     @PreAuthorize("hasPermission('cmdb_alert', 'read')")
@@ -119,16 +118,6 @@ public class CmdbAlertController {
 
         Map<Long, String> nameMap = resolveInstanceNames(List.of(alert), tid);
         return R.ok(toVO(alert, nameMap));
-    }
-
-    @DeleteMapping("/{id}/remediation-test")
-    @PreAuthorize("hasPermission('cmdb_alert', 'acknowledge')")
-    public R<Void> purgeRemediationTest(
-            @PathVariable Long id,
-            @RequestParam String remediationRunId,
-            @AuthenticationPrincipal SecurityUser cu) {
-        remediationService.purgeRemediationTest(cu, id, remediationRunId);
-        return R.ok();
     }
 
     // ---- helpers ----

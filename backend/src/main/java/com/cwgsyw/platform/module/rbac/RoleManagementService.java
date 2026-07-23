@@ -24,7 +24,6 @@ import java.util.Set;
 public class RoleManagementService {
     private final SysRoleMapper roleMapper;
     private final SysPermissionMapper permissionMapper;
-    private final SysUserRoleMapper userRoleMapper;
     private final RoleAssignmentMapper assignmentMapper;
     private final RbacService rbacService;
     private final AuditLogMapper auditLogMapper;
@@ -100,9 +99,6 @@ public class RoleManagementService {
     public void delete(Long roleId, String tenantId, Long operatorId) {
         authorizationWriteLockService.lockRoleAuthorization(tenantId, roleId);
         SysRole role = requireCustomRole(roleId, tenantId);
-        if (!userRoleMapper.findUserIdsByRoleIds(List.of(roleId)).isEmpty()) {
-            throw new IllegalArgumentException("角色仍被旧账户授权使用，无法删除");
-        }
         Long assignmentCount = assignmentMapper.selectCount(new LambdaQueryWrapper<RoleAssignment>()
             .eq(RoleAssignment::getTenantId, tenantId)
             .eq(RoleAssignment::getRoleId, roleId));

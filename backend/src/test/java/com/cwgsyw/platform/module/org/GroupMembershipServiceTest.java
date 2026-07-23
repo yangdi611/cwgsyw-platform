@@ -9,7 +9,6 @@ import com.cwgsyw.platform.module.org.entity.UserGroupMembership;
 import com.cwgsyw.platform.module.rbac.RbacService;
 import com.cwgsyw.platform.module.rbac.RoleAssignmentMapper;
 import com.cwgsyw.platform.module.rbac.SysRoleMapper;
-import com.cwgsyw.platform.module.rbac.SysUserRoleMapper;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -43,7 +42,6 @@ class GroupMembershipServiceTest {
     @Mock RbacService rbacService;
     @Mock SysRoleMapper roleMapper;
     @Mock RoleAssignmentMapper roleAssignmentMapper;
-    @Mock SysUserRoleMapper userRoleMapper;
     @Mock AuthorizationWriteLockService authorizationWriteLockService;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
 
@@ -52,7 +50,7 @@ class GroupMembershipServiceTest {
     @BeforeEach
     void setUp() {
         service = new GroupMembershipService(membershipMapper, userMapper, groupMapper, auditLogMapper,
-            rbacService, roleMapper, roleAssignmentMapper, userRoleMapper,
+            rbacService, roleMapper, roleAssignmentMapper,
             authorizationWriteLockService, activeGroupReferenceValidator);
     }
 
@@ -103,8 +101,7 @@ class GroupMembershipServiceTest {
         User user = user(1L);
         when(userMapper.selectById(1L)).thenReturn(user);
         when(groupMapper.selectById(2L)).thenReturn(group(2L, "business"));
-        when(userRoleMapper.findRoleIdsByUserId(1L)).thenReturn(List.of(1L));
-        when(roleAssignmentMapper.findEffectiveRoleIds("default", 1L)).thenReturn(List.of());
+        when(roleAssignmentMapper.findEffectiveRoleIds("default", 1L)).thenReturn(List.of(1L));
         SysRole role = new SysRole();
         role.setId(1L);
         role.setCode("super_admin");
@@ -183,7 +180,6 @@ class GroupMembershipServiceTest {
 
     private void stubNonSuperAdmin(User user) {
         when(userMapper.selectById(user.getId())).thenReturn(user);
-        when(userRoleMapper.findRoleIdsByUserId(user.getId())).thenReturn(List.of());
         when(roleAssignmentMapper.findEffectiveRoleIds("default", user.getId())).thenReturn(List.of());
     }
 

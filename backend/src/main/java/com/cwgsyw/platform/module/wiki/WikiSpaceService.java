@@ -3,24 +3,13 @@ package com.cwgsyw.platform.module.wiki;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.org.GroupMapper;
-import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
-import com.cwgsyw.platform.module.org.entity.Group;
-import com.cwgsyw.platform.module.rbac.RbacService;
-import com.cwgsyw.platform.module.rbac.SysRoleMapper;
-import com.cwgsyw.platform.module.rbac.entity.SysPermission;
-import com.cwgsyw.platform.module.rbac.entity.SysRole;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
-import com.cwgsyw.platform.module.wiki.dto.AclForcedGrantDTO;
-import com.cwgsyw.platform.module.wiki.dto.SpaceAclEntryDTO;
-import com.cwgsyw.platform.module.wiki.dto.WikiSpaceAclDTO;
 import com.cwgsyw.platform.module.wiki.dto.WikiSpaceVO;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
-import com.cwgsyw.platform.module.wiki.entity.WikiSpaceAcl;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,36 +17,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class WikiSpaceService {
 
-    /** 空间级 ACL 合法动词，不含 read（所有登录用户对用户自建空间恒定可读，见 SPEC 3.3 节） */
-    public static final List<String> SPACE_ACL_PERMS = List.of("create", "update", "delete", "publish");
-
     private final WikiSpaceMapper spaceMapper;
     private final WikiPageMapper pageMapper;
-    private final WikiSpaceAclMapper spaceAclMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
-    private final GroupMapper groupMapper;
-    private final SysRoleMapper roleMapper;
-    private final RbacService rbacService;
     private final ObjectMapper objectMapper;
     private final AuthorizationService authorizationService;
-    private final AuthorizationResourceMigrationService resourceMigrationService;
-    private final ActiveGroupReferenceValidator activeGroupReferenceValidator;
-
-    private boolean isAdmin(String groupScope) {
-        return "tenant".equals(groupScope) || "platform".equals(groupScope);
-    }
+    private final ResourceAuthorizationInitializer resourceAuthorizationInitializer;
 
     public List<WikiSpaceVO> listSpaces(String tenantId, SecurityUser user) {
         List<WikiSpace> spaces = spaceMapper.selectList(new LambdaQueryWrapper<WikiSpace>()
@@ -72,8 +46,7 @@ public class WikiSpaceService {
     }
 
     public boolean canReadSpace(Long spaceId, SecurityUser user) {
-        return authorizationService.decideWithCompatibility(user, "wiki", "wiki:read",
-            "wiki_space", spaceId, 5, true);
+        return authorizationService.decide(user, "wiki:read", "wiki_space", spaceId, 5).isAllowed();
     }
 
     public boolean exists(String tenantId, Long spaceId) {
@@ -93,23 +66,8 @@ public class WikiSpaceService {
         space.setCreatedAt(LocalDateTime.now());
         space.setUpdatedAt(LocalDateTime.now());
         spaceMapper.insert(space);
-        resourceMigrationService.initializeCreatedResource(tenantId, "wiki_space", space.getId(),
+        resourceAuthorizationInitializer.initialize(tenantId, "wiki_space", space.getId(),
             userId, ownerGroupId, 02770);
-        // 创建人所在组自动获得空间全权限（create/update/delete/publish），使团队协作无需手动授权；
-        // 创建人本人已经通过 hasWritePermission 的“创建人”分支天然放行，此处只补组维度。
-        // 创建人无归属组（如平台管理员建空间）时静默跳过，不阻断建空间流程。
-        if (ownerGroupId != null) {
-            WikiSpaceAcl groupAcl = new WikiSpaceAcl();
-            groupAcl.setTenantId(tenantId);
-            groupAcl.setSpaceId(space.getId());
-            groupAcl.setSubjectType("group");
-            groupAcl.setSubjectId(ownerGroupId);
-            groupAcl.setPermissions(SPACE_ACL_PERMS);
-            groupAcl.setCreatedBy(userId);
-            groupAcl.setCreatedAt(LocalDateTime.now());
-            groupAcl.setUpdatedAt(LocalDateTime.now());
-            spaceAclMapper.insert(groupAcl);
-        }
         auditLogMapper.insert(AuditLog.builder()
                 .tenantId(tenantId).module("wiki").action("create")
                 .targetId(space.getId()).targetType("wiki_space").operatorId(userId)
@@ -177,29 +135,8 @@ public class WikiSpaceService {
         }
         String permissionCode = "wiki:" + action;
         int requiredBits = "create".equals(action) ? 3 : 2;
-        if (space.getSeedKey() != null) {
-            boolean policyAllowed = "all".equals(space.getWriteScope())
-                && (!"delete".equals(action) || isAdmin(user.getGroupScope()));
-            return authorizationService.decideWithPolicyCompatibility(user, "wiki", permissionCode,
-                "wiki_space", spaceId, requiredBits, policyAllowed, policyAllowed);
-        }
-        if (authorizationService.isEnforced(user, "wiki")) {
-            return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
-                "wiki_space", spaceId, requiredBits, false);
-        }
-        boolean hasFunctionPermission = user.getPermissions().contains(permissionCode);
-        boolean legacyAllowed = hasFunctionPermission && (isAdmin(user.getGroupScope())
-            || (space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId())));
-        if (!legacyAllowed) {
-            List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
-                .eq(WikiSpaceAcl::getSpaceId, spaceId));
-            List<Long> roleIds = rbacService.getUserRoleIds(user.getUserId());
-            legacyAllowed = hasFunctionPermission && rows.stream().anyMatch(acl -> acl.getPermissions() != null
-                && acl.getPermissions().contains(action)
-                && matches(acl, user.getUserId(), user.getGroupId(), roleIds));
-        }
-        return authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
-            "wiki_space", spaceId, requiredBits, legacyAllowed);
+        return authorizationService.decide(user, permissionCode,
+            "wiki_space", spaceId, requiredBits).isAllowed();
     }
 
     /**
@@ -213,205 +150,12 @@ public class WikiSpaceService {
         }
     }
 
-    private boolean matches(WikiSpaceAcl acl, Long userId, Long groupId, List<Long> roleIds) {
-        return switch (acl.getSubjectType()) {
-            case "user" -> Objects.equals(acl.getSubjectId(), userId);
-            case "group" -> groupId != null && Objects.equals(acl.getSubjectId(), groupId);
-            case "role" -> roleIds.contains(acl.getSubjectId());
-            default -> false;
-        };
-    }
-
-    /** 创建人或 admin/super_admin 才能查看/修改空间 ACL。 */
-    public boolean canManageAcl(WikiSpace space, SecurityUser user) {
-        if (isAdmin(user.getGroupScope())) return true;
-        return space.getCreatedBy() != null && space.getCreatedBy().equals(user.getUserId());
-    }
-
-    public WikiSpaceAclDTO getAcl(String tenantId, Long spaceId, SecurityUser user) {
-        WikiSpace space = requireSpace(tenantId, spaceId);
-        if (!canManageAcl(space, user)) throw new AccessDeniedException("无权限管理此空间的授权");
-        List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
-                .eq(WikiSpaceAcl::getSpaceId, spaceId));
-        WikiSpaceAclDTO dto = new WikiSpaceAclDTO();
-        dto.setSpaceId(spaceId);
-        dto.setEntries(rows.stream().map(this::toEntryDTO).collect(Collectors.toList()));
-        dto.setForcedEntries(computeRoleForcedGrants(tenantId, SPACE_ACL_PERMS));
-        return dto;
-    }
-
-    /**
-     * 计算"无论本空间 ACL 弹窗里怎么勾选，该角色都天然拥有"的权限——admin scope 或角色原生带 wiki:&lt;action&gt;
-     * 权限。只覆盖角色维度：组和用户在空间 ACL 弹窗里没有与生俱来的权限，只有这里编辑的显式行本身，
-     * 所以不需要为它们计算强制项（避免"自己给自己囤灰显"的怪异体验）。
-     * perms 传入的动词集合决定输出的 permissions 取值范围（空间用 SPACE_ACL_PERMS，页面用页面动词集）。
-     */
-    private List<AclForcedGrantDTO> computeRoleForcedGrants(String tenantId, List<String> spaceVerbs) {
-        List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<SysRole>()
-            .eq(SysRole::getTenantId, tenantId));
-        List<AclForcedGrantDTO> result = new ArrayList<>();
-        for (SysRole role : roles) {
-            boolean admin = isAdmin(role.getScope());
-            Set<String> nativePerms = admin ? Set.of() : rbacService.getPermissionsByRoleId(role.getId(), tenantId)
-                    .stream().map(SysPermission::getCode)
-                    .filter(code -> code != null && code.startsWith("wiki:"))
-                    .map(code -> code.substring("wiki:".length()))
-                    .collect(Collectors.toSet());
-            List<String> forced;
-            String reason;
-            if (admin) {
-                forced = spaceVerbs;
-                reason = "admin_scope";
-            } else if (!nativePerms.isEmpty()) {
-                forced = spaceVerbs.stream().filter(nativePerms::contains).collect(Collectors.toList());
-                reason = "role_permission";
-            } else {
-                continue;
-            }
-            if (forced.isEmpty()) continue;
-            AclForcedGrantDTO dto = new AclForcedGrantDTO();
-            dto.setSubjectType("role");
-            dto.setSubjectId(role.getId());
-            dto.setSubjectName(role.getName());
-            dto.setPermissions(forced);
-            dto.setReason(reason);
-            result.add(dto);
-        }
-        return result;
-    }
-
-    /**
-     * 供页面级 ACL 弹窗使用：在角色强制项基础上，叠加"空间创建人"（人员维度）和"显式空间 ACL 命中"
-     * （角色/组/用户三个维度都可能命中）两类空间级放行来源，一并转换成页面动词（update→write）。
-     * 这些叠加项一旦命中，页面级 ACL 里对应的勾选框无论怎么设置都不会真正生效——见
-     * WikiPageService.checkWritePermission 的 OR 叠加逻辑，本方法只是把该逻辑"预先算出来"给前端展示。
-     */
-    public List<AclForcedGrantDTO> computePageForcedGrants(String tenantId, Long spaceId) {
-        WikiSpace space = requireSpace(tenantId, spaceId);
-        List<String> pageVerbs = List.of("update", "delete", "publish"); // 空间动词命名，稍后映射成页面动词
-        List<AclForcedGrantDTO> result = new ArrayList<>(computeRoleForcedGrants(tenantId, pageVerbs));
-
-        if (space.getSeedKey() == null) {
-            if (space.getCreatedBy() != null) {
-                AclForcedGrantDTO creator = new AclForcedGrantDTO();
-                creator.setSubjectType("user");
-                creator.setSubjectId(space.getCreatedBy());
-                creator.setSubjectName(resolveSubjectName("user", space.getCreatedBy()));
-                creator.setPermissions(pageVerbs);
-                creator.setReason("creator");
-                result.add(creator);
-            }
-            List<WikiSpaceAcl> rows = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
-                    .eq(WikiSpaceAcl::getSpaceId, spaceId));
-            for (WikiSpaceAcl row : rows) {
-                if (row.getPermissions() == null || row.getPermissions().isEmpty()) continue;
-                List<String> matched = row.getPermissions().stream()
-                        .filter(pageVerbs::contains).collect(Collectors.toList());
-                if (matched.isEmpty()) continue;
-                AclForcedGrantDTO dto = new AclForcedGrantDTO();
-                dto.setSubjectType(row.getSubjectType());
-                dto.setSubjectId(row.getSubjectId());
-                dto.setSubjectName(resolveSubjectName(row.getSubjectType(), row.getSubjectId()));
-                dto.setPermissions(matched);
-                dto.setReason("space_acl");
-                result.add(dto);
-            }
-        }
-        // 空间动词 → 页面动词：update→write，delete/publish 原样；create 无页面对应项，不参与页面弹窗。
-        for (AclForcedGrantDTO dto : result) {
-            dto.setPermissions(dto.getPermissions().stream()
-                    .map(p -> "update".equals(p) ? "write" : p)
-                    .collect(Collectors.toList()));
-        }
-        return result;
-    }
-
-    @Transactional
-    public void setAcl(String tenantId, Long spaceId, Long operatorId, SecurityUser user, WikiSpaceAclDTO dto) {
-        WikiSpace space = requireSpace(tenantId, spaceId);
-        if (!canManageAcl(space, user)) throw new AccessDeniedException("无权限管理此空间的授权");
-        if (dto.getEntries() != null) {
-            dto.getEntries().stream().filter(entry -> "group".equals(entry.getSubjectType()))
-                .map(SpaceAclEntryDTO::getSubjectId).distinct().sorted()
-                .forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
-        }
-
-        List<WikiSpaceAcl> before = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
-                .eq(WikiSpaceAcl::getSpaceId, spaceId));
-        String beforeJson = snapshot(before);
-
-        spaceAclMapper.delete(new LambdaQueryWrapper<WikiSpaceAcl>().eq(WikiSpaceAcl::getSpaceId, spaceId));
-        if (dto.getEntries() != null) {
-            for (SpaceAclEntryDTO e : dto.getEntries()) {
-                if (e.getPermissions() == null || e.getPermissions().isEmpty()) continue;
-                WikiSpaceAcl row = new WikiSpaceAcl();
-                row.setTenantId(tenantId);
-                row.setSpaceId(spaceId);
-                row.setSubjectType(e.getSubjectType());
-                row.setSubjectId(e.getSubjectId());
-                row.setPermissions(e.getPermissions().stream()
-                        .filter(SPACE_ACL_PERMS::contains).collect(Collectors.toList()));
-                row.setCreatedBy(operatorId);
-                row.setCreatedAt(LocalDateTime.now());
-                row.setUpdatedAt(LocalDateTime.now());
-                spaceAclMapper.insert(row);
-            }
-        }
-
-        List<WikiSpaceAcl> after = spaceAclMapper.selectList(new LambdaQueryWrapper<WikiSpaceAcl>()
-                .eq(WikiSpaceAcl::getSpaceId, spaceId));
-        auditLogMapper.insert(AuditLog.builder()
-                .tenantId(tenantId).module("wiki").action("space_acl_update")
-                .targetId(spaceId).targetType("wiki_space").operatorId(operatorId)
-                .beforeJson(beforeJson).afterJson(snapshot(after))
-                .remark("space=" + space.getName())
-                .createdAt(LocalDateTime.now()).build());
-    }
-
     private WikiSpace requireSpace(String tenantId, Long spaceId) {
         WikiSpace space = spaceMapper.selectById(spaceId);
         if (space == null || !tenantId.equals(space.getTenantId())) {
             throw new IllegalArgumentException("空间不存在: " + spaceId);
         }
         return space;
-    }
-
-    private String snapshot(List<WikiSpaceAcl> rows) {
-        try {
-            List<Map<String, Object>> entries = rows.stream().map(r -> Map.of(
-                    "type", r.getSubjectType(), "id", r.getSubjectId(),
-                    "perms", r.getPermissions() == null ? List.of() : r.getPermissions()
-            )).collect(Collectors.toList());
-            return objectMapper.writeValueAsString(Map.of("entries", entries));
-        } catch (Exception e) { return "{}"; }
-    }
-
-    private SpaceAclEntryDTO toEntryDTO(WikiSpaceAcl row) {
-        SpaceAclEntryDTO dto = new SpaceAclEntryDTO();
-        dto.setSubjectType(row.getSubjectType());
-        dto.setSubjectId(row.getSubjectId());
-        dto.setPermissions(row.getPermissions());
-        dto.setSubjectName(resolveSubjectName(row.getSubjectType(), row.getSubjectId()));
-        return dto;
-    }
-
-    private String resolveSubjectName(String subjectType, Long subjectId) {
-        return switch (subjectType) {
-            case "user" -> {
-                User u = userMapper.selectById(subjectId);
-                yield u == null ? "用户#" + subjectId
-                        : (u.getRealName() != null ? u.getRealName() : u.getUsername());
-            }
-            case "group" -> {
-                Group g = groupMapper.selectById(subjectId);
-                yield g == null ? "组#" + subjectId : g.getName();
-            }
-            case "role" -> {
-                SysRole r = roleMapper.selectById(subjectId);
-                yield r == null ? "角色#" + subjectId : r.getName();
-            }
-            default -> String.valueOf(subjectId);
-        };
     }
 
     private WikiSpaceVO toVO(WikiSpace s, long pageCount, User creator, SecurityUser currentUser) {
@@ -428,10 +172,8 @@ public class WikiSpaceService {
         // 只读：系统空间且写范围不是 all（none/super_admin_only 均为锁定，任何人都不可写，见 hasWritePermission）
         vo.setReadOnly(s.getWriteScope() != null && !"all".equals(s.getWriteScope()));
         vo.setCreatedBy(s.getCreatedBy());
-        boolean legacyCanManageAcl = currentUser.getPermissions().contains("wiki:manage_acl")
-            && canManageAcl(s, currentUser);
-        vo.setCanManageAcl(authorizationService.decideWithCompatibility(currentUser, "wiki",
-            "wiki:manage_acl", "wiki_space", s.getId(), 2, legacyCanManageAcl));
+        vo.setCanManageAcl(authorizationService.decide(currentUser,
+            "wiki:manage_acl", "wiki_space", s.getId(), 2).isAllowed());
         vo.setCanCreatePage(hasWritePermission(s.getTenantId(), s.getId(), currentUser, "create"));
         return vo;
     }

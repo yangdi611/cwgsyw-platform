@@ -114,7 +114,12 @@ public class ResourceAccessService {
         groupIds.forEach(groupId -> activeGroupReferenceValidator.lockAndRequire(tenantId, groupId));
         for (ResourceAccessRequest.ResourceAclEntryRequest entry : all) {
             if ("group".equals(entry.getSubjectType())) continue;
-            String table = "user".equals(entry.getSubjectType()) ? "sys_user" : "sys_group";
+            String table = switch (entry.getSubjectType()) {
+                case "user" -> "sys_user";
+                case "group" -> "sys_group";
+                case "role" -> "sys_role";
+                default -> throw new IllegalArgumentException("ACL 主体类型不支持");
+            };
             String groupGuard = "sys_group".equals(table) ? " AND group_type <> 'unassigned'" : "";
             if (count("SELECT COUNT(*) FROM " + table
                     + " WHERE id = ? AND tenant_id = ? AND NOT is_deleted" + groupGuard,
@@ -125,15 +130,8 @@ public class ResourceAccessService {
     private void requireManageAccess(SecurityUser user, ResourceDescriptor descriptor) {
         String module = descriptor.getResourceType().startsWith("wiki") ? "wiki" : "shared_file";
         String permission = module + ":manage_acl";
-        if (authorizationService.isEnforced(user, module)) {
-            if (!authorizationService.decide(user, permission, descriptor.getResourceType(),
-                    descriptor.getResourceId(), 2).isAllowed()) {
-                throw new AccessDeniedException("无权管理资源权限");
-            }
-            return;
-        }
-        if (!"platform".equals(user.getGroupScope()) && !"tenant".equals(user.getGroupScope())
-                && !user.getUserId().equals(descriptor.getOwnerUserId())) {
+        if (!authorizationService.decide(user, permission, descriptor.getResourceType(),
+                descriptor.getResourceId(), 2).isAllowed()) {
             throw new AccessDeniedException("仅资源 owner 或管理员可管理权限");
         }
     }

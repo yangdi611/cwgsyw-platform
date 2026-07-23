@@ -3,7 +3,7 @@ package com.cwgsyw.platform.module.sharedfile;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFolder;
 import com.cwgsyw.platform.module.user.UserMapper;
@@ -23,7 +23,7 @@ class SharedFolderServiceTest {
     @Mock SharedFolderMapper folderMapper;
     @Mock SharedFileMapper fileMapper;
     @Mock AuditLogMapper auditLogMapper;
-    @Mock AuthorizationResourceMigrationService resourceMigrationService;
+    @Mock ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     @Mock UserMapper userMapper;
     @Mock AuthorizationService authorizationService;
     @InjectMocks SharedFolderService service;

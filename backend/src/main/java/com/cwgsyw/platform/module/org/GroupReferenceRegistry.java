@@ -8,43 +8,26 @@ import java.util.Map;
 import java.util.Set;
 
 public final class GroupReferenceRegistry {
-    public static final String VERSION = "group-reference-registry/v1";
-
-    private static final String OPS_RULE_MATCH = """
-        SELECT COUNT(*) FROM ops_schedule_rule rule
-        WHERE rule.tenant_id=? %s
-          AND EXISTS (
-              SELECT 1
-              FROM jsonb_path_query(
-                  jsonb_build_array(
-                      COALESCE(NULLIF(BTRIM(rule.assignee_rule),''),'{}')::jsonb,
-                      COALESCE(NULLIF(BTRIM(rule.recipient_rule),''),'{}')::jsonb,
-                      COALESCE(NULLIF(BTRIM(rule.escalation_rule),''),'{}')::jsonb
-                  ),
-                  'strict $.**.groupId'
-              ) AS reference(value)
-              WHERE parse_group_reference_id(reference.value)=?
-          )
-        """;
+    public static final String VERSION = "group-reference-registry/v2";
 
     private static final List<String> REQUIRED_FUNCTIONS = List.of(
         "require_active_business_group",
         "parse_group_reference_id",
         "require_active_visible_groups",
-        "require_active_ops_rule_groups",
         "enforce_active_group_scalar_reference",
-        "enforce_active_shared_file_group_references",
-        "enforce_active_ops_rule_group_references"
+        "enforce_active_shared_file_group_references"
     );
 
     private static final Set<ForeignKeyDescriptor> REQUIRED_FOREIGN_KEYS = Set.of(
-        new ForeignKeyDescriptor("daily_report", "group_id"),
         new ForeignKeyDescriptor("device", "group_id"),
         new ForeignKeyDescriptor("ip_pool", "group_id"),
         new ForeignKeyDescriptor("ops_duty_roster", "group_id"),
-        new ForeignKeyDescriptor("ops_schedule_task", "group_id"),
         new ForeignKeyDescriptor("sys_user", "group_id"),
-        new ForeignKeyDescriptor("sys_user_group_membership", "group_id")
+        new ForeignKeyDescriptor("sys_user_group_membership", "group_id"),
+        new ForeignKeyDescriptor("task_template", "owner_group_id"),
+        new ForeignKeyDescriptor("approval_scheme", "owner_group_id"),
+        new ForeignKeyDescriptor("task_instance", "group_id"),
+        new ForeignKeyDescriptor("task_analytics_dashboard", "owner_group_id")
     );
 
     private static final List<ReferenceDescriptor> DESCRIPTORS = buildDescriptors();
@@ -102,10 +85,10 @@ public final class GroupReferenceRegistry {
                 errors.add("missing-writer-coverage:" + descriptor.referenceType());
             }
         }
-        if (requiredTriggers().size() != 18) {
+        if (requiredTriggers().size() != 19) {
             errors.add("trigger-denominator:" + requiredTriggers().size());
         }
-        if (REQUIRED_FUNCTIONS.size() != 7) {
+        if (REQUIRED_FUNCTIONS.size() != 5) {
             errors.add("function-denominator:" + REQUIRED_FUNCTIONS.size());
         }
         return List.copyOf(errors);
@@ -139,13 +122,8 @@ public final class GroupReferenceRegistry {
             "SELECT COUNT(*) FROM sys_role_assignment WHERE tenant_id=? AND scope_type='group' AND scope_id=?",
             Binding.TENANT_GROUP, "trg_sys_role_assignment_active_group",
             "enforce_active_group_scalar_reference",
-            List.of("RoleAssignmentService#add", "AuthorizationMigrationService#backfill",
-                "AuthorizationCutoverService#backfillUserRoleAssignments"), "database-trigger+application-lock"));
-        descriptors.add(scalar("openDailyReports", "daily_report", "group_id",
-            "NOT is_deleted AND status IN ('DRAFT','SUBMITTED','REJECTED')",
-            "trg_daily_report_active_group", "GROUP_OPEN_DAILY_REPORTS",
-            "该组仍有 {count} 份可处理日报", "先完成或迁移 DRAFT、SUBMITTED、REJECTED 日报",
-            List.of("DailyReportService#create")));
+            List.of("RoleAssignmentService#add", "RoleAssignmentService#replaceManagedRoles"),
+            "database-trigger+application-lock"));
         descriptors.add(scalar("devices", "device", "group_id", "NOT is_deleted",
             "trg_device_active_group", "GROUP_ACTIVE_DEVICES", "该组仍关联 {count} 个活动设备",
             "先通过设备管理解除或迁移组引用", List.of("DeviceService#create", "DeviceService#update")));
@@ -156,39 +134,38 @@ public final class GroupReferenceRegistry {
             "trg_device_credential_active_group", "GROUP_ACTIVE_DEVICE_CREDENTIALS",
             "该组仍关联 {count} 条活动凭据", "先通过凭据管理解除或迁移组引用",
             List.of("DeviceService#addCredential")));
-        descriptors.add(scalar("openOpsTasks", "ops_schedule_task", "group_id",
-            "NOT is_deleted AND status IN ('pending_confirm','not_started','in_progress','overdue')",
-            "trg_ops_schedule_task_active_group", "GROUP_OPEN_OPS_TASKS",
-            "该组仍有 {count} 个未结束运维任务", "先完成、取消或迁移任务",
-            List.of("OpsCalendarTaskService#createManual", "OpsCalendarTaskService#update",
-                "OpsCalendarRuleService#generateForRule")));
         descriptors.add(scalar("currentFutureRosters", "ops_duty_roster", "group_id",
             "NOT is_deleted AND duty_date >= CURRENT_DATE", "trg_ops_duty_roster_active_group",
             "GROUP_CURRENT_FUTURE_ROSTERS", "该组仍有 {count} 条当前或未来排班",
             "先删除或迁移相关排班", List.of("OpsCalendarRosterService#create", "OpsCalendarRosterService#update")));
-        descriptors.add(descriptor("enabledOpsRules", "ops_schedule_rule",
-            set("tenant_id", "enabled", "is_deleted", "assignee_rule", "recipient_rule", "escalation_rule"),
-            "recursive JSON path strict $.**.groupId", "tenant_id",
-            "enabled AND NOT is_deleted", Disposition.BLOCKER, "GROUP_ENABLED_OPS_RULES",
-            "该组仍被 {count} 条启用规则引用", "先停用或修改运维规则",
-            OPS_RULE_MATCH.formatted("AND rule.enabled AND NOT rule.is_deleted"),
-            OPS_RULE_MATCH.formatted(""), Binding.TENANT_GROUP,
-            "trg_ops_schedule_rule_active_groups", "enforce_active_ops_rule_group_references",
-            List.of("OpsCalendarRuleService#create", "OpsCalendarRuleService#update",
-                "OpsCalendarRuleService#setEnabled"), "database-trigger+application-validator"));
+        descriptors.add(scalar("activeTaskTemplates", "task_template", "owner_group_id",
+            "NOT is_deleted AND status <> 'archived'", "trg_task_template_owner_active_group",
+            "GROUP_ACTIVE_TASK_TEMPLATES", "该组仍拥有 {count} 个活动任务模板",
+            "先归档、删除或迁移任务模板所属组", List.of("TaskTemplateServiceImpl#createTemplate", "TaskTemplateServiceImpl#updateTemplate")));
+        descriptors.add(scalar("activeApprovalSchemes", "approval_scheme", "owner_group_id",
+            "NOT is_deleted AND status <> 'archived'", "trg_approval_scheme_owner_active_group",
+            "GROUP_ACTIVE_APPROVAL_SCHEMES", "该组仍拥有 {count} 个活动审批方案",
+            "先归档、删除或迁移审批方案所属组", List.of("ApprovalSchemeService#create", "ApprovalSchemeService#update")));
+        descriptors.add(scalar("activeTaskInstances", "task_instance", "group_id",
+            "NOT is_deleted AND execution_status NOT IN ('completed','cancelled','exception_closed')",
+            "trg_task_instance_active_group", "GROUP_ACTIVE_TASK_INSTANCES",
+            "该组仍有 {count} 个未结束任务", "先完成、取消或迁移相关任务", List.of("TaskRuntimeService#createOneOff")));
+        descriptors.add(scalar("activeAnalyticsDashboards", "task_analytics_dashboard", "owner_group_id",
+            "NOT is_deleted", "trg_task_analytics_dashboard_owner_active_group",
+            "GROUP_ACTIVE_ANALYTICS_DASHBOARDS", "该组仍拥有 {count} 个统计看板",
+            "先删除或迁移统计看板所属组", List.of("TaskAnalyticsDashboardService#create", "TaskAnalyticsDashboardService#update")));
         descriptors.add(flowable("runningWorkflowLinks", "act_ru_identitylink", set("group_id_"),
             "group_id_ token <id> or group_<id>", Disposition.BLOCKER, "GROUP_RUNNING_WORKFLOW_LINKS",
             "该组仍有 {count} 条运行中流程候选关系", "先完成流程或迁移候选组",
             "SELECT COUNT(*) FROM act_ru_identitylink WHERE group_id_ IN (?, ?)", Binding.GROUP_TOKENS,
-            List.of("WorkflowService#startDailyReportApproval", "WorkflowRuntimeFacadeImpl#startBusinessProcess")));
+            List.of("WorkflowRuntimeFacadeImpl#startBusinessProcess")));
         descriptors.add(flowable("runningWorkflowVariables", "act_ru_variable", set("name_", "text_", "text2_"),
             "name_=groupId|submitterGroupToken and text token", Disposition.BLOCKER,
             "GROUP_RUNNING_WORKFLOW_VARIABLES", "该组仍有 {count} 条运行中流程变量引用",
             "先完成流程或迁移候选组变量",
             "SELECT COUNT(*) FROM act_ru_variable WHERE name_ IN ('groupId','submitterGroupToken') AND (text_ IN (?, ?) OR text2_ IN (?, ?))",
             Binding.GROUP_TOKENS_TWICE,
-            List.of("WorkflowService#startDailyReportApproval", "DailyReportWorkflowAdapter#buildStartVariables",
-                "WorkflowRuntimeFacadeImpl#startBusinessProcess", "TemplateApproverResolver#startVariables")));
+            List.of("WorkflowRuntimeFacadeImpl#startBusinessProcess", "TemplateApproverResolver#startVariables")));
         descriptors.add(flowable("flowableIdentityMemberships", "act_id_membership", set("group_id_"),
             "group_id_ token <id> or group_<id>", Disposition.BLOCKER,
             "GROUP_FLOWABLE_IDENTITY_MEMBERSHIPS", "该组仍有 {count} 条 Flowable 身份成员关系",
@@ -203,17 +180,14 @@ public final class GroupReferenceRegistry {
             List.of()));
         descriptors.add(owner("wikiSpaceOwners", "wiki_space", "trg_wiki_space_owner_active_group",
             "GROUP_ACTIVE_WIKI_SPACE_OWNERS", "该组仍拥有 {count} 个 Wiki 空间", "先迁移 Wiki 空间 owner group",
-            List.of("WikiSpaceService#createSpace", "AuthorizationResourceMigrationService#backfill",
-                "AuthorizationResourceMigrationService#initializeCreatedResource")));
+            List.of("WikiSpaceService#createSpace", "ResourceAuthorizationInitializer#initialize")));
         descriptors.add(owner("wikiPageOwners", "wiki_page", "trg_wiki_page_owner_active_group",
             "GROUP_ACTIVE_WIKI_PAGE_OWNERS", "该组仍拥有 {count} 个 Wiki 页面", "先迁移 Wiki 页面 owner group",
-            List.of("WikiPageService#createPage", "AuthorizationResourceMigrationService#backfill",
-                "AuthorizationResourceMigrationService#initializeCreatedResource")));
+            List.of("WikiPageService#createPage", "ResourceAuthorizationInitializer#initialize")));
         descriptors.add(owner("sharedFolderOwners", "shared_folder", "trg_shared_folder_owner_active_group",
             "GROUP_ACTIVE_SHARED_FOLDER_OWNERS", "该组仍拥有 {count} 个共享目录", "先迁移共享目录 owner group",
             List.of("SharedFolderService#createFolder", "SharedFolderService#getOrCreateFolder",
-                "AuthorizationResourceMigrationService#backfill",
-                "AuthorizationResourceMigrationService#initializeCreatedResource")));
+                "ResourceAuthorizationInitializer#initialize")));
         descriptors.add(descriptor("sharedFileOwners", "shared_file",
             set("tenant_id", "owner_group_id", "visible_groups", "is_deleted"), "owner_group_id", "tenant_id",
             "NOT is_deleted", Disposition.BLOCKER, "GROUP_ACTIVE_SHARED_FILE_OWNERS",
@@ -222,25 +196,20 @@ public final class GroupReferenceRegistry {
             "SELECT COUNT(*) FROM shared_file WHERE tenant_id=? AND owner_group_id=?", Binding.TENANT_GROUP,
             "trg_shared_file_active_groups", "enforce_active_shared_file_group_references",
             List.of("SharedFileService#uploadFileUnchecked", "SharedFileService#archiveDocPart",
-                "AuthorizationResourceMigrationService#backfill",
-                "AuthorizationResourceMigrationService#initializeCreatedResource"),
+                "ResourceAuthorizationInitializer#initialize"),
             "database-trigger+application-validator"));
         descriptors.add(acl("resourceAcls", "resource_acl_entry", "trg_resource_acl_entry_active_group",
             "GROUP_ACTIVE_RESOURCE_ACLS", "该组仍被 {count} 条资源 ACL 引用", "先通过资源授权入口移除 ACL",
-            List.of("ResourceAccessService#replace", "AuthorizationResourceMigrationService#backfill",
-                "AuthorizationResourceMigrationService#initializeCreatedResource")));
-        descriptors.add(acl("wikiPageAcls", "wiki_page_acl", "trg_wiki_page_acl_active_group",
-            "GROUP_ACTIVE_WIKI_PAGE_ACLS", "该组仍被 {count} 条 Wiki 页面 ACL 引用",
-            "先通过 Wiki 授权入口移除 ACL", List.of("WikiAclService#setAcl",
-                "AuthorizationResourceMigrationService#backfill")));
+            List.of("ResourceAccessService#replace", "ResourceAuthorizationInitializer#initialize")));
         descriptors.add(acl("wikiSpaceAcls", "wiki_space_acl", "trg_wiki_space_acl_active_group",
             "GROUP_ACTIVE_WIKI_SPACE_ACLS", "该组仍被 {count} 条 Wiki 空间 ACL 引用",
-            "先通过 Wiki 授权入口移除 ACL", List.of("WikiSpaceService#createSpace", "WikiSpaceService#setAcl",
-                "AuthorizationResourceMigrationService#backfill")));
+            "先通过 Wiki 空间授权入口移除 ACL", List.of()));
+        descriptors.add(acl("wikiPageAcls", "wiki_page_acl", "trg_wiki_page_acl_active_group",
+            "GROUP_ACTIVE_WIKI_PAGE_ACLS", "该组仍被 {count} 条 Wiki 页面 ACL 引用",
+            "先通过 Wiki 页面授权入口移除 ACL", List.of()));
         descriptors.add(acl("sharedFolderAcls", "shared_folder_acl", "trg_shared_folder_acl_active_group",
             "GROUP_ACTIVE_SHARED_FOLDER_ACLS", "该组仍被 {count} 条共享目录 ACL 引用",
-            "先通过共享文件授权入口移除 ACL", List.of("SharedFolderAclService#setAcl",
-                "AuthorizationResourceMigrationService#backfill")));
+            "先通过共享目录授权入口移除 ACL", List.of()));
         descriptors.add(descriptor("sharedFileVisibleGroups", "shared_file",
             set("tenant_id", "visible_groups", "owner_group_id", "is_deleted"),
             "visible_groups JSON array number or numeric string", "tenant_id", "NOT is_deleted",

@@ -45,6 +45,12 @@ public class NotificationService {
         }
     }
 
+    public boolean notifyIdempotent(String tenantId, Long userId, String title, String content,
+                                    String type, String refType, Long refId, String dedupeKey) {
+        return notificationMapper.insertIdempotent(
+            tenantId, userId, title, content, type, refType, refId, dedupeKey) == 1;
+    }
+
     public int countUnread(Long userId) {
         return notificationMapper.countUnread(userId);
     }

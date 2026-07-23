@@ -22,6 +22,7 @@ public class NotificationMessage {
     private String type;
     private String refType;
     private Long refId;
+    private String dedupeKey;
     private Boolean isRead;
     private LocalDateTime readAt;
     @TableLogic

@@ -1,7 +1,14 @@
 const { test, expect, request } = require('@playwright/test')
+const fs = require('fs')
+const path = require('path')
 
 const baseURL = process.env.FQA_BASE_URL || 'http://127.0.0.1'
-const runId = 'REM_P1_037_20260718_022000'
+const runId = 'FQA_20260718_1546_remp0007_FILE_012_API'
+const manifestPath = path.join(__dirname, '..', 'docs', 'acceptance', 'full-platform-exhaustive-functional-test-v1.0', 'runs', 'FQA_20260718_1546_remp0007', 'test-data-manifest.json')
+
+function updateManifest(objects) {
+  fs.writeFileSync(manifestPath, JSON.stringify({ runId: 'FQA_20260718_1546_remp0007', objects, cleanupFailures: 0 }, null, 2) + '\n')
+}
 
 test('fileMoveApiLifecycle', async () => {
   const api = await request.newContext({ baseURL })
@@ -9,6 +16,7 @@ test('fileMoveApiLifecycle', async () => {
   let sourceFolderId
   let targetFolderId
   const fileIds = []
+  const objects = []
   try {
     const login = await api.post('/api/auth/login', { data: { username: 'superadmin', password: process.env.FQA_SUPERADMIN_PASSWORD } })
     expect(login.status()).toBe(200)
@@ -23,6 +31,10 @@ test('fileMoveApiLifecycle', async () => {
     expect(target.status()).toBe(200)
     sourceFolderId = (await source.json()).data.id
     targetFolderId = (await target.json()).data.id
+    objects.push({ caseId: 'FILE-012', type: 'folder', id: sourceFolderId, runId })
+    updateManifest(objects)
+    objects.push({ caseId: 'FILE-012', type: 'folder', id: targetFolderId, runId })
+    updateManifest(objects)
 
     for (const content of ['move', 'conflict']) {
       const upload = await api.post('/api/files/upload', {
@@ -31,6 +43,8 @@ test('fileMoveApiLifecycle', async () => {
       })
       expect(upload.status()).toBe(200)
       fileIds.push((await upload.json()).data.id)
+      objects.push({ caseId: 'FILE-012', type: 'file', id: fileIds.at(-1), runId })
+      updateManifest(objects)
     }
     const targetUpload = await api.post('/api/files/upload', {
       headers,
@@ -38,6 +52,8 @@ test('fileMoveApiLifecycle', async () => {
     })
     expect(targetUpload.status()).toBe(200)
     fileIds.push((await targetUpload.json()).data.id)
+    objects.push({ caseId: 'FILE-012', type: 'file', id: fileIds.at(-1), runId })
+    updateManifest(objects)
 
     const moved = await api.put(`/api/files/${fileIds[0]}`, { headers, data: { parentId: targetFolderId } })
     expect(moved.status()).toBe(200)
@@ -52,9 +68,21 @@ test('fileMoveApiLifecycle', async () => {
     const sourceAfterConflict = (await (await api.get(`/api/files?folderId=${sourceFolderId}&page=1&size=20`, { headers })).json()).data.records
     expect(sourceAfterConflict.map(file => file.id)).toEqual([fileIds[1]])
   } finally {
-    for (const fileId of fileIds.reverse()) expect((await api.delete(`/api/files/${fileId}`, { headers })).status()).toBe(200)
-    if (sourceFolderId) expect((await api.delete(`/api/files/folders/${sourceFolderId}`, { headers })).status()).toBe(200)
-    if (targetFolderId) expect((await api.delete(`/api/files/folders/${targetFolderId}`, { headers })).status()).toBe(200)
+    for (const fileId of fileIds.reverse()) {
+      expect((await api.delete(`/api/files/${fileId}`, { headers })).status()).toBe(200)
+      objects.splice(objects.findIndex(object => object.type === 'file' && object.id === fileId), 1)
+      updateManifest(objects)
+    }
+    if (sourceFolderId) {
+      expect((await api.delete(`/api/files/folders/${sourceFolderId}`, { headers })).status()).toBe(200)
+      objects.splice(objects.findIndex(object => object.type === 'folder' && object.id === sourceFolderId), 1)
+      updateManifest(objects)
+    }
+    if (targetFolderId) {
+      expect((await api.delete(`/api/files/folders/${targetFolderId}`, { headers })).status()).toBe(200)
+      objects.splice(objects.findIndex(object => object.type === 'folder' && object.id === targetFolderId), 1)
+      updateManifest(objects)
+    }
     await api.dispose()
   }
 })

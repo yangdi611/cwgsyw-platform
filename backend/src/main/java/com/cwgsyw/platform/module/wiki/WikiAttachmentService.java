@@ -5,7 +5,7 @@ import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.SharedFileMapper;
 import com.cwgsyw.platform.module.sharedfile.entity.SharedFile;
 import com.cwgsyw.platform.module.wiki.entity.WikiPage;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.authorization.ResourceDescriptorRepository;
 import com.cwgsyw.platform.module.authorization.ResourceDescriptor;
 import com.cwgsyw.platform.common.AuditLogMapper;
@@ -33,7 +33,7 @@ public class WikiAttachmentService {
     private final MinioStorageService minioStorage;
     private final SharedFileMapper sharedFileMapper;
     private final WikiPageMapper pageMapper;
-    private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     private final ResourceDescriptorRepository resourceDescriptorRepository;
     private final AuditLogMapper auditLogMapper;
 
@@ -71,7 +71,7 @@ public class WikiAttachmentService {
         try {
             sharedFileMapper.insert(sf);
             ResourceDescriptor pageResource = resourceDescriptorRepository.find(tenantId, "wiki_page", pageId);
-            resourceMigrationService.initializeCreatedResource(tenantId, "shared_file", sf.getId(),
+            resourceAuthorizationInitializer.initialize(tenantId, "shared_file", sf.getId(),
                 userId, pageResource == null ? null : pageResource.getOwnerGroupId(), 0600);
         } catch (RuntimeException exception) {
             minioStorage.deleteOrThrow(key);

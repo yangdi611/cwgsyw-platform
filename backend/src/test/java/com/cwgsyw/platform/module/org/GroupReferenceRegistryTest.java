@@ -16,12 +16,12 @@ class GroupReferenceRegistryTest {
 
     @Test
     void registryIsUniqueCompleteAndVersioned() {
-        assertEquals("group-reference-registry/v1", GroupReferenceRegistry.VERSION);
+        assertEquals("group-reference-registry/v2", GroupReferenceRegistry.VERSION);
         assertTrue(GroupReferenceRegistry.validationErrors().isEmpty(),
             GroupReferenceRegistry.validationErrors().toString());
-        assertEquals(18, GroupReferenceRegistry.requiredTriggers().size());
-        assertEquals(7, GroupReferenceRegistry.requiredFunctions().size());
-        assertEquals(7, GroupReferenceRegistry.requiredForeignKeys().size());
+        assertEquals(19, GroupReferenceRegistry.requiredTriggers().size());
+        assertEquals(5, GroupReferenceRegistry.requiredFunctions().size());
+        assertEquals(9, GroupReferenceRegistry.requiredForeignKeys().size());
 
         Set<String> referenceTypes = new HashSet<>();
         GroupReferenceRegistry.descriptors().forEach(descriptor -> {
@@ -38,29 +38,19 @@ class GroupReferenceRegistryTest {
             descriptor -> referenceTypes.add(descriptor.referenceType()));
 
         assertTrue(referenceTypes.containsAll(Set.of(
-            "leaders", "primaryUsers", "memberships", "roleAssignments", "openDailyReports",
-            "devices", "deviceCredentials", "openOpsTasks", "currentFutureRosters",
-            "enabledOpsRules", "runningWorkflowLinks", "flowableIdentityMemberships",
+            "leaders", "primaryUsers", "memberships", "roleAssignments", "devices",
+            "deviceCredentials", "currentFutureRosters", "activeTaskTemplates", "activeApprovalSchemes",
+            "activeTaskInstances", "activeAnalyticsDashboards", "runningWorkflowLinks", "flowableIdentityMemberships",
             "flowablePrivilegeMappings", "wikiSpaceOwners", "wikiPageOwners",
-            "sharedFolderOwners", "sharedFileOwners", "resourceAcls", "wikiPageAcls",
-            "wikiSpaceAcls", "sharedFolderAcls", "sharedFileVisibleGroups",
+            "sharedFolderOwners", "sharedFileOwners", "resourceAcls", "sharedFileVisibleGroups",
             "workflowHistoryLinks"
+        )));
+        assertTrue(referenceTypes.containsAll(Set.of(
+            "wikiSpaceAcls", "wikiPageAcls", "sharedFolderAcls"
         )));
         assertTrue(referenceTypes.containsAll(Set.of(
             "runningWorkflowVariables", "workflowHistoryVariables", "workflowHistoryDetails"
         )));
-    }
-
-    @Test
-    void opsRulesUseSameRecursiveJsonPathAsV72() {
-        GroupReferenceRegistry.ReferenceDescriptor descriptor = GroupReferenceRegistry.descriptors().stream()
-            .filter(candidate -> "enabledOpsRules".equals(candidate.referenceType()))
-            .findFirst()
-            .orElseThrow();
-
-        assertEquals("recursive JSON path strict $.**.groupId", descriptor.referencePath());
-        assertTrue(descriptor.activeCountSql().contains("'strict $.**.groupId'"));
-        assertTrue(descriptor.purgeCountSql().contains("parse_group_reference_id"));
     }
 
     @Test
@@ -92,7 +82,7 @@ class GroupReferenceRegistryTest {
     }
 
     @Test
-    void resourceInitializationAndBackfillWritersAreRegisteredForEveryAffectedReference() {
+    void resourceInitializationWriterIsRegisteredForEveryAffectedReference() {
         Map<String, Set<String>> writersByReference = GroupReferenceRegistry.descriptors().stream()
             .collect(Collectors.toMap(GroupReferenceRegistry.ReferenceDescriptor::referenceType,
                 descriptor -> Set.copyOf(descriptor.applicationWriterSymbols())));
@@ -100,11 +90,9 @@ class GroupReferenceRegistryTest {
         for (String referenceType : Set.of("wikiSpaceOwners", "wikiPageOwners",
                 "sharedFolderOwners", "sharedFileOwners")) {
             assertTrue(writersByReference.get(referenceType)
-                .contains("AuthorizationResourceMigrationService#initializeCreatedResource"), referenceType);
-            assertTrue(writersByReference.get(referenceType)
-                .contains("AuthorizationResourceMigrationService#backfill"), referenceType);
+                .contains("ResourceAuthorizationInitializer#initialize"), referenceType);
         }
         assertTrue(writersByReference.get("resourceAcls")
-            .contains("AuthorizationResourceMigrationService#initializeCreatedResource"));
+            .contains("ResourceAuthorizationInitializer#initialize"));
     }
 }
