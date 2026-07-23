@@ -145,6 +145,40 @@ class OpsCalendarRosterHistoricalGroupTest {
         org.mockito.Mockito.verifyNoInteractions(rosterMapper, activeGroupReferenceValidator, auditLogMapper);
     }
 
+    @Test
+    void deleteRejectsCrossTenantRosterWithoutWrites() {
+        OpsDutyRoster roster = roster(7L, LocalDate.now(), 15L);
+        roster.setTenantId("other-tenant");
+        when(rosterMapper.selectById(7L)).thenReturn(roster);
+
+        assertThatIllegalArgumentException().isThrownBy(() -> service.delete(7L, "default", 42L))
+            .withMessage("排班记录不存在");
+
+        verify(rosterMapper, never()).updateById(any(OpsDutyRoster.class));
+        verify(rosterMapper, never()).deleteById(anyLong());
+        verify(auditLogMapper, never()).insert(any(AuditLog.class));
+    }
+
+    @Test
+    void deleteRecordsUpdaterAndAudit() {
+        OpsDutyRoster roster = roster(8L, LocalDate.now(), 15L);
+        when(rosterMapper.selectById(8L)).thenReturn(roster);
+
+        service.delete(8L, "default", 42L);
+
+        var updated = org.mockito.ArgumentCaptor.forClass(OpsDutyRoster.class);
+        verify(rosterMapper).updateById(updated.capture());
+        assertThat(updated.getValue().getUpdatedBy()).isEqualTo(42L);
+        verify(rosterMapper).deleteById(8L);
+        var audit = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogMapper).insert(audit.capture());
+        assertThat(audit.getValue().getTenantId()).isEqualTo("default");
+        assertThat(audit.getValue().getAction()).isEqualTo("delete");
+        assertThat(audit.getValue().getTargetType()).isEqualTo("ops_duty_roster");
+        assertThat(audit.getValue().getTargetId()).isEqualTo(8L);
+        assertThat(audit.getValue().getOperatorId()).isEqualTo(42L);
+    }
+
     private com.cwgsyw.platform.module.opscalendar.dto.RosterRequest request(
             LocalDateTime startAt, LocalDateTime endAt) {
         var request = new com.cwgsyw.platform.module.opscalendar.dto.RosterRequest();

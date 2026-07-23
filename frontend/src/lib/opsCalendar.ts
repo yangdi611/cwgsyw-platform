@@ -1,7 +1,40 @@
 // 运维日历共享类型与工具函数（无第三方日期库，使用原生 Date）
 
 export type CalendarView = 'month' | 'week' | 'list'
-export type CalendarScope = 'mine' | 'group' | 'all' | 'roster' | 'public'
+export type CalendarScope = 'my' | 'group' | 'all'
+export type CalendarItemType = 'task' | 'roster' | 'holiday'
+
+export interface CalendarWorkItem {
+  itemType: CalendarItemType
+  id: string
+  title: string
+  startAt: string
+  endAt: string
+  status: string
+  overdue: boolean
+  href: string
+  meta: Record<string, unknown>
+}
+
+export interface CalendarSummary {
+  total: number
+  pending: number
+  overdue: number
+  completed: number
+}
+
+export interface CalendarDayVO {
+  date: string
+  summary: CalendarSummary
+  items: CalendarWorkItem[]
+}
+
+export interface CalendarDashboardVO {
+  date: string
+  summary: CalendarSummary
+  items: CalendarWorkItem[]
+  featuredTask: CalendarWorkItem | null
+}
 
 export interface TaskVO {
   id: number
@@ -119,6 +152,8 @@ export interface RosterVO {
   groupName: string | null
   groupArchived?: boolean
   remark: string | null
+  updatedBy: number | null
+  updatedAt: string | null
 }
 
 export interface HolidayVO {
@@ -130,6 +165,14 @@ export interface HolidayVO {
   workdayOverrides: string
   enabled: boolean
   remark: string | null
+  updatedBy: number | null
+  updatedAt: string | null
+}
+
+export const CALENDAR_ITEM_META: Record<CalendarItemType, { label: string; color: string }> = {
+  task: { label: '任务', color: '#2563eb' },
+  roster: { label: '排班', color: '#0891b2' },
+  holiday: { label: '节假日', color: '#dc2626' },
 }
 
 // ---------- 任务类型/状态展示元数据 ----------
@@ -140,7 +183,6 @@ export const TASK_TYPE_META: Record<string, { label: string; color: string }> = 
   report:       { label: '报表', color: '#8b5cf6' },
   compliance:   { label: '合规', color: '#f59e0b' },
   monitoring:   { label: '监控', color: '#ef4444' },
-  daily_report: { label: '日报', color: '#22c55e' },
   other:        { label: '其他', color: '#94a3b8' },
 }
 
@@ -211,6 +253,23 @@ export function isToday(d: Date): boolean { return isSameDay(d, new Date()) }
 export function taskDateKey(t: TaskVO): string | null {
   const src = t.plannedStartAt ?? t.dueAt
   return src ? src.slice(0, 10) : null
+}
+
+export function calendarItemDateKey(item: CalendarWorkItem): string {
+  return item.startAt.slice(0, 10)
+}
+
+export function calendarItemTypeLabel(type: CalendarItemType): string {
+  return CALENDAR_ITEM_META[type].label
+}
+
+export function calendarItemColor(type: CalendarItemType): string {
+  return CALENDAR_ITEM_META[type].color
+}
+
+export function calendarMetaText(item: CalendarWorkItem, key: string): string | null {
+  const value = item.meta[key]
+  return typeof value === 'string' && value.trim() ? value : null
 }
 
 export function fmtTime(iso: string | null): string {

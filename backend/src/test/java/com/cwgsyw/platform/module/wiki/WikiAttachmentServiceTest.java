@@ -2,7 +2,7 @@ package com.cwgsyw.platform.module.wiki;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.BusinessException;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.authorization.ResourceDescriptorRepository;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
 import com.cwgsyw.platform.module.sharedfile.SharedFileMapper;
@@ -25,7 +25,7 @@ class WikiAttachmentServiceTest {
     @Mock MinioStorageService minioStorage;
     @Mock SharedFileMapper sharedFileMapper;
     @Mock WikiPageMapper pageMapper;
-    @Mock AuthorizationResourceMigrationService resourceMigrationService;
+    @Mock ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     @Mock ResourceDescriptorRepository resourceDescriptorRepository;
     @Mock AuditLogMapper auditLogMapper;
     @InjectMocks WikiAttachmentService service;

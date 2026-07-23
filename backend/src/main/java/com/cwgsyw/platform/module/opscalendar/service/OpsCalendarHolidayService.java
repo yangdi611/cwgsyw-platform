@@ -49,6 +49,7 @@ public class OpsCalendarHolidayService {
     public HolidayVO create(HolidayRequest req, String tenantId, Long operatorId) {
         OpsHolidayCalendar h = new OpsHolidayCalendar();
         h.setTenantId(tenantId);
+        h.setUpdatedBy(operatorId);
         applyRequest(h, req);
         holidayMapper.insert(h);
         writeAudit(tenantId, "create", h.getId(), operatorId, "name=" + h.getName());
@@ -62,6 +63,7 @@ public class OpsCalendarHolidayService {
             throw new IllegalArgumentException("节假日不存在");
         }
         applyRequest(h, req);
+        h.setUpdatedBy(operatorId);
         holidayMapper.updateById(h);
         writeAudit(tenantId, "update", id, operatorId, "name=" + h.getName());
         return toVO(h);
@@ -73,8 +75,7 @@ public class OpsCalendarHolidayService {
         if (h == null || !h.getTenantId().equals(tenantId)) {
             throw new IllegalArgumentException("节假日不存在");
         }
-        h.setDeletedAt(LocalDateTime.now());
-        h.setDeletedBy(operatorId);
+        h.setUpdatedBy(operatorId);
         holidayMapper.updateById(h);
         holidayMapper.deleteById(id);
         writeAudit(tenantId, "delete", id, operatorId, "name=" + h.getName());
@@ -97,6 +98,7 @@ public class OpsCalendarHolidayService {
             if (exist != null && exist > 0) continue;
             OpsHolidayCalendar h = new OpsHolidayCalendar();
             h.setTenantId(tenantId);
+            h.setUpdatedBy(operatorId);
             applyRequest(h, req);
             holidayMapper.insert(h);
             created++;
@@ -214,6 +216,8 @@ public class OpsCalendarHolidayService {
         vo.setWorkdayOverrides(h.getWorkdayOverrides());
         vo.setEnabled(h.getEnabled());
         vo.setRemark(h.getRemark());
+        vo.setUpdatedBy(h.getUpdatedBy());
+        vo.setUpdatedAt(h.getUpdatedAt());
         return vo;
     }
 

@@ -76,7 +76,7 @@ public class ExportService {
         String wmText    = configService.get(tenantId, "watermark.text");
         float  wmOpacity = parseFloat(configService.get(tenantId, "watermark.opacity"), 0.15f);
         float  wmAngle   = parseFloat(configService.get(tenantId, "watermark.angle"),   45f);
-        float  wmSize    = parseFloat(configService.get(tenantId, "watermark.font_size"), 36f);
+        float  wmSize    = 36f;
         if (wmText == null || wmText.isBlank()) wmText = "IT运维平台";
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {

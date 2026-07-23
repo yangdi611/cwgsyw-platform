@@ -23,9 +23,12 @@ import {
   DatabaseBackup,
   BookOpen,
   CalendarDays,
+  CalendarClock,
   LayoutTemplate,
   Link2,
-  TriangleAlert,
+  BriefcaseBusiness,
+  Target,
+  Workflow,
 } from 'lucide-react'
 
 // V2 导航架构：8 大模块
@@ -37,7 +40,15 @@ export const navItems: NavEntry[] = [
     icon: LayoutDashboard,
     resource: null,
     action: null,
-    badge: 18,
+  },
+
+  {
+    href: '/work',
+    label: '我的工作',
+    icon: BriefcaseBusiness,
+    resource: 'work_item',
+    action: 'read',
+    badgeKey: 'work',
   },
 
   // 1.5 运维日历
@@ -45,7 +56,7 @@ export const navItems: NavEntry[] = [
     href: '/ops-calendar',
     label: '运维日历',
     icon: CalendarDays,
-    resource: 'ops_calendar',
+    resource: 'task',
     action: 'read',
   },
 
@@ -105,18 +116,33 @@ export const navItems: NavEntry[] = [
     action: 'read',
   },
 
-  // 5. 流程中心
+  // 5. 任务中心
   {
-    label: '流程中心',
+    label: '任务中心',
+    icon: ClipboardList,
+    resource: null,
+    action: null,
+    storageKey: 'sidebar_task_v2',
+    defaultOpen: false,
+    children: [
+      { href: '/tasks/templates', label: '任务模板', icon: LayoutTemplate, resource: 'task_template', action: 'read' },
+      { href: '/tasks/plans', label: '任务计划', icon: CalendarClock, resource: 'task_plan', action: 'read' },
+      { href: '/tasks', label: '任务列表', icon: CheckSquare, resource: 'task', action: 'read', exact: true },
+      { href: '/tasks/analytics', label: '任务统计', icon: BarChart2, resource: 'task_analytics', action: 'read' },
+      { href: '/tasks/metrics', label: '指标与目标', icon: Target, resource: 'task_analytics', action: 'read' },
+      { href: '/tasks/automations', label: '任务自动化', icon: Workflow, resource: 'task_analytics', action: 'read' },
+    ],
+  },
+
+  // 6. 流程管理
+  {
+    label: '流程管理',
     icon: GitBranch,
     resource: 'workflow',
     action: 'read',
     storageKey: 'sidebar_workflow_v2',
     defaultOpen: false,
     children: [
-      { href: '/workflow/todo', label: '待办中心', icon: CheckSquare, resource: 'workflow', action: 'read' },
-      { href: '/workflow/tasks', label: '我的任务', icon: CheckSquare, resource: 'workflow', action: 'read', badge: 12 },
-      { href: '/daily', label: '日报审批', icon: FileText, resource: 'daily_report', action: 'read' },
       { href: '/workflow/instances', label: '流程实例', icon: GitBranch, resource: 'workflow', action: 'read' },
       { href: '/workflow/templates', label: '流程模板', icon: LayoutTemplate, resource: 'workflow', action: 'configure' },
       { href: '/workflow/design', label: '流程设计', icon: Edit3, resource: 'workflow', action: 'configure' },
@@ -125,7 +151,7 @@ export const navItems: NavEntry[] = [
     ],
   },
 
-  // 6. 报表分析
+  // 7. 报表分析
   {
     label: '报表分析',
     icon: BarChart2,
@@ -134,13 +160,13 @@ export const navItems: NavEntry[] = [
     storageKey: 'sidebar_reports_v2',
     defaultOpen: false,
     children: [
-      { href: '/reports', label: '综合报表', icon: BarChart2, resource: 'daily_report', action: 'export' },
+      { href: '/tasks/analytics', label: '任务统计', icon: BarChart2, resource: 'task_analytics', action: 'read' },
       { href: '/cmdb/changes/stats', label: 'CMDB 统计', icon: BarChart2, resource: 'cmdb_change', action: 'read' },
       { href: '/workflow/stats', label: '流程统计', icon: BarChart2, resource: 'workflow', action: 'read' },
     ],
   },
 
-  // 7. 身份与权限
+  // 8. 身份与权限
   {
     label: '身份与权限',
     icon: Shield,
@@ -153,11 +179,10 @@ export const navItems: NavEntry[] = [
       { href: '/groups', label: '用户组', icon: Building2, resource: 'group', action: 'read' },
       { href: '/rbac/roles', label: '角色管理', icon: Shield, resource: 'role', action: 'read' },
       { href: '/rbac/permissions', label: '权限配置', icon: Shield, resource: 'resource', action: 'assign' },
-      { href: '/rbac/migration-exceptions', label: '迁移异常', icon: TriangleAlert, resource: 'role', action: 'assign', requiredScope: 'platform' },
     ],
   },
 
-  // 8. 系统管理
+  // 9. 系统管理
   {
     label: '系统管理',
     icon: Settings,

@@ -32,7 +32,7 @@ public class TemplateApproverResolver {
     /** 提交人组候选组 token 运行时变量名，生成期以 {@code ${submitterGroupToken}} 引用。 */
     public static final String VAR_SUBMITTER_GROUP = "submitterGroupToken";
 
-    /** 组候选组前缀，与历史约定一致（daily-report 流程用 {@code group_{id}}）。 */
+    /** 组候选组前缀。 */
     public static final String GROUP_PREFIX = "group_";
 
     /** 角色候选组前缀。 */

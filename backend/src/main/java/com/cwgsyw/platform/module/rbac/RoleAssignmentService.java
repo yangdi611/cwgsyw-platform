@@ -13,7 +13,6 @@ import com.cwgsyw.platform.module.rbac.dto.RoleAssignmentVO;
 import com.cwgsyw.platform.module.rbac.entity.RoleAssignment;
 import com.cwgsyw.platform.module.rbac.entity.SysPermission;
 import com.cwgsyw.platform.module.rbac.entity.SysRole;
-import com.cwgsyw.platform.module.rbac.entity.SysUserRole;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class RoleAssignmentService {
     private final RoleAssignmentMapper assignmentMapper;
-    private final SysUserRoleMapper userRoleMapper;
     private final SysRoleMapper roleMapper;
     private final UserMapper userMapper;
     private final GroupMapper groupMapper;
@@ -133,8 +131,8 @@ public class RoleAssignmentService {
     }
 
     @Transactional
-    public void replaceLegacyRoles(Long userId, List<Long> roleIds,
-                                   String tenantId, Long primaryGroupId, Long operatorId) {
+    public void replaceManagedRoles(Long userId, List<Long> roleIds,
+                                    String tenantId, Long primaryGroupId, Long operatorId) {
         authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
         List<RoleAssignment> generatedAssignments = assignmentMapper.selectList(
             new LambdaQueryWrapper<RoleAssignment>()
@@ -164,25 +162,16 @@ public class RoleAssignmentService {
         Long effectivePrimaryGroupId = resolveActivePrimaryGroup(
             userId, tenantId, primaryGroupId, roles);
 
-        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
-            .eq(SysUserRole::getUserId, userId));
-        roles.forEach(role -> {
-            SysUserRole userRole = new SysUserRole();
-            userRole.setUserId(userId);
-            userRole.setRoleId(role.getId());
-            userRoleMapper.insert(userRole);
-        });
-
         for (RoleAssignment assignment : generatedAssignments) {
             int updated = assignmentMapper.softDeleteActiveAssignment(
                 assignment.getId(), tenantId, userId, operatorId);
             if (updated != 1) {
-                throw new IllegalStateException("兼容角色分配撤销失败或状态已变化");
+                throw new IllegalStateException("角色分配撤销失败或状态已变化");
             }
         }
 
         roles.forEach(role -> {
-            RoleAssignment assignment = compatibilityAssignment(
+            RoleAssignment assignment = managedAssignment(
                 userId, role, tenantId, effectivePrimaryGroupId, operatorId);
             if (assignment != null && !hasActiveAssignment(assignment)) assignmentMapper.insert(assignment);
         });
@@ -202,8 +191,8 @@ public class RoleAssignmentService {
             : null;
     }
 
-    private RoleAssignment compatibilityAssignment(Long userId, SysRole role, String tenantId,
-                                                   Long primaryGroupId, Long operatorId) {
+    private RoleAssignment managedAssignment(Long userId, SysRole role, String tenantId,
+                                             Long primaryGroupId, Long operatorId) {
         String scope = role.getScope();
         if ("group".equals(scope) && primaryGroupId == null) return null;
         if (!List.of("platform", "tenant", "group").contains(scope)) return null;
@@ -218,8 +207,7 @@ public class RoleAssignmentService {
         assignment.setRoleId(role.getId());
         assignment.setScopeType(scope);
         assignment.setScopeId("group".equals(scope) ? primaryGroupId : null);
-        assignment.setOriginType("compatibility");
-        assignment.setOriginKey("sys_user_role:" + userId + ":" + role.getId());
+        assignment.setOriginType("manual");
         assignment.setCreatedBy(operatorId);
         return assignment;
     }

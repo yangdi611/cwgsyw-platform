@@ -21,4 +21,6 @@ public class RosterVO {
     private String groupName;
     private Boolean groupArchived;
     private String remark;
+    private Long updatedBy;
+    private LocalDateTime updatedAt;
 }

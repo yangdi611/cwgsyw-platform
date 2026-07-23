@@ -29,7 +29,7 @@ public class ResourceAccessRequest {
     @Data
     public static class ResourceAclEntryRequest {
         @NotBlank
-        @Pattern(regexp = "user|group")
+        @Pattern(regexp = "user|group|role")
         private String subjectType;
         @NotNull
         private Long subjectId;

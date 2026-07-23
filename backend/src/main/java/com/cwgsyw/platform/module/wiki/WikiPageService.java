@@ -15,7 +15,7 @@ import com.cwgsyw.platform.module.wiki.entity.WikiPageVersion;
 import com.cwgsyw.platform.module.wiki.entity.WikiSpace;
 import com.cwgsyw.platform.security.SecurityUser;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.workflow.adapter.WikiWorkflowAdapter;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
 import com.cwgsyw.platform.module.workflow.runtime.WorkflowStartCommand;
@@ -40,7 +40,6 @@ public class WikiPageService {
     private final WikiSpaceMapper spaceMapper;
     private final WikiBacklinkMapper backlinkMapper;
     private final WikiBacklinkService backlinkService;
-    private final WikiAclService aclService;
     private final WikiSpaceService spaceService;
     private final AuditLogMapper auditLogMapper;
     private final ObjectMapper objectMapper;
@@ -48,7 +47,7 @@ public class WikiPageService {
     private final UserMapper userMapper;
     private final WorkflowRuntimeFacade workflowRuntimeFacade;
     private final AuthorizationService authorizationService;
-    private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     private final WikiAttachmentService attachmentService;
 
     public List<WikiPageTreeVO> getTree(String tenantId, Long spaceId) {
@@ -114,9 +113,8 @@ public class WikiPageService {
         vo.setCanWrite(canDo(page, user, "write"));
         vo.setCanDelete(canDo(page, user, "delete"));
         vo.setCanPublish(canDo(page, user, "publish"));
-        boolean legacyCanManageAcl = user.getPermissions().contains("wiki:manage_acl");
-        vo.setCanManageAcl(authorizationService.decideWithCompatibility(user, "wiki", "wiki:manage_acl",
-            "wiki_page", page.getId(), 2, legacyCanManageAcl));
+        vo.setCanManageAcl(authorizationService.decide(user, "wiki:manage_acl",
+            "wiki_page", page.getId(), 2).isAllowed());
         return vo;
     }
 
@@ -129,42 +127,15 @@ public class WikiPageService {
         }
     }
 
-    private boolean legacyAllows(WikiPage page, SecurityUser user, String action) {
-        if (!user.getPermissions().contains("wiki:" + mapToSpaceAction(action))) return false;
-        boolean spaceAllowed = spaceService.hasWritePermission(
-            page.getTenantId(), page.getSpaceId(), user, mapToSpaceAction(action));
-        return spaceAllowed || aclService.hasExplicitPermission(page.getTenantId(), page.getId(),
-            user.getUserId(), user.getGroupId(), user.getGroupScope(), mapToPageAction(action));
-    }
-
-    /**
-     * 页面写操作统一权限闸门：空间级 hasWritePermission OR 页面级 aclService.hasExplicitPermission，任一命中即放行（SPEC 7.3 节）。
-     * 是不可绕过的强制调用点：失败直接抛异常，调用方无法"忘记检查返回值"（SPEC 3.1 节）。
-     * 页面级判断用 hasExplicitPermission 而非 hasPermission——后者在页面链无自定义 ACL 时默认放行（为 read 可见性设计），
-     * 若用来判断写权限会导致任何登录用户对未设置过页面级 ACL 的页面都拥有写/删/发布权限，绕过空间级 ACL。
-     */
     private void checkWritePermission(String tenantId, Long spaceId, Long pageId, SecurityUser user, String action) {
         String permissionCode = "wiki:" + mapToSpaceAction(action);
         int requiredBits = "publish".equals(action) ? 6 : 2;
-        boolean allowed = authorizationService.decideWithCompatibility(user, "wiki", permissionCode,
-            "wiki_page", pageId, requiredBits, () -> {
-                if (!user.getPermissions().contains(permissionCode)) return false;
-                boolean spaceOk = spaceService.hasWritePermission(
-                    tenantId, spaceId, user, mapToSpaceAction(action));
-                return spaceOk || aclService.hasExplicitPermission(
-                    tenantId, pageId, user.getUserId(), user.getGroupId(), user.getGroupScope(),
-                    mapToPageAction(action));
-            });
-        if (!allowed) throw new AccessDeniedException("无权限在此页面执行 " + action);
+        authorizationService.require(user, permissionCode, "wiki_page", pageId, requiredBits);
     }
 
     /** 空间级动词固定为 create/update/delete/publish，页面级固定为 read/write/delete/publish，仅 update↔write 需要映射。 */
     private String mapToSpaceAction(String action) {
         return "write".equals(action) ? "update" : action;
-    }
-
-    private String mapToPageAction(String action) {
-        return "update".equals(action) ? "write" : action;
     }
 
     @Transactional
@@ -206,7 +177,7 @@ public class WikiPageService {
         page.setCreatedAt(LocalDateTime.now());
         page.setUpdatedAt(LocalDateTime.now());
         pageMapper.insert(page);
-        resourceMigrationService.initializeCreatedResource(tenantId, "wiki_page", page.getId(),
+        resourceAuthorizationInitializer.initialize(tenantId, "wiki_page", page.getId(),
             userId, user.getGroupId(), 0670);
 
         auditLogMapper.insert(buildAudit(tenantId, "create", page.getId(), userId, null, toJson(page),
@@ -241,8 +212,7 @@ public class WikiPageService {
     @Transactional
     public void deletePage(String tenantId, Long pageId, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
-        authorizationService.requireParentWithCompatibility(user, "wiki", "wiki:delete",
-            "wiki_page", pageId, 3, () -> legacyAllows(page, user, "delete"));
+        authorizationService.requireParent(user, "wiki:delete", "wiki_page", pageId, 3);
         Long userId = user.getUserId();
         List<Long> ids = pageMapper.findDescendantIds(pageId);
         attachmentService.deleteAttachmentsForPages(tenantId, userId, ids);
@@ -259,12 +229,10 @@ public class WikiPageService {
     @Transactional
     public void movePage(String tenantId, Long pageId, Long newParentId, int sortOrder, SecurityUser user) {
         WikiPage page = requirePage(tenantId, pageId);
-        authorizationService.requireParentWithCompatibility(user, "wiki", "wiki:update",
-            "wiki_page", pageId, 3, () -> legacyAllows(page, user, "update"));
+        authorizationService.requireParent(user, "wiki:update", "wiki_page", pageId, 3);
         String targetType = newParentId == null ? "wiki_space" : "wiki_page";
         Long targetId = newParentId == null ? page.getSpaceId() : newParentId;
-        authorizationService.requireWithCompatibility(user, "wiki", "wiki:update",
-            targetType, targetId, 3, () -> legacyAllows(page, user, "update"));
+        authorizationService.require(user, "wiki:update", targetType, targetId, 3);
         Long userId = user.getUserId();
         if (newParentId != null) {
             List<Long> descendants = pageMapper.findDescendantIds(pageId);
@@ -330,27 +298,7 @@ public class WikiPageService {
 
     public PageResult<WikiSearchResultVO> search(String tenantId, String keyword, Long spaceId,
                                                 int page, int size, SecurityUser user) {
-        if (authorizationService.isEnforced(user, "wiki")) {
-            return searchWithEnforcedAccess(tenantId, keyword, spaceId, page, size, user);
-        }
-        int offset = (page - 1) * size;
-        long total;
-        List<Map<String, Object>> rows;
-        if (spaceId != null) {
-            total = pageMapper.searchCountInSpace(tenantId, spaceId, keyword);
-            rows = pageMapper.searchInSpace(tenantId, spaceId, keyword, size, offset);
-        } else {
-            total = pageMapper.searchCount(tenantId, keyword);
-            rows = pageMapper.search(tenantId, keyword, size, offset);
-        }
-        List<WikiSearchResultVO> records = toSearchResults(rows);
-
-        PageResult<WikiSearchResultVO> result = new PageResult<>();
-        result.setRecords(records);
-        result.setTotal(total);
-        result.setPage(page);
-        result.setSize(size);
-        return result;
+        return searchWithEnforcedAccess(tenantId, keyword, spaceId, page, size, user);
     }
 
     private PageResult<WikiSearchResultVO> searchWithEnforcedAccess(String tenantId, String keyword, Long spaceId,

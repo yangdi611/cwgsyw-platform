@@ -11,6 +11,17 @@ public interface WorkflowProcessBindingMapper extends BaseMapper<WorkflowProcess
         SELECT COUNT(*)
         FROM workflow_process_binding
         WHERE tenant_id = #{tenantId}
+          AND process_definition_id = #{processDefinitionId}
+          AND enabled = TRUE
+          AND NOT is_deleted
+        """)
+    long countActiveByProcessDefinition(@Param("tenantId") String tenantId,
+                                        @Param("processDefinitionId") String processDefinitionId);
+
+    @Select("""
+        SELECT COUNT(*)
+        FROM workflow_process_binding
+        WHERE tenant_id = #{tenantId}
           AND business_type = #{businessType}
         """)
     long countIncludingDeleted(@Param("tenantId") String tenantId,

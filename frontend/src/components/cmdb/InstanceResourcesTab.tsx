@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Link from 'next/link'
-import { Server, FileText, Calendar, ExternalLink } from 'lucide-react'
+import { Server, FileText, ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 /* ------ Types ------ */
@@ -25,14 +25,6 @@ interface ChangeDocVO {
   linkCreatedAt: string | null
 }
 
-interface DailyReportVO {
-  id: number
-  reporterName: string
-  reportDate: string
-  status: string
-  completedItemsBrief: string | null
-}
-
 /* ------ Component ------ */
 
 export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
@@ -46,12 +38,7 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
     queryFn: () => api.get(`/cmdb/instances/${instanceId}/change-docs`).then(r => r.data.data),
   })
 
-  const dailyReports = useQuery<DailyReportVO[]>({
-    queryKey: ['cmdb-instance-dailyreports', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}/daily-reports`).then(r => r.data.data),
-  })
-
-  const isLoading = devices.isLoading || changeDocs.isLoading || dailyReports.isLoading
+  const isLoading = devices.isLoading || changeDocs.isLoading
 
   if (isLoading) {
     return <p className="text-sm text-v2-muted">加载中...</p>
@@ -105,27 +92,6 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
                 查看 <ExternalLink className="h-3 w-3" />
               </Link>
             </div>
-          </div>
-        ))}
-      </Section>
-
-      {/* 关联运维日报 */}
-      <Section icon={<Calendar className="h-4 w-4" />} title="关联运维日报" emptyMsg="暂无关联运维日报">
-        {dailyReports.data?.map(d => (
-          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-v2-muted shrink-0" />
-              <div>
-                <p className="text-sm font-medium">{d.reportDate}</p>
-                <p className="text-xs text-v2-muted">{d.reporterName}</p>
-              </div>
-            </div>
-            <Link
-              href={`/daily/${d.id}`}
-              className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
-            >
-              查看 <ExternalLink className="h-3 w-3" />
-            </Link>
           </div>
         ))}
       </Section>

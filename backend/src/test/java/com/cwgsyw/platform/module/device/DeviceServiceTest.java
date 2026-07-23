@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.device;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.config.CryptoService;
 import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
@@ -91,7 +92,7 @@ class DeviceServiceTest {
         when(deviceMapper.selectById(42L)).thenReturn(device);
 
         assertThatThrownBy(() -> service.getById(42L, "default", 3L, "group"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该设备");
     }
 
@@ -159,17 +160,17 @@ class DeviceServiceTest {
         when(deviceMapper.selectById(42L)).thenReturn(device);
 
         assertThatThrownBy(() -> service.updateCredential(10L, updateRequest, "default", 1L, 3L, "group"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该设备");
         assertThatThrownBy(() -> service.deleteCredential(10L, "default", 1L, 3L, "group"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该设备");
         assertThatThrownBy(() -> service.revealPassword(10L, "default", 1L, 3L, "group", "127.0.0.1", null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该设备");
         assertThatThrownBy(() -> service.addCredential(42L, new com.cwgsyw.platform.module.device.dto.CreateCredentialRequest(),
                 "default", 1L, 3L, "group"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该设备");
 
         verify(credentialMapper, never()).insert(any(DeviceCredential.class));

@@ -25,7 +25,7 @@ export default function HolidaysPage() {
   const qc = useQueryClient()
 
   useEffect(() => {
-    if (!hasPermission('ops_calendar', 'manage')) router.replace('/ops-calendar')
+    if (!hasPermission('calendar_settings', 'read')) router.replace('/ops-calendar')
   }, [hasPermission, router])
 
   const [open, setOpen] = useState(false)
@@ -33,9 +33,10 @@ export default function HolidaysPage() {
   const [form, setForm] = useState({ name: '', startDate: '', endDate: '', holidayType: 'legal', workdayOverrides: '', enabled: true, remark: '' })
 
   const { data: holidays = [], isLoading } = useQuery({
-    queryKey: ['ops-holidays'],
-    queryFn: () => api.get('/ops-calendar/holidays').then((r) => r.data.data as HolidayVO[]),
+    queryKey: ['calendar-settings-holidays'],
+    queryFn: () => api.get('/calendar-settings/holidays').then((r) => r.data.data as HolidayVO[]),
   })
+  const canManage = hasPermission('calendar_settings', 'manage')
 
   function openCreate() {
     setEditing(null)
@@ -67,30 +68,30 @@ export default function HolidaysPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => editing
-      ? api.put(`/ops-calendar/holidays/${editing.id}`, buildBody())
-      : api.post('/ops-calendar/holidays', buildBody()),
+      ? api.put(`/calendar-settings/holidays/${editing.id}`, buildBody())
+      : api.post('/calendar-settings/holidays', buildBody()),
     onSuccess: () => {
       toast.success(editing ? '节假日已更新' : '节假日已创建')
-      qc.invalidateQueries({ queryKey: ['ops-holidays'] })
+      qc.invalidateQueries({ queryKey: ['calendar-settings-holidays'] })
       setOpen(false)
     },
     onError: (e: unknown) => toast.error(errMsg(e, '保存失败')),
   })
 
   const importMutation = useMutation({
-    mutationFn: (year: number) => api.post(`/ops-calendar/holidays/import-cn?year=${year}`).then((r) => r.data),
+    mutationFn: (year: number) => api.post(`/calendar-settings/holidays/import-cn?year=${year}`).then((r) => r.data),
     onSuccess: (r) => {
       toast.success(`已导入 ${r?.data ?? 0} 条 ${new Date().getFullYear()} 年法定节假日`)
-      qc.invalidateQueries({ queryKey: ['ops-holidays'] })
+      qc.invalidateQueries({ queryKey: ['calendar-settings-holidays'] })
     },
     onError: (e: unknown) => toast.error(errMsg(e, '导入失败')),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/ops-calendar/holidays/${id}`),
+    mutationFn: (id: number) => api.delete(`/calendar-settings/holidays/${id}`),
     onSuccess: () => {
       toast.success('节假日已删除')
-      qc.invalidateQueries({ queryKey: ['ops-holidays'] })
+      qc.invalidateQueries({ queryKey: ['calendar-settings-holidays'] })
     },
     onError: (e: unknown) => toast.error(errMsg(e, '删除失败')),
   })
@@ -101,16 +102,18 @@ export default function HolidaysPage() {
     { key: 'type', title: '类型', render: (h) => TYPE_LABEL[h.holidayType] ?? h.holidayType },
     { key: 'overrides', title: '调休补班', render: (h) => <span className="text-v2-muted text-sm">{h.workdayOverrides && h.workdayOverrides !== '[]' ? h.workdayOverrides : '-'}</span> },
     { key: 'enabled', title: '状态', render: (h) => <StatusBadge status={h.enabled ? 'ok' : 'neutral'}>{h.enabled ? '启用' : '停用'}</StatusBadge> },
+    { key: 'remark', title: '备注', render: (h) => <span className="text-sm text-v2-muted">{h.remark ?? '-'}</span> },
+    { key: 'updatedAt', title: '最近更新', render: (h) => <div className="text-xs text-v2-muted"><div>{h.updatedBy ? `用户 #${h.updatedBy}` : '-'}</div><div className="font-v2-mono">{h.updatedAt?.slice(0, 16).replace('T', ' ') ?? '-'}</div></div> },
     { key: 'ops', title: '操作', align: 'right' as const, render: (h) => (
-        <div className="flex items-center justify-end gap-1">
+        canManage ? <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(h) }}>编辑</Button>
           <Button variant="ghost" size="sm" onClick={(e) => {
             e.stopPropagation()
             if (window.confirm(`确认删除「${h.name}」？`)) deleteMutation.mutate(h.id)
           }}>删除</Button>
-        </div>
+        </div> : null
       ) },
-  ], [deleteMutation])
+  ], [canManage, deleteMutation])
 
   return (
     <div className="space-y-6">
@@ -121,12 +124,12 @@ export default function HolidaysPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => router.push('/ops-calendar')}><ArrowLeft className="h-4 w-4" />返回</Button>
-            <Button variant="secondary" onClick={() => {
+            {canManage && <Button variant="secondary" onClick={() => {
               if (window.confirm('导入 2026 年中国法定节假日（估算值，可后续按公告调整）？')) importMutation.mutate(2026)
             }} disabled={importMutation.isPending}>
               <Download className="h-4 w-4" />导入2026法定节假日
-            </Button>
-            <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建节假日</Button>
+            </Button>}
+            {canManage && <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建节假日</Button>}
           </div>
         }
       />

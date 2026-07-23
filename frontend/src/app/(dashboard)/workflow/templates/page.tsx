@@ -57,7 +57,6 @@ interface TemplateInstanceVO {
 }
 
 const businessTypeLabels: Record<string, string> = {
-  daily_report: '日报',
   wiki_page: 'Wiki 页面',
   change_doc: '变更文档',
   device_access: '设备权限',

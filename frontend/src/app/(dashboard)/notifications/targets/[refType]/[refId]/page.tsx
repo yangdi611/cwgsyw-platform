@@ -15,9 +15,9 @@ const targetResolvers: Record<string, TargetResolver> = {
     await api.get(`/change-docs/${id}`)
     return `/change-docs/${id}`
   },
-  daily_report: async (id) => {
-    await api.get(`/daily/${id}`)
-    return `/daily/${id}`
+  task: async (id) => {
+    await api.get(`/tasks/${id}`)
+    return `/tasks/${id}`
   },
   ci_instance: async (id) => {
     const response = await api.get(`/cmdb/instances/${id}`)
@@ -31,10 +31,6 @@ const targetResolvers: Record<string, TargetResolver> = {
     const page = response.data.data as { spaceId?: number }
     if (!page.spaceId) throw new Error('目标 Wiki 页面缺少空间信息')
     return `/wiki/${page.spaceId}/${id}`
-  },
-  ops_task: async (id) => {
-    await api.get(`/ops-calendar/tasks/${id}`)
-    return `/ops-calendar?taskId=${id}`
   },
 }
 

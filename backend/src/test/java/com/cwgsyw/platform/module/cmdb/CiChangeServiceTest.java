@@ -44,7 +44,6 @@ class CiChangeServiceTest {
     void setUp() {
         service = new CiChangeService(changeRecordMapper, userMapper, instanceMapper, modelMapper,
                 new ObjectMapper(), redisTemplate);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Nested
@@ -210,6 +209,7 @@ class CiChangeServiceTest {
 
         @Test
         void explicitStatsRange_usesOneWindowForCardsAndTop10() {
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get(anyString())).thenReturn(null);
             when(changeRecordMapper.queryDailyBreakdown(eq("tenant-a"), eq("2099-01-01T00:00:00"),
                     eq("2099-01-02T00:00:00"), isNull())).thenReturn(List.of());
@@ -227,6 +227,7 @@ class CiChangeServiceTest {
 
         @Test
         void statsCacheKey_isTenantScopedAndTop10UsesModelFilter() {
+            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get(anyString())).thenReturn(null);
             when(changeRecordMapper.queryDailyBreakdown(eq("tenant-a"), anyString(), anyString(), eq("host")))
                     .thenReturn(List.of());

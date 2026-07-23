@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.text.Normalizer;
 import java.util.*;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
@@ -27,7 +27,7 @@ public class SharedFolderService {
     private final SharedFolderMapper folderMapper;
     private final SharedFileMapper fileMapper;
     private final AuditLogMapper auditLogMapper;
-    private final AuthorizationResourceMigrationService resourceMigrationService;
+    private final ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     private final UserMapper userMapper;
     private final AuthorizationService authorizationService;
 
@@ -53,8 +53,7 @@ public class SharedFolderService {
 
     public List<SharedFolderVO> getFolderTree(SecurityUser user) {
         List<SharedFolderVO> tree = getFolderTree(user.getTenantId());
-        List<SharedFolderVO> visible = authorizationService.isEnforced(user, "shared_file")
-            ? filterReadable(tree, user) : tree;
+        List<SharedFolderVO> visible = filterReadable(tree, user);
         applyCapabilities(visible, user);
         return visible;
     }
@@ -75,7 +74,7 @@ public class SharedFolderService {
         folder.setCreatedAt(LocalDateTime.now());
         folder.setUpdatedAt(LocalDateTime.now());
         folderMapper.insert(folder);
-        resourceMigrationService.initializeCreatedResource(tenantId, "shared_folder", folder.getId(),
+        resourceAuthorizationInitializer.initialize(tenantId, "shared_folder", folder.getId(),
             operatorId, ownerGroupId, 02770);
 
         auditLogMapper.insert(AuditLog.builder()
@@ -172,7 +171,7 @@ public class SharedFolderService {
                 newFolder.setCreatedAt(LocalDateTime.now());
                 newFolder.setUpdatedAt(LocalDateTime.now());
                 folderMapper.insert(newFolder);
-                resourceMigrationService.initializeCreatedResource(tenantId, "shared_folder", newFolder.getId(),
+                resourceAuthorizationInitializer.initialize(tenantId, "shared_folder", newFolder.getId(),
                     operatorId, primaryGroupId(operatorId), 02770);
                 current = newFolder;
                 parentId = newFolder.getId();
@@ -249,21 +248,16 @@ public class SharedFolderService {
 
     private void applyCapabilities(List<SharedFolderVO> folders, SecurityUser user) {
         for (SharedFolderVO folder : folders) {
-            boolean legacyManage = user.getPermissions().contains("shared_file:manage");
-            boolean legacyUpload = user.getPermissions().contains("shared_file:upload");
-            boolean legacyDelete = user.getPermissions().contains("shared_file:delete");
-            boolean legacyUpdate = user.getPermissions().contains("shared_file:update");
-            boolean legacyManageAcl = user.getPermissions().contains("shared_file:manage_acl");
-            folder.setCanCreateChild(authorizationService.decideWithCompatibility(user, "shared_file",
-                "shared_file:manage", "shared_folder", folder.getId(), 3, legacyManage));
-            folder.setCanUpload(authorizationService.decideWithCompatibility(user, "shared_file",
-                "shared_file:upload", "shared_folder", folder.getId(), 3, legacyUpload));
-            folder.setCanDelete(authorizationService.decideParentWithCompatibility(user, "shared_file",
-                "shared_file:delete", "shared_folder", folder.getId(), 3, legacyDelete));
-            folder.setCanUpdate(authorizationService.decideParentWithCompatibility(user, "shared_file",
-                "shared_file:update", "shared_folder", folder.getId(), 2, legacyUpdate));
-            folder.setCanManageAcl(authorizationService.decideWithCompatibility(user, "shared_file",
-                "shared_file:manage_acl", "shared_folder", folder.getId(), 2, legacyManageAcl));
+            folder.setCanCreateChild(authorizationService.decide(user,
+                "shared_file:manage", "shared_folder", folder.getId(), 3).isAllowed());
+            folder.setCanUpload(authorizationService.decide(user,
+                "shared_file:upload", "shared_folder", folder.getId(), 3).isAllowed());
+            folder.setCanDelete(authorizationService.decideParent(user,
+                "shared_file:delete", "shared_folder", folder.getId(), 3));
+            folder.setCanUpdate(authorizationService.decideParent(user,
+                "shared_file:update", "shared_folder", folder.getId(), 2));
+            folder.setCanManageAcl(authorizationService.decide(user,
+                "shared_file:manage_acl", "shared_folder", folder.getId(), 2).isAllowed());
             applyCapabilities(folder.getChildren(), user);
         }
     }

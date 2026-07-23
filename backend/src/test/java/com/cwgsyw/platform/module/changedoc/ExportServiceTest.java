@@ -69,7 +69,6 @@ class ExportServiceTest {
         when(configService.get("default", "watermark.text")).thenReturn("FQA");
         when(configService.get("default", "watermark.opacity")).thenReturn("0.5");
         when(configService.get("default", "watermark.angle")).thenReturn("-30");
-        when(configService.get("default", "watermark.font_size")).thenReturn("36");
         ExportService service = new ExportService(configService, mock(ChangeDocTemplateService.class));
 
         byte[] exported = service.exportPdfDirect(new ChangeDocVO(), "default");

@@ -35,9 +35,7 @@ import {
 } from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
-import { WikiSpaceAclDialog } from '@/components/wiki/WikiSpaceAclDialog'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
-import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 
 /** 个人空间排序：按当前用户 username 隔离存 localStorage（非全局，每人各自的顺序）。 */
 function orderStorageKey(username: string | undefined): string {
@@ -79,7 +77,6 @@ export default function WikiSpacesPage() {
   const username = useAuthStore((s) => s.user?.username)
   const groupId = useAuthStore((s) => s.groupId)
   const groupScope = useAuthStore((s) => s.groupScope)
-  const authorizationEnforced = useAuthorizationEnforced('wiki')
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<WikiSpace | null>(null) // null=新建，非空=编辑
@@ -433,16 +430,9 @@ export default function WikiSpacesPage() {
       </Dialog>
 
       {aclTarget && (
-        authorizationEnforced
-          ? <ResourceAccessDialog resourceType="wiki_space" resourceId={aclTarget.id}
-              title={aclTarget.name} container open={!!aclTarget}
-              onOpenChange={(open) => { if (!open) setAclTarget(null) }} />
-          : <WikiSpaceAclDialog
-              spaceId={aclTarget.id}
-              spaceName={aclTarget.name}
-              open={!!aclTarget}
-              onOpenChange={(open) => { if (!open) setAclTarget(null) }}
-            />
+        <ResourceAccessDialog resourceType="wiki_space" resourceId={aclTarget.id}
+          title={aclTarget.name} container open={!!aclTarget}
+          onOpenChange={(open) => { if (!open) setAclTarget(null) }} />
       )}
     </div>
   )

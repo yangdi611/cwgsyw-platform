@@ -50,20 +50,23 @@ class GroupReferenceInventoryIntegrationTest {
     }
 
     @Test
-    void recursiveOpsRulesAndFlowableVariablesAreCounted() {
+    void rosterAndFlowableVariablesAreCounted() {
         String tenantId = "registry_" + System.nanoTime();
         Long groupId = jdbcTemplate.queryForObject("""
             INSERT INTO sys_group (tenant_id, code, name, group_type, is_builtin)
             VALUES (?, ?, 'Registry Group', 'business', FALSE)
             RETURNING id
             """, Long.class, tenantId, "registry_" + System.nanoTime());
+        Long userId = jdbcTemplate.queryForObject("""
+            INSERT INTO sys_user (tenant_id, username, password, status)
+            VALUES (?, ?, 'hash', 1)
+            RETURNING id
+            """, Long.class, tenantId, "registry_user_" + System.nanoTime());
         jdbcTemplate.update("""
-            INSERT INTO ops_schedule_rule
-                (tenant_id, name, task_type, trigger_type, assignee_rule, recipient_rule, escalation_rule)
-            VALUES (?, 'recursive', 'inspection', 'daily', '{}', ?, ?)
-            """, tenantId,
-            "{\"nested\":{\"groupId\":\"" + groupId + "\"}}",
-            "{\"targets\":[{\"groupId\":" + groupId + "}]}");
+            INSERT INTO ops_duty_roster
+                (tenant_id, duty_date, shift_name, assignee_id, group_id)
+            VALUES (?, CURRENT_DATE, 'day', ?, ?)
+            """, tenantId, userId, groupId);
         jdbcTemplate.update("""
             INSERT INTO act_ru_variable (name_, text_, text2_)
             VALUES ('submitterGroupToken', ?, NULL)
@@ -78,11 +81,11 @@ class GroupReferenceInventoryIntegrationTest {
         GroupReferenceInventoryService.ReferenceSnapshot purge =
             inventoryService.snapshotForPurge(tenantId, groupId);
 
-        assertEquals(1L, archive.activeCounts().get("enabledOpsRules"));
+        assertEquals(1L, archive.activeCounts().get("currentFutureRosters"));
         assertEquals(1L, archive.activeCounts().get("runningWorkflowVariables"));
         assertEquals(1L, purge.historicalCounts().get("workflowHistoryDetails"));
         assertTrue(archive.blockers().stream()
-            .anyMatch(blocker -> "GROUP_ENABLED_OPS_RULES".equals(blocker.reasonCode())));
+            .anyMatch(blocker -> "GROUP_CURRENT_FUTURE_ROSTERS".equals(blocker.reasonCode())));
         assertFalse(purge.blockers().isEmpty());
     }
 

@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 class WikiControllerTest {
     @Mock private WikiSpaceService spaceService;
     @Mock private WikiPageService pageService;
-    @Mock private WikiAclService aclService;
     @Mock private WikiBacklinkService backlinkService;
     @Mock private WikiAttachmentService attachmentService;
     @Mock private WikiExportService exportService;
@@ -52,12 +51,13 @@ class WikiControllerTest {
         request.setName("space");
         request.setOwnerGroupId(99L);
         org.mockito.Mockito.when(authorizationService.canUseOwnerGroup(groupUser, 7L)).thenReturn(true);
-        org.mockito.Mockito.when(authorizationService.decideCreateWithCompatibility(groupUser, "wiki", "wiki:create", 7L, true)).thenReturn(false);
+        org.mockito.Mockito.when(authorizationService.decideCreate(groupUser, "wiki:create", 7L))
+            .thenReturn(com.cwgsyw.platform.module.authorization.AuthorizationDecision.builder().allowed(false).build());
 
         assertThatThrownBy(() -> controller.createSpace(request, groupUser))
             .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         verify(authorizationService).canUseOwnerGroup(groupUser, 7L);
-        verify(authorizationService).decideCreateWithCompatibility(groupUser, "wiki", "wiki:create", 7L, true);
+        verify(authorizationService).decideCreate(groupUser, "wiki:create", 7L);
     }
 
     @Test
@@ -79,8 +79,7 @@ class WikiControllerTest {
 
         controller.deleteAttachment(42L, editor);
 
-        verify(authorizationService).requireWithCompatibility(
-            eq(editor), eq("wiki"), eq("wiki:update"), eq("wiki_page"), eq(88L), eq(2), any(java.util.function.BooleanSupplier.class));
+        verify(authorizationService).require(eq(editor), eq("wiki:update"), eq("wiki_page"), eq(88L), eq(2));
         verify(attachmentService).deleteAttachment("default", 3L, 42L);
     }
 
@@ -98,8 +97,7 @@ class WikiControllerTest {
 
         controller.exportVersion(88L, 2, response, reader);
 
-        verify(authorizationService).requireWithCompatibility(
-            eq(reader), eq("wiki"), eq("wiki:read"), eq("wiki_page"), eq(88L), eq(4), any(java.util.function.BooleanSupplier.class));
+        verify(authorizationService).require(eq(reader), eq("wiki:read"), eq("wiki_page"), eq(88L), eq(4));
         verify(exportService).exportVersion(version, response);
     }
 

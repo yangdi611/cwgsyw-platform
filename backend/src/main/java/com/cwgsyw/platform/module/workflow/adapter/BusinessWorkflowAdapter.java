@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * 业务流程适配器协议。
  *
- * <p>每个接入 Flowable 的业务模块（日报、Wiki、变更文档等）实现本接口，负责：
+ * <p>每个接入 Flowable 的业务模块（Wiki、变更文档等）实现本接口，负责：
  * 构造启动变量、构造待办摘要、判定提交/审批权限、流程结束后回写业务状态。
  *
  * <p>业务模块不得直接调用 Flowable 原生 API（RuntimeService/TaskService/RepositoryService），
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public interface BusinessWorkflowAdapter {
 
-    /** 业务类型（下划线格式），如 {@code daily_report}。全局唯一。 */
+    /** 业务类型（下划线格式），如 {@code change_doc}。全局唯一。 */
     String businessType();
 
     /** 构造 businessKey，统一 {@code {businessType}:{businessId}} 格式。 */

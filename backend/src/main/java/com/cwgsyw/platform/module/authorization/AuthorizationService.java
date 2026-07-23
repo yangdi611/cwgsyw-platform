@@ -16,14 +16,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 @Service
 @RequiredArgsConstructor
 public class AuthorizationService {
     private static final int MAX_PARENT_DEPTH = 64;
 
-    private final AuthorizationModeService modeService;
     private final ResourceDescriptorRepository resourceRepository;
     private final ResourceAclMapper resourceAclMapper;
     private final ScopedPermissionMapper scopedPermissionMapper;
@@ -31,14 +29,6 @@ public class AuthorizationService {
     private final UserMapper userMapper;
     private final JdbcTemplate jdbcTemplate;
     private final BreakGlassService breakGlassService;
-
-    public boolean isEnforced(SecurityUser user, String module) {
-        return modeService.isEnforced(user.getTenantId());
-    }
-
-    public String rolloutState(SecurityUser user, String module) {
-        return modeService.effectiveMode(user.getTenantId()).name().toLowerCase();
-    }
 
     public AuthorizationDecision decide(SecurityUser user, String permissionCode,
                                         String resourceType, Long resourceId, int requiredBits) {
@@ -103,28 +93,6 @@ public class AuthorizationService {
             .matchedScopeId(assignment.scopeId()).build();
     }
 
-    public boolean decideCreateWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 Long ownerGroupId, boolean legacyAllowed) {
-        return decideCreateWithCompatibility(user, module, permissionCode, ownerGroupId, () -> legacyAllowed);
-    }
-
-    public boolean decideCreateWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 Long ownerGroupId, BooleanSupplier legacyAllowed) {
-        AuthorizationModeService.EffectiveMode mode = modeService.effectiveMode(user.getTenantId());
-        if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
-        AuthorizationDecision decision = decideCreate(user, permissionCode, ownerGroupId);
-        if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
-        boolean legacyDecision = legacyAllowed.getAsBoolean();
-        jdbcTemplate.update("""
-            INSERT INTO authorization_decision_diff
-                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
-                 legacy_allowed, new_allowed, new_reason_code)
-            VALUES (?, ?, ?, ?, 'create', 0, ?, ?, ?)
-            """, user.getTenantId(), user.getUserId(), module, permissionCode,
-            legacyDecision, decision.isAllowed(), decision.getReasonCode());
-        return legacyDecision;
-    }
-
     public boolean canUseOwnerGroup(SecurityUser user, Long ownerGroupId) {
         if (ownerGroupId == null) return false;
         Long eligibleGroup = jdbcTemplate.queryForObject("""
@@ -137,130 +105,27 @@ public class AuthorizationService {
             || membershipMapper.findActiveGroupIds(user.getTenantId(), user.getUserId()).contains(ownerGroupId);
     }
 
-    public boolean decideWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                           String resourceType, Long resourceId, int requiredBits,
-                                           boolean legacyAllowed) {
-        return decideWithCompatibility(user, module, permissionCode, resourceType, resourceId,
-            requiredBits, () -> legacyAllowed);
-    }
-
-    public boolean decideWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                           String resourceType, Long resourceId, int requiredBits,
-                                           BooleanSupplier legacyAllowed) {
-        AuthorizationModeService.EffectiveMode mode = modeService.effectiveMode(user.getTenantId());
-        if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
-        AuthorizationDecision decision = decide(user, permissionCode, resourceType, resourceId, requiredBits);
-        if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
-        boolean legacyDecision = legacyAllowed.getAsBoolean();
-        jdbcTemplate.update("""
-            INSERT INTO authorization_decision_diff
-                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
-                 legacy_allowed, new_allowed, new_reason_code)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, user.getTenantId(), user.getUserId(), module, permissionCode, resourceType, resourceId,
-            legacyDecision, decision.isAllowed(), decision.getReasonCode());
-        return legacyDecision;
-    }
-
-    public boolean decideWithPolicyCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 String resourceType, Long resourceId, int requiredBits,
-                                                 boolean policyAllowed, boolean legacyAllowed) {
-        return decideWithPolicyCompatibility(user, module, permissionCode, resourceType, resourceId,
-            requiredBits, policyAllowed, () -> legacyAllowed);
-    }
-
-    public boolean decideWithPolicyCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 String resourceType, Long resourceId, int requiredBits,
-                                                 boolean policyAllowed, BooleanSupplier legacyAllowed) {
-        AuthorizationModeService.EffectiveMode mode = modeService.effectiveMode(user.getTenantId());
-        if (mode == AuthorizationModeService.EffectiveMode.LEGACY) return legacyAllowed.getAsBoolean();
-        AuthorizationDecision decision = policyAllowed
-            ? AuthorizationDecision.builder().allowed(true).reasonCode("RESOURCE_POLICY_ALLOWED")
-                .resourceClass("policy").effectivePermissions(7).build()
-            : denied("RESOURCE_POLICY_DENIED");
-        if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) return decision.isAllowed();
-        boolean legacyDecision = legacyAllowed.getAsBoolean();
-        jdbcTemplate.update("""
-            INSERT INTO authorization_decision_diff
-                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
-                 legacy_allowed, new_allowed, new_reason_code)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, user.getTenantId(), user.getUserId(), module, permissionCode, resourceType, resourceId,
-            legacyDecision, decision.isAllowed(), decision.getReasonCode());
-        return legacyDecision;
-    }
-
-    public void requireWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                         String resourceType, Long resourceId, int requiredBits,
-                                         boolean legacyAllowed) {
-        requireWithCompatibility(user, module, permissionCode, resourceType, resourceId,
-            requiredBits, () -> legacyAllowed);
-    }
-
-    public void requireWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                         String resourceType, Long resourceId, int requiredBits,
-                                         BooleanSupplier legacyAllowed) {
-        AuthorizationModeService.EffectiveMode mode = modeService.effectiveMode(user.getTenantId());
-        if (mode == AuthorizationModeService.EffectiveMode.LEGACY) {
-            if (!legacyAllowed.getAsBoolean()) {
-                throw BusinessException.forbidden("RESOURCE_ACCESS_DENIED", "无权限");
-            }
-            return;
-        }
-
-        AuthorizationDecision decision = decide(user, permissionCode, resourceType, resourceId, requiredBits);
-        if (mode == AuthorizationModeService.EffectiveMode.ENFORCED) {
-            if (!decision.isAllowed()) {
-                throw BusinessException.forbidden(decision.getReasonCode(), "无权限");
-            }
-            return;
-        }
-
-        boolean legacyDecision = legacyAllowed.getAsBoolean();
-        jdbcTemplate.update("""
-            INSERT INTO authorization_decision_diff
-                (tenant_id, user_id, module, permission_code, resource_type, resource_id,
-                 legacy_allowed, new_allowed, new_reason_code)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, user.getTenantId(), user.getUserId(), module, permissionCode, resourceType, resourceId,
-            legacyDecision, decision.isAllowed(), decision.getReasonCode());
-        if (!legacyDecision) throw BusinessException.forbidden("RESOURCE_ACCESS_DENIED", "无权限");
-    }
-
-    public boolean decideParentWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 String resourceType, Long resourceId, int requiredBits,
-                                                 boolean legacyAllowed) {
-        return decideParentWithCompatibility(user, module, permissionCode, resourceType, resourceId,
-            requiredBits, () -> legacyAllowed);
-    }
-
-    public boolean decideParentWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                                 String resourceType, Long resourceId, int requiredBits,
-                                                 BooleanSupplier legacyAllowed) {
-        if (modeService.effectiveMode(user.getTenantId()) == AuthorizationModeService.EffectiveMode.LEGACY) {
-            return legacyAllowed.getAsBoolean();
-        }
+    public boolean decideParent(SecurityUser user, String permissionCode,
+                                String resourceType, Long resourceId, int requiredBits) {
         ResourceDescriptor resource = resourceRepository.find(user.getTenantId(), resourceType, resourceId);
         ResourceDescriptor target = resource == null ? null : parent(resource);
         if (target == null) target = resource;
-        if (target == null) return decideWithCompatibility(user, module, permissionCode,
-            resourceType, resourceId, requiredBits, legacyAllowed);
-        return decideWithCompatibility(user, module, permissionCode, target.getResourceType(),
-            target.getResourceId(), requiredBits, legacyAllowed);
+        if (target == null) return false;
+        return decide(user, permissionCode, target.getResourceType(), target.getResourceId(), requiredBits)
+            .isAllowed();
     }
 
-    public void requireParentWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                               String resourceType, Long resourceId, int requiredBits,
-                                               boolean legacyAllowed) {
-        requireParentWithCompatibility(user, module, permissionCode, resourceType, resourceId,
-            requiredBits, () -> legacyAllowed);
+    public void require(SecurityUser user, String permissionCode,
+                        String resourceType, Long resourceId, int requiredBits) {
+        AuthorizationDecision decision = decide(user, permissionCode, resourceType, resourceId, requiredBits);
+        if (!decision.isAllowed()) {
+            throw BusinessException.forbidden(decision.getReasonCode(), "无权限");
+        }
     }
 
-    public void requireParentWithCompatibility(SecurityUser user, String module, String permissionCode,
-                                               String resourceType, Long resourceId, int requiredBits,
-                                               BooleanSupplier legacyAllowed) {
-        if (!decideParentWithCompatibility(user, module, permissionCode, resourceType, resourceId,
-                requiredBits, legacyAllowed)) {
+    public void requireParent(SecurityUser user, String permissionCode,
+                              String resourceType, Long resourceId, int requiredBits) {
+        if (!decideParent(user, permissionCode, resourceType, resourceId, requiredBits)) {
             throw BusinessException.forbidden("RESOURCE_ACCESS_DENIED", "无权限");
         }
     }
@@ -325,6 +190,13 @@ public class AuthorizationService {
             .findFirst().orElse(null);
         if (namedUser != null) return new PermissionMatch("named_user", namedUser.permissions());
 
+        Set<Long> roleIds = new HashSet<>(scopedPermissionMapper.findEffectiveRoleIds(
+            user.getTenantId(), user.getUserId()));
+        int rolePermissions = entries.stream()
+            .filter(entry -> "role".equals(entry.subjectType()) && roleIds.contains(entry.subjectId()))
+            .mapToInt(ResourceAclRow::permissions)
+            .reduce(0, (left, right) -> left | right);
+
         if (!resource.isAccessRestricted() && Objects.equals(user.getUserId(), resource.getOwnerUserId())) {
             return new PermissionMatch("owner", (mode >> 6) & 7);
         }
@@ -354,7 +226,10 @@ public class AuthorizationService {
                 }
             }
         }
-        if (groupMatched) return new PermissionMatch("group", groupPermissions);
+        if (groupMatched || rolePermissions != 0) {
+            return new PermissionMatch(rolePermissions != 0 ? "role_or_group" : "group",
+                groupPermissions | rolePermissions);
+        }
         if (resource.isAccessRestricted()) return new PermissionMatch("restricted", 0);
         return new PermissionMatch("others", mode & 7);
     }

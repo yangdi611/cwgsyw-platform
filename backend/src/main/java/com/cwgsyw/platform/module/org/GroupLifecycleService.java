@@ -2,7 +2,6 @@ package com.cwgsyw.platform.module.org;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.authorization.AuthorizationModeService;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleActionRequest;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleBlocker;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleGroupVO;
@@ -41,7 +40,6 @@ public class GroupLifecycleService {
     private final AuditLogMapper auditLogMapper;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
-    private final AuthorizationModeService authorizationModeService;
     private final RoleAssignmentService roleAssignmentService;
 
     @Value("${group.lifecycle.purge-retention-days:30}")
@@ -304,29 +302,18 @@ public class GroupLifecycleService {
             case "purge" -> "group:purge";
             default -> throw error(400, "GROUP_LIFECYCLE_ACTION_INVALID", "不支持的生命周期操作");
         };
-        if (authorizationModeService.effectiveMode(user.getTenantId())
-                == AuthorizationModeService.EffectiveMode.ENFORCED) {
-            List<String> permissionScopes = roleAssignmentService.findEffectiveScopesForPermission(
-                user.getUserId(), user.getTenantId(), permission);
-            if (permissionScopes.isEmpty()) {
-                throw error(403, "ACCESS_DENIED", "无权限执行用户组生命周期操作");
-            }
-            boolean allowed = "purge".equals(action)
-                ? permissionScopes.contains("platform")
-                : permissionScopes.stream().anyMatch(scope -> List.of("tenant", "platform").contains(scope));
-            if (!allowed) {
-                throw error(403, "GROUP_LIFECYCLE_SCOPE_DENIED",
-                    "purge".equals(action) ? "清除用户组要求 platform scope" : "该操作要求 tenant 或 platform scope");
-            }
-            return;
-        }
-        if (!user.getPermissions().contains(permission)) {
+        List<String> permissionScopes = roleAssignmentService.findEffectiveScopesForPermission(
+            user.getUserId(), user.getTenantId(), permission);
+        if (permissionScopes.isEmpty()) {
             throw error(403, "ACCESS_DENIED", "无权限执行用户组生命周期操作");
         }
-        if ("purge".equals(action) && !"platform".equals(user.getGroupScope())) {
-            throw error(403, "GROUP_LIFECYCLE_SCOPE_DENIED", "清除用户组要求 platform scope");
+        boolean allowed = "purge".equals(action)
+            ? permissionScopes.contains("platform")
+            : permissionScopes.stream().anyMatch(scope -> List.of("tenant", "platform").contains(scope));
+        if (!allowed) {
+            throw error(403, "GROUP_LIFECYCLE_SCOPE_DENIED",
+                "purge".equals(action) ? "清除用户组要求 platform scope" : "该操作要求 tenant 或 platform scope");
         }
-        if (!"purge".equals(action)) requireTenantScope(user);
     }
 
     private void requireTenantScope(SecurityUser user) {

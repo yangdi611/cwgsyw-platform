@@ -19,6 +19,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -42,6 +43,8 @@ class ResourceAccessServiceTest {
         service = new ResourceAccessService(jdbcTemplate, descriptorRepository,
             authorizationService, auditLogMapper, activeGroupReferenceValidator);
         user = new SecurityUser(7L, "admin", "hash", "default", 3L, "platform", Set.of());
+        when(authorizationService.decide(any(SecurityUser.class), anyString(), anyString(), any(Long.class), anyInt()))
+            .thenReturn(AuthorizationDecision.builder().allowed(true).build());
     }
 
     @Test

@@ -25,20 +25,45 @@ public class EmailService {
             return;
         }
         try {
-            JavaMailSenderImpl sender = buildSender(tenantId);
-            MimeMessage msg = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
-            String fromName = configService.get(tenantId, "smtp.from_name");
-            String fromAddr = configService.get(tenantId, "smtp.from");
-            helper.setFrom(fromAddr, fromName);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(body, false);
-            sender.send(msg);
+            doSend(tenantId, toEmail, subject, body);
             log.info("Email sent to {} subject={}", toEmail, subject);
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", toEmail, e.getMessage());
         }
+    }
+
+    /**
+     * Durable delivery workers need failures to escape so their retry state stays truthful.
+     * Existing callers keep using {@link #send} and retain its best-effort behavior.
+     */
+    public void sendStrict(String tenantId, String toEmail, String subject, String body) {
+        if (!configService.getBoolean(tenantId, "smtp.enabled")) {
+            throw new IllegalStateException("SMTP is disabled for tenant " + tenantId);
+        }
+        if (toEmail == null || toEmail.isBlank()) {
+            throw new IllegalArgumentException("Email recipient is empty");
+        }
+        try {
+            doSend(tenantId, toEmail, subject, body);
+            log.info("Email sent to {} subject={}", toEmail, subject);
+        } catch (RuntimeException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new IllegalStateException("Failed to send email to " + toEmail, exception);
+        }
+    }
+
+    private void doSend(String tenantId, String toEmail, String subject, String body) throws Exception {
+        JavaMailSenderImpl sender = buildSender(tenantId);
+        MimeMessage msg = sender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
+        String fromName = configService.get(tenantId, "smtp.from_name");
+        String fromAddr = configService.get(tenantId, "smtp.from");
+        helper.setFrom(fromAddr, fromName);
+        helper.setTo(toEmail);
+        helper.setSubject(subject);
+        helper.setText(body, false);
+        sender.send(msg);
     }
 
     private JavaMailSenderImpl buildSender(String tenantId) {

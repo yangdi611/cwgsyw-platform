@@ -146,7 +146,7 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
   }
 
   // 单项
-  const { href, label, icon: Icon, resource, action } = entry
+  const { href, label, icon: Icon, resource, action, badge } = entry
   if (resource && action && !hasPermission(resource, action)) return null
   const isActive = pathname === href
 
@@ -162,6 +162,7 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
         )}
       >
         <Icon className="h-[22px] w-[22px]" />
+        {badge !== undefined && badge > 0 && <span className="absolute right-1 top-1 min-w-4 rounded-full bg-v2-danger px-1 text-center font-v2-mono text-[9px] leading-4 text-white">{badge > 99 ? '99+' : badge}</span>}
       </Link>
       {mounted && (
         <div className="fixed z-50 pl-2" style={{ top: coords.top + 8, left: coords.left }}>

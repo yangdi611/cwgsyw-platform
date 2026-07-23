@@ -1,6 +1,7 @@
 package com.cwgsyw.platform.module.ipam;
 
 import com.cwgsyw.platform.common.AuditLogMapper;
+import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.entity.AuditLog;
 import com.cwgsyw.platform.module.cmdb.mapper.CiInstanceMapper;
@@ -114,7 +115,7 @@ class IpPoolServiceTest {
         IpPool pool = pool("10.20.3.0/30", 2L);
         when(ipPoolMapper.selectById(10L)).thenReturn(pool);
         assertThatThrownBy(() -> service.utilization(10L, "default", 3L, "group"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("无权访问该地址池");
         verifyNoInteractions(ipAllocationMapper, auditLogMapper);
     }

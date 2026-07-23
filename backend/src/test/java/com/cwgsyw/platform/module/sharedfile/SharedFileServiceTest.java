@@ -4,7 +4,7 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.AuditSnapshotSerializer;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.changedoc.MinioStorageService;
-import com.cwgsyw.platform.module.authorization.AuthorizationResourceMigrationService;
+import com.cwgsyw.platform.module.authorization.ResourceAuthorizationInitializer;
 import com.cwgsyw.platform.module.authorization.AuthorizationService;
 import com.cwgsyw.platform.module.org.ActiveGroupReferenceValidator;
 import com.cwgsyw.platform.module.org.GroupLifecycleException;
@@ -38,11 +38,10 @@ class SharedFileServiceTest {
 
     @Mock SharedFileMapper fileMapper;
     @Mock SharedFolderService folderService;
-    @Mock SharedFolderAclService aclService;
     @Mock MinioStorageService storageService;
     @Mock AuditLogMapper auditLogMapper;
     @Mock UserMapper userMapper;
-    @Mock AuthorizationResourceMigrationService resourceMigrationService;
+    @Mock ResourceAuthorizationInitializer resourceAuthorizationInitializer;
     @Mock AuthorizationService authorizationService;
     @Mock ActiveGroupReferenceValidator activeGroupReferenceValidator;
     @Spy AuditSnapshotSerializer auditSnapshotSerializer = new AuditSnapshotSerializer(new com.fasterxml.jackson.databind.ObjectMapper());

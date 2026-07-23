@@ -3,32 +3,46 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
-import { usePermission } from '@/hooks/usePermission'
-import { useAuthStore } from '@/store/authStore'
+import { CalendarClock, CalendarOff, ChevronDown, ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-react'
 import { PageHeader, FilterBar, FilterChip } from '@/components/shared'
 import { Button } from '@/components/v2/Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  CalendarMonthView,
-} from '@/components/ops-calendar/CalendarMonthView'
+import { CalendarMonthView } from '@/components/ops-calendar/CalendarMonthView'
 import { CalendarWeekView } from '@/components/ops-calendar/CalendarWeekView'
 import { CalendarListView } from '@/components/ops-calendar/CalendarListView'
 import { DayWorkItemsDialog } from '@/components/ops-calendar/DayWorkItemsDialog'
-import { TaskDetailDrawer } from '@/components/ops-calendar/TaskDetailDrawer'
-import { TaskFormDialog } from '@/components/ops-calendar/TaskFormDialog'
+import { OneOffTaskDialog } from '@/components/task-runtime/OneOffTaskDialog'
+import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/store/authStore'
+import { listDirectoryGroups, listDirectoryUsers, listPublishedTemplates } from '@/lib/task-plan-api'
 import {
-  type CalendarScope, type CalendarView, type TaskVO, type HolidayVO,
-  startOfMonth, endOfMonth, weekDays, ymd, TASK_TYPE_META, STATUS_META,
-} from '@/lib/opsCalendar'
-import {
-  BarChart2, CalendarClock, CalendarOff, ChevronDown, ChevronLeft, ChevronRight,
-  FileText, FolderArchive, Plus, Settings2,
-} from 'lucide-react'
+  type CalendarScope,
+  type CalendarView,
+  type CalendarWorkItem,
+  listCalendarWorkItems,
+} from '@/lib/calendar-api'
+import { endOfMonth, startOfMonth, weekDays, ymd } from '@/lib/opsCalendar'
+
+type CalendarLayer = 'all' | 'tasks' | 'rosters' | 'holidays'
+const EMPTY_ITEMS: CalendarWorkItem[] = []
+
+const STATUS_LABELS: Record<string, string> = {
+  not_started: '未开始',
+  in_progress: '进行中',
+  submitted: '已提交',
+  changes_requested: '待修改',
+  completed: '已完成',
+  cancelled: '已取消',
+  exception_closed: '异常关闭',
+}
 
 export default function OpsCalendarPage() {
   return (
@@ -42,40 +56,47 @@ function OpsCalendarInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { hasPermission } = usePermission()
-  const groupScope = useAuthStore((s) => s.groupScope)
+  const groupScope = useAuthStore((state) => state.groupScope)
 
   useEffect(() => {
-    if (!hasPermission('ops_calendar', 'read')) router.replace('/')
+    if (!hasPermission('task', 'read')) router.replace('/')
   }, [hasPermission, router])
 
-  const defaultScope: CalendarScope =
-    groupScope === 'tenant' || groupScope === 'platform' ? 'all'
-      : hasPermission('ops_calendar', 'read_group') ? 'group' : 'mine'
-
-  const [view, setView] = useState<CalendarView>('month')
+  const defaultScope: CalendarScope = groupScope === 'tenant' || groupScope === 'platform' ? 'all' : 'my'
+  const [view, setView] = useState<CalendarView>(() => {
+    if (typeof window === 'undefined') return 'month'
+    const saved = window.localStorage.getItem('ops-calendar-view')
+    return saved === 'week' || saved === 'list' ? saved : 'month'
+  })
   const [scope, setScope] = useState<CalendarScope>(defaultScope)
   const [cursor, setCursor] = useState(new Date())
-  const [taskType, setTaskType] = useState<string>('')
-  const [status, setStatus] = useState<string>('')
-  // 从工作台跳转的 query 参数（?taskId / ?date / ?dayDialog）作为初始值惰性读取
+  const [layer, setLayer] = useState<CalendarLayer>('all')
+  const [status, setStatus] = useState('')
+  const [templateId, setTemplateId] = useState('all')
+  const [assigneeId, setAssigneeId] = useState('all')
+  const [groupId, setGroupId] = useState('all')
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    () => (searchParams.get('date') && searchParams.get('dayDialog')) ? searchParams.get('date') : null
-  )
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(
-    () => { const t = searchParams.get('taskId'); return t ? Number(t) : null }
+    () => searchParams.get('date') && searchParams.get('dayDialog') ? searchParams.get('date') : null,
   )
   const [createOpen, setCreateOpen] = useState(false)
+  const [createDate, setCreateDate] = useState<string | undefined>()
 
-  // Compute query range from view
+  useEffect(() => {
+    window.localStorage.setItem('ops-calendar-view', view)
+  }, [view])
+
+  useEffect(() => {
+    const taskId = searchParams.get('taskId')
+    if (taskId) router.replace(`/tasks/${taskId}`)
+  }, [router, searchParams])
+
   const range = useMemo(() => {
     if (view === 'week') {
       const days = weekDays(cursor)
       return { start: ymd(days[0]), end: ymd(days[6]) }
     }
-    // month + list: full month grid range (6 weeks) for month, month for list
     const first = startOfMonth(cursor)
     const last = endOfMonth(cursor)
-    // include leading/trailing days shown in the 6x7 grid
     const gridStart = new Date(first)
     gridStart.setDate(first.getDate() - ((first.getDay() + 6) % 7))
     const gridEnd = new Date(gridStart)
@@ -83,42 +104,56 @@ function OpsCalendarInner() {
     return { start: ymd(view === 'list' ? first : gridStart), end: ymd(view === 'list' ? last : gridEnd) }
   }, [view, cursor])
 
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['ops-calendar-tasks', range.start, range.end, scope, taskType, status],
-    queryFn: () =>
-      api.get('/ops-calendar/tasks', {
-        params: {
-          startDate: range.start, endDate: range.end, scope,
-          taskType: taskType || undefined, status: status || undefined,
-        },
-      }).then((r) => r.data.data as TaskVO[]),
-    enabled: hasPermission('ops_calendar', 'read'),
+  const include = layer === 'all' ? 'tasks,rosters,holidays' : layer
+  const templates = useQuery({
+    queryKey: ['calendar-template-options'],
+    queryFn: listPublishedTemplates,
+    enabled: hasPermission('task', 'read'),
   })
-
-  // 节假日（用于月历/周历格子红标）
-  const { data: holidays = [] } = useQuery({
-    queryKey: ['ops-calendar-holidays-mark'],
-    queryFn: () => api.get('/ops-calendar/holidays')
-      .then((r) => r.data.data as HolidayVO[])
-      .catch(() => [] as HolidayVO[]),
-    enabled: hasPermission('ops_calendar', 'read'),
+  const users = useQuery({
+    queryKey: ['calendar-user-options'],
+    queryFn: listDirectoryUsers,
+    enabled: hasPermission('user', 'read'),
   })
+  const groups = useQuery({
+    queryKey: ['calendar-group-options'],
+    queryFn: listDirectoryGroups,
+    enabled: hasPermission('group', 'read'),
+  })
+  const itemFilters = {
+    templateId: templateId === 'all' ? undefined : Number(templateId),
+    executionStatus: status || undefined,
+    assigneeId: assigneeId === 'all' ? undefined : Number(assigneeId),
+    groupId: groupId === 'all' ? undefined : Number(groupId),
+  }
+  const workItems = useQuery({
+    queryKey: ['calendar-work-items', { range, view, scope, include, ...itemFilters }],
+    queryFn: () => listCalendarWorkItems({
+      from: range.start,
+      to: range.end,
+      view,
+      scope,
+      ...itemFilters,
+      include,
+    }),
+    enabled: hasPermission('task', 'read'),
+  })
+  const items = workItems.data ?? EMPTY_ITEMS
 
-  // date(yyyy-MM-dd) -> 节假日名称
   const holidayMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const h of holidays) {
-      if (!h.enabled) continue
-      const start = new Date(h.startDate + 'T00:00:00')
-      const end = new Date(h.endDate + 'T00:00:00')
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        m.set(ymd(d), h.name)
+    const result = new Map<string, string>()
+    for (const item of items.filter((value) => value.itemType === 'holiday')) {
+      const start = new Date(item.startAt)
+      const end = new Date(item.endAt)
+      end.setDate(end.getDate() - 1)
+      for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        result.set(ymd(date), item.title)
       }
     }
-    return m
-  }, [holidays])
+    return result
+  }, [items])
 
-  const title = useMemo(() => {
+  const periodTitle = useMemo(() => {
     if (view === 'week') {
       const days = weekDays(cursor)
       return `${ymd(days[0])} ~ ${ymd(days[6])}`
@@ -126,74 +161,56 @@ function OpsCalendarInner() {
     return `${cursor.getFullYear()} 年 ${cursor.getMonth() + 1} 月`
   }, [view, cursor])
 
-  function step(dir: number) {
-    const d = new Date(cursor)
-    if (view === 'week') d.setDate(d.getDate() + dir * 7)
-    else d.setMonth(d.getMonth() + dir)
-    setCursor(d)
+  const scopeOptions: Array<{ value: CalendarScope; label: string }> = [
+    { value: 'my', label: '我的' },
+    { value: 'group', label: '本组' },
+    ...(groupScope === 'tenant' || groupScope === 'platform' ? [{ value: 'all' as const, label: '全部' }] : []),
+  ]
+  const settings = hasPermission('calendar_settings', 'read') ? [
+    { label: '排班管理', path: '/ops-calendar/rosters', icon: CalendarClock },
+    { label: '节假日历', path: '/ops-calendar/holidays', icon: CalendarOff },
+  ] : []
+
+  function step(direction: number) {
+    const date = new Date(cursor)
+    if (view === 'week') date.setDate(date.getDate() + direction * 7)
+    else date.setMonth(date.getMonth() + direction)
+    setCursor(date)
   }
 
-  const scopeOptions: { value: CalendarScope; label: string }[] = [
-    { value: 'mine', label: '我的' },
-    ...(hasPermission('ops_calendar', 'read_group') || groupScope !== 'group'
-      ? [{ value: 'group' as CalendarScope, label: '本组' }] : []),
-    ...(groupScope === 'tenant' || groupScope === 'platform' || hasPermission('ops_calendar', 'read_all')
-      ? [{ value: 'all' as CalendarScope, label: '全部' }] : []),
-    { value: 'roster', label: '排班' },
-    { value: 'public', label: '公共' },
-  ]
+  function openCreate(date?: string) {
+    setCreateDate(date)
+    setCreateOpen(true)
+  }
 
-  const managementItems = [
-    ...(hasPermission('ops_calendar', 'manage') ? [
-      { label: '周期规则', path: '/ops-calendar/rules', icon: Settings2 },
-      { label: '排班管理', path: '/ops-calendar/rosters', icon: CalendarClock },
-      { label: '节假日历', path: '/ops-calendar/holidays', icon: CalendarOff },
-      { label: '模板管理', path: '/ops-calendar/templates', icon: FileText },
-    ] : []),
-    ...(hasPermission('ops_calendar', 'manage') && hasPermission('ops_calendar', 'export') ? ['separator' as const] : []),
-    ...(hasPermission('ops_calendar', 'export') ? [
-      { label: '统计复盘', path: '/ops-calendar/stats', icon: BarChart2 },
-      { label: '素材归集', path: '/ops-calendar/materials', icon: FolderArchive },
-    ] : []),
-  ]
+  function openItem(item: CalendarWorkItem) {
+    router.push(item.href)
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="运维运营"
         title="运维日历"
-        subtitle="统一管理周期巡检、排班值守、报表归集与合规核查的计划与执行闭环。"
+        subtitle="按时间查看统一任务、排班与节假日，复杂执行和审批进入任务详情完成。"
+        className="flex-col gap-4 sm:flex-row sm:items-start sm:gap-6"
         actions={
           <div className="flex items-center gap-2">
-            {managementItems.length > 0 && (
+            {settings.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger className="inline-flex h-10 items-center justify-center gap-1.5 rounded-v2-md border border-v2-border bg-v2-surface px-4 text-sm font-semibold text-v2-fg shadow-v2-sm transition-all hover:border-v2-border-strong hover:bg-v2-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-v2-primary/40">
-                  <Settings2 className="h-4 w-4" />
-                  管理
-                  <ChevronDown className="h-4 w-4 text-v2-muted" />
+                  <Settings2 className="h-4 w-4" />设置<ChevronDown className="h-4 w-4 text-v2-muted" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>运维日历</DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  {managementItems.map((item, index) => {
-                    if (item === 'separator') return <DropdownMenuSeparator key={`separator-${index}`} />
+                  <DropdownMenuGroup><DropdownMenuLabel>日历设置</DropdownMenuLabel></DropdownMenuGroup>
+                  {settings.map((item) => {
                     const Icon = item.icon
-                    return (
-                      <DropdownMenuItem key={item.path} onClick={() => router.push(item.path)} className="gap-2">
-                        <Icon className="h-4 w-4 text-v2-muted" />
-                        {item.label}
-                      </DropdownMenuItem>
-                    )
+                    return <DropdownMenuItem key={item.path} onClick={() => router.push(item.path)} className="gap-2"><Icon className="h-4 w-4 text-v2-muted" />{item.label}</DropdownMenuItem>
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {hasPermission('ops_calendar', 'create') && (
-              <Button variant="primary" onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4" />新建任务
-              </Button>
-            )}
+            {hasPermission('task', 'create') && <Button variant="primary" onClick={() => openCreate()}><Plus className="h-4 w-4" />新建任务</Button>}
           </div>
         }
       />
@@ -203,7 +220,7 @@ function OpsCalendarInner() {
           <Button variant="secondary" size="sm" onClick={() => setCursor(new Date())}>今天</Button>
           <Button variant="ghost" size="sm" onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="sm" onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
-          <span className="text-base font-semibold text-v2-fg ml-1">{title}</span>
+          <span className="ml-1 text-base font-semibold text-v2-fg">{periodTitle}</span>
         </div>
         <FilterBar>
           <FilterChip active={view === 'month'} onClick={() => setView('month')}>月</FilterChip>
@@ -213,70 +230,58 @@ function OpsCalendarInner() {
       </div>
 
       <FilterBar>
-        {scopeOptions.map((o) => (
-          <FilterChip key={o.value} active={scope === o.value} onClick={() => setScope(o.value)}>{o.label}</FilterChip>
-        ))}
-        <div className="ml-auto flex items-center gap-2">
-          <Select value={taskType || 'all'} onValueChange={(v) => setTaskType(v === 'all' ? '' : v ?? '')}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="类型">
-                {(v: string) => (v === 'all' || !v ? '全部类型' : TASK_TYPE_META[v]?.label ?? v)}
-              </SelectValue>
-            </SelectTrigger>
+        {scopeOptions.map((option) => <FilterChip key={option.value} active={scope === option.value} onClick={() => setScope(option.value)}>{option.label}</FilterChip>)}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Select value={templateId} onValueChange={(value) => setTemplateId(value ?? 'all')}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="任务模板" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">全部模板</SelectItem>{templates.data?.map((template) => <SelectItem key={template.id} value={String(template.id)}>{template.name}</SelectItem>)}</SelectContent>
+          </Select>
+          {hasPermission('user', 'read') && (
+            <Select value={assigneeId} onValueChange={(value) => setAssigneeId(value ?? 'all')}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="负责人" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">全部人员</SelectItem>{users.data?.map((user) => <SelectItem key={user.id} value={String(user.id)}>{user.realName || user.username}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          {hasPermission('group', 'read') && (
+            <Select value={groupId} onValueChange={(value) => setGroupId(value ?? 'all')}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="所属组" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">全部组</SelectItem>{groups.data?.map((group) => <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          <Select value={layer} onValueChange={(value) => setLayer((value ?? 'all') as CalendarLayer)}>
+            <SelectTrigger className="w-32"><SelectValue placeholder="显示内容" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部类型</SelectItem>
-              {Object.entries(TASK_TYPE_META).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
-              ))}
+              <SelectItem value="all">全部内容</SelectItem>
+              <SelectItem value="tasks">任务</SelectItem>
+              <SelectItem value="rosters">排班</SelectItem>
+              <SelectItem value="holidays">节假日</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={status || 'all'} onValueChange={(v) => setStatus(v === 'all' ? '' : v ?? '')}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="状态">
-                {(v: string) => (v === 'all' || !v ? '全部状态' : STATUS_META[v]?.label ?? v)}
-              </SelectValue>
-            </SelectTrigger>
+          <Select value={status || 'all'} onValueChange={(value) => setStatus(value === 'all' ? '' : value ?? '')}>
+            <SelectTrigger className="w-32"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
-              {Object.entries(STATUS_META).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
-              ))}
+              {Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </FilterBar>
 
-      {view === 'month' && (
-        <CalendarMonthView
-          currentDate={cursor} tasks={tasks} holidayMap={holidayMap}
-          onDateClick={(d) => setSelectedDate(d)}
-          onTaskClick={(id) => setSelectedTaskId(id)}
-        />
-      )}
-      {view === 'week' && (
-        <CalendarWeekView
-          currentDate={cursor} tasks={tasks} holidayMap={holidayMap}
-          onDateClick={(d) => setSelectedDate(d)}
-          onTaskClick={(id) => setSelectedTaskId(id)}
-        />
-      )}
-      {view === 'list' && (
-        <CalendarListView tasks={tasks} loading={isLoading} onTaskClick={(id) => setSelectedTaskId(id)} />
-      )}
+      {view === 'month' && <CalendarMonthView currentDate={cursor} items={items} holidayMap={holidayMap} onDateClick={setSelectedDate} onItemClick={openItem} />}
+      {view === 'week' && <CalendarWeekView currentDate={cursor} items={items} holidayMap={holidayMap} onDateClick={setSelectedDate} onItemClick={openItem} />}
+      {view === 'list' && <CalendarListView items={items} loading={workItems.isLoading} onItemClick={openItem} />}
 
       <DayWorkItemsDialog
-        date={selectedDate} scope={scope}
-        open={!!selectedDate}
-        onOpenChange={(o) => { if (!o) setSelectedDate(null) }}
-        onTaskClick={(id) => setSelectedTaskId(id)}
+        date={selectedDate}
+        scope={scope}
+        include={include}
+        filters={itemFilters}
+        open={Boolean(selectedDate)}
+        onOpenChange={(open) => { if (!open) setSelectedDate(null) }}
+        onItemClick={openItem}
+        onCreate={hasPermission('task', 'create') ? (date) => { setSelectedDate(null); openCreate(date) } : undefined}
       />
-
-      <TaskDetailDrawer
-        taskId={selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
-      />
-
-      <TaskFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {createOpen && <OneOffTaskDialog open={createOpen} onOpenChange={setCreateOpen} initialDate={createDate} />}
     </div>
   )
 }

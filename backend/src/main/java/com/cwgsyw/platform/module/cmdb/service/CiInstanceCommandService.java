@@ -13,7 +13,6 @@ import com.cwgsyw.platform.module.cmdb.entity.CiModel;
 import com.cwgsyw.platform.module.cmdb.mapper.*;
 import com.cwgsyw.platform.module.device.DeviceMapper;
 import com.cwgsyw.platform.module.device.entity.Device;
-import com.cwgsyw.platform.module.daily.DailyReportMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,7 +39,6 @@ public class CiInstanceCommandService {
     private final CiInstanceRelMapper ciInstanceRelMapper;
     private final DeviceMapper deviceMapper;
     private final ChangeDocCiLinkMapper changeDocCiLinkMapper;
-    private final DailyReportMapper dailyReportMapper;
     private final AuditLogMapper auditLogMapper;
     private final CiChangeRecordMapper ciChangeRecordMapper;
     private final ObjectMapper objectMapper;
@@ -284,10 +282,6 @@ public class CiInstanceCommandService {
         if (changeDocCiLinkMapper.countActiveDocumentReferences(tenantId, id) > 0) {
             throw new IllegalArgumentException("该 CMDB 实例仍被变更文档引用，请先解除引用后再删除实例");
         }
-        if (dailyReportMapper.countActiveByCiInstanceId(tenantId, id) > 0) {
-            throw new IllegalArgumentException("该 CMDB 实例仍被日报引用，请先解除引用后再删除实例");
-        }
-
         String before = snapshotInstance(inst);
         Map<String, Object> beforeSnap = buildChangeSnapshot(inst);
         inst.setDeletedAt(LocalDateTime.now()); inst.setDeletedBy(operatorId);

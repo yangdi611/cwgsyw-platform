@@ -13,6 +13,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
 import com.cwgsyw.platform.module.org.GroupLifecycleException;
 import com.cwgsyw.platform.module.org.dto.GroupLifecycleErrorResponse;
+import com.cwgsyw.platform.module.task.template.TaskTemplateErrorResponse;
+import com.cwgsyw.platform.module.task.template.TaskTemplateException;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -22,6 +24,12 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(TaskTemplateException.class)
+    public ResponseEntity<TaskTemplateErrorResponse> handleTaskTemplate(TaskTemplateException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new TaskTemplateErrorResponse(
+            ex.getErrorCode(), ex.getMessage(), ex.getDetails()));
+    }
 
     @ExceptionHandler(GroupLifecycleException.class)
     public ResponseEntity<GroupLifecycleErrorResponse> handleGroupLifecycle(GroupLifecycleException ex) {

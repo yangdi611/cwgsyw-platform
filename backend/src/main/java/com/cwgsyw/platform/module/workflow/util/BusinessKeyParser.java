@@ -5,8 +5,8 @@ import java.util.Map;
 /**
  * businessKey 解析器。
  *
- * <p>新格式统一使用下划线业务类型，如 {@code daily_report:123}。
- * 兼容历史驼峰格式，如 {@code dailyReport:123} / {@code wikiPage:456}。
+ * <p>新格式统一使用下划线业务类型，如 {@code change_doc:123}。
+ * 兼容历史驼峰格式，如 {@code wikiPage:456}。
  * 未知格式返回 {@link ParsedBusinessKey#isRecognized()} = false，调用方应降级展示
  * rawBusinessKey，而不能让整个待办列表因为一条无法识别的记录而失败。
  */
@@ -14,7 +14,6 @@ public final class BusinessKeyParser {
 
     /** 历史驼峰格式 -> 新下划线业务类型。仅用于兼容旧运行中/历史流程实例。 */
     private static final Map<String, String> LEGACY_TYPE_ALIASES = Map.of(
-        "dailyReport", "daily_report",
         "wikiPage", "wiki_page"
     );
 

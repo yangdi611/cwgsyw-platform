@@ -21,10 +21,9 @@ interface NotificationItemProps {
 
 const NOTIFICATION_REFERENCE_TYPES = new Set([
   'change_doc',
-  'daily_report',
+  'task',
   'ci_instance',
   'wiki_page',
-  'ops_task',
 ])
 
 export function getNotificationTargetHref(notificationId: number, refType: string | null, refId: number | null): string | null {

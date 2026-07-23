@@ -2,7 +2,6 @@ package com.cwgsyw.platform.module.sharedfile;
 
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
-import com.cwgsyw.platform.module.sharedfile.dto.FolderAclDTO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFileVO;
 import com.cwgsyw.platform.module.sharedfile.dto.SharedFolderVO;
 import com.cwgsyw.platform.module.sharedfile.dto.CreateFolderRequest;
@@ -34,7 +33,6 @@ public class SharedFileController {
 
     private final SharedFileService fileService;
     private final SharedFolderService folderService;
-    private final SharedFolderAclService aclService;
     private final AuthorizationService authorizationService;
 
     @GetMapping("/folders")
@@ -50,13 +48,12 @@ public class SharedFileController {
             @AuthenticationPrincipal SecurityUser user) {
         Long ownerGroupId = body.getOwnerGroupId() != null ? body.getOwnerGroupId() : user.getGroupId();
         if (body.getParentId() != null) {
-            requireResource(user, "shared_file:manage", "shared_folder", body.getParentId(), 3, true);
+            requireResource(user, "shared_file:manage", "shared_folder", body.getParentId(), 3);
         } else {
             if (!authorizationService.canUseOwnerGroup(user, ownerGroupId)) {
                 throw new AccessDeniedException("不能将目录归属到当前用户未加入的组");
             }
-            if (!authorizationService.decideCreateWithCompatibility(
-                    user, "shared_file", "shared_file:manage", ownerGroupId, true)) {
+            if (!authorizationService.decideCreate(user, "shared_file:manage", ownerGroupId).isAllowed()) {
                 throw new AccessDeniedException("当前作用域不允许创建根目录");
             }
         }
@@ -67,8 +64,7 @@ public class SharedFileController {
     @DeleteMapping("/folders/{id}")
     @PreAuthorize("hasAuthority('shared_file:manage')")
     public R<Void> deleteFolder(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:delete",
-            "shared_folder", id, 3, true);
+        authorizationService.requireParent(user, "shared_file:delete", "shared_folder", id, 3);
         folderService.deleteFolder(user.getTenantId(), id, user.getUserId());
         return R.ok(null);
     }
@@ -82,46 +78,22 @@ public class SharedFileController {
             throw new IllegalArgumentException("至少需要提供文件夹名称或目标目录");
         }
         if (body.getName() != null) {
-            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
-                "shared_folder", id, 2, true);
+            authorizationService.requireParent(user, "shared_file:update", "shared_folder", id, 2);
         }
         if (body.isParentIdSpecified()) {
-            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:manage",
-                "shared_folder", id, 3, true);
+            authorizationService.requireParent(user, "shared_file:manage", "shared_folder", id, 3);
             if (body.getParentId() == null) {
                 Long ownerGroupId = folderService.getFolder(user.getTenantId(), id).getOwnerGroupId();
                 if (!authorizationService.canUseOwnerGroup(user, ownerGroupId)
-                        || !authorizationService.decideCreateWithCompatibility(user, "shared_file",
-                        "shared_file:manage", ownerGroupId, true)) {
+                        || !authorizationService.decideCreate(user, "shared_file:manage", ownerGroupId).isAllowed()) {
                     throw new AccessDeniedException("当前作用域不允许移动到根目录");
                 }
             } else {
-                authorizationService.requireWithCompatibility(user, "shared_file", "shared_file:manage",
-                    "shared_folder", body.getParentId(), 3, true);
+                authorizationService.require(user, "shared_file:manage", "shared_folder", body.getParentId(), 3);
             }
         }
         return R.ok(folderService.updateFolder(user.getTenantId(), user.getUserId(), id,
             body.getName(), body.getParentId(), body.isParentIdSpecified()));
-    }
-
-    @GetMapping("/folders/{id}/acl")
-    @PreAuthorize("hasAuthority('shared_file:manage_acl')")
-    public R<FolderAclDTO> getFolderAcl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        if (authorizationService.isEnforced(user, "shared_file")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口读取 ACL");
-        }
-        return R.ok(aclService.getAcl(user.getTenantId(), id));
-    }
-
-    @PutMapping("/folders/{id}/acl")
-    @PreAuthorize("hasAuthority('shared_file:manage_acl')")
-    public R<Void> setFolderAcl(@PathVariable Long id, @RequestBody FolderAclDTO body,
-                                @AuthenticationPrincipal SecurityUser user) {
-        if (authorizationService.isEnforced(user, "shared_file")) {
-            throw new IllegalStateException("新授权模型已生效，请使用资源权限接口维护 ACL");
-        }
-        aclService.setAcl(user.getTenantId(), id, user.getUserId(), body);
-        return R.ok(null);
     }
 
     @GetMapping
@@ -132,9 +104,7 @@ public class SharedFileController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal SecurityUser user) {
-        if (folderId != null) requireResource(user, "shared_file:read", "shared_folder", folderId, 5,
-            () -> aclService.hasPermission(user.getTenantId(), folderId, user.getUserId(), user.getGroupId(),
-                user.getGroupScope(), "read"));
+        if (folderId != null) requireResource(user, "shared_file:read", "shared_folder", folderId, 5);
         return R.ok(fileService.listFiles(user.getTenantId(), folderId, keyword, user, page, size));
     }
 
@@ -147,11 +117,8 @@ public class SharedFileController {
             @RequestParam(value = "owner_group_id", required = false) Long requestedOwnerGroupId,
             @AuthenticationPrincipal SecurityUser user) {
         Long ownerGroupId = requestedOwnerGroupId != null ? requestedOwnerGroupId : user.getGroupId();
-        if (folderId != null) requireResource(user, "shared_file:upload", "shared_folder", folderId, 3,
-            () -> aclService.hasPermission(user.getTenantId(), folderId, user.getUserId(), user.getGroupId(),
-                user.getGroupScope(), "write"));
-        else if (!authorizationService.decideCreateWithCompatibility(
-                user, "shared_file", "shared_file:upload", ownerGroupId, true)) {
+        if (folderId != null) requireResource(user, "shared_file:upload", "shared_folder", folderId, 3);
+        else if (!authorizationService.decideCreate(user, "shared_file:upload", ownerGroupId).isAllowed()) {
             throw new AccessDeniedException("当前作用域不允许上传根目录文件");
         }
         if (folderId == null && !authorizationService.canUseOwnerGroup(user, ownerGroupId)) {
@@ -163,7 +130,7 @@ public class SharedFileController {
     @GetMapping("/{id}/download-url")
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<String> getDownloadUrl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        requireResource(user, "shared_file:read", "shared_file", id, 4, true);
+        requireResource(user, "shared_file:read", "shared_file", id, 4);
         fileService.getFile(user.getTenantId(), id);
         return R.ok("/api/files/" + id + "/download");
     }
@@ -171,7 +138,7 @@ public class SharedFileController {
     @GetMapping("/{id}/preview-url")
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<String> getPreviewUrl(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        requireResource(user, "shared_file:read", "shared_file", id, 4, true);
+        requireResource(user, "shared_file:read", "shared_file", id, 4);
         fileService.getFile(user.getTenantId(), id);
         return R.ok("/api/files/" + id + "/preview");
     }
@@ -180,7 +147,7 @@ public class SharedFileController {
     @PreAuthorize("hasAuthority('shared_file:read')")
     public ResponseEntity<InputStreamResource> download(
             @PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        requireResource(user, "shared_file:read", "shared_file", id, 4, true);
+        requireResource(user, "shared_file:read", "shared_file", id, 4);
         return fileContentResponse(fileService.getFileContent(user.getTenantId(), id), true);
     }
 
@@ -188,15 +155,14 @@ public class SharedFileController {
     @PreAuthorize("hasAuthority('shared_file:read')")
     public ResponseEntity<InputStreamResource> preview(
             @PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        requireResource(user, "shared_file:read", "shared_file", id, 4, true);
+        requireResource(user, "shared_file:read", "shared_file", id, 4);
         return fileContentResponse(fileService.getFileContent(user.getTenantId(), id), false);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('shared_file:delete')")
     public R<Void> deleteFile(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:delete",
-            "shared_file", id, 3, true);
+        authorizationService.requireParent(user, "shared_file:delete", "shared_file", id, 3);
         fileService.deleteFile(user, id);
         return R.ok(null);
     }
@@ -209,15 +175,12 @@ public class SharedFileController {
             throw new IllegalArgumentException("至少需要提供文件名称或目标目录");
         }
         if (request.getName() != null) {
-            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:update",
-                "shared_file", id, 2, true);
+            authorizationService.requireParent(user, "shared_file:update", "shared_file", id, 2);
         }
         if (request.isParentIdSpecified()) {
-            authorizationService.requireParentWithCompatibility(user, "shared_file", "shared_file:manage",
-                "shared_file", id, 3, true);
+            authorizationService.requireParent(user, "shared_file:manage", "shared_file", id, 3);
             if (request.getParentId() != null) {
-                authorizationService.requireWithCompatibility(user, "shared_file", "shared_file:manage",
-                    "shared_folder", request.getParentId(), 3, true);
+                authorizationService.require(user, "shared_file:manage", "shared_folder", request.getParentId(), 3);
             }
         }
         return R.ok(fileService.updateFile(user, id, request.getName(), request.getParentId(),
@@ -227,21 +190,13 @@ public class SharedFileController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('shared_file:read')")
     public R<SharedFileVO> getFile(@PathVariable Long id, @AuthenticationPrincipal SecurityUser user) {
-        requireResource(user, "shared_file:read", "shared_file", id, 4, true);
+        requireResource(user, "shared_file:read", "shared_file", id, 4);
         return R.ok(fileService.getFile(user.getTenantId(), id));
     }
 
     private void requireResource(SecurityUser user, String permissionCode, String resourceType,
-                                 Long resourceId, int requiredBits, boolean legacyAllowed) {
-        authorizationService.requireWithCompatibility(user, "shared_file", permissionCode,
-            resourceType, resourceId, requiredBits, legacyAllowed);
-    }
-
-    private void requireResource(SecurityUser user, String permissionCode, String resourceType,
-                                 Long resourceId, int requiredBits,
-                                 java.util.function.BooleanSupplier legacyAllowed) {
-        authorizationService.requireWithCompatibility(user, "shared_file", permissionCode,
-            resourceType, resourceId, requiredBits, legacyAllowed);
+                                 Long resourceId, int requiredBits) {
+        authorizationService.require(user, permissionCode, resourceType, resourceId, requiredBits);
     }
 
     private ResponseEntity<InputStreamResource> fileContentResponse(

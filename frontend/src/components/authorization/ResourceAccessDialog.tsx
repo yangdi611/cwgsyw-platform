@@ -11,7 +11,7 @@ import { Input } from '@/components/v2/Input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
 import { Trash2 } from 'lucide-react'
 
-type SubjectType = 'user' | 'group'
+type SubjectType = 'user' | 'group' | 'role'
 type PermissionBit = 'r' | 'w' | 'x'
 
 interface AclEntry {
@@ -102,6 +102,7 @@ export function ResourceAccessDialog({ resourceType, resourceId, title, containe
   const { data, isLoading } = useQuery<ResourceAccess>({ queryKey, queryFn: () => api.get(`/access/${resourceType}/${resourceId}`).then((response) => response.data.data), enabled: open })
   const { data: users = [] } = useQuery<Option[]>({ queryKey: ['authorization-users'], queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((response) => response.data.data?.records ?? []), enabled: open })
   const { data: groups = [] } = useQuery<Option[]>({ queryKey: ['authorization-groups'], queryFn: () => api.get('/groups').then((response) => response.data.data ?? []), enabled: open })
+  const { data: roles = [] } = useQuery<Option[]>({ queryKey: ['authorization-roles'], queryFn: () => api.get('/roles', { params: { page: 1, size: 200 } }).then((response) => response.data.data?.records ?? []), enabled: open })
 
   useEffect(() => {
     if (!data) return
@@ -110,7 +111,7 @@ export function ResourceAccessDialog({ resourceType, resourceId, title, containe
     setEntries(data.entries ?? []); setDefaultEntries(data.defaultEntries ?? [])
   }, [data])
 
-  const subjects = useMemo(() => ({ user: users, group: groups }), [users, groups])
+  const subjects = useMemo(() => ({ user: users, group: groups, role: roles }), [users, groups, roles])
   const save = useMutation({
     mutationFn: () => api.put(`/access/${resourceType}/${resourceId}`, { ownerUserId: Number(ownerUserId), ownerGroupId: Number(ownerGroupId), version: data?.version, mode, entries, defaultEntries: container ? defaultEntries : [] }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey }); toast.success('资源权限已保存'); onOpenChange(false) },
@@ -126,8 +127,8 @@ export function ResourceAccessDialog({ resourceType, resourceId, title, containe
       <Button type="button" variant="secondary" size="sm" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => [...current, { subjectType: 'group', subjectId: groups[0]?.id ?? 0, permissions: container ? 'r-x' : 'r--' }])}>添加</Button></div>
     {values.map((entry, index) => <div key={`${kind}-${index}`} className="space-y-3 rounded-v2-md border border-v2-border p-3">
       <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)_36px] items-center gap-2">
-        <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectType} onChange={(event) => updateEntry(kind, index, { subjectType: event.target.value as SubjectType, subjectId: 0 })}><option value="user">用户</option><option value="group">组</option></select>
-        <select className="h-9 w-full min-w-0 rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectId} onChange={(event) => updateEntry(kind, index, { subjectId: Number(event.target.value) })}><option value={0}>请选择用户或组</option>{subjects[entry.subjectType].map((option) => <option key={option.id} value={option.id}>{option.name ?? option.realName ?? option.username ?? option.id}</option>)}</select>
+        <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectType} onChange={(event) => updateEntry(kind, index, { subjectType: event.target.value as SubjectType, subjectId: 0 })}><option value="user">用户</option><option value="group">组</option><option value="role">角色</option></select>
+        <select className="h-9 w-full min-w-0 rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectId} onChange={(event) => updateEntry(kind, index, { subjectId: Number(event.target.value) })}><option value={0}>请选择主体</option>{subjects[entry.subjectType].map((option) => <option key={option.id} value={option.id}>{option.name ?? option.realName ?? option.username ?? option.id}</option>)}</select>
         <Button type="button" variant="ghost" size="sm" className="h-9 w-9 px-0 text-v2-danger" title="删除授权" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => current.filter((_, entryIndex) => entryIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
       </div>
       <div className="grid grid-cols-3 rounded-v2-sm bg-v2-surface-soft px-3 py-2">

@@ -12,6 +12,7 @@ import { Input } from '@/components/v2/Input'
 import { Label } from '@/components/v2/Label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
 import { type RosterVO, ymd, errMsg } from '@/lib/opsCalendar'
+import { listDirectoryGroups, type DirectoryGroup } from '@/lib/task-plan-api'
 import { Plus, ArrowLeft } from 'lucide-react'
 
 interface UserOpt { id: number; realName: string | null; username: string }
@@ -22,7 +23,7 @@ export default function RostersPage() {
   const qc = useQueryClient()
 
   useEffect(() => {
-    if (!hasPermission('ops_calendar', 'manage')) router.replace('/ops-calendar')
+    if (!hasPermission('calendar_settings', 'read')) router.replace('/ops-calendar')
   }, [hasPermission, router])
 
   const today = new Date()
@@ -30,24 +31,26 @@ export default function RostersPage() {
   const [to, setTo] = useState(ymd(new Date(today.getFullYear(), today.getMonth() + 1, 0)))
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<RosterVO | null>(null)
-  const [form, setForm] = useState({ dutyDate: ymd(today), shiftName: '全天', assigneeId: '', backupAssigneeId: '', phoneOverride: '', remark: '' })
+  const [form, setForm] = useState({ dutyDate: ymd(today), startAt: '', endAt: '', shiftName: '全天', assigneeId: '', backupAssigneeId: '', groupId: '', phoneOverride: '', remark: '' })
   const [conflictMsg, setConflictMsg] = useState<string[]>([])
 
   const { data: rosters = [], isLoading } = useQuery({
-    queryKey: ['ops-rosters', from, to],
-    queryFn: () => api.get('/ops-calendar/rosters', { params: { from, to } }).then((r) => r.data.data as RosterVO[]),
+    queryKey: ['calendar-settings-rosters', from, to],
+    queryFn: () => api.get('/calendar-settings/rosters', { params: { from, to } }).then((r) => r.data.data as RosterVO[]),
   })
 
   const { data: users = [] } = useQuery({
     queryKey: ['ops-users-min'],
     queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((r) => r.data.data.records as UserOpt[]),
   })
+  const { data: groups = [] } = useQuery<DirectoryGroup[]>({ queryKey: ['calendar-settings-groups'], queryFn: listDirectoryGroups })
+  const canManage = hasPermission('calendar_settings', 'manage')
 
   const userName = (u: UserOpt) => u.realName || u.username
 
   function openCreate() {
     setEditing(null)
-    setForm({ dutyDate: ymd(today), shiftName: '全天', assigneeId: '', backupAssigneeId: '', phoneOverride: '', remark: '' })
+    setForm({ dutyDate: ymd(today), startAt: '', endAt: '', shiftName: '全天', assigneeId: '', backupAssigneeId: '', groupId: '', phoneOverride: '', remark: '' })
     setConflictMsg([])
     setOpen(true)
   }
@@ -55,10 +58,10 @@ export default function RostersPage() {
   function openEdit(r: RosterVO) {
     setEditing(r)
     setForm({
-      dutyDate: r.dutyDate, shiftName: r.shiftName,
+      dutyDate: r.dutyDate, startAt: r.startAt?.slice(0, 16) ?? '', endAt: r.endAt?.slice(0, 16) ?? '', shiftName: r.shiftName,
       assigneeId: r.assigneeId ? String(r.assigneeId) : '',
       backupAssigneeId: r.backupAssigneeId ? String(r.backupAssigneeId) : '',
-      phoneOverride: r.phoneOverride ?? '', remark: r.remark ?? '',
+      groupId: r.groupId ? String(r.groupId) : '', phoneOverride: r.phoneOverride ?? '', remark: r.remark ?? '',
     })
     setConflictMsg([])
     setOpen(true)
@@ -67,9 +70,12 @@ export default function RostersPage() {
   function buildBody() {
     return {
       dutyDate: form.dutyDate,
+      startAt: form.startAt || null,
+      endAt: form.endAt || null,
       shiftName: form.shiftName,
       assigneeId: form.assigneeId ? Number(form.assigneeId) : null,
       backupAssigneeId: form.backupAssigneeId ? Number(form.backupAssigneeId) : null,
+      groupId: form.groupId ? Number(form.groupId) : null,
       phoneOverride: form.phoneOverride || null,
       remark: form.remark || null,
     }
@@ -77,11 +83,11 @@ export default function RostersPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => editing
-      ? api.put(`/ops-calendar/rosters/${editing.id}`, buildBody())
-      : api.post('/ops-calendar/rosters', buildBody()),
+      ? api.put(`/calendar-settings/rosters/${editing.id}`, buildBody())
+      : api.post('/calendar-settings/rosters', buildBody()),
     onSuccess: () => {
       toast.success(editing ? '排班已更新' : '排班已创建')
-      qc.invalidateQueries({ queryKey: ['ops-rosters'] })
+      qc.invalidateQueries({ queryKey: ['calendar-settings-rosters'] })
       setOpen(false)
     },
     onError: (e) => toast.error(errMsg(e, '保存失败')),
@@ -89,15 +95,21 @@ export default function RostersPage() {
 
   async function checkConflicts() {
     try {
-      const { data } = await api.post('/ops-calendar/rosters/check-conflicts', buildBody())
+      const { data } = await api.post('/calendar-settings/rosters/check-conflicts', buildBody())
       const msgs = [...(data.data.conflicts ?? []), ...(data.data.warnings ?? [])].map((c: { message: string }) => c.message)
       setConflictMsg(msgs.length ? msgs : ['无冲突'])
     } catch { setConflictMsg(['检测失败']) }
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/calendar-settings/rosters/${id}`),
+    onSuccess: () => { toast.success('排班已删除'); qc.invalidateQueries({ queryKey: ['calendar-settings-rosters'] }) },
+    onError: (error: unknown) => toast.error(errMsg(error, '删除失败')),
+  })
+
   const columns: ColumnDef<RosterVO>[] = useMemo(() => [
     { key: 'dutyDate', title: '日期', render: (r) => <span className="font-v2-mono text-sm">{r.dutyDate}</span> },
-    { key: 'shiftName', title: '班次', render: (r) => r.shiftName },
+    { key: 'shiftName', title: '班次', render: (r) => <div><div>{r.shiftName}</div><div className="font-v2-mono text-xs text-v2-muted">{r.startAt?.slice(11, 16) ?? '00:00'} - {r.endAt?.slice(11, 16) ?? '24:00'}</div></div> },
     { key: 'assignee', title: '负责人', render: (r) => r.assigneeName ?? '-' },
     { key: 'phone', title: '联系电话', render: (r) => r.assigneePhone
         ? <span className="font-v2-mono text-sm">{r.assigneePhone}</span>
@@ -107,10 +119,11 @@ export default function RostersPage() {
         ? <span className="text-sm text-v2-fg">{r.groupName}{r.groupArchived ? '（已归档）' : ''}</span>
         : <span className="text-v2-subtle">-</span> },
     { key: 'remark', title: '备注', render: (r) => <span className="text-v2-muted text-sm">{r.remark ?? '-'}</span> },
+    { key: 'updatedAt', title: '最近更新', render: (r) => <div className="text-xs text-v2-muted"><div>{r.updatedBy ? `用户 #${r.updatedBy}` : '-'}</div><div className="font-v2-mono">{r.updatedAt?.slice(0, 16).replace('T', ' ') ?? '-'}</div></div> },
     { key: 'ops', title: '操作', align: 'right' as const, render: (r) => (
-        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(r) }}>编辑</Button>
+        canManage ? <div className="flex justify-end gap-1"><Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(r) }}>编辑</Button><Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); if (window.confirm(`确认删除 ${r.dutyDate} 的排班？`)) deleteMutation.mutate(r.id) }}>删除</Button></div> : null
       ) },
-  ], [])
+  ], [canManage, deleteMutation])
 
   return (
     <div className="space-y-6">
@@ -121,7 +134,7 @@ export default function RostersPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => router.push('/ops-calendar')}><ArrowLeft className="h-4 w-4" />返回</Button>
-            <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建排班</Button>
+            {canManage && <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建排班</Button>}
           </div>
         }
       />
@@ -147,6 +160,10 @@ export default function RostersPage() {
               <div><Label>班次</Label><Input value={form.shiftName} onChange={(e) => setForm({ ...form, shiftName: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div><Label>开始时间</Label><Input type="datetime-local" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} /></div>
+              <div><Label>结束时间</Label><Input type="datetime-local" value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>负责人</Label>
                 <select className="w-full h-9 rounded-md border border-v2-border bg-v2-surface px-2 text-sm"
@@ -164,6 +181,7 @@ export default function RostersPage() {
                 </select>
               </div>
             </div>
+            <div><Label>所属组</Label><select className="h-9 w-full rounded-md border border-v2-border bg-v2-surface px-2 text-sm" value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}><option value="">选择</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></div>
             <div><Label>联系电话覆盖（可选）</Label><Input value={form.phoneOverride} onChange={(e) => setForm({ ...form, phoneOverride: e.target.value })} placeholder="留空则用用户默认手机号" /></div>
             <div><Label>备注</Label><Input value={form.remark} onChange={(e) => setForm({ ...form, remark: e.target.value })} /></div>
             {conflictMsg.length > 0 && (
@@ -175,7 +193,7 @@ export default function RostersPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={checkConflicts}>冲突检测</Button>
             <Button variant="secondary" onClick={() => setOpen(false)}>取消</Button>
-            <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.assigneeId}>保存</Button>
+            <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.assigneeId || !form.groupId || (!!form.startAt !== !!form.endAt)}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

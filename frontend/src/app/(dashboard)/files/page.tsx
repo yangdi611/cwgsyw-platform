@@ -32,9 +32,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { FolderAclDialog } from './FolderAclDialog'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
-import { useAuthorizationEnforced } from '@/hooks/useAuthorizationEnforced'
 import axios from 'axios'
 import { FolderTreeNode } from './components/FolderTreeNode'
 import { AuditPanel } from './components/AuditPanel'
@@ -45,7 +43,6 @@ export default function FilesPage() {
   const router = useRouter()
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
-  const authorizationEnforced = useAuthorizationEnforced('shared_file')
 
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
@@ -318,7 +315,7 @@ export default function FilesPage() {
           >
             <Download className="h-4 w-4" />
           </Button>
-          {authorizationEnforced && canManageAcl && r.canManageAcl && (
+          {canManageAcl && r.canManageAcl && (
             <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="权限设置" onClick={() => setFileAclTarget(r)}>
               <Lock className="h-4 w-4" />
             </Button>
@@ -565,18 +562,11 @@ export default function FilesPage() {
 
       {/* Folder ACL Dialog */}
       {aclTarget && (
-        authorizationEnforced
-          ? <ResourceAccessDialog resourceType="shared_folder" resourceId={aclTarget.id}
-              title={aclTarget.name} container open={!!aclTarget}
-              onOpenChange={(value) => { if (!value) setAclTarget(null) }} />
-          : <FolderAclDialog
-              folderId={aclTarget.id}
-              folderName={aclTarget.name}
-              open={!!aclTarget}
-              onOpenChange={(value) => { if (!value) setAclTarget(null) }}
-            />
+        <ResourceAccessDialog resourceType="shared_folder" resourceId={aclTarget.id}
+          title={aclTarget.name} container open={!!aclTarget}
+          onOpenChange={(value) => { if (!value) setAclTarget(null) }} />
       )}
-      {fileAclTarget && authorizationEnforced && (
+      {fileAclTarget && (
         <ResourceAccessDialog resourceType="shared_file" resourceId={fileAclTarget.id}
           title={fileAclTarget.name} container={false} open
           onOpenChange={(value) => { if (!value) setFileAclTarget(null) }} />

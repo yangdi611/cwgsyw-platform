@@ -4,11 +4,8 @@ import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.common.R;
 import com.cwgsyw.platform.common.entity.AuditLog;
-import com.cwgsyw.platform.module.config.SysConfigService;
+import com.cwgsyw.platform.module.workflow.binding.WorkflowProcessBindingMapper;
 import com.cwgsyw.platform.module.workflow.dto.*;
-import com.cwgsyw.platform.module.workflow.runtime.WorkflowRuntimeFacade;
-import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskCompleteCommand;
-import com.cwgsyw.platform.module.workflow.runtime.WorkflowTaskSummary;
 import com.cwgsyw.platform.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,63 +15,14 @@ import org.springframework.web.bind.annotation.*;
 import com.cwgsyw.platform.module.workflow.dto.InstanceVO;
 import com.cwgsyw.platform.module.workflow.dto.StartProcessRequest;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/workflow")
 @RequiredArgsConstructor
 public class WorkflowController {
     private final WorkflowService workflowService;
-    private final WorkflowRuntimeFacade workflowRuntimeFacade;
     private final AuditLogMapper auditLogMapper;
-    private final SysConfigService configService;
-
-    @GetMapping("/tasks/my")
-    @PreAuthorize("hasPermission('workflow', 'read')")
-    public R<List<TaskVO>> myTasks(@AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(workflowService.getPendingTasksByUser(cu.getUserId()));
-    }
-
-    @GetMapping("/tasks/group")
-    @PreAuthorize("hasPermission('daily_report', 'approve')")
-    public R<List<TaskVO>> groupTasks(@AuthenticationPrincipal SecurityUser cu) {
-        return R.ok(workflowRuntimeFacade.listGroupTasks(cu).stream()
-            .map(this::toLegacyTask)
-            .toList());
-    }
-
-    @PostMapping("/approve")
-    @PreAuthorize("hasPermission('daily_report', 'approve')")
-    public R<Void> approve(@Valid @RequestBody ApproveRequest req,
-                           @AuthenticationPrincipal SecurityUser cu) {
-        workflowRuntimeFacade.completeTask(WorkflowTaskCompleteCommand.builder()
-            .tenantId(cu.getTenantId())
-            .taskId(req.getTaskId())
-            .operatorId(cu.getUserId())
-            .approved(req.isApproved())
-            .comment(req.getComment())
-            .build());
-        return R.ok();
-    }
-
-    private TaskVO toLegacyTask(WorkflowTaskSummary task) {
-        TaskVO vo = new TaskVO();
-        vo.setTaskId(task.getTaskId());
-        vo.setProcessInstanceId(task.getProcessInstanceId());
-        vo.setTaskName(task.getTaskName());
-        vo.setAssignee(task.getAssignee());
-        vo.setCreateTime(task.getCreateTime());
-        vo.setBusinessKey(task.getBusinessKey());
-        vo.setBusinessType(task.getBusinessType());
-        if (task.getBusinessId() != null) {
-            try {
-                vo.setBusinessId(Long.valueOf(task.getBusinessId()));
-            } catch (NumberFormatException ignored) {
-                // 旧接口仅支持数值业务 ID；非数值业务保持原有空值兼容行为。
-            }
-        }
-        return vo;
-    }
+    private final WorkflowProcessBindingMapper processBindingMapper;
 
     /**
      * 流程定义列表
@@ -247,21 +195,10 @@ public class WorkflowController {
         if (definitionId == null || definitionId.isBlank()) {
             return R.fail("缺少 definitionId 参数");
         }
-        // Check if this version is bound to any business module via sys_config
-        Map<String, String> cfg = configService.getAll(cu.getTenantId());
-        java.util.List<String> bindingKeys = java.util.List.of(
-            "daily_report_process_definition_id",
-            "change_doc_process_definition_id",
-            "device_access_process_definition_id"
-        );
-        java.util.List<String> bindingNames = java.util.List.of(
-            "日报审批", "变更文档审批", "设备权限审批"
-        );
-        for (int i = 0; i < bindingKeys.size(); i++) {
-            String boundId = cfg.get(bindingKeys.get(i));
-            if (definitionId.equals(boundId)) {
-                return R.fail("该版本已被【" + bindingNames.get(i) + "】流程绑定，请先在系统配置中更换绑定");
-            }
+        long activeBindings = processBindingMapper.countActiveByProcessDefinition(
+            cu.getTenantId(), definitionId);
+        if (activeBindings > 0) {
+            return R.fail("该版本仍被 " + activeBindings + " 个业务流程绑定，请先在流程绑定中更换或停用绑定");
         }
         var def = workflowService.getDefinition(definitionId);
         workflowService.deleteDefinitionVersion(definitionId);

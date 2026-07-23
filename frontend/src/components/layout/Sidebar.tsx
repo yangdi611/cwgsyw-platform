@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -12,14 +13,26 @@ import { isGroup } from './sidebar/utils'
 import { useOpenGroup, useCollapsed } from './sidebar/useSidebarState'
 import { NavGroupItem } from './sidebar/NavGroupItem'
 import { CollapsedEntry } from './sidebar/CollapsedEntry'
+import { getWorkItemCounts } from '@/lib/work-item-api'
 
 export function Sidebar() {
   const pathname = usePathname()
   const { hasPermission } = usePermission()
   const groupScope = useAuthStore((state) => state.groupScope)
+  const canReadWorkItems = hasPermission('work_item', 'read')
+  const workItemCounts = useQuery({
+    queryKey: ['work-item-counts'],
+    queryFn: getWorkItemCounts,
+    enabled: canReadWorkItems,
+    staleTime: 30_000,
+  })
+  const workBadge = (workItemCounts.data?.execute ?? 0) + (workItemCounts.data?.approve ?? 0)
+  const resolvedNavItems = navItems.map((entry) => isGroup(entry)
+    ? { ...entry, children: entry.children.map((child) => child.badgeKey === 'work' ? { ...child, badge: workBadge } : child) }
+    : entry.badgeKey === 'work' ? { ...entry, badge: workBadge } : entry)
 
   // 默认展开的一级菜单：优先「当前页所属组」，其次「defaultOpen」的组。
-  const groups = navItems.filter(isGroup)
+  const groups = resolvedNavItems.filter(isGroup)
   const initialOpenKey =
     groups.find(g => {
       if (!isGroup(g)) return false
@@ -99,7 +112,7 @@ export function Sidebar() {
       {/* Navigation */}
       {collapsed ? (
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-visible">
-          {navItems.map((entry) => {
+          {resolvedNavItems.map((entry) => {
             if (isGroup(entry) && entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
             return (
               <CollapsedEntry
@@ -115,7 +128,7 @@ export function Sidebar() {
       ) : (
         <>
           <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-visible p-2 md:hidden">
-            {navItems.map((entry) => {
+            {resolvedNavItems.map((entry) => {
               if (isGroup(entry) && entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
               return (
                 <CollapsedEntry
@@ -129,7 +142,7 @@ export function Sidebar() {
             })}
           </nav>
           <nav className="hidden flex-1 space-y-1 overflow-y-auto p-3 md:block">
-          {navItems.map((entry) => {
+          {resolvedNavItems.map((entry) => {
             if (isGroup(entry)) {
               if (entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
               return (
