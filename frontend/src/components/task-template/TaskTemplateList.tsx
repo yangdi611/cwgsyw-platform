@@ -95,7 +95,7 @@ export function TaskTemplateList() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {templates.data?.records.map((template) => (
-            <div key={template.id} className="relative">
+            <div key={template.id}>
               <Link href={`/tasks/templates/${template.id}`} className="block">
               <Card className="h-full p-4 transition hover:-translate-y-0.5 hover:shadow-v2-md">
                 <div className="flex items-start justify-between gap-3">
@@ -110,24 +110,24 @@ export function TaskTemplateList() {
                   <span className="rounded-v2-md bg-v2-surface-hover px-2 py-1 text-xs text-v2-muted">{template.category || '未分类'}</span>
                 </div>
                 <p className="mt-3 line-clamp-2 text-sm text-v2-muted">{template.description || '暂无描述'}</p>
-                <div className="mt-4 flex items-center justify-between border-t border-v2-border pt-3 text-xs text-v2-muted">
+                <div className="mt-4 flex items-center gap-3 border-t border-v2-border pt-3 text-xs text-v2-muted">
                   <span>范围：{template.scopeType}</span>
-                  <span>{new Date(template.updatedAt).toLocaleString('zh-CN')}</span>
+                  <span className="ml-auto whitespace-nowrap">{new Date(template.updatedAt).toLocaleString('zh-CN')}</span>
+                  {canDelete && !template.builtin && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      title={`删除模板 ${template.name}`}
+                      className="h-7 w-7 shrink-0 px-0 text-v2-danger hover:text-v2-danger"
+                      onClick={(event) => { event.preventDefault(); setDeleteTarget(template) }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </Card>
               </Link>
-              {canDelete && !template.builtin && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  title={`删除模板 ${template.name}`}
-                  className="absolute right-3 bottom-2 h-8 w-8 px-0 text-v2-danger hover:text-v2-danger"
-                  onClick={() => setDeleteTarget(template)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           ))}
         </div>
