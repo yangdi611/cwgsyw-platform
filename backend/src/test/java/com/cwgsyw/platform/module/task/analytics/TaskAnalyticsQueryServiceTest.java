@@ -125,6 +125,25 @@ class TaskAnalyticsQueryServiceTest {
     }
 
     @Test
+    void returnsChineseLabelsForSystemDimensionsMetricsAndFormFields() {
+        AnalyticsQueryResponse aggregate = service.query(user, requestWithPolicy(
+            List.of(metric("work_hours", "sum", "hours")), List.of("business_date"),
+            "aggregate", null, "current_effective"));
+
+        assertThat(aggregate.columnLabels())
+            .containsEntry("business_date", "业务日期")
+            .containsEntry("hours", "工时（合计）");
+
+        AnalyticsQueryResponse detail = service.query(user, requestWithPolicy(
+            List.of(), List.of(), "text_list", List.of("result"), "current_effective"));
+
+        assertThat(detail.columnLabels())
+            .containsEntry("taskId", "任务ID")
+            .containsEntry("submissionVersion", "提交版本")
+            .containsEntry("result", "结果");
+    }
+
+    @Test
     void groupsChoiceAndMultiSelectFactsAndSupportsTableColumnDrilldown() {
         AnalyticsQueryResponse categories = service.query(user, requestWithPolicy(
             List.of(new AnalyticsQueryRequest.Metric("result", null, "count", "count", null, null, null)),

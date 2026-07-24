@@ -6,6 +6,7 @@ import java.util.Map;
 
 public record AnalyticsQueryResponse(
     List<String> columns,
+    Map<String, String> columnLabels,
     List<Map<String, Object>> rows,
     long scannedFacts,
     LocalDateTime generatedAt,

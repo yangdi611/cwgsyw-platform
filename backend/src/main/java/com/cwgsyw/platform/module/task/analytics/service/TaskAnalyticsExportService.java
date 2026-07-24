@@ -39,7 +39,8 @@ public class TaskAnalyticsExportService {
         StringBuilder output = new StringBuilder("\uFEFF");
         output.append("统计口径,").append(csvCell(String.valueOf(response.definition()))).append('\n');
         output.append("生成时间,").append(csvCell(response.generatedAt().toString())).append('\n').append('\n');
-        output.append(response.columns().stream().map(this::csvCell).collect(java.util.stream.Collectors.joining(","))).append('\n');
+        output.append(response.columns().stream().map(column -> csvCell(columnLabel(response, column)))
+            .collect(java.util.stream.Collectors.joining(","))).append('\n');
         for (Map<String, Object> row : response.rows()) {
             output.append(response.columns().stream().map(column -> csvCell(display(row.get(column))))
                 .collect(java.util.stream.Collectors.joining(","))).append('\n');
@@ -60,7 +61,7 @@ public class TaskAnalyticsExportService {
             CellStyle headerStyle = headerStyle(workbook);
             for (int index = 0; index < response.columns().size(); index++) {
                 Cell cell = header.createCell(index);
-                cell.setCellValue(response.columns().get(index));
+                cell.setCellValue(columnLabel(response, response.columns().get(index)));
                 cell.setCellStyle(headerStyle);
             }
             int rowNumber = 4;
@@ -99,6 +100,10 @@ public class TaskAnalyticsExportService {
         if (value instanceof LocalDateTime dateTime) return dateTime.toString();
         if (value instanceof List<?> list) return String.join(" | ", list.stream().map(String::valueOf).toList());
         return String.valueOf(value);
+    }
+
+    private String columnLabel(AnalyticsQueryResponse response, String column) {
+        return response.columnLabels().getOrDefault(column, column);
     }
 
     private String sanitizeName(String value) {

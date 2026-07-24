@@ -150,6 +150,7 @@ function AnalyticsWidgetCard({ widget, query, canExport, canManage, busy, onDele
   const result = useQuery({ queryKey: ['task-analytics-widget', widget.id, query], queryFn: () => queryTaskAnalytics(query), staleTime: 30_000 })
   const rows = result.data?.rows ?? []
   const columns = result.data?.columns ?? []
+  const columnLabels = result.data?.columnLabels ?? {}
   return <article className="overflow-hidden border border-v2-border bg-v2-surface">
     <header className="flex items-center justify-between border-b border-v2-border px-4 py-3">
       <div className="flex items-center gap-2"><WidgetIcon type={widget.widgetType} /><div><h2 className="font-semibold">{widget.title}</h2><p className="text-xs text-v2-muted">{result.data ? `扫描 ${result.data.scannedFacts} 条事实 · ${new Date(result.data.generatedAt).toLocaleString('zh-CN')}` : '加载中'}</p></div></div>
@@ -158,15 +159,16 @@ function AnalyticsWidgetCard({ widget, query, canExport, canManage, busy, onDele
     <div className="min-h-48 overflow-x-auto p-4">
       {result.isError && <p className="text-sm text-v2-danger">组件查询失败，请检查模板版本、口径或权限。</p>}
       {result.isLoading && <p className="text-sm text-v2-muted">正在计算...</p>}
-      {!result.isLoading && !result.isError && <WidgetResult type={widget.widgetType} rows={rows} columns={columns} query={query} onDrilldown={onDrilldown} />}
+      {!result.isLoading && !result.isError && <WidgetResult type={widget.widgetType} rows={rows} columns={columns} columnLabels={columnLabels} query={query} onDrilldown={onDrilldown} />}
     </div>
   </article>
 }
 
-function WidgetResult({ type, rows, columns, query, onDrilldown }: {
+function WidgetResult({ type, rows, columns, columnLabels, query, onDrilldown }: {
   type: string
   rows: Array<Record<string, unknown>>
   columns: string[]
+  columnLabels: Record<string, string>
   query: AnalyticsQueryRequest
   onDrilldown: (dimensions: Record<string, unknown>) => void
 }) {
@@ -179,7 +181,7 @@ function WidgetResult({ type, rows, columns, query, onDrilldown }: {
     const dimension = dimensionColumns[0]
     const chartData = rows.map((row) => ({ ...row, [metric]: numberValue(row[metric]) }))
     const open = (event: unknown) => { const payload = chartEventPayload(event); if (payload) onDrilldown(pickDimensions(payload, dimensionColumns)) }
-    return <div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%">{type === 'line_chart' ? <LineChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey={metric} stroke={CHART_COLORS[0]} strokeWidth={2} activeDot={{ r: 5 }} /></LineChart> : <BarChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Bar dataKey={metric} fill={CHART_COLORS[0]} /></BarChart>}</ResponsiveContainer></div>
+    return <div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%">{type === 'line_chart' ? <LineChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey={metric} name={columnLabels[metric] ?? metric} stroke={CHART_COLORS[0]} strokeWidth={2} activeDot={{ r: 5 }} /></LineChart> : <BarChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Bar dataKey={metric} name={columnLabels[metric] ?? metric} fill={CHART_COLORS[0]} /></BarChart>}</ResponsiveContainer></div>
   }
   if (type === 'pie_chart' && dimensionColumns[0] && metric) {
     const dimension = dimensionColumns[0]
@@ -188,8 +190,8 @@ function WidgetResult({ type, rows, columns, query, onDrilldown }: {
   }
   if (type === 'image_gallery') return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{rows.slice(0, 18).map((row) => <AttachmentImage key={String(row.attachmentId)} row={row} />)}</div>
   if (type === 'attachment_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row) => <AttachmentRow key={String(row.attachmentId)} row={row} />)}</div>
-  if (type === 'text_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row, index) => <button type="button" key={index} className="block w-full px-1 py-3 text-left hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.filter((column) => !TRACE_COLUMNS.has(column)).map((column) => <p key={column} className="whitespace-pre-wrap text-sm"><span className="mr-2 text-xs font-semibold text-v2-muted">{column}</span>{formatValue(row[column])}</p>)}</button>)}</div>
-  return <table className="min-w-full text-sm"><thead><tr>{columns.map((column) => <th key={column} className="border-b border-v2-border px-2 py-2 text-left text-xs font-semibold">{column}</th>)}</tr></thead><tbody>{rows.slice(0, 50).map((row, index) => <tr key={index} className="cursor-pointer hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.map((column) => <td key={column} className="border-b border-v2-border px-2 py-2">{formatValue(row[column])}</td>)}</tr>)}</tbody></table>
+  if (type === 'text_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row, index) => <button type="button" key={index} className="block w-full px-1 py-3 text-left hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.filter((column) => !TRACE_COLUMNS.has(column)).map((column) => <p key={column} className="whitespace-pre-wrap text-sm"><span className="mr-2 text-xs font-semibold text-v2-muted">{columnLabels[column] ?? column}</span>{formatValue(row[column])}</p>)}</button>)}</div>
+  return <table className="min-w-full text-sm"><thead><tr>{columns.map((column) => <th key={column} className="border-b border-v2-border px-2 py-2 text-left text-xs font-semibold">{columnLabels[column] ?? column}</th>)}</tr></thead><tbody>{rows.slice(0, 50).map((row, index) => <tr key={index} className="cursor-pointer hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.map((column) => <td key={column} className="border-b border-v2-border px-2 py-2">{formatValue(row[column])}</td>)}</tr>)}</tbody></table>
 }
 
 function DrilldownPanel({ state, onClose }: { state: DrilldownState; onClose: () => void }) {
@@ -199,10 +201,10 @@ function DrilldownPanel({ state, onClose }: { state: DrilldownState; onClose: ()
   })
   const records = result.data?.records ?? []
   return <section className="border border-v2-border bg-v2-surface">
-    <header className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">{state.widget.title} · 来源明细</h2><p className="text-xs text-v2-muted">{dimensionSummary(state.dimensions)}{result.data ? ` · 共 ${result.data.total} 条` : ''}</p></div><Button size="sm" variant="ghost" title="关闭下钻" onClick={onClose}><X className="h-4 w-4" /></Button></header>
+    <header className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">{state.widget.title} · 来源明细</h2><p className="text-xs text-v2-muted">{dimensionSummary(state.dimensions, result.data?.columnLabels)}{result.data ? ` · 共 ${result.data.total} 条` : ''}</p></div><Button size="sm" variant="ghost" title="关闭下钻" onClick={onClose}><X className="h-4 w-4" /></Button></header>
     {result.isLoading && <p className="p-4 text-sm text-v2-muted">正在加载来源任务...</p>}
     {result.isError && <p className="p-4 text-sm text-v2-danger">无法加载下钻明细，请检查权限或查询口径。</p>}
-    <div className="divide-y divide-v2-border">{records.map((record) => <div key={`${record.taskId}:${record.submissionId}`} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"><div><Link className="font-medium text-v2-primary hover:underline" href={`/tasks/${record.taskId}`}>{formatValue(record.taskTitle)}</Link><p className="mt-1 text-xs text-v2-muted">任务 #{formatValue(record.taskId)} · 提交 #{formatValue(record.submissionId)} v{formatValue(record.submissionVersion)} · 业务日期 {formatValue(record.businessDate)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">{Object.entries(record).filter(([key]) => !TRACE_COLUMNS.has(key)).map(([key, value]) => <span key={key}><strong className="mr-1 text-xs text-v2-muted">{key}</strong>{formatValue(value)}</span>)}</div></div><Link href={`/tasks/${record.taskId}`} className="inline-flex h-9 items-center gap-1 border border-v2-border px-3 text-sm hover:border-v2-primary">查看提交<ChevronRight className="h-4 w-4" /></Link></div>)}</div>
+    <div className="divide-y divide-v2-border">{records.map((record) => <div key={`${record.taskId}:${record.submissionId}`} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"><div><Link className="font-medium text-v2-primary hover:underline" href={`/tasks/${record.taskId}`}>{formatValue(record.taskTitle)}</Link><p className="mt-1 text-xs text-v2-muted">任务 #{formatValue(record.taskId)} · 提交 #{formatValue(record.submissionId)} v{formatValue(record.submissionVersion)} · 业务日期 {formatValue(record.businessDate)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">{Object.entries(record).filter(([key]) => !TRACE_COLUMNS.has(key)).map(([key, value]) => <span key={key}><strong className="mr-1 text-xs text-v2-muted">{result.data?.columnLabels?.[key] ?? key}</strong>{formatValue(value)}</span>)}</div></div><Link href={`/tasks/${record.taskId}`} className="inline-flex h-9 items-center gap-1 border border-v2-border px-3 text-sm hover:border-v2-primary">查看提交<ChevronRight className="h-4 w-4" /></Link></div>)}</div>
     {!result.isLoading && records.length === 0 && <p className="p-8 text-center text-sm text-v2-muted">该数据点没有当前用户可查看的来源任务。</p>}
   </section>
 }
@@ -249,6 +251,6 @@ function numberValue(value: unknown) { const result = Number(value); return Numb
 function formatValue(value: unknown): string { if (Array.isArray(value)) return value.map(formatValue).join('、'); if (value && typeof value === 'object') return JSON.stringify(value); return value == null ? '-' : String(value) }
 function formatBytes(value: unknown) { const bytes = numberValue(value); if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB` }
 function scopeLabel(scope?: string) { return scope === 'tenant' ? '租户共享' : scope === 'group' ? '组内共享' : '私有' }
-function dimensionSummary(dimensions: Record<string, unknown>) { const entries = Object.entries(dimensions); return entries.length ? entries.map(([key, value]) => `${key}=${formatValue(value)}`).join(' · ') : '全部数据' }
+function dimensionSummary(dimensions: Record<string, unknown>, labels?: Record<string, string>) { const entries = Object.entries(dimensions); return entries.length ? entries.map(([key, value]) => `${labels?.[key] ?? key}=${formatValue(value)}`).join(' · ') : '全部数据' }
 function WidgetIcon({ type }: { type: string }) { return type === 'image_gallery' ? <ImageIcon className="h-4 w-4 text-v2-primary" /> : type === 'text_list' || type === 'attachment_list' ? <List className="h-4 w-4 text-v2-primary" /> : <BarChart3 className="h-4 w-4 text-v2-primary" /> }
 function EmptyResult() { return <p className="text-sm text-v2-muted">暂无符合条件的数据。</p> }

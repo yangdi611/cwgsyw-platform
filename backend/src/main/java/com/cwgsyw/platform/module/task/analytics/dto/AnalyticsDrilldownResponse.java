@@ -5,6 +5,7 @@ import java.util.Map;
 
 public record AnalyticsDrilldownResponse(
     List<Map<String, Object>> records,
+    Map<String, String> columnLabels,
     long total,
     int page,
     int size

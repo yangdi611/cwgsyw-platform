@@ -53,6 +53,47 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TaskAnalyticsQueryService {
+    private static final Map<String, String> SYSTEM_COLUMN_LABELS = Map.ofEntries(
+        Map.entry("taskId", "任务ID"),
+        Map.entry("taskTitle", "任务标题"),
+        Map.entry("submissionId", "提交ID"),
+        Map.entry("submissionVersion", "提交版本"),
+        Map.entry("templateVersionId", "模板版本ID"),
+        Map.entry("businessDate", "业务日期"),
+        Map.entry("submittedAt", "提交时间"),
+        Map.entry("assigneeId", "执行人ID"),
+        Map.entry("groupId", "执行组ID"),
+        Map.entry("fieldFactIds", "字段事实ID"),
+        Map.entry("attachmentId", "附件ID"),
+        Map.entry("fieldKey", "表单字段"),
+        Map.entry("fileName", "文件名"),
+        Map.entry("contentType", "文件类型"),
+        Map.entry("sizeBytes", "文件大小（字节）"),
+        Map.entry("uploadedAt", "上传时间"),
+        Map.entry("downloadPath", "下载地址")
+    );
+    private static final Map<String, String> DIMENSION_LABELS = Map.of(
+        "business_date", "业务日期",
+        "submitted_at", "提交时间",
+        "assignee", "执行人",
+        "submitter", "提交人",
+        "owner_group", "执行时所属组",
+        "template", "任务模板",
+        "ci_model_group", "CI 模型组",
+        "ci_model", "CI 模型",
+        "ci_instance", "CI 实例"
+    );
+    private static final Map<String, String> AGGREGATION_LABELS = Map.of(
+        "sum", "合计",
+        "avg", "平均值",
+        "min", "最小值",
+        "max", "最大值",
+        "count", "计数",
+        "distinct_count", "去重计数",
+        "weighted_avg", "加权平均值",
+        "ratio", "比率"
+    );
+
     private final TaskFieldFactMapper factMapper;
     private final TaskInstanceMapper taskMapper;
     private final TaskSubmissionMapper submissionMapper;
@@ -102,7 +143,8 @@ public class TaskAnalyticsQueryService {
             default -> aggregate(data, request);
         };
         List<String> columns = rows.stream().flatMap(row -> row.keySet().stream()).distinct().toList();
-        return new AnalyticsQueryResponse(columns, rows, data.scannedFacts(), LocalDateTime.now(),
+        return new AnalyticsQueryResponse(columns, columnLabels(columns, request, data.template()), rows,
+            data.scannedFacts(), LocalDateTime.now(),
             data.validated().effectivePolicy(), definition(request, data.template()));
     }
 
@@ -260,7 +302,11 @@ public class TaskAnalyticsQueryService {
         records.sort(Comparator.comparing(row -> String.valueOf(row.get("submittedAt")), Comparator.reverseOrder()));
         int from = Math.min(records.size(), (page - 1) * size);
         int to = Math.min(records.size(), from + size);
-        return new AnalyticsDrilldownResponse(List.copyOf(records.subList(from, to)), records.size(), page, size);
+        LinkedHashSet<String> columns = records.stream().flatMap(row -> row.keySet().stream())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (request.dimensions() != null) columns.addAll(request.dimensions());
+        return new AnalyticsDrilldownResponse(List.copyOf(records.subList(from, to)),
+            columnLabels(columns, request, data.template()), records.size(), page, size);
     }
 
     private List<Map<String, Object>> attachments(QueryData data, AnalyticsQueryRequest request) {
@@ -484,6 +530,73 @@ public class TaskAnalyticsQueryService {
         if (StringUtils.hasText(metric.alias())) return metric.alias();
         if ("ratio".equals(metric.aggregation())) return metric.numeratorFieldKey() + "_ratio";
         return metric.fieldKey() + "_" + metric.aggregation();
+    }
+
+    private Map<String, String> columnLabels(Collection<String> columns, AnalyticsQueryRequest request,
+                                             TaskTemplateVersionVO template) {
+        Map<String, TaskFieldDefinition> fields = template.getFields().stream()
+            .collect(Collectors.toMap(TaskFieldDefinition::getKey, Function.identity(),
+                (left, right) -> left, LinkedHashMap::new));
+        Map<String, String> metricLabels = new HashMap<>();
+        if (request.metrics() != null) {
+            request.metrics().forEach(metric -> metricLabels.put(alias(metric), metricLabel(metric, fields)));
+        }
+        LinkedHashSet<String> requestedColumns = new LinkedHashSet<>(columns);
+        if (request.dimensions() != null) requestedColumns.addAll(request.dimensions());
+        if (request.detailFields() != null) requestedColumns.addAll(request.detailFields());
+        Map<String, String> labels = new LinkedHashMap<>();
+        requestedColumns.forEach(column -> labels.put(column, columnLabel(column, fields, metricLabels)));
+        return labels;
+    }
+
+    private String columnLabel(String column, Map<String, TaskFieldDefinition> fields,
+                               Map<String, String> metricLabels) {
+        if (SYSTEM_COLUMN_LABELS.containsKey(column)) return SYSTEM_COLUMN_LABELS.get(column);
+        if (DIMENSION_LABELS.containsKey(column)) return DIMENSION_LABELS.get(column);
+        if (metricLabels.containsKey(column)) return metricLabels.get(column);
+        String fieldLabel = fieldLabel(column, fields);
+        return fieldLabel == null ? column : fieldLabel;
+    }
+
+    private String metricLabel(AnalyticsQueryRequest.Metric metric, Map<String, TaskFieldDefinition> fields) {
+        String sourceLabel;
+        if ("ratio".equals(metric.aggregation())) {
+            sourceLabel = displayFieldLabel(metric.numeratorFieldKey(), fields) + " / "
+                + displayFieldLabel(metric.denominatorFieldKey(), fields);
+        } else {
+            String fieldPath = StringUtils.hasText(metric.tableColumn())
+                ? metric.fieldKey() + "." + metric.tableColumn() : metric.fieldKey();
+            sourceLabel = displayFieldLabel(fieldPath, fields);
+        }
+        return sourceLabel + "（" + AGGREGATION_LABELS.getOrDefault(metric.aggregation(), metric.aggregation()) + "）";
+    }
+
+    private String displayFieldLabel(String fieldPath, Map<String, TaskFieldDefinition> fields) {
+        String label = fieldLabel(fieldPath, fields);
+        return label == null ? fieldPath : label;
+    }
+
+    private String fieldLabel(String fieldPath, Map<String, TaskFieldDefinition> fields) {
+        if (!StringUtils.hasText(fieldPath)) return null;
+        TaskFieldDefinition field = fields.get(AnalyticsQueryValidator.rootField(fieldPath));
+        if (field == null) return null;
+        String label = StringUtils.hasText(field.getLabel()) ? field.getLabel() : field.getKey();
+        String nested = AnalyticsQueryValidator.nestedField(fieldPath);
+        if (!StringUtils.hasText(nested)) return label;
+        String nestedLabel = nested;
+        Object rawColumns = field.getValidation() == null ? null : field.getValidation().get("columns");
+        if (rawColumns instanceof Iterable<?> columns) {
+            for (Object raw : columns) {
+                if (raw instanceof Map<?, ?> column && nested.equals(String.valueOf(column.get("key")))) {
+                    Object configuredLabel = column.get("label");
+                    if (configuredLabel != null && StringUtils.hasText(String.valueOf(configuredLabel))) {
+                        nestedLabel = String.valueOf(configuredLabel);
+                    }
+                    break;
+                }
+            }
+        }
+        return label + " / " + nestedLabel;
     }
 
     private void sort(List<Map<String, Object>> rows, List<AnalyticsQueryRequest.Order> orderBy) {

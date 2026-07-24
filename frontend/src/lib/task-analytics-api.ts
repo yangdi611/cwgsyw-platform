@@ -35,11 +35,20 @@ export interface AnalyticsQueryRequest {
 
 export interface AnalyticsQueryResponse {
   columns: string[]
+  columnLabels?: Record<string, string>
   rows: Array<Record<string, unknown>>
   scannedFacts: number
   generatedAt: string
   effectivePolicy: string
   definition: Record<string, unknown>
+}
+
+export interface AnalyticsDrilldownResponse {
+  records: Array<Record<string, unknown>>
+  columnLabels?: Record<string, string>
+  total: number
+  page: number
+  size: number
 }
 
 export interface AnalyticsDashboard {
@@ -255,7 +264,7 @@ export async function queryTaskAnalytics(request: AnalyticsQueryRequest) {
 }
 
 export async function drilldownTaskAnalytics(request: { query: AnalyticsQueryRequest; dimensions?: Record<string, unknown>; page?: number; size?: number }) {
-  return api.post('/task-analytics/drilldown', request).then((response) => response.data.data as { records: Array<Record<string, unknown>>; total: number; page: number; size: number })
+  return api.post('/task-analytics/drilldown', request).then((response) => response.data.data as AnalyticsDrilldownResponse)
 }
 
 export async function fetchAnalyticsAttachment(downloadPath: string) {
