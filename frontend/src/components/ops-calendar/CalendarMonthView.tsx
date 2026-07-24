@@ -48,13 +48,12 @@ export function CalendarMonthView({ currentDate, items, holidayMap, onDateClick,
                 index % 7 === 6 && 'border-r-0',
               )}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center">
                 <span className={cn(
-                  'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs',
+                  'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm font-medium',
                   date.getMonth() !== month ? 'text-v2-subtle' : 'text-v2-fg',
-                  isToday(date) && 'bg-v2-accent font-semibold text-white',
+                  isToday(date) && 'bg-v2-accent text-base font-bold text-white',
                 )}>{date.getDate()}</span>
-                {dayItems.length > 0 && <span className="text-[10px] text-v2-muted">{dayItems.length}</span>}
               </div>
               {holiday && <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>}
               <div className="mt-1 space-y-1">
