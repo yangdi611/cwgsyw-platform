@@ -69,7 +69,7 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
       const validation = await validateTask(taskId)
       if (!validation.valid) { setIssues(validation.issues); throw new Error('validation') }
       setIssues([])
-      return submitTask(taskId, currentRevision, crypto.randomUUID())
+      return submitTask(taskId, currentRevision, submissionIdempotencyKey())
     },
     onSuccess: async () => { toast.success(data.task.approvalStatus && data.task.approvalStatus !== 'not_required' ? '已提交审批' : '任务已完成'); await queryClient.invalidateQueries({ queryKey: ['task', taskId] }); await queryClient.invalidateQueries({ queryKey: ['tasks'] }); await queryClient.invalidateQueries({ queryKey: ['work-items'] }) },
     onError: (error) => { if (error.message !== 'validation') toast.error('提交失败'); else toast.error('请修正表单校验问题') },
@@ -162,3 +162,7 @@ function feedbackFromRounds(rounds: ApprovalRound[], data: TaskDetailData) {
 
 function executionLabel(status: string) { return { not_started: '未开始', in_progress: '进行中', submitted: '已提交', changes_requested: '待修改', completed: '已完成', cancelled: '已取消', exception_closed: '异常关闭' }[status] ?? status }
 function approvalLabel(status: string) { return { not_started: '未发起', pending: '待启动', in_review: '审批中', approved: '已通过', changes_requested: '已退回', terminated: '已终止', failed: '失败' }[status] ?? status }
+
+function submissionIdempotencyKey() {
+  return globalThis.crypto?.randomUUID?.() ?? `submission-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
