@@ -52,7 +52,7 @@ export function CalendarMonthView({ currentDate, items, holidayMap, onDateClick,
                 <span className={cn(
                   'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm font-medium',
                   date.getMonth() !== month ? 'text-v2-subtle' : 'text-v2-fg',
-                  isToday(date) && 'bg-v2-accent text-base font-bold text-white',
+                  isToday(date) && 'bg-v2-primary text-base font-bold text-white',
                 )}>{date.getDate()}</span>
               </div>
               {holiday && <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>}
