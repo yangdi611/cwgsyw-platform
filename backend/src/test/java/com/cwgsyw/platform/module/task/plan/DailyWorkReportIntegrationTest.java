@@ -27,6 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -131,6 +132,22 @@ class DailyWorkReportIntegrationTest {
             .isEqualTo(activeUsers);
         assertThat(count("SELECT COUNT(*) FROM task_instance WHERE plan_id = ? AND business_date = ?", planId, MONDAY))
             .isEqualTo(activeUsers);
+    }
+
+    @Test
+    void duePlanQueryRetainsJsonConfigurationForTheScheduler() {
+        long planId = dailyPlanId();
+
+        TaskPlan duePlan = planMapper.findDuePlans(LocalDateTime.now().plusMinutes(1), 100).stream()
+            .filter(plan -> plan.getId().equals(planId))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(duePlan.getScheduleConfig()).containsEntry("time", "09:00");
+        assertThat(duePlan.getAssignmentRule()).containsEntry("strategy", "all_users");
+        assertThat(duePlan.getCiScopeConfig()).isNotNull();
+        assertThat(duePlan.getReminderConfig()).isNotNull();
+        assertThat(duePlan.getEscalationConfig()).isNotNull();
     }
 
     @Test
