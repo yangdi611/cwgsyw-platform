@@ -9,6 +9,7 @@ import com.cwgsyw.platform.module.task.runtime.dto.CreateTaskSubmissionRequest;
 import com.cwgsyw.platform.module.task.runtime.dto.SaveTaskDraftRequest;
 import com.cwgsyw.platform.module.task.runtime.dto.TaskActionsVO;
 import com.cwgsyw.platform.module.task.runtime.entity.TaskDraft;
+import com.cwgsyw.platform.module.task.runtime.entity.TaskFieldFact;
 import com.cwgsyw.platform.module.task.runtime.entity.TaskInstance;
 import com.cwgsyw.platform.module.task.runtime.entity.TaskSubmission;
 import com.cwgsyw.platform.module.task.runtime.entity.TaskSubmissionAttachment;
@@ -185,6 +186,7 @@ class TaskRuntimeServiceTransactionTest {
     @Test
     void resubmissionSupersedesPreviousVersionAndStartsNewApprovalRound() {
         TaskInstance task = task("changes_requested", 4);
+        task.setBusinessDate(LocalDate.of(2026, 7, 24));
         task.setApprovalSchemeVersionId(8L);
         task.setApprovalStatus("changes_requested");
         task.setCurrentSubmissionId(55L);
@@ -197,6 +199,7 @@ class TaskRuntimeServiceTransactionTest {
         previous.setStatus("changes_requested"); previous.setEffective(false); previous.setSubmittedBy(9L);
         TaskFieldDefinition summary = new TaskFieldDefinition();
         summary.setKey("summary"); summary.setLabel("总结"); summary.setType("textarea"); summary.setRequired(true);
+        summary.setAnalytics(Map.of("enabled", true, "role", List.of("dimension"), "aggregation", "count"));
         when(taskMapper.lockById("tenant-a", 1L)).thenReturn(task);
         when(submissionMapper.findByIdempotencyKey("tenant-a", 1L, "key-2")).thenReturn(null);
         when(draftMapper.findLatest("tenant-a", 1L)).thenReturn(draft);
@@ -223,6 +226,9 @@ class TaskRuntimeServiceTransactionTest {
         assertThat(task.getCurrentApprovalRoundId()).isEqualTo(31L);
         assertThat(task.getExecutionStatus()).isEqualTo("submitted");
         assertThat(task.getApprovalStatus()).isEqualTo("in_review");
+        ArgumentCaptor<TaskFieldFact> fact = ArgumentCaptor.forClass(TaskFieldFact.class);
+        verify(factMapper).insert(fact.capture());
+        assertThat(fact.getValue().getDimensionSnapshot()).containsEntry("businessDate", "2026-07-24");
         verify(approvalApplication).start(task, submission.getValue(), 9L);
     }
 

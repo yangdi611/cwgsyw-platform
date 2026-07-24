@@ -767,7 +767,8 @@ public class TaskRuntimeService {
         fact.setOwnerUserName(firstText(organization, "realName", "username"));
         fact.setOwnerGroupId(task.getGroupId());
         fact.setOwnerGroupName(firstText(organization, "groupName"));
-        fact.setDimensionSnapshot(details("businessDate", task.getBusinessDate(), "assigneeId", task.getAssigneeId(),
+        fact.setDimensionSnapshot(details("businessDate", task.getBusinessDate() == null ? null : task.getBusinessDate().toString(),
+            "assigneeId", task.getAssigneeId(),
             "assigneeName", fact.getOwnerUserName(), "groupId", task.getGroupId(), "groupName", fact.getOwnerGroupName(),
             "organization", organization, "ciScope", task.getCiScopeSnapshot()));
         fact.setIsActive(active);
