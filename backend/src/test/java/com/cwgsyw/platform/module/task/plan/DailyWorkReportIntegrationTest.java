@@ -11,6 +11,8 @@ import com.cwgsyw.platform.module.task.plan.service.JdbcAssignmentDirectory;
 import com.cwgsyw.platform.module.task.plan.service.TaskAssignmentResolver;
 import com.cwgsyw.platform.module.task.plan.service.TaskGenerationExecutor;
 import com.cwgsyw.platform.module.task.plan.service.TaskPlanGenerator;
+import com.cwgsyw.platform.module.task.runtime.entity.TaskDraft;
+import com.cwgsyw.platform.module.task.runtime.mapper.TaskDraftMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -67,9 +69,13 @@ class DailyWorkReportIntegrationTest {
     @Autowired
     private TaskPlanMapper planMapper;
 
+    @Autowired
+    private TaskDraftMapper draftMapper;
+
     @BeforeEach
     void resetGeneratedData() {
         jdbc.update("DELETE FROM task_notification_delivery");
+        jdbc.update("DELETE FROM task_draft");
         jdbc.update("DELETE FROM task_participant");
         jdbc.update("DELETE FROM task_instance");
         jdbc.update("DELETE FROM task_plan_generation");
@@ -148,6 +154,29 @@ class DailyWorkReportIntegrationTest {
         assertThat(duePlan.getCiScopeConfig()).isNotNull();
         assertThat(duePlan.getReminderConfig()).isNotNull();
         assertThat(duePlan.getEscalationConfig()).isNotNull();
+    }
+
+    @Test
+    void latestDraftQueryRetainsJsonFormDataForTaskValidation() {
+        long templateVersionId = jdbc.queryForObject("""
+            SELECT latest_version_id FROM task_template
+            WHERE tenant_id = 'default' AND code = 'daily_work_report'
+            """, Long.class);
+        long taskId = jdbc.queryForObject("""
+            INSERT INTO task_instance
+              (tenant_id, template_version_id, title, business_date, execution_status, is_deleted)
+            VALUES ('default', ?, '草稿 JSON 映射测试', CURRENT_DATE, 'not_started', FALSE)
+            RETURNING id
+            """, Long.class, templateVersionId);
+        jdbc.update("""
+            INSERT INTO task_draft (tenant_id, task_id, revision, form_data)
+            VALUES ('default', ?, 1, ?::jsonb)
+            """, taskId, "{\"completed_items\":\"已完成巡检\",\"work_hours\":8}");
+
+        TaskDraft draft = draftMapper.findLatest("default", taskId);
+
+        assertThat(draft.getFormData()).containsEntry("completed_items", "已完成巡检");
+        assertThat(draft.getFormData()).containsEntry("work_hours", 8);
     }
 
     @Test
