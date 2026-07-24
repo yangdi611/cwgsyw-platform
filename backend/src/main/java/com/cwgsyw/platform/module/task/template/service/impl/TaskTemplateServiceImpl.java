@@ -27,6 +27,10 @@ import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateFieldMapper;
 import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateMapper;
 import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateVersionMapper;
 import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
+import com.cwgsyw.platform.module.task.plan.entity.TaskPlan;
+import com.cwgsyw.platform.module.task.plan.mapper.TaskPlanMapper;
+import com.cwgsyw.platform.module.task.runtime.entity.TaskInstance;
+import com.cwgsyw.platform.module.task.runtime.mapper.TaskInstanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -51,6 +55,8 @@ public class TaskTemplateServiceImpl extends ServiceImpl<TaskTemplateMapper, Tas
 
     private final TaskTemplateVersionMapper versionMapper;
     private final TaskTemplateFieldMapper fieldMapper;
+    private final TaskInstanceMapper taskInstanceMapper;
+    private final TaskPlanMapper taskPlanMapper;
     private final TemplateSchemaValidator schemaValidator;
     private final TemplateFormRuntime formRuntime;
     private final FieldTypeRegistry fieldTypeRegistry;
@@ -158,17 +164,10 @@ public class TaskTemplateServiceImpl extends ServiceImpl<TaskTemplateMapper, Tas
         if (Boolean.TRUE.equals(template.getBuiltin())) {
             throw conflict("BUILTIN_TEMPLATE_IMMUTABLE", "内置模板不可删除");
         }
-        long formalVersions = versionMapper.selectCount(new LambdaQueryWrapper<TaskTemplateVersion>()
-            .eq(TaskTemplateVersion::getTenantId, tenantId)
-            .eq(TaskTemplateVersion::getTemplateId, templateId)
-            .in(TaskTemplateVersion::getStatus, List.of("published", "deprecated")));
-        if (formalVersions > 0) {
-            template.setStatus("archived");
-            template.setUpdatedBy(userId);
-            updateById(template);
-            return;
-        }
         List<TaskTemplateVersion> versions = findVersions(tenantId, templateId);
+        if (isUsedByTasksOrPlans(tenantId, versions)) {
+            throw conflict("TEMPLATE_IN_USE", "模板已被任务或任务计划使用，不能删除或归档");
+        }
         for (TaskTemplateVersion version : versions) {
             fieldMapper.delete(new LambdaQueryWrapper<TaskTemplateField>()
                 .eq(TaskTemplateField::getTenantId, tenantId)
@@ -181,6 +180,17 @@ public class TaskTemplateServiceImpl extends ServiceImpl<TaskTemplateMapper, Tas
         template.setDeletedBy(userId);
         updateById(template);
         removeById(templateId);
+    }
+
+    boolean isUsedByTasksOrPlans(String tenantId, List<TaskTemplateVersion> versions) {
+        List<Long> versionIds = versions.stream().map(TaskTemplateVersion::getId).toList();
+        if (versionIds.isEmpty()) return false;
+        return taskInstanceMapper.selectCount(new LambdaQueryWrapper<TaskInstance>()
+            .eq(TaskInstance::getTenantId, tenantId)
+            .in(TaskInstance::getTemplateVersionId, versionIds)) > 0
+            || taskPlanMapper.selectCount(new LambdaQueryWrapper<TaskPlan>()
+                .eq(TaskPlan::getTenantId, tenantId)
+                .in(TaskPlan::getTemplateVersionId, versionIds)) > 0;
     }
 
     @Override

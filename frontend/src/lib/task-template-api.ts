@@ -152,6 +152,10 @@ export async function getTaskTemplate(templateId: number) {
   return api.get(`/task-templates/${templateId}`).then((response) => response.data.data as TaskTemplateDetail)
 }
 
+export async function deleteTaskTemplate(templateId: number) {
+  return api.delete(`/task-templates/${templateId}`)
+}
+
 export async function createTaskTemplateDraft(templateId: number) {
   return api.post(`/task-templates/${templateId}/versions`).then((response) => response.data.data as TaskTemplateVersion)
 }

@@ -11,16 +11,20 @@ import com.cwgsyw.platform.module.task.template.form.TemplateSchemaValidator;
 import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateFieldMapper;
 import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateMapper;
 import com.cwgsyw.platform.module.task.template.mapper.TaskTemplateVersionMapper;
+import com.cwgsyw.platform.module.task.plan.mapper.TaskPlanMapper;
+import com.cwgsyw.platform.module.task.runtime.mapper.TaskInstanceMapper;
 import com.cwgsyw.platform.module.task.template.service.impl.TaskTemplateServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,6 +35,8 @@ class TaskTemplateServiceLifecycleTest {
     @Mock TaskTemplateMapper templateMapper;
     @Mock TaskTemplateVersionMapper versionMapper;
     @Mock TaskTemplateFieldMapper fieldMapper;
+    @Mock TaskInstanceMapper taskInstanceMapper;
+    @Mock TaskPlanMapper taskPlanMapper;
     private TemplateSchemaValidator schemaValidator;
     private TemplateFormRuntime formRuntime;
     private TaskTemplateServiceImpl service;
@@ -42,7 +48,7 @@ class TaskTemplateServiceLifecycleTest {
         schemaValidator = new TemplateSchemaValidator(registry, expressionEngine);
         formRuntime = new TemplateFormRuntime(registry, expressionEngine);
         service = new TaskTemplateServiceImpl(
-            versionMapper, fieldMapper, schemaValidator, formRuntime, registry);
+            versionMapper, fieldMapper, taskInstanceMapper, taskPlanMapper, schemaValidator, formRuntime, registry);
     }
 
     @Test
@@ -85,6 +91,25 @@ class TaskTemplateServiceLifecycleTest {
         verify(versionMapper, never()).updateById(any(TaskTemplateVersion.class));
     }
 
+    @Test
+    void taskOrPlanUsagePreventsTemplateDeletion() {
+        TaskTemplateVersion version = version(8L, "published");
+        when(taskInstanceMapper.selectCount(any())).thenReturn(1L);
+
+        assertThat(isUsedByTasksOrPlans(version)).isTrue();
+
+        verify(taskPlanMapper, never()).selectCount(any());
+    }
+
+    @Test
+    void planUsagePreventsTemplateDeletion() {
+        TaskTemplateVersion version = version(8L, "published");
+        when(taskInstanceMapper.selectCount(any())).thenReturn(0L);
+        when(taskPlanMapper.selectCount(any())).thenReturn(1L);
+
+        assertThat(isUsedByTasksOrPlans(version)).isTrue();
+    }
+
     private TaskTemplateVersion version(Long id, String status) {
         TaskTemplateVersion version = new TaskTemplateVersion();
         version.setId(id);
@@ -92,5 +117,9 @@ class TaskTemplateServiceLifecycleTest {
         version.setTemplateId(2L);
         version.setStatus(status);
         return version;
+    }
+
+    private boolean isUsedByTasksOrPlans(TaskTemplateVersion version) {
+        return ReflectionTestUtils.invokeMethod(service, "isUsedByTasksOrPlans", "tenant-a", List.of(version));
     }
 }

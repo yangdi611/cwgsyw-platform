@@ -1,15 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { FileText, Plus, Search } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FileText, Plus, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { PageHeader, EmptyState, LoadingState, ErrorState } from '@/components/shared'
 import { Button } from '@/components/v2/Button'
 import { Card } from '@/components/v2/Card'
 import { Input } from '@/components/v2/Input'
 import { StatusBadge } from '@/components/v2/StatusBadge'
-import { listTaskTemplates, type TaskTemplateStatus } from '@/lib/task-template-api'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { getApiErrorMessage } from '@/lib/api-error'
+import { deleteTaskTemplate, listTaskTemplates, type TaskTemplateStatus, type TaskTemplateSummary } from '@/lib/task-template-api'
 import { usePermission } from '@/hooks/usePermission'
 
 const STATUS_LABELS: Record<TaskTemplateStatus, string> = {
@@ -28,12 +31,24 @@ const STATUS_TONES: Record<TaskTemplateStatus, 'ok' | 'warn' | 'neutral'> = {
 
 export function TaskTemplateList() {
   const { hasPermission } = usePermission()
+  const queryClient = useQueryClient()
   const [keyword, setKeyword] = useState('')
   const [status, setStatus] = useState<'all' | TaskTemplateStatus>('all')
+  const [deleteTarget, setDeleteTarget] = useState<TaskTemplateSummary | null>(null)
   const templates = useQuery({
     queryKey: ['task-templates', { keyword, status }],
     queryFn: () => listTaskTemplates({ keyword: keyword || undefined, status: status === 'all' ? undefined : status, size: 100 }),
   })
+  const deleteMutation = useMutation({
+    mutationFn: deleteTaskTemplate,
+    onSuccess: async () => {
+      toast.success('模板已删除')
+      setDeleteTarget(null)
+      await queryClient.invalidateQueries({ queryKey: ['task-templates'] })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, '删除模板失败')),
+  })
+  const canDelete = hasPermission('task_template', 'delete')
 
   return (
     <div className="space-y-6">
@@ -80,7 +95,8 @@ export function TaskTemplateList() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {templates.data?.records.map((template) => (
-            <Link key={template.id} href={`/tasks/templates/${template.id}`} className="block">
+            <div key={template.id} className="relative">
+              <Link href={`/tasks/templates/${template.id}`} className="block">
               <Card className="h-full p-4 transition hover:-translate-y-0.5 hover:shadow-v2-md">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -99,10 +115,43 @@ export function TaskTemplateList() {
                   <span>{new Date(template.updatedAt).toLocaleString('zh-CN')}</span>
                 </div>
               </Card>
-            </Link>
+              </Link>
+              {canDelete && !template.builtin && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  title={`删除模板 ${template.name}`}
+                  className="absolute right-3 bottom-2 h-8 w-8 px-0 text-v2-danger hover:text-v2-danger"
+                  onClick={() => setDeleteTarget(template)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       )}
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open && !deleteMutation.isPending) setDeleteTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除模板</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除模板「{deleteTarget?.name}」吗？若该模板已被任何任务或任务计划使用，系统会拒绝删除以保护历史数据。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={!deleteTarget || deleteMutation.isPending}
+              onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id) }}
+            >
+              {deleteMutation.isPending ? '删除中…' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
