@@ -113,7 +113,7 @@ export function TaskTemplateList() {
                 <div className="mt-4 flex items-center gap-3 border-t border-v2-border pt-3 text-xs text-v2-muted">
                   <span>范围：{template.scopeType}</span>
                   <span className="ml-auto whitespace-nowrap">{new Date(template.updatedAt).toLocaleString('zh-CN')}</span>
-                  {canDelete && !template.builtin && (
+                  {canDelete && (
                     <Button
                       type="button"
                       variant="ghost"

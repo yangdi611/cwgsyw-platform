@@ -161,9 +161,6 @@ public class TaskTemplateServiceImpl extends ServiceImpl<TaskTemplateMapper, Tas
     @Transactional(rollbackFor = Exception.class)
     public void deleteTemplate(String tenantId, Long userId, Long templateId) {
         TaskTemplate template = requireTemplate(tenantId, templateId);
-        if (Boolean.TRUE.equals(template.getBuiltin())) {
-            throw conflict("BUILTIN_TEMPLATE_IMMUTABLE", "内置模板不可删除");
-        }
         List<TaskTemplateVersion> versions = findVersions(tenantId, templateId);
         if (isUsedByTasksOrPlans(tenantId, versions)) {
             throw conflict("TEMPLATE_IN_USE", "模板已被任务或任务计划使用，不能删除或归档");
