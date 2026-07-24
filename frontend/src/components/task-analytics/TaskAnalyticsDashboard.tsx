@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { DashboardSubscriptions } from '@/components/task-analytics/DashboardSubscriptions'
+import { analyticsDisplayColumns, formatAnalyticsValue } from '@/components/task-analytics/analytics-display'
 import { listDirectoryGroups } from '@/lib/task-plan-api'
 import {
   deleteAnalyticsDashboard, deleteAnalyticsWidget, downloadAnalyticsAttachment,
@@ -175,6 +176,7 @@ function WidgetResult({ type, rows, columns, columnLabels, query, onDrilldown }:
   if (rows.length === 0) return <EmptyResult />
   const dimensionColumns = query.dimensions.filter((dimension) => columns.includes(dimension))
   const metricColumns = columns.filter((column) => !dimensionColumns.includes(column))
+  const displayColumns = analyticsDisplayColumns(columns)
   const metric = metricColumns[0]
   if (type === 'kpi') return <button type="button" className="w-full text-left" onClick={() => onDrilldown({})}><span className="block text-3xl font-semibold text-v2-primary">{formatValue(metric ? rows[0]?.[metric] : undefined)}</span><span className="mt-2 block text-xs text-v2-muted">点击查看来源任务</span></button>
   if ((type === 'line_chart' || type === 'bar_chart') && dimensionColumns[0] && metric) {
@@ -190,8 +192,8 @@ function WidgetResult({ type, rows, columns, columnLabels, query, onDrilldown }:
   }
   if (type === 'image_gallery') return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{rows.slice(0, 18).map((row) => <AttachmentImage key={String(row.attachmentId)} row={row} />)}</div>
   if (type === 'attachment_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row) => <AttachmentRow key={String(row.attachmentId)} row={row} />)}</div>
-  if (type === 'text_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row, index) => <button type="button" key={index} className="block w-full px-1 py-3 text-left hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.filter((column) => !TRACE_COLUMNS.has(column)).map((column) => <p key={column} className="whitespace-pre-wrap text-sm"><span className="mr-2 text-xs font-semibold text-v2-muted">{columnLabels[column] ?? column}</span>{formatValue(row[column])}</p>)}</button>)}</div>
-  return <table className="min-w-full text-sm"><thead><tr>{columns.map((column) => <th key={column} className="border-b border-v2-border px-2 py-2 text-left text-xs font-semibold">{columnLabels[column] ?? column}</th>)}</tr></thead><tbody>{rows.slice(0, 50).map((row, index) => <tr key={index} className="cursor-pointer hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{columns.map((column) => <td key={column} className="border-b border-v2-border px-2 py-2">{formatValue(row[column])}</td>)}</tr>)}</tbody></table>
+  if (type === 'text_list') return <div className="divide-y divide-v2-border">{rows.slice(0, 50).map((row, index) => <button type="button" key={index} className="block w-full px-1 py-3 text-left hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{displayColumns.filter((column) => !TRACE_COLUMNS.has(column)).map((column) => <p key={column} className="whitespace-pre-wrap text-sm"><span className="mr-2 text-xs font-semibold text-v2-muted">{columnLabels[column] ?? column}</span>{formatAnalyticsValue(column, row[column])}</p>)}</button>)}</div>
+  return <table className="min-w-full text-sm"><thead><tr>{displayColumns.map((column) => <th key={column} className="border-b border-v2-border px-2 py-2 text-left text-xs font-semibold">{columnLabels[column] ?? column}</th>)}</tr></thead><tbody>{rows.slice(0, 50).map((row, index) => <tr key={index} className="cursor-pointer hover:bg-v2-surface-hover" onClick={() => onDrilldown(pickDimensions(row, dimensionColumns))}>{displayColumns.map((column) => <td key={column} className="border-b border-v2-border px-2 py-2">{formatAnalyticsValue(column, row[column])}</td>)}</tr>)}</tbody></table>
 }
 
 function DrilldownPanel({ state, onClose }: { state: DrilldownState; onClose: () => void }) {
