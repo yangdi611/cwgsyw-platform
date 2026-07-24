@@ -24,6 +24,9 @@ data/
 .hermes_prompts/
 specs/
 plans/
+# `plans/` is a root-level scratch directory; keep the application route tracked.
+!frontend/src/app/(dashboard)/tasks/plans/
+!frontend/src/app/(dashboard)/tasks/plans/**
 *.rej
 AGENTS.md
 CLAUDE.md
