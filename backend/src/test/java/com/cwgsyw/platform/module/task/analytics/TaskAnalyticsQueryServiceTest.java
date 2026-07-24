@@ -158,8 +158,13 @@ class TaskAnalyticsQueryServiceTest {
         assertThat(response.rows()).allSatisfy(row -> {
             assertThat(row).containsEntry("assignee", "执行人").containsEntry("ownerGroup", "数据库组");
             assertThat(row).containsKeys("assigneeId", "groupId", "fieldFactIds");
-            assertThat(row.get("fields")).asList().isNotEmpty();
+            assertThat(row.get("fields")).asList().containsExactly("结果");
         });
+
+        AnalyticsQueryResponse multipleFields = service.query(user, requestWithPolicy(
+            List.of(), List.of(), "text_list", List.of("work_hours", "result"), "current_effective"));
+        assertThat(multipleFields.rows()).allSatisfy(row ->
+            assertThat(row.get("fields")).asList().containsExactly("工时", "结果"));
     }
 
     @Test

@@ -175,13 +175,13 @@ function WidgetResult({ type, rows, columns, columnLabels, query, onDrilldown }:
   if (rows.length === 0) return <EmptyResult />
   const dimensionColumns = query.dimensions.filter((dimension) => columns.includes(dimension))
   const metricColumns = columns.filter((column) => !dimensionColumns.includes(column))
-  const metric = metricColumns.at(-1)
+  const metric = metricColumns[0]
   if (type === 'kpi') return <button type="button" className="w-full text-left" onClick={() => onDrilldown({})}><span className="block text-3xl font-semibold text-v2-primary">{formatValue(metric ? rows[0]?.[metric] : undefined)}</span><span className="mt-2 block text-xs text-v2-muted">点击查看来源任务</span></button>
   if ((type === 'line_chart' || type === 'bar_chart') && dimensionColumns[0] && metric) {
     const dimension = dimensionColumns[0]
-    const chartData = rows.map((row) => ({ ...row, [metric]: numberValue(row[metric]) }))
+    const chartData = rows.map((row) => ({ ...row, ...Object.fromEntries(metricColumns.map((column) => [column, numberValue(row[column])])) }))
     const open = (event: unknown) => { const payload = chartEventPayload(event); if (payload) onDrilldown(pickDimensions(payload, dimensionColumns)) }
-    return <div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%">{type === 'line_chart' ? <LineChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey={metric} name={columnLabels[metric] ?? metric} stroke={CHART_COLORS[0]} strokeWidth={2} activeDot={{ r: 5 }} /></LineChart> : <BarChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend /><Bar dataKey={metric} name={columnLabels[metric] ?? metric} fill={CHART_COLORS[0]} /></BarChart>}</ResponsiveContainer></div>
+    return <div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%">{type === 'line_chart' ? <LineChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend />{metricColumns.map((column, index) => <Line key={column} type="monotone" dataKey={column} name={columnLabels[column] ?? column} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} activeDot={{ r: 5 }} />)}</LineChart> : <BarChart data={chartData} onClick={open}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey={dimension} /><YAxis /><Tooltip /><Legend />{metricColumns.map((column, index) => <Bar key={column} dataKey={column} name={columnLabels[column] ?? column} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}</BarChart>}</ResponsiveContainer></div>
   }
   if (type === 'pie_chart' && dimensionColumns[0] && metric) {
     const dimension = dimensionColumns[0]

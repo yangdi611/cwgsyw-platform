@@ -298,7 +298,7 @@ public class TaskAnalyticsQueryService {
         List<Map<String, Object>> records = new ArrayList<>();
         for (RecordContext record : data.records()) {
             if (!matchesDimensions(record, dimensions, data.validated().grain())) continue;
-            Map<String, Object> row = trace(record, data.template(), data.validated().fields());
+            Map<String, Object> row = trace(record, data.template(), data.validated().fields(), request);
             List<String> fields = request.detailFields() == null || request.detailFields().isEmpty()
                 ? data.validated().fields().keySet().stream().toList() : request.detailFields();
             for (String field : fields) row.put(field, displayValue(record, field));
@@ -330,7 +330,7 @@ public class TaskAnalyticsQueryService {
             .limit(data.validated().limit())
             .map(value -> {
                 RecordContext record = records.get(value.getSubmissionId());
-                Map<String, Object> row = trace(record, data.template(), data.validated().fields());
+                Map<String, Object> row = trace(record, data.template(), data.validated().fields(), request);
                 row.put("attachmentId", value.getId());
                 row.put("fieldKey", value.getFieldKey());
                 row.put("fileName", value.getFileName());
@@ -503,7 +503,8 @@ public class TaskAnalyticsQueryService {
     }
 
     private Map<String, Object> trace(RecordContext record, TaskTemplateVersionVO template,
-                                      Map<String, TaskFieldDefinition> visibleFields) {
+                                      Map<String, TaskFieldDefinition> visibleFields,
+                                      AnalyticsQueryRequest request) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("taskId", record.task().getId());
         row.put("taskTitle", record.task().getTitle());
@@ -521,7 +522,7 @@ public class TaskAnalyticsQueryService {
             record.task().getAssigneeId(), "未指定"));
         row.put("ownerGroup", snapshotDisplay(snapshot, "groupName", null,
             record.task().getGroupId(), "未分组"));
-        row.put("fields", fieldLabels(record, template, visibleFields));
+        row.put("fields", fieldLabels(record, template, visibleFields, request));
         return row;
     }
 
@@ -535,14 +536,33 @@ public class TaskAnalyticsQueryService {
     }
 
     private List<String> fieldLabels(RecordContext record, TaskTemplateVersionVO template,
-                                     Map<String, TaskFieldDefinition> visibleFields) {
+                                     Map<String, TaskFieldDefinition> visibleFields,
+                                     AnalyticsQueryRequest request) {
         Set<String> factKeys = record.facts().keySet();
+        Set<String> requestedKeys = requestedFieldKeys(request);
         List<String> labels = new ArrayList<>();
         for (TaskFieldDefinition field : template.getFields()) {
-            if (!factKeys.contains(field.getKey()) || !visibleFields.containsKey(field.getKey())) continue;
+            if (!factKeys.contains(field.getKey()) || !visibleFields.containsKey(field.getKey())
+                    || !requestedKeys.isEmpty() && !requestedKeys.contains(field.getKey())) continue;
             labels.add(StringUtils.hasText(field.getLabel()) ? field.getLabel() : field.getKey());
         }
         return labels;
+    }
+
+    private Set<String> requestedFieldKeys(AnalyticsQueryRequest request) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (request.detailFields() != null) {
+            request.detailFields().stream().map(AnalyticsQueryValidator::rootField)
+                .filter(StringUtils::hasText).forEach(keys::add);
+        }
+        if (request.metrics() != null) {
+            for (AnalyticsQueryRequest.Metric metric : request.metrics()) {
+                java.util.stream.Stream.of(metric.fieldKey(), metric.numeratorFieldKey(),
+                        metric.denominatorFieldKey(), metric.weightFieldKey())
+                    .map(AnalyticsQueryValidator::rootField).filter(StringUtils::hasText).forEach(keys::add);
+            }
+        }
+        return keys;
     }
 
     private Map<String, Object> definition(AnalyticsQueryRequest request, TaskTemplateVersionVO template) {
