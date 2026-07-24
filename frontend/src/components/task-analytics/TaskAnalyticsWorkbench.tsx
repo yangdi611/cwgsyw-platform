@@ -9,6 +9,7 @@ import { Input } from '@/components/v2/Input'
 import { PageHeader } from '@/components/shared'
 import { listTaskTemplates, type TaskTemplateSummary } from '@/lib/task-template-api'
 import { addAnalyticsWidget, createAnalyticsDashboard, exportTaskAnalytics, listAnalyticsDashboards, listAnalyticsFields, listAnalyticsDimensions, queryTaskAnalytics, type AnalyticsQueryRequest } from '@/lib/task-analytics-api'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -69,6 +70,16 @@ export function TaskAnalyticsWorkbench() {
     }
   }
 
+  const selectField = (nextFieldKey: string) => {
+    const field = fields.data?.find((item) => item.key === nextFieldKey)
+    const aggregations = field?.aggregations ?? ['count']
+    const defaultAggregation = field?.defaultAggregation
+    setFieldKey(nextFieldKey)
+    setAggregation(defaultAggregation && aggregations.includes(defaultAggregation)
+      ? defaultAggregation
+      : aggregations[0] ?? 'count')
+  }
+
   const run = () => {
     const next = buildRequest()
     if (!next) return
@@ -101,7 +112,7 @@ export function TaskAnalyticsWorkbench() {
       />
       <section className="grid gap-4 border border-v2-border bg-v2-surface p-4 lg:grid-cols-4">
         <label className="space-y-1 text-sm"><span>任务模板</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={effectiveTemplateVersionId ?? ''} onChange={(event) => { setTemplateVersionId(Number(event.target.value)); setFieldKey('') }}><option value="">选择模板</option>{publishedTemplates.map((template: TaskTemplateSummary) => <option key={template.latestVersionId} value={template.latestVersionId}>{template.name}</option>)}</select></label>
-        <label className="space-y-1 text-sm"><span>统计字段</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={fieldKey} onChange={(event) => { setFieldKey(event.target.value); setAggregation('sum') }}><option value="">选择字段</option>{fields.data?.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label>
+        <label className="space-y-1 text-sm"><span>统计字段</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={fieldKey} onChange={(event) => selectField(event.target.value)}><option value="">选择字段</option>{fields.data?.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label>
         <label className="space-y-1 text-sm"><span>聚合方式</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={aggregation} onChange={(event) => setAggregation(event.target.value)}>{aggregationOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
         <label className="space-y-1 text-sm"><span>输出类型</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={output} onChange={(event) => setOutput(event.target.value)}><option value="aggregate">聚合</option><option value="detail">明细</option><option value="text_list">文字列表</option><option value="attachment_list">附件列表</option><option value="image_gallery">图片墙</option></select></label>
         <label className="space-y-1 text-sm"><span>开始日期</span><Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
@@ -113,7 +124,7 @@ export function TaskAnalyticsWorkbench() {
       </section>
       <section className="overflow-hidden border border-v2-border bg-v2-surface">
         <div className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">结果</h2><p className="text-xs text-v2-muted">{result.data ? `扫描 ${result.data.scannedFacts} 条事实，生成于 ${new Date(result.data.generatedAt).toLocaleString('zh-CN')}` : '选择条件后运行统计'}</p></div><Button size="sm" variant="ghost" onClick={() => setRequest(undefined)} disabled={!request}><Plus className="h-4 w-4 rotate-45" />清空</Button></div>
-        {result.isError && <p className="p-4 text-sm text-v2-danger">统计查询失败，请缩小时间范围或减少维度。</p>}
+        {result.isError && <p className="p-4 text-sm text-v2-danger">{getApiErrorMessage(result.error, '统计查询失败，请检查查询条件后重试。')}</p>}
         <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-v2-surface-soft"><tr>{tableColumns.map((column) => <th key={column} className="whitespace-nowrap px-4 py-3 text-left font-semibold">{column}</th>)}</tr></thead><tbody>{result.data?.rows.map((row, index) => <tr key={index} className="border-t border-v2-border">{tableColumns.map((column) => <td key={column} className="max-w-96 whitespace-pre-wrap px-4 py-3 align-top">{formatCell(row[column])}</td>)}</tr>)}</tbody></table></div>
         {result.data?.rows.length === 0 && <p className="p-8 text-center text-sm text-v2-muted">没有符合条件的事实。</p>}
       </section>
