@@ -128,7 +128,6 @@ export const navItems: NavEntry[] = [
       { href: '/tasks/templates', label: '任务模板', icon: LayoutTemplate, resource: 'task_template', action: 'read' },
       { href: '/tasks/plans', label: '任务计划', icon: CalendarClock, resource: 'task_plan', action: 'read' },
       { href: '/tasks', label: '任务列表', icon: CheckSquare, resource: 'task', action: 'read', exact: true },
-      { href: '/tasks/analytics', label: '任务统计', icon: BarChart2, resource: 'task_analytics', action: 'read' },
       { href: '/tasks/metrics', label: '指标与目标', icon: Target, resource: 'task_analytics', action: 'read' },
       { href: '/tasks/automations', label: '任务自动化', icon: Workflow, resource: 'task_analytics', action: 'read' },
     ],
