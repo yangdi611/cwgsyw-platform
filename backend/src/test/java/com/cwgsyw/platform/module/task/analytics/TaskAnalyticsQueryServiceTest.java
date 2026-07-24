@@ -144,6 +144,25 @@ class TaskAnalyticsQueryServiceTest {
     }
 
     @Test
+    void exposesSnapshotNamesAndFieldLabelsWhileKeepingTraceIdsInternal() {
+        AnalyticsQueryResponse response = service.query(user, requestWithPolicy(
+            List.of(), List.of(), "text_list", List.of("result"), "current_effective"));
+
+        assertThat(response.columns())
+            .contains("assignee", "ownerGroup", "fields", "result")
+            .doesNotContain("assigneeId", "groupId", "fieldFactIds");
+        assertThat(response.columnLabels())
+            .containsEntry("assignee", "执行人")
+            .containsEntry("ownerGroup", "执行组")
+            .containsEntry("fields", "字段");
+        assertThat(response.rows()).allSatisfy(row -> {
+            assertThat(row).containsEntry("assignee", "执行人").containsEntry("ownerGroup", "数据库组");
+            assertThat(row).containsKeys("assigneeId", "groupId", "fieldFactIds");
+            assertThat(row.get("fields")).asList().isNotEmpty();
+        });
+    }
+
+    @Test
     void groupsChoiceAndMultiSelectFactsAndSupportsTableColumnDrilldown() {
         AnalyticsQueryResponse categories = service.query(user, requestWithPolicy(
             List.of(new AnalyticsQueryRequest.Metric("result", null, "count", "count", null, null, null)),

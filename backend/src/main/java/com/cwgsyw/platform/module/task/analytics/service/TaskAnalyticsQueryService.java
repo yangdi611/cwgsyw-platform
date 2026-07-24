@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TaskAnalyticsQueryService {
+    private static final Set<String> INTERNAL_TRACE_COLUMNS = Set.of("assigneeId", "groupId", "fieldFactIds");
     private static final Map<String, String> SYSTEM_COLUMN_LABELS = Map.ofEntries(
         Map.entry("taskId", "任务ID"),
         Map.entry("taskTitle", "任务标题"),
@@ -64,6 +65,9 @@ public class TaskAnalyticsQueryService {
         Map.entry("assigneeId", "执行人ID"),
         Map.entry("groupId", "执行组ID"),
         Map.entry("fieldFactIds", "字段事实ID"),
+        Map.entry("assignee", "执行人"),
+        Map.entry("ownerGroup", "执行组"),
+        Map.entry("fields", "字段"),
         Map.entry("attachmentId", "附件ID"),
         Map.entry("fieldKey", "表单字段"),
         Map.entry("fileName", "文件名"),
@@ -142,7 +146,8 @@ public class TaskAnalyticsQueryService {
             case "attachment_list", "image_gallery" -> attachments(data, request);
             default -> aggregate(data, request);
         };
-        List<String> columns = rows.stream().flatMap(row -> row.keySet().stream()).distinct().toList();
+        List<String> columns = rows.stream().flatMap(row -> row.keySet().stream()).distinct()
+            .filter(column -> !INTERNAL_TRACE_COLUMNS.contains(column)).toList();
         return new AnalyticsQueryResponse(columns, columnLabels(columns, request, data.template()), rows,
             data.scannedFacts(), LocalDateTime.now(),
             data.validated().effectivePolicy(), definition(request, data.template()));
@@ -293,7 +298,7 @@ public class TaskAnalyticsQueryService {
         List<Map<String, Object>> records = new ArrayList<>();
         for (RecordContext record : data.records()) {
             if (!matchesDimensions(record, dimensions, data.validated().grain())) continue;
-            Map<String, Object> row = trace(record);
+            Map<String, Object> row = trace(record, data.template(), data.validated().fields());
             List<String> fields = request.detailFields() == null || request.detailFields().isEmpty()
                 ? data.validated().fields().keySet().stream().toList() : request.detailFields();
             for (String field : fields) row.put(field, displayValue(record, field));
@@ -325,7 +330,7 @@ public class TaskAnalyticsQueryService {
             .limit(data.validated().limit())
             .map(value -> {
                 RecordContext record = records.get(value.getSubmissionId());
-                Map<String, Object> row = trace(record);
+                Map<String, Object> row = trace(record, data.template(), data.validated().fields());
                 row.put("attachmentId", value.getId());
                 row.put("fieldKey", value.getFieldKey());
                 row.put("fileName", value.getFileName());
@@ -497,7 +502,8 @@ public class TaskAnalyticsQueryService {
             .anyMatch(value -> Objects.equals(normalize(value), normalize(entry.getValue()))));
     }
 
-    private Map<String, Object> trace(RecordContext record) {
+    private Map<String, Object> trace(RecordContext record, TaskTemplateVersionVO template,
+                                      Map<String, TaskFieldDefinition> visibleFields) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("taskId", record.task().getId());
         row.put("taskTitle", record.task().getTitle());
@@ -510,7 +516,33 @@ public class TaskAnalyticsQueryService {
         row.put("groupId", record.task().getGroupId());
         row.put("fieldFactIds", record.facts().values().stream().flatMap(Collection::stream)
             .map(TaskFieldFact::getId).toList());
+        Map<String, Object> snapshot = record.task().getOrganizationSnapshot();
+        row.put("assignee", snapshotDisplay(snapshot, "realName", "username",
+            record.task().getAssigneeId(), "未指定"));
+        row.put("ownerGroup", snapshotDisplay(snapshot, "groupName", null,
+            record.task().getGroupId(), "未分组"));
+        row.put("fields", fieldLabels(record, template, visibleFields));
         return row;
+    }
+
+    private Object snapshotDisplay(Map<String, Object> snapshot, String primaryKey, String secondaryKey,
+                                   Object fallback, String emptyLabel) {
+        Object primary = snapshot == null ? null : snapshot.get(primaryKey);
+        if (primary != null && StringUtils.hasText(String.valueOf(primary))) return primary;
+        Object secondary = snapshot == null || secondaryKey == null ? null : snapshot.get(secondaryKey);
+        if (secondary != null && StringUtils.hasText(String.valueOf(secondary))) return secondary;
+        return fallback == null ? emptyLabel : fallback;
+    }
+
+    private List<String> fieldLabels(RecordContext record, TaskTemplateVersionVO template,
+                                     Map<String, TaskFieldDefinition> visibleFields) {
+        Set<String> factKeys = record.facts().keySet();
+        List<String> labels = new ArrayList<>();
+        for (TaskFieldDefinition field : template.getFields()) {
+            if (!factKeys.contains(field.getKey()) || !visibleFields.containsKey(field.getKey())) continue;
+            labels.add(StringUtils.hasText(field.getLabel()) ? field.getLabel() : field.getKey());
+        }
+        return labels;
     }
 
     private Map<String, Object> definition(AnalyticsQueryRequest request, TaskTemplateVersionVO template) {
