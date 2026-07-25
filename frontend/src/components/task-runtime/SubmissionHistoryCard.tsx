@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Download, FileDiff, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/v2/Button'
+import { DynamicTaskForm } from '@/components/task-runtime/DynamicTaskForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/v2/Card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import { StatusBadge } from '@/components/v2/StatusBadge'
@@ -16,14 +17,16 @@ import {
   type TaskSubmission,
   type TaskSubmissionFieldChange,
 } from '@/lib/task-runtime-api'
+import type { TaskFieldDefinition } from '@/lib/task-template-api'
 
 interface SubmissionHistoryCardProps {
   taskId: number
   currentSubmissionId?: number
   attachmentFeedback: Record<number, string[]>
+  fields: TaskFieldDefinition[]
 }
 
-export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentFeedback }: SubmissionHistoryCardProps) {
+export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentFeedback, fields }: SubmissionHistoryCardProps) {
   const submissions = useQuery({
     queryKey: ['task-submissions', taskId],
     queryFn: () => listTaskSubmissions(taskId),
@@ -80,7 +83,7 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
 
         <section className="space-y-2">
           <h4 className="text-sm font-semibold text-v2-fg">提交内容</h4>
-          <ValueGrid values={selected.formData} />
+          <DynamicTaskForm taskId={taskId} fields={fields} values={selected.formData} attachments={selected.attachments} readOnly onChange={() => undefined} onUpload={async () => undefined} onDeleteAttachment={async () => undefined} attachmentFeedback={attachmentFeedback} />
         </section>
 
         <section className="space-y-2">
@@ -132,12 +135,6 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
       </CardContent>
     </Card>
   )
-}
-
-function ValueGrid({ values }: { values: Record<string, unknown> }) {
-  const entries = Object.entries(values)
-  if (entries.length === 0) return <p className="text-sm text-v2-muted">无表单内容</p>
-  return <div className="divide-y divide-v2-border overflow-hidden rounded-v2-md border border-v2-border">{entries.map(([key, value]) => <div key={key} className="grid gap-1 px-3 py-2 sm:grid-cols-[160px_minmax(0,1fr)]"><span className="font-v2-mono text-xs text-v2-muted">{key}</span><Value value={value} /></div>)}</div>
 }
 
 function FieldDiff({ changes }: { changes: Record<string, TaskSubmissionFieldChange> }) {

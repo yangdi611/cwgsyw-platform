@@ -41,6 +41,7 @@ import com.cwgsyw.platform.module.task.runtime.service.TaskVisibilityService;
 import com.cwgsyw.platform.module.task.template.dto.TaskFieldDefinition;
 import com.cwgsyw.platform.module.task.template.dto.TaskTemplateVersionVO;
 import com.cwgsyw.platform.module.task.template.form.TemplateFormRuntime;
+import com.cwgsyw.platform.module.task.template.form.RepeatingTableSupport;
 import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -192,7 +193,7 @@ public class ApprovalRuntimeService implements ApprovalApplicationPort, Approval
         return new ApprovalTaskDetailVO(summary(task, workflowTask), toVO(round, visibleKeys), submission.getVersion(),
             visibleValues(submission.getFormData(), visibleKeys), visibleValues(submission.getComputedValues(), visibleKeys),
             visibleFields, attachments(user.getTenantId(), submission.getId()).stream()
-                .filter(attachment -> visibleKeys.contains(attachment.fieldKey())).toList(),
+                .filter(attachment -> canViewAttachment(visibleFields, attachment.fieldKey())).toList(),
             allowedActions(round.getTenantId(), round.getSchemeVersionId(), workflowTask.nodeKey()));
     }
 
@@ -206,9 +207,8 @@ public class ApprovalRuntimeService implements ApprovalApplicationPort, Approval
         requireApprovalVisibility(task, user);
         var metadata = attachmentService.findSubmission(user.getTenantId(), round.getSubmissionId(), attachmentId);
         TaskTemplateVersionVO template = templateService.getVersion(user.getTenantId(), task.getTemplateVersionId());
-        boolean visible = template.getFields().stream()
-            .filter(field -> field.getKey().equals(metadata.getFieldKey()))
-            .anyMatch(field -> formRuntime.fieldVisibleForRole(field, "approver"));
+        boolean visible = canViewAttachment(template.getFields().stream()
+            .filter(field -> formRuntime.fieldVisibleForRole(field, "approver")).toList(), metadata.getFieldKey());
         if (!visible) throw BusinessException.forbidden("APPROVAL_ATTACHMENT_HIDDEN", "无权读取该附件");
         TaskDraftAttachmentService.SubmissionAttachmentContent content =
             attachmentService.downloadSubmission(user.getTenantId(), round.getSubmissionId(), attachmentId);
@@ -446,7 +446,7 @@ public class ApprovalRuntimeService implements ApprovalApplicationPort, Approval
             new LambdaQueryWrapper<TaskSubmissionAttachment>()
                 .eq(TaskSubmissionAttachment::getTenantId, submission.getTenantId())
                 .eq(TaskSubmissionAttachment::getSubmissionId, submission.getId()))
-            .stream().filter(attachment -> fieldKeys.contains(attachment.getFieldKey()))
+            .stream().filter(attachment -> canViewAttachmentKeys(fieldKeys, attachment.getFieldKey()))
             .map(TaskSubmissionAttachment::getId).collect(java.util.stream.Collectors.toSet());
         for (ApprovalAttachmentCommentRequest comment : safe(request.attachmentComments())) {
             if (!attachmentIds.contains(comment.attachmentId())) {
@@ -532,7 +532,7 @@ public class ApprovalRuntimeService implements ApprovalApplicationPort, Approval
             new LambdaQueryWrapper<TaskSubmissionAttachment>()
                 .eq(TaskSubmissionAttachment::getTenantId, round.getTenantId())
                 .eq(TaskSubmissionAttachment::getSubmissionId, round.getSubmissionId()))
-            .stream().filter(attachment -> visibleKeys.contains(attachment.getFieldKey()))
+            .stream().filter(attachment -> canViewAttachmentKeys(visibleKeys, attachment.getFieldKey()))
             .map(TaskSubmissionAttachment::getId)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
         List<ApprovalActionVO> actions = value.actions().stream().map(action -> new ApprovalActionVO(
@@ -562,6 +562,20 @@ public class ApprovalRuntimeService implements ApprovalApplicationPort, Approval
             .map(value -> new TaskSubmissionAttachmentVO(value.getId(), value.getFieldKey(), value.getFileName(),
                 value.getFileType(), value.getSizeBytes(), value.getChecksum(), value.getSensitive(), value.getUploadedAt()))
             .toList();
+    }
+
+    private boolean canViewAttachment(List<TaskFieldDefinition> fields, String fieldKey) {
+        if (fields.stream().anyMatch(field -> field.getKey().equals(fieldKey))) return true;
+        return RepeatingTableSupport.parseAttachmentFieldKey(fieldKey).map(location -> fields.stream()
+            .filter(field -> field.getKey().equals(location.tableKey())).filter(RepeatingTableSupport::isTable)
+            .anyMatch(field -> RepeatingTableSupport.column(field, location.columnKey())
+                .map(column -> RepeatingTableSupport.ATTACHMENT_TYPES.contains(RepeatingTableSupport.string(column.get("type"))))
+                .orElse(false))).orElse(false);
+    }
+
+    private boolean canViewAttachmentKeys(Set<String> visibleKeys, String fieldKey) {
+        return visibleKeys.contains(fieldKey) || RepeatingTableSupport.parseAttachmentFieldKey(fieldKey)
+            .map(location -> visibleKeys.contains(location.tableKey())).orElse(false);
     }
 
     private List<String> allowedActions(String tenantId, Long schemeVersionId, String currentNodeKey) {

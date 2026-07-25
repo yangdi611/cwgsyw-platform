@@ -42,12 +42,13 @@ export function TaskDetail({ taskId }: { taskId: number }) {
 function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; aggregateReferences: AggregateReferencePreview[] }) {
   const queryClient = useQueryClient()
   const taskId = data.task.id
+  const readOnly = !data.actions.canEditDraft
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
-    ...data.draft.formData,
+    ...(readOnly ? data.currentSubmission?.formData ?? data.draft.formData : data.draft.formData),
     ...Object.fromEntries(aggregateReferences.map((item) => [item.fieldKey, item.selectedValue ?? null])),
   }))
   const [revision, setRevision] = useState(data.draft.revision)
-  const [attachments, setAttachments] = useState(data.draft.attachments)
+  const [attachments, setAttachments] = useState(readOnly ? data.currentSubmission?.attachments ?? data.draft.attachments : data.draft.attachments)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editVersion, setEditVersion] = useState(0)
@@ -118,14 +119,26 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
       setSaving(false)
     }
   }
-  const upload = async (fieldKey: string, file: File) => { const attachment = await uploadTaskAttachment(taskId, revision, fieldKey, file); setAttachments((current) => [...current, attachment]); toast.success('附件已上传') }
+  const upload = async (fieldKey: string, file: File) => {
+    let currentRevision = revision
+    if (dirty) {
+      const draft = await saveTaskDraft(taskId, revision, values)
+      currentRevision = draft.revision
+      setRevision(draft.revision)
+      setAttachments(draft.attachments)
+      setDirty(false)
+    }
+    const attachment = await uploadTaskAttachment(taskId, currentRevision, fieldKey, file)
+    setAttachments((current) => [...current, attachment])
+    toast.success('附件已上传')
+  }
   const removeAttachment = async (attachmentId: number) => { await deleteTaskAttachment(taskId, revision, attachmentId); setAttachments((current) => current.filter((item) => item.id !== attachmentId)); toast.success('附件已删除') }
 
   return <div className="space-y-6"><PageHeader eyebrow="统一任务平台" title={data.task.title} subtitle={data.task.description || data.template.instructions || '按模板要求填写并提交任务。'} actions={<div className="flex flex-wrap gap-2">{data.actions.canRemind && <Button onClick={() => command.mutate('remind')}><UploadCloud className="h-4 w-4" />提醒</Button>}{data.actions.canStart && <Button variant="primary" onClick={() => command.mutate('start')}><Play className="h-4 w-4" />开始任务</Button>}{data.actions.canEditDraft && <Button onClick={() => void manualSave()} disabled={saving || !dirty}><Save className="h-4 w-4" />{saving ? '保存中' : dirty ? '保存草稿' : '已保存'}</Button>}{data.actions.canSubmit && <Button variant="primary" onClick={() => submit.mutate()} disabled={submit.isPending || saving}><Send className="h-4 w-4" />{submit.isPending ? '提交中' : data.task.executionStatus === 'changes_requested' ? '重新提交' : '提交任务'}</Button>}</div>} />
     {approvalFeedback.returnReason && <div className="flex gap-3 rounded-v2-md border border-v2-danger-border bg-v2-danger-soft p-4"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-v2-danger" /><div><p className="font-semibold text-v2-danger">审批已退回，请修改后重新提交</p><p className="mt-1 whitespace-pre-wrap text-sm text-v2-danger">{approvalFeedback.returnReason}</p></div></div>}
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-4"><Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle>{data.template.name}</CardTitle><CardDescription>{data.template.description}</CardDescription></div><div className="flex gap-2"><StatusBadge status={data.task.executionStatus === 'completed' ? 'ok' : data.task.overdue ? 'danger' : data.task.executionStatus === 'changes_requested' ? 'warn' : 'neutral'}>{executionLabel(data.task.executionStatus)}</StatusBadge>{data.task.approvalStatus && data.task.approvalStatus !== 'not_required' && <StatusBadge status={data.task.approvalStatus === 'approved' ? 'ok' : data.task.approvalStatus === 'changes_requested' ? 'danger' : 'warn'}>{approvalLabel(data.task.approvalStatus)}</StatusBadge>}</div></div></CardHeader><CardContent><DynamicTaskForm taskId={taskId} fields={data.template.fields} values={values} aggregateReferences={aggregateReferences} attachments={attachments} fieldFeedback={approvalFeedback.fields} attachmentFeedback={approvalFeedback.attachments} readOnly={!data.actions.canEditDraft} onChange={updateValue} onUpload={upload} onDeleteAttachment={removeAttachment} />{issues.length > 0 && <div className="mt-4 rounded-v2-md border border-v2-danger bg-v2-danger-soft p-3"><p className="font-semibold text-v2-danger">请修正以下问题</p>{issues.map((issue) => <p key={`${issue.path}:${issue.message}`} className="mt-1 text-xs text-v2-danger">{issue.path}：{issue.message}</p>)}</div>}</CardContent></Card>
-        <SubmissionHistoryCard taskId={taskId} currentSubmissionId={data.currentSubmission?.id} attachmentFeedback={approvalFeedback.submissionAttachments} />
+      <div className="space-y-4"><Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle>{data.template.name}</CardTitle><CardDescription>{data.template.description}</CardDescription></div><div className="flex gap-2"><StatusBadge status={data.task.executionStatus === 'completed' ? 'ok' : data.task.overdue ? 'danger' : data.task.executionStatus === 'changes_requested' ? 'warn' : 'neutral'}>{executionLabel(data.task.executionStatus)}</StatusBadge>{data.task.approvalStatus && data.task.approvalStatus !== 'not_required' && <StatusBadge status={data.task.approvalStatus === 'approved' ? 'ok' : data.task.approvalStatus === 'changes_requested' ? 'danger' : 'warn'}>{approvalLabel(data.task.approvalStatus)}</StatusBadge>}</div></div></CardHeader><CardContent><DynamicTaskForm taskId={taskId} fields={data.template.fields} values={values} aggregateReferences={aggregateReferences} attachments={attachments} fieldFeedback={approvalFeedback.fields} attachmentFeedback={approvalFeedback.attachments} readOnly={readOnly} onChange={updateValue} onUpload={upload} onDeleteAttachment={removeAttachment} />{issues.length > 0 && <div className="mt-4 rounded-v2-md border border-v2-danger bg-v2-danger-soft p-3"><p className="font-semibold text-v2-danger">请修正以下问题</p>{issues.map((issue) => <p key={`${issue.path}:${issue.message}`} className="mt-1 text-xs text-v2-danger">{issue.path}：{issue.message}</p>)}</div>}</CardContent></Card>
+        <SubmissionHistoryCard taskId={taskId} currentSubmissionId={data.currentSubmission?.id} attachmentFeedback={approvalFeedback.submissionAttachments} fields={data.template.fields} />
         <ApprovalHistory rounds={rounds.data ?? []} loading={rounds.isLoading} />
       </div>
       <div className="space-y-4"><Card><CardHeader><CardTitle>任务信息</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><Info icon={<Clock3 className="h-4 w-4" />} label="计划开始" value={data.task.plannedStartAt ? new Date(data.task.plannedStartAt).toLocaleString('zh-CN') : '-'} /><Info icon={<CheckCircle2 className="h-4 w-4" />} label="截止时间" value={data.task.dueAt ? new Date(data.task.dueAt).toLocaleString('zh-CN') : '-'} /><Info icon={<Save className="h-4 w-4" />} label="草稿版本" value={`revision ${revision}${dirty ? ' · 未保存' : ''}`} /></CardContent></Card><Card><CardHeader><CardTitle>时间线</CardTitle></CardHeader><CardContent className="space-y-3">{data.timeline.length === 0 ? <p className="text-sm text-v2-muted">暂无事件</p> : data.timeline.map((event) => <div key={event.id} className="flex gap-3"><History className="mt-0.5 h-4 w-4 text-v2-muted" /><div><p className="text-sm font-medium text-v2-fg">{event.eventType}</p><p className="text-xs text-v2-muted">{new Date(event.createdAt).toLocaleString('zh-CN')}</p></div></div>)}</CardContent></Card></div>

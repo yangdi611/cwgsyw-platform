@@ -13,8 +13,19 @@ export function createTaskField(type: FieldTypeMetadata, existing: TaskFieldDefi
     required: false,
     validation: type.type === 'single_select' || type.type === 'multi_select'
       ? { options: [{ value: 'option_1', label: '选项一' }] }
-      : type.type === 'table' || type.type === 'repeater'
-        ? { columns: [{ key: 'column_1', label: '列一', type: 'text', required: false }] }
+      : type.type === 'table'
+        ? {
+            description: '',
+            defaultRows: 1,
+            minRows: 0,
+            maxRows: 50,
+            columns: [
+              { key: 'sequence', label: '序号', type: 'auto_number', required: false, validation: { start: 1, step: 1 }, summary: 'none' },
+              { key: 'item', label: '事项', type: 'text', required: false, validation: {}, summary: 'none' },
+            ],
+          }
+        : type.type === 'repeater'
+          ? { columns: [{ key: 'column_1', label: '列一', type: 'text', required: false }] }
         : {},
     display: { width: 12 },
     visibility: { executor: 'read_write', approver: 'read', copied: 'read', analytics: true, export: true },

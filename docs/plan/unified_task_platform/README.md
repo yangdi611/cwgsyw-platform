@@ -20,6 +20,7 @@
 | `TEST-ACCEPTANCE.md` | 测试矩阵、验收场景、质量门禁和清理证明 | 每阶段验证必读 |
 | `IMPLEMENTATION-STATUS.md` | 当前进度、证据、阻塞项和续跑入口 | 每次实施前后更新 |
 | `AI-IMPLEMENTATION-PROMPT.md` | AI 执行合同、强制阅读顺序和短 Prompt | 使用 AI 实施时必读 |
+| `REPEATING-TABLE-GOAL-PROMPT.md` | 自定义表格字段的独立 Goal 合同、短 Prompt 与验收门禁 | 实施可重复明细表字段时必读 |
 
 ---
 

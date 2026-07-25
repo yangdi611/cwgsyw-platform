@@ -47,8 +47,7 @@ public class AnalyticsQueryValidator {
 
         Map<String, TaskFieldDefinition> allowedFields = new HashMap<>();
         for (TaskFieldDefinition field : fields) {
-            if (!Boolean.TRUE.equals(field.getSensitive()) && field.getAnalytics() != null
-                    && Boolean.TRUE.equals(field.getAnalytics().get("enabled"))) {
+            if (!Boolean.TRUE.equals(field.getSensitive()) && analyticsEnabled(field)) {
                 allowedFields.put(field.getKey(), field);
             }
         }
@@ -101,6 +100,10 @@ public class AnalyticsQueryValidator {
         if (StringUtils.hasText(metric.tableColumn()) && !Set.of("table", "repeater").contains(field.getType())) {
             throw unprocessable("ANALYTICS_TABLE_COLUMN_INVALID", "只有表格或重复区块字段可以指定列");
         }
+        if (StringUtils.hasText(metric.tableColumn()) && !tableLevelAnalyticsEnabled(field)
+                && !tableColumnAnalyticsEnabled(field, metric.tableColumn())) {
+            throw unprocessable("ANALYTICS_TABLE_COLUMN_NOT_ENABLED", "表格列未启用统计: " + metric.tableColumn());
+        }
     }
 
     private void requireDimension(String value, Map<String, TaskFieldDefinition> fields) {
@@ -119,6 +122,12 @@ public class AnalyticsQueryValidator {
         if (!StringUtils.hasText(value) || !fields.containsKey(rootField(value))) {
             throw unprocessable("ANALYTICS_FIELD_NOT_ALLOWED", "字段未启用统计或无权使用: " + value);
         }
+        String nested = nestedField(value);
+        TaskFieldDefinition field = fields.get(rootField(value));
+        if (StringUtils.hasText(nested) && Set.of("table", "repeater").contains(field.getType())
+                && !tableLevelAnalyticsEnabled(field) && !tableColumnAnalyticsEnabled(field, nested)) {
+            throw unprocessable("ANALYTICS_TABLE_COLUMN_NOT_ENABLED", "表格列未启用统计: " + nested);
+        }
     }
 
     private boolean isNumeric(TaskFieldDefinition field, String nested) {
@@ -130,6 +139,33 @@ public class AnalyticsQueryValidator {
         for (Object raw : columns) {
             if (raw instanceof Map<?, ?> column && nested.equals(String.valueOf(column.get("key")))) {
                 return Set.of("number", "money", "percentage", "rating", "duration").contains(String.valueOf(column.get("type")));
+            }
+        }
+        return false;
+    }
+
+    private boolean analyticsEnabled(TaskFieldDefinition field) {
+        if (tableLevelAnalyticsEnabled(field)) return true;
+        if (!Set.of("table", "repeater").contains(field.getType())) return false;
+        Object rawColumns = field.getValidation() == null ? null : field.getValidation().get("columns");
+        if (!(rawColumns instanceof Iterable<?> columns)) return false;
+        for (Object raw : columns) {
+            if (raw instanceof Map<?, ?> column && (Boolean.TRUE.equals(column.get("analyticsEnabled"))
+                    || column.get("analytics") instanceof Map<?, ?>)) return true;
+        }
+        return false;
+    }
+
+    private boolean tableLevelAnalyticsEnabled(TaskFieldDefinition field) {
+        return field.getAnalytics() != null && Boolean.TRUE.equals(field.getAnalytics().get("enabled"));
+    }
+
+    private boolean tableColumnAnalyticsEnabled(TaskFieldDefinition field, String columnKey) {
+        Object rawColumns = field.getValidation() == null ? null : field.getValidation().get("columns");
+        if (!(rawColumns instanceof Iterable<?> columns)) return false;
+        for (Object raw : columns) {
+            if (raw instanceof Map<?, ?> column && columnKey.equals(String.valueOf(column.get("key")))) {
+                return Boolean.TRUE.equals(column.get("analyticsEnabled")) || column.get("analytics") instanceof Map<?, ?>;
             }
         }
         return false;

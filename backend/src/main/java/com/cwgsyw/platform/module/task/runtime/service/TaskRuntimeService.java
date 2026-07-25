@@ -47,6 +47,7 @@ import com.cwgsyw.platform.module.task.template.dto.TaskFieldDefinition;
 import com.cwgsyw.platform.module.task.template.dto.TaskTemplateVersionVO;
 import com.cwgsyw.platform.module.task.template.dto.TemplateValidationResult;
 import com.cwgsyw.platform.module.task.template.form.TemplateFormRuntime;
+import com.cwgsyw.platform.module.task.template.form.RepeatingTableSupport;
 import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
@@ -257,7 +258,7 @@ public class TaskRuntimeService {
         return new TaskDraftVO(draft.getId(), draft.getTaskId(), draft.getRevision(),
             visibleValues(draft.getFormData(), visible.keys()),
             attachmentService.list(draft.getTenantId(), draft.getTaskId(), draft.getRevision()).stream()
-                .filter(attachment -> visible.keys().contains(attachment.fieldKey())).toList(),
+                .filter(attachment -> canViewAttachment(visible, attachment.fieldKey())).toList(),
             draft.getCreatedBy(), draft.getUpdatedAt());
     }
 
@@ -270,6 +271,8 @@ public class TaskRuntimeService {
         if (!Integer.valueOf(currentRevision).equals(revision)) {
             throw conflict("TASK_DRAFT_REVISION_CONFLICT", "草稿版本已变化，请刷新后重试");
         }
+        TaskDraft draft = draftMapper.findLatest(task.getTenantId(), taskId);
+        validateTableAttachmentRow(draft, fieldKey);
         TaskDraftAttachmentVO attachment = attachmentService.upload(task, revision, fieldKey, file, user.getUserId());
         event(task, "draft_attachment_uploaded", user.getUserId(), Map.of("attachmentId", attachment.id(), "fieldKey", fieldKey));
         return attachment;
@@ -457,7 +460,7 @@ public class TaskRuntimeService {
         TaskSubmissionAttachment metadata = attachmentService.findSubmission(user.getTenantId(), submissionId, attachmentId);
         VisibleFields visible = visibleFields(templateService.getVersion(task.getTenantId(), task.getTemplateVersionId()),
             visibilityService.actions(task, user));
-        if (!visible.keys().contains(metadata.getFieldKey()))
+        if (!canViewAttachment(visible, metadata.getFieldKey()))
             throw forbidden("TASK_ATTACHMENT_FIELD_HIDDEN", "无权读取该附件");
         TaskDraftAttachmentService.SubmissionAttachmentContent content =
             attachmentService.downloadSubmission(user.getTenantId(), submissionId, attachmentId);
@@ -557,7 +560,7 @@ public class TaskRuntimeService {
         List<TaskSubmissionAttachmentVO> attachments = submissionAttachmentMapper.selectList(
             new LambdaQueryWrapper<TaskSubmissionAttachment>().eq(TaskSubmissionAttachment::getTenantId, submission.getTenantId())
                 .eq(TaskSubmissionAttachment::getSubmissionId, submission.getId()).orderByAsc(TaskSubmissionAttachment::getUploadedAt))
-            .stream().filter(value -> visible.keys().contains(value.getFieldKey()))
+            .stream().filter(value -> canViewAttachment(visible, value.getFieldKey()))
             .map(value -> new TaskSubmissionAttachmentVO(value.getId(), value.getFieldKey(), value.getFileName(),
                 value.getFileType(), value.getSizeBytes(), value.getChecksum(), value.getSensitive(), value.getUploadedAt())).toList();
         return new TaskSubmissionVO(submission.getId(), submission.getTaskId(), submission.getTemplateVersionId(),
@@ -605,6 +608,27 @@ public class TaskRuntimeService {
                 java.util.stream.Collectors.mapping(TaskDraftAttachment::getId, java.util.stream.Collectors.toList())));
         fields.stream().filter(field -> Set.of("file", "image").contains(field.getType()))
             .forEach(field -> values.put(field.getKey(), byField.getOrDefault(field.getKey(), List.of())));
+        fields.stream().filter(RepeatingTableSupport::isTable).forEach(field -> {
+            Object rawRows = values.get(field.getKey());
+            if (!(rawRows instanceof Collection<?> rows)) return;
+            List<Map<String, Object>> attachedRows = new ArrayList<>();
+            for (Object rawRow : rows) {
+                if (!(rawRow instanceof Map<?, ?> row)) continue;
+                Map<String, Object> next = toStringMap(row);
+                String rowId = RepeatingTableSupport.string(next.get(RepeatingTableSupport.ROW_ID));
+                if (rowId != null) {
+                    RepeatingTableSupport.columns(field).stream()
+                        .filter(column -> RepeatingTableSupport.ATTACHMENT_TYPES.contains(RepeatingTableSupport.string(column.get("type"))))
+                        .forEach(column -> {
+                            String columnKey = RepeatingTableSupport.string(column.get("key"));
+                            if (columnKey != null) next.put(columnKey, byField.getOrDefault(
+                                RepeatingTableSupport.attachmentFieldKey(field.getKey(), rowId, columnKey), List.of()));
+                        });
+                }
+                attachedRows.add(next);
+            }
+            values.put(field.getKey(), attachedRows);
+        });
         return values;
     }
 
@@ -612,11 +636,54 @@ public class TaskRuntimeService {
             TaskInstance task, TaskDraft draft, List<TaskFieldDefinition> fields) {
         Set<String> allowed = fields.stream().filter(field -> Set.of("file", "image").contains(field.getType()))
             .map(TaskFieldDefinition::getKey).collect(java.util.stream.Collectors.toSet());
+        Map<String, Set<String>> tableRows = new LinkedHashMap<>();
+        for (TaskFieldDefinition field : fields) {
+            if (!RepeatingTableSupport.isTable(field)) continue;
+            Set<String> rowIds = RepeatingTableSupport.mapList(draft.getFormData().get(field.getKey())).stream()
+                .map(row -> RepeatingTableSupport.string(row.get(RepeatingTableSupport.ROW_ID)))
+                .filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            tableRows.put(field.getKey(), rowIds);
+        }
         return attachmentService.find(task.getTenantId(), task.getId(), draft.getRevision()).stream()
             .filter(attachment -> !allowed.contains(attachment.getFieldKey()))
+            .filter(attachment -> !validTableAttachment(fields, tableRows, attachment.getFieldKey()))
             .map(attachment -> new com.cwgsyw.platform.module.task.template.dto.TemplateValidationIssue(
                 "TASK_ATTACHMENT_FIELD_INVALID", attachment.getFieldKey(), "attachments." + attachment.getId(), "附件字段不存在"))
             .toList();
+    }
+
+    private boolean validTableAttachment(List<TaskFieldDefinition> fields, Map<String, Set<String>> tableRows, String fieldKey) {
+        return RepeatingTableSupport.parseAttachmentFieldKey(fieldKey).map(location -> fields.stream()
+            .filter(field -> field.getKey().equals(location.tableKey())).filter(RepeatingTableSupport::isTable)
+            .anyMatch(field -> tableRows.getOrDefault(field.getKey(), Set.of()).contains(location.rowId())
+                && RepeatingTableSupport.column(field, location.columnKey())
+                    .map(column -> RepeatingTableSupport.ATTACHMENT_TYPES.contains(RepeatingTableSupport.string(column.get("type"))))
+                    .orElse(false))).orElse(false);
+    }
+
+    private boolean canViewAttachment(VisibleFields visible, String fieldKey) {
+        if (visible.keys().contains(fieldKey)) return true;
+        return RepeatingTableSupport.parseAttachmentFieldKey(fieldKey)
+            .map(location -> visible.fields().stream().anyMatch(field -> field.getKey().equals(location.tableKey())
+                && RepeatingTableSupport.isTable(field)
+                && RepeatingTableSupport.column(field, location.columnKey())
+                    .map(column -> RepeatingTableSupport.ATTACHMENT_TYPES.contains(RepeatingTableSupport.string(column.get("type"))))
+                    .orElse(false)))
+            .orElse(false);
+    }
+
+    private void validateTableAttachmentRow(TaskDraft draft, String fieldKey) {
+        RepeatingTableSupport.parseAttachmentFieldKey(fieldKey).ifPresent(location -> {
+            if (draft == null) {
+                throw BusinessException.badRequest("TASK_ATTACHMENT_ROW_INVALID", "附件行不存在或尚未保存");
+            }
+            Set<String> rowIds = RepeatingTableSupport.mapList(draft.getFormData().get(location.tableKey())).stream()
+                .map(row -> RepeatingTableSupport.string(row.get(RepeatingTableSupport.ROW_ID)))
+                .collect(java.util.stream.Collectors.toSet());
+            if (!rowIds.contains(location.rowId())) {
+                throw BusinessException.badRequest("TASK_ATTACHMENT_ROW_INVALID", "附件行不存在或已被删除");
+            }
+        });
     }
 
     private void freezeReferences(TaskInstance task, TaskSubmission submission, List<TaskFieldDefinition> fields,
@@ -671,8 +738,7 @@ public class TaskRuntimeService {
         LocalDateTime now = LocalDateTime.now();
         if (active) fieldFactMapper.deactivateTaskFacts(task.getTenantId(), task.getId(), now);
         for (TaskFieldDefinition field : fields) {
-            if (Boolean.TRUE.equals(field.getSensitive()) || field.getAnalytics() == null
-                    || !Boolean.TRUE.equals(field.getAnalytics().get("enabled"))) continue;
+            if (Boolean.TRUE.equals(field.getSensitive()) || !analyticsEnabled(field)) continue;
             Object value = values.get(field.getKey());
             if (value == null) continue;
             if (Set.of("file", "image").contains(field.getType())) {
@@ -703,10 +769,14 @@ public class TaskRuntimeService {
                 rowIndex++;
                 continue;
             }
-            String rowKey = row.get("key") == null ? String.valueOf(rowIndex) : String.valueOf(row.get("key"));
+            String rowKey = row.get(RepeatingTableSupport.ROW_ID) == null ? String.valueOf(rowIndex)
+                : String.valueOf(row.get(RepeatingTableSupport.ROW_ID));
             for (Map<String, Object> column : columns) {
                 String key = column.get("key") == null ? null : String.valueOf(column.get("key"));
-                if (key == null || !Boolean.TRUE.equals(column.get("analyticsEnabled")) && column.get("analytics") == null) continue;
+                boolean tableLevelEnabled = field.getAnalytics() != null
+                    && Boolean.TRUE.equals(field.getAnalytics().get("enabled"));
+                if (key == null || !tableLevelEnabled && !Boolean.TRUE.equals(column.get("analyticsEnabled"))
+                        && column.get("analytics") == null) continue;
                 Object cell = row.get(key);
                 if (cell == null) continue;
                 TaskFieldDefinition cellField = new TaskFieldDefinition();
@@ -718,6 +788,13 @@ public class TaskRuntimeService {
             }
             rowIndex++;
         }
+    }
+
+    private boolean analyticsEnabled(TaskFieldDefinition field) {
+        if (field.getAnalytics() != null && Boolean.TRUE.equals(field.getAnalytics().get("enabled"))) return true;
+        if (!RepeatingTableSupport.isTable(field) && !"repeater".equals(field.getType())) return false;
+        return mapList(field.getValidation() == null ? null : field.getValidation().get("columns")).stream()
+            .anyMatch(column -> Boolean.TRUE.equals(column.get("analyticsEnabled")) || column.get("analytics") instanceof Map<?, ?>);
     }
 
     private void insertAttachmentFact(TaskInstance task, TaskSubmission submission, TaskFieldDefinition field,

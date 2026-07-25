@@ -10,6 +10,7 @@ import com.cwgsyw.platform.module.task.runtime.mapper.TaskDraftAttachmentMapper;
 import com.cwgsyw.platform.module.task.runtime.mapper.TaskSubmissionAttachmentMapper;
 import com.cwgsyw.platform.module.task.template.dto.TaskFieldDefinition;
 import com.cwgsyw.platform.module.task.template.dto.TaskTemplateVersionVO;
+import com.cwgsyw.platform.module.task.template.form.RepeatingTableSupport;
 import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public class TaskDraftAttachmentService {
         if (file == null || file.isEmpty()) throw BusinessException.badRequest("TASK_ATTACHMENT_EMPTY", "附件不能为空");
         if (file.getSize() > MAX_ATTACHMENT_BYTES) throw BusinessException.badRequest("TASK_ATTACHMENT_TOO_LARGE", "单个附件不能超过 50MB");
         TaskFieldDefinition field = requireAttachmentField(task, fieldKey);
-        validateFieldSize(field, file.getSize());
+        validateFieldSize(field, fieldKey, file.getSize());
         byte[] bytes;
         try {
             bytes = file.getBytes();
@@ -135,7 +136,10 @@ public class TaskDraftAttachmentService {
             frozen.setSizeBytes(draft.getSizeBytes());
             frozen.setObjectKey(frozenKey);
             frozen.setChecksum(draft.getChecksum());
-            frozen.setSensitive(sensitiveFields.contains(draft.getFieldKey()));
+            frozen.setSensitive(sensitiveFields.contains(draft.getFieldKey())
+                || RepeatingTableSupport.parseAttachmentFieldKey(draft.getFieldKey())
+                    .flatMap(location -> fields.stream().filter(field -> field.getKey().equals(location.tableKey())).findFirst())
+                    .map(TaskFieldDefinition::getSensitive).orElse(false));
             frozen.setUploadedBy(draft.getUploadedBy());
             frozen.setUploadedAt(draft.getUploadedAt());
             try {
@@ -192,11 +196,26 @@ public class TaskDraftAttachmentService {
         TaskTemplateVersionVO template = templateService.getVersion(task.getTenantId(), task.getTemplateVersionId());
         return template.getFields().stream().filter(field -> field.getKey().equals(fieldKey))
             .filter(field -> Set.of("file", "image").contains(field.getType()))
-            .findFirst().orElseThrow(() -> BusinessException.badRequest("TASK_ATTACHMENT_FIELD_INVALID", "目标字段不是附件字段"));
+            .findFirst().or(() -> RepeatingTableSupport.parseAttachmentFieldKey(fieldKey)
+                .flatMap(location -> template.getFields().stream()
+                    .filter(field -> field.getKey().equals(location.tableKey()))
+                    .filter(RepeatingTableSupport::isTable)
+                    .filter(field -> RepeatingTableSupport.column(field, location.columnKey())
+                        .map(column -> RepeatingTableSupport.ATTACHMENT_TYPES.contains(RepeatingTableSupport.string(column.get("type"))))
+                        .orElse(false))
+                    .findFirst()))
+            .orElseThrow(() -> BusinessException.badRequest("TASK_ATTACHMENT_FIELD_INVALID", "目标字段不是附件字段"));
     }
 
-    private void validateFieldSize(TaskFieldDefinition field, long size) {
+    private void validateFieldSize(TaskFieldDefinition field, String fieldKey, long size) {
         Object configured = field.getValidation() == null ? null : field.getValidation().get("maxSize");
+        if (RepeatingTableSupport.isTable(field)) {
+            configured = RepeatingTableSupport.parseAttachmentFieldKey(fieldKey)
+                .flatMap(location -> RepeatingTableSupport.column(field, location.columnKey()))
+                .map(column -> column.get("validation"))
+                .filter(Map.class::isInstance).map(Map.class::cast)
+                .map(config -> config.get("maxSize")).orElse(null);
+        }
         if (configured == null) return;
         try {
             long max = Long.parseLong(String.valueOf(configured));

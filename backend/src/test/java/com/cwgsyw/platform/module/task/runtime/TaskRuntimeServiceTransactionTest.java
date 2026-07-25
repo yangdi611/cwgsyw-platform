@@ -274,6 +274,79 @@ class TaskRuntimeServiceTransactionTest {
     }
 
     @Test
+    void submissionExtractsEnabledTableColumnFactsWithStableRowKeys() {
+        TaskInstance task = task("in_progress", 1);
+        task.setBusinessDate(LocalDate.of(2026, 7, 25));
+        TaskDraft draft = new TaskDraft();
+        draft.setId(2L); draft.setTenantId("tenant-a"); draft.setTaskId(1L); draft.setRevision(1);
+        draft.setFormData(Map.of("weekly_items", List.of(
+            Map.of("__rowId", "abcdefgh12345678", "hours", 2.5, "note", "已完成"))));
+        TaskFieldDefinition table = new TaskFieldDefinition();
+        table.setKey("weekly_items"); table.setLabel("本周事项"); table.setType("table");
+        table.setAnalytics(Map.of("enabled", false));
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "hours", "label", "工时", "type", "number", "analyticsEnabled", true),
+            Map.of("key", "note", "label", "备注", "type", "text", "analyticsEnabled", false))));
+        when(taskMapper.lockById("tenant-a", 1L)).thenReturn(task);
+        when(submissionMapper.findByIdempotencyKey("tenant-a", 1L, "table-key")).thenReturn(null);
+        when(draftMapper.findLatest("tenant-a", 1L)).thenReturn(draft);
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template(table));
+        doAnswer(invocation -> { ((TaskSubmission) invocation.getArgument(0)).setId(56L); return 1; })
+            .when(submissionMapper).insert(any(TaskSubmission.class));
+
+        service.submit(user, 1L, new CreateTaskSubmissionRequest(1, "table-key"));
+
+        ArgumentCaptor<TaskFieldFact> fact = ArgumentCaptor.forClass(TaskFieldFact.class);
+        verify(factMapper).insert(fact.capture());
+        assertThat(fact.getValue().getFieldKey()).isEqualTo("weekly_items");
+        assertThat(fact.getValue().getSubFieldKey()).isEqualTo("hours");
+        assertThat(fact.getValue().getRowKey()).isEqualTo("abcdefgh12345678");
+        assertThat(fact.getValue().getValueNumber()).isEqualByComparingTo("2.5");
+    }
+
+    @Test
+    void submissionKeepsTableLevelAnalyticsCompatibilityForColumnFacts() {
+        TaskInstance task = task("in_progress", 1);
+        TaskDraft draft = new TaskDraft();
+        draft.setId(2L); draft.setTenantId("tenant-a"); draft.setTaskId(1L); draft.setRevision(1);
+        draft.setFormData(Map.of("weekly_items", List.of(
+            Map.of("__rowId", "abcdefgh12345678", "hours", 2.5))));
+        TaskFieldDefinition table = new TaskFieldDefinition();
+        table.setKey("weekly_items"); table.setLabel("本周事项"); table.setType("table");
+        table.setAnalytics(Map.of("enabled", true));
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "hours", "label", "工时", "type", "number"))));
+        when(taskMapper.lockById("tenant-a", 1L)).thenReturn(task);
+        when(submissionMapper.findByIdempotencyKey("tenant-a", 1L, "table-compat-key")).thenReturn(null);
+        when(draftMapper.findLatest("tenant-a", 1L)).thenReturn(draft);
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template(table));
+        doAnswer(invocation -> { ((TaskSubmission) invocation.getArgument(0)).setId(57L); return 1; })
+            .when(submissionMapper).insert(any(TaskSubmission.class));
+
+        service.submit(user, 1L, new CreateTaskSubmissionRequest(1, "table-compat-key"));
+
+        ArgumentCaptor<TaskFieldFact> fact = ArgumentCaptor.forClass(TaskFieldFact.class);
+        verify(factMapper).insert(fact.capture());
+        assertThat(fact.getValue().getSubFieldKey()).isEqualTo("hours");
+    }
+
+    @Test
+    void rejectsAttachmentForRowMissingFromCurrentDraft() {
+        TaskInstance task = task("in_progress", 1);
+        TaskDraft draft = new TaskDraft();
+        draft.setTenantId("tenant-a"); draft.setTaskId(1L); draft.setRevision(1);
+        draft.setFormData(Map.of("weekly_items", List.of(Map.of("__rowId", "abcdefgh12345678"))));
+        when(taskMapper.lockById("tenant-a", 1L)).thenReturn(task);
+        when(draftMapper.findLatest("tenant-a", 1L)).thenReturn(draft);
+
+        assertThatThrownBy(() -> service.uploadAttachment(user, 1L, 1,
+            "weekly_items~abcdefgh87654321~evidence",
+            new org.springframework.mock.web.MockMultipartFile("file", "evidence.txt", "text/plain", new byte[] {1})))
+            .hasMessageContaining("附件行不存在");
+        verify(draftMapper).findLatest("tenant-a", 1L);
+    }
+
+    @Test
     void sensitiveAttachmentIsAuthorizedBeforeStorageAndAuditedAfterDownload() {
         TaskInstance task = task("completed", 1);
         TaskSubmission submission = submission(55L, 1L);

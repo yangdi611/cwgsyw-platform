@@ -47,6 +47,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,7 @@ class ApprovalRuntimeServiceTest {
     @Mock TaskMetricService metricService;
     @Mock AuditLogMapper auditLogMapper;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock TaskDraftAttachmentService attachmentService;
 
     private ApprovalRuntimeService service;
 
@@ -84,14 +86,6 @@ class ApprovalRuntimeServiceTest {
     void setUp() {
         ApprovalSchemeService schemeService = new ApprovalSchemeService(null, schemeVersionMapper,
             null, null, null, null, new ObjectMapper().findAndRegisterModules());
-        TaskDraftAttachmentService attachmentService = new TaskDraftAttachmentService(null, null, null, null) {
-            @Override
-            public Map<String, List<Long>> restoreFromSubmission(String tenantId, Long taskId,
-                                                                 Integer revision,
-                                                                 List<com.cwgsyw.platform.module.task.runtime.entity.TaskSubmissionAttachment> attachments) {
-                return Map.of();
-            }
-        };
         service = new ApprovalRuntimeService(roundMapper, actionMapper, schemeService, workflowPort,
             taskMapper, submissionMapper, submissionAttachmentMapper, draftMapper, factMapper,
             eventMapper, templateService, new TemplateFormRuntime(new FieldTypeRegistry(), new ExpressionEngine()),
@@ -133,6 +127,7 @@ class ApprovalRuntimeServiceTest {
         when(taskMapper.lockById("tenant-a", 10L)).thenReturn(task);
         when(actionMapper.selectOne(any())).thenReturn(action);
         when(submissionAttachmentMapper.selectList(any())).thenReturn(List.of());
+        when(attachmentService.restoreFromSubmission(any(), any(), any(), any())).thenReturn(Map.of());
 
         service.onWorkflowCompleted(event(false));
 
@@ -286,6 +281,72 @@ class ApprovalRuntimeServiceTest {
         assertThat(detail.formData()).containsEntry("summary", "巡检完成").doesNotContainKey("secret");
     }
 
+    @Test
+    void approvalDetailIncludesVisibleTableAttachmentsAndFiltersHiddenTables() {
+        stubPendingAction();
+        TaskSubmission submission = submission();
+        submission.setFormData(Map.of("work_items", List.of(Map.of("__rowId", "abcdefgh12345678", "evidence", "已上传"))));
+        TaskFieldDefinition hiddenTable = tableField("hidden_items", "隐藏明细");
+        hiddenTable.setVisibility(Map.of("approver", "hidden", "executor", "read_write"));
+        when(templateService.getVersion("tenant-a", 100L)).thenReturn(TaskTemplateVersionVO.builder()
+            .id(100L).templateId(70L).version(1).status("published").name("数据库巡检")
+            .fields(List.of(tableField("work_items", "工作明细"), hiddenTable)).build());
+        when(submissionMapper.selectOne(any())).thenReturn(submission);
+        when(actionMapper.selectList(any())).thenReturn(List.of());
+        when(submissionAttachmentMapper.selectList(any())).thenReturn(List.of(
+            attachment(123L, "work_items~abcdefgh12345678~evidence"),
+            attachment(456L, "hidden_items~abcdefgh12345678~evidence")));
+
+        var detail = service.detail(approver(), "flow-task-1");
+
+        assertThat(detail.fields()).extracting(TaskFieldDefinition::getKey).containsExactly("work_items");
+        assertThat(detail.attachments()).extracting(value -> value.id()).containsExactly(123L);
+    }
+
+    @Test
+    void visibleTableAttachmentCommentIsAccepted() {
+        stubPendingAction();
+        when(templateService.getVersion("tenant-a", 100L)).thenReturn(tableTemplate());
+        when(submissionAttachmentMapper.selectList(any())).thenReturn(List.of(
+            attachment(123L, "work_items~abcdefgh12345678~evidence")));
+        when(actionMapper.selectList(any())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            ApprovalAction action = invocation.getArgument(0);
+            action.setId(50L);
+            return 1;
+        }).when(actionMapper).insert(any(ApprovalAction.class));
+        ApprovalActionRequest request = new ApprovalActionRequest("approve", "同意", List.of(),
+            List.of(new ApprovalAttachmentCommentRequest(123L, "证据已核验")));
+
+        service.act(approver(), "flow-task-1", request);
+
+        ArgumentCaptor<ApprovalAction> action = ArgumentCaptor.forClass(ApprovalAction.class);
+        verify(actionMapper).insert(action.capture());
+        assertThat(action.getValue().getAttachmentComments().getFirst())
+            .containsEntry("attachmentId", 123L).containsEntry("comment", "证据已核验");
+    }
+
+    @Test
+    void visibleTableAttachmentCanBeDownloadedByApprover() {
+        ApprovalRound round = round("in_review", null);
+        when(workflowPort.requirePending(any(), org.mockito.ArgumentMatchers.eq("flow-task-1")))
+            .thenReturn(workflowTask());
+        when(roundMapper.selectOne(any())).thenReturn(round);
+        when(submissionMapper.selectOne(any())).thenReturn(submission());
+        when(taskMapper.selectOne(any())).thenReturn(task());
+        when(templateService.getVersion("tenant-a", 100L)).thenReturn(tableTemplate());
+        var metadata = attachment(123L, "work_items~abcdefgh12345678~evidence");
+        when(attachmentService.findSubmission("tenant-a", 20L, 123L)).thenReturn(metadata);
+        var expected = new TaskDraftAttachmentService.SubmissionAttachmentContent(metadata.getFieldKey(), "evidence.txt",
+            "text/plain", 12L, false, new ByteArrayInputStream(new byte[] {1}));
+        when(attachmentService.downloadSubmission("tenant-a", 20L, 123L)).thenReturn(expected);
+
+        var actual = service.downloadAttachment(approver(), "flow-task-1", 123L);
+
+        assertThat(actual).isSameAs(expected);
+        verify(attachmentService).downloadSubmission("tenant-a", 20L, 123L);
+    }
+
     private ApprovalRound round(String status, String result) {
         ApprovalRound round = new ApprovalRound();
         round.setId(30L);
@@ -366,6 +427,18 @@ class ApprovalRuntimeServiceTest {
             .status("published").name("数据库巡检").fields(List.of(field, evidence, secret)).build();
     }
 
+    private TaskFieldDefinition tableField(String key, String label) {
+        TaskFieldDefinition field = field(key, label, "table");
+        field.setValidation(Map.of("columns", List.of(Map.of(
+            "key", "evidence", "label", "凭证", "type", "file", "required", false))));
+        return field;
+    }
+
+    private TaskTemplateVersionVO tableTemplate() {
+        return TaskTemplateVersionVO.builder().id(100L).templateId(70L).version(1)
+            .status("published").name("数据库巡检").fields(List.of(tableField("work_items", "工作明细"))).build();
+    }
+
     private TaskFieldDefinition field(String key, String label, String type) {
         TaskFieldDefinition field = new TaskFieldDefinition();
         field.setKey(key);
@@ -375,11 +448,15 @@ class ApprovalRuntimeServiceTest {
     }
 
     private com.cwgsyw.platform.module.task.runtime.entity.TaskSubmissionAttachment attachment(Long id) {
+        return attachment(id, "evidence");
+    }
+
+    private com.cwgsyw.platform.module.task.runtime.entity.TaskSubmissionAttachment attachment(Long id, String fieldKey) {
         var attachment = new com.cwgsyw.platform.module.task.runtime.entity.TaskSubmissionAttachment();
         attachment.setId(id);
         attachment.setTenantId("tenant-a");
         attachment.setSubmissionId(20L);
-        attachment.setFieldKey("evidence");
+        attachment.setFieldKey(fieldKey);
         return attachment;
     }
 

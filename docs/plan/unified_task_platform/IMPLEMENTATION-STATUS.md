@@ -158,6 +158,30 @@ HIGH/CRITICAL 必须在实施前向用户告警，并记录用户决策或缩小
 
 每轮追加，不覆盖历史：
 
+### 2026-07-25 / 自定义表格字段 Goal 增量验收
+
+**完成结果：**
+- 在现有动态字段注册、模板版本、草稿/提交、审批和统计事实模型上加入自定义表格（可重复明细表）字段，不新增平行表单或报表模型。
+- 模板设计器支持固定列、中文表头、列类型、行数限制、自增序号、数字汇总、下拉选项、附件/图片限制及列级统计开关。
+- 填写页支持动态增删/复制行、自动序号、行内附件、汇总行；后端校验行数、列值、附件归属和自增序号。
+- 表格列统计支持 `fieldKey + tableColumn`，新模板按列授权，历史“表格整体统计”配置保持兼容；事实使用稳定 `__rowId` 行键。
+- 任务详情、提交历史和审批详情支持表格回显；审批详情、下载和附件意见均按表格列可见性处理。
+- 使用说明已更新：`wiki-manual/40-task-center/templates-plans.md`、`execution.md`、`analytics.md`；新增 Goal 实施合同 `docs/plan/unified_task_platform/REPEATING-TABLE-GOAL-PROMPT.md`。
+
+**验证证据：**
+```bash
+cd backend
+JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -q -Dtest=TemplateFormRuntimeTest,TaskRuntimeServiceTransactionTest,TaskAnalyticsQueryServiceTest,ApprovalRuntimeServiceTest test
+JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -q -DskipTests compile
+
+cd ../frontend
+npm run lint -- src/components/task-template/designer-utils.ts src/components/task-template/FieldPropertyPanel.tsx src/components/task-runtime/DynamicTaskForm.tsx src/components/task-runtime/TaskDetail.tsx src/components/task-runtime/SubmissionHistoryCard.tsx src/components/task-analytics/TaskAnalyticsWorkbench.tsx src/components/work/ApprovalTaskDrawer.tsx
+npm run typecheck
+npm run build
+```
+
+以上命令在 Java 21 下通过；前端构建仅提示已有多 lockfile workspace root warning。GitNexus staged 检测显示 25 个文件、107 个符号、7 条任务/审批流程，综合风险为 HIGH；审批与统计入口已分别完成 upstream impact 和定向回归测试。未执行 commit、push 或容器重建。
+
 > 2026-07-23 00:54 的全库 baseline 替换记录是已撤销的错误实施历史，不代表当前代码或实施合同。当前唯一有效策略见 08:26 纠正记录、`SCHEMA-CUTOVER.md` 和 `SCHEMA-OBJECT-LEDGER.md`。
 
 ### 2026-07-23 / WP-06 自动化收口与 UI 验证状态

@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -116,13 +117,66 @@ public class TaskAnalyticsQueryService {
             .collect(Collectors.toMap(value -> value.type(), value -> value.aggregations()));
         return template.getFields().stream()
             .filter(field -> !Boolean.TRUE.equals(field.getSensitive()))
-            .filter(field -> field.getAnalytics() != null && Boolean.TRUE.equals(field.getAnalytics().get("enabled")))
-            .map(field -> new AnalyticsFieldMetadata(field.getKey(), field.getLabel(), field.getType(),
-                stringList(field.getAnalytics().get("role")),
-                new ArrayList<>(typeAggregations.getOrDefault(field.getType(), Set.of())),
-                text(field.getAnalytics().get("unit")), text(field.getAnalytics().get("aggregation")),
-                field.getValidation() == null ? Map.of() : field.getValidation()))
+            .filter(this::analyticsEnabled)
+            .flatMap(field -> analyticsMetadata(field, typeAggregations))
             .toList();
+    }
+
+    private boolean analyticsEnabled(TaskFieldDefinition field) {
+        if (field.getAnalytics() != null && Boolean.TRUE.equals(field.getAnalytics().get("enabled"))) return true;
+        return Set.of("table", "repeater").contains(field.getType())
+            && mapList(field.getValidation() == null ? null : field.getValidation().get("columns")).stream()
+                .anyMatch(column -> Boolean.TRUE.equals(column.get("analyticsEnabled")) || column.get("analytics") instanceof Map<?, ?>);
+    }
+
+    private Stream<AnalyticsFieldMetadata> analyticsMetadata(TaskFieldDefinition field,
+                                                              Map<String, Set<String>> typeAggregations) {
+        if (!Set.of("table", "repeater").contains(field.getType())) {
+            return Stream.of(metadata(field.getKey(), field.getLabel(), field.getType(), field.getAnalytics(),
+                field.getValidation(), typeAggregations));
+        }
+        List<Map<String, Object>> columns = mapList(field.getValidation() == null ? null : field.getValidation().get("columns"));
+        boolean tableLevelEnabled = field.getAnalytics() != null && Boolean.TRUE.equals(field.getAnalytics().get("enabled"));
+        Stream<AnalyticsFieldMetadata> configuredColumns = columns.stream()
+            .filter(column -> tableLevelEnabled || Boolean.TRUE.equals(column.get("analyticsEnabled"))
+                || column.get("analytics") instanceof Map<?, ?>)
+            .map(column -> {
+                String key = text(column.get("key"));
+                String type = text(column.get("type"));
+                Map<String, Object> columnAnalytics = column.get("analytics") instanceof Map<?, ?> values
+                    ? toStringMap(values) : Map.of();
+                Map<String, Object> effectiveAnalytics = new LinkedHashMap<>(field.getAnalytics() == null ? Map.of() : field.getAnalytics());
+                effectiveAnalytics.putAll(columnAnalytics);
+                String summary = text(column.get("summary"));
+                if (columnAnalytics.isEmpty() && summary != null && Set.of("sum", "avg", "min", "max").contains(summary)) {
+                    effectiveAnalytics.put("aggregation", summary);
+                }
+                String label = text(column.get("label"));
+                return metadata(field.getKey() + "." + key,
+                    field.getLabel() + " · " + (StringUtils.hasText(label) ? label : key), type,
+                    effectiveAnalytics,
+                    column.get("validation") instanceof Map<?, ?> values ? toStringMap(values) : Map.of(), typeAggregations);
+            });
+        return configuredColumns;
+    }
+
+    private AnalyticsFieldMetadata metadata(String key, String label, String type, Map<String, Object> analytics,
+                                             Map<String, Object> validation, Map<String, Set<String>> typeAggregations) {
+        return new AnalyticsFieldMetadata(key, label, type, stringList(analytics.get("role")),
+            new ArrayList<>(typeAggregations.getOrDefault(type, Set.of())), text(analytics.get("unit")),
+            text(analytics.get("aggregation")), validation == null ? Map.of() : validation);
+    }
+
+    private List<Map<String, Object>> mapList(Object value) {
+        if (!(value instanceof Collection<?> collection)) return List.of();
+        return collection.stream().filter(Map.class::isInstance)
+            .map(item -> toStringMap((Map<?, ?>) item)).toList();
+    }
+
+    private Map<String, Object> toStringMap(Map<?, ?> source) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        source.forEach((key, value) -> values.put(String.valueOf(key), value));
+        return values;
     }
 
     public List<Map<String, Object>> dimensions() {

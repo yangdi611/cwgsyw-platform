@@ -34,6 +34,7 @@ public class TemplateFormRuntime {
             required.put(field.getKey(), isRequired);
             if (!isVisible) continue;
             Object value = values.containsKey(field.getKey()) ? values.get(field.getKey()) : field.getDefaultValue();
+            if (value == null && RepeatingTableSupport.isTable(field)) value = RepeatingTableSupport.defaultRows(field);
             if (isRequired && isEmpty(value)) {
                 issues.add(new TemplateValidationIssue(
                     "FIELD_REQUIRED", field.getKey(), "formData." + field.getKey(), "该字段为必填项"));

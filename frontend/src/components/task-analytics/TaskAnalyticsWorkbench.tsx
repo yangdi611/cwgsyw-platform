@@ -65,11 +65,10 @@ export function TaskAnalyticsWorkbench() {
 
   const buildRequest = (): AnalyticsQueryRequest | undefined => {
     if (!effectiveTemplateVersionId || fieldSelections.length === 0) return undefined
-    const metrics = output === 'aggregate' ? fieldSelections.map(({ key, aggregation }) => ({
-      fieldKey: key,
-      aggregation,
-      alias: `${key}_${aggregation}`,
-    })) : []
+    const metrics = output === 'aggregate' ? fieldSelections.map(({ key, aggregation }) => {
+      const [fieldKey, tableColumn] = splitTableField(key)
+      return { fieldKey, tableColumn, aggregation, alias: `${key}_${aggregation}` }
+    }) : []
     return {
       source: { templateVersionIds: [effectiveTemplateVersionId] },
       time: { field: 'business_date', from, to, grain },
@@ -157,4 +156,9 @@ function defaultAggregation(field: AnalyticsFieldMetadata): string {
   return field.defaultAggregation && field.aggregations.includes(field.defaultAggregation)
     ? field.defaultAggregation
     : field.aggregations[0] ?? 'count'
+}
+
+function splitTableField(key: string) {
+  const separator = key.indexOf('.')
+  return separator < 0 ? [key, undefined] : [key.slice(0, separator), key.slice(separator + 1)]
 }

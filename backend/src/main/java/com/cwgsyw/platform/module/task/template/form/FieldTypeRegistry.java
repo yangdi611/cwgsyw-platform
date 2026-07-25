@@ -40,7 +40,7 @@ public class FieldTypeRegistry {
         register("role", "角色", "组织", true, true, DIMENSION_AGGREGATIONS);
         register("ci_scope", "CI 范围", "运维对象", true, true, DIMENSION_AGGREGATIONS);
         register("relation", "关联对象", "运维对象", true, true, DIMENSION_AGGREGATIONS);
-        register("table", "表格", "结构化", true, false, NUMERIC_AGGREGATIONS);
+        registerTable();
         register("repeater", "重复区块", "结构化", true, false, COUNT_AGGREGATIONS);
         register("file", "文件", "文件", true, false, COUNT_AGGREGATIONS);
         register("image", "图片", "文件", true, false, COUNT_AGGREGATIONS);
@@ -83,5 +83,11 @@ public class FieldTypeRegistry {
         FieldTypeMetadata metadata = new FieldTypeMetadata(
             type, label, category, supportsAnalytics, supportsDimension, true, true, aggregations);
         handlers.put(type, new BuiltinFieldTypeHandler(metadata));
+    }
+
+    private void registerTable() {
+        FieldTypeMetadata metadata = new FieldTypeMetadata(
+            "table", "自定义表格", "结构化", true, false, true, true, NUMERIC_AGGREGATIONS);
+        handlers.put("table", new RepeatingTableFieldHandler(metadata));
     }
 }

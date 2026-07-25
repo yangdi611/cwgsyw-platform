@@ -198,6 +198,54 @@ class TaskAnalyticsQueryServiceTest {
     }
 
     @Test
+    void exposesOnlyEnabledTableColumnsWithoutRequiringTableLevelAnalytics() {
+        TaskFieldDefinition table = field("work_items", "工作明细", "table");
+        table.setAnalytics(Map.of("enabled", false));
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "hours", "label", "工时", "type", "number", "analyticsEnabled", true, "summary", "sum"),
+            Map.of("key", "note", "label", "备注", "type", "text", "analyticsEnabled", false))));
+        template = TaskTemplateVersionVO.builder().id(7L).templateId(1L).version(1).status("published")
+            .name("统计测试模板").fields(List.of(table)).build();
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template);
+
+        var fields = service.fields(user, 7L);
+
+        assertThat(fields).extracting(value -> value.key()).containsExactly("work_items.hours");
+        assertThat(fields.getFirst()).extracting(value -> value.label(), value -> value.defaultAggregation())
+            .containsExactly("工作明细 · 工时", "sum");
+    }
+
+    @Test
+    void preservesTableLevelAnalyticsForExistingTemplates() {
+        TaskFieldDefinition table = field("work_items", "工作明细", "table");
+        table.setAnalytics(Map.of("enabled", true, "aggregation", "sum"));
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "hours", "label", "工时", "type", "number"),
+            Map.of("key", "note", "label", "备注", "type", "text"))));
+        template = TaskTemplateVersionVO.builder().id(7L).templateId(1L).version(1).status("published")
+            .name("统计测试模板").fields(List.of(table)).build();
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template);
+
+        assertThat(service.fields(user, 7L)).extracting(value -> value.key())
+            .containsExactly("work_items.hours", "work_items.note");
+    }
+
+    @Test
+    void rejectsDisabledTableColumnInDetailFields() {
+        TaskFieldDefinition table = field("work_items", "工作明细", "table");
+        table.setAnalytics(Map.of("enabled", false));
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "hours", "label", "工时", "type", "number", "analyticsEnabled", true),
+            Map.of("key", "note", "label", "备注", "type", "text", "analyticsEnabled", false))));
+        template = TaskTemplateVersionVO.builder().id(7L).templateId(1L).version(1).status("published")
+            .name("统计测试模板").fields(List.of(table)).build();
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template);
+
+        assertThatThrownBy(() -> service.query(user, request(List.of(), List.of(), "detail", List.of("work_items.note"))))
+            .hasMessageContaining("表格列未启用统计");
+    }
+
+    @Test
     void excludesChangesRequestedTasksByDefaultAndReturnsAttachmentMetadata() {
         AnalyticsQueryResponse approved = service.query(user, request(
             List.of(metric("work_hours", "sum", "hours")), List.of(), "aggregate", null));
@@ -276,7 +324,7 @@ class TaskAnalyticsQueryServiceTest {
         TaskFieldDefinition field = new TaskFieldDefinition();
         field.setKey(key); field.setLabel(label); field.setType(type);
         field.setAnalytics(Map.of("enabled", true, "role", List.of("metric"), "aggregation", "sum"));
-        if ("table".equals(type)) field.setValidation(Map.of("columns", List.of(Map.of("key", "duration", "type", "number"))));
+        if ("table".equals(type)) field.setValidation(Map.of("columns", List.of(Map.of("key", "duration", "type", "number", "analyticsEnabled", true))));
         return field;
     }
 

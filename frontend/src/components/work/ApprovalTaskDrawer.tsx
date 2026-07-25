@@ -144,6 +144,7 @@ function ApprovalContent({ detail, comment, fieldComments, attachmentComments, d
               <Textarea rows={2} value={attachmentComments[attachment.id] ?? ''} placeholder="添加附件意见（可选）" onChange={(event) => onAttachmentCommentChange(attachment.id, event.target.value)} />
             </div>
           ))}
+          {field.type === 'table' && <TableAttachments field={field} attachments={attachments} comments={attachmentComments} downloadingId={downloadingId} onCommentChange={onAttachmentCommentChange} onDownload={onDownload} />}
           {!['section', 'help_text'].includes(field.type) && <div className="mt-3 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)]"><Select value={draft.severity} onValueChange={(value) => onFieldCommentChange(field.key, { ...draft, severity: value as FieldCommentDraft['severity'] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="info">提示</SelectItem><SelectItem value="warning">注意</SelectItem><SelectItem value="error">需修改</SelectItem></SelectContent></Select><Textarea rows={2} value={draft.comment} placeholder="添加字段意见（可选）" onChange={(event) => onFieldCommentChange(field.key, { ...draft, comment: event.target.value })} /></div>}
         </div>
       })}
@@ -177,6 +178,26 @@ function renderValue(field: TaskFieldDefinition, value: unknown, computedValue: 
   if (field.type === 'help_text') return <span className="text-v2-muted">{field.label}</span>
   if (shown == null || shown === '') return <span className="text-v2-subtle">未填写</span>
   if (typeof shown === 'boolean') return shown ? '是' : '否'
+  if (field.type === 'table' && Array.isArray(shown)) return <ReadonlyTable field={field} rows={shown} />
   if (typeof shown === 'object') return <pre className="overflow-auto whitespace-pre-wrap font-v2-mono text-xs">{JSON.stringify(shown, null, 2)}</pre>
   return String(shown)
 }
+
+function ReadonlyTable({ field, rows }: { field: TaskFieldDefinition; rows: unknown[] }) {
+  const columns = Array.isArray(field.validation?.columns) ? field.validation.columns.filter(isTableColumn) : []
+  if (columns.length === 0) return <span className="text-v2-muted">表格未配置列</span>
+  return <div className="overflow-x-auto"><table className="min-w-full text-xs"><thead><tr>{columns.map((column) => <th key={column.key} className="border-b border-v2-border px-2 py-2 text-left font-semibold">{column.label}</th>)}</tr></thead><tbody>{rows.filter(isRow).map((row, rowIndex) => <tr key={String(row.__rowId ?? rowIndex)}>{columns.map((column) => <td key={column.key} className="border-b border-v2-border px-2 py-2 align-top">{formatTableCell(row[column.key])}</td>)}</tr>)}</tbody></table></div>
+}
+
+function TableAttachments({ field, attachments, comments, downloadingId, onCommentChange, onDownload }: { field: TaskFieldDefinition; attachments: Awaited<ReturnType<typeof getApprovalTask>>['attachments']; comments: Record<number, string>; downloadingId?: number; onCommentChange: (id: number, value: string) => void; onDownload: (id: number, fileName: string) => Promise<void> }) {
+  const prefix = `${field.key}~`
+  const tableAttachments = attachments.filter((attachment) => attachment.fieldKey.startsWith(prefix))
+  if (tableAttachments.length === 0) return null
+  const columns = Array.isArray(field.validation?.columns) ? field.validation.columns.filter(isTableColumn) : []
+  return <div className="mt-3 space-y-2"><p className="text-xs font-medium text-v2-muted">表格行内附件</p>{tableAttachments.map((attachment) => { const [, rowId, columnKey] = attachment.fieldKey.split('~'); const column = columns.find((item) => item.key === columnKey); return <div key={attachment.id} className="space-y-2 rounded-v2-md border border-v2-border bg-v2-surface-soft p-3"><div className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-v2-muted" /><span className="min-w-0 flex-1 truncate text-sm text-v2-fg">第 {rowId?.slice(0, 6) ?? '-'} 行 · {column?.label ?? columnKey} · {attachment.fileName}</span><Button size="sm" variant="ghost" title="下载附件" disabled={downloadingId === attachment.id} onClick={() => void onDownload(attachment.id, attachment.fileName)}><Download className="h-4 w-4" /></Button></div><Textarea rows={2} value={comments[attachment.id] ?? ''} placeholder="添加附件意见（可选）" onChange={(event) => onCommentChange(attachment.id, event.target.value)} /></div>})}</div>
+}
+
+type TableColumn = { key: string; label: string }
+function isTableColumn(value: unknown): value is TableColumn { return typeof value === 'object' && value !== null && 'key' in value && 'label' in value }
+function isRow(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null }
+function formatTableCell(value: unknown) { if (value == null || value === '') return '-'; return typeof value === 'object' ? JSON.stringify(value) : String(value) }
