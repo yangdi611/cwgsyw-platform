@@ -98,6 +98,8 @@ public class TaskAssignmentResolver {
 
     private Map<String, Object> groupSnapshot(AssignmentDirectory.GroupSubject group) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("userId", group.leaderId());
+        snapshot.put("realName", group.leaderName());
         snapshot.put("groupId", group.groupId());
         snapshot.put("groupCode", group.groupCode());
         snapshot.put("groupName", group.groupName());

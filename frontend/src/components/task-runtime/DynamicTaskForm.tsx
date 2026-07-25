@@ -60,7 +60,7 @@ function RepeatingTable({ field, value, attachments, readOnly, uploading, onChan
   const rows = useMemo(() => normalizeRows(value, columns, Number(config.defaultRows ?? 1)), [value, columns, config.defaultRows])
   const minRows = Math.max(0, Number(config.minRows ?? 0))
   const maxRows = Math.max(minRows, Number(config.maxRows ?? 50))
-  const requiresRowNormalization = !Array.isArray(value) || value.some((row) => !isRow(row) || typeof row.__rowId !== 'string' || !row.__rowId)
+  const requiresRowNormalization = !Array.isArray(value) || rowsNeedNormalization(value)
   useEffect(() => {
     if (!readOnly && requiresRowNormalization && rows.length > 0) onChange(rows)
   }, [onChange, readOnly, requiresRowNormalization, rows])
@@ -83,7 +83,7 @@ function TableCell({ column, value, readOnly, attachments, uploading, attachment
   if (column.type === 'file' || column.type === 'image') return <AttachmentCell attachments={attachments} readOnly={readOnly} uploading={uploading} accept={column.type === 'image' ? 'image/*' : undefined} compact attachmentFeedback={attachmentFeedback} onUpload={onUpload} onDeleteAttachment={onDeleteAttachment} />
   if (column.type === 'textarea') return <Textarea disabled={readOnly} rows={2} value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
   if (column.type === 'number') return <Input disabled={readOnly} type="number" min={numberSetting(column, 'min')} max={numberSetting(column, 'max')} step={numberStep(column)} value={stringValue(value)} onChange={(event) => onChange(event.target.value === '' ? null : Number(event.target.value))} />
-  if (column.type === 'single_select') return <Select disabled={readOnly} value={stringValue(value)} onValueChange={onChange}><SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger><SelectContent>{columnOptions(column).map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select>
+  if (column.type === 'single_select') { const selectOptions = columnOptions(column); return <Select disabled={readOnly} value={stringValue(value)} onValueChange={onChange}><SelectTrigger><SelectValue placeholder="请选择">{(selected: string) => selectOptions.find((option) => option.value === selected)?.label ?? '请选择'}</SelectValue></SelectTrigger><SelectContent>{selectOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select> }
   if (column.type === 'date' || column.type === 'datetime') return <Input disabled={readOnly} type={column.type === 'date' ? 'date' : 'datetime-local'} value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
   return <Input disabled={readOnly} value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
 }
@@ -101,7 +101,7 @@ function renderControl(field: TaskFieldDefinition, value: unknown, readOnly: boo
   if (['textarea', 'rich_text'].includes(field.type)) return <Textarea disabled={readOnly} rows={field.type === 'rich_text' ? 8 : 4} value={stringValue(value)} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
   if (['number', 'money', 'percentage', 'rating', 'duration'].includes(field.type)) return <Input disabled={readOnly} type="number" value={stringValue(value)} placeholder={placeholder} onChange={(event) => onChange(event.target.value === '' ? null : Number(event.target.value))} />
   if (field.type === 'boolean') return <label className="flex h-10 items-center gap-2"><input disabled={readOnly} type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span className="text-sm text-v2-muted">{Boolean(value) ? '是' : '否'}</span></label>
-  if (field.type === 'single_select') return <Select disabled={readOnly} value={stringValue(value)} onValueChange={onChange}><SelectTrigger><SelectValue placeholder={placeholder || '请选择'} /></SelectTrigger><SelectContent>{options(field).map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select>
+  if (field.type === 'single_select') { const selectOptions = options(field); return <Select disabled={readOnly} value={stringValue(value)} onValueChange={onChange}><SelectTrigger><SelectValue placeholder={placeholder || '请选择'}>{(selected: string) => selectOptions.find((option) => option.value === selected)?.label ?? placeholder ?? '请选择'}</SelectValue></SelectTrigger><SelectContent>{selectOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select> }
   if (field.type === 'multi_select' || field.type === 'tags') { const selected = Array.isArray(value) ? value.map(String) : []; return <div className="flex flex-wrap gap-2">{options(field).map((option) => <label key={option.value} className="flex items-center gap-2 rounded-v2-md border border-v2-border px-3 py-2 text-sm"><input disabled={readOnly} type="checkbox" checked={selected.includes(option.value)} onChange={(event) => onChange(event.target.checked ? [...selected, option.value] : selected.filter((item) => item !== option.value))} />{option.label}</label>)}</div> }
   if (field.type === 'date' || field.type === 'datetime') return <Input disabled={readOnly} type={field.type === 'date' ? 'date' : 'datetime-local'} value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
   if (['user', 'group', 'role'].includes(field.type)) return <Input disabled={readOnly} type="number" min={1} value={stringValue(value)} placeholder="输入对象 ID" onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)} />
@@ -110,12 +110,29 @@ function renderControl(field: TaskFieldDefinition, value: unknown, readOnly: boo
 }
 
 function normalizeRows(value: unknown, columns: TableColumn[], defaultRows: number): TableRow[] {
-  if (Array.isArray(value)) return value.filter(isRow).map((row, index) => applyAutoNumbers({ ...row, __rowId: row.__rowId || rowId() }, columns, index))
+  if (Array.isArray(value)) {
+    const used = new Set<string>()
+    return value.filter(isRow).map((row, index) => {
+      const candidate = typeof row.__rowId === 'string' && isValidRowId(row.__rowId) && !used.has(row.__rowId) ? row.__rowId : rowId()
+      used.add(candidate)
+      return applyAutoNumbers({ ...row, __rowId: candidate }, columns, index)
+    })
+  }
   return Array.from({ length: Math.max(0, defaultRows) }, (_, index) => createRow(columns, index))
 }
 function createRow(columns: TableColumn[], index: number, source?: TableRow): TableRow { return applyAutoNumbers({ ...(source ?? {}), __rowId: rowId() }, columns, index) }
 function applyAutoNumbers(row: TableRow, columns: TableColumn[], index: number): TableRow { const next = { ...row }; columns.filter((column) => column.type === 'auto_number').forEach((column) => { const config = column.validation ?? {}; next[column.key] = Number(config.start ?? 1) + index * Number(config.step ?? 1) }); return next }
-function rowId() { return globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 16) ?? `row${Date.now()}${Math.random().toString(36).slice(2, 8)}` }
+function rowId() { return globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 16) ?? `r${Date.now().toString(36).slice(-8)}${Math.random().toString(36).slice(2, 12)}` }
+function isValidRowId(value: string) { return /^[a-zA-Z0-9_-]{8,32}$/.test(value) }
+function rowsNeedNormalization(value: unknown) {
+  if (!Array.isArray(value)) return true
+  const used = new Set<string>()
+  return value.some((row) => {
+    if (!isRow(row) || typeof row.__rowId !== 'string' || !isValidRowId(row.__rowId) || used.has(row.__rowId)) return true
+    used.add(row.__rowId)
+    return false
+  })
+}
 function tableAttachmentKey(tableKey: string, rowId: string, columnKey: string) { return `${tableKey}${TABLE_ATTACHMENT_SEPARATOR}${rowId}${TABLE_ATTACHMENT_SEPARATOR}${columnKey}` }
 function tableSummaries(rows: TableRow[], columns: TableColumn[]) { return columns.filter((column) => column.type === 'number' && column.summary && column.summary !== 'none').map((column) => { const values = rows.map((row) => Number(row[column.key])).filter(Number.isFinite); if (values.length === 0) return { key: column.key, text: '-' }; const summary = column.summary === 'sum' ? values.reduce((total, item) => total + item, 0) : column.summary === 'avg' ? values.reduce((total, item) => total + item, 0) / values.length : column.summary === 'min' ? Math.min(...values) : Math.max(...values); return { key: column.key, text: `${summaryLabel(column.summary)}：${summary}` } }) }
 function summaryLabel(summary: TableColumn['summary']) { const labels: Record<NonNullable<TableColumn['summary']>, string> = { none: '', sum: '合计', avg: '平均', min: '最小', max: '最大' }; return labels[summary ?? 'none'] }

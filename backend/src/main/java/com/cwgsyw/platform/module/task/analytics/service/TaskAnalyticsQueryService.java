@@ -320,16 +320,18 @@ public class TaskAnalyticsQueryService {
     private List<Map<String, Object>> aggregate(QueryData data, AnalyticsQueryRequest request) {
         List<String> dimensions = request.dimensions() == null ? List.of() : request.dimensions();
         Map<GroupKey, Map<String, MetricAccumulator>> grouped = new LinkedHashMap<>();
+        Map<GroupKey, Map<String, Object>> groupLabels = new LinkedHashMap<>();
         for (RecordContext record : data.records()) {
-            List<Map<String, Object>> groups = dimensionCombinations(record, dimensions, data.validated().grain());
-            if (groups.isEmpty()) groups = List.of(Map.of());
-            for (Map<String, Object> values : groups) {
-                GroupKey key = new GroupKey(values);
+            List<DimensionCombination> groups = dimensionCombinations(record, dimensions, data.validated().grain());
+            if (groups.isEmpty()) groups = List.of(new DimensionCombination(Map.of(), Map.of()));
+            for (DimensionCombination group : groups) {
+                GroupKey key = new GroupKey(group.identities());
+                groupLabels.putIfAbsent(key, group.labels());
                 Map<String, MetricAccumulator> accumulators = grouped.computeIfAbsent(key, ignored -> new LinkedHashMap<>());
                 for (AnalyticsQueryRequest.Metric metric : request.metrics()) {
                     String alias = alias(metric);
                     accumulators.computeIfAbsent(alias, ignored -> new MetricAccumulator(metric.aggregation()))
-                        .add(metricValues(record, metric, values), denominatorValues(record, metric), weightValues(record, metric));
+                        .add(metricValues(record, metric, group.labels()), denominatorValues(record, metric), weightValues(record, metric));
                 }
             }
         }
@@ -339,7 +341,7 @@ public class TaskAnalyticsQueryService {
         }
         List<Map<String, Object>> rows = new ArrayList<>();
         grouped.forEach((key, values) -> {
-            Map<String, Object> row = new LinkedHashMap<>(key.values());
+            Map<String, Object> row = new LinkedHashMap<>(groupLabels.getOrDefault(key, key.values()));
             values.forEach((alias, accumulator) -> row.put(alias, accumulator.result()));
             rows.add(row);
         });
@@ -411,13 +413,14 @@ public class TaskAnalyticsQueryService {
         if ("not_empty".equals(operator)) return values.stream().anyMatch(value -> !empty(value));
         Collection<?> expectedValues = expected instanceof Collection<?> collection ? collection : List.of(expected);
         return switch (operator) {
-            case "eq" -> values.stream().anyMatch(value -> Objects.equals(normalize(value), normalize(expected)));
-            case "ne" -> values.stream().noneMatch(value -> Objects.equals(normalize(value), normalize(expected)));
-            case "in" -> values.stream().anyMatch(value -> expectedValues.stream().anyMatch(item -> Objects.equals(normalize(value), normalize(item))));
-            case "not_in" -> values.stream().noneMatch(value -> expectedValues.stream().anyMatch(item -> Objects.equals(normalize(value), normalize(item))));
-            case "contains" -> values.stream().anyMatch(value -> String.valueOf(value).toLowerCase(Locale.ROOT)
+            case "eq" -> values.stream().anyMatch(value -> dimensionMatches(value, expected));
+            case "ne" -> values.stream().noneMatch(value -> dimensionMatches(value, expected));
+            case "in" -> values.stream().anyMatch(value -> expectedValues.stream().anyMatch(item -> dimensionMatches(value, item)));
+            case "not_in" -> values.stream().noneMatch(value -> expectedValues.stream().anyMatch(item -> dimensionMatches(value, item)));
+            case "contains" -> values.stream().map(this::dimensionLabel).anyMatch(value -> String.valueOf(value).toLowerCase(Locale.ROOT)
                 .contains(String.valueOf(expected).toLowerCase(Locale.ROOT)));
-            case "gt", "gte", "lt", "lte" -> values.stream().anyMatch(value -> compareNumbers(value, expected, operator));
+            case "gt", "gte", "lt", "lte" -> values.stream().map(this::dimensionIdentity)
+                .anyMatch(value -> compareNumbers(value, expected, operator));
             default -> false;
         };
     }
@@ -436,18 +439,20 @@ public class TaskAnalyticsQueryService {
         };
     }
 
-    private List<Map<String, Object>> dimensionCombinations(RecordContext record, List<String> dimensions, String grain) {
-        List<Map<String, Object>> rows = new ArrayList<>();
-        rows.add(new LinkedHashMap<>());
+    private List<DimensionCombination> dimensionCombinations(RecordContext record, List<String> dimensions, String grain) {
+        List<DimensionCombination> rows = new ArrayList<>();
+        rows.add(new DimensionCombination(new LinkedHashMap<>(), new LinkedHashMap<>()));
         for (String dimension : dimensions) {
             List<Object> values = dimensionValues(record, dimension, grain);
             if (values.isEmpty()) values = List.of("无该维度数据");
-            List<Map<String, Object>> expanded = new ArrayList<>();
-            for (Map<String, Object> row : rows) {
+            List<DimensionCombination> expanded = new ArrayList<>();
+            for (DimensionCombination row : rows) {
                 for (Object value : values) {
-                    Map<String, Object> next = new LinkedHashMap<>(row);
-                    next.put(dimension, value);
-                    expanded.add(next);
+                    Map<String, Object> identities = new LinkedHashMap<>(row.identities());
+                    Map<String, Object> labels = new LinkedHashMap<>(row.labels());
+                    identities.put(dimension, dimensionIdentity(value));
+                    labels.put(dimension, dimensionLabel(value));
+                    expanded.add(new DimensionCombination(identities, labels));
                 }
             }
             rows = expanded;
@@ -459,9 +464,12 @@ public class TaskAnalyticsQueryService {
         return switch (dimension) {
             case "business_date" -> List.of(timeBucket(record.task().getBusinessDate(), grain));
             case "submitted_at" -> List.of(timeBucket(record.submission().getSubmittedAt().toLocalDate(), grain));
-            case "assignee" -> snapshotValue(record.task().getOrganizationSnapshot(), "userId", record.task().getAssigneeId());
+            case "assignee" -> organizationDimension(record.task().getOrganizationSnapshot(),
+                List.of("userId", "leaderId"), List.of("realName", "username", "leaderName"),
+                record.task().getAssigneeId(), "未指定");
             case "submitter" -> List.of(record.submission().getSubmittedBy());
-            case "owner_group" -> snapshotValue(record.task().getOrganizationSnapshot(), "groupId", record.task().getGroupId());
+            case "owner_group" -> organizationDimension(record.task().getOrganizationSnapshot(),
+                List.of("groupId"), List.of("groupName"), record.task().getGroupId(), "未分组");
             case "template" -> List.of(record.task().getTemplateVersionId());
             case "ci_model_group" -> ciValues(record, "modelGroupCode", "model_group");
             case "ci_model" -> ciValues(record, "modelCode", "model");
@@ -553,7 +561,7 @@ public class TaskAnalyticsQueryService {
 
     private boolean matchesDimensions(RecordContext record, Map<String, Object> dimensions, String grain) {
         return dimensions.entrySet().stream().allMatch(entry -> dimensionValues(record, entry.getKey(), grain).stream()
-            .anyMatch(value -> Objects.equals(normalize(value), normalize(entry.getValue()))));
+            .anyMatch(value -> dimensionMatches(value, entry.getValue())));
     }
 
     private Map<String, Object> trace(RecordContext record, TaskTemplateVersionVO template,
@@ -572,20 +580,24 @@ public class TaskAnalyticsQueryService {
         row.put("fieldFactIds", record.facts().values().stream().flatMap(Collection::stream)
             .map(TaskFieldFact::getId).toList());
         Map<String, Object> snapshot = record.task().getOrganizationSnapshot();
-        row.put("assignee", snapshotDisplay(snapshot, "realName", "username",
+        Map<String, Object> assigneeSnapshot = organizationSnapshot(snapshot,
+            List.of("userId", "leaderId"), record.task().getAssigneeId());
+        Map<String, Object> groupSnapshot = organizationSnapshot(snapshot,
+            List.of("groupId"), record.task().getGroupId());
+        row.put("assignee", snapshotDisplay(assigneeSnapshot, List.of("realName", "username", "leaderName"),
             record.task().getAssigneeId(), "未指定"));
-        row.put("ownerGroup", snapshotDisplay(snapshot, "groupName", null,
+        row.put("ownerGroup", snapshotDisplay(groupSnapshot, List.of("groupName"),
             record.task().getGroupId(), "未分组"));
         row.put("fields", fieldLabels(record, template, visibleFields, request));
         return row;
     }
 
-    private Object snapshotDisplay(Map<String, Object> snapshot, String primaryKey, String secondaryKey,
+    private Object snapshotDisplay(Map<String, Object> snapshot, List<String> keys,
                                    Object fallback, String emptyLabel) {
-        Object primary = snapshot == null ? null : snapshot.get(primaryKey);
-        if (primary != null && StringUtils.hasText(String.valueOf(primary))) return primary;
-        Object secondary = snapshot == null || secondaryKey == null ? null : snapshot.get(secondaryKey);
-        if (secondary != null && StringUtils.hasText(String.valueOf(secondary))) return secondary;
+        for (String key : keys) {
+            Object value = snapshot == null ? null : snapshot.get(key);
+            if (value != null && StringUtils.hasText(String.valueOf(value))) return value;
+        }
         return fallback == null ? emptyLabel : fallback;
     }
 
@@ -749,9 +761,52 @@ public class TaskAnalyticsQueryService {
         };
     }
 
-    private List<Object> snapshotValue(Map<String, Object> snapshot, String key, Object fallback) {
-        Object value = snapshot == null ? null : snapshot.get(key);
-        return value == null && fallback == null ? List.of() : List.of(value == null ? fallback : value);
+    private List<Object> organizationDimension(Map<String, Object> snapshot, List<String> idKeys,
+                                               List<String> labelKeys, Object fallbackId, String emptyLabel) {
+        Map<String, Object> source = organizationSnapshot(snapshot, idKeys, fallbackId);
+        Object identity = snapshotDisplay(source, idKeys, fallbackId, emptyLabel);
+        Object label = snapshotDisplay(source, labelKeys, identity, emptyLabel);
+        return List.of(new DimensionMember(identity, label));
+    }
+
+    private Map<String, Object> organizationSnapshot(Map<String, Object> snapshot, List<String> idKeys,
+                                                     Object fallbackId) {
+        if (snapshot == null) return Map.of();
+        if (idKeys.stream().anyMatch(snapshot::containsKey)) return snapshot;
+        for (String collectionKey : List.of("users", "groups")) {
+            Object nested = snapshot.get(collectionKey);
+            if (!(nested instanceof Collection<?> values)) continue;
+            for (Object value : values) {
+                if (!(value instanceof Map<?, ?> candidate)) continue;
+                Map<String, Object> mapped = stringKeyMap(candidate);
+                boolean matches = fallbackId == null || idKeys.stream().map(mapped::get)
+                    .anyMatch(identity -> Objects.equals(normalize(identity), normalize(fallbackId)));
+                if (matches) return mapped;
+            }
+        }
+        return snapshot;
+    }
+
+    private Map<String, Object> stringKeyMap(Map<?, ?> source) {
+        Map<String, Object> mapped = new LinkedHashMap<>();
+        source.forEach((key, value) -> mapped.put(String.valueOf(key), value));
+        return mapped;
+    }
+
+    private boolean dimensionMatches(Object candidate, Object expected) {
+        if (candidate instanceof DimensionMember member) {
+            return Objects.equals(normalize(member.identity()), normalize(expected))
+                || Objects.equals(normalize(member.label()), normalize(expected));
+        }
+        return Objects.equals(normalize(candidate), normalize(expected));
+    }
+
+    private Object dimensionIdentity(Object value) {
+        return value instanceof DimensionMember member ? member.identity() : value;
+    }
+
+    private Object dimensionLabel(Object value) {
+        return value instanceof DimensionMember member ? member.label() : value;
     }
 
     private Map<String, Object> dimension(String key, String label, String category) {
@@ -803,6 +858,10 @@ public class TaskAnalyticsQueryService {
     private record GroupKey(Map<String, Object> values) {
         private GroupKey { values = Map.copyOf(values); }
     }
+
+    private record DimensionCombination(Map<String, Object> identities, Map<String, Object> labels) {}
+
+    private record DimensionMember(Object identity, Object label) {}
 
     private static final class MetricAccumulator {
         private final String aggregation;

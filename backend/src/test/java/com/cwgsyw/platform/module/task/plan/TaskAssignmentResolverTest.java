@@ -53,7 +53,12 @@ class TaskAssignmentResolverTest {
         assertThat(resolver.resolve("default", "per_user", Map.of("strategy", "group_members", "groupIds", List.of(10)), occurrence)).hasSize(2);
         assertThat(resolver.resolve("default", "per_user", Map.of("strategy", "all_users"), occurrence))
             .extracting(target -> target.assigneeId()).containsExactly(1L, 2L);
-        assertThat(resolver.resolve("default", "per_group", Map.of("groupIds", List.of(10, 20)), occurrence)).hasSize(2);
+        assertThat(resolver.resolve("default", "per_group", Map.of("groupIds", List.of(10, 20)), occurrence))
+            .hasSize(2).first().satisfies(target -> assertThat(target.organizationSnapshot())
+                .containsEntry("userId", 110L)
+                .containsEntry("realName", "负责人10")
+                .containsEntry("groupId", 10L)
+                .containsEntry("groupName", "组10"));
         assertThat(resolver.resolve("default", "shared", Map.of("userIds", List.of(1, 2), "groupIds", List.of(10)), occurrence))
             .singleElement().satisfies(target -> assertThat(target.organizationSnapshot()).containsKeys("users", "groups"));
         assertThat(resolver.resolve("default", "single", Map.of("strategy", "duty_roster", "groupIds", List.of(10)), occurrence))

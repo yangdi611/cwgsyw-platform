@@ -6,6 +6,7 @@ import com.cwgsyw.platform.module.approval.service.ApprovalApplicationPort;
 import com.cwgsyw.platform.module.task.notification.TaskNotificationOutbox;
 import com.cwgsyw.platform.module.task.metric.TaskMetricService;
 import com.cwgsyw.platform.module.task.runtime.dto.CreateTaskSubmissionRequest;
+import com.cwgsyw.platform.module.task.runtime.dto.ReassignTaskRequest;
 import com.cwgsyw.platform.module.task.runtime.dto.SaveTaskDraftRequest;
 import com.cwgsyw.platform.module.task.runtime.dto.TaskActionsVO;
 import com.cwgsyw.platform.module.task.runtime.entity.TaskDraft;
@@ -70,6 +71,7 @@ class TaskRuntimeServiceTransactionTest {
     @Mock TaskFieldFactMapper factMapper;
     @Mock TaskTemplateService templateService;
     @Mock UserMapper userMapper;
+    @Mock TaskNotificationOutbox notificationOutbox;
     @Mock ApprovalApplicationPort approvalApplication;
     @Mock TaskMetricService metricService;
     @Mock AuditLogMapper auditLogMapper;
@@ -126,7 +128,7 @@ class TaskRuntimeServiceTransactionTest {
         service = new TaskRuntimeService(taskMapper, draftMapper, submissionMapper, submissionAttachmentMapper,
             referenceMapper, participantMapper, eventMapper, factMapper, templateService,
             new TemplateFormRuntime(new FieldTypeRegistry(), new ExpressionEngine()), visibilityService,
-            attachmentService, null, metricService, new TaskAggregateReferenceService(metricService), userMapper,
+            attachmentService, notificationOutbox, metricService, new TaskAggregateReferenceService(metricService), userMapper,
             new ObjectMapper().findAndRegisterModules(),
             approvalApplication, auditLogMapper, eventPublisher);
         user = new SecurityUser(9L, "operator", "", "tenant-a", 3L, "group",
@@ -181,6 +183,33 @@ class TaskRuntimeServiceTransactionTest {
         assertThat(result.submissionId()).isEqualTo(55L);
         assertThat(actionCalls).hasValue(0);
         verify(submissionMapper, never()).insert(any(TaskSubmission.class));
+    }
+
+    @Test
+    void reassignUpdatesAssigneeOrganizationSnapshot() {
+        TaskInstance task = task("in_progress", 1);
+        task.setTitle("转派测试任务");
+        task.setGroupId(3L);
+        task.setOrganizationSnapshot(Map.of(
+            "userId", 9L, "realName", "旧执行人", "groupId", 3L, "groupName", "原组"));
+        com.cwgsyw.platform.module.user.entity.User assignee = new com.cwgsyw.platform.module.user.entity.User();
+        assignee.setId(12L); assignee.setTenantId("tenant-a"); assignee.setUsername("new-user");
+        assignee.setRealName("新执行人"); assignee.setGroupId(5L); assignee.setStatus(1); assignee.setIsDeleted(false);
+        when(taskMapper.lockById("tenant-a", 1L)).thenReturn(task);
+        when(userMapper.selectOne(any())).thenReturn(assignee);
+        when(templateService.getVersion("tenant-a", 7L)).thenReturn(template(field("evidence", false)));
+
+        service.reassign(user, 1L, new ReassignTaskRequest(12L, null, "交接"));
+
+        assertThat(task.getAssigneeId()).isEqualTo(12L);
+        assertThat(task.getGroupId()).isEqualTo(5L);
+        assertThat(task.getOrganizationSnapshot())
+            .containsEntry("userId", 12L)
+            .containsEntry("username", "new-user")
+            .containsEntry("realName", "新执行人")
+            .containsEntry("groupId", 5L)
+            .doesNotContainKey("groupName");
+        verify(taskMapper).updateById(task);
     }
 
     @Test
@@ -388,7 +417,7 @@ class TaskRuntimeServiceTransactionTest {
     }
 
     private TaskActionsVO actions(boolean edit, boolean submit) {
-        return new TaskActionsVO(false, edit, submit, false, false, false, true);
+        return new TaskActionsVO(false, edit, submit, false, true, false, true);
     }
 
     private TaskSubmission submission(Long id, Long taskId) {

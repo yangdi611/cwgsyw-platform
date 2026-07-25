@@ -168,6 +168,51 @@ class TaskAnalyticsQueryServiceTest {
     }
 
     @Test
+    void displaysLegacyGroupLeaderNameInDetailsAndAssigneeDimension() {
+        TaskInstance leaderTask = task(1L, "approved", 20L, LocalDate.of(2026, 7, 1));
+        leaderTask.setAssigneeId(110L);
+        leaderTask.setOrganizationSnapshot(Map.of(
+            "groupId", 20L, "groupName", "数据库组", "leaderId", 110L, "leaderName", "负责人"));
+        tasks = List.of(leaderTask, task(2L, "changes_requested", 20L, LocalDate.of(2026, 7, 2)));
+        when(taskMapper.selectList(any())).thenReturn(tasks);
+
+        AnalyticsQueryResponse details = service.query(user, requestWithPolicy(
+            List.of(), List.of(), "text_list", List.of("result"), "current_effective"));
+        AnalyticsQueryResponse grouped = service.query(user, requestWithPolicy(
+            List.of(metric("work_hours", "sum", "hours")), List.of("assignee"),
+            "aggregate", null, "current_effective"));
+        AnalyticsQueryRequest base = requestWithPolicy(List.of(metric("work_hours", "sum", "hours")),
+            List.of("assignee"), "aggregate", null, "current_effective");
+        AnalyticsQueryResponse filteredById = service.query(user, new AnalyticsQueryRequest(
+            base.source(), base.time(), base.metrics(), base.dimensions(),
+            List.of(new AnalyticsQueryRequest.Filter("assignee", "eq", 110L)), base.effectivePolicy(),
+            base.orderBy(), base.limit(), base.output(), base.detailFields(), base.textSearch()));
+
+        assertThat(details.rows()).anySatisfy(row -> assertThat(row).containsEntry("assignee", "负责人"));
+        assertThat(grouped.rows()).anySatisfy(row -> assertThat(row)
+            .containsEntry("assignee", "负责人").containsEntry("hours", number("2")));
+        assertThat(filteredById.rows()).singleElement().satisfies(row -> assertThat(row)
+            .containsEntry("assignee", "负责人").containsEntry("hours", number("2")));
+    }
+
+    @Test
+    void displaysAssigneeAndGroupNamesFromSharedTaskSnapshot() {
+        TaskInstance sharedTask = task(1L, "approved", 20L, LocalDate.of(2026, 7, 1));
+        sharedTask.setAssigneeId(110L);
+        sharedTask.setOrganizationSnapshot(Map.of(
+            "users", List.of(Map.of("userId", 110L, "realName", "共享执行人", "groupId", 20L, "groupName", "数据库组")),
+            "groups", List.of(Map.of("groupId", 20L, "groupName", "数据库组", "leaderId", 110L, "leaderName", "共享执行人"))));
+        tasks = List.of(sharedTask, task(2L, "changes_requested", 20L, LocalDate.of(2026, 7, 2)));
+        when(taskMapper.selectList(any())).thenReturn(tasks);
+
+        AnalyticsQueryResponse details = service.query(user, requestWithPolicy(
+            List.of(), List.of(), "text_list", List.of("result"), "current_effective"));
+
+        assertThat(details.rows()).anySatisfy(row -> assertThat(row)
+            .containsEntry("assignee", "共享执行人").containsEntry("ownerGroup", "数据库组"));
+    }
+
+    @Test
     void groupsChoiceAndMultiSelectFactsAndSupportsTableColumnDrilldown() {
         AnalyticsQueryResponse categories = service.query(user, requestWithPolicy(
             List.of(new AnalyticsQueryRequest.Metric("result", null, "count", "count", null, null, null)),

@@ -233,23 +233,23 @@ function OpsCalendarInner() {
         {scopeOptions.map((option) => <FilterChip key={option.value} active={scope === option.value} onClick={() => setScope(option.value)}>{option.label}</FilterChip>)}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Select value={templateId} onValueChange={(value) => setTemplateId(value ?? 'all')}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="任务模板" /></SelectTrigger>
+            <SelectTrigger className="w-44"><SelectValue placeholder="任务模板">{(value: string) => value === 'all' ? '全部模板' : templates.data?.find((template) => String(template.id) === value)?.name ?? '任务模板'}</SelectValue></SelectTrigger>
             <SelectContent><SelectItem value="all">全部模板</SelectItem>{templates.data?.map((template) => <SelectItem key={template.id} value={String(template.id)}>{template.name}</SelectItem>)}</SelectContent>
           </Select>
           {hasPermission('user', 'read') && (
             <Select value={assigneeId} onValueChange={(value) => setAssigneeId(value ?? 'all')}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="负责人" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder="负责人">{(value: string) => { const user = users.data?.find((item) => String(item.id) === value); return value === 'all' ? '全部人员' : user ? user.realName || user.username : '负责人' }}</SelectValue></SelectTrigger>
               <SelectContent><SelectItem value="all">全部人员</SelectItem>{users.data?.map((user) => <SelectItem key={user.id} value={String(user.id)}>{user.realName || user.username}</SelectItem>)}</SelectContent>
             </Select>
           )}
           {hasPermission('group', 'read') && (
             <Select value={groupId} onValueChange={(value) => setGroupId(value ?? 'all')}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="所属组" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder="所属组">{(value: string) => value === 'all' ? '全部组' : groups.data?.find((group) => String(group.id) === value)?.name ?? '所属组'}</SelectValue></SelectTrigger>
               <SelectContent><SelectItem value="all">全部组</SelectItem>{groups.data?.map((group) => <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>)}</SelectContent>
             </Select>
           )}
           <Select value={layer} onValueChange={(value) => setLayer((value ?? 'all') as CalendarLayer)}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="显示内容" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder="显示内容">{(value: string) => ({ all: '全部内容', tasks: '任务', rosters: '排班', holidays: '节假日' })[value] ?? '显示内容'}</SelectValue></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部内容</SelectItem>
               <SelectItem value="tasks">任务</SelectItem>
@@ -258,7 +258,7 @@ function OpsCalendarInner() {
             </SelectContent>
           </Select>
           <Select value={status || 'all'} onValueChange={(value) => setStatus(value === 'all' ? '' : value ?? '')}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="状态" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder="状态">{(value: string) => value === 'all' ? '全部状态' : STATUS_LABELS[value] ?? '状态'}</SelectValue></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
               {Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}

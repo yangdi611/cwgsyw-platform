@@ -110,6 +110,20 @@ class TemplateFormRuntimeTest {
             .containsEntry("sequence", 10).containsKey("__rowId");
     }
 
+    @Test
+    void acceptsLegacyBrowserFallbackRowId() {
+        TaskFieldDefinition table = field("items", "table");
+        table.setValidation(Map.of("columns", List.of(
+            Map.of("key", "item", "label", "事项", "type", "text")
+        )));
+
+        var result = runtime.evaluate(List.of(table), Map.of("items", List.of(
+            Map.of("__rowId", "row1784984565266q8k9p1", "item", "完成日志")
+        )));
+
+        assertThat(result.issues()).isEmpty();
+    }
+
     private TaskFieldDefinition field(String key, String type) {
         TaskFieldDefinition field = new TaskFieldDefinition();
         field.setKey(key);

@@ -38,6 +38,15 @@ import {
 
 const today = new Date().toISOString().slice(0, 10)
 const monthStart = `${today.slice(0, 8)}01`
+type SelectOption = { value: string; label: string }
+const metricValueTypeOptions: SelectOption[] = [{ value: 'number', label: '数值' }, { value: 'count', label: '计数' }, { value: 'percentage', label: '百分比' }, { value: 'duration', label: '时长' }, { value: 'ratio', label: '比率' }]
+const metricAggregationLabels: Record<string, string> = { sum: '合计', avg: '平均值', min: '最小值', max: '最大值', count: '计数', distinct_count: '去重计数', latest: '最新值', ratio: '比率' }
+const metricAdditivityOptions: SelectOption[] = [{ value: 'additive', label: '可加' }, { value: 'non_additive', label: '不可加' }, { value: 'semi_additive', label: '半可加' }, { value: 'distinct', label: '去重' }, { value: 'snapshot', label: '快照' }, { value: 'formula', label: '公式' }]
+const sourceRoleOptions: SelectOption[] = [{ value: 'fact', label: '明细事实' }, { value: 'system_rollup', label: '系统汇总' }, { value: 'manual_report', label: '人工上报' }]
+const ratioComponentOptions: SelectOption[] = [{ value: '', label: '请选择' }, { value: 'numerator', label: '分子' }, { value: 'denominator', label: '分母' }]
+const comparisonOptions: SelectOption[] = [{ value: 'at_least', label: '至少' }, { value: 'at_most', label: '至多' }, { value: 'exact', label: '等于' }]
+const periodOptions: SelectOption[] = [{ value: 'daily', label: '每日' }, { value: 'weekly', label: '每周' }, { value: 'monthly', label: '每月' }, { value: 'quarterly', label: '每季度' }, { value: 'yearly', label: '每年' }, { value: 'custom', label: '自定义' }]
+const scopeLabels: Record<string, string> = { tenant: '全平台', template: '任务模板', group: '用户组', user: '用户' }
 
 export function TaskMetricsManager() {
   const { hasPermission } = usePermission()
@@ -294,10 +303,10 @@ function MetricDefinitionForm({ value, onChange, onSubmit, busy, submitLabel }: 
     <div className="grid gap-3 border border-v2-border bg-v2-surface-soft p-3 sm:grid-cols-2">
       <label className="text-sm">名称<Input value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} /></label>
       <label className="text-sm">稳定编码<Input value={value.code} onChange={(event) => onChange({ ...value, code: event.target.value.replace(/\s+/g, '_').toLowerCase() })} /></label>
-      <label className="text-sm">值类型<Select value={value.valueType} onChange={(valueType) => onChange({ ...value, valueType: valueType as MetricValueType, aggregation: valueType === 'ratio' ? 'ratio' : value.aggregation === 'ratio' ? 'sum' : value.aggregation })} options={['number', 'count', 'percentage', 'duration', 'ratio']} /></label>
-      <label className="text-sm">聚合方式<Select value={value.aggregation} onChange={(aggregation) => onChange({ ...value, aggregation: aggregation as MetricAggregation })} options={aggregations} /></label>
-      <label className="text-sm">可加性<Select value={value.additivity} onChange={(additivity) => onChange({ ...value, additivity: additivity as MetricAdditivity })} options={['additive', 'non_additive', 'semi_additive', 'distinct', 'snapshot', 'formula']} /></label>
-      <label className="text-sm">权威来源<Select value={value.authoritySource} onChange={(authoritySource) => onChange({ ...value, authoritySource: authoritySource as MetricSourceRole })} options={['fact', 'system_rollup', 'manual_report']} /></label>
+      <label className="text-sm">值类型<Select value={value.valueType} onChange={(valueType) => onChange({ ...value, valueType: valueType as MetricValueType, aggregation: valueType === 'ratio' ? 'ratio' : value.aggregation === 'ratio' ? 'sum' : value.aggregation })} options={metricValueTypeOptions} /></label>
+      <label className="text-sm">聚合方式<Select value={value.aggregation} onChange={(aggregation) => onChange({ ...value, aggregation: aggregation as MetricAggregation })} options={aggregations.map((aggregation) => ({ value: aggregation, label: metricAggregationLabels[aggregation] ?? aggregation }))} /></label>
+      <label className="text-sm">可加性<Select value={value.additivity} onChange={(additivity) => onChange({ ...value, additivity: additivity as MetricAdditivity })} options={metricAdditivityOptions} /></label>
+      <label className="text-sm">权威来源<Select value={value.authoritySource} onChange={(authoritySource) => onChange({ ...value, authoritySource: authoritySource as MetricSourceRole })} options={sourceRoleOptions} /></label>
       <label className="text-sm">单位（可选）<Input value={value.unit} onChange={(event) => onChange({ ...value, unit: event.target.value })} /></label>
       <label className="text-sm">小数位<Input type="number" min="0" max="10" value={value.scale} onChange={(event) => onChange({ ...value, scale: event.target.value })} /></label>
       <label className="text-sm sm:col-span-2">说明<Input value={value.description} onChange={(event) => onChange({ ...value, description: event.target.value })} /></label>
@@ -350,8 +359,8 @@ function MetricDetail(props: MetricDetailProps) {
             <div className="mt-3 grid gap-3 border border-v2-border bg-v2-surface-soft p-3 md:grid-cols-4">
               <label className="text-sm">模板版本<select className={selectClass} value={bindingDraft.templateVersionId ?? ''} onChange={(event) => onBindingDraft({ ...bindingDraft, templateVersionId: Number(event.target.value) || undefined, fieldId: undefined })}><option value="">选择模板</option>{templates.filter((item) => item.latestVersionId).map((item) => <option key={item.id} value={item.latestVersionId}>{item.name}</option>)}</select></label>
               <label className="text-sm">统计字段<select className={selectClass} value={bindingDraft.fieldId ?? ''} onChange={(event) => onBindingDraft({ ...bindingDraft, fieldId: Number(event.target.value) || undefined })}><option value="">选择字段</option>{fields.map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
-              <label className="text-sm">来源角色<Select value={bindingDraft.sourceRole} onChange={(sourceRole) => onBindingDraft({ ...bindingDraft, sourceRole: sourceRole as MetricSourceRole })} options={['fact', 'system_rollup', 'manual_report']} /></label>
-              {metric.valueType === 'ratio' && <label className="text-sm">比率组成<Select value={bindingDraft.ratioComponent ?? ''} onChange={(ratioComponent) => onBindingDraft({ ...bindingDraft, ratioComponent: ratioComponent as BindingDraft['ratioComponent'] })} options={['', 'numerator', 'denominator']} /></label>}
+              <label className="text-sm">来源角色<Select value={bindingDraft.sourceRole} onChange={(sourceRole) => onBindingDraft({ ...bindingDraft, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} /></label>
+              {metric.valueType === 'ratio' && <label className="text-sm">比率组成<Select value={bindingDraft.ratioComponent ?? ''} onChange={(ratioComponent) => onBindingDraft({ ...bindingDraft, ratioComponent: ratioComponent as BindingDraft['ratioComponent'] })} options={ratioComponentOptions} /></label>}
               <label className="text-sm">换算系数{needsConversion ? ' *' : ''}<Input type="number" min="0.000001" step="any" value={bindingDraft.conversionFactor} placeholder={needsConversion ? `${sourceUnit} → ${metric.unit}` : '默认 1'} onChange={(event) => onBindingDraft({ ...bindingDraft, conversionFactor: event.target.value })} /></label>
               <div className="md:col-span-4"><Button size="sm" onClick={onAddBinding} disabled={addingBinding || !bindingDraft.templateVersionId || !bindingDraft.fieldId || (metric.valueType === 'ratio' && !bindingDraft.ratioComponent) || (needsConversion && !bindingDraft.conversionFactor)}><Link2 className="h-4 w-4" />绑定字段</Button></div>
             </div>
@@ -378,7 +387,7 @@ function BindingEditor({ value, onChange, onSave, saving, onCancel }: {
   saving: boolean
   onCancel: () => void
 }) {
-  return <div className="grid gap-3 py-3 md:grid-cols-[1fr_180px_160px_auto] md:items-end"><p className="text-sm">{value.fieldLabel}<span className="block text-xs text-v2-muted">{value.fieldKey}</span></p><label className="text-sm">来源角色<Select value={value.sourceRole} onChange={(sourceRole) => onChange({ ...value, sourceRole: sourceRole as MetricSourceRole })} options={['fact', 'system_rollup', 'manual_report']} /></label><label className="text-sm">换算系数<Input type="number" min="0.000001" step="any" value={value.conversionFactor} onChange={(event) => onChange({ ...value, conversionFactor: event.target.value })} /></label><div className="flex items-center gap-1"><label className="mr-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={(event) => onChange({ ...value, enabled: event.target.checked })} />启用</label><Button size="sm" title="保存绑定" onClick={onSave} disabled={saving}><Save className="h-4 w-4" /></Button><Button size="sm" variant="ghost" title="取消编辑" onClick={onCancel}><X className="h-4 w-4" /></Button></div></div>
+  return <div className="grid gap-3 py-3 md:grid-cols-[1fr_180px_160px_auto] md:items-end"><p className="text-sm">{value.fieldLabel}<span className="block text-xs text-v2-muted">{value.fieldKey}</span></p><label className="text-sm">来源角色<Select value={value.sourceRole} onChange={(sourceRole) => onChange({ ...value, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} /></label><label className="text-sm">换算系数<Input type="number" min="0.000001" step="any" value={value.conversionFactor} onChange={(event) => onChange({ ...value, conversionFactor: event.target.value })} /></label><div className="flex items-center gap-1"><label className="mr-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={(event) => onChange({ ...value, enabled: event.target.checked })} />启用</label><Button size="sm" title="保存绑定" onClick={onSave} disabled={saving}><Save className="h-4 w-4" /></Button><Button size="sm" variant="ghost" title="取消编辑" onClick={onCancel}><X className="h-4 w-4" /></Button></div></div>
 }
 
 function GoalsCard(props: GoalsCardProps) {
@@ -392,13 +401,13 @@ function GoalsCard(props: GoalsCardProps) {
         {(permissions.create || editingGoalId) && (
           <div className="grid gap-3 border border-v2-border bg-v2-surface-soft p-3 md:grid-cols-3">
             <label className="text-sm">指标<select className={selectClass} value={value.metricId ?? ''} onChange={(event) => onChange({ ...value, metricId: Number(event.target.value) || undefined })}><option value="">选择指标</option>{metrics.map((metric) => <option key={metric.id} value={metric.id}>{metric.name}</option>)}</select></label>
-            <label className="text-sm">范围<Select value={value.scopeType} onChange={(scopeType) => onChange({ ...value, scopeType: scopeType as GoalDraft['scopeType'], scopeKey: '' })} options={allowedScopes} /></label>
+            <label className="text-sm">范围<Select value={value.scopeType} onChange={(scopeType) => onChange({ ...value, scopeType: scopeType as GoalDraft['scopeType'], scopeKey: '' })} options={allowedScopes.map((scope) => ({ value: scope, label: scopeLabels[scope] ?? scope }))} /></label>
             {value.scopeType !== 'tenant' && <label className="text-sm">范围对象<select className={selectClass} value={value.scopeKey} onChange={(event) => onChange({ ...value, scopeKey: event.target.value })}><option value="">请选择</option>{scopeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
             <label className="text-sm">目标值<Input type="number" min="0" step="any" value={value.targetValue} onChange={(event) => onChange({ ...value, targetValue: event.target.value })} /></label>
             <label className="text-sm">预警阈值<Input type="number" min="0" step="any" value={value.warningThreshold} onChange={(event) => onChange({ ...value, warningThreshold: event.target.value })} /></label>
             <label className="text-sm">严重阈值<Input type="number" min="0" step="any" value={value.criticalThreshold} onChange={(event) => onChange({ ...value, criticalThreshold: event.target.value })} /></label>
-            <label className="text-sm">比较<Select value={value.comparison} onChange={(comparison) => onChange({ ...value, comparison: comparison as GoalDraft['comparison'] })} options={['at_least', 'at_most', 'exact']} /></label>
-            <label className="text-sm">周期<Select value={value.periodType} onChange={(periodType) => onChange({ ...value, periodType: periodType as GoalDraft['periodType'] })} options={['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom']} /></label>
+            <label className="text-sm">比较<Select value={value.comparison} onChange={(comparison) => onChange({ ...value, comparison: comparison as GoalDraft['comparison'] })} options={comparisonOptions} /></label>
+            <label className="text-sm">周期<Select value={value.periodType} onChange={(periodType) => onChange({ ...value, periodType: periodType as GoalDraft['periodType'] })} options={periodOptions} /></label>
             <label className="text-sm">生效开始<Input type="date" value={value.effectiveFrom} onChange={(event) => onChange({ ...value, effectiveFrom: event.target.value })} /></label>
             <label className="text-sm">生效结束<Input type="date" value={value.effectiveTo} onChange={(event) => onChange({ ...value, effectiveTo: event.target.value })} /></label>
             <div className="flex items-end gap-2"><Button size="sm" onClick={onSave} disabled={saving || !value.metricId || value.targetValue === '' || (value.scopeType !== 'tenant' && !value.scopeKey)}><Save className="h-4 w-4" />{editingGoalId ? '更新目标' : '创建目标'}</Button>{editingGoalId && <Button size="sm" variant="ghost" onClick={onCancelEdit}><X className="h-4 w-4" />取消</Button>}</div>
@@ -415,8 +424,8 @@ function GoalsCard(props: GoalsCardProps) {
 
 const selectClass = 'mt-1 h-9 w-full border border-v2-border bg-v2-surface px-2'
 
-function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: string[] }) {
-  return <select className={selectClass} value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: SelectOption[] }) {
+  return <select className={selectClass} value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
 }
 
 function MetricValue({ label, value, note }: { label: string; value?: number; note?: string }) {

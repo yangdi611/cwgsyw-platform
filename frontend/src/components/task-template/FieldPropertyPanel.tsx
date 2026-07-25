@@ -9,6 +9,11 @@ import { Textarea } from '@/components/v2/Textarea'
 import type { FieldTypeMetadata, TaskFieldDefinition } from '@/lib/task-template-api'
 import { formatJson, parseJsonObject } from './designer-utils'
 
+const AGGREGATION_LABELS: Record<string, string> = {
+  sum: '合计', avg: '平均值', min: '最小值', max: '最大值', count: '计数',
+  distinct_count: '去重计数', weighted_avg: '加权平均值', ratio: '比率',
+}
+
 export function FieldPropertyPanel({
   field,
   fieldType,
@@ -74,7 +79,7 @@ export function FieldPropertyPanel({
         {analytics.enabled === true && (
           <>
             <div className="space-y-1"><Label>统计角色</Label><select disabled={readOnly} value={String((analytics.role as string[] | undefined)?.[0] ?? 'metric')} onChange={(event) => update('analytics', { ...analytics, role: [event.target.value] })} className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm"><option value="metric">指标</option>{fieldType?.supportsDimension && <option value="dimension">维度</option>}<option value="filter">筛选</option><option value="detail">明细</option></select></div>
-            {aggregationOptions.length > 0 && <div className="space-y-1"><Label>聚合方式</Label><select disabled={readOnly} value={String(analytics.aggregation ?? aggregationOptions[0])} onChange={(event) => update('analytics', { ...analytics, aggregation: event.target.value })} className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm">{aggregationOptions.map((aggregation) => <option key={aggregation} value={aggregation}>{aggregation}</option>)}</select></div>}
+            {aggregationOptions.length > 0 && <div className="space-y-1"><Label>聚合方式</Label><select disabled={readOnly} value={String(analytics.aggregation ?? aggregationOptions[0])} onChange={(event) => update('analytics', { ...analytics, aggregation: event.target.value })} className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm">{aggregationOptions.map((aggregation) => <option key={aggregation} value={aggregation}>{AGGREGATION_LABELS[aggregation] ?? aggregation}</option>)}</select></div>}
             <div className="space-y-1"><Label>单位</Label><Input disabled={readOnly} value={String(analytics.unit ?? '')} onChange={(event) => update('analytics', { ...analytics, unit: event.target.value })} /></div>
           </>
         )}
@@ -129,7 +134,7 @@ function TableConfigEditor({ field, disabled, onChange }: { field: TaskFieldDefi
       <NumberSetting label="最多行数" value={validation.maxRows} disabled={disabled} onChange={(value) => update({ maxRows: value })} />
     </div>
     <div className="space-y-3">
-      {columns.map((column, index) => <TableColumnEditor key={`${column.key}:${index}`} column={column} index={index} total={columns.length} disabled={disabled} onChange={(next) => updateColumn(index, next)} onMove={(direction) => moveColumn(index, direction)} onRemove={() => update({ columns: columns.filter((_, current) => current !== index) })} />)}
+      {columns.map((column, index) => <TableColumnEditor key={index} column={column} index={index} total={columns.length} disabled={disabled} onChange={(next) => updateColumn(index, next)} onMove={(direction) => moveColumn(index, direction)} onRemove={() => update({ columns: columns.filter((_, current) => current !== index) })} />)}
     </div>
     <button type="button" disabled={disabled} onClick={addColumn} className="flex w-full items-center justify-center gap-1 rounded-v2-md border border-dashed border-v2-primary px-3 py-2 text-sm font-medium text-v2-primary hover:bg-v2-primary-soft disabled:opacity-50"><Plus className="h-4 w-4" />新增列</button>
   </section>

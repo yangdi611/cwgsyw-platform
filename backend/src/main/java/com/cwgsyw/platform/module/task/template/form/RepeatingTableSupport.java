@@ -19,7 +19,7 @@ public final class RepeatingTableSupport {
     public static final Set<String> NUMERIC_TYPES = Set.of("number");
     public static final Set<String> SUMMARY_TYPES = Set.of("none", "sum", "avg", "min", "max");
     public static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_]{0,39}$");
-    public static final Pattern ROW_KEY = Pattern.compile("^[a-zA-Z0-9_-]{8,20}$");
+    public static final Pattern ROW_KEY = Pattern.compile("^[a-zA-Z0-9_-]{8,32}$");
     private static final String ATTACHMENT_SEPARATOR = "~";
 
     private RepeatingTableSupport() {

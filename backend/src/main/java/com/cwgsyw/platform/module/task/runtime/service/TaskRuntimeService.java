@@ -194,6 +194,15 @@ public class TaskRuntimeService {
         Long previous = task.getAssigneeId();
         task.setAssigneeId(request.assigneeId());
         task.setGroupId(request.groupId() == null ? assignee.getGroupId() : request.groupId());
+        Map<String, Object> organization = new LinkedHashMap<>(task.getOrganizationSnapshot() == null
+            ? Map.of() : task.getOrganizationSnapshot());
+        organization.put("userId", assignee.getId());
+        organization.put("username", assignee.getUsername());
+        organization.put("realName", assignee.getRealName());
+        Object previousGroupId = organization.get("groupId");
+        organization.put("groupId", task.getGroupId());
+        if (!java.util.Objects.equals(task.getGroupId(), previousGroupId)) organization.remove("groupName");
+        task.setOrganizationSnapshot(organization);
         task.setUpdatedBy(user.getUserId());
         taskMapper.updateById(task);
         ensureParticipant(task, request.assigneeId(), "assignee");

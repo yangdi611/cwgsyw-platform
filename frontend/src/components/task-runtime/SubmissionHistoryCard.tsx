@@ -62,7 +62,7 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
             <CardDescription>正式提交不可修改，每次重提都会保留上一版本。</CardDescription>
           </div>
           <Select value={String(selected.id)} onValueChange={(value) => setSelectedId(Number(value))}>
-            <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-64"><SelectValue>{(value: string) => { const submission = submissions.data?.find((item) => String(item.id) === value); return submission ? `V${submission.version} · ${submissionStatusLabel(submission.status)} · ${formatDate(submission.submittedAt)}` : '选择提交版本' }}</SelectValue></SelectTrigger>
             <SelectContent>
               {submissions.data.map((submission) => (
                 <SelectItem key={submission.id} value={String(submission.id)}>
