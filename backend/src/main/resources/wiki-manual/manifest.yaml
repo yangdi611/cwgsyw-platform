@@ -130,11 +130,11 @@ spaces:
       - key: rn-v0-38-1
         title: v0.38.1 — 2026年7月26日
         file: release-notes/v0.38.1.md
-        sort: 981
+        sort: 968
       - key: rn-v0-38-0
         title: v0.38.0 — 2026年7月26日
         file: release-notes/v0.38.0.md
-        sort: 980
+        sort: 969
       - key: rn-v0-37-0
         title: v0.37.0 — 2026年7月25日
         file: release-notes/v0.37.0.md

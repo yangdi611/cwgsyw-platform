@@ -175,24 +175,28 @@ public class WikiManualSeeder implements ApplicationRunner {
         } else {
             keyToId.put(key, existing.getId());
             pageId = existing.getId();
-            if (!hash.equals(existing.getSeedHash())) {
+            boolean contentChanged = !hash.equals(existing.getSeedHash());
+            boolean metadataChanged = !Objects.equals(existing.getTitle(), title)
+                    || !Objects.equals(existing.getParentId(), parentId)
+                    || !Objects.equals(existing.getSortOrder(), sort)
+                    || !Objects.equals(existing.getAclInherited(), !customAcl);
+            if (contentChanged) {
                 // hash 变化：保留旧版本快照 + 覆盖
                 int newVer = existing.getCurrentVersion() + 1;
-                existing.setTitle(title);
                 existing.setContent(content);
-                existing.setParentId(parentId);
-                existing.setSortOrder(sort);
                 existing.setCurrentVersion(newVer);
                 existing.setStatus("published");
                 existing.setSeedHash(hash);
-                existing.setUpdatedBy(SYSTEM_USER);
-                existing.setUpdatedAt(LocalDateTime.now());
-                pageMapper.updateById(existing);
                 insertVersion(existing.getId(), newVer, title, content, "seed 更新");
                 changedIds.add(existing.getId());
             }
-            if (!Objects.equals(existing.getAclInherited(), !customAcl)) {
+            if (contentChanged || metadataChanged) {
+                existing.setTitle(title);
+                existing.setParentId(parentId);
+                existing.setSortOrder(sort);
                 existing.setAclInherited(!customAcl);
+                existing.setUpdatedBy(SYSTEM_USER);
+                existing.setUpdatedAt(LocalDateTime.now());
                 pageMapper.updateById(existing);
             }
         }
