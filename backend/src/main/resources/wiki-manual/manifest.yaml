@@ -127,6 +127,10 @@ spaces:
     description: 平台每次版本发布的功能更新说明
     write_scope: super_admin_only
     pages:
+      - key: rn-v0-38-2
+        title: v0.38.2 — 2026年7月26日
+        file: release-notes/v0.38.2.md
+        sort: 967
       - key: rn-v0-38-1
         title: v0.38.1 — 2026年7月26日
         file: release-notes/v0.38.1.md
