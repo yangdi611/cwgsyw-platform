@@ -37,8 +37,8 @@ class UnifiedTaskFreshInstallMigrationTest {
             .validateOnMigrate(true)
             .load();
 
-        assertEquals(107, flyway.migrate().migrationsExecuted);
-        assertEquals(109, jdbcTemplate.queryForObject(
+        assertEquals(109, flyway.migrate().migrationsExecuted);
+        assertEquals(111, jdbcTemplate.queryForObject(
             "SELECT MAX(CAST(version AS INTEGER)) FROM flyway_schema_history", Integer.class));
     }
 
@@ -110,6 +110,14 @@ class UnifiedTaskFreshInstallMigrationTest {
               AND column_name = 'denominator_field_fact_id'
             """));
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uq_task_metric_binding_ratio_component'"));
+
+        List<String> spatialTables = List.of(
+            "ci_spatial_layout", "ci_spatial_layout_version", "ci_spatial_binding",
+            "ci_spatial_asset", "ci_spatial_version_asset"
+        );
+        spatialTables.forEach(table -> assertTrue(tableExists(table), table + " must exist after a V1 fresh install"));
+        assertEquals(1, count("SELECT COUNT(*) FROM sys_resource WHERE code = 'cmdb_spatial'"));
+        assertEquals(5, count("SELECT COUNT(*) FROM sys_permission WHERE code LIKE 'cmdb_spatial:%'"));
 
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_task_automation_rule_active'"));
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_task_analytics_subscription_due'"));

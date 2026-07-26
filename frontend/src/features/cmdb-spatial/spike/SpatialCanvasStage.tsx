@@ -1,0 +1,47 @@
+'use client'
+
+import { Layer, Line, Rect, Stage, Text } from 'react-konva'
+
+interface SpatialCanvasSlot {
+  id: string
+  label: string
+  x: number
+  y: number
+}
+
+interface SpatialCanvasStageProps {
+  slots: SpatialCanvasSlot[]
+  scale: number
+  position: { x: number; y: number }
+  onPositionChange: (position: { x: number; y: number }) => void
+}
+
+export function SpatialCanvasStage({ slots, scale, position, onPositionChange }: SpatialCanvasStageProps) {
+  return (
+    <Stage
+      width={1600}
+      height={620}
+      draggable
+      scaleX={scale}
+      scaleY={scale}
+      x={position.x}
+      y={position.y}
+      onDragEnd={(event) => onPositionChange({ x: event.target.x(), y: event.target.y() })}
+      aria-label="空间布局画布技术验证"
+    >
+      <Layer listening={false}>
+        <Rect x={20} y={20} width={1540} height={920} fill="#f8fafc" stroke="#94a3b8" strokeWidth={3} cornerRadius={8} />
+        <Line points={[20, 20, 1560, 20, 1520, 940, 80, 940, 20, 20]} stroke="#334155" strokeWidth={5} closed />
+        <Text x={74} y={54} text="308 机房逻辑布局 - Canvas Spike" fill="#0f172a" fontSize={26} fontStyle="bold" />
+        <Rect x={75} y={96} width={1400} height={42} fill="#e2e8f0" cornerRadius={4} />
+        <Text x={92} y={108} text="冷通道" fill="#475569" fontSize={16} />
+        {slots.map((slot) => (
+          <Rect key={slot.id} x={slot.x} y={slot.y} width={48} height={31} fill="#334155" stroke="#0f172a" strokeWidth={1} cornerRadius={2} />
+        ))}
+        {slots.map((slot) => (
+          <Text key={`${slot.id}-label`} x={slot.x + 4} y={slot.y + 9} text={slot.label.slice(2)} fill="#f8fafc" fontSize={9} />
+        ))}
+      </Layer>
+    </Stage>
+  )
+}

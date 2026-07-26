@@ -106,7 +106,7 @@ class UnifiedTaskIncrementalMigrationTest {
             .locations("classpath:db/migration")
             .validateOnMigrate(true)
             .load();
-        assertEquals(30, unifiedTaskUpgrade.migrate().migrationsExecuted);
+        assertEquals(32, unifiedTaskUpgrade.migrate().migrationsExecuted);
     }
 
     @Test
@@ -140,7 +140,7 @@ class UnifiedTaskIncrementalMigrationTest {
               AND enabled
               AND NOT is_deleted
             """, Integer.class, deviceDefinitionId, deviceDefinitionVersion));
-        assertEquals(109, jdbcTemplate.queryForObject(
+        assertEquals(111, jdbcTemplate.queryForObject(
             "SELECT MAX(CAST(version AS INTEGER)) FROM flyway_schema_history", Integer.class));
     }
 

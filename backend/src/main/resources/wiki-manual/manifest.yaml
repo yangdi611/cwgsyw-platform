@@ -43,21 +43,26 @@ spaces:
         file: 20-cmdb/topology.md
         parent_key: cmdb
         sort: 2
+      - key: cmdb-spatial-layout
+        title: 机房空间布局
+        file: 20-cmdb/spatial-layout.md
+        parent_key: cmdb
+        sort: 3
       - key: cmdb-changes
         title: 变更历史与统计
         file: 20-cmdb/changes.md
         parent_key: cmdb
-        sort: 3
+        sort: 4
       - key: cmdb-alerts
         title: 告警中心
         file: 20-cmdb/alerts.md
         parent_key: cmdb
-        sort: 4
+        sort: 5
       - key: cmdb-ipam
         title: IP 地址池管理
         file: 20-cmdb/ipam.md
         parent_key: cmdb
-        sort: 5
+        sort: 6
 
       - key: devices
         title: 设备密码库
