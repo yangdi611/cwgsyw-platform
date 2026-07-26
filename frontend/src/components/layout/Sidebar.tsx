@@ -14,22 +14,52 @@ import { useOpenGroup, useCollapsed } from './sidebar/useSidebarState'
 import { NavGroupItem } from './sidebar/NavGroupItem'
 import { CollapsedEntry } from './sidebar/CollapsedEntry'
 import { getWorkItemCounts } from '@/lib/work-item-api'
+import type { NavItem } from './sidebar/types'
 
 export function Sidebar() {
   const pathname = usePathname()
   const { hasPermission } = usePermission()
   const groupScope = useAuthStore((state) => state.groupScope)
   const canReadWorkItems = hasPermission('work_item', 'read')
+  const canReadAlerts = hasPermission('cmdb_alert', 'read')
+  const canReadChangeDocs = hasPermission('change_doc', 'read')
   const workItemCounts = useQuery({
     queryKey: ['work-item-counts'],
     queryFn: getWorkItemCounts,
     enabled: canReadWorkItems,
     staleTime: 30_000,
   })
+  const alertCount = useQuery({
+    queryKey: ['cmdb-alerts', 'sidebar-count'],
+    queryFn: () => api.get('/cmdb/alerts', {
+      params: { status: 'firing', page: 1, size: 1 },
+    }).then((response) => Number(response.data?.data?.total ?? 0)),
+    enabled: canReadAlerts,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+  const changeDocCount = useQuery({
+    queryKey: ['change-docs', 'sidebar-count'],
+    queryFn: async () => {
+      const [pending, planPending] = await Promise.all([
+        api.get('/change-docs', { params: { status: 'pending', page: 1, size: 1 } }),
+        api.get('/change-docs', { params: { status: 'plan_pending', page: 1, size: 1 } }),
+      ])
+      return Number(pending.data?.data?.total ?? 0) + Number(planPending.data?.data?.total ?? 0)
+    },
+    enabled: canReadChangeDocs,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
   const workBadge = (workItemCounts.data?.execute ?? 0) + (workItemCounts.data?.approve ?? 0)
+  const badges: Record<NonNullable<NavItem['badgeKey']>, number> = {
+    work: workBadge,
+    alerts: alertCount.data ?? 0,
+    changeDocs: changeDocCount.data ?? 0,
+  }
   const resolvedNavItems = navItems.map((entry) => isGroup(entry)
-    ? { ...entry, children: entry.children.map((child) => child.badgeKey === 'work' ? { ...child, badge: workBadge } : child) }
-    : entry.badgeKey === 'work' ? { ...entry, badge: workBadge } : entry)
+    ? { ...entry, children: entry.children.map((child) => child.badgeKey ? { ...child, badge: badges[child.badgeKey] } : child) }
+    : entry.badgeKey ? { ...entry, badge: badges[entry.badgeKey] } : entry)
 
   // 默认展开的一级菜单：优先「当前页所属组」，其次「defaultOpen」的组。
   const groups = resolvedNavItems.filter(isGroup)
@@ -176,8 +206,8 @@ export function Sidebar() {
                 <Icon className="h-[18px] w-[18px] shrink-0 opacity-85" />
                 <span className="flex-1 truncate">{label}</span>
                 {badge !== undefined && badge > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
-                    {badge}
+                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                    {badge > 99 ? '99+' : badge}
                   </span>
                 )}
               </Link>

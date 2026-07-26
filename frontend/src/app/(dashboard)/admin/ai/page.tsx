@@ -163,7 +163,7 @@ export default function AdminAiPage() {
   if (!canRead) return null
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       <PageHeader
         eyebrow="系统管理"
         title="AI 网关配置"

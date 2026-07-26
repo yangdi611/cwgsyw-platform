@@ -72,8 +72,8 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
                   <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-white/10 text-blue-200 text-[11px] font-mono tabular-nums">
-                      {item.badge}
+                    <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                      {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}
                 </Link>

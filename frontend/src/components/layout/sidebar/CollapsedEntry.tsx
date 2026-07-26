@@ -130,8 +130,8 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
                       <item.icon className="h-4 w-4 shrink-0 opacity-85" />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-white/10 px-1.5 font-mono text-[11px] tabular-nums text-blue-200">
-                          {item.badge}
+                        <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                          {item.badge > 99 ? '99+' : item.badge}
                         </span>
                       )}
                     </Link>
