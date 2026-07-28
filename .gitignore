@@ -50,6 +50,7 @@ data/
 /package-lock.json
 
 # AI / Agent 工具本地目录与产物
+.agents/
 .claude/
 .codex/
 .gitnexus/
@@ -65,6 +66,8 @@ plans/
 *.rej
 AGENTS.md
 CLAUDE.md
+/REFACTOR-SUMMARY.md
+/playwright.config.js
 
 # 散落的分析文档（按需保留在 docs/）
 /CMDB_API_AUDIT.md
@@ -75,10 +78,6 @@ docs/*
 !docs/guide/
 docs/guide/*
 !docs/guide/wiki/
-!docs/plan/
-docs/plan/*
-!docs/plan/unified_task_platform/
-!docs/plan/unified_task_platform/**
 
 # macOS Finder conflict duplicates
 * 2.*
