@@ -1,15 +1,48 @@
+# 本地环境与敏感配置；仅允许提交示例模板
 .env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+
+# 操作系统与 IDE
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 构建、覆盖率与临时缓存
 target/
 node_modules/
 frontend/node_modules/
 frontend/.next/
+coverage/
+dist/
+build/
+out/
+.cache/
+tmp/
+temp/
 *.class
 *.jar
 data/
 /backend/settings.nexus.xml
 /test/
 /test-results/
+/playwright-report/
+/blob-report/
+/playwright/.auth/
 .worktrees/
 
 # 根目录误建的 Node 依赖（真正的前端依赖在 frontend/）
@@ -18,6 +51,8 @@ data/
 
 # AI / Agent 工具本地目录与产物
 .claude/
+.codex/
+.gitnexus/
 .superpowers/
 .hermes/
 .hermes_company/
