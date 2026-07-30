@@ -11,14 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class WikiBacklinkService {
-
-    private static final Pattern LINK_PATTERN = Pattern.compile("\\[\\[([^\\]|]+)(?:\\|[^\\]]*)?\\]\\]");
 
     private final WikiBacklinkMapper backlinkMapper;
     private final WikiPageMapper pageMapper;
@@ -30,10 +26,17 @@ public class WikiBacklinkService {
                 .eq(WikiBacklink::getFromPageId, fromPageId));
         if (content == null || content.isBlank()) return;
 
-        Matcher m = LINK_PATTERN.matcher(content);
         java.util.Set<Long> seen = new java.util.HashSet<>();
-        while (m.find()) {
-            String title = m.group(1).trim();
+        int cursor = 0;
+        while (cursor < content.length()) {
+            int linkStart = content.indexOf("[[", cursor);
+            if (linkStart < 0) break;
+            int linkEnd = content.indexOf("]]", linkStart + 2);
+            if (linkEnd < 0) break;
+            String link = content.substring(linkStart + 2, linkEnd);
+            int separator = link.indexOf('|');
+            String title = (separator >= 0 ? link.substring(0, separator) : link).trim();
+            cursor = linkEnd + 2;
             if (title.isEmpty()) continue;
             WikiPage target = pageMapper.selectOne(new LambdaQueryWrapper<WikiPage>()
                     .eq(WikiPage::getTenantId, tenantId)
