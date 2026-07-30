@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -116,23 +117,19 @@ public class BackupService {
 
     public BackupRecordVO importUpload(org.springframework.web.multipart.MultipartFile file,
                                        Long operatorId, String operatorIp, String tenantId) {
-        String name = file.getOriginalFilename();
-        if (name == null || !name.endsWith(".tar.gz")) {
-            throw new IllegalArgumentException("仅支持 .tar.gz 格式的备份文件");
+        String originalName = validateBackupUploadName(file.getOriginalFilename());
+        Path backupRoot = Paths.get(backupDir).normalize().toAbsolutePath();
+        Path dest = backupRoot.resolve(UUID.randomUUID() + ".tar.gz").normalize();
+        if (!dest.startsWith(backupRoot)) {
+            throw new IllegalArgumentException("备份文件路径不合法");
         }
         try {
-            Files.createDirectories(Paths.get(backupDir));
-            // 如已存在同名文件，加时间戳前缀避免覆盖
-            Path dest = Paths.get(backupDir, name);
-            if (Files.exists(dest)) {
-                String ts = LocalDateTime.now().format(TS);
-                dest = Paths.get(backupDir, ts + "_" + name);
-            }
-            Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
+            Files.createDirectories(backupRoot);
+            Files.copy(file.getInputStream(), dest);
 
             BackupRecord record = new BackupRecord();
             record.setTenantId(tenantId);
-            record.setFileName(dest.getFileName().toString());
+            record.setFileName(originalName);
             record.setFilePath(dest.toString());
             record.setFileSizeBytes(Files.size(dest));
             record.setStatus("success");
@@ -146,6 +143,20 @@ public class BackupService {
         } catch (IOException e) {
             throw new RuntimeException("上传失败: " + e.getMessage(), e);
         }
+    }
+
+    private String validateBackupUploadName(String originalName) {
+        if (originalName == null || originalName.isBlank() || !originalName.endsWith(".tar.gz")) {
+            throw new IllegalArgumentException("仅支持 .tar.gz 格式的备份文件");
+        }
+        if (originalName.length() > 255
+                || originalName.contains("/")
+                || originalName.contains("\\")
+                || originalName.contains("..")
+                || originalName.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalArgumentException("备份文件名不合法");
+        }
+        return originalName;
     }
 
     // ===== create backup =====
