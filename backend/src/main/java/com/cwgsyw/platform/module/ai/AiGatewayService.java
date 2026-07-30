@@ -83,7 +83,10 @@ public class AiGatewayService {
     }
 
     private String normalizeBaseUrl(String value) {
-        String normalized = value.trim().replaceAll("/+$", "");
+        String normalized = value.trim();
+        int end = normalized.length();
+        while (end > 0 && normalized.charAt(end - 1) == '/') end--;
+        normalized = normalized.substring(0, end);
         if (normalized.isEmpty()) {
             throw new IllegalArgumentException("AI Provider Base URL 不能为空");
         }

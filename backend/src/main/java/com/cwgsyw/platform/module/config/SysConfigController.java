@@ -56,7 +56,10 @@ public class SysConfigController {
         }
         if (req.getUrl() != null) {
             validatePrometheusUrl(req.getUrl());
-            configService.set(tid, "prometheus.url", req.getUrl().trim().replaceAll("/+$", ""));
+            String normalizedUrl = req.getUrl().trim();
+            int end = normalizedUrl.length();
+            while (end > 0 && normalizedUrl.charAt(end - 1) == '/') end--;
+            configService.set(tid, "prometheus.url", normalizedUrl.substring(0, end));
         }
         if (req.getScrapeInterval() != null) {
             configService.set(tid, "prometheus.scrape_interval", String.valueOf(req.getScrapeInterval()));
