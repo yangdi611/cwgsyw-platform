@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const { execFileSync } = require('child_process')
 const fs = require('fs')
 const os = require('os')
@@ -203,8 +204,8 @@ test('stChange001004AndChange013TerminalExportIdempotency', async () => {
     registerObject({ caseIds: ['CHANGE-013'], type: 'role', id: noExportRoleId, runId: executionId })
 
     const username = `fqa_change_no_export_${suffix}`
-    const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-    const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+    const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+    const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
     noExportUserId = (await responseData(await api.post('/api/users', {
       headers,
       data: { username, password: initialPassword, realName: executionId, email: `${username}@example.test`, phone: '13800138000', groupId: 2 },

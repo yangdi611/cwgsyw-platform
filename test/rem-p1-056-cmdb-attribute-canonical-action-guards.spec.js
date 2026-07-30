@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -143,8 +144,8 @@ test('canonical CMDB attribute actions align API and UI with exact cleanup', asy
       addObject({ type: 'role', id: role.id })
 
       const username = `rem_p1_056_${spec.key}_${suffix}`.toLowerCase()
-      const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-      const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+      const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+      const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
       const user = await responseData(await api.post('/api/users', {
         headers: admin.headers,
         data: {

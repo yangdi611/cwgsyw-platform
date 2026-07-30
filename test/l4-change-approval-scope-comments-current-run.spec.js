@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -37,8 +38,8 @@ test('change011012ApprovalScopeAndCommentBoundaries', async () => {
 
   async function createUser(label, groupId, permissionIds) {
     const username = `fqa_change011012_${label}_${suffix}`
-    const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-    const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+    const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+    const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
     const response = await api.post('/api/users', { headers: adminHeaders, data: {
       username, password: initialPassword, realName: runId, email: `${username}@example.test`, phone: '13800139000', groupId,
     } })

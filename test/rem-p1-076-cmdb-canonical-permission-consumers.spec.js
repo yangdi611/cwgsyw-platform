@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -112,8 +113,8 @@ test('canonical CMDB consumers allow canonical permissions and reject legacy sub
       roles.push(role.id)
       add({ type: 'role', id: role.id })
       const username = `remp1076_${spec.key}_${suffix}`
-      const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-      const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+      const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+      const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
       const user = await dataOf(await api.post('/api/users', { headers: adminHeaders, data: { username, password: initialPassword, realName: `REM-P1-076 ${spec.key}`, email: `${username}@example.test`, phone: '13800138000', groupId: 1 } }))
       users.push(user.id)
       add({ type: 'user', id: user.id })
