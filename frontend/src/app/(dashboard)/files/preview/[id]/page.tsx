@@ -147,7 +147,8 @@ export default function FilePreviewPage() {
   const ext = file?.fileType?.toLowerCase() ?? ''
   const isPdf = ext === 'pdf'
   const isDocx = ext === 'docx' || ext === 'doc'
-  const isXlsx = ext === 'xlsx' || ext === 'xls'
+  const isLegacyXls = (file?.originalName ?? file?.name ?? '').toLowerCase().endsWith('.xls')
+  const isXlsx = ext === 'xlsx' && !isLegacyXls
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)
 
   const handleDownload = async () => {
@@ -216,6 +217,15 @@ export default function FilePreviewPage() {
           <DocxPreview url={previewUrl} />
         ) : isXlsx ? (
           <XlsxPreview url={previewUrl} />
+        ) : isLegacyXls ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+            <File className="h-16 w-16 opacity-30" />
+            <p className="text-sm">旧版 Excel 文件暂不支持在线预览，请下载后查看</p>
+            <Button onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-1.5" />
+              下载文件
+            </Button>
+          </div>
         ) : isImage ? (
           <div className="flex items-center justify-center h-full p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
