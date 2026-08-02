@@ -303,6 +303,9 @@ public class WikiPageService {
 
     private PageResult<WikiSearchResultVO> searchWithEnforcedAccess(String tenantId, String keyword, Long spaceId,
                                                                       int page, int size, SecurityUser user) {
+        if (page < 1 || size < 1) {
+            throw BusinessException.badRequest("PAGINATION_INVALID", "页码和每页数量必须大于 0");
+        }
         List<Map<String, Object>> candidates = spaceId != null
             ? pageMapper.searchInSpace(tenantId, spaceId, keyword, Integer.MAX_VALUE, 0)
             : pageMapper.search(tenantId, keyword, Integer.MAX_VALUE, 0);
@@ -310,8 +313,9 @@ public class WikiPageService {
             .filter(result -> authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4)
                 .isAllowed())
             .toList();
-        int offset = Math.min((page - 1) * size, visible.size());
-        int end = Math.min(offset + size, visible.size());
+        long requestedOffset = Math.multiplyExact(Math.subtractExact((long) page, 1L), size);
+        int offset = Math.toIntExact(Math.min(requestedOffset, visible.size()));
+        int end = Math.toIntExact(Math.min(Math.addExact(requestedOffset, size), visible.size()));
         PageResult<WikiSearchResultVO> result = new PageResult<>();
         result.setRecords(visible.subList(offset, end));
         result.setTotal(visible.size());

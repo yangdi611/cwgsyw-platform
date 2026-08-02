@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -159,6 +160,22 @@ class GroupMembershipServiceTest {
             .lockGroupAssignment("default", 8L, 9L);
         inOrder.verify(authorizationWriteLockService)
             .lockGroupAssignment("default", 8L, 12L);
+    }
+
+    @Test
+    void syncPrimaryMembershipLocksUserAuthorizationForNonNullGroup() {
+        User user = user(8L);
+        Group group = group(9L, "business");
+        stubNonSuperAdmin(user);
+        when(groupMapper.selectById(9L)).thenReturn(group);
+        when(membershipMapper.insert(any(UserGroupMembership.class))).thenReturn(1);
+        when(userMapper.updateById(any(User.class))).thenReturn(1);
+        when(auditLogMapper.insert(any(AuditLog.class))).thenReturn(1);
+
+        service.syncPrimaryMembership(8L, 9L, "default", 1L);
+
+        verify(authorizationWriteLockService, atLeastOnce())
+            .lockUserAuthorization("default", 8L);
     }
 
     @Test
