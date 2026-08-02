@@ -10,6 +10,7 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.repository.ProcessDefinitionQuery;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.history.HistoricProcessInstanceQuery;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class WorkflowServiceLifecycleTest {
@@ -47,6 +49,31 @@ class WorkflowServiceLifecycleTest {
     @Mock ProcessInstance instance;
 
     @InjectMocks WorkflowService service;
+
+    @Test
+    void listDefinitionsRejectsNonPositivePagination() {
+        ProcessDefinitionQuery query = mock(ProcessDefinitionQuery.class, Answers.RETURNS_SELF);
+        when(repositoryService.createProcessDefinitionQuery()).thenReturn(query);
+
+        assertThatThrownBy(() -> service.listDefinitions(0, 20))
+            .isInstanceOf(BusinessException.class)
+            .extracting("errorCode")
+            .isEqualTo("PAGINATION_INVALID");
+
+        verify(query, never()).listPage(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void listDefinitionsSaturatesExtremeOffsetWithoutIntegerWraparound() {
+        ProcessDefinitionQuery query = mock(ProcessDefinitionQuery.class, Answers.RETURNS_SELF);
+        when(repositoryService.createProcessDefinitionQuery()).thenReturn(query);
+        when(query.count()).thenReturn(0L);
+        when(query.listPage(Integer.MAX_VALUE, Integer.MAX_VALUE)).thenReturn(List.of());
+
+        service.listDefinitions(Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+        verify(query).listPage(Integer.MAX_VALUE, Integer.MAX_VALUE);
+    }
 
     @Test
     void deleteDefinition_removesEveryVersionWithoutCascadingHistory() {
