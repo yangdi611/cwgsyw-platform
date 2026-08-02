@@ -25,6 +25,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDateTime;
 import java.text.Normalizer;
 import java.util.*;
@@ -39,6 +42,7 @@ import com.cwgsyw.platform.security.SecurityUser;
 public class SharedFileService {
 
     private static final long MAX_UPLOAD_SIZE_BYTES = 20L * 1024 * 1024;
+    private static final String PANDOC_COMMAND = "/usr/bin/pandoc";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
         "7z", "bash", "bat", "bmp", "bz2", "cmd", "conf", "csv", "doc", "docx", "dot", "dotx",
         "env", "gif", "gz", "ini", "jpeg", "jpg", "json", "md", "mjs", "odt", "ods", "pdf",
@@ -369,15 +373,21 @@ public class SharedFileService {
 
     @Async
     public void convertToMarkdownAsync(Long fileId, String minioKey, String tenantId) {
+        Path temporaryDirectory = null;
         try {
-            InputStream docxStream = storageService.download(minioKey);
-            File tempDocx = File.createTempFile("shared_", ".docx");
-            File tempMd = File.createTempFile("shared_", ".md");
-            try (FileOutputStream fos = new FileOutputStream(tempDocx)) {
-                docxStream.transferTo(fos);
+            temporaryDirectory = Files.createTempDirectory("shared-",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+            Path tempDocx = Files.createTempFile(temporaryDirectory, "source-", ".docx",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+            Path tempMd = Files.createTempFile(temporaryDirectory, "converted-", ".md",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+            try (InputStream docxStream = storageService.download(minioKey);
+                 OutputStream outputStream = Files.newOutputStream(tempDocx)) {
+                docxStream.transferTo(outputStream);
             }
 
-            ProcessBuilder pb = new ProcessBuilder("pandoc", tempDocx.getAbsolutePath(), "-o", tempMd.getAbsolutePath());
+            ProcessBuilder pb = new ProcessBuilder(
+                PANDOC_COMMAND, tempDocx.toAbsolutePath().toString(), "-o", tempMd.toAbsolutePath().toString());
             Process proc = pb.start();
             int exitCode = proc.waitFor();
             if (exitCode != 0) {
@@ -386,18 +396,28 @@ public class SharedFileService {
             }
 
             String mdKey = minioKey.replace(".docx", ".md");
-            try (FileInputStream fis = new FileInputStream(tempMd)) {
-                storageService.upload(mdKey, fis, tempMd.length(), "text/markdown");
+            try (InputStream markdownStream = Files.newInputStream(tempMd)) {
+                storageService.upload(mdKey, markdownStream, Files.size(tempMd), "text/markdown");
             }
 
             fileMapper.update(null, new LambdaUpdateWrapper<SharedFile>()
                     .eq(SharedFile::getId, fileId)
                     .set(SharedFile::getMdKey, mdKey));
 
-            tempDocx.delete();
-            tempMd.delete();
         } catch (Exception e) {
-            log.error("Markdown conversion failed for file {}: {}", fileId, e.getMessage());
+            log.error("Markdown conversion failed: {}", e.getClass().getSimpleName());
+        } finally {
+            if (temporaryDirectory != null) {
+                try (var paths = Files.walk(temporaryDirectory)) {
+                    paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                } catch (IOException ignored) {
+                }
+            }
         }
     }
 

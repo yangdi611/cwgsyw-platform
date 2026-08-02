@@ -64,7 +64,7 @@ public class MinioStorageService {
                     .object(objectKey)
                     .build());
         } catch (Exception e) {
-            log.warn("删除文件失败 key={}: {}", objectKey, e.getMessage());
+            log.warn("删除文件失败: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -75,7 +75,7 @@ public class MinioStorageService {
                     .object(objectKey)
                     .build());
         } catch (Exception e) {
-            log.warn("删除文件失败 key={}: {}", objectKey, e.getMessage());
+            log.warn("删除文件失败: {}", e.getClass().getSimpleName());
             throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         }
     }
@@ -88,7 +88,7 @@ public class MinioStorageService {
                 .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
                 .build());
         } catch (Exception e) {
-            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, e.getMessage());
+            log.warn("复制文件失败: {}", e.getClass().getSimpleName());
             throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         }
     }
@@ -104,10 +104,10 @@ public class MinioStorageService {
             return true;
         } catch (ErrorResponseException exception) {
             if ("NoSuchKey".equals(exception.errorResponse().code())) return false;
-            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, exception.getMessage());
+            log.warn("复制文件失败: {}", exception.getClass().getSimpleName());
             throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         } catch (Exception exception) {
-            log.warn("复制文件失败 source={} target={}: {}", sourceKey, targetKey, exception.getMessage());
+            log.warn("复制文件失败: {}", exception.getClass().getSimpleName());
             throw BusinessException.serviceUnavailable("STORAGE_DELETE_FAILED", "对象存储删除失败，请稍后重试");
         }
     }

@@ -99,7 +99,7 @@ public class WorkflowTemplateService {
                 .addString(resourceName, xml)
                 .deploy();
         } catch (Exception e) {
-            log.error("模板实例部署失败 key={}: {}", req.getProcessKey(), e.getMessage(), e);
+            log.error("模板实例部署失败: {}", e.getClass().getSimpleName());
             throw new IllegalStateException("流程部署失败: " + e.getMessage(), e);
         }
         ProcessDefinition def = repositoryService.createProcessDefinitionQuery()

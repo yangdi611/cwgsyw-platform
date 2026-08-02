@@ -39,6 +39,10 @@ import java.util.stream.Stream;
 @Slf4j
 public class BackupService {
 
+    private static final String TAR_COMMAND = "/bin/tar";
+    private static final String PG_DUMP_COMMAND = "/usr/bin/pg_dump";
+    private static final String PSQL_COMMAND = "/usr/bin/psql";
+
     private final BackupMapper backupMapper;
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
@@ -183,7 +187,7 @@ public class BackupService {
             dumpMinio(work.resolve("minio"));
             // 3) tar -czf <backupDir>/<fileName> -C work .
             Path archive = Paths.get(backupDir, record.getFileName());
-            runProcess(new ProcessBuilder("tar", "-czf", archive.toString(), "-C", work.toString(), "."), null);
+            runProcess(new ProcessBuilder(TAR_COMMAND, "-czf", archive.toString(), "-C", work.toString(), "."), null);
 
             long size = Files.size(archive);
             BackupRecord ok = new BackupRecord();
@@ -218,7 +222,7 @@ public class BackupService {
 
     private void dumpDatabase(Path target) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(
-                "pg_dump", "-h", pgHost(), "-p", pgPort(), "-U", dbUser,
+                PG_DUMP_COMMAND, "-h", pgHost(), "-p", pgPort(), "-U", dbUser,
                 "--clean", "--if-exists", "--no-owner", "--no-acl",
                 // backup_record 是备份目录自身，不参与备份/恢复，否则恢复会回滚目录
                 "--exclude-table=backup_record",
@@ -268,12 +272,12 @@ public class BackupService {
         try {
             work = Files.createTempDirectory(Paths.get(backupDir), "restore-");
             // 1) extract
-            runProcess(new ProcessBuilder("tar", "-xzf", archive.toString(), "-C", work.toString()), null);
+            runProcess(new ProcessBuilder(TAR_COMMAND, "-xzf", archive.toString(), "-C", work.toString()), null);
             // 2) restore DB (dump 含 --clean --if-exists，单事务回放)
             Path dump = work.resolve("dump.sql");
             if (Files.exists(dump)) {
                 ProcessBuilder pb = new ProcessBuilder(
-                        "psql", "-h", pgHost(), "-p", pgPort(), "-U", dbUser,
+                        PSQL_COMMAND, "-h", pgHost(), "-p", pgPort(), "-U", dbUser,
                         "-d", pgDb(), "-v", "ON_ERROR_STOP=0", "-f", dump.toString());
                 pb.environment().put("PGPASSWORD", dbPassword);
                 runProcess(pb, "psql");
