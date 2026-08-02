@@ -10,7 +10,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * 密码复杂度 + 用户名包含校验（SPEC 9.1-9.2）。
@@ -64,24 +63,39 @@ public class PasswordPolicyService {
         }
 
         String allowedSpecials = cfg.getAllowedSpecials();
-        String allowedPattern = "^[A-Za-z0-9" + Pattern.quote(allowedSpecials) + "]+$";
-        if (!newPassword.matches(allowedPattern)) {
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+        boolean hasInvalidCharacter = false;
+        for (int i = 0; i < newPassword.length(); i++) {
+            char character = newPassword.charAt(i);
+            if (character >= 'A' && character <= 'Z') {
+                hasUpper = true;
+            } else if (character >= 'a' && character <= 'z') {
+                hasLower = true;
+            } else if (character >= '0' && character <= '9') {
+                hasDigit = true;
+            } else if (allowedSpecials.indexOf(character) >= 0) {
+                hasSpecial = true;
+            } else {
+                hasInvalidCharacter = true;
+            }
+        }
+        if (hasInvalidCharacter) {
             violations.add(PasswordPolicyViolation.INVALID_CHARACTER);
         }
-        if (cfg.isRequireUpper() && !newPassword.matches(".*[A-Z].*")) {
+        if (cfg.isRequireUpper() && !hasUpper) {
             violations.add(PasswordPolicyViolation.MISSING_UPPER);
         }
-        if (cfg.isRequireLower() && !newPassword.matches(".*[a-z].*")) {
+        if (cfg.isRequireLower() && !hasLower) {
             violations.add(PasswordPolicyViolation.MISSING_LOWER);
         }
-        if (cfg.isRequireDigit() && !newPassword.matches(".*[0-9].*")) {
+        if (cfg.isRequireDigit() && !hasDigit) {
             violations.add(PasswordPolicyViolation.MISSING_DIGIT);
         }
-        if (cfg.isRequireSpecial()) {
-            String specialPattern = ".*[" + Pattern.quote(allowedSpecials) + "].*";
-            if (!newPassword.matches(specialPattern)) {
-                violations.add(PasswordPolicyViolation.MISSING_SPECIAL);
-            }
+        if (cfg.isRequireSpecial() && !hasSpecial) {
+            violations.add(PasswordPolicyViolation.MISSING_SPECIAL);
         }
         if (cfg.isRejectUsernameContained() && containsUsername(username, newPassword)) {
             violations.add(PasswordPolicyViolation.CONTAINS_USERNAME);

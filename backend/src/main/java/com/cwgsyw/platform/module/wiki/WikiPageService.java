@@ -303,6 +303,9 @@ public class WikiPageService {
 
     private PageResult<WikiSearchResultVO> searchWithEnforcedAccess(String tenantId, String keyword, Long spaceId,
                                                                       int page, int size, SecurityUser user) {
+        if (page < 1 || size < 1) {
+            throw BusinessException.badRequest("PAGINATION_INVALID", "页码和每页数量必须大于 0");
+        }
         List<Map<String, Object>> candidates = spaceId != null
             ? pageMapper.searchInSpace(tenantId, spaceId, keyword, Integer.MAX_VALUE, 0)
             : pageMapper.search(tenantId, keyword, Integer.MAX_VALUE, 0);
@@ -310,8 +313,9 @@ public class WikiPageService {
             .filter(result -> authorizationService.decide(user, "wiki:read", "wiki_page", result.getPageId(), 4)
                 .isAllowed())
             .toList();
-        int offset = Math.min((page - 1) * size, visible.size());
-        int end = Math.min(offset + size, visible.size());
+        long requestedOffset = Math.multiplyExact(Math.subtractExact((long) page, 1L), size);
+        int offset = Math.toIntExact(Math.min(requestedOffset, visible.size()));
+        int end = Math.toIntExact(Math.min(Math.addExact(requestedOffset, size), visible.size()));
         PageResult<WikiSearchResultVO> result = new PageResult<>();
         result.setRecords(visible.subList(offset, end));
         result.setTotal(visible.size());
@@ -454,9 +458,23 @@ public class WikiPageService {
 
     private String slugify(String title) {
         if (title == null) return "page";
-        String s = title.toLowerCase().replaceAll("[^a-z0-9\\u4e00-\\u9fff]+", "-")
-                .replaceAll("(^-+)|(-+$)", "");
-        return s.isEmpty() ? "page" : s;
+        String normalized = title.toLowerCase(java.util.Locale.ROOT);
+        StringBuilder slug = new StringBuilder(normalized.length());
+        boolean separatorPending = false;
+        for (int i = 0; i < normalized.length(); i++) {
+            char character = normalized.charAt(i);
+            boolean allowed = character >= 'a' && character <= 'z'
+                    || character >= '0' && character <= '9'
+                    || character >= '\u4e00' && character <= '\u9fff';
+            if (allowed) {
+                if (separatorPending && !slug.isEmpty()) slug.append('-');
+                slug.append(character);
+                separatorPending = false;
+            } else {
+                separatorPending = !slug.isEmpty();
+            }
+        }
+        return slug.isEmpty() ? "page" : slug.toString();
     }
 
     private String normalizeTitle(String title) {

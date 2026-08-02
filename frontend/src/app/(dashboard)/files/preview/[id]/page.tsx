@@ -64,21 +64,19 @@ function DocxPreview({ url }: { url: string }) {
 // ─── XLSX Preview ─────────────────────────────────────────────────────────────
 
 function XlsxPreview({ url }: { url: string }) {
-  const [html, setHtml] = useState<string | null>(null)
+  const [rows, setRows] = useState<string[][] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const XLSX = await import('xlsx')
+        const { readSheet } = await import('read-excel-file/browser')
         const res = await fetch(url)
-        const buf = await res.arrayBuffer()
+        if (!res.ok) throw new Error(`Failed to fetch spreadsheet: ${res.status}`)
+        const spreadsheetRows = await readSheet(await res.blob())
         if (cancelled) return
-        const wb = XLSX.read(buf, { type: 'array' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const tableHtml = XLSX.utils.sheet_to_html(ws)
-        if (!cancelled) setHtml(tableHtml)
+        setRows(spreadsheetRows.map(row => row.map(cell => cell == null ? '' : String(cell))))
       } catch {
         if (!cancelled) setError('无法预览此文件，请下载后查看。')
       }
@@ -88,12 +86,23 @@ function XlsxPreview({ url }: { url: string }) {
   }, [url])
 
   if (error) return <div className="p-8 text-muted-foreground text-center">{error}</div>
-  if (!html) return <div className="p-8 text-muted-foreground text-center">加载中...</div>
+  if (!rows) return <div className="p-8 text-muted-foreground text-center">加载中...</div>
   return (
-    <div
-      className="w-full h-full overflow-auto p-4 bg-white"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="w-full h-full overflow-auto p-4 bg-white">
+      <table className="min-w-full border-collapse text-sm text-foreground">
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, columnIndex) => (
+                <td key={columnIndex} className="whitespace-pre-wrap border px-2 py-1 align-top">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -138,7 +147,8 @@ export default function FilePreviewPage() {
   const ext = file?.fileType?.toLowerCase() ?? ''
   const isPdf = ext === 'pdf'
   const isDocx = ext === 'docx' || ext === 'doc'
-  const isXlsx = ext === 'xlsx' || ext === 'xls'
+  const isLegacyXls = (file?.originalName ?? file?.name ?? '').toLowerCase().endsWith('.xls')
+  const isXlsx = ext === 'xlsx' && !isLegacyXls
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)
 
   const handleDownload = async () => {
@@ -207,6 +217,15 @@ export default function FilePreviewPage() {
           <DocxPreview url={previewUrl} />
         ) : isXlsx ? (
           <XlsxPreview url={previewUrl} />
+        ) : isLegacyXls ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+            <File className="h-16 w-16 opacity-30" />
+            <p className="text-sm">旧版 Excel 文件暂不支持在线预览，请下载后查看</p>
+            <Button onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-1.5" />
+              下载文件
+            </Button>
+          </div>
         ) : isImage ? (
           <div className="flex items-center justify-center h-full p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
