@@ -1,10 +1,11 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 
 const baseURL = process.env.FQA_BASE_URL || 'http://127.0.0.1'
 const fixture = { id: 343, username: 'FQA_20260718_0245_remp1037_l4_AUTHZ_database' }
 
 function password() {
-  return `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
+  return `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
 }
 
 async function login(api, username, userPassword) {

@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 
 const baseURL = process.env.FQA_BASE_URL || 'http://127.0.0.1'
 const suffix = Date.now()
@@ -22,8 +23,8 @@ test('method security denial returns the functional permission reason code', asy
   test.setTimeout(120_000)
 
   const api = await request.newContext({ baseURL })
-  const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-  const password = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+  const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+  const password = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
   const username = `fqa_rem_p1_070_${suffix}`
   let adminHeaders
   let roleId

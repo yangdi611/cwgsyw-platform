@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -8,8 +9,8 @@ const suffix = Date.now()
 const runId = `${l4RunId}_admin_denial_${suffix}`
 const username = `fqa_l4_admin_denial_${suffix}`
 const roleCode = `fqa_l4_admin_denial_${suffix}`
-const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
 const manifestPath = path.join(__dirname, '..', 'docs', 'acceptance', 'full-platform-exhaustive-functional-test-v1.0', 'runs', l4RunId, 'test-data-manifest.json')
 
 function updateManifest(objects) {

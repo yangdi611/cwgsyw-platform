@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -78,8 +79,8 @@ test('effective non-primary group receives owner-mode access and revocation conv
     register({ caseId: 'XL-RBAC-002', type: 'role', id: roleId, runId: marker })
 
     const username = `${marker}_user`
-    const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-    const password = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+    const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+    const password = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
     userId = (await dataOf(await api.post('/api/users', {
       headers: adminHeaders,
       data: { username, password: initialPassword, realName: marker, email: `${username}@example.test`, phone: '13800138000', groupId: firstGroup.id },

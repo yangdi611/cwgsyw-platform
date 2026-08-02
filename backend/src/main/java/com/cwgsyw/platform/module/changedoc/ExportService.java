@@ -519,13 +519,31 @@ public class ExportService {
 
     private String stripHtml(String html) {
         if (html == null) return "";
-        // 先把 <br> / <p> 等块级换行转成 \n，再剥其他标签
-        return html.replaceAll("(?i)<br\\s*/?>", "\n")
-                   .replaceAll("(?i)</p\\s*>", "\n")
-                   .replaceAll("<[^>]+>", "")
-                   .replaceAll("&nbsp;", " ")
-                   .replaceAll("&lt;", "<").replaceAll("&gt;", ">")
-                   .replaceAll("&amp;", "&").trim();
+        StringBuilder text = new StringBuilder(html.length());
+        int cursor = 0;
+        while (cursor < html.length()) {
+            if (html.charAt(cursor) != '<') {
+                text.append(html.charAt(cursor++));
+                continue;
+            }
+            int tagEnd = html.indexOf('>', cursor + 1);
+            if (tagEnd < 0) {
+                text.append(html, cursor, html.length());
+                break;
+            }
+            String tag = html.substring(cursor + 1, tagEnd).trim()
+                    .toLowerCase(java.util.Locale.ROOT).replace(" ", "");
+            if (tag.equals("br") || tag.equals("br/") || tag.equals("/p")) {
+                text.append('\n');
+            }
+            cursor = tagEnd + 1;
+        }
+        return text.toString()
+                .replace("&nbsp;", " ")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+                .trim();
     }
 
     private float parseFloat(String s, float defaultVal) {

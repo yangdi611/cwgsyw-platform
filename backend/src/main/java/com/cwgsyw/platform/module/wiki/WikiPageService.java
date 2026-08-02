@@ -454,9 +454,23 @@ public class WikiPageService {
 
     private String slugify(String title) {
         if (title == null) return "page";
-        String s = title.toLowerCase().replaceAll("[^a-z0-9\\u4e00-\\u9fff]+", "-")
-                .replaceAll("(^-+)|(-+$)", "");
-        return s.isEmpty() ? "page" : s;
+        String normalized = title.toLowerCase(java.util.Locale.ROOT);
+        StringBuilder slug = new StringBuilder(normalized.length());
+        boolean separatorPending = false;
+        for (int i = 0; i < normalized.length(); i++) {
+            char character = normalized.charAt(i);
+            boolean allowed = character >= 'a' && character <= 'z'
+                    || character >= '0' && character <= '9'
+                    || character >= '\u4e00' && character <= '\u9fff';
+            if (allowed) {
+                if (separatorPending && !slug.isEmpty()) slug.append('-');
+                slug.append(character);
+                separatorPending = false;
+            } else {
+                separatorPending = !slug.isEmpty();
+            }
+        }
+        return slug.isEmpty() ? "page" : slug.toString();
     }
 
     private String normalizeTitle(String title) {

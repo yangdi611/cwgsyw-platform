@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test')
+const { randomUUID } = require('node:crypto')
 const fs = require('fs')
 const path = require('path')
 
@@ -9,8 +10,8 @@ const key = `remp1065_${suffix}`
 const businessType = `rem_p1_065_${suffix}`
 const roleCode = `rem_p1_065_reader_${suffix}`
 const username = `rem_p1_065_reader_${suffix}`
-const initialPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}A9`
-const finalPassword = `Fqa!${Math.random().toString(36).slice(2, 10)}B8`
+const initialPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}A9`
+const finalPassword = `Fqa!${randomUUID().replaceAll('-', '').slice(0, 8)}B8`
 const manifestPath = path.join(__dirname, '..', 'docs', 'plan', 'full-platform-remediation', '05-workflow-change', 'REM-P1-065-workflow-binding-lifecycle', 'test-data-manifest.json')
 
 function writeManifest(objects, cleanupFailures = 0) {
