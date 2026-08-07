@@ -106,16 +106,16 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-v2-fg">基本信息</h3>
         {canEdit && !editing && (
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+          <Button size="ui-sm" variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="mr-1 h-3.5 w-3.5" />编辑
           </Button>
         )}
         {editing && (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setEditing(false); setEditAttrs({}) }}>
+            <Button size="ui-sm" variant="outline" onClick={() => { setEditing(false); setEditAttrs({}) }}>
               <X className="mr-1 h-3.5 w-3.5" />取消
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={updateMut.isPending}>
+            <Button variant="default" size="ui-sm" onClick={handleSave} disabled={updateMut.isPending}>
               <Save className="mr-1 h-3.5 w-3.5" />{updateMut.isPending ? '保存中…' : '保存'}
             </Button>
           </div>

@@ -124,7 +124,7 @@ export default function TwoDViewPage() {
         title="2D 视图"
         actions={(
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={!model}>
+            <Button size="ui-sm" variant="outline" onClick={handleRefresh} disabled={!model}>
               <RefreshCw className="h-4 w-4 mr-1" />
               刷新
             </Button>
@@ -182,7 +182,7 @@ export default function TwoDViewPage() {
           <p className="text-sm text-destructive">
             {getApiErrorMessage(error, '加载失败，该模型可能未启用 2D 视图')}
           </p>
-          <Button size="sm" variant="outline" className="mt-4" onClick={handleRefresh}>
+          <Button size="ui-sm" variant="outline" className="mt-4" onClick={handleRefresh}>
             重试
           </Button>
         </div>

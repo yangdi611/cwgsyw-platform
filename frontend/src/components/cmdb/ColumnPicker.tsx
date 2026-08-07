@@ -20,7 +20,7 @@ export function ColumnPicker({ allColumns, visibleKeys, onToggle }: ColumnPicker
 
   return (
     <div className="relative">
-      <Button size="sm" variant="outline" onClick={() => setOpen(v => !v)}>
+      <Button size="ui-sm" variant="outline" onClick={() => setOpen(v => !v)}>
         <Settings2 className="h-3.5 w-3.5 mr-1" />列显示
       </Button>
 

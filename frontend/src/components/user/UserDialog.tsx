@@ -177,7 +177,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>密码</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setResetPasswordOpen(true)}>
+                  <Button type="button" variant="outline" size="ui-sm" onClick={() => setResetPasswordOpen(true)}>
                     重置密码
                   </Button>
                 </div>
@@ -206,8 +206,8 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>取消</Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button size="default" type="button" variant="outline" onClick={onClose}>取消</Button>
+              <Button size="default" variant="default" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? '保存中...' : '保存'}
               </Button>
             </DialogFooter>
@@ -289,8 +289,8 @@ function ResetPasswordDialog({
           </div>
           <p className="text-xs text-muted-foreground">重置后该用户所有登录会话会立即失效，下次登录需修改密码。</p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>取消</Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button size="default" type="button" variant="outline" onClick={onClose}>取消</Button>
+            <Button size="default" variant="default" type="submit" disabled={isSubmitting}>
               {isSubmitting ? '提交中...' : '确认重置'}
             </Button>
           </DialogFooter>

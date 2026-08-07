@@ -215,7 +215,7 @@ export default function AssociationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {hasPermission('cmdb_instance', 'delete') && (
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
                           disabled={deleteMutation.isPending}
                           onClick={() => { if (confirm('删除此关联?')) deleteMutation.mutate(rel.id) }}>
                           <Trash2 className="h-3.5 w-3.5" />

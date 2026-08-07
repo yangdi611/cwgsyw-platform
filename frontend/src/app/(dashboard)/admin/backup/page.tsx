@@ -3,7 +3,23 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, StatusBadge } from '@/components/design-system'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  StatusBadge,
+} from '@/components/design-system'
 import { ErrorState, PageHeader, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { Database, Download, RotateCcw, Trash2, AlertTriangle, Loader2, Upload } from 'lucide-react'
@@ -43,7 +59,7 @@ const STATUS: Record<string, { variant: 'ok' | 'warn' | 'danger' | 'neutral'; la
   failed: { variant: 'danger', label: '失败' },
 }
 
-/** Restore confirmation and completion states stay in one controlled dialog. */
+/** Restore confirmation uses alert semantics; completion remains informational. */
 function RestoreDialog({
   target,
   onConfirm,
@@ -59,30 +75,21 @@ function RestoreDialog({
   done: boolean
   error: string | null
 }) {
-  return (
-    <Dialog open onOpenChange={(open) => { if (!open && !loading) onCancel() }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{done ? '恢复完成' : '确认恢复数据库？'}</DialogTitle>
-        </DialogHeader>
-        {done ? (
-          <div className="space-y-3 text-sm text-v2-muted">
-            <p>
-              数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span>。
-            </p>
-            <p className="font-medium text-yellow-600">
-              建议执行：<span className="font-mono text-xs">docker compose restart backend</span> 以清除内存缓存。
-            </p>
-          </div>
-        ) : (
+  if (!done) {
+    return (
+      <AlertDialog open onOpenChange={(open) => { if (!open && !loading) onCancel() }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认恢复数据库？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将使用备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span> 覆盖当前所有数据。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-v2-danger" />
-              <p className="text-v2-muted">
-                将使用备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span> 覆盖当前所有数据。
-              </p>
+              <p className="font-medium text-v2-danger">此操作不可撤销。</p>
             </div>
-            <p className="font-medium text-v2-danger">此操作不可撤销。</p>
             {error && <p className="break-all text-v2-danger">{error}</p>}
             {loading && (
               <p className="flex items-center gap-1.5 text-v2-muted">
@@ -91,19 +98,38 @@ function RestoreDialog({
               </p>
             )}
           </div>
-        )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={onConfirm}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              确认恢复
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open && !loading) onCancel() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>恢复完成</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm text-v2-muted">
+          <p>
+            数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span>。
+          </p>
+          <p className="font-medium text-yellow-600">
+            建议执行：<span className="font-mono text-xs">docker compose restart backend</span> 以清除内存缓存。
+          </p>
+        </div>
         <DialogFooter>
-          {done ? (
-            <Button variant="primary" onClick={onCancel}>关闭</Button>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={onCancel} disabled={loading}>取消</Button>
-              <Button variant="danger" onClick={onConfirm} disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                确认恢复
-              </Button>
-            </>
-          )}
+          <Button variant="primary" onClick={onCancel}>关闭</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

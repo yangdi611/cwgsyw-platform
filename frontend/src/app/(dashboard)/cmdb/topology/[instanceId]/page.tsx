@@ -144,12 +144,12 @@ export default function TopologyPage() {
           leading={rootNode ? (
             <Link
               href={`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`}
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />返回实例
             </Link>
           ) : (
-            <button className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'opacity-50 cursor-not-allowed')} disabled>
+            <button className={cn(buttonVariants({ variant: 'ghost', size: 'ui-sm' }), 'opacity-50 cursor-not-allowed')} disabled>
               <ArrowLeft className="h-4 w-4 mr-1" />返回实例
             </button>
           )}
@@ -159,11 +159,11 @@ export default function TopologyPage() {
             <>
               <Link
                 href={`/cmdb/topology/${instanceId}/compare`}
-                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                className={buttonVariants({ variant: 'outline', size: 'ui-sm' })}
               >
                 <GitCompare className="h-4 w-4 mr-1" />拓扑对比
               </Link>
-              <Button size="sm" variant="outline" onClick={handleExport} disabled={!nodes.length}>
+              <Button size="ui-sm" variant="outline" onClick={handleExport} disabled={!nodes.length}>
                 <Download className="h-4 w-4 mr-1" />导出 PNG
               </Button>
               <div className="flex items-center gap-1">
@@ -233,7 +233,7 @@ export default function TopologyPage() {
             {selectedNode && (
               <Link
                 href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
+                className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }), 'w-full mt-2')}
               >
                 <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
               </Link>
@@ -328,7 +328,7 @@ export default function TopologyPage() {
                 )}
                 <Link
                   href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
-                  className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full mt-2')}
+                  className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }), 'w-full mt-2')}
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
                 </Link>

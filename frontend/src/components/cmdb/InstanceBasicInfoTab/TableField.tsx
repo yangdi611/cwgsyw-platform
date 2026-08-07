@@ -113,7 +113,7 @@ export function TableFieldEditor({
           </tbody>
         </table>
       </div>
-      <Button type="button" size="sm" variant="outline" onClick={addRow}>
+      <Button type="button" size="ui-sm" variant="outline" onClick={addRow}>
         <Plus className="h-3.5 w-3.5 mr-1" />添加行
       </Button>
     </div>

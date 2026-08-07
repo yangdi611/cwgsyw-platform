@@ -239,12 +239,12 @@ function ModelCatalogTab() {
         {(canManageGroups || canCreateModel) && (
           <div className="flex gap-2">
             {canManageGroups && (
-              <Button size="sm" variant="primary" onClick={() => setCreatingGroup(v => !v)}>
+              <Button size="ui-sm" variant="primary" onClick={() => setCreatingGroup(v => !v)}>
                 <Plus className="mr-1 h-4 w-4" />新建分类
               </Button>
             )}
             {canCreateModel && (
-              <Button size="sm" variant="primary" onClick={() => setCreatingModel(v => !v)}>
+              <Button size="ui-sm" variant="primary" onClick={() => setCreatingModel(v => !v)}>
                 <Plus className="mr-1 h-4 w-4" />新建模型
               </Button>
             )}
@@ -270,8 +270,8 @@ function ModelCatalogTab() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => createGroupMutation.mutate()} disabled={!groupForm.code || !groupForm.name || createGroupMutation.isPending}>创建</Button>
-            <Button size="sm" variant="ghost" onClick={() => setCreatingGroup(false)}>取消</Button>
+            <Button variant="default" size="ui-sm" onClick={() => createGroupMutation.mutate()} disabled={!groupForm.code || !groupForm.name || createGroupMutation.isPending}>创建</Button>
+            <Button size="ui-sm" variant="ghost" onClick={() => setCreatingGroup(false)}>取消</Button>
           </div>
         </div>
       )}
@@ -309,8 +309,8 @@ function ModelCatalogTab() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => createModelMutation.mutate()} disabled={!modelForm.modelId || !modelForm.name || createModelMutation.isPending}>创建</Button>
-            <Button size="sm" variant="ghost" onClick={() => setCreatingModel(false)}>取消</Button>
+            <Button variant="default" size="ui-sm" onClick={() => createModelMutation.mutate()} disabled={!modelForm.modelId || !modelForm.name || createModelMutation.isPending}>创建</Button>
+            <Button size="ui-sm" variant="ghost" onClick={() => setCreatingModel(false)}>取消</Button>
           </div>
         </div>
       )}
@@ -330,14 +330,14 @@ function ModelCatalogTab() {
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
+            <Button variant="default"
+              size="ui-sm"
               onClick={() => renameModelMutation.mutate({ model: editingModel, displayName: renameForm.displayName.trim() })}
               disabled={!renameForm.displayName.trim() || renameModelMutation.isPending}
             >
               保存
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditingModel(null)}>取消</Button>
+            <Button size="ui-sm" variant="ghost" onClick={() => setEditingModel(null)}>取消</Button>
           </div>
         </div>
       )}
@@ -385,8 +385,8 @@ function ModelCatalogTab() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
+            <Button variant="default"
+              size="ui-sm"
               onClick={() => copyModelMutation.mutate({
                 model: copyingModel,
                 body: {
@@ -399,7 +399,7 @@ function ModelCatalogTab() {
             >
               复制
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setCopyingModel(null)}>取消</Button>
+            <Button size="ui-sm" variant="ghost" onClick={() => setCopyingModel(null)}>取消</Button>
           </div>
         </div>
       )}
@@ -430,8 +430,8 @@ function ModelCatalogTab() {
                     <>
                       <Input className="h-8" value={editGroupForm.name} onChange={e => setEditGroupForm(f => ({ ...f, name: e.target.value }))} />
                       <Input className="h-8 w-20" type="number" value={editGroupForm.sortOrder} onChange={e => setEditGroupForm(f => ({ ...f, sortOrder: +e.target.value }))} />
-                      <Button size="sm" onClick={(e) => { e.stopPropagation(); updateGroupMutation.mutate({ id: g.id, body: editGroupForm }) }}>保存</Button>
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingGroupId(null) }}>取消</Button>
+                      <Button variant="default" size="ui-sm" onClick={(e) => { e.stopPropagation(); updateGroupMutation.mutate({ id: g.id, body: editGroupForm }) }}>保存</Button>
+                      <Button size="ui-sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingGroupId(null) }}>取消</Button>
                     </>
                   ) : (
                     <>
@@ -442,11 +442,11 @@ function ModelCatalogTab() {
                       </div>
                       {canManageGroups && (
                         <div className="flex shrink-0 gap-1" onClick={e => e.stopPropagation()}>
-                          <Button size="sm" variant="ghost" className="text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                          <Button size="ui-sm" variant="ghost" className="text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
                             <PencilLine className="h-4 w-4" />
                           </Button>
                           <Button
-                            size="sm"
+                            size="ui-sm"
                             variant="ghost"
                             disabled={groupModels.length > 0}
                             title={groupModels.length > 0 ? '分类下尚有模型' : ''}

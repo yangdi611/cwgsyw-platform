@@ -53,10 +53,10 @@ export default function NewWorkflowDesignPage() {
           subtitle="拖拽左侧元素到画布中设计流程，选中节点后在右侧属性面板配置审批人和条件。"
           actions={(
             <div className="flex items-center gap-3">
-              <Button onClick={handleSave} disabled={saving}>
+              <Button size="default" variant="default" onClick={handleSave} disabled={saving}>
                 {saving ? '部署中...' : '保存并部署'}
               </Button>
-              <Button variant="outline" onClick={() => router.back()}>取消</Button>
+              <Button size="default" variant="outline" onClick={() => router.back()}>取消</Button>
             </div>
           )}
         />

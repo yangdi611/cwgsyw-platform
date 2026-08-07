@@ -203,7 +203,7 @@ export default function AdminConfigPage() {
                   <Switch checked={ssl} onCheckedChange={setSsl} id="smtp-ssl" />
                   <Label htmlFor="smtp-ssl">使用 SSL</Label>
                 </div>
-                <Button onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>
                   保存 SMTP 配置
                 </Button>
               </div>
@@ -239,7 +239,7 @@ export default function AdminConfigPage() {
                   />
                   <p className="text-xs text-muted-foreground">从 Prometheus 拉取告警的间隔时间</p>
                 </div>
-                <Button onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
                   保存 Prometheus 配置
                 </Button>
               </div>
@@ -319,7 +319,7 @@ export default function AdminConfigPage() {
                     )}
                   </div>
                 </div>
-                <Button onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
                   保存水印配置
                 </Button>
               </div>

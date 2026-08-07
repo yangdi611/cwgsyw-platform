@@ -155,8 +155,8 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>取消</Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button size="default" type="button" variant="outline" onClick={onClose}>取消</Button>
+            <Button size="default" variant="default" type="submit" disabled={isSubmitting}>
               {isSubmitting ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>

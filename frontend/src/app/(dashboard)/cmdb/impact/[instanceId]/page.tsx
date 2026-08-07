@@ -291,7 +291,7 @@ function ImpactRootCard({ data }: { data: ImpactResult }) {
         </Link>
         <Link
           href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
-          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }))}
         >
           <ExternalLink className="h-3.5 w-3.5 mr-1" />查看详情
         </Link>

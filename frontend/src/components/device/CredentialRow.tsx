@@ -155,8 +155,8 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
             <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} maxLength={128} />
             <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="留空不修改密码" maxLength={1024} />
             <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="备注" maxLength={255} />
-            <Button variant="secondary" size="sm" onClick={saveEdit} disabled={!editUsername}>保存</Button>
-            <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setEditPassword('') }}>取消</Button>
+            <Button variant="secondary" size="ui-sm" onClick={saveEdit} disabled={!editUsername}>保存</Button>
+            <Button variant="ghost" size="ui-sm" onClick={() => { setEditing(false); setEditPassword('') }}>取消</Button>
           </div>
         ) : (
           <><span className="font-medium text-sm">{username}</span>{description && <span className="text-xs text-v2-muted ml-2">{description}</span>}</>

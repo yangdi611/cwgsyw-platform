@@ -114,7 +114,7 @@ export default function TopologyComparePage() {
             leading={(
               <Link
                 href={`/cmdb/topology/${instanceId}`}
-                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />返回拓扑图
               </Link>
@@ -136,8 +136,8 @@ export default function TopologyComparePage() {
           onChange={e => setCompareDepth(Math.min(5, Math.max(1, Number(e.target.value) || 3)))}
           className="w-16 h-8"
         />
-        <Button
-          size="sm"
+        <Button variant="default"
+          size="ui-sm"
           onClick={() => setCompareNonce(n => n + 1)}
           disabled={!fromTime || !toTime || compareQuery.isFetching}
         >

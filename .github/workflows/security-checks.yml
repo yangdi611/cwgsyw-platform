@@ -32,6 +32,7 @@ jobs:
       - run: npm audit --audit-level=low
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   backend:

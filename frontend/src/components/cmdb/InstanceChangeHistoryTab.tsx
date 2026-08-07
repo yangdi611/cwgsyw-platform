@@ -57,11 +57,11 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
       <div className="flex items-center justify-between mt-4 pt-3 border-t">
         <span className="text-sm text-v2-muted">共 {total} 条</span>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+          <Button size="ui-sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm">{page} / {totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+          <Button size="ui-sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

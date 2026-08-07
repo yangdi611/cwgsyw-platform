@@ -112,7 +112,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
         title="空间布局"
         subtitle="机房、机柜与 CI 的二维位置视图。"
         actions={canCreate && !includeArchived ? (
-          <Button variant="primary" onClick={() => setShowCreate(true)}>
+          <Button size="default" variant="primary" onClick={() => setShowCreate(true)}>
             <FilePlus2 className="h-4 w-4" />
             新建布局
           </Button>
@@ -123,7 +123,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
         <div className="flex flex-wrap gap-2" aria-label="布局状态筛选">
           <Button
             type="button"
-            size="sm"
+            size="ui-sm"
             variant="outline"
             className={includeArchived
               ? 'border-v2-border bg-v2-surface text-v2-muted hover:bg-v2-surface-hover'
@@ -134,7 +134,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
           </Button>
           <Button
             type="button"
-            size="sm"
+            size="ui-sm"
             variant="outline"
             className={includeArchived
               ? 'border-v2-primary bg-v2-primary-soft text-v2-primary shadow-none hover:bg-v2-primary-soft'
@@ -212,7 +212,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
               ? '归档后的空间布局会保留在这里。'
               : '点击右上角新建布局，为机房创建二维空间视图。'}
             action={canCreate && !includeArchived ? (
-              <Button variant="secondary" onClick={() => setShowCreate(true)}>
+              <Button size="default" variant="secondary" onClick={() => setShowCreate(true)}>
                 创建首个布局
               </Button>
             ) : undefined}
@@ -254,10 +254,10 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
             )}
           </div>
           <DialogFooter>
-            <Button variant="secondary" disabled={create.isPending} onClick={() => setShowCreate(false)}>
+            <Button size="default" variant="secondary" disabled={create.isPending} onClick={() => setShowCreate(false)}>
               取消
             </Button>
-            <Button
+            <Button size="default"
               variant="primary"
               disabled={!roomId || create.isPending}
               loading={create.isPending}

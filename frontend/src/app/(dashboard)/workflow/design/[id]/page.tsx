@@ -115,10 +115,10 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
           subtitle={`当前版本: v${detail?.version} | 修改后将创建新版本`}
           actions={(
             <div className="flex items-center gap-3">
-              <Button onClick={handleSave} disabled={saving}>
+              <Button size="default" variant="default" onClick={handleSave} disabled={saving}>
                 {saving ? '部署中...' : '保存新版本'}
               </Button>
-              <Button variant="outline" onClick={() => router.back()}>取消</Button>
+              <Button size="default" variant="outline" onClick={() => router.back()}>取消</Button>
             </div>
           )}
         />

@@ -172,7 +172,7 @@ export default function FilePreviewPage() {
       toolbar={(
         <WorkspaceToolbar
           leading={(
-            <Link href="/files" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            <Link href="/files" className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}>
               <ArrowLeft className="h-4 w-4 mr-1" />
               返回
             </Link>
@@ -180,7 +180,7 @@ export default function FilePreviewPage() {
           title={file?.name ?? (loadFailed ? '无法加载文件' : '加载中...')}
           subtitle={file ? `${file.createdByName} · ${formatBytes(file.sizeBytes)} · ${new Date(file.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : undefined}
           actions={(
-            <Button variant="outline" size="sm" onClick={handleDownload} disabled={!file || loadFailed}>
+            <Button variant="outline" size="ui-sm" onClick={handleDownload} disabled={!file || loadFailed}>
               <Download className="h-4 w-4 mr-1.5" />下载
             </Button>
           )}
@@ -192,8 +192,8 @@ export default function FilePreviewPage() {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
             <p>无法加载文件。文件可能不存在或你没有访问权限。</p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={retry}>重试</Button>
-              <Link href="/files" className={buttonVariants({ variant: 'outline', size: 'sm' })}>返回文件列表</Link>
+              <Button variant="outline" size="ui-sm" onClick={retry}>重试</Button>
+              <Link href="/files" className={buttonVariants({ variant: 'outline', size: 'ui-sm' })}>返回文件列表</Link>
             </div>
           </div>
         ) : !previewUrl ? (
@@ -214,7 +214,7 @@ export default function FilePreviewPage() {
           <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
             <File className="h-16 w-16 opacity-30" />
             <p className="text-sm">旧版 Excel 文件暂不支持在线预览，请下载后查看</p>
-            <Button onClick={handleDownload}>
+            <Button size="default" variant="default" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-1.5" />
               下载文件
             </Button>
@@ -232,7 +232,7 @@ export default function FilePreviewPage() {
           <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
             <File className="h-16 w-16 opacity-30" />
             <p className="text-sm">此文件类型不支持在线预览</p>
-            <Button onClick={handleDownload}>
+            <Button size="default" variant="default" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-1.5" />
               下载文件
             </Button>

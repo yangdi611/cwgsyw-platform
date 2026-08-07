@@ -6,7 +6,7 @@
  * requiring another page-wide import migration.
  */
 export { Button, buttonVariants } from './Button'
-export type { ButtonProps, ButtonSize, ButtonVariant } from './Button'
+export type { ButtonProps, ButtonSize, ButtonVariant, ButtonVariantsOptions } from './Button'
 export { Card, CardHeader, CardTitle, CardDescription, CardContent } from './Card'
 export type { CardProps } from './Card'
 export { StatusBadge } from './StatusBadge'

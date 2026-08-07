@@ -597,12 +597,12 @@ function SpatialEditorSession({
           <>
             <Button
               variant="outline"
-              size="sm"
+              size="ui-sm"
               onClick={downloadConflictSnapshot}
             >
               导出当前 JSON
             </Button>
-            <Button variant="outline" size="sm" onClick={reloadDraft}>
+            <Button variant="outline" size="ui-sm" onClick={reloadDraft}>
               重新载入草稿
             </Button>
           </>
@@ -645,13 +645,13 @@ function SpatialEditorSession({
         />
         <Button
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => blueprintInputRef.current?.click()}
         >
           <Upload className="mr-1.5 h-4 w-4" />
           导入图纸
         </Button>
-        <Button variant="outline" size="sm" onClick={exportBlueprint}>
+        <Button variant="outline" size="ui-sm" onClick={exportBlueprint}>
           <Download className="mr-1.5 h-4 w-4" />
           导出图纸
         </Button>
@@ -721,7 +721,7 @@ function SpatialEditorSession({
         </ToolButton>
         <Button
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => validate.mutate()}
           disabled={validate.isPending}
         >
@@ -730,7 +730,7 @@ function SpatialEditorSession({
         </Button>
         <Button
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => save.mutate()}
           disabled={save.isPending}
         >
@@ -738,7 +738,7 @@ function SpatialEditorSession({
           保存
         </Button>
         {canPublish && (
-          <Button size="sm" onClick={() => setPublishOpen(true)}>
+          <Button variant="default" size="ui-sm" onClick={() => setPublishOpen(true)}>
             <Send className="mr-1.5 h-4 w-4" />
             发布
           </Button>
@@ -1069,7 +1069,7 @@ function RackRowForm({
           </select>
         </label>
       </div>
-      <Button className="w-full" variant="outline" size="sm" onClick={generate}>
+      <Button className="w-full" variant="outline" size="ui-sm" onClick={generate}>
         <Warehouse className="mr-1.5 h-4 w-4" />
         生成机柜位
       </Button>
@@ -1123,7 +1123,7 @@ function ReferenceControls({
       </label>
       <Button
         variant="outline"
-        size="sm"
+        size="ui-sm"
         className="w-full"
         onClick={() => update({ locked: !reference.locked })}
       >
@@ -1307,7 +1307,7 @@ function PropertiesPanel({
           {element.type !== "ROOM_OUTLINE" && (
             <Button
               variant="outline"
-              size="sm"
+              size="ui-sm"
               className="w-full"
               onClick={() =>
                 onChange(
@@ -1371,7 +1371,7 @@ function PropertiesPanel({
           )}
           <Button
             variant="destructive"
-            size="sm"
+            size="ui-sm"
             onClick={onDelete}
             disabled={element.type === "ROOM_OUTLINE"}
           >
@@ -1405,7 +1405,7 @@ function RackDimensionControls({
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => update(0.025, 0.055)}
         >
           紧凑
@@ -1413,7 +1413,7 @@ function RackDimensionControls({
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => update(0.04, 0.08)}
         >
           标准
@@ -1421,7 +1421,7 @@ function RackDimensionControls({
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="ui-sm"
           onClick={() => update(0.055, 0.11)}
         >
           加大
@@ -1556,7 +1556,7 @@ function BatchRackDimensionControls({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="ui-sm"
             onClick={() => update(0.025, 0.055)}
           >
             紧凑
@@ -1564,7 +1564,7 @@ function BatchRackDimensionControls({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="ui-sm"
             onClick={() => update(0.04, 0.08)}
           >
             标准
@@ -1572,7 +1572,7 @@ function BatchRackDimensionControls({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="ui-sm"
             onClick={() => update(0.055, 0.11)}
           >
             加大
@@ -1640,7 +1640,7 @@ function BatchRackDimensionControls({
             value={gapPercent}
             onChange={(event) => setGapPercent(Number(event.target.value))}
           />
-          <Button type="button" variant="outline" size="sm" onClick={applyGap}>
+          <Button type="button" variant="outline" size="ui-sm" onClick={applyGap}>
             应用
           </Button>
         </div>
@@ -1693,10 +1693,10 @@ function PublishDialog({
           </p>
         )}
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
+          <Button size="default" variant="outline" onClick={onCancel}>
             取消
           </Button>
-          <Button onClick={onConfirm} disabled={pending}>
+          <Button size="default" variant="default" onClick={onConfirm} disabled={pending}>
             {pending ? "发布中..." : "确认发布"}
           </Button>
         </div>

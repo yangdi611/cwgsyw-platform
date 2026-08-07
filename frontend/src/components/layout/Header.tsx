@@ -45,7 +45,7 @@ export function Header() {
         </button>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-          <Link href="/change-docs/new" className={buttonVariants({ size: 'sm', className: 'hidden sm:inline-flex' })}>
+          <Link href="/change-docs/new" className={buttonVariants({ variant: 'default', size: 'ui-sm', className: 'hidden sm:inline-flex' })}>
             新建变更
           </Link>
           <NotificationBell />

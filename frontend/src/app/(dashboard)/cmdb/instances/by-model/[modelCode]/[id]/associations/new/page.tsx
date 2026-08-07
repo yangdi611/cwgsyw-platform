@@ -290,7 +290,7 @@ export default function NewAssociationPage() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <Input placeholder="属性名" value={attrKey} onChange={e => setAttrKey(e.target.value)} />
                 <Input placeholder="属性值" value={attrValue} onChange={e => setAttrValue(e.target.value)} />
-                <Button type="button" variant="outline" size="sm" className="sm:self-end"
+                <Button type="button" variant="outline" size="ui-sm" className="sm:self-end"
                   onClick={() => {
                     if (!attrKey.trim()) return
                     setAssocAttrs(a => ({ ...a, [attrKey.trim()]: attrValue }))
@@ -327,20 +327,20 @@ export default function NewAssociationPage() {
 
       {/* 底部操作栏 */}
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-        <Button variant="ghost" size="sm"
+        <Button variant="ghost" size="ui-sm"
           onClick={() => step === 0
             ? router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
             : (setStep(s => s - 1), setError(''))}>
           {step === 0 ? '取消' : '上一步'}
         </Button>
         {step < 2 ? (
-          <Button size="sm" disabled={
+          <Button variant="default" size="ui-sm" disabled={
             (step === 0 && !selectedDefId) || (step === 1 && !selectedPeer)
           } onClick={() => { setError(''); setStep(s => s + 1) }}>
             下一步 <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button size="sm" disabled={createMutation.isPending}
+          <Button variant="default" size="ui-sm" disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}>
             {createMutation.isPending ? '创建中...' : '建立关联'}
           </Button>

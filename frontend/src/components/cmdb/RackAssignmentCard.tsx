@@ -131,7 +131,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
           所在机柜
         </span>
         {canWrite && (
-          <Button size="sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
+          <Button size="ui-sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
             <Plus className="h-3.5 w-3.5 mr-1" />装入机柜
           </Button>
         )}
@@ -214,8 +214,8 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-              <Button
+              <Button size="default" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+              <Button size="default" variant="default"
                 onClick={() => assignMutation.mutate()}
                 disabled={!defId || !rackId || assignMutation.isPending}
               >

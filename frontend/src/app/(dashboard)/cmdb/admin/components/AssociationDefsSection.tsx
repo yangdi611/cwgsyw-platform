@@ -129,7 +129,7 @@ function AssociationDefsSection({
           </p>
         </div>
         {canWrite && !creating && (
-          <Button size="sm" variant="primary" onClick={() => { setForm(emptyForm); setCreating(true) }}>
+          <Button size="ui-sm" variant="primary" onClick={() => { setForm(emptyForm); setCreating(true) }}>
             <Plus className="h-4 w-4 mr-1" />新建关联定义
           </Button>
         )}
@@ -241,8 +241,8 @@ function AssociationDefsSection({
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={() => { setCreating(false); setForm(emptyForm) }}>取消</Button>
-            <Button size="sm" disabled={!formValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
+            <Button variant="outline" size="ui-sm" onClick={() => { setCreating(false); setForm(emptyForm) }}>取消</Button>
+            <Button variant="default" size="ui-sm" disabled={!formValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
               {createMutation.isPending ? '创建中...' : '创建'}
             </Button>
           </div>
@@ -259,7 +259,7 @@ function AssociationDefsSection({
                 ? '无 cmdb_relation:read 权限，请联系管理员'
                 : `加载失败：${getApiErrorMessage(error, '未知错误')}`}
             </p>
-            <Button size="sm" variant="outline" onClick={() => refetch()}>
+            <Button size="ui-sm" variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" />重试
             </Button>
           </div>
@@ -317,11 +317,11 @@ function AssociationDefsSection({
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button size="sm" className="h-7" disabled={updateMutation.isPending}
+                      <Button variant="default" size="ui-sm" className="h-7" disabled={updateMutation.isPending}
                         onClick={() => updateMutation.mutate({ id: d.id, body: editForm })}>
                         保存
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7" onClick={() => setEditingId(null)}>
+                      <Button variant="ghost" size="ui-sm" className="h-7" onClick={() => setEditingId(null)}>
                         取消
                       </Button>
                     </div>
@@ -351,13 +351,13 @@ function AssociationDefsSection({
                   {canWrite && (
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0"
                           disabled={d.isBuiltIn}
                           title={d.isBuiltIn ? '内置定义不可编辑' : '编辑'}
                           onClick={() => startEdit(d)}>
                           <PencilLine className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
                           disabled={d.isBuiltIn}
                           title={d.isBuiltIn ? '内置定义不可删除' : '删除'}
                           onClick={() => {

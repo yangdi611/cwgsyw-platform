@@ -109,7 +109,7 @@ export function InstanceAlertsTab({ instanceId }: Props) {
                     )}
                   </div>
                   {!a.acknowledged && (
-                    <Button size="sm" variant="outline" disabled={ack.isPending} onClick={() => onAck(a.id)}>
+                    <Button size="ui-sm" variant="outline" disabled={ack.isPending} onClick={() => onAck(a.id)}>
                       确认
                     </Button>
                   )}

@@ -201,7 +201,7 @@ function AssociationsTab() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">关联扩展属性管理</h2>
           {activeKind && !showForm && canWrite && (
-            <Button size="sm" variant="primary" onClick={() => { resetForm(); setShowForm(true) }}>
+            <Button size="ui-sm" variant="primary" onClick={() => { resetForm(); setShowForm(true) }}>
               <Plus className="h-4 w-4 mr-1" />新增属性
             </Button>
           )}
@@ -305,10 +305,10 @@ function AssociationsTab() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSubmit} disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending}>
+              <Button variant="default" size="ui-sm" onClick={handleSubmit} disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending}>
                 {editingAttr ? '更新' : '创建'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={resetForm}>取消</Button>
+              <Button size="ui-sm" variant="ghost" onClick={resetForm}>取消</Button>
             </div>
           </div>
         )}
@@ -324,7 +324,7 @@ function AssociationsTab() {
                   关联类型「{activeKind}」暂无扩展属性定义
                 </p>
                 {canWrite && (
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => { resetForm(); setShowForm(true) }}>
+                  <Button size="ui-sm" variant="outline" className="mt-3" onClick={() => { resetForm(); setShowForm(true) }}>
                     <Plus className="h-4 w-4 mr-1" />新增属性
                   </Button>
                 )}
@@ -363,11 +363,11 @@ function AssociationsTab() {
                         {canWrite && (
                           <td className="px-3 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0"
                                 onClick={() => startEdit(attr)}>
                                 <PencilLine className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
                                 onClick={() => {
                                   if (confirm(`删除扩展属性「${attr.name}」?`)) deleteAttrMutation.mutate(attr)
                                 }}>

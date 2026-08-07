@@ -198,7 +198,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
             </div>
 
             {format === 'csv' && (
-              <Button size="sm" variant="outline" onClick={downloadTemplate}>
+              <Button size="ui-sm" variant="outline" onClick={downloadTemplate}>
                 <Download className="h-4 w-4 mr-1" />下载 CSV 模板
               </Button>
             )}
@@ -269,8 +269,8 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
               </div>
             )}
             <div className="flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleClose(false)}>取消</Button>
-              <Button size="sm" onClick={() => previewMutation.mutate()} disabled={!file || previewMutation.isPending}>
+              <Button size="ui-sm" variant="outline" onClick={() => handleClose(false)}>取消</Button>
+              <Button variant="default" size="ui-sm" onClick={() => previewMutation.mutate()} disabled={!file || previewMutation.isPending}>
                 {previewMutation.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />解析中...</> : '下一步'}
               </Button>
             </div>
@@ -331,8 +331,8 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
             )}
 
             <div className="flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => setStep(0)}>返回</Button>
-              <Button size="sm" onClick={() => executeMutation.mutate()}
+              <Button size="ui-sm" variant="outline" onClick={() => setStep(0)}>返回</Button>
+              <Button variant="default" size="ui-sm" onClick={() => executeMutation.mutate()}
                 disabled={executeMutation.isPending || preview.totalRows === 0}>
                 {executeMutation.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />导入中...</> : '确认导入'}
               </Button>
@@ -374,7 +374,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 <p className="text-xs text-v2-muted">耗时: {(result.durationMs / 1000).toFixed(1)}s</p>
 
                 {result.failed > 0 && format === 'csv' && (
-                  <Button size="sm" variant="outline" onClick={downloadFailedRows}>
+                  <Button size="ui-sm" variant="outline" onClick={downloadFailedRows}>
                     <Download className="h-4 w-4 mr-1" />下载失败行
                   </Button>
                 )}
@@ -382,7 +382,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
             )}
 
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => handleClose(false)}>完成</Button>
+              <Button variant="default" size="ui-sm" onClick={() => handleClose(false)}>完成</Button>
             </div>
           </div>
         )}

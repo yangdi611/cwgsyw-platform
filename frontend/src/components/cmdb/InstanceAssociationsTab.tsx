@@ -301,7 +301,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                         </td>
                         <td className="px-2 py-2.5 text-right" onClick={e => e.stopPropagation()}>
                           {hasPermission('cmdb_instance', 'delete') && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-v2-danger"
+                            <Button variant="ghost" size="ui-sm" className="h-6 w-6 p-0 text-v2-danger"
                               onClick={() => { if (confirm('删除此关联?')) deleteRelMutation.mutate(rel.id) }}>
                               <XIcon className="h-3 w-3" />
                             </Button>
@@ -319,7 +319,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
 
         {hasPermission('cmdb_instance', 'create') && (
           <div className="pt-1">
-            <Button size="sm" variant="outline"
+            <Button size="ui-sm" variant="outline"
               onClick={() => { setAddDialogOpen(true); setAddError('') }}>
               + 添加关联
             </Button>
@@ -420,8 +420,8 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
-            <Button
+            <Button size="default" variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
+            <Button size="default" variant="default"
               onClick={() => createRelMutation.mutate()}
               disabled={!selectedDefId || !selectedPeerId || createRelMutation.isPending}>
               {createRelMutation.isPending ? '创建中...' : '建立关联'}
