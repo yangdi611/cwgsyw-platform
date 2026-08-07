@@ -5,11 +5,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Skeleton } from '@/components/design-system'
 import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
 
 interface ActionCountVO {
   created: number

@@ -1,9 +1,8 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { PageHeader, EmptyState } from '@/components/shared'
+import { Button, Card } from '@/components/design-system'
+import { ErrorState, LoadingState, PageHeader, EmptyState } from '@/components/shared'
 import { Bell, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { NotificationItem } from '@/components/notification/NotificationItem'
@@ -27,7 +26,7 @@ interface PageResult {
 export default function NotificationsPage() {
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery<PageResult>({
+  const { data, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['notifications'],
     queryFn: () =>
       api.get('/notifications', { params: { page: 1, size: 50 } }).then((r) => r.data.data),
@@ -73,7 +72,19 @@ export default function NotificationsPage() {
         }
       />
 
-      {isLoading ? null : records.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <LoadingState label="正在加载通知…" minHeight={180} />
+        </Card>
+      ) : isError ? (
+        <Card>
+          <ErrorState
+            title="通知加载失败"
+            description="无法读取通知中心，请重试。"
+            onRetry={() => void refetch()}
+          />
+        </Card>
+      ) : records.length === 0 ? (
         <Card>
           <EmptyState
             icon={<Bell className="h-5 w-5 text-v2-muted" />}

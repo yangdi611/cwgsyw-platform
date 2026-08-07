@@ -2,13 +2,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { PageHeader } from '@/components/shared'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Switch } from '@/components/v2/Switch'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Card, CardContent, Input, Label, Switch, Textarea } from '@/components/design-system'
+import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
@@ -154,7 +149,7 @@ export default function AdminAiPage() {
     if (!canRead) router.replace('/')
   }, [canRead, router])
 
-  const { data: providers = [], isLoading } = useQuery<AiProviderConfigVO[]>({
+  const { data: providers = [], isLoading, isError, refetch } = useQuery<AiProviderConfigVO[]>({
     queryKey: ['ai-providers'],
     queryFn: () => api.get('/admin/ai/providers').then((r) => r.data.data),
     enabled: canRead,
@@ -170,7 +165,13 @@ export default function AdminAiPage() {
         subtitle="配置 AI 供应商的 API Key、模型与系统提示词，供变更文档 AI 生成使用。"
       />
       {isLoading ? (
-        <p className="text-v2-muted">加载中…</p>
+        <LoadingState label="正在加载 AI 网关配置…" minHeight={180} />
+      ) : isError ? (
+        <ErrorState
+          title="AI 网关配置加载失败"
+          description="无法读取供应商配置，请重试。"
+          onRetry={() => void refetch()}
+        />
       ) : (
         providers.map((p) => (
           <ProviderCard

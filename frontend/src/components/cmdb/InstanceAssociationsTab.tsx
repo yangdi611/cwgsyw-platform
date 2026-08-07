@@ -4,11 +4,21 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Link2, X as XIcon } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'

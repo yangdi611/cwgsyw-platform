@@ -5,14 +5,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
-import { Button } from '@/components/v2/Button'
+import { Button } from '@/components/design-system'
 import GroupDialog from '@/components/group/GroupDialog'
 import MemberDialog from '@/components/group/MemberDialog'
 import GroupLifecycleDialog, {
   type GroupLifecycleAction,
   type GroupLifecycleTarget,
 } from '@/components/group/GroupLifecycleDialog'
-import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
+import { ErrorState, PageHeader, PageShell, DataTable, type ColumnDef } from '@/components/shared'
 import { Plus, Archive, Pencil, RotateCcw, Trash2, Users } from 'lucide-react'
 
 interface Group {
@@ -56,7 +56,7 @@ export default function GroupsPage() {
   const [memberGroup, setMemberGroup] = useState<Group | null>(null)
   const [lifecycleDialog, setLifecycleDialog] = useState<LifecycleDialogState | null>(null)
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['groups', listState],
     queryFn: () => api.get('/groups', { params: { state: listState } }).then((r) => r.data.data as Group[]),
   })
@@ -199,23 +199,26 @@ export default function GroupsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="身份与权限"
         title="用户组管理"
         subtitle="按业务团队组织用户，配置组长与成员，支撑日报审批与数据可见性范围。"
         actions={
           canCreate ? (
-            <Button variant="primary" onClick={handleNew}>
-              <Plus className="h-4 w-4" />
-              新建组
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" variant="primary" onClick={handleNew}>
+                <Plus className="h-4 w-4" />
+                新建组
+              </Button>
+            </div>
           ) : undefined
         }
       />
 
       {canViewArchived && (
-        <div className="flex w-fit rounded-v2-md border border-v2-border bg-v2-surface p-1" role="tablist" aria-label="用户组状态">
+        <div className="flex w-fit max-w-full flex-wrap rounded-v2-md border border-v2-border bg-v2-surface p-1" role="tablist" aria-label="用户组状态">
           <button
             type="button"
             role="tab"
@@ -243,15 +246,25 @@ export default function GroupsPage() {
         </div>
       )}
 
-      <DataTable
-        columns={columns}
-        data={groups}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={listState === 'active'
-          ? { title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }
-          : { title: '暂无已归档用户组', description: '归档后的用户组会显示在这里。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="用户组加载失败"
+            description="无法读取用户组列表，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={groups}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={listState === 'active'
+            ? { title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }
+            : { title: '暂无已归档用户组', description: '归档后的用户组会显示在这里。' }}
+        />
+      )}
 
       <div className="text-sm text-v2-muted">
         共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 个{listState === 'active' ? '活动组' : '已归档组'}
@@ -284,6 +297,6 @@ export default function GroupsPage() {
           }}
         />
       )}
-    </div>
+    </PageShell>
   )
 }

@@ -3,16 +3,13 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Chip } from '@/components/v2/Chip'
+import { Button, Card, CardContent, CardHeader, CardTitle, Chip, Input, Label } from '@/components/design-system'
 import { CredentialRow } from '@/components/device/CredentialRow'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
+import { DetailHeader, PageShell } from '@/components/shared'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { usePermission } from '@/hooks/usePermission'
@@ -221,27 +218,19 @@ export default function DeviceDetailPage() {
   const invalidateDevice = () => queryClient.invalidateQueries({ queryKey: ['device', id] })
 
   return (
-    <div className="space-y-6">
-      {/* Title bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/devices"
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-v2-fg">{device.name}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <Chip variant="primary">{typeLabels[device.deviceType] ?? device.deviceType}</Chip>
-              {device.category && <Chip>{device.category}</Chip>}
-              {device.groupName && <span className="text-sm text-v2-muted">{device.groupName}</span>}
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <PageShell width="wide" density="comfortable">
+      <DetailHeader
+        backHref="/devices"
+        title={device.name}
+        status={<Chip variant="primary">{typeLabels[device.deviceType] ?? device.deviceType}</Chip>}
+        meta={
+          <>
+            {device.category && <Chip>{device.category}</Chip>}
+            {device.groupName && <span>{device.groupName}</span>}
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap gap-2">
           <PermissionGuard resource="device" action="update">
             <Button variant="secondary" size="sm" onClick={startEdit}>
               <Pencil className="h-4 w-4" />
@@ -254,8 +243,9 @@ export default function DeviceDetailPage() {
               删除
             </Button>
           </PermissionGuard>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Edit Form */}
       {editing && (
@@ -270,7 +260,7 @@ export default function DeviceDetailPage() {
                 <Lock className="h-3.5 w-3.5" />
                 以下信息来自 CMDB（只读，如需修改请在 CMDB 编辑对应实例）
               </div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div>
                   <dt className="text-xs text-v2-muted">设备名称</dt>
                   <dd className="mt-0.5 text-sm font-semibold text-v2-fg">{device.name}</dd>
@@ -378,7 +368,7 @@ export default function DeviceDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs">用户名 *</Label>
                 <Input
@@ -457,7 +447,7 @@ export default function DeviceDetailPage() {
           />
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }
 

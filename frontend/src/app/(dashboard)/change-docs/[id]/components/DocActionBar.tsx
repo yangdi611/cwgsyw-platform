@@ -1,8 +1,7 @@
 'use client'
 
 import type { UseMutationResult } from '@tanstack/react-query'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
+import { Button, Input } from '@/components/design-system'
 import { Download, Save, Send, Check, X } from 'lucide-react'
 import type { ChangeDocVO } from './types'
 

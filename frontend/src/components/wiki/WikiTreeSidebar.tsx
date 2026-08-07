@@ -9,14 +9,14 @@ import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import {
+  Button,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
+  Input,
+} from '@/components/design-system'
 import {
   ChevronRight,
   FileText,

@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import api from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/v2/Input';
-import { Label } from '@/components/v2/Label';
+import { Button, Input, Label } from '@/components/design-system';
 import { toast } from 'sonner';
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared';
 
 const BpmnEditor = dynamic(() => import('@/components/workflow/BpmnEditor'), {
   ssr: false,
@@ -45,11 +44,25 @@ export default function NewWorkflowDesignPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-v2-fg mb-2">设计新流程</h1>
-      <p className="text-sm text-muted-foreground mb-4">
-        拖拽左侧元素到画布中设计流程。选中节点后在右侧属性面板配置审批人和条件。
-      </p>
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={
+        <WorkspaceToolbar
+          title="设计新流程"
+          subtitle="拖拽左侧元素到画布中设计流程，选中节点后在右侧属性面板配置审批人和条件。"
+          actions={(
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? '部署中...' : '保存并部署'}
+              </Button>
+              <Button variant="outline" onClick={() => router.back()}>取消</Button>
+            </div>
+          )}
+        />
+      }
+    >
+      <div className="min-h-0 overflow-y-auto p-4 md:p-6">
 
       <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="space-y-2">
@@ -82,16 +95,10 @@ export default function NewWorkflowDesignPage() {
         </p>
       </div>
 
-      <div className="mb-4">
-        <BpmnEditor onChange={setXml} />
+        <div className="mb-4">
+          <BpmnEditor onChange={setXml} />
+        </div>
       </div>
-
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? '部署中...' : '保存并部署'}
-        </Button>
-        <Button variant="outline" onClick={() => router.back()}>取消</Button>
-      </div>
-    </div>
+    </WorkspaceShell>
   );
 }

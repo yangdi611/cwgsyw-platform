@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { DetailDrawer } from '@/components/shared/DetailDrawer'
-import { Button } from '@/components/v2/Button'
+import { Button } from '@/components/design-system'
 import { GitBranch, FileText, ArrowRight } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 

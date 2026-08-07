@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Switch } from '@/components/v2/Switch'
-import { Textarea } from '@/components/v2/Textarea'
+import { Input, Label, Switch, Textarea } from '@/components/design-system'
 import type { FieldTypeMetadata, TaskFieldDefinition } from '@/lib/task-template-api'
 import { formatJson, parseJsonObject } from './designer-utils'
 

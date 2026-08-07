@@ -13,6 +13,8 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent } from './Car
 export type { CardProps } from './Card'
 export { StatusBadge } from './StatusBadge'
 export type { StatusBadgeProps } from './StatusBadge'
+export { Chip } from './Chip'
+export type { ChipProps, ChipVariant } from './Chip'
 
 // Form controls
 export { Input } from './Input'

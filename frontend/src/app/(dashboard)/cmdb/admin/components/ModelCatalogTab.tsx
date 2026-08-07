@@ -3,11 +3,17 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Plus, ChevronDown, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -233,12 +239,12 @@ function ModelCatalogTab() {
         {(canManageGroups || canCreateModel) && (
           <div className="flex gap-2">
             {canManageGroups && (
-              <Button size="sm" variant="outline" onClick={() => setCreatingGroup(v => !v)}>
+              <Button size="sm" variant="primary" onClick={() => setCreatingGroup(v => !v)}>
                 <Plus className="mr-1 h-4 w-4" />新建分类
               </Button>
             )}
             {canCreateModel && (
-              <Button size="sm" onClick={() => setCreatingModel(v => !v)}>
+              <Button size="sm" variant="primary" onClick={() => setCreatingModel(v => !v)}>
                 <Plus className="mr-1 h-4 w-4" />新建模型
               </Button>
             )}
@@ -248,7 +254,7 @@ function ModelCatalogTab() {
 
       {/* Create group form */}
       {creatingGroup && (
-        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+        <div className="mb-6 space-y-3 rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 shadow-v2-sm">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">分类代码 * <span className="text-muted-foreground">(英文/下划线)</span></Label>
@@ -272,7 +278,7 @@ function ModelCatalogTab() {
 
       {/* Create model form */}
       {creatingModel && (
-        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+        <div className="mb-6 space-y-3 rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 shadow-v2-sm">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">模型ID * <span className="text-muted-foreground">(英文/下划线)</span></Label>
@@ -310,7 +316,7 @@ function ModelCatalogTab() {
       )}
 
       {editingModel && (
-        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+        <div className="mb-6 space-y-3 rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 shadow-v2-sm">
           <div>
             <p className="text-sm font-medium">重命名模型</p>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{editingModel.modelId}</p>
@@ -337,7 +343,7 @@ function ModelCatalogTab() {
       )}
 
       {copyingModel && (
-        <div className="mb-6 space-y-3 rounded-lg border bg-muted/30 p-4">
+        <div className="mb-6 space-y-3 rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 shadow-v2-sm">
           <div>
             <p className="text-sm font-medium">复制模型</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -408,12 +414,14 @@ function ModelCatalogTab() {
             const isExpanded = expandedGroups.has(g.code)
             const isEditing = editingGroupId === g.id
             return (
-              <div key={g.code} className="overflow-hidden rounded-lg border">
+              <div key={g.code} className="overflow-hidden rounded-v2-md border border-v2-border-strong bg-v2-surface shadow-v2-sm">
                 {/* Group header row */}
                 <div
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 transition-colors',
-                    isExpanded ? 'bg-muted/40' : 'hover:bg-muted/30 cursor-pointer'
+                    'flex items-center gap-3 border-l-2 px-4 py-3 transition-colors',
+                    isExpanded
+                      ? 'border-l-v2-primary bg-v2-surface-soft'
+                      : 'cursor-pointer border-l-transparent bg-v2-surface hover:bg-v2-surface-hover'
                   )}
                   onClick={() => !isEditing && toggleGroup(g.code)}
                 >
@@ -430,11 +438,11 @@ function ModelCatalogTab() {
                       <div className="flex min-w-0 flex-1 items-baseline gap-2">
                         <span className="truncate text-sm font-medium">{g.name}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">{groupModels.length} 个模型</span>
-                        {g.isBuiltIn && <Badge variant="secondary" className="shrink-0 text-xs">内置</Badge>}
+                        {g.isBuiltIn && <Badge variant="outline" className="shrink-0 border-v2-primary-border bg-v2-primary-soft text-xs text-v2-primary">内置</Badge>}
                       </div>
                       {canManageGroups && (
                         <div className="flex shrink-0 gap-1" onClick={e => e.stopPropagation()}>
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
+                          <Button size="sm" variant="ghost" className="text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg" onClick={() => { setEditingGroupId(g.id); setEditGroupForm({ name: g.name, sortOrder: g.sortOrder }) }}>
                             <PencilLine className="h-4 w-4" />
                           </Button>
                           <Button
@@ -444,7 +452,7 @@ function ModelCatalogTab() {
                             title={groupModels.length > 0 ? '分类下尚有模型' : ''}
                             onClick={() => { if (confirm(`确认删除分类「${g.name}」？`)) deleteGroupMutation.mutate(g.id) }}
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4 text-v2-danger" />
                           </Button>
                         </div>
                       )}
@@ -454,9 +462,9 @@ function ModelCatalogTab() {
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="border-t bg-background p-4">
+                  <div className="border-t border-v2-border bg-v2-surface-soft p-4">
                     {groupModels.length === 0 ? (
-                      <p className="rounded-lg border border-dashed px-4 py-3 text-xs text-muted-foreground/70">
+                      <p className="rounded-v2-md border border-dashed border-v2-border-strong bg-v2-surface px-4 py-3 text-xs text-v2-muted">
                         该分类暂无模型 · 新建模型时选择此分类，或用「移动到分类」功能将模型移入
                       </p>
                     ) : (
@@ -491,19 +499,19 @@ function ModelCatalogTab() {
             .map(([code, groupModels]) => {
               const isExpanded = expandedGroups.has(code)
               return (
-                <div key={code} className="overflow-hidden rounded-lg border">
+                <div key={code} className="overflow-hidden rounded-v2-md border border-v2-border-strong bg-v2-surface shadow-v2-sm">
                   <div
-                    className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+                    className="flex cursor-pointer items-center gap-3 border-l-2 border-l-transparent bg-v2-surface px-4 py-3 transition-colors hover:bg-v2-surface-hover"
                     onClick={() => toggleGroup(code)}
                   >
                     <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isExpanded && 'rotate-180')} />
                     <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                      <span className="truncate text-sm font-medium text-muted-foreground">{groupModels[0]?.groupName || '未分类'}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">{groupModels.length} 个模型</span>
+                      <span className="truncate text-sm font-medium text-v2-fg">{groupModels[0]?.groupName || '未分类'}</span>
+                      <span className="shrink-0 text-xs text-v2-muted">{groupModels.length} 个模型</span>
                     </div>
                   </div>
                   {isExpanded && (
-                    <div className="border-t bg-background p-4">
+                    <div className="border-t border-v2-border bg-v2-surface-soft p-4">
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         {groupModels.map(model => (
                           <ModelCard

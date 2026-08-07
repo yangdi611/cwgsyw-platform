@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Copy, FileUp, Paperclip, Plus, Trash2 } from 'lucide-react'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@/components/design-system'
 import type { TaskFieldDefinition } from '@/lib/task-template-api'
 import type { AggregateReferencePreview, DraftAttachment } from '@/lib/task-runtime-api'
 

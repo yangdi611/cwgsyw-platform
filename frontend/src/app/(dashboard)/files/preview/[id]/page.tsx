@@ -7,10 +7,10 @@ import { toast } from 'sonner'
 import api from '@/lib/api'
 import { downloadSharedFile, fetchSharedFileBlob } from '@/lib/shared-file-content'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/ui/button'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/design-system'
 import Link from 'next/link'
 import { ArrowLeft, Download, File } from 'lucide-react'
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -166,35 +166,28 @@ export default function FilePreviewPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] min-h-0 flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background shrink-0">
-        <Link href="/files" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          返回
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-medium truncate text-v2-fg">
-            {file?.name ?? (loadFailed ? '无法加载文件' : '加载中...')}
-          </h1>
-          {file && (
-            <p className="text-xs text-muted-foreground">
-              {file.createdByName} · {formatBytes(file.sizeBytes)} ·{' '}
-              {new Date(file.createdAt).toLocaleString('zh-CN', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit',
-              })}
-            </p>
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={(
+        <WorkspaceToolbar
+          leading={(
+            <Link href="/files" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              返回
+            </Link>
           )}
-        </div>
-        <Button variant="outline" size="sm" onClick={handleDownload} disabled={!file || loadFailed}>
-          <Download className="h-4 w-4 mr-1.5" />
-          下载
-        </Button>
-      </div>
-
-      {/* Preview Area */}
-      <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
+          title={file?.name ?? (loadFailed ? '无法加载文件' : '加载中...')}
+          subtitle={file ? `${file.createdByName} · ${formatBytes(file.sizeBytes)} · ${new Date(file.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : undefined}
+          actions={(
+            <Button variant="outline" size="sm" onClick={handleDownload} disabled={!file || loadFailed}>
+              <Download className="h-4 w-4 mr-1.5" />下载
+            </Button>
+          )}
+        />
+      )}
+    >
+      <div className="flex min-h-0 flex-1 overflow-hidden bg-muted/30">
         {loadFailed ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
             <p>无法加载文件。文件可能不存在或你没有访问权限。</p>
@@ -246,6 +239,6 @@ export default function FilePreviewPage() {
           </div>
         )}
       </div>
-    </div>
+    </WorkspaceShell>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { toast } from 'sonner'
 import { Pencil, Save, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'

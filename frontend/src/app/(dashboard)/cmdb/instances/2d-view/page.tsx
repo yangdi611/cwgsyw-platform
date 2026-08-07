@@ -5,14 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { Grid3x3, RefreshCw, Layers } from 'lucide-react'
 import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
+import { PageShell, PageHeader } from '@/components/shared'
 
 /* ---------- Types ---------- */
 
@@ -121,19 +119,18 @@ export default function TwoDViewPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-v2-fg">
-          <Grid3x3 className="h-6 w-6" />
-          2D 视图
-        </h1>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={!model}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            刷新
-          </Button>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="2D 视图"
+        actions={(
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={!model}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              刷新
+            </Button>
+          </div>
+        )}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -233,6 +230,6 @@ export default function TwoDViewPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

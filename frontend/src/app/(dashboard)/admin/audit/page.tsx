@@ -3,11 +3,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { PageHeader, FilterBar, DataTable, type ColumnDef } from '@/components/shared'
+import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge } from '@/components/design-system'
+import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -90,7 +87,7 @@ function AuditLogPageInner() {
   const [page, setPage] = useState(1)
   const size = 20
 
-  const { data, isLoading } = useQuery<PageResult>({
+  const { data, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['audit-logs', module, action, operatorId, keyword, startDate, endDate, page],
     queryFn: () => {
       const params: Record<string, string | number> = { page, size }
@@ -167,15 +164,16 @@ function AuditLogPageInner() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="compact">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="系统管理"
         title="审计日志"
         subtitle="记录所有写操作的模块、动作、操作人与目标对象，支持按模块与时间范围筛选。"
       />
 
-      <FilterBar>
-        <div className="space-y-1.5">
+      <FilterBar className="w-full items-stretch sm:items-end">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">模块</Label>
           <Select
             value={module || '__all__'}
@@ -184,7 +182,7 @@ function AuditLogPageInner() {
               setPage(1)
             }}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-full sm:w-36">
               <SelectValue placeholder="全部">
                 {(v: string) => (v === '__all__' || !v ? '全部模块' : MODULE_LABELS[v] ?? v)}
               </SelectValue>
@@ -199,10 +197,10 @@ function AuditLogPageInner() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">操作</Label>
           <Input
-            className="w-36"
+            className="w-full sm:w-36"
             value={action}
             onChange={(event) => {
               setAction(event.target.value)
@@ -211,12 +209,12 @@ function AuditLogPageInner() {
             placeholder="如 create"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">操作人 ID</Label>
           <Input
             type="number"
             min="1"
-            className="w-32"
+            className="w-full sm:w-32"
             value={operatorId}
             onChange={(event) => {
               setOperatorId(event.target.value)
@@ -225,10 +223,10 @@ function AuditLogPageInner() {
             placeholder="用户 ID"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">关键词</Label>
           <Input
-            className="w-40"
+            className="w-full sm:w-40"
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value)
@@ -237,11 +235,11 @@ function AuditLogPageInner() {
             placeholder="备注或目标"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">开始日期</Label>
           <Input
             type="date"
-            className="w-40"
+            className="w-full sm:w-40"
             value={startDate}
             onChange={(e) => {
               setStartDate(e.target.value)
@@ -249,11 +247,11 @@ function AuditLogPageInner() {
             }}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-auto">
           <Label className="text-xs">结束日期</Label>
           <Input
             type="date"
-            className="w-40"
+            className="w-full sm:w-40"
             value={endDate}
             onChange={(e) => {
               setEndDate(e.target.value)
@@ -261,7 +259,7 @@ function AuditLogPageInner() {
             }}
           />
         </div>
-        <div className="self-end">
+        <div className="w-full self-end sm:w-auto">
           <button
             type="button"
             onClick={() => {
@@ -273,22 +271,32 @@ function AuditLogPageInner() {
               setEndDate('')
               setPage(1)
             }}
-            className="inline-flex h-9 items-center rounded-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg transition-colors hover:bg-v2-surface-hover"
+            className="inline-flex h-9 w-full items-center justify-center rounded-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg transition-colors hover:bg-v2-surface-hover sm:w-auto"
           >
             重置
           </button>
         </div>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={records}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={{ title: '暂无审计日志', description: '当前筛选条件下没有操作记录。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="审计日志加载失败"
+            description="无法读取审计日志，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={records}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={{ title: '暂无审计日志', description: '当前筛选条件下没有操作记录。' }}
+        />
+      )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-v2-muted">
           第 <span className="font-semibold text-v2-fg tabular-nums">{page}</span> 页，每页 {size} 条
         </span>
@@ -311,6 +319,6 @@ function AuditLogPageInner() {
           </button>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

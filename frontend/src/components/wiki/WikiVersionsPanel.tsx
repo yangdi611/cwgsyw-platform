@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
-import { Button } from '@/components/v2/Button'
+import { Button } from '@/components/design-system'
 import { ChevronDown, ChevronRight, RotateCcw, FileDown } from 'lucide-react'
 import type { WikiVersion } from '@/types/wiki'
 

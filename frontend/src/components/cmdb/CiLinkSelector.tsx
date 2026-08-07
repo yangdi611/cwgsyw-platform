@@ -2,9 +2,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Badge,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { X } from 'lucide-react'
 
 export interface CiLinkItem {

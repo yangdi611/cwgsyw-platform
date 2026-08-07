@@ -1,7 +1,7 @@
 'use client'
 
 import { AlertTriangle } from 'lucide-react'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { StatusBadge } from '@/components/design-system'
 
 export interface PermissionSource {
   roleId: number

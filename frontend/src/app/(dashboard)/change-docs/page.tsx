@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Input, StatusBadge } from '@/components/design-system'
 import {
   PageHeader,
+  PageShell,
   FilterBar,
   FilterChip,
   DataTable,
   DetailDrawer,
+  ErrorState,
   Pagination,
   type ColumnDef,
 } from '@/components/shared'
@@ -80,7 +81,9 @@ export default function ChangeDocsPage() {
     if (!hasPermission('change_doc', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data, isLoading } = useQuery<PageData>({
+  const canRead = isHydrated && hasPermission('change_doc', 'read')
+
+  const { data, isLoading, isError, refetch } = useQuery<PageData>({
     queryKey: ['change-docs', statusFilter, keyword, page],
     queryFn: () => api.get('/change-docs', {
       params: {
@@ -90,7 +93,7 @@ export default function ChangeDocsPage() {
         size: 20,
       },
     }).then((r) => r.data.data),
-    enabled: hasPermission('change_doc', 'read'),
+    enabled: canRead,
   })
 
   const docs = data?.records ?? []
@@ -139,31 +142,36 @@ export default function ChangeDocsPage() {
     },
   ]
 
+  if (!canRead) return null
+
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="变更文档"
         title="变更文档"
         subtitle="管理 IT 变更申请单和变更方案，跟踪审批状态与执行结果。"
         actions={
           hasPermission('change_doc', 'create') ? (
-            <Button variant="primary" onClick={() => router.push('/change-docs/new')}>
-              <FileText className="h-4 w-4" />
-              新建变更
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" variant="primary" onClick={() => router.push('/change-docs/new')}>
+                <FileText className="h-4 w-4" />
+                新建变更
+              </Button>
+            </div>
           ) : undefined
         }
       />
 
-      <FilterBar>
-        <input
+      <FilterBar className="w-full items-stretch sm:items-center">
+        <Input
           value={keyword}
           onChange={(event) => {
             setKeyword(event.target.value)
             setPage(1)
           }}
           placeholder="搜索标题或变更单号"
-          className="h-9 w-56 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm outline-none placeholder:text-v2-muted focus:border-v2-primary"
+          className="h-9 w-full sm:w-56"
         />
         <FilterChip active={statusFilter === 'all'} onClick={() => updateStatus('all')}>
           全部
@@ -185,14 +193,33 @@ export default function ChangeDocsPage() {
         </FilterChip>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={docs}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        onRowClick={(r) => setSelected(r)}
-        empty={{ title: '暂无变更文档', description: '当前状态下没有变更文档，请调整筛选或新建变更。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="变更文档加载失败"
+            description="无法读取变更文档，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={docs}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          onRowClick={(r) => setSelected(r)}
+          empty={{
+            title: '暂无变更文档',
+            description: '当前状态下没有变更文档，请调整筛选或新建变更。',
+            action: hasPermission('change_doc', 'create') ? (
+              <Button variant="primary" size="sm" onClick={() => router.push('/change-docs/new')}>
+                <FileText className="h-4 w-4" />
+                新建变更
+              </Button>
+            ) : undefined,
+          }}
+        />
+      )}
 
       <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
 
@@ -261,6 +288,6 @@ export default function ChangeDocsPage() {
           </div>
         )}
       </DetailDrawer>
-    </div>
+    </PageShell>
   )
 }

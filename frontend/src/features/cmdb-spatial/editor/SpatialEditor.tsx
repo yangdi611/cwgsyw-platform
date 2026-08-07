@@ -41,11 +41,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Button, Input, Label, Switch, Textarea } from "@/components/design-system";
 import { getApiErrorCode, getApiErrorMessage } from "@/lib/api-error";
 import {
   getFacilityCandidates,

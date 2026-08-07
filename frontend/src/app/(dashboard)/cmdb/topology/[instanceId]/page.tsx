@@ -4,8 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { toPng } from 'html-to-image'
 import api from '@/lib/api'
-import { buttonVariants } from '@/components/ui/button'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/design-system'
 import Link from 'next/link'
 import {
   ArrowLeft, ExternalLink, X, GitCompare, Download, Filter,
@@ -16,6 +15,7 @@ import {
   CiTopologyGraph, TopologyNode, TopologyEdge,
 } from '@/components/cmdb/CiTopologyGraph'
 import { cn } from '@/lib/utils'
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -136,60 +136,56 @@ export default function TopologyPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] -m-6">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-background flex-shrink-0 flex-wrap">
-        {rootNode ? (
-          <Link
-            href={`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`}
-            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />返回实例
-          </Link>
-        ) : (
-          <button className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'opacity-50 cursor-not-allowed')} disabled>
-            <ArrowLeft className="h-4 w-4 mr-1" />返回实例
-          </button>
-        )}
-        <div className="flex-1 min-w-[160px]">
-          <span className="font-semibold text-sm">
-            {rootNode?.name ?? `#${instanceId}`} 的拓扑图
-          </span>
-          <span className="text-xs text-v2-muted ml-2">
-            {nodes.length} 个节点，{edges.length} 条关联
-          </span>
-        </div>
-
-        {/* Topology compare — dedicated sub-route (AC10) */}
-        <Link
-          href={`/cmdb/topology/${instanceId}/compare`}
-          className={buttonVariants({ variant: 'outline', size: 'sm' })}
-        >
-          <GitCompare className="h-4 w-4 mr-1" />拓扑对比
-        </Link>
-
-        {/* Export PNG */}
-        <Button size="sm" variant="outline" onClick={handleExport} disabled={!nodes.length}>
-          <Download className="h-4 w-4 mr-1" />导出 PNG
-        </Button>
-
-        {/* Depth selector */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-v2-muted mr-1">深度：</span>
-          {[1, 2, 3].map(d => (
-            <button
-              key={d}
-              onClick={() => setDepth(d)}
-              className={cn(
-                'w-7 h-7 rounded text-xs font-medium transition-colors',
-                depth === d ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-v2-muted',
-              )}
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={
+        <WorkspaceToolbar
+          leading={rootNode ? (
+            <Link
+              href={`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`}
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              {d}
+              <ArrowLeft className="h-4 w-4 mr-1" />返回实例
+            </Link>
+          ) : (
+            <button className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'opacity-50 cursor-not-allowed')} disabled>
+              <ArrowLeft className="h-4 w-4 mr-1" />返回实例
             </button>
-          ))}
-        </div>
-      </div>
+          )}
+          title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑图`}
+          subtitle={`${nodes.length} 个节点，${edges.length} 条关联`}
+          actions={(
+            <>
+              <Link
+                href={`/cmdb/topology/${instanceId}/compare`}
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <GitCompare className="h-4 w-4 mr-1" />拓扑对比
+              </Link>
+              <Button size="sm" variant="outline" onClick={handleExport} disabled={!nodes.length}>
+                <Download className="h-4 w-4 mr-1" />导出 PNG
+              </Button>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-v2-muted mr-1">深度：</span>
+                {[1, 2, 3].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDepth(d)}
+                    className={cn(
+                      'w-7 h-7 rounded text-xs font-medium transition-colors',
+                      depth === d ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-v2-muted',
+                    )}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        />
+      }
+    >
 
       {/* Graph + sidebar */}
       <div className="flex flex-1 overflow-hidden">
@@ -341,6 +337,6 @@ export default function TopologyPage() {
           )}
         </div>
       </div>
-    </div>
+    </WorkspaceShell>
   )
 }

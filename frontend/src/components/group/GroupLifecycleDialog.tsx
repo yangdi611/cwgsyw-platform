@@ -4,16 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
-import { Button } from '@/components/v2/Button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/v2/Dialog'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Textarea } from '@/components/design-system'
 import { toast } from 'sonner'
 
 export type GroupLifecycleAction = 'archive' | 'restore' | 'purge'

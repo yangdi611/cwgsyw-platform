@@ -1,7 +1,6 @@
 'use client'
 
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, StatusBadge } from '@/components/design-system'
 import { FileText } from 'lucide-react'
 import type { TemplateVO } from './types'
 import { DOC_TYPE_LABEL, DOC_TYPE_TONE } from './types'

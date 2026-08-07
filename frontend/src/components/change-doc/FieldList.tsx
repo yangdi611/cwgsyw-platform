@@ -1,9 +1,6 @@
 'use client'
 
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Input, Label, Textarea } from '@/components/design-system'
 import { Sparkles } from 'lucide-react'
 import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
 import { isTableFieldConfig, type TableRow, type FieldConfigVO } from '@/components/change-doc/tableFieldTypes'

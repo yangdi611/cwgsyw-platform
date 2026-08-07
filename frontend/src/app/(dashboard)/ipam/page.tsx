@@ -6,10 +6,7 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge } from '@/components/design-system'
 import { getApiErrorMessage } from '@/lib/api-error'
 import {
   AlertDialog,
@@ -20,10 +17,8 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
+} from '@/components/design-system'
+import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { toast } from 'sonner'
 import { Plus, Trash2, Search, Eye } from 'lucide-react'
 
@@ -88,7 +83,7 @@ export default function IpamPage() {
     if (!hasPermission('ip_pool', 'read')) router.replace('/')
   }, [hasPermission, router])
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['ip-pools', keyword, status, page],
     queryFn: () =>
       api
@@ -217,29 +212,33 @@ export default function IpamPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="资源管理"
         title="IP 地址池"
         subtitle="管理网络地址段、网关与 DNS，监控地址分配率与冲突状态。"
         actions={
           <PermissionGuard resource="ip_pool" action="create">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setCreateOpen(true)
-                setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              新建地址池
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button
+                className="w-full sm:w-auto"
+                variant="primary"
+                onClick={() => {
+                  setCreateOpen(true)
+                  setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                新建地址池
+              </Button>
+            </div>
           </PermissionGuard>
         }
       />
 
-      <FilterBar>
-        <div className="relative max-w-sm flex-1">
+      <FilterBar className="w-full items-stretch sm:items-center">
+        <div className="relative w-full sm:max-w-sm sm:flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
           <Input
             className="pl-8"
@@ -258,7 +257,7 @@ export default function IpamPage() {
             setPage(1)
           }}
         >
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full sm:w-32">
             <SelectValue placeholder="全部状态">
               {(v: string) => (v === '__all__' || !v ? '全部状态' : poolStatusMeta(v).label)}
             </SelectValue>
@@ -272,13 +271,23 @@ export default function IpamPage() {
         </Select>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={pools}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={{ title: '暂无地址池', description: '点击右上角"新建地址池"添加第一个网段。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="地址池加载失败"
+            description="无法读取 IP 地址池，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={pools}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={{ title: '暂无地址池', description: '点击右上角"新建地址池"添加第一个网段。' }}
+        />
+      )}
 
       <Pagination page={page} pageSize={size} total={total} onPageChange={setPage} />
 
@@ -385,6 +394,6 @@ export default function IpamPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

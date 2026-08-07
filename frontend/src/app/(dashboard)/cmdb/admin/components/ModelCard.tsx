@@ -3,8 +3,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Box, MoreVertical, Settings, PencilLine, FolderInput, Check, Copy, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import {
+  Badge,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuGroup,
   DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu'
+} from '@/components/design-system'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
 import { GROUP_ICONS, getModelDisplayName } from './utils'
 
@@ -56,21 +56,21 @@ export function ModelCard({
   return (
     <div
       className={cn(
-        'group relative rounded-lg border transition-all',
+        'group relative rounded-v2-md border border-v2-border bg-v2-surface shadow-v2-sm transition-all',
         justMoved
-          ? 'border-primary ring-2 ring-primary/30 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95'
-          : 'hover:bg-muted/50',
+          ? 'border-v2-primary ring-2 ring-v2-primary/30 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95'
+          : 'hover:border-v2-border-strong hover:bg-v2-surface-hover hover:shadow-v2-md',
       )}
     >
       <Link href={`/cmdb/admin/models/${model.modelId}`} className="block p-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-md bg-primary/10 p-2">
-            <Icon className="h-4 w-4 text-primary" />
+          <div className="rounded-v2-sm bg-v2-primary-soft p-2">
+            <Icon className="h-4 w-4 text-v2-primary" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{displayName}</span>
-              {model.isBuiltIn && <Badge variant="secondary" className="text-xs">内置</Badge>}
+              {model.isBuiltIn && <Badge variant="outline" className="border-v2-primary-border bg-v2-primary-soft text-xs text-v2-primary">内置</Badge>}
             </div>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{model.modelId}</p>
           </div>
@@ -82,35 +82,36 @@ export function ModelCard({
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={`${displayName} 操作`}
-            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-60 transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover:opacity-100"
+            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-v2-sm border border-transparent text-v2-muted opacity-60 transition-colors hover:border-v2-border hover:bg-v2-surface-hover hover:text-v2-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-v2-primary group-hover:opacity-100"
           >
             <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-44 border border-v2-border-strong bg-v2-surface text-v2-fg shadow-v2-md">
             {canWrite && (
               <>
-                <DropdownMenuItem onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
+                <DropdownMenuItem className="focus:bg-v2-primary-soft focus:text-v2-fg" onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
                   <Settings className="mr-2 h-4 w-4" />打开设置
                 </DropdownMenuItem>
                 {canRename && (
-                  <DropdownMenuItem onClick={onRename}>
+                  <DropdownMenuItem className="focus:bg-v2-primary-soft focus:text-v2-fg" onClick={onRename}>
                     <PencilLine className="mr-2 h-4 w-4" />重命名
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger className="focus:bg-v2-primary-soft focus:text-v2-fg data-popup-open:bg-v2-primary-soft data-popup-open:text-v2-fg">
                     <FolderInput className="mr-2 h-4 w-4" />移动到分类
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto">
+                  <DropdownMenuSubContent className="max-h-72 w-48 overflow-y-auto border border-v2-border-strong bg-v2-surface text-v2-fg shadow-v2-md">
                     <DropdownMenuGroup>
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">选择目标分类</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs text-v2-muted">选择目标分类</DropdownMenuLabel>
                       {groups.map(g => {
                         const current = g.code === model.group
                         return (
                           <DropdownMenuItem
                             key={g.code}
                             disabled={current}
+                            className="focus:bg-v2-primary-soft focus:text-v2-fg"
                             onClick={() => { if (!current) onMove(g.code) }}
                           >
                             <span className="flex-1 truncate">{g.name}</span>
@@ -126,7 +127,7 @@ export function ModelCard({
             {canCopy && (
               <>
                 {canWrite && <DropdownMenuSeparator />}
-                <DropdownMenuItem onClick={onCopy}>
+                <DropdownMenuItem className="focus:bg-v2-primary-soft focus:text-v2-fg" onClick={onCopy}>
                   <Copy className="mr-2 h-4 w-4" />复制模型
                 </DropdownMenuItem>
               </>

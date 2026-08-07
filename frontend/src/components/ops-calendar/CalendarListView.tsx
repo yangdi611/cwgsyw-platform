@@ -1,7 +1,7 @@
 'use client'
 
 import { DataTable, type ColumnDef } from '@/components/shared'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { StatusBadge } from '@/components/design-system'
 import { fmtTime } from '@/lib/opsCalendar'
 import { type CalendarWorkItem, calendarItemTypeLabel, calendarMetaText, calendarStatusLabel } from '@/lib/calendar-api'
 

@@ -2,11 +2,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -100,7 +106,7 @@ function AttributeGroupsTab() {
           </SelectContent>
         </Select>
         {selectedModel && canWrite && (
-          <Button size="sm" onClick={() => setCreating(c => !c)} className="ml-auto">
+          <Button size="sm" variant="primary" onClick={() => setCreating(c => !c)} className="ml-auto">
             <Plus className="h-4 w-4 mr-1" />新建分组
           </Button>
         )}

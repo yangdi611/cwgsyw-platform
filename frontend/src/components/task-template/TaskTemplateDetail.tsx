@@ -1,14 +1,12 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CopyPlus, FileLock2, Pencil, ShieldCheck } from 'lucide-react'
+import { CopyPlus, FileLock2, Pencil, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { DetailHeader, ErrorState, LoadingState, PageShell } from '@/components/shared'
+import { Button, Card, StatusBadge } from '@/components/design-system'
 import { createTaskTemplateDraft, getTaskTemplate } from '@/lib/task-template-api'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
@@ -37,14 +35,14 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
 
   const draft = template.data.versions.find((version) => version.status === 'draft')
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <PageShell width="wide" density="comfortable">
+      <DetailHeader
+        backHref="/tasks/templates"
         eyebrow={`任务模板 · ${template.data.code}`}
         title={template.data.name}
         subtitle={template.data.description || '暂无描述'}
         actions={
           <div className="flex gap-2">
-            <Link href="/tasks/templates"><Button variant="ghost"><ArrowLeft className="h-4 w-4" />返回</Button></Link>
             {draft ? (
               <Link href={`/tasks/templates/${templateId}/versions/${draft.id}`}>
                 <Button variant="primary"><Pencil className="h-4 w-4" />继续设计 v{draft.version}</Button>
@@ -93,6 +91,6 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
           ))}
         </div>
       </Card>
-    </div>
+    </PageShell>
   )
 }

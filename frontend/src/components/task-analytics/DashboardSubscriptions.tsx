@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BellRing, Mail, Play, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/v2/Card'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/design-system'
 import { listDirectoryGroups, listDirectoryUsers, type DirectoryGroup, type DirectoryUser } from '@/lib/task-plan-api'
 import {
   createAnalyticsSubscription,

@@ -3,16 +3,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Card, CardContent, Input, Label, Textarea } from '@/components/design-system'
 import { toast } from 'sonner'
-import { ArrowLeft, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import Link from 'next/link'
 import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 import { getApiErrorMessage } from '@/lib/api-error'
+import { DetailHeader, FormShell } from '@/components/shared'
 
 interface CiDetail {
   id: number
@@ -58,17 +55,8 @@ export default function NewDevicePage() {
   })
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/devices"
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回
-        </Link>
-        <h1 className="text-2xl font-bold text-v2-fg">新增设备凭证</h1>
-      </div>
+    <FormShell width="form">
+      <DetailHeader backHref="/devices" title="新增设备凭证" />
 
       <Card>
         <CardContent className="space-y-4 p-6">
@@ -94,7 +82,7 @@ export default function NewDevicePage() {
                   <Lock className="h-3.5 w-3.5" />
                   以下信息来自 CMDB（只读）
                 </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-v2-muted">设备名称</dt>
                     <dd className="mt-0.5 text-sm font-semibold text-v2-fg">{ci.name}</dd>
@@ -153,6 +141,6 @@ export default function NewDevicePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </FormShell>
   )
 }

@@ -2,15 +2,25 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Checkbox } from '@/components/v2/Checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Plus, Trash2, PencilLine } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { usePermission } from '@/hooks/usePermission'
 import { AssociationDefsSection } from './AssociationDefsSection'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
@@ -191,7 +201,7 @@ function AssociationsTab() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">关联扩展属性管理</h2>
           {activeKind && !showForm && canWrite && (
-            <Button size="sm" onClick={() => { resetForm(); setShowForm(true) }}>
+            <Button size="sm" variant="primary" onClick={() => { resetForm(); setShowForm(true) }}>
               <Plus className="h-4 w-4 mr-1" />新增属性
             </Button>
           )}

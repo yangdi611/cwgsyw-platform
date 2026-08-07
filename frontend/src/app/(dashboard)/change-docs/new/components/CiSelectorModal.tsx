@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
+import { Button, Input } from '@/components/design-system'
 import { Search } from 'lucide-react'
 import api from '@/lib/api'
 import type { CiSnapshot } from './types'

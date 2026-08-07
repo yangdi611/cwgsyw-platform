@@ -13,7 +13,7 @@ import {
   Search,
   Loader2,
 } from 'lucide-react'
-import { Dialog, DialogPortal, DialogOverlay } from '@/components/ui/dialog'
+import { Dialog, DialogPortal, DialogOverlay } from '@/components/design-system'
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
 import { cn } from '@/lib/utils'
 import { globalSearch, type SearchResultItem } from '@/lib/search-api'

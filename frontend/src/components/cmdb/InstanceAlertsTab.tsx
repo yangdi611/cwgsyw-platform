@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { BellOff, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { toast } from 'sonner'
 import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
 

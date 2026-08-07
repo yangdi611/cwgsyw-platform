@@ -2,12 +2,26 @@
 import { useState, useRef, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { Upload, Download, ChevronRight, CheckCircle, XCircle, Loader2 } from 'lucide-react'

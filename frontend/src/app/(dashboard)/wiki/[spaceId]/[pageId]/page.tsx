@@ -8,8 +8,7 @@ import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, StatusBadge } from '@/components/design-system'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
@@ -153,7 +152,7 @@ export default function WikiPageReader() {
   const meta = STATUS_META[page.status]
 
   return (
-    <div className="flex gap-6">
+    <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-y-auto">
       {/* Main content */}
       <article className="min-w-0 flex-1">
         {/* 标题不在此渲染：阅读页正文 Markdown 内已含一级标题，避免重复 */}

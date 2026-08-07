@@ -6,10 +6,9 @@ import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import api from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/v2/Input';
-import { Label } from '@/components/v2/Label';
+import { Button, Input, Label } from '@/components/design-system';
 import { toast } from 'sonner';
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared';
 
 const BpmnEditor = dynamic(() => import('@/components/workflow/BpmnEditor'), {
   ssr: false,
@@ -107,11 +106,25 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
   if (loading) return <p className="text-muted-foreground">加载中...</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-v2-fg mb-2">编辑流程: {name}</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        当前版本: v{detail?.version} | 修改后将创建新版本
-      </p>
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={
+        <WorkspaceToolbar
+          title={`编辑流程: ${name}`}
+          subtitle={`当前版本: v${detail?.version} | 修改后将创建新版本`}
+          actions={(
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? '部署中...' : '保存新版本'}
+              </Button>
+              <Button variant="outline" onClick={() => router.back()}>取消</Button>
+            </div>
+          )}
+        />
+      }
+    >
+      <div className="min-h-0 overflow-y-auto p-4 md:p-6">
 
       <div className="grid grid-cols-4 gap-6 mb-6">
         <div className="space-y-2">
@@ -133,17 +146,11 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
         </div>
       </div>
 
-      <div className="mb-4">
-        <BpmnEditor initialXml={xml} onChange={setXml} />
+        <div className="mb-4">
+          <BpmnEditor initialXml={xml} onChange={setXml} />
+        </div>
       </div>
-
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? '部署中...' : '保存新版本'}
-        </Button>
-        <Button variant="outline" onClick={() => router.back()}>取消</Button>
-      </div>
-    </div>
+    </WorkspaceShell>
   );
 }
 

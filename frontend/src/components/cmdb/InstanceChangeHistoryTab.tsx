@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { ChangeRecordItem, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 

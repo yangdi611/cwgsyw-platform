@@ -3,11 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Textarea } from '@/components/v2/Textarea'
-import { Checkbox } from '@/components/v2/Checkbox'
+import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 

@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 

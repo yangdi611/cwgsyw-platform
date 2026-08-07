@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { FileQuestion } from 'lucide-react'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { EmptyState } from '@/components/shared'
+import { Button } from '@/components/design-system'
+import { EmptyState, LoadingState } from '@/components/shared'
 
 interface NotificationTarget {
   available: boolean
@@ -31,10 +31,10 @@ export default function NotificationTargetResolverPage() {
   }, [data, router])
 
   if (data?.available && data.href) {
-    return <div className="py-12 text-center text-sm text-v2-muted">正在打开通知目标…</div>
+    return <LoadingState label="正在打开通知目标…" minHeight={180} />
   }
   if (isLoading) {
-    return <div className="py-12 text-center text-sm text-v2-muted">正在验证通知目标…</div>
+    return <LoadingState label="正在验证通知目标…" minHeight={180} />
   }
   return (
     <EmptyState

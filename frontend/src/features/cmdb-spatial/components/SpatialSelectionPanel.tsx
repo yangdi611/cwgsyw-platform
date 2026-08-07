@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { AlertTriangle, Box, ExternalLink, Network, Server, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { FACILITY_TYPE_LABELS, type SpatialElement, type SpatialLocateResult, type SpatialRuntimeElement } from '../model/types'
 import { elementLabel } from '../model/geometry'
 

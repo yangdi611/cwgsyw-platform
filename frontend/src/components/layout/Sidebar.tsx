@@ -98,7 +98,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'bg-gradient-to-b from-v2-sidebar to-v2-sidebar-2 text-v2-sidebar-fg border-r border-v2-sidebar-border flex flex-col min-h-screen sticky top-0 h-screen overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
+        'bg-v2-sidebar text-v2-sidebar-fg border-r border-v2-sidebar-border flex min-h-0 h-full flex-col sticky top-0 overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
         collapsed ? 'w-[76px]' : 'w-[76px] md:w-[280px]',
       )}
     >

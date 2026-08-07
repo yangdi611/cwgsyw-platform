@@ -5,11 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Download, Paperclip, RotateCcw, SquareX } from 'lucide-react'
 import { toast } from 'sonner'
 import { DetailDrawer, ErrorState, LoadingState } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Textarea } from '@/components/v2/Textarea'
+import { Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Textarea } from '@/components/design-system'
 import {
   actOnApprovalTask,
   approvalActionLabel,

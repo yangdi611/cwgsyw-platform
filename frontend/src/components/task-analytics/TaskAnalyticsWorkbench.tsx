@@ -4,10 +4,8 @@ import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BarChart3, ChevronDown, Download, ExternalLink, FileDown, Plus, Save, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { PageHeader } from '@/components/shared'
+import { Button, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger, Input } from '@/components/design-system'
+import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
 import { analyticsDisplayColumns, formatAnalyticsValue } from '@/components/task-analytics/analytics-display'
 import { listTaskTemplates, type TaskTemplateSummary } from '@/lib/task-template-api'
 import { addAnalyticsWidget, createAnalyticsDashboard, exportTaskAnalytics, listAnalyticsDashboards, listAnalyticsFields, listAnalyticsDimensions, queryTaskAnalytics, type AnalyticsFieldMetadata, type AnalyticsQueryRequest } from '@/lib/task-analytics-api'
@@ -62,6 +60,14 @@ export function TaskAnalyticsWorkbench() {
   const canExport = hasPermission('task_analytics', 'export')
   const canCreateDashboard = hasPermission('task_analytics', 'create')
   const dashboards = useQuery({ queryKey: ['task-analytics-dashboards'], queryFn: listAnalyticsDashboards })
+  const setupLoading = templates.isLoading || dimensions.isLoading || Boolean(effectiveTemplateVersionId && fields.isLoading)
+  const setupError = templates.isError || dimensions.isError || fields.isError
+
+  const retrySetup = () => {
+    void templates.refetch()
+    void dimensions.refetch()
+    if (effectiveTemplateVersionId) void fields.refetch()
+  }
 
   const buildRequest = (): AnalyticsQueryRequest | undefined => {
     if (!effectiveTemplateVersionId || fieldSelections.length === 0) return undefined
@@ -125,6 +131,7 @@ export function TaskAnalyticsWorkbench() {
         subtitle="按模板字段、时间、人员、组和 CI 快照查询数字、文字与附件事实。"
         actions={<div className="flex flex-wrap gap-2">{canCreateDashboard && request && <Button size="sm" onClick={() => void saveDashboard()}><Save className="h-4 w-4" />保存为看板</Button>}{canExport && request && <><Button size="sm" onClick={() => void exportTaskAnalytics(request, 'csv')}><Download className="h-4 w-4" />CSV</Button><Button size="sm" onClick={() => void exportTaskAnalytics(request, 'xlsx')}><FileDown className="h-4 w-4" />Excel</Button></>}</div>}
       />
+      {setupLoading ? <LoadingState label="正在加载统计配置…" minHeight={260} /> : setupError ? <ErrorState title="统计配置加载失败" description="无法读取模板、字段或维度配置，请重试。" onRetry={retrySetup} /> : <>
       <section className="grid gap-4 border border-v2-border bg-v2-surface p-4 lg:grid-cols-4">
         <label className="space-y-1 text-sm"><span>任务模板</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={effectiveTemplateVersionId ?? ''} onChange={(event) => { setTemplateVersionId(Number(event.target.value)); setFieldSelections([]) }}><option value="">选择模板</option>{publishedTemplates.map((template: TaskTemplateSummary) => <option key={template.latestVersionId} value={template.latestVersionId}>{template.name}</option>)}</select></label>
         <div className="space-y-1 text-sm"><span>统计字段</span><DropdownMenu><DropdownMenuTrigger className="flex h-9 w-full items-center justify-between gap-2 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-left"><span className="min-w-0 truncate">{selectedFieldSummary}</span><ChevronDown className="h-4 w-4 shrink-0 text-v2-muted" /></DropdownMenuTrigger><DropdownMenuContent className="min-w-72"><DropdownMenuGroup><DropdownMenuLabel>选择一个或多个字段</DropdownMenuLabel>{fields.data?.map((field) => <DropdownMenuCheckboxItem key={field.key} checked={fieldSelections.some((item) => item.key === field.key)} closeOnClick={false} onCheckedChange={(checked) => toggleField(field, checked)}>{field.label}</DropdownMenuCheckboxItem>)}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
@@ -139,8 +146,9 @@ export function TaskAnalyticsWorkbench() {
       </section>
       <section className="overflow-hidden border border-v2-border bg-v2-surface">
         <div className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">结果</h2><p className="text-xs text-v2-muted">{result.data ? `扫描 ${result.data.scannedFacts} 条事实，生成于 ${new Date(result.data.generatedAt).toLocaleString('zh-CN')}` : '选择条件后运行统计'}</p></div><Button size="sm" variant="ghost" onClick={() => setRequest(undefined)} disabled={!request}><Plus className="h-4 w-4 rotate-45" />清空</Button></div>
-        {result.isError && <p className="p-4 text-sm text-v2-danger">{getApiErrorMessage(result.error, '统计查询失败，请检查查询条件后重试。')}</p>}
-        <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-v2-surface-soft"><tr>{tableColumns.map((column) => <th key={column} className="whitespace-nowrap px-4 py-3 text-left font-semibold">{result.data?.columnLabels?.[column] ?? column}</th>)}</tr></thead><tbody>{result.data?.rows.map((row, index) => <tr key={index} className="border-t border-v2-border">{tableColumns.map((column) => <td key={column} className="max-w-96 whitespace-pre-wrap px-4 py-3 align-top">{formatAnalyticsValue(column, row[column])}</td>)}</tr>)}</tbody></table></div>
+        {result.isLoading && <LoadingState label="正在计算统计结果…" minHeight={180} />}
+        {result.isError && <ErrorState title="统计查询失败" description={getApiErrorMessage(result.error, '请检查查询条件后重试。')} onRetry={() => void result.refetch()} />}
+        {!result.isLoading && !result.isError && <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-v2-surface-soft"><tr>{tableColumns.map((column) => <th key={column} className="whitespace-nowrap px-4 py-3 text-left font-semibold">{result.data?.columnLabels?.[column] ?? column}</th>)}</tr></thead><tbody>{result.data?.rows.map((row, index) => <tr key={index} className="border-t border-v2-border">{tableColumns.map((column) => <td key={column} className="max-w-96 whitespace-pre-wrap px-4 py-3 align-top">{formatAnalyticsValue(column, row[column])}</td>)}</tr>)}</tbody></table></div>}
         {result.data?.rows.length === 0 && <p className="p-8 text-center text-sm text-v2-muted">没有符合条件的事实。</p>}
       </section>
       <section className="border border-v2-border bg-v2-surface p-4">
@@ -148,6 +156,7 @@ export function TaskAnalyticsWorkbench() {
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">{(dashboards.data ?? []).map((dashboard) => <button key={dashboard.id} type="button" onClick={() => router.push(`/tasks/analytics/${dashboard.id}`)} className="flex items-center justify-between border border-v2-border p-3 text-left hover:border-v2-primary"><span><span className="block font-medium">{dashboard.name}</span><span className="text-xs text-v2-muted">{dashboard.scopeType === 'private' ? '私有' : dashboard.scopeType === 'group' ? '组内共享' : '租户共享'}</span></span><ExternalLink className="h-4 w-4 text-v2-muted" /></button>)}</div>
         {dashboards.data?.length === 0 && <p className="text-sm text-v2-muted">暂无看板，运行一次统计后即可保存。</p>}
       </section>
+      </>}
     </div>
   )
 }

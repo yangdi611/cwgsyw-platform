@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FileText } from 'lucide-react'
 import api from '@/lib/api'
-import { Card, CardHeader, CardTitle } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Card, CardHeader, CardTitle, StatusBadge } from '@/components/design-system'
 import {
   type CalendarDashboardVO,
   calendarItemTypeLabel,

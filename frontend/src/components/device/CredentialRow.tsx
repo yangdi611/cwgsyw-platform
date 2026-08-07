@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { Eye, EyeOff, Copy, Trash2, Pencil } from 'lucide-react'
-import { Input } from '@/components/v2/Input'
+import { Input } from '@/components/design-system'
 import { usePermission } from '@/hooks/usePermission'
 
 interface Props {

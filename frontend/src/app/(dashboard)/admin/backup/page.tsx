@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { PageHeader, DataTable, Pagination, type ColumnDef } from '@/components/shared'
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, StatusBadge } from '@/components/design-system'
+import { ErrorState, PageHeader, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { Database, Download, RotateCcw, Trash2, AlertTriangle, Loader2, Upload } from 'lucide-react'
 import { getApiErrorMessage } from '@/lib/api-error'
@@ -43,7 +43,7 @@ const STATUS: Record<string, { variant: 'ok' | 'warn' | 'danger' | 'neutral'; la
   failed: { variant: 'danger', label: '失败' },
 }
 
-/** 确认对话框：restore 前显示红色警告 */
+/** Restore confirmation and completion states stay in one controlled dialog. */
 function RestoreDialog({
   target,
   onConfirm,
@@ -60,81 +60,53 @@ function RestoreDialog({
   error: string | null
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl border border-v2-border bg-v2-surface p-6 shadow-2xl">
+    <Dialog open onOpenChange={(open) => { if (!open && !loading) onCancel() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{done ? '恢复完成' : '确认恢复数据库？'}</DialogTitle>
+        </DialogHeader>
         {done ? (
-          // 恢复完成状态
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">✅</span>
-              <div>
-                <h3 className="font-semibold text-v2-fg">恢复完成</h3>
-                <p className="text-sm text-v2-muted mt-1">
-                  数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span>。
-                </p>
-                <p className="text-sm text-yellow-500 mt-2 font-medium">
-                  建议执行：<span className="font-mono text-xs">docker compose restart backend</span> 以清除内存缓存。
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm text-white hover:bg-blue-700"
-              >
-                关闭
-              </button>
-            </div>
+          <div className="space-y-3 text-sm text-v2-muted">
+            <p>
+              数据库和 MinIO 已恢复到备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span>。
+            </p>
+            <p className="font-medium text-yellow-600">
+              建议执行：<span className="font-mono text-xs">docker compose restart backend</span> 以清除内存缓存。
+            </p>
           </div>
         ) : (
-          // 确认 / 进行中状态
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-v2-fg">确认恢复数据库？</h3>
-              <p className="text-sm text-v2-muted mt-1">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-v2-danger" />
+              <p className="text-v2-muted">
                 将使用备份 <span className="font-mono text-xs text-v2-fg">{target.fileName}</span> 覆盖当前所有数据。
               </p>
-              <p className="text-sm text-red-500 mt-2 font-medium">
-                ⚠ 此操作不可撤销。
-              </p>
-              {error && (
-                <p className="text-sm text-red-400 mt-2 break-all">{error}</p>
-              )}
-              {loading && (
-                <p className="text-sm text-v2-muted mt-2 flex items-center gap-1.5">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  正在恢复，请勿关闭页面…
-                </p>
-              )}
             </div>
+            <p className="font-medium text-v2-danger">此操作不可撤销。</p>
+            {error && <p className="break-all text-v2-danger">{error}</p>}
+            {loading && (
+              <p className="flex items-center gap-1.5 text-v2-muted">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                正在恢复，请勿关闭页面…
+              </p>
+            )}
           </div>
         )}
-
-        {!done && (
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={loading}
-              className="inline-flex h-9 items-center rounded-md border border-v2-border bg-v2-surface px-4 text-sm text-v2-fg hover:bg-v2-surface-hover disabled:opacity-40"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={loading}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-red-600 px-4 text-sm text-white hover:bg-red-700 disabled:opacity-40"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              确认恢复
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+        <DialogFooter>
+          {done ? (
+            <Button variant="primary" onClick={onCancel}>关闭</Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={onCancel} disabled={loading}>取消</Button>
+              <Button variant="danger" onClick={onConfirm} disabled={loading}>
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                确认恢复
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -155,7 +127,7 @@ export default function BackupPage() {
     if (!hasPermission('backup', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data, isLoading } = useQuery<PageResult>({
+  const { data, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['backups', page],
     queryFn: () => api.get('/backups', { params: { page, size: PAGE_SIZE } }).then(r => r.data.data),
     enabled: isHydrated && hasPermission('backup', 'read'),
@@ -268,37 +240,40 @@ export default function BackupPage() {
       render: r => (
         <div className="flex items-center gap-2">
           {r.status === 'success' && hasPermission('backup', 'read') && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               title="下载"
               onClick={() => handleDownload(r)}
-              className="inline-flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:text-v2-fg hover:bg-v2-surface-hover"
             >
               <Download className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           )}
           {r.status === 'success' && hasPermission('backup', 'restore') && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               title="恢复"
               onClick={() => setRestoreTarget(r)}
-              className="inline-flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:text-yellow-500 hover:bg-v2-surface-hover"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           )}
           {hasPermission('backup', 'delete') && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               title="删除"
               onClick={() => {
                 if (confirm(`确认删除备份 ${r.fileName}？此操作将同时删除备份文件。`))
                   deleteMutation.mutate(r.id)
               }}
-              className="inline-flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:text-red-500 hover:bg-v2-surface-hover"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           )}
         </div>
       ),
@@ -323,11 +298,12 @@ export default function BackupPage() {
                 className="hidden"
                 onChange={handleUpload}
               />
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadMutation.isPending}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-v2-border bg-v2-surface px-4 text-sm text-v2-fg hover:bg-v2-surface-hover disabled:opacity-60"
                 title="上传本地备份文件 (.tar.gz) 后即可恢复"
               >
                 {uploadMutation.isPending ? (
@@ -336,12 +312,13 @@ export default function BackupPage() {
                   <Upload className="h-4 w-4" />
                 )}
                 上传备份
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {createMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -349,19 +326,25 @@ export default function BackupPage() {
                   <Database className="h-4 w-4" />
                 )}
                 立即备份
-              </button>
+              </Button>
             </div>
           ) : undefined
         }
       />
 
-      <DataTable
-        columns={columns}
-        data={records}
-        rowKey={r => r.id}
-        loading={isLoading || createMutation.isPending}
-        empty={{ title: '暂无备份记录', description: '点击「立即备份」创建第一份备份。' }}
-      />
+      {isError ? (
+        <div className="rounded-v2-md border border-v2-border bg-v2-surface">
+          <ErrorState title="备份记录加载失败" description="无法读取备份列表，请重试。" onRetry={() => void refetch()} />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={records}
+          rowKey={r => r.id}
+          loading={isLoading || createMutation.isPending}
+          empty={{ title: '暂无备份记录', description: '点击「立即备份」创建第一份备份。' }}
+        />
+      )}
 
       {data && (
         <Pagination
