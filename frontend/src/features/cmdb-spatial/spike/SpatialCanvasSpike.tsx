@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useMemo, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { Minus, Plus, RotateCcw } from 'lucide-react'
 
 const SpatialCanvasStage = dynamic(

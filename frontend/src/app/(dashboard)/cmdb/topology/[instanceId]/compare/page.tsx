@@ -3,9 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { buttonVariants } from '@/components/ui/button'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/v2/Input'
+import { Button, buttonVariants, Input } from '@/components/design-system'
 import Link from 'next/link'
 import { ArrowLeft, GitCompare, Loader2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -13,6 +11,7 @@ import {
   CiTopologyGraph, TopologyNode, TopologyEdge, DiffStatus,
 } from '@/components/cmdb/CiTopologyGraph'
 import { cn } from '@/lib/utils'
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,27 +105,24 @@ export default function TopologyComparePage() {
   const rootNode = graphInput.nodes.find(n => n.isRoot)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] -m-6">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-background flex-shrink-0 flex-wrap">
-        <Link
-          href={`/cmdb/topology/${instanceId}`}
-          className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />返回拓扑图
-        </Link>
-        <div className="flex-1 min-w-[160px]">
-          <span className="font-semibold text-sm">
-            {rootNode?.name ?? `#${instanceId}`} 的拓扑对比
-          </span>
-          <span className="text-xs text-v2-muted ml-2">
-            选择起止日期后开始对比
-          </span>
-        </div>
-      </div>
-
-      {/* Compare controls */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30 flex-wrap">
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={
+        <>
+          <WorkspaceToolbar
+            leading={(
+              <Link
+                href={`/cmdb/topology/${instanceId}`}
+                className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />返回拓扑图
+              </Link>
+            )}
+            title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑对比`}
+            subtitle="选择起止日期后开始对比"
+          />
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-v2-border bg-v2-surface-soft px-3 py-2 sm:px-4">
         <span className="text-xs text-v2-muted">起始时间</span>
         <Input type="datetime-local" step="1" value={fromTime} onChange={e => setFromTime(e.target.value)} className="w-52 h-8" />
         <span className="text-xs text-v2-muted">截止时间</span>
@@ -140,8 +136,8 @@ export default function TopologyComparePage() {
           onChange={e => setCompareDepth(Math.min(5, Math.max(1, Number(e.target.value) || 3)))}
           className="w-16 h-8"
         />
-        <Button
-          size="sm"
+        <Button variant="default"
+          size="ui-sm"
           onClick={() => setCompareNonce(n => n + 1)}
           disabled={!fromTime || !toTime || compareQuery.isFetching}
         >
@@ -164,9 +160,10 @@ export default function TopologyComparePage() {
           </div>
         )}
       </div>
-
-      {/* Graph */}
-      <div className="flex-1 overflow-hidden relative">
+        </>
+      }
+    >
+      <div className="relative flex flex-1 overflow-hidden">
         {compareQuery.isFetching ? (
           <div className="flex items-center justify-center h-full text-v2-muted text-sm gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />加载中...
@@ -190,6 +187,6 @@ export default function TopologyComparePage() {
           />
         )}
       </div>
-    </div>
+    </WorkspaceShell>
   )
 }

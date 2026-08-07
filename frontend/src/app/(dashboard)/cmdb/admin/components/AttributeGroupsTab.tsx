@@ -2,11 +2,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
@@ -100,7 +106,7 @@ function AttributeGroupsTab() {
           </SelectContent>
         </Select>
         {selectedModel && canWrite && (
-          <Button size="sm" onClick={() => setCreating(c => !c)} className="ml-auto">
+          <Button size="ui-sm" variant="primary" onClick={() => setCreating(c => !c)} className="ml-auto">
             <Plus className="h-4 w-4 mr-1" />新建分组
           </Button>
         )}
@@ -128,8 +134,8 @@ function AttributeGroupsTab() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => createMutation.mutate()} disabled={!form.groupId || !form.name || createMutation.isPending}>创建</Button>
-                <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
+                <Button variant="default" size="ui-sm" onClick={() => createMutation.mutate()} disabled={!form.groupId || !form.name || createMutation.isPending}>创建</Button>
+                <Button size="ui-sm" variant="ghost" onClick={() => setCreating(false)}>取消</Button>
               </div>
             </div>
           )}
@@ -157,8 +163,8 @@ function AttributeGroupsTab() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                        <Button variant="default" size="ui-sm" onClick={() => updateMutation.mutate({ id: g.id, body: editForm })} disabled={updateMutation.isPending}>保存</Button>
+                        <Button size="ui-sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
                       </div>
                     </div>
                   ) : (
@@ -172,10 +178,10 @@ function AttributeGroupsTab() {
                       </div>
                       {canWrite && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder ?? 0 }) }}>
+                          <Button size="ui-sm" variant="ghost" onClick={() => { setEditingId(g.id); setEditForm({ name: g.name, sortOrder: g.sortOrder ?? 0 }) }}>
                             <PencilLine className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost"
+                          <Button size="ui-sm" variant="ghost"
                             disabled={(g.attributeCount ?? 0) > 0}
                             title={(g.attributeCount ?? 0) > 0 ? '分组下尚有属性' : ''}
                             onClick={() => { if (confirm(`确认删除分组 "${g.name}"？`)) deleteMutation.mutate(g.id) }}>

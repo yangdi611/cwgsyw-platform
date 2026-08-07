@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 
@@ -131,7 +129,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
                       </div>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="ui-sm"
                         className="text-red-500 h-auto px-1 py-0 text-xs"
                         disabled={loading}
                         onClick={() => setRemoveTarget(m)}
@@ -166,7 +164,7 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
                       </div>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="ui-sm"
                         className="text-blue-500 h-auto px-1 py-0 text-xs"
                         disabled={loading}
                         onClick={() => handleAdd(u.id)}
@@ -192,8 +190,8 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
             确定要将 <strong>{removeTarget?.realName || removeTarget?.username}</strong> 从 {groupName} 移除吗？
           </p>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setRemoveTarget(null)}>取消</Button>
-            <Button className="bg-red-500 hover:bg-red-600" onClick={handleRemove}>移除</Button>
+            <Button size="default" variant="outline" onClick={() => setRemoveTarget(null)}>取消</Button>
+            <Button size="default" variant="default" className="bg-red-500 hover:bg-red-600" onClick={handleRemove}>移除</Button>
           </div>
         </DialogContent>
       </Dialog>

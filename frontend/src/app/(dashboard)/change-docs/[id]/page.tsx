@@ -3,15 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, StatusBadge } from '@/components/design-system'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { ArrowLeft, FileText, FilePlus2 } from 'lucide-react'
+import { FileText, FilePlus2 } from 'lucide-react'
 import { CiLinkSelector, type CiLinkItem } from '@/components/cmdb/CiLinkSelector'
 import type { TableRow } from '@/components/change-doc/tableFieldTypes'
 import { FieldList } from '@/components/change-doc/FieldList'
@@ -19,6 +15,7 @@ import { DocActionBar } from './components/DocActionBar'
 import { PlanTemplatePicker } from './components/PlanTemplatePicker'
 import { statusMeta, DOC_TYPE_LABEL, DOC_TYPE_TONE } from './components/types'
 import type { ChangeDocVO, LinkedCiInstanceVO, TemplateVO } from './components/types'
+import { DetailHeader, FormShell } from '@/components/shared'
 
 export default function ChangeDocDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -268,25 +265,13 @@ export default function ChangeDocDetailPage() {
   const st = statusMeta(doc.status)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      {/* Title bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-v2-fg">{doc.title || doc.changeNo}</h1>
-            <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{doc.changeNo}</p>
-          </div>
-        </div>
-        <StatusBadge status={st.variant}>{st.label}</StatusBadge>
-      </div>
+    <FormShell width="wide">
+      <DetailHeader
+        onBack={() => router.back()}
+        title={doc.title || doc.changeNo}
+        status={<StatusBadge status={st.variant}>{st.label}</StatusBadge>}
+        meta={<span className="font-v2-mono">{doc.changeNo}</span>}
+      />
 
       {/* Meta info */}
       <Card>
@@ -309,7 +294,7 @@ export default function ChangeDocDetailPage() {
               <p className="text-sm font-semibold text-v2-fg">{doc.title || '—'}</p>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4 border-t border-v2-border pt-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 border-t border-v2-border pt-3 text-sm sm:grid-cols-2 sm:gap-4">
             <div>
               <span className="text-v2-muted">申请人：</span>
               <span className="text-v2-fg">{doc.applicantName}</span>
@@ -421,7 +406,7 @@ export default function ChangeDocDetailPage() {
             <CardTitle className="text-base">审批结果</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4">
               <div>
                 <span className="text-v2-muted">审批人：</span>
                 <span className="text-v2-fg">{doc.approverName}</span>
@@ -472,6 +457,6 @@ export default function ChangeDocDetailPage() {
         onClose={() => setPlanTemplatePickerOpen(false)}
         onSelect={(id) => setPlanTemplateMutation.mutate(id)}
       />
-    </div>
+    </FormShell>
   )
 }

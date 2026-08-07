@@ -6,13 +6,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, CalendarClock, Check, Eye, Save, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { CiScopeSelector } from '@/components/task-plan/CiScopeSelector'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Textarea } from '@/components/v2/Textarea'
+import { DetailHeader, ErrorState, FormShell, LoadingState } from '@/components/shared'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@/components/design-system'
 import { listPublishedApprovalSchemes, type PublishedApprovalScheme } from '@/lib/approval-api'
 import {
   createTaskPlan,
@@ -175,8 +170,13 @@ function TaskPlanEditorForm({
   const scheduleDescription = useMemo(() => SCHEDULE_OPTIONS.find((item) => item.value === payload.scheduleType)?.label, [payload.scheduleType])
 
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="统一任务平台" title={planId ? `编辑计划：${initial.name}` : '新建任务计划'} subtitle={editable ? '按步骤配置模板、周期、执行对象、CI 范围和提醒，并在保存前预览实际生成结果。' : '已生效或结束的计划只读；暂停后可继续编辑。'} />
+    <FormShell width="wide">
+      <DetailHeader
+        backHref="/tasks/plans"
+        eyebrow="统一任务平台"
+        title={planId ? `编辑计划：${initial.name}` : '新建任务计划'}
+        subtitle={editable ? '按步骤配置模板、周期、执行对象、CI 范围和提醒，并在保存前预览实际生成结果。' : '已生效或结束的计划只读；暂停后可继续编辑。'}
+      />
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <Card className="h-fit p-3">
           {STEPS.map((label, index) => <button key={label} type="button" onClick={() => setStep(index)} className={`flex w-full items-center gap-3 rounded-v2-md px-3 py-2 text-left text-sm ${step === index ? 'bg-v2-primary-soft font-semibold text-v2-primary' : 'text-v2-muted hover:bg-v2-surface-hover'}`}><span className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${index < step ? 'border-v2-success bg-v2-success text-white' : 'border-v2-border'}`}>{index < step ? <Check className="h-3.5 w-3.5" /> : index + 1}</span>{label}</button>)}
@@ -194,7 +194,7 @@ function TaskPlanEditorForm({
           <div className="flex items-center justify-between"><Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((value) => value - 1)}><ArrowLeft className="h-4 w-4" />上一步</Button><div className="flex gap-2">{step < STEPS.length - 1 ? <Button type="button" variant="primary" disabled={!canNext} onClick={() => setStep((value) => value + 1)}>下一步<ArrowRight className="h-4 w-4" /></Button> : editable && <Button type="button" variant="primary" disabled={save.isPending || !basicValid || !assignmentValid} onClick={() => save.mutate()}><Save className="h-4 w-4" />{save.isPending ? '保存中' : '保存计划'}</Button>}</div></div>
         </div>
       </div>
-    </div>
+    </FormShell>
   )
 }
 

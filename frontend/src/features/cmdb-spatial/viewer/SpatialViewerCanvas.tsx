@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { Minus, Plus, Scan } from 'lucide-react'
 import { pointsToPixels, rectToPixels, viewportForDocument } from '../model/geometry'
 import type { SpatialDocument, SpatialElement, SpatialRuntime } from '../model/types'

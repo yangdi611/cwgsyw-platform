@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { AlertTriangle, Box, ExternalLink, Network, Server, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/design-system'
 import { FACILITY_TYPE_LABELS, type SpatialElement, type SpatialLocateResult, type SpatialRuntimeElement } from '../model/types'
 import { elementLabel } from '../model/geometry'
 
@@ -29,7 +29,7 @@ export function SpatialSelectionPanel({ element, runtime, locatedCi, onClose, on
       {targetIsDifferentCi && <section className="space-y-1 border-l-2 border-v2-primary px-3 py-1"><p className="text-xs font-medium text-v2-muted">搜索目标设备</p><p className="font-medium text-v2-fg">{locatedCi.targetCiName}</p><p className="text-xs text-v2-muted">位于当前机柜</p></section>}
     </div>
     {(ciId || targetIsDifferentCi) && <div className="grid gap-2 border-t border-v2-border p-4">
-      {isRack && <Button variant="outline" onClick={() => { if (typeof ciId === 'number') onOpenRackElevation?.(ciId) }}><Server className="mr-1.5 h-4 w-4" />机柜视图</Button>}
+      {isRack && <Button size="default" variant="outline" onClick={() => { if (typeof ciId === 'number') onOpenRackElevation?.(ciId) }}><Server className="mr-1.5 h-4 w-4" />机柜视图</Button>}
       {ciId && <><Link href={`/cmdb/instances/by-model/${runtime?.ciModelId || 'rack'}/${ciId}`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-v2-sm border border-v2-border text-sm font-medium text-v2-fg hover:bg-v2-surface-hover"><Box className="h-4 w-4" />机柜 CI 详情<ExternalLink className="h-3.5 w-3.5" /></Link>
       <Link href={`/cmdb/topology/${ciId}`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-v2-sm border border-v2-border text-sm font-medium text-v2-fg hover:bg-v2-surface-hover"><Network className="h-4 w-4" />机柜关系拓扑</Link></>}
       {targetIsDifferentCi && <Link href={`/cmdb/instances/by-model/${locatedCi.targetModelId}/${locatedCi.targetCiInstanceId}`} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-v2-sm border border-v2-primary bg-v2-primary px-3 text-sm font-medium text-white hover:opacity-90"><Box className="h-4 w-4" />查看目标设备<ExternalLink className="h-3.5 w-3.5" /></Link>}

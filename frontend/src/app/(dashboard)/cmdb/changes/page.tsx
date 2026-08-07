@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Input } from '@/components/v2/Input'
 import {
+  Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/v2/Select'
+  StatusBadge,
+} from '@/components/design-system'
 import { PageHeader, FilterBar } from '@/components/shared'
 import { JsonDiffView } from '@/components/cmdb/JsonDiffView'
 import { actionMeta, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'

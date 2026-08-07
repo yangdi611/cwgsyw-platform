@@ -4,11 +4,20 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Server, Plus, X } from 'lucide-react'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -122,7 +131,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
           所在机柜
         </span>
         {canWrite && (
-          <Button size="sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
+          <Button size="ui-sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
             <Plus className="h-3.5 w-3.5 mr-1" />装入机柜
           </Button>
         )}
@@ -205,8 +214,8 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-              <Button
+              <Button size="default" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+              <Button size="default" variant="default"
                 onClick={() => assignMutation.mutate()}
                 disabled={!defId || !rackId || assignMutation.isPending}
               >

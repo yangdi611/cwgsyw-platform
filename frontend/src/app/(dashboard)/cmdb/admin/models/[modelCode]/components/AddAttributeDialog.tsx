@@ -1,18 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Checkbox } from '@/components/v2/Checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
 import {
+  Button,
+  Checkbox,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import type { AttributeGroupAdminItem, CreateAttributePayload } from './types'
 import { FIELD_TYPES, TABLE_SCHEMA_TEMPLATE, parseEnumOptions } from './types'
 

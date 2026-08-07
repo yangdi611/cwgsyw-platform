@@ -4,11 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 
@@ -159,8 +155,8 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>取消</Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button size="default" type="button" variant="outline" onClick={onClose}>取消</Button>
+            <Button size="default" variant="default" type="submit" disabled={isSubmitting}>
               {isSubmitting ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>

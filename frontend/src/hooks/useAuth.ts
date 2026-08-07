@@ -10,6 +10,7 @@ export function useAuth() {
   const { setAuth, clearAuth, user } = useAuthStore()
 
   const login = async (username: string, password: string) => {
+    clearToken()
     const res = await api.post('/auth/login', { username, password })
     const {
       token,

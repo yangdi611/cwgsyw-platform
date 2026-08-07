@@ -4,11 +4,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download, FileDiff, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/v2/Button'
 import { DynamicTaskForm } from '@/components/task-runtime/DynamicTaskForm'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/v2/Card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge } from '@/components/design-system'
 import { getApiErrorMessage } from '@/lib/api-error'
 import {
   downloadTaskSubmissionAttachment,

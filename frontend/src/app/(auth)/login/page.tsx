@@ -1,10 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@/components/design-system'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')

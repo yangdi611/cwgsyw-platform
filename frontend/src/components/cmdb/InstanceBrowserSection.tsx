@@ -5,11 +5,20 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
-import { Input } from '@/components/v2/Input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  StatusBadge,
+} from '@/components/design-system'
 import { FilterBar, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
 import { Search, GitBranch, FileText, ArrowRight, Download } from 'lucide-react'
 import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'

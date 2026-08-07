@@ -3,14 +3,11 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/design-system'
 import { toast } from 'sonner'
-import Link from 'next/link'
-import { ArrowLeft, Trash2, Plus, GripVertical } from 'lucide-react'
+import { Trash2, Plus, GripVertical } from 'lucide-react'
 import { TableConfigEditor } from '@/components/change-doc/TableConfigEditor'
+import { DetailHeader } from '@/components/shared'
 import type { TableFieldConfig } from '@/components/change-doc/tableFieldTypes'
 
 interface FieldConfigVO {
@@ -193,28 +190,16 @@ export default function TemplateFieldsPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/admin/change-doc-templates"
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-v2-fg">{tpl?.name}</h1>
-          <p className="mt-0.5 text-xs text-v2-muted">
-            Word 模板中的{' '}
-            <code className="rounded bg-v2-surface-soft px-1 font-v2-mono">{'{{field_key}}'}</code>{' '}
-            与此处 field_key 对应
-          </p>
-        </div>
-        {tpl?.hasDocx && (
+      <DetailHeader
+        backHref="/admin/change-doc-templates"
+        title={tpl?.name ?? '模板字段'}
+        subtitle={<>Word 模板中的 <code className="rounded bg-v2-surface-soft px-1 font-v2-mono">{'{{field_key}}'}</code> 与此处 field_key 对应</>}
+        status={tpl?.hasDocx ? (
           <span className="inline-flex items-center rounded-md border border-v2-success-border bg-v2-success-soft px-2 py-1 text-xs font-medium text-v2-success">
             已上传 .docx
           </span>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {!tpl?.hasDocx && (
         <div className="rounded-v2-md border border-v2-warning-border bg-v2-warning-soft p-3 text-sm text-v2-warning">

@@ -3,14 +3,21 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { buttonVariants } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Badge } from '@/components/ui/badge'
+import {
+  Badge,
+  buttonVariants,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import Link from 'next/link'
 import { ArrowLeft, ExternalLink, AlertTriangle, ChevronDown, ChevronRight, Layers } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
+import { PageShell, PageHeader } from '@/components/shared'
 
 type Direction = 'bidirectional' | 'upstream' | 'downstream'
 
@@ -130,9 +137,12 @@ export default function ImpactAnalysisPage() {
     })
 
   return (
-    <div className="space-y-6">
-      {/* 顶部工具栏 */}
-      <div className="flex items-center gap-3">
+    <PageShell>
+      <PageHeader
+        title={`影响分析 · ${data?.rootName ?? `#${instanceId}`}`}
+        subtitle={`共 ${totalNodes} 个节点，${data?.edges.length ?? 0} 条关联`}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
         {data?.rootModelId ? (
           <Link
             href={`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`}
@@ -147,15 +157,6 @@ export default function ImpactAnalysisPage() {
             返回实例
           </span>
         )}
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-v2-fg">
-            {data?.rootName ?? `#${instanceId}`}
-            <span className="ml-2 text-sm font-normal text-v2-muted">影响分析</span>
-          </h1>
-          <p className="mt-0.5 text-xs text-v2-muted">
-            共 {totalNodes} 个节点，{data?.edges.length ?? 0} 条关联
-          </p>
-        </div>
         {/* 方向选择器 */}
         <Select value={direction} onValueChange={v => setDirection((v as Direction) ?? 'bidirectional')}>
           <SelectTrigger className="w-36">
@@ -182,7 +183,9 @@ export default function ImpactAnalysisPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+          </div>
+        )}
+      />
 
       {isLoading ? (
         <p className="text-muted-foreground text-sm">分析中...</p>
@@ -243,7 +246,7 @@ export default function ImpactAnalysisPage() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
 
@@ -288,7 +291,7 @@ function ImpactRootCard({ data }: { data: ImpactResult }) {
         </Link>
         <Link
           href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
-          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }))}
         >
           <ExternalLink className="h-3.5 w-3.5 mr-1" />查看详情
         </Link>

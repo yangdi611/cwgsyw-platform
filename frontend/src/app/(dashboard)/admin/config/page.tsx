@@ -2,11 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Switch } from '@/components/v2/Switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from '@/components/design-system'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useRouter } from 'next/navigation'
@@ -207,7 +203,7 @@ export default function AdminConfigPage() {
                   <Switch checked={ssl} onCheckedChange={setSsl} id="smtp-ssl" />
                   <Label htmlFor="smtp-ssl">使用 SSL</Label>
                 </div>
-                <Button onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>
                   保存 SMTP 配置
                 </Button>
               </div>
@@ -243,7 +239,7 @@ export default function AdminConfigPage() {
                   />
                   <p className="text-xs text-muted-foreground">从 Prometheus 拉取告警的间隔时间</p>
                 </div>
-                <Button onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>
                   保存 Prometheus 配置
                 </Button>
               </div>
@@ -323,7 +319,7 @@ export default function AdminConfigPage() {
                     )}
                   </div>
                 </div>
-                <Button onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
+                <Button size="default" variant="default" onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>
                   保存水印配置
                 </Button>
               </div>

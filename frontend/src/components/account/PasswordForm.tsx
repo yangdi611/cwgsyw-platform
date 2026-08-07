@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
+import { Button, Input, Label } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { changeAccountPassword } from '@/lib/account-api'

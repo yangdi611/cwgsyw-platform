@@ -54,6 +54,7 @@
   --color-v2-surface: var(--v2-surface);
   --color-v2-surface-soft: var(--v2-surface-soft);
   --color-v2-surface-hover: var(--v2-surface-hover);
+  --color-v2-table-header: var(--v2-table-header);
   --color-v2-fg: var(--v2-fg);
   --color-v2-muted: var(--v2-muted);
   --color-v2-subtle: var(--v2-subtle);
@@ -136,10 +137,11 @@
      ============================================ */
 
   /* Background & Surface */
-  --v2-bg: #f5f7fb;
+  --v2-bg: #f7f8fa;
   --v2-surface: #ffffff;
   --v2-surface-soft: #f8fafc;
   --v2-surface-hover: #f9fbff;
+  --v2-table-header: #eef2f7;
 
   /* Text Colors */
   --v2-fg: #101828;
@@ -229,6 +231,7 @@
   --v2-surface: #1f2937;
   --v2-surface-soft: #273449;
   --v2-surface-hover: #334155;
+  --v2-table-header: #2f3e53;
   --v2-fg: #f8fafc;
   --v2-muted: #cbd5e1;
   --v2-subtle: #94a3b8;
@@ -261,6 +264,11 @@
   html {
     @apply font-sans;
   }
+}
+
+:where(table > thead, [data-slot="table-header"]),
+:where(table > thead, [data-slot="table-header"]) > tr {
+  background-color: var(--v2-table-header) !important;
 }
 
 /* ============================================================

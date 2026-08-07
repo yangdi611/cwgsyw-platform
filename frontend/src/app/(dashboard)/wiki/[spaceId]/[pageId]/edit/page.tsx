@@ -7,10 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
+import { Button, Input } from '@/components/design-system'
 import { ArrowLeft, FileQuestion, Save } from 'lucide-react'
-import { EmptyState } from '@/components/shared'
+import { EmptyState, WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
 import '@uiw/react-md-editor/markdown-editor.css'
@@ -286,39 +285,43 @@ export default function WikiEditorPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">
-      {/* 卡片：工具栏 + 编辑器统一在一个 surface 容器内，与阅读页风格一致 */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface shadow-v2-sm">
-      {/* Toolbar */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-v2-border bg-v2-surface px-4 py-2.5">
-        <button
-          onClick={() => router.push(`/wiki/${sid}/${pid}`)}
-          className="flex items-center gap-1.5 text-sm text-v2-muted hover:text-v2-fg"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回
-        </button>
-        <Input
-          className="h-9 flex-1 text-base font-semibold"
-          value={title}
-          maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="页面标题"
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={(
+        <WorkspaceToolbar
+          leading={(
+            <button
+              onClick={() => router.push(`/wiki/${sid}/${pid}`)}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-v2-sm px-2.5 text-sm font-medium text-v2-muted transition-colors hover:bg-v2-surface-soft hover:text-v2-fg"
+            >
+              <ArrowLeft className="h-4 w-4" />返回
+            </button>
+          )}
+          title={(
+            <Input
+              className="h-9 min-w-0 text-base font-semibold"
+              value={title}
+              maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="页面标题"
+            />
+          )}
+          subtitle={`${title.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
+          actions={(
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!title.trim() || saveMutation.isPending}
+              onClick={() => saveMutation.mutate(undefined)}
+            >
+              <Save className="h-3.5 w-3.5" />保存
+            </Button>
+          )}
         />
-        <span className="shrink-0 text-xs text-v2-subtle">{title.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</span>
-        <span className="shrink-0 text-xs text-v2-subtle">
-          {savedAt ? `已保存 ${savedAt}` : '未保存'}
-        </span>
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!title.trim() || saveMutation.isPending}
-          onClick={() => saveMutation.mutate(undefined)}
-        >
-          <Save className="h-3.5 w-3.5" />
-          保存
-        </Button>
-      </div>
+      )}
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface shadow-v2-sm">
 
       {/* 隐藏 file input：由工具栏图片按钮触发 */}
       <input
@@ -376,6 +379,6 @@ export default function WikiEditorPage() {
         )}
       </div>
       </div>
-    </div>
+    </WorkspaceShell>
   )
 }

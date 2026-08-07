@@ -4,19 +4,10 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, StatusBadge } from '@/components/design-system'
 import { toast } from 'sonner'
 import UserDialog from '@/components/user/UserDialog'
-import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
+import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { Plus, Search, Trash2, Pencil, ShieldCheck } from 'lucide-react'
 import { UserAuthorizationDialog } from '@/components/user/UserAuthorizationDialog'
 
@@ -33,7 +24,8 @@ interface User {
 }
 
 export default function UsersPage() {
-  const { hasPermission } = usePermission()
+  const { hasPermission, isHydrated } = usePermission()
+  const canRead = isHydrated && hasPermission('user', 'read')
   const canCreate = hasPermission('user', 'create')
   const canUpdate = hasPermission('user', 'update')
   const canDelete = hasPermission('user', 'delete')
@@ -48,14 +40,17 @@ export default function UsersPage() {
 
   const pageSize = 20
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['users', page, keyword],
     queryFn: () =>
       api.get('/users', { params: { page, size: pageSize } }).then((r) => ({
         records: (r.data.data?.records ?? r.data.data) as User[],
         total: r.data.data?.total ?? 0,
       })),
+    enabled: canRead,
   })
+
+  if (!canRead) return null
 
   const users = data?.records ?? []
   const total = data?.total ?? 0
@@ -153,23 +148,26 @@ export default function UsersPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="身份与权限"
         title="用户管理"
         subtitle="维护平台用户账号、所属组与启用状态，按需分配角色与权限。"
         actions={
           canCreate ? (
-            <Button variant="primary" onClick={handleNew}>
-              <Plus className="h-4 w-4" />
-              新建用户
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" variant="primary" onClick={handleNew}>
+                <Plus className="h-4 w-4" />
+                新建用户
+              </Button>
+            </div>
           ) : undefined
         }
       />
 
-      <FilterBar>
-        <div className="relative max-w-xs flex-1">
+      <FilterBar className="w-full items-stretch sm:items-center">
+        <div className="relative w-full sm:max-w-xs sm:flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
           <Input
             placeholder="搜索用户名…"
@@ -182,13 +180,32 @@ export default function UsersPage() {
         </div>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={users}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={{ title: '暂无用户', description: '点击右上角"新建用户"添加第一个账号。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="用户加载失败"
+            description="无法读取用户列表，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={users}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={{
+            title: '暂无用户',
+            description: '点击右上角"新建用户"添加第一个账号。',
+            action: canCreate ? (
+              <Button variant="primary" size="sm" onClick={handleNew}>
+                <Plus className="h-4 w-4" />
+                新建用户
+              </Button>
+            ) : undefined,
+          }}
+        />
+      )}
 
       <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
 
@@ -224,6 +241,6 @@ export default function UsersPage() {
         open={!!authorizationTarget}
         onClose={() => setAuthorizationTarget(null)}
       />
-    </div>
+    </PageShell>
   )
 }

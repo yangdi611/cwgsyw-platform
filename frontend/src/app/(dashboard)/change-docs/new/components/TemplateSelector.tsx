@@ -1,6 +1,4 @@
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Card, CardContent, StatusBadge } from '@/components/design-system'
 import { FileText } from 'lucide-react'
 import type { TemplateVO } from './types'
 import { DOC_TYPE_LABEL, DOC_TYPE_TONE } from './types'

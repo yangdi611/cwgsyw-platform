@@ -6,7 +6,7 @@ import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Card, CardHeader, CardContent } from '@/components/v2/Card'
+import { Card, CardHeader, CardContent } from '@/components/design-system'
 import InstanceBrowserSection from '@/components/cmdb/InstanceBrowserSection'
 import type { CiModelSummary } from '@/types/cmdb-model'
 

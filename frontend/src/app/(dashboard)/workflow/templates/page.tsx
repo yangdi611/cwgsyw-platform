@@ -5,21 +5,25 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
-import { Switch } from '@/components/v2/Switch'
-import { StatusBadge } from '@/components/v2/StatusBadge'
 import {
+  Button,
+  Card,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+  StatusBadge,
+  Switch,
+  Textarea,
+} from '@/components/design-system'
 import { PageHeader, EmptyState } from '@/components/shared'
 import { toast } from 'sonner'
 import { LayoutTemplate, Plus, Trash2 } from 'lucide-react'

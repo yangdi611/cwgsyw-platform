@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Link from 'next/link'
 import { Server, FileText, ExternalLink } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/components/design-system'
 
 /* ------ Types ------ */
 
