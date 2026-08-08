@@ -3,9 +3,9 @@ package com.cwgsyw.platform.module.changedoc;
 import com.cwgsyw.platform.module.changedoc.dto.ChangeDocVO;
 import com.cwgsyw.platform.module.changedoc.dto.FieldConfigVO;
 import com.cwgsyw.platform.module.config.SysConfigService;
-import com.lowagie.text.*;
+import org.openpdf.text.*;
 import java.util.Map;
-import com.lowagie.text.pdf.*;
+import org.openpdf.text.pdf.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
@@ -80,15 +80,15 @@ public class ExportService {
         if (wmText == null || wmText.isBlank()) wmText = "IT运维平台";
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            com.lowagie.text.Document pdf = new com.lowagie.text.Document(PageSize.A4, 72, 72, 90, 72);
+            org.openpdf.text.Document pdf = new org.openpdf.text.Document(PageSize.A4, 72, 72, 90, 72);
             PdfWriter.getInstance(pdf, out);
             pdf.open();
 
             String cjkFontPath = findCjkFont();
-            com.lowagie.text.Font titleFont   = loadFont(cjkFontPath, 18, com.lowagie.text.Font.BOLD);
-            com.lowagie.text.Font headingFont = loadFont(cjkFontPath, 12, com.lowagie.text.Font.BOLD);
-            com.lowagie.text.Font labelFont   = loadFont(cjkFontPath, 11, com.lowagie.text.Font.BOLD);
-            com.lowagie.text.Font bodyFont    = loadFont(cjkFontPath, 11, com.lowagie.text.Font.NORMAL);
+            org.openpdf.text.Font titleFont   = loadFont(cjkFontPath, 18, org.openpdf.text.Font.BOLD);
+            org.openpdf.text.Font headingFont = loadFont(cjkFontPath, 12, org.openpdf.text.Font.BOLD);
+            org.openpdf.text.Font labelFont   = loadFont(cjkFontPath, 11, org.openpdf.text.Font.BOLD);
+            org.openpdf.text.Font bodyFont    = loadFont(cjkFontPath, 11, org.openpdf.text.Font.NORMAL);
 
             pdf.add(new Paragraph("变更申请单", titleFont));
             pdf.add(Chunk.NEWLINE);
@@ -174,9 +174,9 @@ public class ExportService {
         addDynamicTables(xdoc, fields, doc.getFieldsData());
     }
 
-    private void addPdfDynamicTables(com.lowagie.text.Document pdf, ChangeDocVO doc, Long templateId,
-                                     com.lowagie.text.Font headingFont,
-                                     com.lowagie.text.Font bodyFont) throws DocumentException {
+    private void addPdfDynamicTables(org.openpdf.text.Document pdf, ChangeDocVO doc, Long templateId,
+                                     org.openpdf.text.Font headingFont,
+                                     org.openpdf.text.Font bodyFont) throws DocumentException {
         List<FieldConfigVO> fields = fieldsForTemplate(doc, templateId);
         if (fields == null || doc.getFieldsData() == null) return;
         for (FieldConfigVO field : fields) {
@@ -204,7 +204,7 @@ public class ExportService {
         }
     }
 
-    private PdfPCell pdfTableCell(String value, com.lowagie.text.Font font) {
+    private PdfPCell pdfTableCell(String value, org.openpdf.text.Font font) {
         PdfPCell cell = new PdfPCell(new Phrase(value == null ? "" : stripHtml(value), font));
         cell.setPadding(4);
         return cell;
@@ -391,8 +391,8 @@ public class ExportService {
         p.createRun().addBreak(BreakType.PAGE);
     }
 
-    private void addPdfField(com.lowagie.text.Document pdf, String label, String value,
-                              com.lowagie.text.Font labelFont, com.lowagie.text.Font bodyFont) throws DocumentException {
+    private void addPdfField(org.openpdf.text.Document pdf, String label, String value,
+                              org.openpdf.text.Font labelFont, org.openpdf.text.Font bodyFont) throws DocumentException {
         Paragraph p = new Paragraph();
         p.add(new Chunk(label + "：", labelFont));
         addMultilineChunks(p, value != null ? stripHtml(value) : "", bodyFont);
@@ -400,8 +400,8 @@ public class ExportService {
         pdf.add(p);
     }
 
-    private void addPdfSection(com.lowagie.text.Document pdf, String heading, String content,
-                                com.lowagie.text.Font headingFont, com.lowagie.text.Font bodyFont) throws DocumentException {
+    private void addPdfSection(org.openpdf.text.Document pdf, String heading, String content,
+                                org.openpdf.text.Font headingFont, org.openpdf.text.Font bodyFont) throws DocumentException {
         Paragraph h = new Paragraph(heading, headingFont);
         h.setSpacingBefore(10);
         h.setSpacingAfter(4);
@@ -474,16 +474,16 @@ public class ExportService {
         return null;
     }
 
-    private com.lowagie.text.Font loadFont(String fontPath, float size, int style) {
+    private org.openpdf.text.Font loadFont(String fontPath, float size, int style) {
         if (fontPath == null) {
-            return new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, size, style);
+            return new org.openpdf.text.Font(org.openpdf.text.Font.HELVETICA, size, style);
         }
         try {
             BaseFont bf = BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-            return new com.lowagie.text.Font(bf, size, style);
+            return new org.openpdf.text.Font(bf, size, style);
         } catch (Exception e) {
             log.warn("Failed to load CJK font from {}: {}", fontPath, e.getMessage());
-            return new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, size, style);
+            return new org.openpdf.text.Font(org.openpdf.text.Font.HELVETICA, size, style);
         }
     }
 
@@ -507,7 +507,7 @@ public class ExportService {
     }
 
     /** PDF：把多行文本按 \n 切分成 Chunk + Chunk.NEWLINE，保留 paragraph 已有的样式属性。 */
-    private void addMultilineChunks(Paragraph para, String text, com.lowagie.text.Font font) {
+    private void addMultilineChunks(Paragraph para, String text, org.openpdf.text.Font font) {
         if (text == null) text = "";
         String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
         String[] lines = normalized.split("\n", -1);
