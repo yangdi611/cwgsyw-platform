@@ -20,7 +20,7 @@
     <properties>
         <java.version>24</java.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
-        <jjwt.version>0.12.6</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <lombok.version>1.18.46</lombok.version>
         <testcontainers.version>2.0.5</testcontainers.version>
     </properties>
@@ -116,7 +116,7 @@
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-spring-boot-starter</artifactId>
-            <version>7.1.0</version>
+            <version>8.0.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
