@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/v2/Card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/design-system'
+import { ErrorState, LoadingState } from '@/components/shared'
 import { AccountSetupForm } from '@/components/account/AccountSetupForm'
 import { useAuthStore } from '@/store/authStore'
 import { getAccountProfile, type AccountProfile } from '@/lib/account-api'
@@ -17,10 +18,12 @@ export default function AccountSetupPage() {
   const authUser = useAuthStore((s) => s.user)
   const [profile, setProfile] = useState<AccountProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     getAccountProfile()
       .then(setProfile)
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -31,7 +34,32 @@ export default function AccountSetupPage() {
     }
   }
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
+        <LoadingState label="正在加载账号安全设置…" minHeight={160} />
+      </div>
+    )
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
+        <ErrorState
+          title="账号安全设置加载失败"
+          description="无法读取当前账号状态，请重试。"
+          onRetry={() => {
+            setLoading(true)
+            setLoadError(false)
+            getAccountProfile()
+              .then(setProfile)
+              .catch(() => setLoadError(true))
+              .finally(() => setLoading(false))
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
@@ -42,8 +70,8 @@ export default function AccountSetupPage() {
         </CardHeader>
         <CardContent>
           <AccountSetupForm
-            username={authUser?.username ?? profile?.username ?? ''}
-            mustChangePassword={profile?.mustChangePassword ?? true}
+            username={authUser?.username ?? profile.username}
+            mustChangePassword={profile.mustChangePassword}
             onSuccess={handleSuccess}
           />
         </CardContent>

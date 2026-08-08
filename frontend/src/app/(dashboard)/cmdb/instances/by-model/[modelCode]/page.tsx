@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { PageHeader, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
+import { Button } from '@/components/design-system'
+import { ErrorState, PageHeader, PageShell, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch, Pencil, Copy } from 'lucide-react'
@@ -66,7 +66,7 @@ export default function InstanceListPage() {
     enabled: isHydrated,
   })
 
-  const { data: result, isLoading } = useQuery<PageResult>({
+  const { data: result, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['cmdb-instances', canonicalModelCode],
     queryFn: () =>
       api.get('/cmdb/instances', { params: { model: canonicalModelCode } }).then((r) => r.data.data),
@@ -153,16 +153,17 @@ export default function InstanceListPage() {
   }, [listColumns, hasPermission, canonicalModelCode])
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="CMDB"
         title={`${model?.name ?? canonicalModelCode} 实例列表`}
         subtitle={`共 ${result?.total ?? 0} 条实例，按模型属性展示列表字段。`}
         actions={
-          <>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <Link
               href="/cmdb/instances"
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
+              className="inline-flex h-9 items-center gap-1.5 rounded-v2-md px-3 text-sm font-semibold text-v2-muted transition-colors hover:bg-v2-surface-hover hover:text-v2-fg"
             >
               <ArrowLeft className="h-4 w-4" />
               返回 CI 资源
@@ -185,20 +186,30 @@ export default function InstanceListPage() {
                 新建实例
               </Button>
             )}
-          </>
+          </div>
         }
       />
 
-      <DataTable
-        columns={columns}
-        data={instances}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        onRowClick={(r) => setSelected(r)}
-        selectedKeys={hasPermission('cmdb_instance', 'update') ? selectedIds : undefined}
-        onSelectionChange={hasPermission('cmdb_instance', 'update') ? setSelectedIds : undefined}
-        empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="实例加载失败"
+            description="无法读取当前模型的实例，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={instances}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          onRowClick={(r) => setSelected(r)}
+          selectedKeys={hasPermission('cmdb_instance', 'update') ? selectedIds : undefined}
+          onSelectionChange={hasPermission('cmdb_instance', 'update') ? setSelectedIds : undefined}
+          empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
+        />
+      )}
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={canonicalModelCode} />
 
@@ -330,7 +341,7 @@ export default function InstanceListPage() {
           </div>
         )}
       </DetailDrawer>
-    </div>
+    </PageShell>
   )
 }
 

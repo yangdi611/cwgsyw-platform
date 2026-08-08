@@ -3,16 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { cn } from '@/lib/utils'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
-import { Chip } from '@/components/v2/Chip'
+import { Button, Chip, Input } from '@/components/design-system'
 import {
   PageHeader,
+  PageShell,
   FilterBar,
   FilterChip,
   DataTable,
   DetailDrawer,
+  ErrorState,
   type ColumnDef,
 } from '@/components/shared'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
@@ -57,7 +56,7 @@ export default function DevicesPage() {
   const [groupFilter, setGroupFilter] = useState('all')
   const [selected, setSelected] = useState<Device | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then((r) => r.data.data.records as Device[]),
   })
@@ -132,23 +131,26 @@ export default function DevicesPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="资源管理"
         title="设备密码库"
         subtitle="集中管理服务器、网络、安全设备和云资源的访问凭证，点击设备查看详情与密码。"
         actions={
           <PermissionGuard resource="device" action="create">
-            <Button variant="primary" onClick={() => router.push('/devices/new')}>
-              <Plus className="h-4 w-4" />
-              新增设备
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" variant="primary" onClick={() => router.push('/devices/new')}>
+                <Plus className="h-4 w-4" />
+                新增设备
+              </Button>
+            </div>
           </PermissionGuard>
         }
       />
 
-      <FilterBar>
-        <div className="relative max-w-sm flex-1">
+      <FilterBar className="w-full items-stretch sm:items-center">
+        <div className="relative w-full sm:max-w-sm sm:flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
           <Input
             className="pl-8"
@@ -167,19 +169,29 @@ export default function DevicesPage() {
         ))}
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        onRowClick={(r) => setSelected(r)}
-        empty={{
-          title: search ? `未找到包含"${search}"的设备` : '暂无设备',
-          description: search
-            ? '请调整搜索关键词或类型筛选。'
-            : '点击右上角"新增设备"添加第一条设备记录。',
-        }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="设备加载失败"
+            description="无法读取设备列表，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          onRowClick={(r) => setSelected(r)}
+          empty={{
+            title: search ? `未找到包含"${search}"的设备` : '暂无设备',
+            description: search
+              ? '请调整搜索关键词或类型筛选。'
+              : '点击右上角"新增设备"添加第一条设备记录。',
+          }}
+        />
+      )}
 
       <DetailDrawer
         open={!!selected}
@@ -236,6 +248,6 @@ export default function DevicesPage() {
           </div>
         )}
       </DetailDrawer>
-    </div>
+    </PageShell>
   )
 }

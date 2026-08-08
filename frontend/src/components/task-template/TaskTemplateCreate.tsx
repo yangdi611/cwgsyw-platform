@@ -1,17 +1,12 @@
 'use client'
 
 import { useMutation } from '@tanstack/react-query'
-import { ArrowLeft, WandSparkles } from 'lucide-react'
-import Link from 'next/link'
+import { WandSparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { PageHeader } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
+import { DetailHeader, FormShell } from '@/components/shared'
+import { Button, Card, Input, Label, Textarea } from '@/components/design-system'
 import { createTaskTemplate } from '@/lib/task-template-api'
 import { getApiErrorMessage } from '@/lib/api-error'
 
@@ -41,12 +36,12 @@ export function TaskTemplateCreate() {
   })
 
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <FormShell width="form">
+      <DetailHeader
+        backHref="/tasks/templates"
         eyebrow="任务模板"
         title="新建模板"
         subtitle="先定义模板身份，创建后进入三栏设计器配置字段、条件、公式和统计语义。"
-        actions={<Link href="/tasks/templates"><Button variant="ghost"><ArrowLeft className="h-4 w-4" />返回模板</Button></Link>}
       />
       <Card className="mx-auto max-w-3xl space-y-5 p-6">
         <div className="grid gap-4 md:grid-cols-2">
@@ -74,6 +69,6 @@ export function TaskTemplateCreate() {
           </Button>
         </div>
       </Card>
-    </div>
+    </FormShell>
   )
 }

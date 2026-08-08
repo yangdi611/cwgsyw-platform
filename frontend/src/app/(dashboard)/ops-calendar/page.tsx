@@ -4,17 +4,21 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, CalendarOff, ChevronDown, ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-react'
-import { PageHeader, FilterBar, FilterChip } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import { LoadingState, PageHeader, FilterBar, FilterChip } from '@/components/shared'
 import {
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { CalendarMonthView } from '@/components/ops-calendar/CalendarMonthView'
 import { CalendarWeekView } from '@/components/ops-calendar/CalendarWeekView'
 import { CalendarListView } from '@/components/ops-calendar/CalendarListView'
@@ -46,7 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function OpsCalendarPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingState label="正在加载运维日历…" minHeight={240} />}>
       <OpsCalendarInner />
     </Suspense>
   )

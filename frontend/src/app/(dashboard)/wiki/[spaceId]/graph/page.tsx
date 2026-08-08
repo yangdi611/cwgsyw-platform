@@ -18,6 +18,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ArrowLeft } from 'lucide-react'
 import type { WikiGraph } from '@/types/wiki'
+import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 
 function statusColor(status: string): string {
   return status === 'published' ? '#22c55e' : '#94a3b8'
@@ -72,21 +73,25 @@ export default function WikiGraphPage() {
   }, [data])
 
   return (
-    <div className="flex h-full flex-col -m-6">
-      <div className="flex shrink-0 items-center gap-3 border-b border-v2-border bg-v2-surface px-4 py-2.5">
-        <button
-          onClick={() => router.push(`/wiki/${sid}`)}
-          className="flex items-center gap-1.5 text-sm text-v2-muted hover:text-v2-fg"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回空间
-        </button>
-        <span className="text-sm font-semibold text-v2-fg">知识图谱</span>
-        <span className="text-xs text-v2-muted">
-          {nodes.length} 个页面，{edges.length} 条引用
-        </span>
-      </div>
-
+    <WorkspaceShell
+      height="parent"
+      className="-m-6"
+      toolbar={(
+        <WorkspaceToolbar
+          leading={(
+            <button
+              onClick={() => router.push(`/wiki/${sid}`)}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-v2-sm px-2.5 text-sm font-medium text-v2-muted transition-colors hover:bg-v2-surface-soft hover:text-v2-fg"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回空间
+            </button>
+          )}
+          title="知识图谱"
+          subtitle={`${nodes.length} 个页面，${edges.length} 条引用`}
+        />
+      )}
+    >
       <div className="min-h-0 flex-1">
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-sm text-v2-muted">加载中…</div>
@@ -107,6 +112,6 @@ export default function WikiGraphPage() {
           </ReactFlow>
         )}
       </div>
-    </div>
+    </WorkspaceShell>
   )
 }

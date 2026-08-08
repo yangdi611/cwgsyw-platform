@@ -1,9 +1,6 @@
 'use client'
 import { useState, useCallback } from 'react'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/design-system'
 import { Trash2, Plus, GripVertical, Settings2 } from 'lucide-react'
 import type { TableFieldConfig, TableColumnConfig } from './tableFieldTypes'
 

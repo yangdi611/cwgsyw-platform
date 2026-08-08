@@ -3,15 +3,22 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Badge,
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
+import { DetailHeader, PageShell } from '@/components/shared'
 
 /**
  * GET /api/cmdb/instances/{id}/relations 返回的扁平关联列表（camelCase）。
@@ -119,27 +126,20 @@ export default function AssociationsPage() {
     .map(k => ({ value: k, label: kindMap.get(k) ?? k }))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href={`/cmdb/instances/by-model/${modelCode}/${id}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-          返回详情
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-v2-fg">
-            {inst?.name ?? `#${id}`} — 关联管理
-          </h1>
-          <p className="mt-0.5 text-xs text-v2-muted">共 {allRelations.length} 条关联</p>
-        </div>
-        {hasPermission('cmdb_relation', 'create') && (
+    <PageShell width="wide" density="comfortable">
+      <DetailHeader
+        backHref={`/cmdb/instances/by-model/${modelCode}/${id}`}
+        backLabel="返回详情"
+        title={`${inst?.name ?? `#${id}`} — 关联管理`}
+        subtitle={`共 ${allRelations.length} 条关联`}
+        actions={hasPermission('cmdb_relation', 'create') ? (
           <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`}
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md bg-v2-primary text-white text-sm font-semibold shadow-v2-sm hover:bg-v2-primary-hover">
             <Plus className="h-4 w-4" />
             新建关联
           </Link>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Filter */}
       <div className="flex items-center gap-3 mb-4">
@@ -215,7 +215,7 @@ export default function AssociationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {hasPermission('cmdb_instance', 'delete') && (
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
                           disabled={deleteMutation.isPending}
                           onClick={() => { if (confirm('删除此关联?')) deleteMutation.mutate(rel.id) }}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -234,6 +234,6 @@ export default function AssociationsPage() {
         instanceId={drawerInstId}
         onClose={() => setDrawerInstId(null)}
       />
-    </div>
+    </PageShell>
   )
 }

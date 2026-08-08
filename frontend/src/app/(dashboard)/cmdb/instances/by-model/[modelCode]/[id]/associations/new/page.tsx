@@ -3,17 +3,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Badge } from '@/components/ui/badge'
+import { Badge, Button, Input, Label } from '@/components/design-system'
 import { toast } from 'sonner'
 import { getApiErrorMessage } from '@/lib/api-error'
-import Link from 'next/link'
-import { ArrowLeft, Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
+import { Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { cn } from '@/lib/utils'
+import { DetailHeader, FormShell } from '@/components/shared'
 
 interface CiInstanceSummary { name: string; modelId: string; modelCode?: string }
 
@@ -114,25 +111,18 @@ export default function NewAssociationPage() {
   const resetPeer = () => { setSelectedPeer(null); setKeyword(''); setError('') }
 
   return (
-    <div className="max-w-2xl">
-      {/* 顶部 */}
-      <div className="flex items-center gap-3 mb-6">
-        <Link href={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
-          className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          <ArrowLeft className="h-4 w-4 mr-1" />返回关联管理
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-v2-fg">新建关联</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            为 {inst?.name ?? `#${id}`} 创建新的关联关系
-          </p>
-        </div>
-      </div>
+    <FormShell width="form">
+      <DetailHeader
+        backHref={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
+        backLabel="返回关联管理"
+        title="新建关联"
+        subtitle={`为 ${inst?.name ?? `#${id}`} 创建新的关联关系`}
+      />
 
       {/* 步骤指示器 */}
-      <div className="flex items-center mb-6">
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:gap-0">
         {STEPS.map((label, i) => (
-          <div key={label} className="flex items-center flex-1 last:flex-none">
+          <div key={label} className="flex min-w-0 items-center sm:flex-1 sm:last:flex-none">
             <div className="flex items-center gap-2">
               <div className={cn(
                 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border transition-colors',
@@ -143,14 +133,14 @@ export default function NewAssociationPage() {
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
               <span className={cn(
-                'text-sm whitespace-nowrap',
+                'break-words text-sm',
                 i === step ? 'text-foreground font-medium' : 'text-muted-foreground'
               )}>
                 {label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={cn('h-px flex-1 mx-3', i < step ? 'bg-primary' : 'bg-border')} />
+              <div className={cn('mx-3 hidden h-px flex-1 sm:block', i < step ? 'bg-primary' : 'bg-border')} />
             )}
           </div>
         ))}
@@ -266,41 +256,41 @@ export default function NewAssociationPage() {
               <Label className="text-sm">确认关联信息</Label>
             </div>
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-sm items-center">
+              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
                 <span className="text-muted-foreground">当前实例</span>
-                <span className="col-span-2 font-medium">{inst?.name ?? `#${id}`}</span>
+                <span className="font-medium sm:col-span-2">{inst?.name ?? `#${id}`}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm items-center">
+              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
                 <span className="text-muted-foreground">关联定义</span>
-                <span className="col-span-2 flex items-center gap-1.5">
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5 sm:col-span-2">
                   <Badge variant="outline">{selectedDef?.kindId}</Badge>
                   <Badge variant="secondary" className="text-xs">{selectedDef?.mapping}</Badge>
                   <span>{selectedDef?.name ?? selectedDef?.defId}</span>
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm items-center">
+              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
                 <span className="text-muted-foreground">目标实例</span>
-                <span className="col-span-2 font-medium">
+                <span className="min-w-0 font-medium sm:col-span-2">
                   {selectedPeer?.name}
-                  <span className="text-muted-foreground ml-1.5">({selectedPeer?.modelName})</span>
+                  <span className="ml-1.5 text-muted-foreground">({selectedPeer?.modelName})</span>
                 </span>
               </div>
-              <div className="pt-2 border-t flex items-center justify-center gap-3 text-sm">
-                <span className="px-3 py-1.5 rounded bg-card border font-medium">
+              <div className="flex flex-wrap items-center justify-center gap-3 border-t pt-2 text-sm">
+                <span className="max-w-full break-words rounded border bg-card px-3 py-1.5 text-center font-medium">
                   {inst?.name ?? `#${id}`}
                 </span>
                 <ArrowRight className="h-4 w-4 text-primary" />
-                <span className="px-3 py-1.5 rounded bg-card border font-medium">
+                <span className="max-w-full break-words rounded border bg-card px-3 py-1.5 text-center font-medium">
                   {selectedPeer?.name}
                 </span>
               </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">关联属性</Label>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <Input placeholder="属性名" value={attrKey} onChange={e => setAttrKey(e.target.value)} />
                 <Input placeholder="属性值" value={attrValue} onChange={e => setAttrValue(e.target.value)} />
-                <Button type="button" variant="outline" size="sm"
+                <Button type="button" variant="outline" size="ui-sm" className="sm:self-end"
                   onClick={() => {
                     if (!attrKey.trim()) return
                     setAssocAttrs(a => ({ ...a, [attrKey.trim()]: attrValue }))
@@ -336,26 +326,26 @@ export default function NewAssociationPage() {
       </div>
 
       {/* 底部操作栏 */}
-      <div className="flex items-center justify-between mt-4">
-        <Button variant="ghost" size="sm"
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+        <Button variant="ghost" size="ui-sm"
           onClick={() => step === 0
             ? router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
             : (setStep(s => s - 1), setError(''))}>
           {step === 0 ? '取消' : '上一步'}
         </Button>
         {step < 2 ? (
-          <Button size="sm" disabled={
+          <Button variant="default" size="ui-sm" disabled={
             (step === 0 && !selectedDefId) || (step === 1 && !selectedPeer)
           } onClick={() => { setError(''); setStep(s => s + 1) }}>
             下一步 <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button size="sm" disabled={createMutation.isPending}
+          <Button variant="default" size="ui-sm" disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}>
             {createMutation.isPending ? '创建中...' : '建立关联'}
           </Button>
         )}
       </div>
-    </div>
+    </FormShell>
   )
 }

@@ -6,10 +6,7 @@ import { CalendarClock, Pause, Play, Plus, Search, Settings2 } from 'lucide-reac
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Card, Input, StatusBadge } from '@/components/design-system'
 import { usePermission } from '@/hooks/usePermission'
 import { changeTaskPlanStatus, listTaskPlans, type TaskPlanStatus } from '@/lib/task-plan-api'
 

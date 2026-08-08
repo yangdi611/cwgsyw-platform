@@ -1,17 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Checkbox } from '@/components/v2/Checkbox'
 import {
+  Button,
+  Checkbox,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
+  Input,
+  Label,
+} from '@/components/design-system'
 import type { AttributeAdminItem, UpdateAttributePayload } from './types'
 import { FIELD_TYPES, formatEnumOptions, parseEnumOptions } from './types'
 

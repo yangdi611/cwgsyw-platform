@@ -1,6 +1,4 @@
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Chip } from '@/components/v2/Chip'
+import { Button, Chip, StatusBadge } from '@/components/design-system'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { AttributeAdminItem } from './types'
 import { FIELD_TYPES } from './types'

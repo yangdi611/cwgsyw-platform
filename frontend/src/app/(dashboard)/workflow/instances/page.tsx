@@ -5,11 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Card } from '@/components/v2/Card'
+import { Button, Card, StatusBadge } from '@/components/design-system'
 import {
+  ErrorState,
   PageHeader,
+  PageShell,
   FilterBar,
   FilterChip,
   DataTable,
@@ -65,7 +65,7 @@ export default function InstancesPage() {
   const queryKey = tab === 'running' ? 'instances-running' : 'instances-finished'
   const endpoint = tab === 'running' ? '/workflow/instances/running' : '/workflow/instances/finished'
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [queryKey, page],
     queryFn: () =>
       api.get(endpoint, { params: { page, size: 20 } }).then((r) => ({
@@ -207,14 +207,15 @@ export default function InstancesPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="流程中心"
         title="流程实例"
         subtitle="查看和管理运行中的流程实例与已完成的历史记录，支持挂起、激活与终止。"
       />
 
-      <FilterBar>
+      <FilterBar className="w-full items-stretch sm:items-center">
         <FilterChip
           active={tab === 'running'}
           onClick={() => {
@@ -235,23 +236,33 @@ export default function InstancesPage() {
         </FilterChip>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={instances}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={{
-          title: tab === 'running' ? '暂无运行中的流程实例' : '暂无已完成的流程实例',
-          description: '切换标签查看其他状态的流程实例。',
-        }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="流程实例加载失败"
+            description="无法读取流程实例，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={instances}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={{
+            title: tab === 'running' ? '暂无运行中的流程实例' : '暂无已完成的流程实例',
+            description: '切换标签查看其他状态的流程实例。',
+          }}
+        />
+      )}
 
       <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
 
       {/* Detail Panel */}
       {selectedInstance && (
         <Card className="p-4">
-          <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <h2 className="font-bold text-v2-fg">{selectedInstance.processDefinitionName}</h2>
               <p className="text-sm text-v2-muted">
@@ -312,6 +323,6 @@ export default function InstancesPage() {
           )}
         </Card>
       )}
-    </div>
+    </PageShell>
   )
 }

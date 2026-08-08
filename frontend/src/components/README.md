@@ -6,30 +6,31 @@
 
 ```
 components/
-├── ui/          # 原有 shadcn/ui 组件（保持不变，逐步废弃）
-├── v2/          # V2 设计系统基础组件（新建）
-├── shared/      # 业务共享布局组件（新建）
-└── layout/      # 全局布局组件（直接升级）
+├── design-system/ # 基础 UI 唯一公开入口
+├── shared/        # 业务共享布局组件
+├── ui/            # design-system 迁移期内部实现
+├── v2/            # design-system 迁移期兼容入口
+└── layout/        # 全局布局组件
 ```
 
 ---
 
-## 🎨 `v2/` - V2 设计系统基础组件
+## 🎨 `design-system/` - 基础 UI 唯一公开入口
 
-基于 V2 Design Token 的基础 UI 组件，用于替代 `ui/` 中的组件。
+基础 UI 组件的唯一公开入口。组件实现可以在迁移期使用 `ui/` 的内部实现和 V2 token，但业务页面不应直接导入 `ui/` 或 `v2/`。
 
 ### 已实现组件
 
 | 组件 | 文件 | 用途 |
 |------|------|------|
-| `Button` | `Button.tsx` | 按钮（primary/secondary/ghost/danger） |
-| `Card` | `Card.tsx` | 卡片容器及子组件（Header/Title/Description/Content） |
-| `StatusBadge` | `StatusBadge.tsx` | 状态标签（ok/warn/danger/neutral） |
+| `Button` | `design-system/Button.tsx` | 按钮（primary/secondary/ghost/danger） |
+| `Card` | `design-system/Card.tsx` | 卡片容器及子组件（Header/Title/Description/Content） |
+| `StatusBadge` | `design-system/StatusBadge.tsx` | 状态标签（ok/warn/danger/neutral） |
 
 ### 使用示例
 
 ```tsx
-import { Button, Card, CardHeader, CardTitle, CardContent, StatusBadge } from '@/components/v2'
+import { Button, Card, CardHeader, CardTitle, CardContent, StatusBadge } from '@/components/design-system'
 
 export function ExamplePage() {
   return (
@@ -55,14 +56,14 @@ export function ExamplePage() {
 
 ### 待实现组件
 
-- [ ] `Input` - 输入框
-- [ ] `Select` - 下拉选择
-- [ ] `Dialog` - 对话框
-- [ ] `Table` - 表格
+- [x] `Input` - 输入框
+- [x] `Select` - 下拉选择
+- [x] `Dialog` - 对话框
+- [x] `Table` - 表格
 - [ ] `Tabs` - 标签页
-- [ ] `Checkbox` - 复选框
+- [x] `Checkbox` - 复选框
 - [ ] `Radio` - 单选框
-- [ ] `Switch` - 开关
+- [x] `Switch` - 开关
 
 ---
 
@@ -88,7 +89,7 @@ export function ExamplePage() {
 
 ```tsx
 import { PageHeader, FilterBar, FilterChip, EmptyState } from '@/components/shared'
-import { Button } from '@/components/v2'
+import { Button } from '@/components/design-system'
 
 export function ListPage() {
   return (
@@ -131,7 +132,7 @@ import {
   LoadingState, ErrorState, EmptyState,
   MetricCard,
 } from '@/components/shared'
-import { Button, StatusBadge } from '@/components/v2'
+import { Button, StatusBadge } from '@/components/design-system'
 
 export function CmdbInstancesPage() {
   const [selected, setSelected] = useState<string[]>([])
@@ -199,28 +200,27 @@ export function CmdbInstancesPage() {
 
 | 场景 | 使用 |
 |------|------|
-| **新建页面/组件** | `v2/` + `shared/` |
-| **修改旧页面** | 保持 `ui/`，等待统一迁移 |
+| **新建页面/组件** | `design-system/` + `shared/` |
+| **修改旧页面** | 迁移到 `design-system/`；`ui/` 仅作为内部实现 |
 | **全局布局** | 直接升级 `layout/` |
 
 ### 导入路径
 
 ```tsx
-// V2 基础组件
-import { Button, Card } from '@/components/v2'
+// 基础组件唯一公开入口
+import { Button, Card } from '@/components/design-system'
 
 // 共享布局组件
 import { PageHeader, FilterBar } from '@/components/shared'
 
-// 旧组件（保持不变）
-import { Button as OldButton } from '@/components/ui/button'
+// 迁移期兼容入口仅供旧代码继续运行；新代码不得从 v2/ui 导入。
 ```
 
 ### 迁移检查清单
 
 新页面/组件开发时：
 - [ ] 使用 V2 Design Token（`bg-v2-*`, `text-v2-*`）
-- [ ] 使用 `v2/` 和 `shared/` 组件
+- [ ] 使用 `design-system/` 和 `shared/` 组件
 - [ ] 遵循 MIGRATION.md 中的页面类型规范
 - [ ] 实现加载/空态/错误态
 - [ ] 响应式适配（桌面/平板/手机）

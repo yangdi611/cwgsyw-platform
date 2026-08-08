@@ -3,16 +3,21 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { PageHeader } from '@/components/shared'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from '@/components/design-system'
+import { DetailHeader, FormShell } from '@/components/shared'
 import { toast } from 'sonner'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { getApiErrorMessage } from '@/lib/api-error'
 import type { CiModelWithAttributes, CmdbFieldsData, CiAttributeResponse } from '@/types/cmdb-model'
@@ -65,17 +70,12 @@ export default function NewInstancePage() {
   if (isLoading) return <p className="text-v2-muted">加载中…</p>
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href={`/cmdb/instances/by-model/${modelCode}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回列表
-        </Link>
-        <h1 className="text-2xl font-bold text-v2-fg">新建 {model?.name ?? modelCode} 实例</h1>
-      </div>
+    <FormShell width="wide">
+      <DetailHeader
+        backHref={`/cmdb/instances/by-model/${modelCode}`}
+        backLabel="返回列表"
+        title={`新建 ${model?.name ?? modelCode} 实例`}
+      />
 
       <Card>
         <CardContent className="space-y-1.5 p-5">
@@ -122,7 +122,7 @@ export default function NewInstancePage() {
           取消
         </Button>
       </div>
-    </div>
+    </FormShell>
   )
 }
 

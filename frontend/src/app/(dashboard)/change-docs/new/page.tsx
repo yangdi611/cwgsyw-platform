@@ -3,18 +3,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
+import { Button, Card, CardContent, Input, Label } from '@/components/design-system'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
-import { Sparkles, ArrowLeft } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import type { TableRow } from '@/components/change-doc/tableFieldTypes'
 import { FieldList } from '@/components/change-doc/FieldList'
 import { TemplateSelector } from './components/TemplateSelector'
 import { CiSelectorModal } from './components/CiSelectorModal'
 import type { TemplateVO, CiSnapshot } from './components/types'
+import { DetailHeader, FormShell } from '@/components/shared'
 
 interface ChangeDocCreateResponse {
   id: number
@@ -150,24 +148,13 @@ export default function NewChangeDocPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => (step === 1 ? router.back() : setStep(1))}
-          className="inline-flex h-9 items-center gap-1.5 rounded-v2-md px-3 text-sm font-semibold text-v2-muted transition-colors hover:bg-v2-surface-hover hover:text-v2-fg"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {step === 1 ? '返回' : '上一步'}
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-v2-fg">新建变更文档</h1>
-          <p className="mt-0.5 text-xs text-v2-muted">
-            {step === 1 ? '第 1 步：选择模板' : '第 2 步：填写内容'}
-          </p>
-        </div>
-      </div>
+    <FormShell width="wide">
+      <DetailHeader
+        onBack={() => (step === 1 ? router.back() : setStep(1))}
+        backLabel={step === 1 ? '返回' : '上一步'}
+        title="新建变更文档"
+        subtitle={step === 1 ? '第 1 步：选择模板' : '第 2 步：填写内容'}
+      />
 
       {/* Step 1: Template Selection */}
       {step === 1 && (
@@ -304,6 +291,6 @@ export default function NewChangeDocPage() {
         onClose={() => setCiSelectorOpen(false)}
         onToggle={toggleCiSelection}
       />
-    </div>
+    </FormShell>
   )
 }

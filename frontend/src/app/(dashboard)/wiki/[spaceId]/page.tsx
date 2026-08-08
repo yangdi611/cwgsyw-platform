@@ -5,9 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Card } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { EmptyState } from '@/components/shared'
+import { Card, StatusBadge } from '@/components/design-system'
+import { DetailHeader, EmptyState } from '@/components/shared'
 import { BookOpen, FileText, Network } from 'lucide-react'
 import type { WikiPageTree, WikiStatus } from '@/types/wiki'
 
@@ -53,22 +52,20 @@ export default function WikiSpaceHomePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-v2-lg bg-v2-primary-soft text-v2-primary">
-          <BookOpen className="h-6 w-6" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-v2-fg">{space?.name ?? '知识空间'}</h1>
-          <p className="mt-1 text-sm text-v2-muted">{space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}</p>
-        </div>
-        <button
-          onClick={() => router.push(`/wiki/${sid}/graph`)}
-          className="flex shrink-0 items-center gap-1.5 rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 text-sm text-v2-fg hover:bg-v2-surface-hover"
-        >
-          <Network className="h-4 w-4" />
-          知识图谱
-        </button>
-      </div>
+      <DetailHeader
+        eyebrow="知识空间"
+        title={space?.name ?? '知识空间'}
+        subtitle={space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}
+        actions={(
+          <button
+            onClick={() => router.push(`/wiki/${sid}/graph`)}
+            className="flex shrink-0 items-center gap-1.5 rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 text-sm text-v2-fg hover:bg-v2-surface-hover"
+          >
+            <Network className="h-4 w-4" />
+            知识图谱
+          </button>
+        )}
+      />
 
       <Card className="p-5">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-v2-muted">最近更新</h2>

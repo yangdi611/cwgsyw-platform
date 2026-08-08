@@ -4,11 +4,20 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Cable, Plus, X } from 'lucide-react'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -134,7 +143,7 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
           端口连接
         </span>
         {canWrite && (
-          <Button size="sm" variant="outline" onClick={() => { setSrcFieldKey(tableFields[0]?.fieldKey ?? ''); setOpen(true) }}>
+          <Button size="ui-sm" variant="outline" onClick={() => { setSrcFieldKey(tableFields[0]?.fieldKey ?? ''); setOpen(true) }}>
             <Plus className="h-3.5 w-3.5 mr-1" />新建连接
           </Button>
         )}
@@ -257,8 +266,8 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!srcFieldKey || !srcEndpointUid || !dstId || createMutation.isPending}>
+              <Button size="default" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+              <Button size="default" variant="default" onClick={() => createMutation.mutate()} disabled={!srcFieldKey || !srcEndpointUid || !dstId || createMutation.isPending}>
                 建立连接
               </Button>
             </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { PageHeader } from '@/components/shared'
-import { Card, CardContent } from '@/components/v2/Card'
+import { Card, CardContent } from '@/components/design-system'
 import { PasswordForm } from '@/components/account/PasswordForm'
 
 export default function AccountPasswordPage() {

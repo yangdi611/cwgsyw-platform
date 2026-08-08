@@ -6,13 +6,8 @@ import { ArrowLeft, Eye, FileCheck2, LockKeyhole, Save } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Textarea } from '@/components/v2/Textarea'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { ErrorState, LoadingState, WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
+import { Button, Card, Input, Label, StatusBadge, Textarea } from '@/components/design-system'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import {
   getTaskTemplateVersion,
@@ -185,12 +180,14 @@ function TaskTemplateDesignerWorkspace({
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        eyebrow={`任务模板 · v${draft.version}`}
-        title={draft.name}
-        subtitle={readOnly ? '此版本已发布或废弃，只读展示不可变快照。' : '配置字段、校验、条件、公式、可见性和统计语义。'}
-        actions={
+    <WorkspaceShell
+      height="viewport"
+      className="-m-4 md:-m-6"
+      toolbar={(
+        <WorkspaceToolbar
+          title={draft.name}
+          subtitle={readOnly ? `任务模板 · v${draft.version} · 此版本已发布或废弃，只读展示不可变快照。` : `任务模板 · v${draft.version} · 配置字段、校验、条件、公式、可见性和统计语义。`}
+          actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/tasks/templates/${templateId}`}><Button variant="ghost"><ArrowLeft className="h-4 w-4" />版本历史</Button></Link>
             <Button variant="secondary" onClick={() => handlePreview('executor')}><Eye className="h-4 w-4" />执行人预览</Button>
@@ -199,9 +196,11 @@ function TaskTemplateDesignerWorkspace({
             {!readOnly && <Button variant="secondary" disabled={Boolean(busy)} onClick={handleValidate}><FileCheck2 className="h-4 w-4" />校验</Button>}
             {!readOnly && <Button variant="primary" disabled={Boolean(busy)} onClick={handlePublish}><LockKeyhole className="h-4 w-4" />发布并锁定</Button>}
           </div>
-        }
-      />
-
+          }
+        />
+      )}
+    >
+      <div className="min-h-0 overflow-y-auto p-4 md:p-6">
       <Card className="p-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1"><Label>版本名称</Label><Input disabled={readOnly} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} /></div>
@@ -227,7 +226,8 @@ function TaskTemplateDesignerWorkspace({
       </Card>
 
       <TemplatePreviewDialog open={previewOpen} role={previewRole} preview={preview} loading={busy === 'preview'} onOpenChange={setPreviewOpen} />
-    </div>
+      </div>
+    </WorkspaceShell>
   )
 }
 

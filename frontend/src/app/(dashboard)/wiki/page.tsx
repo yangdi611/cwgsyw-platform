@@ -8,18 +8,18 @@ import { wikiApi } from '@/lib/wiki-api'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
-import { Input } from '@/components/v2/Input'
-import { Textarea } from '@/components/v2/Textarea'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { PageHeader, EmptyState } from '@/components/shared'
+import { ErrorState, LoadingState, PageHeader, EmptyState } from '@/components/shared'
 import {
+  Button,
+  Card,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
+  Input,
+  Textarea,
+} from '@/components/design-system'
 import {
   BookOpen,
   Library,
@@ -101,7 +101,7 @@ export default function WikiSpacesPage() {
     setOrder(loadPersonalOrder(username))
   }, [username])
 
-  const { data: spaces, isLoading } = useQuery<WikiSpace[]>({
+  const { data: spaces, isLoading, isError, refetch } = useQuery<WikiSpace[]>({
     queryKey: ['wiki-spaces'],
     queryFn: wikiApi.listSpaces,
   })
@@ -307,7 +307,17 @@ export default function WikiSpacesPage() {
         }
       />
 
-      {isLoading ? null : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
+      {isLoading ? (
+        <LoadingState label="正在加载知识空间…" minHeight={220} />
+      ) : isError ? (
+        <Card>
+          <ErrorState
+            title="知识空间加载失败"
+            description="无法读取知识空间列表，请重试。"
+            onRetry={() => void refetch()}
+          />
+        </Card>
+      ) : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
         <Card>
           <EmptyState
             icon={<BookOpen className="h-5 w-5 text-v2-muted" />}

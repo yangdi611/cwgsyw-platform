@@ -5,10 +5,16 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { PageHeader, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  StatusBadge,
+} from '@/components/design-system'
+import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
 import { CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -76,10 +82,10 @@ export default function CmdbAlertsPage() {
     if (!hasPermission('cmdb_alert', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const canRead = hasPermission('cmdb_alert', 'read')
+  const canRead = isHydrated && hasPermission('cmdb_alert', 'read')
   const canAck = hasPermission('cmdb_alert', 'acknowledge')
 
-  const { data, isLoading } = useQuery<PageData>({
+  const { data, isLoading, isError, refetch } = useQuery<PageData>({
     queryKey: ['cmdb-alerts', severity, status, page],
     queryFn: () =>
       api
@@ -96,6 +102,9 @@ export default function CmdbAlertsPage() {
   })
 
   const ack = useAcknowledgeAlert()
+
+  if (!canRead) return null
+
   const onAck = (alertId: number) => {
     ack.mutate(alertId, {
       onSuccess: () => toast.success('告警已确认'),
@@ -182,14 +191,15 @@ export default function CmdbAlertsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell width="full" density="comfortable">
       <PageHeader
+        className="flex-wrap gap-4"
         eyebrow="CMDB"
         title="告警中心"
         subtitle="查看 Prometheus 告警，按级别与状态筛选，及时确认并关联到 CI 实例。"
       />
 
-      <FilterBar>
+      <FilterBar className="w-full items-stretch sm:items-center">
         <Select
           value={severity || '__all__'}
           onValueChange={(v) => {
@@ -197,7 +207,7 @@ export default function CmdbAlertsPage() {
             setPage(1)
           }}
         >
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="全部级别">
               {(v: string) => SEVERITY_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部级别'}
             </SelectValue>
@@ -218,7 +228,7 @@ export default function CmdbAlertsPage() {
             setPage(1)
           }}
         >
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="全部状态">
               {(v: string) => STATUS_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部状态'}
             </SelectValue>
@@ -233,15 +243,25 @@ export default function CmdbAlertsPage() {
         </Select>
       </FilterBar>
 
-      <DataTable
-        columns={columns}
-        data={alerts}
-        rowKey={(r) => r.id}
-        loading={isLoading}
-        empty={{ title: '暂无告警', description: '当前筛选条件下没有告警记录。' }}
-      />
+      {isError ? (
+        <div className="rounded-lg border border-v2-border bg-v2-surface">
+          <ErrorState
+            title="告警加载失败"
+            description="无法读取告警记录，请稍后重试。"
+            onRetry={() => refetch()}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={alerts}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={{ title: '暂无告警', description: '当前筛选条件下没有告警记录。' }}
+        />
+      )}
 
       <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
-    </div>
+    </PageShell>
   )
 }

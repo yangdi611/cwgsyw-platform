@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button } from '@/components/v2/Button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
+import { Button, Input, Label } from '@/components/design-system'
 import { toast } from 'sonner'
-import { getAccountProfile, updateAccountProfile, type AccountProfile } from '@/lib/account-api'
+import { getApiErrorMessage } from '@/lib/api-error'
+import { updateAccountProfile, type AccountProfile } from '@/lib/account-api'
 
 interface ProfileFormData {
   email: string
@@ -14,9 +13,8 @@ interface ProfileFormData {
   avatarUrl: string
 }
 
-import { getApiErrorMessage } from '@/lib/api-error'
-
 interface ProfileFormProps {
+  profile: AccountProfile
   onSuccess?: (profile: AccountProfile) => void
 }
 
@@ -24,33 +22,25 @@ interface ProfileFormProps {
  * 用户自助资料表单（SPEC 11.2 PUT /api/account/profile）。
  * realName 不可自助修改，由管理员维护（SPEC 8.4）。
  */
-export function ProfileForm({ onSuccess }: ProfileFormProps) {
-  const [loading, setLoading] = useState(true)
+export function ProfileForm({ profile, onSuccess }: ProfileFormProps) {
   const [submitting, setSubmitting] = useState(false)
-  const [realName, setRealName] = useState('')
-  const [username, setUsername] = useState('')
   const { register, handleSubmit, reset } = useForm<ProfileFormData>({
-    defaultValues: { email: '', phone: '', avatarUrl: '' },
+    defaultValues: {
+      email: profile.email ?? '',
+      phone: profile.phone ?? '',
+      avatarUrl: profile.avatarUrl ?? '',
+    },
   })
-
-  useEffect(() => {
-    getAccountProfile()
-      .then((profile) => {
-        setRealName(profile.realName)
-        setUsername(profile.username)
-        reset({
-          email: profile.email ?? '',
-          phone: profile.phone ?? '',
-          avatarUrl: profile.avatarUrl ?? '',
-        })
-      })
-      .finally(() => setLoading(false))
-  }, [reset])
 
   const onSubmit = async (data: ProfileFormData) => {
     setSubmitting(true)
     try {
       const profile = await updateAccountProfile(data)
+      reset({
+        email: profile.email ?? '',
+        phone: profile.phone ?? '',
+        avatarUrl: profile.avatarUrl ?? '',
+      })
       toast.success('资料已更新')
       onSuccess?.(profile)
     } catch (err: unknown) {
@@ -60,17 +50,15 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
   }
 
-  if (loading) return null
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label>用户名</Label>
-        <Input value={username} disabled />
+        <Input value={profile.username} disabled />
       </div>
       <div className="space-y-2">
         <Label>真实姓名</Label>
-        <Input value={realName} disabled />
+        <Input value={profile.realName} disabled />
         <p className="text-xs text-v2-muted">真实姓名由管理员维护，如需修改请联系管理员。</p>
       </div>
       <div className="space-y-2">

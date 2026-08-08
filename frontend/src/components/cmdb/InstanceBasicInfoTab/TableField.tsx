@@ -1,6 +1,12 @@
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { Plus, X } from 'lucide-react'
 import { schemaCols, rowKeyOf, genRowId } from './types'
 
@@ -107,7 +113,7 @@ export function TableFieldEditor({
           </tbody>
         </table>
       </div>
-      <Button type="button" size="sm" variant="outline" onClick={addRow}>
+      <Button type="button" size="ui-sm" variant="outline" onClick={addRow}>
         <Plus className="h-3.5 w-3.5 mr-1" />添加行
       </Button>
     </div>

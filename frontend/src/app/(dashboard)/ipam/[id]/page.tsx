@@ -7,13 +7,9 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Button } from '@/components/v2/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
-import { DataTable, type ColumnDef } from '@/components/shared'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import { Button, Card, CardContent, CardHeader, CardTitle, StatusBadge } from '@/components/design-system'
+import { DataTable, DetailHeader, PageShell, type ColumnDef } from '@/components/shared'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label } from '@/components/design-system'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import {
   AlertDialog,
@@ -24,9 +20,9 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
+} from '@/components/design-system'
 import { toast } from 'sonner'
-import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil } from 'lucide-react'
 
 interface IpAllocationVO {
   id: number
@@ -237,28 +233,14 @@ export default function IpamDetailPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/ipam"
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-v2-fg">{pool.name}</h1>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md border border-v2-border bg-v2-surface-soft px-2 py-0.5 font-v2-mono text-xs text-v2-fg">
-                {pool.cidr}
-              </span>
-              <StatusBadge status={pst.variant}>{pst.label}</StatusBadge>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
+    <PageShell width="wide" density="comfortable">
+      <DetailHeader
+        backHref="/ipam"
+        title={pool.name}
+        status={<StatusBadge status={pst.variant}>{pst.label}</StatusBadge>}
+        meta={<span className="font-v2-mono">{pool.cidr}</span>}
+        actions={
+          <div className="flex flex-wrap gap-2">
           <PermissionGuard resource="ip_pool" action="update">
             <Button variant="secondary" size="sm" onClick={startEdit}>
               <Pencil className="h-4 w-4" />
@@ -271,8 +253,9 @@ export default function IpamDetailPage() {
               分配 IP
             </Button>
           </PermissionGuard>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Edit Form */}
       {editing && (
@@ -281,7 +264,7 @@ export default function IpamDetailPage() {
             <CardTitle className="text-base">编辑地址池信息</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>名称</Label>
                 <Input
@@ -297,7 +280,7 @@ export default function IpamDetailPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>DNS</Label>
                 <Input
@@ -366,7 +349,7 @@ export default function IpamDetailPage() {
           <CardTitle className="text-sm">使用率</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="h-3 flex-1 overflow-hidden rounded-full bg-v2-surface-soft">
               <div
                 className={`h-full rounded-full transition-all ${
@@ -375,7 +358,7 @@ export default function IpamDetailPage() {
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />
             </div>
-            <span className="whitespace-nowrap text-sm font-medium tabular-nums text-v2-fg">
+            <span className="text-sm font-medium tabular-nums text-v2-fg">
               {pool.allocatedCount} / {pool.totalCount}（{pct.toFixed(1)}%）
             </span>
           </div>
@@ -456,7 +439,7 @@ export default function IpamDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }
 

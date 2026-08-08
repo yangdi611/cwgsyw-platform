@@ -79,17 +79,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const shouldRedirectToSetup = requiredActions.length > 0 && pathname !== SETUP_PATH
   const shouldRedirectFromSetup = requiredActions.length === 0 && pathname === SETUP_PATH
+  const isFixedWorkspaceRoute = /^\/wiki\/[^/]+\/(?:[^/]+\/edit|graph)$/.test(pathname)
   if (!token || !isHydrated || shouldRedirectToSetup || shouldRedirectFromSetup || !canAccessRoute) {
     return null
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-v2-bg">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header />
-        <main className="min-w-0 flex-1 p-4 md:p-6">
-          <div className="w-full max-w-none">{children}</div>
+        <main
+          className={`min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 md:p-6 ${
+            isFixedWorkspaceRoute ? 'overflow-hidden' : 'overflow-y-auto'
+          }`}
+        >
+          <div className="min-w-0 w-full">{children}</div>
         </main>
       </div>
       <CommandPalette />

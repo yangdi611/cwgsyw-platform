@@ -1,7 +1,6 @@
 'use client'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, StatusBadge } from '@/components/design-system'
 import type { PreviewRole, TemplatePreview } from '@/lib/task-template-api'
 
 export function TemplatePreviewDialog({

@@ -2,8 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { Badge, Input } from '@/components/design-system'
 import { X } from 'lucide-react'
 
 interface CiInstanceOption {

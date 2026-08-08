@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, Activity, GitCompare } from 'lucide-react'
+import { Activity, GitCompare } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { InstanceBasicInfoTab } from '@/components/cmdb/InstanceBasicInfoTab'
@@ -19,6 +19,7 @@ import { RackAssignmentCard } from '@/components/cmdb/RackAssignmentCard'
 import { EndpointLinksCard } from '@/components/cmdb/EndpointLinksCard'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
+import { DetailHeader, PageShell } from '@/components/shared'
 import type { CiAttributeResponse, CmdbFieldsData } from '@/types/cmdb-model'
 
 interface CiInstanceVO {
@@ -98,31 +99,19 @@ export default function InstanceDetailPage() {
     && (t.key !== 'topology' || hasPermission('cmdb_topology', 'read')))
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-xl border border-v2-border bg-v2-surface-soft px-5 py-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Link
-              href={`/cmdb/instances/by-model/${modelCode}`}
-              className="mt-1 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              返回
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-v2-fg">{inst.name ?? `#${inst.id}`}</h1>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-v2-muted">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-v2-border bg-v2-surface font-v2-mono text-v2-fg">
-                  {inst.modelId}
-                </span>
-                <span>·</span>
-                <span>创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}</span>
-                {inst.createdByName && (<><span>·</span><span>{inst.createdByName}</span></>)}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+    <PageShell width="wide" density="comfortable">
+      <DetailHeader
+        backHref={`/cmdb/instances/by-model/${modelCode}`}
+        title={inst.name ?? `#${inst.id}`}
+        eyebrow={inst.modelId}
+        meta={
+          <>
+            <span>创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}</span>
+            {inst.createdByName && <span>{inst.createdByName}</span>}
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
             {hasPermission('cmdb_impact', 'read') && (
               <Link
                 href={`/cmdb/impact/${id}`}
@@ -142,8 +131,8 @@ export default function InstanceDetailPage() {
               </Link>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tab navigation */}
       <div className="flex flex-wrap items-center gap-1 border-b border-v2-border">
@@ -182,6 +171,6 @@ export default function InstanceDetailPage() {
         {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}
         {tab === 'resources' && <InstanceResourcesTab instanceId={id} />}
       </div>
-    </div>
+    </PageShell>
   )
 }

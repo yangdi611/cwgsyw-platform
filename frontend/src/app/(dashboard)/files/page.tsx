@@ -8,17 +8,17 @@ import { toast } from 'sonner'
 import api from '@/lib/api'
 import { downloadSharedFile } from '@/lib/shared-file-content'
 import { usePermission } from '@/hooks/usePermission'
-import { Input } from '@/components/v2/Input'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
 import { PageHeader, DataTable, Pagination, EmptyState, type ColumnDef } from '@/components/shared'
 import {
+  Button,
+  Card,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/v2/Dialog'
+  Input,
+} from '@/components/design-system'
 import {
   FolderOpen,
   Upload,

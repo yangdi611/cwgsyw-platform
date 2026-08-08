@@ -2,9 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/v2/Dialog'
-import { Button } from '@/components/v2/Button'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, StatusBadge } from '@/components/design-system'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { fmtTime, ymd, WEEK_LABELS } from '@/lib/opsCalendar'
 import {

@@ -19,3 +19,19 @@ export { LoadingState, type LoadingStateProps } from './LoadingState'
 export { ErrorState, type ErrorStateProps } from './ErrorState'
 export { MetricCard, type MetricCardProps } from './MetricCard'
 export { Pagination, type PaginationProps } from './Pagination'
+export {
+  PageShell,
+  FormShell,
+  type PageShellProps,
+  type FormShellProps,
+  type PageShellWidth,
+  type PageShellDensity,
+} from './PageShell'
+export {
+  WorkspaceShell,
+  WorkspaceToolbar,
+  type WorkspaceShellProps,
+  type WorkspaceToolbarProps,
+  type WorkspaceHeight,
+} from './WorkspaceShell'
+export { DetailHeader, type DetailHeaderProps } from './DetailHeader'

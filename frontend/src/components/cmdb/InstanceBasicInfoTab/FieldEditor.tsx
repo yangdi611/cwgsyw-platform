@@ -1,6 +1,12 @@
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from '@/components/design-system'
 import type { CiAttributeVO } from './types'
 
 export function renderEditField(attr: CiAttributeVO, value: string, onChange: (v: string) => void) {

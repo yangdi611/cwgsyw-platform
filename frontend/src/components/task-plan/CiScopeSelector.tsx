@@ -3,10 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, Database, Layers3, Search, Server, X } from 'lucide-react'
-import { Button } from '@/components/v2/Button'
-import { Card } from '@/components/v2/Card'
-import { Input } from '@/components/v2/Input'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Button, Card, Input, StatusBadge } from '@/components/design-system'
 import {
   listInstances,
   listModelGroups,

@@ -3,8 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { Card } from '@/components/v2/Card'
-import { StatusBadge } from '@/components/v2/StatusBadge'
+import { Card, StatusBadge } from '@/components/design-system'
 import { PageHeader, EmptyState } from '@/components/shared'
 import { BarChart3 } from 'lucide-react'
 

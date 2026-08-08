@@ -13,8 +13,8 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/v2/Button'
-import { PageHeader } from '@/components/shared'
+import { Button } from '@/components/design-system'
+import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { DashboardSubscriptions } from '@/components/task-analytics/DashboardSubscriptions'
@@ -89,6 +89,28 @@ export function TaskAnalyticsDashboard({ dashboardId }: Props) {
     }
   }
 
+  if (dashboard.isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow="统一任务平台 / 任务统计" title="统计看板" subtitle="正在读取看板配置…" />
+        <LoadingState label="正在加载统计看板…" minHeight={320} />
+      </div>
+    )
+  }
+
+  if (dashboard.isError || !detail) {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow="统一任务平台 / 任务统计" title="统计看板" subtitle="无法读取当前看板。" />
+        <ErrorState
+          title="统计看板加载失败"
+          description="请检查访问权限或稍后重试。"
+          onRetry={() => void dashboard.refetch()}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -115,8 +137,7 @@ export function TaskAnalyticsDashboard({ dashboardId }: Props) {
         <span>共享范围：{scopeLabel(detail?.scopeType)}</span>
         <span className="text-v2-muted">所有组件按当前查看人的租户、组、参与关系和字段权限重新查询。</span>
       </section>
-      {dashboard.isError && <section className="border border-v2-danger bg-v2-danger-soft p-4 text-sm text-v2-danger">无法读取看板，请检查访问权限或稍后重试。</section>}
-      {widgets.length === 0 && !dashboard.isLoading && <section className="border border-dashed border-v2-border bg-v2-surface p-12 text-center">
+      {widgets.length === 0 && <section className="border border-dashed border-v2-border bg-v2-surface p-12 text-center">
         <BarChart3 className="mx-auto mb-3 h-8 w-8 text-v2-muted" />
         <p className="font-medium">看板暂无组件</p>
         <p className="mt-1 text-sm text-v2-muted">返回任务统计运行查询后保存组件。</p>
@@ -158,8 +179,8 @@ function AnalyticsWidgetCard({ widget, query, canExport, canManage, busy, onDele
       <div className="flex gap-1">{canExport && <><Button size="sm" variant="ghost" title="导出 CSV" onClick={() => void exportTaskAnalytics(query, 'csv')}><Download className="h-4 w-4" /></Button><Button size="sm" variant="ghost" title="导出 Excel" onClick={() => void exportTaskAnalytics(query, 'xlsx')}><FileDown className="h-4 w-4" /></Button></>}{canManage && <Button size="sm" variant="ghost" title="删除组件" disabled={busy} onClick={onDelete}><Trash2 className="h-4 w-4 text-v2-danger" /></Button>}</div>
     </header>
     <div className="min-h-48 overflow-x-auto p-4">
-      {result.isError && <p className="text-sm text-v2-danger">组件查询失败，请检查模板版本、口径或权限。</p>}
-      {result.isLoading && <p className="text-sm text-v2-muted">正在计算...</p>}
+      {result.isError && <ErrorState title="组件查询失败" description="请检查模板版本、统计口径或权限。" onRetry={() => void result.refetch()} />}
+      {result.isLoading && <LoadingState label="正在计算组件…" minHeight={180} />}
       {!result.isLoading && !result.isError && <WidgetResult type={widget.widgetType} rows={rows} columns={columns} columnLabels={columnLabels} query={query} onDrilldown={onDrilldown} />}
     </div>
   </article>
@@ -204,8 +225,8 @@ function DrilldownPanel({ state, onClose }: { state: DrilldownState; onClose: ()
   const records = result.data?.records ?? []
   return <section className="border border-v2-border bg-v2-surface">
     <header className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">{state.widget.title} · 来源明细</h2><p className="text-xs text-v2-muted">{dimensionSummary(state.dimensions, result.data?.columnLabels)}{result.data ? ` · 共 ${result.data.total} 条` : ''}</p></div><Button size="sm" variant="ghost" title="关闭下钻" onClick={onClose}><X className="h-4 w-4" /></Button></header>
-    {result.isLoading && <p className="p-4 text-sm text-v2-muted">正在加载来源任务...</p>}
-    {result.isError && <p className="p-4 text-sm text-v2-danger">无法加载下钻明细，请检查权限或查询口径。</p>}
+    {result.isLoading && <LoadingState label="正在加载来源任务…" minHeight={180} />}
+    {result.isError && <ErrorState title="来源任务加载失败" description="请检查权限或查询口径。" onRetry={() => void result.refetch()} />}
     <div className="divide-y divide-v2-border">{records.map((record) => <div key={`${record.taskId}:${record.submissionId}`} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"><div><Link className="font-medium text-v2-primary hover:underline" href={`/tasks/${record.taskId}`}>{formatValue(record.taskTitle)}</Link><p className="mt-1 text-xs text-v2-muted">任务 #{formatValue(record.taskId)} · 提交 #{formatValue(record.submissionId)} v{formatValue(record.submissionVersion)} · 业务日期 {formatValue(record.businessDate)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">{Object.entries(record).filter(([key]) => !TRACE_COLUMNS.has(key)).map(([key, value]) => <span key={key}><strong className="mr-1 text-xs text-v2-muted">{result.data?.columnLabels?.[key] ?? key}</strong>{formatValue(value)}</span>)}</div></div><Link href={`/tasks/${record.taskId}`} className="inline-flex h-9 items-center gap-1 border border-v2-border px-3 text-sm hover:border-v2-primary">查看提交<ChevronRight className="h-4 w-4" /></Link></div>)}</div>
     {!result.isLoading && records.length === 0 && <p className="p-8 text-center text-sm text-v2-muted">该数据点没有当前用户可查看的来源任务。</p>}
   </section>

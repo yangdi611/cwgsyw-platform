@@ -2,15 +2,25 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/v2/Input'
-import { Label } from '@/components/v2/Label'
-import { Checkbox } from '@/components/v2/Checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/v2/Select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/v2/Dialog'
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/design-system'
 import { toast } from 'sonner'
 import { Plus, Trash2, PencilLine } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { usePermission } from '@/hooks/usePermission'
 import { AssociationDefsSection } from './AssociationDefsSection'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
@@ -191,7 +201,7 @@ function AssociationsTab() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">关联扩展属性管理</h2>
           {activeKind && !showForm && canWrite && (
-            <Button size="sm" onClick={() => { resetForm(); setShowForm(true) }}>
+            <Button size="ui-sm" variant="primary" onClick={() => { resetForm(); setShowForm(true) }}>
               <Plus className="h-4 w-4 mr-1" />新增属性
             </Button>
           )}
@@ -295,10 +305,10 @@ function AssociationsTab() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSubmit} disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending}>
+              <Button variant="default" size="ui-sm" onClick={handleSubmit} disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending}>
                 {editingAttr ? '更新' : '创建'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={resetForm}>取消</Button>
+              <Button size="ui-sm" variant="ghost" onClick={resetForm}>取消</Button>
             </div>
           </div>
         )}
@@ -314,7 +324,7 @@ function AssociationsTab() {
                   关联类型「{activeKind}」暂无扩展属性定义
                 </p>
                 {canWrite && (
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => { resetForm(); setShowForm(true) }}>
+                  <Button size="ui-sm" variant="outline" className="mt-3" onClick={() => { resetForm(); setShowForm(true) }}>
                     <Plus className="h-4 w-4 mr-1" />新增属性
                   </Button>
                 )}
@@ -353,11 +363,11 @@ function AssociationsTab() {
                         {canWrite && (
                           <td className="px-3 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0"
                                 onClick={() => startEdit(attr)}>
                                 <PencilLine className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
                                 onClick={() => {
                                   if (confirm(`删除扩展属性「${attr.name}」?`)) deleteAttrMutation.mutate(attr)
                                 }}>
