@@ -23,7 +23,10 @@ spring:
       host: ${SPRING_REDIS_HOST:localhost}
       port: 6379
       password: ${SPRING_REDIS_PASSWORD:}
-  jackson:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
+  jackson2:
     default-property-inclusion: non_null
   mail:
     host: localhost
