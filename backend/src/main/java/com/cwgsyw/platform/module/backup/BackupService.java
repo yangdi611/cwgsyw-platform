@@ -10,9 +10,9 @@ import com.cwgsyw.platform.module.backup.entity.BackupRecord;
 import com.cwgsyw.platform.module.user.UserMapper;
 import com.cwgsyw.platform.module.user.entity.User;
 import io.minio.*;
-import io.minio.messages.Bucket;
-import io.minio.messages.DeleteObject;
+import io.minio.messages.DeleteRequest;
 import io.minio.messages.Item;
+import io.minio.messages.ListAllMyBucketsResult.Bucket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -331,10 +331,10 @@ public class BackupService {
     }
 
     private void clearBucket(String bucket) throws Exception {
-        List<DeleteObject> toDelete = new ArrayList<>();
+        List<DeleteRequest.Object> toDelete = new ArrayList<>();
         for (Result<Item> res : minioClient.listObjects(
                 ListObjectsArgs.builder().bucket(bucket).recursive(true).build())) {
-            toDelete.add(new DeleteObject(res.get().objectName()));
+            toDelete.add(new DeleteRequest.Object(res.get().objectName()));
         }
         if (toDelete.isEmpty()) return;
         for (Result<?> r : minioClient.removeObjects(

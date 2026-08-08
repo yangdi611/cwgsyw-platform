@@ -27,7 +27,7 @@ public class SpatialAssetStorage {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
             }
             minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(key)
-                    .stream(new ByteArrayInputStream(content), content.length, -1).contentType(contentType).build());
+                    .stream(new ByteArrayInputStream(content), (long) content.length, -1L).contentType(contentType).build());
         } catch (Exception exception) {
             throw BusinessException.serviceUnavailable("SPATIAL_ASSET_UPLOAD_FAILED", "参考图上传失败，请稍后重试");
         }

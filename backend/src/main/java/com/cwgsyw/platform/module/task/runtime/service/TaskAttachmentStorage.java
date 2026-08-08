@@ -5,12 +5,12 @@ import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.CopyObjectArgs;
-import io.minio.CopySource;
+import io.minio.SourceObject;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-import io.minio.http.Method;
+import io.minio.Http.Method;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class TaskAttachmentStorage {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
             }
             minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(objectKey)
-                .stream(stream, size, -1).contentType(contentType).build());
+                .stream(stream, size, -1L).contentType(contentType).build());
         } catch (Exception exception) {
             throw BusinessException.serviceUnavailable("TASK_ATTACHMENT_UPLOAD_FAILED", "附件上传失败，请稍后重试");
         }
@@ -57,7 +57,7 @@ public class TaskAttachmentStorage {
     public void copy(String sourceKey, String targetKey) {
         try {
             minioClient.copyObject(CopyObjectArgs.builder().bucket(bucket).object(targetKey)
-                .source(CopySource.builder().bucket(bucket).object(sourceKey).build()).build());
+                .source(SourceObject.builder().bucket(bucket).object(sourceKey).build()).build());
         } catch (Exception exception) {
             throw BusinessException.serviceUnavailable("TASK_ATTACHMENT_COPY_FAILED", "附件冻结失败，请稍后重试");
         }
