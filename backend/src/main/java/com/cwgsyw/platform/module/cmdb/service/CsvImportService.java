@@ -329,7 +329,7 @@ public class CsvImportService {
                     objectMapper.writeValueAsString(snapshot),
                     FAILED_ROWS_TTL_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            log.error("Failed to store CSV failed rows for batch {}", batchId, e);
+            log.error("Failed to store CSV failed rows: {}", e.getClass().getSimpleName());
             throw new IllegalStateException("失败行结果保存失败");
         }
     }

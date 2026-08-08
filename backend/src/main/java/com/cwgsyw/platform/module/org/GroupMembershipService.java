@@ -127,8 +127,8 @@ public class GroupMembershipService {
 
     @Transactional
     public void syncPrimaryMembership(Long userId, Long groupId, String tenantId, Long operatorId) {
+        authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
         if (groupId == null) {
-            authorizationWriteLockService.lockUserAuthorization(tenantId, userId);
             List<Long> activeGroupIds = membershipMapper.findActiveGroupIds(tenantId, userId);
             activeGroupIds.stream().sorted().forEach(activeGroupId ->
                 authorizationWriteLockService.lockGroupAssignment(tenantId, userId, activeGroupId));

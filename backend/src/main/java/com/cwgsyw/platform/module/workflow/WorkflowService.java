@@ -56,7 +56,7 @@ public class WorkflowService {
             .latestVersion()
             .orderByProcessDefinitionName().asc();
         long total = query.count();
-        var definitions = query.listPage((page - 1) * size, size);
+        var definitions = query.listPage(pageOffset(page, size), size);
         List<ProcessDefinitionVO> vos = definitions.stream().map(def -> {
             var vo = new ProcessDefinitionVO();
             vo.setId(def.getId());
@@ -504,6 +504,14 @@ public class WorkflowService {
         return d != null ? d.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() : null;
     }
 
+    private static int pageOffset(int page, int size) {
+        if (page < 1 || size < 1) {
+            throw BusinessException.badRequest("PAGINATION_INVALID", "页码和每页数量必须大于 0");
+        }
+        long offset = Math.multiplyExact(Math.subtractExact((long) page, 1L), size);
+        return Math.toIntExact(Math.min(offset, Integer.MAX_VALUE));
+    }
+
     /**
      * Generic process start — by definition ID (specific version) or by key (latest version)
      */
@@ -538,7 +546,7 @@ public class WorkflowService {
         if (key != null && !key.isEmpty()) query.processDefinitionKey(key);
         query.orderByStartTime().desc();
         long total = query.count();
-        var pis = query.listPage((page - 1) * size, size);
+        var pis = query.listPage(pageOffset(page, size), size);
         var result = new PageResult<InstanceVO>();
         result.setRecords(pis.stream().map(this::toInstanceVO).toList());
         result.setTotal(total);
@@ -613,7 +621,7 @@ public class WorkflowService {
         if (key != null && !key.isEmpty()) query.processDefinitionKey(key);
         query.orderByProcessInstanceEndTime().desc();
         long total = query.count();
-        var pis = query.listPage((page - 1) * size, size);
+        var pis = query.listPage(pageOffset(page, size), size);
         var result = new PageResult<InstanceVO>();
         result.setRecords(pis.stream().map(hpi -> {
             var vo = new InstanceVO();

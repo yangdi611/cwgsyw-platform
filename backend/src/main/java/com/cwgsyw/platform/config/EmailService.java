@@ -17,7 +17,7 @@ public class EmailService {
 
     public void send(String tenantId, String toEmail, String subject, String body) {
         if (!configService.getBoolean(tenantId, "smtp.enabled")) {
-            log.debug("SMTP disabled for tenant {}, skip sending to {}", tenantId, toEmail);
+            log.debug("SMTP disabled; skip email delivery");
             return;
         }
         if (toEmail == null || toEmail.isBlank()) {
@@ -26,9 +26,9 @@ public class EmailService {
         }
         try {
             doSend(tenantId, toEmail, subject, body);
-            log.info("Email sent to {} subject={}", toEmail, subject);
+            log.info("Email sent");
         } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", toEmail, e.getMessage());
+            log.error("Failed to send email: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -45,7 +45,7 @@ public class EmailService {
         }
         try {
             doSend(tenantId, toEmail, subject, body);
-            log.info("Email sent to {} subject={}", toEmail, subject);
+            log.info("Email sent");
         } catch (RuntimeException exception) {
             throw exception;
         } catch (Exception exception) {

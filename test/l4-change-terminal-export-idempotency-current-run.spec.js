@@ -53,7 +53,7 @@ test('stChange001004AndChange013TerminalExportIdempotency', async () => {
 
   const api = await request.newContext({ baseURL })
   const cleanupErrors = []
-  const temporaryFiles = []
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), `${executionId}-`))
   let headers
   let applicationTemplateId
   let planTemplateId
@@ -70,9 +70,8 @@ test('stChange001004AndChange013TerminalExportIdempotency', async () => {
     })
     expect(response.status(), `${status}/${which}`).toBe(200)
     expect(response.headers()['content-type']).toContain('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    const filename = path.join(os.tmpdir(), `${executionId}_${status}_${which}.docx`)
-    fs.writeFileSync(filename, await response.body())
-    temporaryFiles.push(filename)
+    const filename = path.join(temporaryDirectory, `${status}_${which}.docx`)
+    fs.writeFileSync(filename, await response.body(), { flag: 'wx', mode: 0o600 })
     const xml = execFileSync('unzip', ['-p', filename, 'word/document.xml'], { encoding: 'utf8' })
     expect(xml, `${status}/${which}`).toContain(marker)
     return xml
@@ -163,9 +162,8 @@ test('stChange001004AndChange013TerminalExportIdempotency', async () => {
     expect(archivedApplicationWord).toBeTruthy()
     const archivedDownload = await api.get(`/api/files/${archivedApplicationWord.id}/download`, { headers })
     expect(archivedDownload.status()).toBe(200)
-    const archivedPath = path.join(os.tmpdir(), `${executionId}_archived.docx`)
-    fs.writeFileSync(archivedPath, await archivedDownload.body())
-    temporaryFiles.push(archivedPath)
+    const archivedPath = path.join(temporaryDirectory, 'archived.docx')
+    fs.writeFileSync(archivedPath, await archivedDownload.body(), { flag: 'wx', mode: 0o600 })
     const archivedXml = execFileSync('unzip', ['-p', archivedPath, 'word/document.xml'], { encoding: 'utf8' })
     expect(archivedXml).toContain(changeNo)
 
@@ -232,9 +230,7 @@ test('stChange001004AndChange013TerminalExportIdempotency', async () => {
       params: { format: 'docx', which: 'application' },
     })).status()).toBe(403)
   } finally {
-    for (const filename of temporaryFiles) {
-      if (fs.existsSync(filename)) fs.unlinkSync(filename)
-    }
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true })
     if (headers) {
       if (documentId) {
         try {
