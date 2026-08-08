@@ -1,11 +1,14 @@
 package com.cwgsyw.platform.module.task.metric;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.task.metric.dto.MetricBindingRequest;
 import com.cwgsyw.platform.module.task.metric.dto.MetricDefinitionRequest;
 import com.cwgsyw.platform.module.task.metric.dto.MetricPreviewRequest;
 import com.cwgsyw.platform.module.task.metric.entity.TaskMetricDefinition;
 import com.cwgsyw.platform.module.task.metric.entity.TaskMetricFact;
+import com.cwgsyw.platform.module.task.metric.entity.TaskMetricBinding;
 import com.cwgsyw.platform.module.task.metric.mapper.TaskMetricBindingMapper;
 import com.cwgsyw.platform.module.task.metric.mapper.TaskMetricDefinitionMapper;
 import com.cwgsyw.platform.module.task.metric.mapper.TaskMetricFactMapper;
@@ -17,7 +20,9 @@ import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -51,6 +56,13 @@ class TaskMetricServiceTest {
 
     private TaskMetricService service;
     private SecurityUser user;
+
+    @BeforeAll
+    static void initializeTableInfo() {
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(new MybatisConfiguration(), "taskMetricServiceTest"),
+            TaskMetricBinding.class);
+    }
 
     @BeforeEach
     void setUp() {

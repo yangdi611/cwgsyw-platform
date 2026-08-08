@@ -2,7 +2,7 @@ package com.cwgsyw.platform.module.cmdb.spatial;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.cwgsyw.platform.config.MyBatisPlusConfig;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.BusinessException;

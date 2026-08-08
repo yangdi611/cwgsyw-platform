@@ -1,6 +1,10 @@
 package com.cwgsyw.platform.module.task.template;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.cwgsyw.platform.module.task.plan.entity.TaskPlan;
+import com.cwgsyw.platform.module.task.runtime.entity.TaskInstance;
 import com.cwgsyw.platform.module.task.template.dto.UpdateTaskTemplateVersionRequest;
 import com.cwgsyw.platform.module.task.template.entity.TaskTemplateField;
 import com.cwgsyw.platform.module.task.template.entity.TaskTemplateVersion;
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -43,6 +48,13 @@ class TaskTemplateServiceLifecycleTest {
 
     @BeforeEach
     void setUp() {
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(configuration, "taskTemplateServiceLifecycleTest"),
+            TaskPlan.class);
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(configuration, "taskTemplateServiceLifecycleTest"),
+            TaskInstance.class);
         FieldTypeRegistry registry = new FieldTypeRegistry();
         ExpressionEngine expressionEngine = new ExpressionEngine();
         schemaValidator = new TemplateSchemaValidator(registry, expressionEngine);

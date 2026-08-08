@@ -1,5 +1,7 @@
 package com.cwgsyw.platform.module.task.automation;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.module.task.automation.entity.TaskRelation;
 import com.cwgsyw.platform.module.task.automation.mapper.TaskRelationMapper;
@@ -7,6 +9,8 @@ import com.cwgsyw.platform.module.task.runtime.entity.TaskInstance;
 import com.cwgsyw.platform.module.task.runtime.mapper.TaskInstanceMapper;
 import com.cwgsyw.platform.module.task.runtime.service.TaskVisibilityService;
 import com.cwgsyw.platform.security.SecurityUser;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -20,6 +24,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class TaskRelationServiceTest {
+    @BeforeAll
+    static void initializeTableInfo() {
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(new MybatisConfiguration(), "taskRelationServiceTest"),
+            TaskRelation.class);
+    }
+
     @Test
     void hidesRelationWhenTheOtherTaskIsNotVisible() {
         TaskRelationMapper relationMapper = mock(TaskRelationMapper.class);
