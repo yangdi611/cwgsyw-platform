@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.task.analytics;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cwgsyw.platform.common.AuditLogMapper;
 import com.cwgsyw.platform.common.BusinessException;
 import com.cwgsyw.platform.common.entity.AuditLog;
@@ -16,7 +18,9 @@ import com.cwgsyw.platform.security.SecurityUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -45,6 +49,13 @@ class TaskAnalyticsDashboardServiceTest {
     private SecurityUser owner;
     private SecurityUser groupMember;
     private SecurityUser tenantAdmin;
+
+    @BeforeAll
+    static void initializeTableInfo() {
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(new MybatisConfiguration(), "taskAnalyticsDashboardServiceTest"),
+            TaskAnalyticsDashboard.class);
+    }
 
     @BeforeEach
     void setUp() {

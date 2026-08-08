@@ -2,7 +2,7 @@ package com.cwgsyw.platform.module.task.template.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.module.task.template.TaskTemplateException;
 import com.cwgsyw.platform.module.task.template.dto.CreateTaskTemplateRequest;

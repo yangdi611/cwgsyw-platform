@@ -1,6 +1,8 @@
 package com.cwgsyw.platform.module.task.analytics;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cwgsyw.platform.module.approval.entity.ApprovalRound;
 import com.cwgsyw.platform.module.approval.mapper.ApprovalRoundMapper;
 import com.cwgsyw.platform.module.task.analytics.dto.AnalyticsQueryRequest;
@@ -26,7 +28,9 @@ import com.cwgsyw.platform.module.task.template.form.FieldTypeRegistry;
 import com.cwgsyw.platform.module.task.template.service.TaskTemplateService;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -62,6 +66,23 @@ class TaskAnalyticsQueryServiceTest {
     private List<TaskFieldFact> facts;
     private List<TaskInstance> tasks;
     private List<TaskSubmission> submissions;
+
+    @BeforeAll
+    static void initializeTableInfo() {
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        initializeTableInfo(configuration, TaskFieldFact.class);
+        initializeTableInfo(configuration, TaskInstance.class);
+        initializeTableInfo(configuration, TaskSubmission.class);
+        initializeTableInfo(configuration, TaskParticipant.class);
+        initializeTableInfo(configuration, ApprovalRound.class);
+        initializeTableInfo(configuration, TaskSubmissionReference.class);
+        initializeTableInfo(configuration, TaskSubmissionAttachment.class);
+    }
+
+    private static void initializeTableInfo(MybatisConfiguration configuration, Class<?> entityType) {
+        TableInfoHelper.initTableInfo(
+            new MapperBuilderAssistant(configuration, "taskAnalyticsQueryServiceTest"), entityType);
+    }
 
     @BeforeEach
     void setUp() {

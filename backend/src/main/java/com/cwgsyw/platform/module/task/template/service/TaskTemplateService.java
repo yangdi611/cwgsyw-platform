@@ -1,6 +1,6 @@
 package com.cwgsyw.platform.module.task.template.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.cwgsyw.platform.common.PageResult;
 import com.cwgsyw.platform.module.task.template.dto.CreateTaskTemplateRequest;
 import com.cwgsyw.platform.module.task.template.dto.FieldTypeMetadata;
