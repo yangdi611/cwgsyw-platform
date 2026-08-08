@@ -31,7 +31,7 @@ public class TaskAttachmentStorage {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
             }
             minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(objectKey)
-                .stream(stream, size, -1).contentType(contentType).build());
+                .stream(stream, size, -1L).contentType(contentType).build());
         } catch (Exception exception) {
             throw BusinessException.serviceUnavailable("TASK_ATTACHMENT_UPLOAD_FAILED", "附件上传失败，请稍后重试");
         }

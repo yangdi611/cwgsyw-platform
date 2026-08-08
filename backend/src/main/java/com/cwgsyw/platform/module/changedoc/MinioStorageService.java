@@ -26,7 +26,7 @@ public class MinioStorageService {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(bucket)
                     .object(objectKey)
-                    .stream(data, size, -1)
+                    .stream(data, size, -1L)
                     .contentType(contentType)
                     .build());
         } catch (Exception e) {
@@ -85,7 +85,7 @@ public class MinioStorageService {
             minioClient.copyObject(CopyObjectArgs.builder()
                 .bucket(bucket)
                 .object(targetKey)
-                .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                .source(SourceObject.builder().bucket(bucket).object(sourceKey).build())
                 .build());
         } catch (Exception e) {
             log.warn("复制文件失败: {}", e.getClass().getSimpleName());
@@ -99,7 +99,7 @@ public class MinioStorageService {
             minioClient.copyObject(CopyObjectArgs.builder()
                 .bucket(bucket)
                 .object(targetKey)
-                .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                .source(SourceObject.builder().bucket(bucket).object(sourceKey).build())
                 .build());
             return true;
         } catch (ErrorResponseException exception) {
