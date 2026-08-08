@@ -5,8 +5,8 @@ import com.cwgsyw.platform.module.changedoc.dto.FieldConfigVO;
 import com.cwgsyw.platform.module.config.SysConfigService;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.parser.PdfTextExtractor;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
