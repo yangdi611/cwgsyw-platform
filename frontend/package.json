@@ -21,7 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "docx-preview": "^0.3.7",
+    "docx-preview": "^0.4.0",
     "highlight.js": "^11.11.1",
     "html-to-image": "^1.11.13",
     "konva": "^10.3.0",
