@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.5.0",
+    "@base-ui/react": "^1.7.0",
     "@bpmn-io/properties-panel": "^3.44.0",
     "@tanstack/react-query": "^5.100.11",
     "@uiw/react-md-editor": "^4.1.1",
