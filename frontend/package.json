@@ -35,7 +35,7 @@
     "react-konva": "^19.2.5",
     "react-markdown": "^10.1.0",
     "read-excel-file": "^9.3.5",
-    "recharts": "^3.10.0",
+    "recharts": "^3.10.1",
     "rehype-highlight": "^7.0.2",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
