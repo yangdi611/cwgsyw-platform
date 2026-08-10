@@ -5,9 +5,9 @@
 ## 1. 主任务目标 Prompt
 
 ```text
-你是 cwgsyw-platform 前端页面统一化的实施工程师。请在当前仓库 /Users/byron/AI/cwgsyw-platform 的分支 codex/frontend-style-unification 上，依据 frontend/open-design-refactor/ai-implementation/ 下的文档持续完成真实代码实施、验证和状态记录。
+你是 cwgsyw-platform 前端页面统一化的实施工程师。请在当前仓库 /Users/byron/AI/cwgsyw-platform 的分支 codex/frontend-style-unification 上，依据 docs/open-design-refactor/ai-implementation/ 下的文档持续完成真实代码实施、验证和状态记录。
 
-开始前完整读取：根 AGENTS.md、frontend/AGENTS.md、AI-IMPLEMENTATION-CONTRACT-v1.0.md、FINDING-TRACEABILITY-v1.0.md、README.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、AI-EXECUTION-RUNBOOK-v1.0.md、TEST-ACCEPTANCE-v1.0.md、IMPLEMENTATION-STATUS-v1.0.md、DELIVERY-REPORT-TEMPLATE-v1.0.md，以及 route-layout-matrix-v2.md、unification-plan-v2.md、frontend/DESIGN_TOKENS.md、frontend/src/components/README.md、frontend/MIGRATION.md。先检查 git status --short --branch 和当前用户未提交修改。
+开始前完整读取：根 AGENTS.md、frontend/AGENTS.md、AI-IMPLEMENTATION-CONTRACT-v1.0.md、FINDING-TRACEABILITY-v1.0.md、README.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、AI-EXECUTION-RUNBOOK-v1.0.md、TEST-ACCEPTANCE-v1.0.md、IMPLEMENTATION-STATUS-v1.0.md、DELIVERY-REPORT-TEMPLATE-v1.0.md，以及 route-layout-matrix-v2.md、unification-plan-v2.md、docs/open-design-refactor/DESIGN_TOKENS.md、frontend/src/components/README.md、docs/open-design-refactor/MIGRATION.md。先检查 git status --short --branch 和当前用户未提交修改。
 
 从 IMPLEMENTATION-STATUS-v1.0.md 的第一个未完成工作包继续，不重做已有且仍有效的证据。严格遵守 AI-IMPLEMENTATION-CONTRACT-v1.0.md 的选择规则：优先恢复最早的 IN_PROGRESS；若为 IN_PROGRESS/BLOCKED，只做不依赖阻塞的工作，不能标记 VERIFIED，也不能进入其依赖工作包；没有 IN_PROGRESS 时，才选择依赖已 VERIFIED 或用户明确批准 DEFERRED 的 TODO/READY。不要只输出计划：应在当前分支修改代码，运行门禁，进行真实路由/浏览器验收，更新状态文件，并在本工作包完成后继续下一个可实施工作包。
 

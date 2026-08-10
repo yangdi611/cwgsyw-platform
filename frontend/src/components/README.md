@@ -230,9 +230,9 @@ import { PageHeader, FilterBar } from '@/components/shared'
 
 ## 📚 相关文档
 
-- [Design Token 指南](../../DESIGN_TOKENS.md) - 完整的 token 参考和示例
-- [迁移计划](../../MIGRATION.md) - UX 重构路线图
-- [OD 原型](../../open-design-refactor/wireframes/) - 设计原型文件
+- [Design Token 指南](../../../docs/open-design-refactor/DESIGN_TOKENS.md) - 完整的 token 参考和示例
+- [迁移计划](../../../docs/open-design-refactor/MIGRATION.md) - UX 重构路线图
+- [OD 原型](../../../docs/open-design-refactor/wireframes/) - 设计原型文件
 
 ---
 

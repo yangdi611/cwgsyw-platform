@@ -84,7 +84,7 @@
 ### 2026-08-03 · WP-00 · VERIFIED
 
 - 目标：冻结页面入口、共享组件和命令基线，为 WP-01 提供可回归证据。
-- 修改文件：仅新增/维护 `frontend/open-design-refactor/` 文档；未修改业务源码。
+- 修改文件：仅新增/维护 `docs/open-design-refactor/` 文档；未修改业务源码。
 - impact：`PageHeader` 47 个直接调用方、23 条流程、CRITICAL；因此 WP-01 采用新增模板隔离，不修改现有 `PageHeader`。
 - 验证：`git diff --check` PASS；`npm run lint` PASS（38 warnings, 0 errors）；`npm run typecheck` PASS；`npm run build` PASS（55 routes）；GitNexus analyze PASS。
 - 视觉：未启动 dev server，代表路由截图留给 WP-02/WP-03；当前端口 3000/3001 已被占用，避免接管现有进程。
@@ -195,7 +195,7 @@ detect_changes：
 
 ### 2026-08-03 · WP-03 · 自动续跑复验 · IN_PROGRESS/BLOCKED
 
-- 接管现场：分支仍为 `codex/frontend-style-unification`；保留现有 10 个源码改动及 `frontend/open-design-refactor/` 未追踪文档，未执行 reset、checkout、commit、push、merge 或 deploy。
+- 接管现场：分支仍为 `codex/frontend-style-unification`；保留现有 10 个源码改动及 `docs/open-design-refactor/` 未追踪文档，未执行 reset、checkout、commit、push、merge 或 deploy。
 - impact：再次对 `CmdbAlertsPage`、`ChangeDocsPage`、`UsersPage` 执行 upstream impact，均为 LOW、0 个直接上游调用方；本轮未修改 `PageHeader`、`FilterBar`、`DataTable`、`Pagination`、`DetailDrawer` 或 `ErrorState` 等共享实现。`ErrorState` impact 为 HIGH（10 个直接调用方、3 个模块），因此仅在页面入口组合，不触及共享实现。
 - 运行环境：`http://localhost:3003/login`、`/`、`/cmdb`、`/cmdb/alerts`、`/change-docs`、`/users`、`/workflow/design`、`/wiki` 均 HTTP 200；`http://localhost:8081/actuator/health` HTTP 200。浏览器现可读取登录页快照，但未认证业务路由仍受登录守卫保护。
 - 认证阻塞：使用已知 development seed 凭据（已脱敏）调用 `/api/auth/login` 返回 HTTP 401「用户名或密码错误」。未猜测其他密码、暴力尝试、读取 password hash 或修改数据库凭据。
@@ -292,7 +292,7 @@ detect_changes：
 
 ### 2026-08-03 · WP-02/WP-03 · 自动续跑静态与认证复验 · IN_PROGRESS/BLOCKED
 
-- 接管现场：当前分支仍为 `codex/frontend-style-unification`；保留现有 10 个源码文件改动和 `frontend/open-design-refactor/` 未追踪实施文档，未执行 reset、checkout、commit、push、merge 或 deploy。
+- 接管现场：当前分支仍为 `codex/frontend-style-unification`；保留现有 10 个源码文件改动和 `docs/open-design-refactor/` 未追踪实施文档，未执行 reset、checkout、commit、push、merge 或 deploy。
 - impact：`DashboardLayout` upstream 为 LOW（0 个直接调用方）；`Header`、`Sidebar` 各为 LOW（1 个直接调用方，均为 DashboardLayout，涉及认证/导航流程）。为确认 WP-02 的后续边界，额外评估 `TopologyPage`、`TopologyComparePage`、`WikiSpaceLayout`、`WikiGraphPage`，均为 LOW、0 个上游调用方；它们属于 WP-06 特殊工作区，按依赖门本轮不提前修改。
 - 静态验证：`git diff --check` PASS；`cd frontend && npm run lint` PASS（0 errors、38 个既有 warnings）；`cd frontend && npm run typecheck` PASS；`cd frontend && npm run build` PASS（Next 16.2.12，55 routes，保留多 lockfile workspace warning）；实施文档相对链接检查 PASS。
 - L1 运行时：`http://localhost:8081/actuator/health` HTTP 200；`http://localhost:3003/login`、`/`、`/cmdb`、`/workflow/design`、`/wiki`、`/users`、`/cmdb/alerts`、`/change-docs` 均 HTTP 200。浏览器逐一访问未认证首页和受保护路由，等待 100ms/500ms/1500ms 后均稳定落到 `/login`，登录页控件可读；这只证明未认证守卫和服务可达，不证明认证后业务页面。

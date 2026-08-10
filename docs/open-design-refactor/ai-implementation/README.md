@@ -29,9 +29,9 @@
 6. 本目录 `IMPLEMENTATION-SPEC-v1.0.md`。
 7. 本目录 `IMPLEMENTATION-PLAN-v1.0.md`。
 8. 本目录 `TEST-ACCEPTANCE-v1.0.md`。
-9. `frontend/open-design-refactor/route-layout-matrix-v2.md`。
-10. `frontend/open-design-refactor/unification-plan-v2.md`。
-11. `frontend/DESIGN_TOKENS.md`、`frontend/src/components/README.md`、`frontend/MIGRATION.md`。
+9. `docs/open-design-refactor/route-layout-matrix-v2.md`。
+10. `docs/open-design-refactor/unification-plan-v2.md`。
+11. `docs/open-design-refactor/DESIGN_TOKENS.md`、`frontend/src/components/README.md`、`docs/open-design-refactor/MIGRATION.md`。
 
 ## 3. 使用入口
 

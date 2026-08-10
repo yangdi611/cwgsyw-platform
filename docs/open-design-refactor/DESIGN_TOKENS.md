@@ -348,7 +348,7 @@ className="bg-v2-bg text-v2-fg border-v2-border"
 ## 📚 参考
 
 - [迁移计划](./MIGRATION.md)
-- [OD 原型](./open-design-refactor/wireframes/mqnvbkga-00-shell-2-2.html)
+- [OD 原型](./wireframes/mqnvbkga-00-shell-2-2.html)
 - [Tailwind CSS v4 文档](https://tailwindcss.com/docs)
 
 ---

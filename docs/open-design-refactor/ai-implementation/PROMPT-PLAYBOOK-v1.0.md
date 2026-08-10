@@ -5,7 +5,7 @@
 ## 1. WP-00 基线 Prompt
 
 ```text
-只执行前端页面统一化 WP-00。读取 frontend/open-design-refactor/ai-implementation/README.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、TEST-ACCEPTANCE-v1.0.md 和 IMPLEMENTATION-STATUS-v1.0.md。检查当前分支和工作树，确认用户修改；对 81 个 page.tsx 和共享组件做只读静态盘点，确认 lint/typecheck/build/test 命令，选取首页、CMDB、标准列表、详情/表单和特殊工作区作为代表路由。不要修改业务代码。把命令结果、基线失败、环境阻塞和代表路由证据写回 IMPLEMENTATION-STATUS-v1.0.md；完成后运行 git diff --check 并报告下一步 WP-01。
+只执行前端页面统一化 WP-00。读取 docs/open-design-refactor/ai-implementation/README.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、TEST-ACCEPTANCE-v1.0.md 和 IMPLEMENTATION-STATUS-v1.0.md。检查当前分支和工作树，确认用户修改；对 81 个 page.tsx 和共享组件做只读静态盘点，确认 lint/typecheck/build/test 命令，选取首页、CMDB、标准列表、详情/表单和特殊工作区作为代表路由。不要修改业务代码。把命令结果、基线失败、环境阻塞和代表路由证据写回 IMPLEMENTATION-STATUS-v1.0.md；完成后运行 git diff --check 并报告下一步 WP-01。
 ```
 
 ## 2. WP-01 共享模板 Prompt

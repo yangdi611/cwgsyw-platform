@@ -9,24 +9,24 @@
 将下面内容直接放入 Goal 模式：
 
 ```text
-请在当前 /Users/byron/AI/cwgsyw-platform 仓库的 codex/frontend-style-unification 分支上，依据实施文档对 WP-00～WP-07 的最终结果执行独立 Review/Acceptance，不重新实施已完成的工作包。先完整读取根 AGENTS.md、frontend/open-design-refactor/ai-implementation/README.md、AI-IMPLEMENTATION-CONTRACT-v1.0.md、START-HERE-v1.0.md、DELIVERY-REPORT-TEMPLATE-v1.0.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、TEST-ACCEPTANCE-v1.0.md、IMPLEMENTATION-STATUS-v1.0.md，以及 frontend/open-design-refactor/route-layout-matrix-v2.md、unification-plan-v2.md、frontend/DESIGN_TOKENS.md、frontend/src/components/README.md 和 frontend/MIGRATION.md。只复核 API、权限、路由、query keys、业务状态机、响应式边界、状态反馈、特殊工作区和已有 L0-L3 证据；发现真实问题时再暂停并报告，不要扩大实现范围。Review/Acceptance 结果写回 STATUS，并明确剩余合并前风险。未经我明确授权，不 commit、push、merge、deploy 或切换分支。
+请在当前 /Users/byron/AI/cwgsyw-platform 仓库的 codex/frontend-style-unification 分支上，依据实施文档对 WP-00～WP-07 的最终结果执行独立 Review/Acceptance，不重新实施已完成的工作包。先完整读取根 AGENTS.md、docs/open-design-refactor/ai-implementation/README.md、AI-IMPLEMENTATION-CONTRACT-v1.0.md、START-HERE-v1.0.md、DELIVERY-REPORT-TEMPLATE-v1.0.md、IMPLEMENTATION-SPEC-v1.0.md、IMPLEMENTATION-PLAN-v1.0.md、TEST-ACCEPTANCE-v1.0.md、IMPLEMENTATION-STATUS-v1.0.md，以及 docs/open-design-refactor/route-layout-matrix-v2.md、unification-plan-v2.md、docs/open-design-refactor/DESIGN_TOKENS.md、frontend/src/components/README.md 和 docs/open-design-refactor/MIGRATION.md。只复核 API、权限、路由、query keys、业务状态机、响应式边界、状态反馈、特殊工作区和已有 L0-L3 证据；发现真实问题时再暂停并报告，不要扩大实现范围。Review/Acceptance 结果写回 STATUS，并明确剩余合并前风险。未经我明确授权，不 commit、push、merge、deploy 或切换分支。
 ```
 
 ## 3. 完整执行 Prompt
 
 ```text
-你是 cwgsyw-platform 的前端统一化主实施工程师。你的任务是依据 frontend/open-design-refactor/ai-implementation/ 下的文档，完成真实可运行、可验证、可回滚的页面统一化。不要把 81 个入口逐页美化；按页面模板和下沉业务组件治理。
+你是 cwgsyw-platform 的前端统一化主实施工程师。你的任务是依据 docs/open-design-refactor/ai-implementation/ 下的文档，完成真实可运行、可验证、可回滚的页面统一化。不要把 81 个入口逐页美化；按页面模板和下沉业务组件治理。
 
 一、强制阅读
 
 1. 根 AGENTS.md 以及目标目录链路上适用的 AGENTS.md。
-2. frontend/open-design-refactor/ai-implementation/README.md。
+2. docs/open-design-refactor/ai-implementation/README.md。
 3. IMPLEMENTATION-SPEC-v1.0.md。
 4. IMPLEMENTATION-PLAN-v1.0.md。
 5. TEST-ACCEPTANCE-v1.0.md。
 6. IMPLEMENTATION-STATUS-v1.0.md。
 7. route-layout-matrix-v2.md 和 unification-plan-v2.md。
-8. frontend/DESIGN_TOKENS.md、frontend/src/components/README.md、frontend/MIGRATION.md。
+8. docs/open-design-refactor/DESIGN_TOKENS.md、frontend/src/components/README.md、docs/open-design-refactor/MIGRATION.md。
 
 完整阅读，不要只读摘要。冲突按 README 的权威顺序处理；当前用户消息优先。
 
@@ -93,5 +93,5 @@ WP-07：已处理账号、通知目标、日历、管理配置、任务分析、
 ## 4. 续跑 Prompt
 
 ```text
-继续当前 cwgsyw-platform 前端页面统一化 Goal。先读取 frontend/open-design-refactor/ai-implementation/IMPLEMENTATION-STATUS-v1.0.md、README.md 和当前工作包所需的 SPEC/PLAN/TEST 文档，检查 git status 和最新用户指令；从第一个未完成工作包继续，不重做已有有效证据。保持 API、权限、路由、query keys、业务状态机和特殊工作区领域行为不变。编辑 symbol 前执行并报告 GitNexus upstream impact，完成工作包后运行对应 lint/typecheck/测试、真实路由和 1440/1024/390 验收，更新状态并执行 detect_changes。普通选择自行推进；只有行为边界、高风险或外部授权阻塞才暂停。未经明确要求不 commit、push、merge、deploy 或切换分支。
+继续当前 cwgsyw-platform 前端页面统一化 Goal。先读取 docs/open-design-refactor/ai-implementation/IMPLEMENTATION-STATUS-v1.0.md、README.md 和当前工作包所需的 SPEC/PLAN/TEST 文档，检查 git status 和最新用户指令；从第一个未完成工作包继续，不重做已有有效证据。保持 API、权限、路由、query keys、业务状态机和特殊工作区领域行为不变。编辑 symbol 前执行并报告 GitNexus upstream impact，完成工作包后运行对应 lint/typecheck/测试、真实路由和 1440/1024/390 验收，更新状态并执行 detect_changes。普通选择自行推进；只有行为边界、高风险或外部授权阻塞才暂停。未经明确要求不 commit、push、merge、deploy 或切换分支。
 ```

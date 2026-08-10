@@ -7,7 +7,7 @@
 ```text
 你是 cwgsyw-platform 前端 Design System 统一实施工程师。请在当前仓库 /Users/byron/AI/cwgsyw-platform 的分支 codex/frontend-style-unification 上，完成 components/ui 与 components/v2 的统一治理，最终让业务页面只从 components/design-system 或 components/shared 导入基础组件和页面级组件，并通过独立技术验证决定是否向 Intent UI 演进。
 
-开始前完整读取：根 AGENTS.md、frontend/AGENTS.md、frontend/open-design-refactor/design-system-unification/README.md、ARCHITECTURE-DECISION.md、COMPONENT-CONTRACT.md、MIGRATION-PLAN.md、INTENTUI-DECISION.md、ACCEPTANCE-CHECKLIST.md 和 STATUS.md；同时阅读 frontend/open-design-refactor/route-layout-matrix-v2.md、unification-plan-v2.md、frontend/DESIGN_TOKENS.md、frontend/src/components/README.md、frontend/MIGRATION.md，以及 frontend/open-design-refactor/ai-implementation/ 下与现有页面统一化相关的合同和状态。先执行 git status --short --branch，识别并保护用户已有修改、未追踪文档和当前分支边界。获准启动 DS-04 后，额外完整读取 DS-04-SPIKE-PROTOCOL.md，并严格按其隔离和回滚协议执行。
+开始前完整读取：根 AGENTS.md、frontend/AGENTS.md、docs/open-design-refactor/design-system-unification/README.md、ARCHITECTURE-DECISION.md、COMPONENT-CONTRACT.md、MIGRATION-PLAN.md、INTENTUI-DECISION.md、ACCEPTANCE-CHECKLIST.md 和 STATUS.md；同时阅读 docs/open-design-refactor/route-layout-matrix-v2.md、unification-plan-v2.md、docs/open-design-refactor/DESIGN_TOKENS.md、frontend/src/components/README.md、docs/open-design-refactor/MIGRATION.md，以及 docs/open-design-refactor/ai-implementation/ 下与现有页面统一化相关的合同和状态。先执行 git status --short --branch，识别并保护用户已有修改、未追踪文档和当前分支边界。获准启动 DS-04 后，额外完整读取 DS-04-SPIKE-PROTOCOL.md，并严格按其隔离和回滚协议执行。
 
 严格按 STATUS.md 顶部当前指针执行，不跳过依赖门：DS-04 runtime、DS-05 决策和 DS-06 静态审计均已完成。当前 DS-00～DS-04 已 VERIFIED，DS-05 为 `BASE_UI_DEFAULT`，业务源码直接 ui/v2 import 为 0；当前等待负责人 review。不要重做已完成代码迁移，也不要在未授权时删除 legacy 入口。
 
@@ -39,7 +39,7 @@ DS-06：复核业务 legacy import 为 0、v2 单向 compatibility re-export、d
 ## 续跑 Prompt
 
 ```text
-继续 cwgsyw-platform 的 Design System 统一任务。先读取 frontend/open-design-refactor/design-system-unification/STATUS.md 顶部状态和最近一条记录、MASTER-PLAN.md、README.md、ARCHITECTURE-DECISION.md、COMPONENT-CONTRACT.md、MIGRATION-PLAN.md、INTENTUI-DECISION.md 和 ACCEPTANCE-CHECKLIST.md，检查 git status --short --branch 与最新用户指令。DS-00～DS-04 已 VERIFIED，DS-05 已选择 `BASE_UI_DEFAULT`，DS-06 静态审计已完成；不重做已完成代码迁移，当前等待负责人 review。保持 API、权限、路由、query key、业务状态机和特殊工作区领域行为不变；未经明确授权不 commit、push、merge、deploy、删除 legacy 目录或切换分支。
+继续 cwgsyw-platform 的 Design System 统一任务。先读取 docs/open-design-refactor/design-system-unification/STATUS.md 顶部状态和最近一条记录、MASTER-PLAN.md、README.md、ARCHITECTURE-DECISION.md、COMPONENT-CONTRACT.md、MIGRATION-PLAN.md、INTENTUI-DECISION.md 和 ACCEPTANCE-CHECKLIST.md，检查 git status --short --branch 与最新用户指令。DS-00～DS-04 已 VERIFIED，DS-05 已选择 `BASE_UI_DEFAULT`，DS-06 静态审计已完成；不重做已完成代码迁移，当前等待负责人 review。保持 API、权限、路由、query key、业务状态机和特殊工作区领域行为不变；未经明确授权不 commit、push、merge、deploy、删除 legacy 目录或切换分支。
 ```
 
 ## 只做 Review Prompt

@@ -11,7 +11,7 @@
 3. 每一步允许改什么、必须验证什么、什么时候可以进入下一步。
 4. 哪些事情需要项目负责人决定，哪些事情 AI 可以自行执行。
 
-页面视觉统一资料位于 `frontend/open-design-refactor/ai-implementation/`。两套资料可以并行参考，但页面统一化工作包完成，不代表 UI/V2 合并完成；反之亦然。
+页面视觉统一资料位于 `docs/open-design-refactor/ai-implementation/`。两套资料可以并行参考，但页面统一化工作包完成，不代表 UI/V2 合并完成；反之亦然。
 
 ## 2. 当前基线和真实状态
 

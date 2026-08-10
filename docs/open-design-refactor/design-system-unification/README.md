@@ -2,7 +2,7 @@
 
 本目录用于指导 `components/ui` 与 `components/v2` 的合并，并在合并过程中评估是否向 Intent UI 演进。
 
-本资料包与 `frontend/open-design-refactor/ai-implementation/` 的页面统一化资料分工如下：
+本资料包与 `docs/open-design-refactor/ai-implementation/` 的页面统一化资料分工如下：
 
 - 页面统一化资料：页面 Shell、列表、详情、表单、工作区和路由迁移。
 - 本资料包：基础组件的唯一入口、组件 API、设计 token、兼容层、迁移顺序和 Intent UI 决策。

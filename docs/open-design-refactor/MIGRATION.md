@@ -399,10 +399,10 @@ frontend/src/components/
 
 ## 🔗 相关文档
 
-- [设计审计 v1](./open-design-refactor/audit.md)
-- [重构计划 v1](./open-design-refactor/redesign-plan.md)
-- [路由审计 v1](./open-design-refactor/notes/route-audit-v1.md)
-- [OD 原型](./open-design-refactor/wireframes/)
+- [设计审计 v1](./audit.md)
+- [重构计划 v1](./redesign-plan.md)
+- [路由审计 v1](./notes/route-audit-v1.md)
+- [OD 原型](./wireframes/)
 - [CLAUDE.md 前端约定](../CLAUDE.md#前端约定)
 
 ---

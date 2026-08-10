@@ -9,7 +9,7 @@
 - 本资料包是否允许删除 `components/ui` / `components/v2`：否
 - Intent UI 决策：不作为当前默认底层；保留隔离 spike 作为后续按组件族评估的可回滚候选
 - 当前权威入口：[`MASTER-PLAN.md`](./MASTER-PLAN.md)
-- 页面统一化状态：由 `frontend/open-design-refactor/ai-implementation/IMPLEMENTATION-STATUS-v1.0.md` 单独维护，不能与 DS 状态混用
+- 页面统一化状态：由 `docs/open-design-refactor/ai-implementation/IMPLEMENTATION-STATUS-v1.0.md` 单独维护，不能与 DS 状态混用
 
 ## 基线观察
 
@@ -24,7 +24,7 @@
 ### 工作区和索引
 
 - 分支：`codex/frontend-style-unification`
-- 工作区：已有大量前端页面统一化修改，以及未追踪的 `frontend/open-design-refactor/ai-implementation/`、`frontend/open-design-refactor/design-system-unification/`、`route-layout-matrix-v2.md` 和 `unification-plan-v2.md`；本工作包未覆盖、回滚或删除这些文件。
+- 工作区：已有大量前端页面统一化修改，以及未追踪的 `docs/open-design-refactor/ai-implementation/`、`docs/open-design-refactor/design-system-unification/`、`route-layout-matrix-v2.md` 和 `unification-plan-v2.md`；本工作包未覆盖、回滚或删除这些文件。
 - GitNexus：`node .gitnexus/run.cjs status` 显示索引最新，索引提交和当前提交均为 `0a68c4e`。
 
 ### 组件清单
