@@ -1,6 +1,6 @@
 # 组件库结构说明
 
-本目录包含三个组件集合，用于支持前端 UX 重构的增量迁移策略。
+本目录记录当前前端共享组件入口。它只用于消费者和运行时能力盘点，不是 Figma Neutral 新设计的视觉、Token 或组件 API 来源。
 
 ## 📂 目录结构
 
@@ -15,9 +15,9 @@ components/
 
 ---
 
-## 🎨 `design-system/` - 基础 UI 唯一公开入口
+## 🎨 `design-system/` - 当前基础 UI 公开入口
 
-基础 UI 组件的唯一公开入口。组件实现可以在迁移期使用 `ui/` 的内部实现和 V2 token，但业务页面不应直接导入 `ui/` 或 `v2/`。
+这是当前系统的基础 UI 公开入口。未来迁移切片必须按正式 Figma 资产建立 React 映射并迁移消费者；在对应切片通过前，不得把当前 Props、Token 或外观反向定义为新设计。
 
 ### 已实现组件
 
@@ -49,8 +49,8 @@ export function ExamplePage() {
 
 ### 设计特点
 
-- 使用 V2 Design Token（`bg-v2-primary`, `text-v2-fg` 等）
-- 遵循 OD 原型的视觉规范（深蓝主色、圆角、阴影）
+- 当前实现包含历史 Token 和视觉语义，仅用于运行时基线盘点
+- 新设计的普通 UI 只使用 Neutral，Status 色只表达真实状态
 - 支持完整的 TypeScript 类型
 - 使用 `forwardRef` 支持 ref 传递
 
@@ -119,7 +119,7 @@ export function ListPage() {
 
 ### 设计特点
 
-- 统一页面布局模式（遵循 MIGRATION.md 中的页面类型规范）
+- 统一页面布局模式（遵循 `docs/migration/figma-neutral-frontend/` 中的 Pattern 与页面矩阵）
 - 响应式设计
 - 可组合性强
 
@@ -184,7 +184,7 @@ export function CmdbInstancesPage() {
 
 ## 🏗️ `layout/` - 全局布局组件
 
-用于应用级布局，包括 Sidebar、Header、Footer 等。这些组件会直接升级到 V2 设计系统。
+用于应用级布局，包括 Sidebar、Header、Footer 等。未来由正式 Page Pattern 和对应迁移切片逐步替换，不能沿用旧显色作为目标。
 
 ### 现有组件
 
@@ -200,9 +200,9 @@ export function CmdbInstancesPage() {
 
 | 场景 | 使用 |
 |------|------|
-| **新建页面/组件** | `design-system/` + `shared/` |
-| **修改旧页面** | 迁移到 `design-system/`；`ui/` 仅作为内部实现 |
-| **全局布局** | 直接升级 `layout/` |
+| **非迁移功能变更** | 保持现有入口，不顺带改变视觉或扩大旧入口消费者 |
+| **Figma Neutral 迁移切片** | 使用该切片建立并验证的正式 React 组件与 Pattern |
+| **全局布局迁移** | 按正式 Page Pattern 独立实施和验证 |
 
 ### 导入路径
 
@@ -213,15 +213,15 @@ import { Button, Card } from '@/components/design-system'
 // 共享布局组件
 import { PageHeader, FilterBar } from '@/components/shared'
 
-// 迁移期兼容入口仅供旧代码继续运行；新代码不得从 v2/ui 导入。
+// ui/v2 是历史兼容入口；Figma Neutral 迁移不得新增其消费者。
 ```
 
 ### 迁移检查清单
 
 新页面/组件开发时：
-- [ ] 使用 V2 Design Token（`bg-v2-*`, `text-v2-*`）
-- [ ] 使用 `design-system/` 和 `shared/` 组件
-- [ ] 遵循 MIGRATION.md 中的页面类型规范
+- [ ] 只消费当前迁移切片已实现的正式 Figma Token 和 React API
+- [ ] 不新增 `ui/`、`v2/` 或其他历史视觉入口消费者
+- [ ] 遵循 `docs/migration/figma-neutral-frontend/` 中的 Pattern 与页面迁移规范
 - [ ] 实现加载/空态/错误态
 - [ ] 响应式适配（桌面/平板/手机）
 - [ ] 键盘导航和无障碍
@@ -230,9 +230,7 @@ import { PageHeader, FilterBar } from '@/components/shared'
 
 ## 📚 相关文档
 
-- [Design Token 指南](../../../docs/open-design-refactor/DESIGN_TOKENS.md) - 完整的 token 参考和示例
-- [迁移计划](../../../docs/open-design-refactor/MIGRATION.md) - UX 重构路线图
-- [OD 原型](../../../docs/open-design-refactor/wireframes/) - 设计原型文件
+- [Figma Neutral 设计与迁移资料包](../../../docs/migration/figma-neutral-frontend/README.md) - 正式设计源、迁移计划与验证入口
 
 ---
 
