@@ -6,6 +6,8 @@
 - Branch: `docs/YAN-10-figma-neutral-frontend-migration`
 - Worktree: `/Users/byron/AI/worktrees/YAN-10`
 - Base: `origin/development@1ed8c9ab7b148d697f8a75f828801cfae96a1459`
+- Task commit: `ab421e229`
+- Local development merge: `091d86f37`
 - Pull request: Not created; not authorized.
 - Target environment: Documentation only; no deployment.
 
@@ -41,7 +43,7 @@
 - The unified package contains design source, migration entry, plan, route-domain matrix, visual loop, status and delivery evidence.
 - Neutral / Status color boundaries, shared-layer repair, per-page acceptance and Light / Dark x 1440 / 1024 / 390 gates are explicit.
 - React migration remains not started and must continue through separate slice Issues.
-- Changes are staged but not committed, pushed or published.
+- Changes are committed and merged into local `development`; they are not pushed or published.
 
 ## Documentation Impact Assessment
 
@@ -53,8 +55,8 @@
 
 ## Risk and Recovery
 
-- Residual risk: `docs/*` is ignored by default, so the package must remain explicitly staged or force-added during any later commit.
-- Residual risk: the main working tree is based on local commit `dc3324646`, while YAN-10 is based on `origin/development`; do not combine worktrees implicitly.
+- Residual risk: `docs/*` is ignored by default, so future updates to this package must be explicitly staged.
+- Integration note: YAN-10 was based on `origin/development` and has been merged into the previously divergent local `development` history.
 - Task-branch rollback: restore the 34 deleted historical files, restore `frontend/src/components/README.md`, and remove `docs/migration/figma-neutral-frontend/`.
 - Main-worktree rollback: restore `docs/open-design-refactor/` from `dc3324646` without touching `monitoring/` or other user changes.
 - Post-deployment checks: Not applicable.
@@ -62,4 +64,4 @@
 ## Follow-up
 
 - Recommended next action: create the M0 implementation Issue for Figma baseline manifest, Token export, Light/Dark theme, Typography/Effect recipes and deterministic visual fixtures.
-- Commit, push, pull request and Linear completion remain subject to explicit authorization.
+- Push, pull request and Linear completion remain subject to explicit authorization.
