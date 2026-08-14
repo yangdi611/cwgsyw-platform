@@ -31,9 +31,10 @@ origin/development@cd983965e
 status: M8_LOCAL_COMMIT_AUTHORIZED
 currentPointer: WAITING_USER_AUTH_FOR_PUSH_PR
 visualAudit: WAIVED
+localCommits: 36d1ceac6, da81510cd, d2aa66c74
 ```
 
-当前第一刀不是再迁页面。本地 commit 已授权；先提交 YAN-71，再停在 push / PR 门。
+当前第一刀不是再迁页面。先核验文档，再收剩余 leftover remint，本地 commit 已授权；然后停在 push / PR 门。
 
 ---
 
@@ -44,16 +45,17 @@ visualAudit: WAIVED
 - 不要打开、评分或回修截图。
 - 不要把 Light / Dark x 1440 / 1024 / 390 视觉评分写成 PASS。
 - 仍要做实现、失败门禁、行为/A11y 实现、消费者隔离和 STATUS 更新。
+- 布局明显坏掉（看不见、错位、重叠、突兀组合）仍要修，但这是 remint，不是截图评分。
 - 已有截图只作为未评分产物保留。
 - 该例外持续到用户撤回。证据见各切片 `evidence/*/PROCESS-EXCEPTION.md`。
 
-READY 判定写：`READY WITH APPROVED EXCEPTION`。原因：Goal 授权的隔离实施；视觉审计 WAIVED；未授权改 tracker / git / 部署，除非用户追加了短 Prompt 的交付授权附言。
+READY 判定写：`READY WITH APPROVED EXCEPTION`。原因：Goal 授权的隔离实施；视觉审计 WAIVED；push / PR / Linear Done / 部署未授权。本地 commit 已授权。
 
 ---
 
 ## 2. 任务身份
 
-你是这条迁移的长期实施负责人。终点不是再写一份计划，而是让正式 Figma 设计成为线上前端的真实视觉和组件体系，并在授权后提交。
+你是这条迁移的长期实施负责人。终点不是再写一份计划，而是让正式 Figma 设计成为前端的真实视觉和组件体系，并在授权后提交。
 
 - Figma: `https://www.figma.com/design/Z8EC6psFOj7KMfXapAFk24/CWGSYW-UI---Variables`
 - File key: `Z8EC6psFOj7KMfXapAFk24`
@@ -84,19 +86,15 @@ Linear 状态不可信。YAN-11 到 YAN-88 多数仍是 Backlog / In Progress，
 5. 每个适用页面通过行为、A11y、权限、业务状态验证。视觉评分只在用户撤回 WAIVED 后才成为完成条件。
 6. 已迁移消费者不再依赖 `@/components/design-system`、`@/components/v2`、`@/components/ui`；`@/components/shared` 只保留非视觉入口。
 7. 没有页面局部 CSS、magic number、原生 `<select>` / 旧 accent / 原生 `cwgsyw-btn` 掩盖共享缺陷。构图控件可以继续用 Neutral CSS button，不要强行换成表单 `Button`。
-8. 用户授权后，YAN-91 的 commit / push / draft PR 完成。本地 commit 已授权。没有 push / PR 授权时，第 8 点的远程交付保持 `NOT AUTHORIZED`，不能假装已经推送。
+8. 授权后的本地 commit 已落到活树；push / draft PR 只在用户追加交付授权并口头确认后才做。
 
-`176 / 61 / 81` 是 YAN-10 基线，不是永久常量。每个切片开始前必须实时复核。
+2026-08-14 磁盘事实：1-6 和大部分 7 已在 YAN-71 本地落地。本 Goal 负责核验、补剩余 remint、保持 `figma-neutral-*.test.cjs` 全绿，然后停在第 8 条的人闸。
 
-2026-08-14 本地对照：1-6 已在 YAN-71 落地。第 7 条 leftover 已覆盖 v2 token、旧 accent、shadcn、画布裸 hex、globals/sonner、spatial/wiki/select/sidebar/wiki tree/ops calendar/native action button。侧栏 76/280 和画布几何仍是构图尺寸，没有对应 Figma token，不要发明变量。第 8 条未授权。
-
-没有交付授权，Goal 不能标 complete。也不要因为停在提交门就第一次标 blocked。
+若磁盘证明某页其实没迁完，只补那一页，不要整域重写。
 
 ---
 
-## 4. 设计源合同
-
-实时 Figma 文件 `Z8EC6psFOj7KMfXapAFk24` 是颜色、Token、组件 API、尺寸、间距、布局和响应式的唯一设计源。当前系统前端只用于功能、路由、权限、数据和业务状态盘点，禁止参考其显色。
+## 4. 设计源和颜色边界
 
 权威顺序不可颠倒：
 
@@ -105,31 +103,36 @@ Linear 状态不可信。YAN-11 到 YAN-88 多数仍是 Backlog / In Progress，
 3. `FIGMA-TO-REACT-IMPLEMENTATION-CONTRACT.md`
 4. `design-source/STATUS.md`
 5. 本目录迁移计划 / 矩阵 / STATUS
-6. 当前系统：只盘点功能
+6. 当前系统：只盘点功能、路由、权限、数据、业务状态
 
-颜色合同：
+颜色：
 
-- 常规 UI、Primary、Hover、Pressed、Selected、Focus、Disabled、背景、文本、边框、Overlay 只用 Neutral
+- Disabled、背景、文本、边框、Overlay、常规主操作只用 Neutral
 - Info / Success / Warning / Danger 只表达真实状态
 - 状态不能只靠颜色
+- 禁止蓝 / 紫 / 旧 accent 做普通主按钮
+- 禁止参考当前系统显色、旧 CSS、V2 Token、旧 React Props
 
 组件合同：
 
 - Figma Component 不能直接导入运行。要在 `frontend/src/design-system/figma-neutral/components` 做同名 React 实现。
 - 页面从 `@/design-system/figma-neutral/components` 导入，并引用 `@/design-system/figma-neutral/index.css`。
-- **以磁盘组件实现为准。** 当前 Button / IconButton / Select 使用 lowercase variant：`primary` / `secondary` / `ghost` / `destructive`。不要为了旧合同把已过门禁的 API 改成 `Primary`，除非用户单独授权。
+- **以磁盘组件实现为准。** 当前 Button / IconButton / Select 使用 lowercase variant：`primary` / `secondary` / `ghost` / `destructive` / `outline`。不要为了旧合同把已过门禁的 API 改成 `Primary`。
 - CSS class 保持小写：`cwgsyw-btn--secondary`、`cwgsyw-page-header--compact`。
 - 日历格子、侧栏导航组行、树节点、dashboard tile、密码显隐、picker option 是 Neutral CSS 构图 button，不要整排换成表单 `Button`。
+- CMDB 异步搜索下拉是 `cwgsyw-listbox--overlay`，不是 Combobox。
+- 拓扑 / 机柜 hover 卡是 `cwgsyw-popover--hover`。折叠侧栏 flyout 不能用 `--hover`。
 
 禁止：
 
-- 参考当前显色、旧 CSS、V2 Token、旧 React Props
 - 使用已清理的 `open-design-refactor` 或旧 `frontend/DESIGN_TOKENS.md`
-- 用蓝、紫或其他 Accent 做普通主操作
 - 用页面 override 掩盖共享缺陷
 - 没有消费者审计和回滚证据就删旧实现
 - 从干净 `origin/development` 重写 Neutral 源层
 - 改 API / queryKey / RBAC / 路由语义 / BPMN / 空间编辑内核
+- 把 10/11px 改成 12px，或发明没有 Figma token 的几何变量
+- 动 `bell` / `panel-left`（正式 Icon 没有）
+- 动侧栏 76/280、通知角标 10/11px、画布几何、SVG `fontSize={9}`、装饰 lucide `h-8 w-8`
 
 ---
 
@@ -138,14 +141,19 @@ Linear 状态不可信。YAN-11 到 YAN-88 多数仍是 Backlog / In Progress，
 M0-M8 页面不要重做。按这个顺序做完就停：
 
 1. 再读活树 `STATUS.md` + `COMPLETION-AUDIT.md`，防并行 agent 又改过。
-2. 扫 leftover：原生 `<select>`、`bg-blue-` / 旧 accent、`bg-v2-` / `--v2-`、`@/components/design-system|v2|ui`、原生 `<button class="cwgsyw-btn">`、硬编码 px 掩盖共享尺寸。
-3. 只修真正的旧外壳。构图控件保持 Neutral CSS。
-4. 每修一类就加 `figma-neutral-m8-leftover-*.test.cjs`，再跑整包：
+2. 先补这两处 leftover 锁，如果磁盘还没锁住：
+   - `SpatialEditor.tsx` 的 `<Input` 必须有 `size="sm"`，不能有 `className="h-8"` / `mt-1 h-8`。测试：`frontend/test/figma-neutral-m8-leftover-spatial-inputs.test.cjs`。
+   - `CollapsedEntry.tsx` 必须有 `cwgsyw-popover` / `--compact`，不能有 `shadow-[var(--cwgsyw-elevation-lg)]`，不能用 `cwgsyw-popover--hover`。`overlay.css` 已有 `.cwgsyw-popover--compact { min-width: 0; width: max-content; }`。
+3. 再扫 leftover：原生 `<select>`、`bg-blue-` / 旧 accent、`bg-v2-` / `--v2-`、`@/components/design-system|v2|ui`、原生 `<button class="cwgsyw-btn">`、硬编码 px 掩盖共享尺寸。
+4. 只修真正的旧外壳。构图控件保持 Neutral CSS。
+5. 每修一类就加 `figma-neutral-m8-leftover-*.test.cjs`，再跑整包：
    `cd /Users/byron/AI/worktrees/YAN-71/frontend && node --test test/figma-neutral-*.test.cjs`
-5. 更新 `STATUS.md`、`COMPLETION-AUDIT.md`、`evidence/YAN-91/`、`HANDOFF.md`。
-6. 完成本地 commit 后停在 push / PR 门。
+   上一完整数是 **252/252**。需要时再跑 `npm run typecheck`。
+6. 更新 `STATUS.md`、`COMPLETION-AUDIT.md`、`evidence/YAN-91/`、`HANDOFF.md`。
+7. 把本刀 leftover + 文档本地 commit 进 YAN-71。不要顺带提交 `generated/source-map.json`。
+8. 停在 push / PR 门。
 
-改已有 function/class/method 前先跑 GitNexus upstream impact，必须加 `--repo cwgsyw-platform`。HIGH / CRITICAL 先报告。
+改已有 function/class/method 前先跑 GitNexus upstream impact，必须加 `--repo cwgsyw-platform`。HIGH / CRITICAL 先报告。`ResourceAccessDialog` 已是 HIGH（Files / Wiki），只许换外观。
 
 ---
 
@@ -170,9 +178,10 @@ M0-M8 页面不要重做。按这个顺序做完就停：
 | 动作 | 一镜 Goal 默认 |
 |---|---|
 | 读 Figma / 读代码 / 写当前收口实现 / 更新迁移文档 | 允许 |
+| 本地 commit leftover + 本资料包文档 | 允许，只用 YAN-91，只在活树 |
 | 创建下一张实施 Issue 和新 worktree | 仅当磁盘证明还需要新页面切片 |
 | 改正式 Figma 资产 | 不允许，除非 drift 处理被单独授权 |
-| commit / push / PR / merge / 部署 | 默认不允许 |
+| push / PR / merge / 部署 | 默认不允许 |
 | 改后端 API、数据库、RBAC、路由语义 | 不允许，必须另开 Issue |
 | 把 YAN-11 到 YAN-88 标 Done | 不允许 |
 
@@ -195,7 +204,23 @@ M0-M8 页面不要重做。按这个顺序做完就停：
 
 ---
 
-## 8. 阶段输出
+## 8. 自适应回修
+
+样式不合理或组件配合突兀时，当场修，不要另开大工单。
+
+1. 先按 Manifest 核对精确 Node ID、完整名称、API 指纹。
+2. 同时看：单体、同族组合、至少一个真实页面消费者。
+3. 覆盖真实状态、最长文案、键盘、screen reader。
+4. 共享问题按 `Token -> Component -> Composition -> Page` 修。
+5. 禁止页面 magic number 掩盖共享缺陷。
+6. 同一症状连续三轮未解决，停止像素盲调，重新审计 Figma API、字体、内容长度、布局约束和运行时状态。
+7. 视觉评分保持 WAIVED，除非用户贴了「重新打开视觉闭环」。
+
+用户撤回视觉 WAIVED 后，才按 `VISUAL-VALIDATION-RUNBOOK.md` 做 Light / Dark x 1440 / 1024 / 390。Critical 低于 4/5，或有裁切、重叠、看不见、错位、突兀组合，直接 FAIL。不要一夜评完全站。
+
+---
+
+## 9. 阶段输出
 
 每个工作段落结束时用短报告，不要空话：
 
@@ -208,18 +233,18 @@ M0-M8 页面不要重做。按这个顺序做完就停：
 - 回滚方式
 - 下一个 pointer
 
-禁止用「看起来不错」「文档已经有了」「差不多还原了」代替证据。不要把视觉 WAIVED 写成视觉 PASS。
+禁止用「看起来不错」「文档已经有了」「差不多还原了」代替证据。不要把视觉 WAIVED 写成视觉 PASS。不要把 Goal 标 complete：push / PR 未授权，item 7 仍可能有无 token 的几何。不要第一次就把 Goal 标 blocked。
 
 ---
 
-## 9. 停机条件
+## 10. 停机条件
 
 立刻停下来等人：
 
 - 未分类 Figma drift
 - 必须改 API / 权限 / 路由语义才能继续
 - GitNexus 返回 HIGH / CRITICAL 且无法在本切片消化
-- 用户没有交付授权，但继续下去只能 commit / push / PR
+- 用户没有交付授权，但继续下去只能 push / PR
 - 活树丢失、主工作区 dirty 冲突、或 Neutral 源层不在当前树
 
 没有这些阻塞时，不要停在规划文档上。
