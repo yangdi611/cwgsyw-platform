@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Database, Layers3, Search, Server, X } from 'lucide-react'
-import { Button, Card, Input, StatusBadge } from '@/components/design-system'
 import {
   listInstances,
   listModelGroups,
@@ -12,6 +10,14 @@ import {
   type CiScopeResolution,
   type CiScopeSelection,
 } from '@/lib/task-plan-api'
+import {
+  Button,
+  Card,
+  Checkbox,
+  Chip,
+  SearchInput,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
 interface CiScopeSelectorProps {
   value: CiScopeSelection[]
@@ -46,73 +52,110 @@ export function CiScopeSelector({ value, onChange }: CiScopeSelectorProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid min-h-64 overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface lg:grid-cols-3">
-        <div className="border-b border-v2-border p-3 lg:border-b-0 lg:border-r">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">模型组</p>
-          <div className="space-y-1">
+    <div className="cwgsyw-form">
+      <div className="cwgsyw-split">
+        <section className="cwgsyw-split__pane">
+          <div className="cwgsyw-split__pane-head">
+            <p className="cwgsyw-type-label-xs">模型组</p>
+          </div>
+          <div className="cwgsyw-split__pane-body cwgsyw-stack-list">
             {groups.data?.map((group) => (
-              <div key={group.code} className={`flex items-center gap-2 rounded-v2-md px-2 py-1.5 ${groupCode === group.code ? 'bg-v2-primary-soft' : 'hover:bg-v2-surface-hover'}`}>
-                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => { setGroupCode(group.code); setModelCode(undefined) }}>
-                  <Layers3 className="h-4 w-4 text-v2-muted" />
-                  <span className="truncate text-sm text-v2-fg">{group.name}</span>
-                  <span className="ml-auto text-xs text-v2-muted">{group.modelCount}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-v2-muted" />
-                </button>
-                <input aria-label={`选择模型组 ${group.name}`} type="checkbox" checked={selected.has(`model_group:${group.code}`)} onChange={() => toggle({ level: 'model_group', key: group.code, label: group.name })} />
+              <div key={group.code} className="cwgsyw-inline-controls">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={groupCode === group.code}
+                  onClick={() => { setGroupCode(group.code); setModelCode(undefined) }}
+                >
+                  {group.name} · {group.modelCount}
+                </Button>
+                <Checkbox
+                  aria-label={`选择模型组 ${group.name}`}
+                  checked={selected.has(`model_group:${group.code}`)}
+                  showLabel={false}
+                  label={`选择模型组 ${group.name}`}
+                  onChange={() => toggle({ level: 'model_group', key: group.code, label: group.name })}
+                />
               </div>
             ))}
           </div>
-        </div>
-        <div className="border-b border-v2-border p-3 lg:border-b-0 lg:border-r">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">模型</p>
-          {!groupCode ? <p className="py-8 text-center text-sm text-v2-muted">先选择左侧模型组</p> : (
-            <div className="space-y-1">
-              {models.data?.map((model) => (
-                <div key={model.modelId} className={`flex items-center gap-2 rounded-v2-md px-2 py-1.5 ${modelCode === model.modelId ? 'bg-v2-primary-soft' : 'hover:bg-v2-surface-hover'}`}>
-                  <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => setModelCode(model.modelId)}>
-                    <Database className="h-4 w-4 text-v2-muted" />
-                    <span className="truncate text-sm text-v2-fg">{model.displayName || model.name}</span>
-                    <span className="ml-auto text-xs text-v2-muted">{model.instanceCount ?? 0}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-v2-muted" />
-                  </button>
-                  <input aria-label={`选择模型 ${model.displayName || model.name}`} type="checkbox" checked={selected.has(`model:${model.modelId}`)} onChange={() => toggle({ level: 'model', key: model.modelId, label: model.displayName || model.name })} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">CI 实例</p>
-          {modelCode && <div className="relative mb-2"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" /><Input className="pl-8" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索实例" /></div>}
-          {!modelCode ? <p className="py-8 text-center text-sm text-v2-muted">先选择中间模型</p> : (
-            <div className="max-h-52 space-y-1 overflow-y-auto">
-              {instances.data?.map((instance) => (
-                <label key={instance.id} className="flex cursor-pointer items-center gap-2 rounded-v2-md px-2 py-1.5 hover:bg-v2-surface-hover">
-                  <Server className="h-4 w-4 text-v2-muted" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-v2-fg">{instance.name}</span>
-                  <input type="checkbox" checked={selected.has(`instance:${instance.id}`)} onChange={() => toggle({ level: 'instance', key: String(instance.id), label: instance.name })} />
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+        </section>
+        <section className="cwgsyw-split__pane">
+          <div className="cwgsyw-split__pane-head">
+            <p className="cwgsyw-type-label-xs">模型</p>
+          </div>
+          <div className="cwgsyw-split__pane-body cwgsyw-stack-list">
+            {!groupCode ? <p className="cwgsyw-stack-list__empty">先选择左侧模型组</p> : models.data?.map((model) => (
+              <div key={model.modelId} className="cwgsyw-inline-controls">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={modelCode === model.modelId}
+                  onClick={() => setModelCode(model.modelId)}
+                >
+                  {model.displayName || model.name} · {model.instanceCount ?? 0}
+                </Button>
+                <Checkbox
+                  aria-label={`选择模型 ${model.displayName || model.name}`}
+                  checked={selected.has(`model:${model.modelId}`)}
+                  showLabel={false}
+                  label={`选择模型 ${model.displayName || model.name}`}
+                  onChange={() => toggle({ level: 'model', key: model.modelId, label: model.displayName || model.name })}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="cwgsyw-split__pane">
+          <div className="cwgsyw-split__pane-head">
+            <p className="cwgsyw-type-label-xs">CI 实例</p>
+          </div>
+          <div className="cwgsyw-split__pane-body cwgsyw-form">
+            {modelCode ? (
+              <SearchInput value={keyword} placeholder="搜索实例" onChange={(event) => setKeyword(event.target.value)} />
+            ) : null}
+            {!modelCode ? (
+              <p className="cwgsyw-stack-list__empty">先选择中间模型</p>
+            ) : (
+              <div className="cwgsyw-stack-list">
+                {instances.data?.map((instance) => (
+                  <Checkbox
+                    key={instance.id}
+                    checked={selected.has(`instance:${instance.id}`)}
+                    label={instance.name}
+                    onChange={() => toggle({ level: 'instance', key: String(instance.id), label: instance.name })}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {value.length > 0 && (
-        <Card className="p-3">
-          <div className="flex flex-wrap items-center gap-2">
+      {value.length > 0 ? (
+        <Card title="已选范围">
+          <div className="cwgsyw-inline-controls">
             {value.map((selection) => (
-              <span key={selectionKey(selection)} className="inline-flex items-center gap-1 rounded-v2-md border border-v2-border bg-v2-surface-soft px-2 py-1 text-xs text-v2-fg">
-                {selection.label || selection.key}
-                <button type="button" aria-label="移除选择" onClick={() => toggle(selection)}><X className="h-3 w-3" /></button>
-              </span>
+              <Chip
+                key={selectionKey(selection)}
+                label={selection.label || selection.key}
+                showRemove
+                onRemove={() => toggle(selection)}
+              />
             ))}
             <Button type="button" size="sm" variant="ghost" onClick={() => onChange([])}>清空</Button>
           </div>
-          {preview.data && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-v2-muted"><StatusBadge status="ok">命中 {preview.data.total} 个 CI</StatusBadge>{preview.data.truncated && <StatusBadge status="warn">仅预览前 20 个</StatusBadge>}{preview.data.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div>}
+          {preview.data ? (
+            <div className="cwgsyw-inline-controls">
+              <StatusBadge label={`命中 ${preview.data.total} 个 CI`} status="success" />
+              {preview.data.truncated ? <StatusBadge label="仅预览前 20 个" status="warning" /> : null}
+              {preview.data.warnings.map((warning) => <span key={warning} className="cwgsyw-type-label-xs">{warning}</span>)}
+            </div>
+          ) : null}
         </Card>
-      )}
+      ) : null}
     </div>
   )
 }

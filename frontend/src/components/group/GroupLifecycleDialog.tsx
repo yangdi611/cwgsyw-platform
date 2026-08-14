@@ -4,8 +4,18 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
-import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Textarea } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  LoadingState,
+  NeutralDialog,
+  Table,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 export type GroupLifecycleAction = 'archive' | 'restore' | 'purge'
 
@@ -159,77 +169,98 @@ export default function GroupLifecycleDialog({
     }
   }
 
+  const description = action === 'restore'
+    ? '恢复只会重新启用用户组，不会恢复历史成员、角色授权或资源 ACL。'
+    : action === 'purge'
+      ? '永久清除不可恢复，仅允许清除已过保留期且除审计外无任何历史引用的用户组。'
+      : '归档不会级联修改成员、授权、ACL 或业务数据；存在活动引用时系统会阻止操作。'
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl" data-testid="group-lifecycle-preflight">
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>
-            {action === 'restore'
-              ? '恢复只会重新启用用户组，不会恢复历史成员、角色授权或资源 ACL。'
-              : action === 'purge'
-                ? '永久清除不可恢复，仅允许清除已过保留期且除审计外无任何历史引用的用户组。'
-                : '归档不会级联修改成员、授权、ACL 或业务数据；存在活动引用时系统会阻止操作。'}
-          </DialogDescription>
-        </DialogHeader>
+    <NeutralDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={copy.title}
+      description={description}
+      size="lg"
+      showClose={false}
+      footer={
+        <div className="cwgsyw-form__actions">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={submitting}>
+            取消
+          </Button>
+          <Button
+            type="button"
+            variant={action === 'purge' ? 'destructive' : 'primary'}
+            data-testid="group-lifecycle-submit"
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit}
+            loading={submitting}
+          >
+            {submitting ? `${copy.verb}中…` : copy.verb}
+          </Button>
+        </div>
+      }
+    >
+      <div className="cwgsyw-form" data-testid="group-lifecycle-preflight">
+        {preflightQuery.isLoading ? <LoadingState label="正在检查用户组引用…" /> : null}
 
-        {preflightQuery.isLoading && (
-          <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-6 text-center text-sm text-v2-muted">
-            正在检查用户组引用…
-          </div>
-        )}
+        {preflightQuery.isError && !preflight ? (
+          <Alert
+            tone="danger"
+            title="无法加载操作预检"
+            description={getApiErrorMessage(preflightQuery.error, '无法加载操作预检')}
+            showDismiss={false}
+            action={
+              <Button type="button" variant="secondary" size="sm" onClick={() => void refreshPreflight()}>
+                重新检查
+              </Button>
+            }
+          />
+        ) : null}
 
-        {preflightQuery.isError && !preflight && (
-          <div className="space-y-3 rounded-v2-md border border-v2-danger-border bg-v2-danger-soft p-4 text-sm text-v2-danger">
-            <p>{getApiErrorMessage(preflightQuery.error, '无法加载操作预检')}</p>
-            <Button variant="secondary" size="sm" onClick={() => void refreshPreflight()}>
-              重新检查
-            </Button>
-          </div>
-        )}
+        {preflight ? (
+          <>
+            <Alert
+              tone={preflight.eligible ? 'success' : 'warning'}
+              title={preflight.eligible ? '预检通过' : '预检未通过'}
+              description={
+                preflight.eligible
+                  ? `可以${copy.verb}“${preflight.group.name}”。`
+                  : `${preflight.blockers.length} 类引用、共 ${blockerSummary ?? 0} 项需要先处理。`
+              }
+              showDismiss={false}
+            />
 
-        {preflight && (
-          <div className="space-y-4">
-            <div className={preflight.eligible
-              ? 'rounded-v2-md border border-v2-success-border bg-v2-success-soft p-3 text-sm text-v2-success'
-              : 'rounded-v2-md border border-v2-warning-border bg-v2-warning-soft p-3 text-sm text-v2-warning'}>
-              {preflight.eligible
-                ? `预检通过，可以${copy.verb}“${preflight.group.name}”。`
-                : `预检未通过：${preflight.blockers.length} 类引用、共 ${blockerSummary ?? 0} 项需要先处理。`}
-            </div>
+            {preflight.blockers.length > 0 ? (
+              <Table
+                showSearch={false}
+                columns={[
+                  { key: 'message', label: '阻塞原因' },
+                  { key: 'count', label: '数量', align: 'right' },
+                  { key: 'resolution', label: '处理建议' },
+                ]}
+                rows={preflight.blockers.map((blocker) => ({
+                  id: blocker.referenceType,
+                  cells: {
+                    message: (
+                      <div data-testid={`group-lifecycle-blocker-${blocker.referenceType}`}>
+                        <div>{blocker.message}</div>
+                        <code data-testid={`group-lifecycle-blocker-reason-${blocker.referenceType}`}>{blocker.reasonCode}</code>
+                      </div>
+                    ),
+                    count: blocker.count,
+                    resolution: blocker.resolution,
+                  },
+                }))}
+              />
+            ) : null}
 
-            {preflight.blockers.length > 0 && (
-              <div className="max-h-56 overflow-auto rounded-v2-md border border-v2-border">
-                <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-v2-surface-soft text-v2-muted">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">阻塞原因</th>
-                      <th className="px-3 py-2 text-right font-medium">数量</th>
-                      <th className="px-3 py-2 font-medium">处理建议</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-v2-border">
-                    {preflight.blockers.map((blocker) => (
-                      <tr key={blocker.referenceType} data-testid={`group-lifecycle-blocker-${blocker.referenceType}`}>
-                        <td className="px-3 py-2">
-                          <div>{blocker.message}</div>
-                          <code className="text-xs text-v2-muted" data-testid={`group-lifecycle-blocker-reason-${blocker.referenceType}`}>
-                            {blocker.reasonCode}
-                          </code>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{blocker.count}</td>
-                        <td className="px-3 py-2 text-v2-muted">{blocker.resolution}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label htmlFor="group-lifecycle-reason" className="text-sm font-medium text-v2-fg">
-                操作原因
-              </label>
+            <Field
+              htmlFor="group-lifecycle-reason"
+              label="操作原因"
+              helperText={reasonLength > 0 && !reasonValid ? '原因长度必须为 10–500 个字符' : '原因会写入审计记录'}
+              state={reasonLength > 0 && !reasonValid ? 'error' : 'default'}
+            >
               <Textarea
                 id="group-lifecycle-reason"
                 data-testid="group-lifecycle-reason"
@@ -239,62 +270,39 @@ export default function GroupLifecycleDialog({
                 maxLength={500}
                 placeholder="请输入 10–500 个字符，说明本次操作原因"
               />
-              <output className="sr-only" data-testid="group-lifecycle-reason-code">
-                {reasonValid ? 'VALID' : 'GROUP_LIFECYCLE_REASON_INVALID'}
-              </output>
-              <div className="flex justify-between text-xs text-v2-muted">
-                <span>{reasonLength > 0 && !reasonValid ? '原因长度必须为 10–500 个字符' : '原因会写入审计记录'}</span>
-                <span className="tabular-nums">{reasonLength}/500</span>
-              </div>
-            </div>
+            </Field>
+            <output className="sr-only" data-testid="group-lifecycle-reason-code">
+              {reasonValid ? 'VALID' : 'GROUP_LIFECYCLE_REASON_INVALID'}
+            </output>
+            <p className="cwgsyw-type-label-xs">{reasonLength}/500</p>
 
-            <div className="space-y-2">
-              <label htmlFor="group-lifecycle-confirmation" className="text-sm font-medium text-v2-fg">
-                输入组名称确认
-              </label>
-              <input
+            <Field
+              htmlFor="group-lifecycle-confirmation"
+              label="输入组名称确认"
+              state={confirmationName.length > 0 && !confirmationValid ? 'error' : 'default'}
+              errorText={confirmationName.length > 0 && !confirmationValid ? `必须与“${preflight.group.name}”完全一致。` : undefined}
+            >
+              <Input
                 id="group-lifecycle-confirmation"
                 data-testid="group-lifecycle-confirmation"
-                className="h-10 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg outline-none focus:border-v2-primary"
                 value={confirmationName}
                 onChange={(event) => setConfirmationName(event.target.value)}
                 autoComplete="off"
                 placeholder={preflight.group.name}
               />
-              {confirmationName.length > 0 && !confirmationValid && (
-                <p className="text-xs text-v2-danger">必须与“{preflight.group.name}”完全一致。</p>
-              )}
-            </div>
+            </Field>
 
-            {action === 'purge' && (
-              <label className="flex items-start gap-2 rounded-v2-md border border-v2-danger-border bg-v2-danger-soft p-3 text-sm text-v2-danger">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4"
-                  data-testid="group-lifecycle-purge-irreversible"
-                  checked={purgeConfirmed}
-                  onChange={(event) => setPurgeConfirmed(event.target.checked)}
-                />
-                我确认永久清除后无法恢复，并已核对保留期与全部历史引用。
-              </label>
-            )}
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={submitting}>
-            取消
-          </Button>
-          <Button
-            variant={action === 'purge' ? 'danger' : 'primary'}
-            data-testid="group-lifecycle-submit"
-            onClick={() => void handleSubmit()}
-            disabled={!canSubmit}
-          >
-            {submitting ? `${copy.verb}中…` : copy.verb}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {action === 'purge' ? (
+              <Checkbox
+                label="我确认永久清除后无法恢复，并已核对保留期与全部历史引用。"
+                data-testid="group-lifecycle-purge-irreversible"
+                checked={purgeConfirmed}
+                onChange={(event) => setPurgeConfirmed(event.target.checked)}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </NeutralDialog>
   )
 }

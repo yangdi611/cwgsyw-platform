@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CWGSYW Neutral Token Fixture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./tokens.css" />
+  <link rel="stylesheet" href="./recipes.css" />
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--cwgsyw-bg-canvas);
+      color: var(--cwgsyw-text-primary);
+      font-family: var(--cwgsyw-font-family-sans);
+    }
+    body { padding: var(--cwgsyw-space-6); }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--cwgsyw-pattern-gap);
+    }
+    .hero, .panel {
+      background: var(--cwgsyw-bg-surface);
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+      border-radius: var(--cwgsyw-radius-lg);
+      padding: var(--cwgsyw-pattern-padding);
+      box-shadow: var(--cwgsyw-elevation-sm);
+    }
+    .kicker { color: var(--cwgsyw-text-secondary); margin: 0 0 var(--cwgsyw-space-2); }
+    h1, h2, p { margin: 0; }
+    .lede {
+      margin-top: var(--cwgsyw-space-3);
+      color: var(--cwgsyw-text-secondary);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--cwgsyw-space-3);
+      margin-top: var(--cwgsyw-space-4);
+    }
+    .swatch {
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-subtle);
+      border-radius: var(--cwgsyw-radius-md);
+      overflow: hidden;
+      background: var(--cwgsyw-bg-surface);
+    }
+    .chip { height: var(--cwgsyw-control-height-lg); }
+    .meta {
+      padding: var(--cwgsyw-space-2) var(--cwgsyw-space-3);
+      color: var(--cwgsyw-text-secondary);
+      font-size: var(--cwgsyw-font-size-body-xs);
+      line-height: var(--cwgsyw-font-line-height-body-xs);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--cwgsyw-space-3);
+      margin-top: var(--cwgsyw-space-4);
+      align-items: flex-end;
+    }
+    .space { background: var(--cwgsyw-bg-surface-subtle); border-radius: var(--cwgsyw-radius-sm); }
+    .radius {
+      background: var(--cwgsyw-action-primary);
+      color: var(--cwgsyw-text-inverse);
+      width: var(--cwgsyw-control-height-lg);
+      height: var(--cwgsyw-control-height-lg);
+      display: grid;
+      place-items: center;
+    }
+    .type-card, .shadow-card {
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-subtle);
+      border-radius: var(--cwgsyw-radius-md);
+      padding: var(--cwgsyw-space-4);
+      background: var(--cwgsyw-bg-surface);
+    }
+    .actions {
+      display: flex;
+      gap: var(--cwgsyw-space-3);
+      margin-top: var(--cwgsyw-space-4);
+      flex-wrap: wrap;
+    }
+    .btn {
+      height: var(--cwgsyw-control-height-md);
+      padding: 0 var(--cwgsyw-space-4);
+      border: 0;
+      border-radius: var(--cwgsyw-radius-md);
+      background: var(--cwgsyw-action-primary);
+      color: var(--cwgsyw-text-inverse);
+      font: inherit;
+    }
+    .btn:hover { background: var(--cwgsyw-action-primary-hover); }
+    .btn:focus-visible {
+      outline: var(--cwgsyw-border-width-strong) solid var(--cwgsyw-focus-ring);
+      outline-offset: var(--cwgsyw-space-1);
+    }
+    .btn-secondary {
+      background: var(--cwgsyw-bg-surface);
+      color: var(--cwgsyw-text-primary);
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+    }
+    .btn-destructive {
+      background: var(--cwgsyw-action-destructive);
+      color: var(--cwgsyw-action-destructive-fg);
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--cwgsyw-control-height-sm);
+      padding: 0 var(--cwgsyw-space-3);
+      border-radius: var(--cwgsyw-radius-full);
+      border: var(--cwgsyw-border-width-default) solid var(--feedback-border);
+      background: var(--feedback-bg);
+      color: var(--feedback-fg);
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--cwgsyw-pattern-gap);
+      min-height: var(--cwgsyw-pattern-toolbar-height);
+      padding: 0 var(--cwgsyw-pattern-padding);
+      background: var(--cwgsyw-bg-surface-subtle);
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-subtle);
+      border-radius: var(--cwgsyw-radius-md);
+    }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: var(--cwgsyw-space-2); }
+    .pager {
+      display: flex;
+      gap: var(--cwgsyw-pagination-gap);
+      margin-top: var(--cwgsyw-space-4);
+    }
+    .page-item {
+      width: var(--cwgsyw-pagination-item-size);
+      height: var(--cwgsyw-pagination-item-size);
+      display: grid;
+      place-items: center;
+      border-radius: var(--cwgsyw-radius-sm);
+      border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+      background: var(--cwgsyw-bg-surface);
+    }
+    .page-item[aria-current="page"] {
+      background: var(--cwgsyw-bg-surface-selected);
+      border-color: var(--cwgsyw-border-strong);
+    }
+    .overlay-demo {
+      position: relative;
+      height: var(--cwgsyw-control-height-lg);
+      border-radius: var(--cwgsyw-radius-md);
+      overflow: hidden;
+      background: var(--cwgsyw-bg-surface-subtle);
+      margin-top: var(--cwgsyw-space-4);
+    }
+    .overlay-demo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--cwgsyw-overlay-scrim);
+    }
+    .vp {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      color: var(--cwgsyw-text-secondary);
+      background: var(--cwgsyw-bg-canvas);
+      padding-bottom: var(--cwgsyw-space-2);
+    }
+    @media (max-width: 430px) {
+      body { padding: var(--cwgsyw-space-4); }
+      .grid { grid-template-columns: 1fr; }
+      .actions, .toolbar, .toolbar-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+      .toolbar { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = theme;
+    const compact = window.innerWidth <= 430;
+    document.documentElement.dataset.patternLayout = compact ? 'compact' : 'default';
+    document.documentElement.dataset.paginationDensity = compact ? 'compact' : 'default';
+  </script>
+  <div class="page">
+    <p class="vp cwgsyw-type-label-sm">CWGSYW Neutral token fixture · <span id="theme-label"></span> · <span id="vp-label"></span> · <span id="layout-label"></span></p>
+    <section class="hero">
+      <p class="kicker cwgsyw-type-label-md">M0 Token pipeline</p>
+      <h1 class="cwgsyw-type-title-lg">Neutral surfaces, type and status recipes</h1>
+      <p class="cwgsyw-type-body-md lede">Regular UI uses Neutral only. Status color appears only in labeled status examples. This isolated fixture is not a product route.</p>
+      <div class="actions">
+        <button class="btn" type="button">Primary action</button>
+        <button class="btn btn-secondary" type="button">Secondary</button>
+        <button class="btn btn-destructive" type="button">Destructive</button>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Composition</h2>
+      <p class="cwgsyw-type-body-sm lede">Shared tokens must hold together as a page header, toolbar, status row and overlay, not only as isolated swatches.</p>
+      <div class="toolbar" style="margin-top: var(--cwgsyw-space-4);">
+        <div>
+          <p class="cwgsyw-type-label-sm">Workspace</p>
+          <p class="cwgsyw-type-title-sm">Account settings</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" type="button">Cancel</button>
+          <button class="btn" type="button">Save</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="status" data-feedback-context="info">Info</span>
+        <span class="status" data-feedback-context="success">Success</span>
+        <span class="status" data-feedback-context="warning">Warning</span>
+        <span class="status" data-feedback-context="danger">Danger</span>
+      </div>
+      <div class="pager" aria-label="Pagination sample">
+        <span class="page-item" aria-current="page">1</span>
+        <span class="page-item">2</span>
+        <span class="page-item">3</span>
+      </div>
+      <div class="overlay-demo" aria-hidden="true"></div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Semantic color</h2>
+      <div class="grid">
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-bg-canvas)"></div><div class="meta">--cwgsyw-bg-canvas</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-bg-surface)"></div><div class="meta">--cwgsyw-bg-surface</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-bg-surface-subtle)"></div><div class="meta">--cwgsyw-bg-surface-subtle</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-bg-surface-hover)"></div><div class="meta">--cwgsyw-bg-surface-hover</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-bg-surface-selected)"></div><div class="meta">--cwgsyw-bg-surface-selected</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-text-primary)"></div><div class="meta">--cwgsyw-text-primary</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-text-secondary)"></div><div class="meta">--cwgsyw-text-secondary</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-text-tertiary)"></div><div class="meta">--cwgsyw-text-tertiary</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-text-disabled)"></div><div class="meta">--cwgsyw-text-disabled</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-border-subtle)"></div><div class="meta">--cwgsyw-border-subtle</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-border-default)"></div><div class="meta">--cwgsyw-border-default</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-border-strong)"></div><div class="meta">--cwgsyw-border-strong</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-action-primary)"></div><div class="meta">--cwgsyw-action-primary</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-action-primary-hover)"></div><div class="meta">--cwgsyw-action-primary-hover</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-focus-ring)"></div><div class="meta">--cwgsyw-focus-ring</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-overlay-scrim)"></div><div class="meta">--cwgsyw-overlay-scrim</div></article>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Status color</h2>
+      <p class="cwgsyw-type-body-sm lede">These tokens are only for real status semantics.</p>
+      <div class="grid">
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-info-bg)"></div><div class="meta">--cwgsyw-status-info-bg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-info-fg)"></div><div class="meta">--cwgsyw-status-info-fg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-success-bg)"></div><div class="meta">--cwgsyw-status-success-bg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-success-fg)"></div><div class="meta">--cwgsyw-status-success-fg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-warning-bg)"></div><div class="meta">--cwgsyw-status-warning-bg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-warning-fg)"></div><div class="meta">--cwgsyw-status-warning-fg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-danger-bg)"></div><div class="meta">--cwgsyw-status-danger-bg</div></article>
+        <article class="swatch"><div class="chip" style="background: var(--cwgsyw-status-danger-fg)"></div><div class="meta">--cwgsyw-status-danger-fg</div></article>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Space and radius</h2>
+      <div class="row">
+        <div><div class="space" style="width:0px;height:0px"></div><div class="meta">--cwgsyw-space-0</div></div>
+        <div><div class="space" style="width:4px;height:4px"></div><div class="meta">--cwgsyw-space-1</div></div>
+        <div><div class="space" style="width:40px;height:40px"></div><div class="meta">--cwgsyw-space-10</div></div>
+        <div><div class="space" style="width:48px;height:48px"></div><div class="meta">--cwgsyw-space-12</div></div>
+        <div><div class="space" style="width:64px;height:64px"></div><div class="meta">--cwgsyw-space-16</div></div>
+        <div><div class="space" style="width:8px;height:8px"></div><div class="meta">--cwgsyw-space-2</div></div>
+        <div><div class="space" style="width:12px;height:12px"></div><div class="meta">--cwgsyw-space-3</div></div>
+        <div><div class="space" style="width:16px;height:16px"></div><div class="meta">--cwgsyw-space-4</div></div>
+        <div><div class="space" style="width:20px;height:20px"></div><div class="meta">--cwgsyw-space-5</div></div>
+        <div><div class="space" style="width:24px;height:24px"></div><div class="meta">--cwgsyw-space-6</div></div>
+        <div><div class="space" style="width:28px;height:28px"></div><div class="meta">--cwgsyw-space-7</div></div>
+        <div><div class="space" style="width:32px;height:32px"></div><div class="meta">--cwgsyw-space-8</div></div>
+      </div>
+      <div class="row">
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:16px">2xl</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:999px">full</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:8px">lg</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:6px">md</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:0px">none</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:4px">sm</div>
+        <div class="radius cwgsyw-type-label-xs" style="border-radius:12px">xl</div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Typography recipes</h2>
+      <div class="grid">
+        <article class="type-card"><div class="cwgsyw-type-body-sm">CWGSYW/Type/Body Sm</div><div class="meta">cwgsyw-type-body-sm</div></article>
+        <article class="type-card"><div class="cwgsyw-type-label-sm">CWGSYW/Type/Label Sm</div><div class="meta">cwgsyw-type-label-sm</div></article>
+        <article class="type-card"><div class="cwgsyw-type-body-md">CWGSYW/Type/Body Md</div><div class="meta">cwgsyw-type-body-md</div></article>
+        <article class="type-card"><div class="cwgsyw-type-body-lg">CWGSYW/Type/Body Lg</div><div class="meta">cwgsyw-type-body-lg</div></article>
+        <article class="type-card"><div class="cwgsyw-type-title-sm">CWGSYW/Type/Title Sm</div><div class="meta">cwgsyw-type-title-sm</div></article>
+        <article class="type-card"><div class="cwgsyw-type-title-md">CWGSYW/Type/Title Md</div><div class="meta">cwgsyw-type-title-md</div></article>
+        <article class="type-card"><div class="cwgsyw-type-title-lg">CWGSYW/Type/Title Lg</div><div class="meta">cwgsyw-type-title-lg</div></article>
+        <article class="type-card"><div class="cwgsyw-type-label-xs">CWGSYW/Type/Label Xs</div><div class="meta">cwgsyw-type-label-xs</div></article>
+        <article class="type-card"><div class="cwgsyw-type-label-md">CWGSYW/Type/Label Md</div><div class="meta">cwgsyw-type-label-md</div></article>
+        <article class="type-card"><div class="cwgsyw-type-label-lg">CWGSYW/Type/Label Lg</div><div class="meta">cwgsyw-type-label-lg</div></article>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="cwgsyw-type-title-sm">Elevation recipes</h2>
+      <div class="grid">
+        <article class="shadow-card cwgsyw-shadow-sm"><div class="cwgsyw-type-label-sm">CWGSYW/Shadows/Shadow Sm</div><div class="meta">cwgsyw-shadow-sm</div></article>
+        <article class="shadow-card cwgsyw-elevation-none"><div class="cwgsyw-type-label-sm">CWGSYW/Elevation/None</div><div class="meta">cwgsyw-elevation-none</div></article>
+        <article class="shadow-card cwgsyw-elevation-sm"><div class="cwgsyw-type-label-sm">CWGSYW/Elevation/Sm</div><div class="meta">cwgsyw-elevation-sm</div></article>
+        <article class="shadow-card cwgsyw-elevation-md"><div class="cwgsyw-type-label-sm">CWGSYW/Elevation/Md</div><div class="meta">cwgsyw-elevation-md</div></article>
+        <article class="shadow-card cwgsyw-elevation-lg"><div class="cwgsyw-type-label-sm">CWGSYW/Elevation/Lg</div><div class="meta">cwgsyw-elevation-lg</div></article>
+      </div>
+    </section>
+  </div>
+  <script>
+    document.getElementById('theme-label').textContent = document.documentElement.dataset.theme;
+    document.getElementById('layout-label').textContent = document.documentElement.dataset.patternLayout + ' layout';
+    const setVp = () => { document.getElementById('vp-label').textContent = window.innerWidth + 'x' + window.innerHeight; };
+    setVp();
+    window.addEventListener('resize', setVp);
+  </script>
+</body>
+</html>

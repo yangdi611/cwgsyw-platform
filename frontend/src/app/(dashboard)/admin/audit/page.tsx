@@ -1,12 +1,27 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge } from '@/components/design-system'
-import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, type ColumnDef } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  Field,
+  FilterBar,
+  Input,
+  LoadingState,
+  PageHeader,
+  Pagination,
+  Select,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface AuditLogVO {
   id: number
@@ -38,18 +53,18 @@ const MODULE_LABELS: Record<string, string> = {
   shared_file: '共享文档',
 }
 
-type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
-
-const ACTION_VARIANT: Record<string, StatusVariant> = {
-  create: 'ok',
-  update: 'warn',
+const ACTION_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
+  create: 'success',
+  update: 'warning',
   delete: 'danger',
-  approve: 'ok',
+  approve: 'success',
   reject: 'danger',
   view_password: 'neutral',
-  submit: 'ok',
+  submit: 'success',
   ai_generate: 'neutral',
 }
+
+const PAGE_SIZE = 20
 
 function snapshotSummary(snapshot: string | null): string {
   if (!snapshot) return '—'
@@ -62,7 +77,7 @@ function snapshotSummary(snapshot: string | null): string {
 
 export default function AuditLogPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingState label="正在加载审计日志…" />}>
       <AuditLogPageInner />
     </Suspense>
   )
@@ -85,240 +100,171 @@ function AuditLogPageInner() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [page, setPage] = useState(1)
-  const size = 20
 
   const { data, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['audit-logs', module, action, operatorId, keyword, startDate, endDate, page],
     queryFn: () => {
-      const params: Record<string, string | number> = { page, size }
+      const params: Record<string, string | number> = { page, size: PAGE_SIZE }
       if (module) params.module = module
       if (action) params.action = action
       if (operatorId) params.operatorId = Number(operatorId)
       if (keyword) params.keyword = keyword
       if (startDate) params.startDate = startDate
       if (endDate) params.endDate = endDate
-      return api.get('/audit-logs', { params }).then((r) => r.data.data)
+      return api.get('/audit-logs', { params }).then((response) => response.data.data)
     },
-    enabled: hasPermission('audit', 'read'),
+    enabled: isHydrated && hasPermission('audit', 'read'),
   })
 
   const records = data?.records ?? []
-  const hasMore = records.length === size
-
-  const columns: ColumnDef<AuditLogVO>[] = [
-    {
-      key: 'createdAt',
-      title: '时间',
-      render: (r) => (
-        <span className="whitespace-nowrap text-xs text-v2-muted">
-          {new Date(r.createdAt).toLocaleString('zh-CN')}
-        </span>
-      ),
-    },
-    {
-      key: 'module',
-      title: '模块',
-      render: (r) => <span className="text-xs text-v2-fg">{MODULE_LABELS[r.module] ?? r.module}</span>,
-    },
-    {
-      key: 'action',
-      title: '操作',
-      render: (r) => (
-        <StatusBadge status={ACTION_VARIANT[r.action] ?? 'neutral'}>{r.action}</StatusBadge>
-      ),
-    },
-    {
-      key: 'operatorName',
-      title: '操作人',
-      render: (r) => <span className="text-xs text-v2-fg">{r.operatorName}</span>,
-    },
-    {
-      key: 'target',
-      title: '目标',
-      render: (r) => (
-        <span className="text-xs text-v2-muted">
-          {r.targetType}
-          {r.targetId ? ` #${r.targetId}` : ''}
-        </span>
-      ),
-    },
-    {
-      key: 'remark',
-      title: '备注',
-      render: (r) => <span className="max-w-xs truncate text-xs text-v2-muted">{r.remark}</span>,
-    },
-    {
-      key: 'snapshot',
-      title: '变更快照',
-      render: (r) => (
-        <span className="block max-w-xs truncate font-v2-mono text-xs text-v2-muted" title={`前：${snapshotSummary(r.beforeJson)}\n后：${snapshotSummary(r.afterJson)}`}>
-          前：{snapshotSummary(r.beforeJson)}；后：{snapshotSummary(r.afterJson)}
-        </span>
-      ),
-    },
-    {
-      key: 'operatorIp',
-      title: 'IP',
-      render: (r) => <span className="font-v2-mono text-xs text-v2-muted">{r.operatorIp}</span>,
-    },
-  ]
+  const pageCount = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE))
 
   return (
-    <PageShell width="full" density="compact">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="系统管理"
-        title="审计日志"
-        subtitle="记录所有写操作的模块、动作、操作人与目标对象，支持按模块与时间范围筛选。"
-      />
-
-      <FilterBar className="w-full items-stretch sm:items-end">
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">模块</Label>
-          <Select
-            value={module || '__all__'}
-            onValueChange={(v) => {
-              setModule(v === '__all__' ? '' : v ?? '')
-              setPage(1)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="全部">
-                {(v: string) => (v === '__all__' || !v ? '全部模块' : MODULE_LABELS[v] ?? v)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">全部模块</SelectItem>
-              {Object.entries(MODULE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>
-                  {v}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">操作</Label>
-          <Input
-            className="w-full sm:w-36"
-            value={action}
-            onChange={(event) => {
-              setAction(event.target.value)
-              setPage(1)
-            }}
-            placeholder="如 create"
-          />
-        </div>
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">操作人 ID</Label>
-          <Input
-            type="number"
-            min="1"
-            className="w-full sm:w-32"
-            value={operatorId}
-            onChange={(event) => {
-              setOperatorId(event.target.value)
-              setPage(1)
-            }}
-            placeholder="用户 ID"
-          />
-        </div>
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">关键词</Label>
-          <Input
-            className="w-full sm:w-40"
-            value={keyword}
-            onChange={(event) => {
-              setKeyword(event.target.value)
-              setPage(1)
-            }}
-            placeholder="备注或目标"
-          />
-        </div>
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">开始日期</Label>
-          <Input
-            type="date"
-            className="w-full sm:w-40"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value)
-              setPage(1)
-            }}
-          />
-        </div>
-        <div className="w-full space-y-1.5 sm:w-auto">
-          <Label className="text-xs">结束日期</Label>
-          <Input
-            type="date"
-            className="w-full sm:w-40"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value)
-              setPage(1)
-            }}
-          />
-        </div>
-        <div className="w-full self-end sm:w-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setModule('')
-              setAction('')
-              setOperatorId('')
-              setKeyword('')
-              setStartDate('')
-              setEndDate('')
-              setPage(1)
-            }}
-            className="inline-flex h-9 w-full items-center justify-center rounded-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg transition-colors hover:bg-v2-surface-hover sm:w-auto"
-          >
-            重置
-          </button>
-        </div>
-      </FilterBar>
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
+    <DataManagementPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow="系统管理"
+          title="审计日志"
+          subtitle="记录所有写操作的模块、动作、操作人与目标对象，支持按模块与时间范围筛选。"
+          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '审计日志' }]} />}
+        />
+      }
+      filter={
+        <FilterBar
+          filterItems={
+            <>
+              <Field htmlFor="audit-module" label="模块">
+                <Select
+                  value={module || '__all__'}
+                  placeholder="全部模块"
+                  options={[
+                    { value: '__all__', label: '全部模块' },
+                    ...Object.entries(MODULE_LABELS).map(([value, label]) => ({ value, label })),
+                  ]}
+                  onChange={(value) => {
+                    setModule(value === '__all__' ? '' : value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="audit-action" label="操作">
+                <Input
+                  value={action}
+                  placeholder="如 create"
+                  onChange={(event) => {
+                    setAction(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="audit-operator" label="操作人 ID">
+                <Input
+                  type="number"
+                  min="1"
+                  value={operatorId}
+                  placeholder="用户 ID"
+                  onChange={(event) => {
+                    setOperatorId(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="audit-keyword" label="关键词">
+                <Input
+                  value={keyword}
+                  placeholder="备注或目标"
+                  onChange={(event) => {
+                    setKeyword(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="audit-start" label="开始日期">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => {
+                    setStartDate(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="audit-end" label="结束日期">
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => {
+                    setEndDate(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </Field>
+            </>
+          }
+          reset={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setModule('')
+                setAction('')
+                setOperatorId('')
+                setKeyword('')
+                setStartDate('')
+                setEndDate('')
+                setPage(1)
+              }}
+            >
+              重置
+            </Button>
+          }
+        />
+      }
+      content={
+        isError ? (
           <ErrorState
             title="审计日志加载失败"
             description="无法读取审计日志，请稍后重试。"
-            onRetry={() => refetch()}
+            retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
           />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={records}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          empty={{ title: '暂无审计日志', description: '当前筛选条件下没有操作记录。' }}
-        />
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-sm text-v2-muted">
-          第 <span className="font-semibold text-v2-fg tabular-nums">{page}</span> 页，每页 {size} 条
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled={!hasMore}
-            onClick={() => setPage((p) => p + 1)}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-v2-border bg-v2-surface px-2 text-v2-fg transition-colors hover:bg-v2-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </PageShell>
+        ) : isLoading ? (
+          <LoadingState label="正在加载审计日志…" />
+        ) : records.length === 0 ? (
+          <EmptyState title="暂无审计日志" description="当前筛选条件下没有操作记录。" />
+        ) : (
+          <div className="cwgsyw-form">
+            <Table
+              showSearch={false}
+              columns={[
+                { key: 'createdAt', label: '时间' },
+                { key: 'module', label: '模块' },
+                { key: 'action', label: '操作' },
+                { key: 'operatorName', label: '操作人' },
+                { key: 'target', label: '目标' },
+                { key: 'remark', label: '备注' },
+                { key: 'snapshot', label: '变更快照' },
+                { key: 'operatorIp', label: 'IP' },
+              ]}
+              rows={records.map((record) => ({
+                id: String(record.id),
+                cells: {
+                  createdAt: new Date(record.createdAt).toLocaleString('zh-CN'),
+                  module: MODULE_LABELS[record.module] ?? record.module,
+                  action: <StatusBadge label={record.action} status={ACTION_TONE[record.action] ?? 'neutral'} />,
+                  operatorName: record.operatorName,
+                  target: `${record.targetType}${record.targetId ? ` #${record.targetId}` : ''}`,
+                  remark: record.remark,
+                  snapshot: `前：${snapshotSummary(record.beforeJson)}；后：${snapshotSummary(record.afterJson)}`,
+                  operatorIp: record.operatorIp,
+                },
+              }))}
+            />
+            {data ? <Pagination page={page} pageCount={pageCount} totalCount={data.total} onPageChange={setPage} /> : null}
+          </div>
+        )
+      }
+    />
   )
 }

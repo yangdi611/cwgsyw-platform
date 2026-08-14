@@ -4,9 +4,10 @@
 
 本目录是 `cwgsyw-platform` 的 Figma Neutral 设计与前端迁移统一资料包。`design-source/` 保存设计事实，其余文档负责迁移顺序、页面覆盖、验证闭环、进度与回滚。
 
-- Linear Issue: [YAN-10](https://linear.app/yangdi/issue/YAN-10/建立-figma-neutral-前端迁移计划与验证基线)
+- Linear Issue: [YAN-11](https://linear.app/yangdi/issue/YAN-11/实施-figma-neutral-m0token-pipeline-与视觉验证基线)
+- Planning baseline: [YAN-10](https://linear.app/yangdi/issue/YAN-10/建立-figma-neutral-前端迁移计划与验证基线)
 - Figma file: [CWGSYW UI - Variables](https://www.figma.com/design/Z8EC6psFOj7KMfXapAFk24/CWGSYW-UI---Variables)
-- 当前阶段：迁移基线已建立，React 实现尚未开始。
+- 当前阶段：M7 真实页面迁移。活刀是 YAN-71 `/workflow/design`。现场指针见 [HANDOFF.md](./HANDOFF.md) 和 [STATUS.md](./STATUS.md)。
 
 ## 2. 同一资料包内的职责边界
 
@@ -47,16 +48,18 @@
 | [PAGE-MIGRATION-MATRIX.md](./PAGE-MIGRATION-MATRIX.md) | 全路由域覆盖、Pattern 映射和逐页台账模板 |
 | [VISUAL-VALIDATION-RUNBOOK.md](./VISUAL-VALIDATION-RUNBOOK.md) | Light / Dark x 1440 / 1024 / 390 视觉闭环 |
 | [STATUS.md](./STATUS.md) | 当前指针、已完成项、阻塞项和下一步 |
-| [DELIVERY-REPORT.md](./DELIVERY-REPORT.md) | YAN-10 交付范围、验证、风险与回滚证据 |
+| [HANDOFF.md](./HANDOFF.md) | 换会话接手：活刀路径、剩余页面、YAN-71 合同 |
+| [goal-prompts/README.md](./goal-prompts/README.md) | Goal 模式短/长 Prompt 和使用方式 |
+| [DELIVERY-REPORT.md](./DELIVERY-REPORT.md) | YAN-10 规划基线交付报告；YAN-11 证据将另建 |
 
 ## 6. 开始后续实现
 
-后续每个可独立验证的垂直切片必须创建自己的 Linear Issue、分支和 worktree。开始编码前：
+YAN-11 已具备独立 Issue、分支和 worktree。要用 Goal 一镜实施时：
 
-1. 读取本目录和设计源合同。
-2. 回读实时 Figma，并按 Node ID、完整名称和 API 指纹验证目标资产。
-3. 从页面矩阵选定消费者与业务状态。
-4. 写清切片范围、非目标、影响、验证和回滚。
-5. 先完成共享层，再迁移选定页面并执行视觉闭环。
+1. 把 [goal-prompts/SHORT-GOAL-PROMPT.md](./goal-prompts/SHORT-GOAL-PROMPT.md) 的「短 Goal」贴进 Codex Goal。
+2. AI 必须先读 [goal-prompts/LONG-GOAL-PROMPT.md](./goal-prompts/LONG-GOAL-PROMPT.md) 和本目录合同。
+3. 从 `STATUS.md` 的 `currentPointer` 恢复；当前先做 M0，不要跳去改页面。
+4. 回读实时 Figma，按 Node ID、完整名称和 API 指纹验证目标资产。
+5. 未再授权不 commit、不 push、不建 PR、不部署。
 
 本资料包受仓库 `docs/*` 忽略规则影响，提交时必须精确强制加入本目录，禁止顺带加入其他被忽略资料。设计源与迁移执行文档必须在同一评审和版本边界内保持一致。

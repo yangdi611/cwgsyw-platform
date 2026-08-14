@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { IconButton } from '@/design-system/figma-neutral/components'
 import api from '@/lib/api'
 
 /**
@@ -101,10 +101,10 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
   }
 
   if (failed) {
-    return <span className="text-xs text-v2-muted">[图片加载失败]</span>
+    return <span className="text-xs text-[var(--cwgsyw-text-secondary)]">[图片加载失败]</span>
   }
   if (!resolvedSrc) {
-    return <span className="text-xs text-v2-subtle">图片加载中…</span>
+    return <span className="text-xs text-[var(--cwgsyw-text-tertiary)]">图片加载中…</span>
   }
 
   return (
@@ -126,21 +126,24 @@ export function WikiImage({ src, alt, lightbox = false }: { src?: string; alt?: 
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80"
+            className="cwgsyw-overlay-scrim flex items-center justify-center"
+            style={{ zIndex: 1000 }}
             onClick={() => setOpen(false)}
             onWheel={handleWheel}
           >
-            <button
+            <IconButton
               type="button"
+              variant="primary"
+              size="md"
+              icon="close"
               aria-label="关闭"
+              className="fixed right-6 top-6"
+              style={{ zIndex: 1001 }}
               onClick={(e) => {
                 e.stopPropagation()
                 setOpen(false)
               }}
-              className="fixed right-6 top-6 z-[1001] flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={resolvedSrc}

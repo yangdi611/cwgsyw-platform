@@ -2,12 +2,11 @@
 
 import dynamic from 'next/dynamic'
 import { useMemo, useRef, useState } from 'react'
-import { Button } from '@/components/design-system'
-import { Minus, Plus, RotateCcw } from 'lucide-react'
+import { Button, PageHeader } from '@/design-system/figma-neutral/components'
 
 const SpatialCanvasStage = dynamic(
   () => import('./SpatialCanvasStage').then((module) => module.SpatialCanvasStage),
-  { ssr: false, loading: () => <div className="h-[620px] animate-pulse rounded-v2-md bg-v2-surface-soft" /> },
+  { ssr: false, loading: () => <div className="cwgsyw-type-body-sm">加载画布…</div> },
 )
 
 const SLOT_COUNT = 500
@@ -23,32 +22,22 @@ export function SpatialCanvasSpike() {
     y: 120 + Math.floor(index / 25) * 46,
   })), [])
 
-  const resetViewport = () => {
-    setScale(0.65)
-    setPosition({ x: 28, y: 28 })
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-v2-fg">空间画布技术验证</h1>
-          <p className="mt-1 text-sm text-v2-muted">500 个机柜位，支持平移、缩放和不规则机房轮廓。</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" title="缩小" onClick={() => setScale((current) => Math.max(0.25, current - 0.1))}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-14 text-center text-xs tabular-nums text-v2-muted">{Math.round(scale * 100)}%</span>
-          <Button variant="outline" size="icon" title="放大" onClick={() => setScale((current) => Math.min(1.5, current + 0.1))}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" title="重置视图" onClick={resetViewport}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div ref={stageRef} className="h-[620px] overflow-hidden rounded-v2-md border border-v2-border bg-v2-surface">
+    <div className="cwgsyw-stack-list">
+      <PageHeader
+        eyebrow="CMDB"
+        title="空间画布技术验证"
+        subtitle="500 个机柜位，支持平移、缩放和不规则机房轮廓。"
+        actions={
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" size="sm" variant="secondary" onClick={() => setScale((current) => Math.max(0.25, current - 0.1))}>缩小</Button>
+            <span className="cwgsyw-type-label-sm">{Math.round(scale * 100)}%</span>
+            <Button type="button" size="sm" variant="secondary" onClick={() => setScale((current) => Math.min(1.5, current + 0.1))}>放大</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => { setScale(0.65); setPosition({ x: 28, y: 28 }) }}>重置视图</Button>
+          </div>
+        }
+      />
+      <div ref={stageRef} className="cwgsyw-card">
         <SpatialCanvasStage slots={slots} scale={scale} position={position} onPositionChange={setPosition} />
       </div>
     </div>

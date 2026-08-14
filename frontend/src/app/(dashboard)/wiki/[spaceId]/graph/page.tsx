@@ -1,27 +1,34 @@
 'use client'
 
-import { useMemo, useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import {
-  ReactFlow,
   Background,
   Controls,
   MiniMap,
   MarkerType,
-  type Node,
+  ReactFlow,
   type Edge,
+  type Node,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { ArrowLeft } from 'lucide-react'
 import type { WikiGraph } from '@/types/wiki'
-import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DashboardFeedbackPage,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 function statusColor(status: string): string {
-  return status === 'published' ? '#22c55e' : '#94a3b8'
+  return status === 'published' ? 'var(--cwgsyw-status-success-200)' : 'var(--cwgsyw-bg-surface-subtle)'
 }
 
 export default function WikiGraphPage() {
@@ -41,17 +48,18 @@ export default function WikiGraphPage() {
   })
 
   const { data: spaces } = useQuery({ queryKey: ['wiki-spaces'], queryFn: wikiApi.listSpaces })
-  useBreadcrumbLabel(spaces?.find((s) => s.id === sid)?.name)
+  const spaceName = spaces?.find((space) => space.id === sid)?.name
+  useBreadcrumbLabel(spaceName)
 
   const nodes: Node[] = useMemo(() => {
-    return (data?.nodes ?? []).map((n, i) => ({
-      id: String(n.id),
-      position: { x: (i % 8) * 180, y: Math.floor(i / 8) * 120 },
-      data: { label: n.title },
+    return (data?.nodes ?? []).map((node, index) => ({
+      id: String(node.id),
+      position: { x: (index % 8) * 180, y: Math.floor(index / 8) * 120 },
+      data: { label: node.title },
       style: {
-        background: statusColor(n.status),
-        color: '#0f172a',
-        border: '1px solid rgba(0,0,0,0.15)',
+        background: statusColor(node.status),
+        color: 'var(--cwgsyw-text-primary)',
+        border: '1px solid var(--cwgsyw-border-default)',
         borderRadius: 8,
         padding: '6px 12px',
         fontSize: 12,
@@ -63,55 +71,59 @@ export default function WikiGraphPage() {
   }, [data])
 
   const edges: Edge[] = useMemo(() => {
-    return (data?.edges ?? []).map((e, i) => ({
-      id: `e-${e.source}-${e.target}-${i}`,
-      source: String(e.source),
-      target: String(e.target),
+    return (data?.edges ?? []).map((edge, index) => ({
+      id: `e-${edge.source}-${edge.target}-${index}`,
+      source: String(edge.source),
+      target: String(edge.target),
       markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: '#94a3b8' },
+      style: { stroke: 'var(--cwgsyw-border-strong)' },
     }))
   }, [data])
 
   return (
-    <WorkspaceShell
-      height="parent"
-      className="-m-6"
-      toolbar={(
-        <WorkspaceToolbar
-          leading={(
-            <button
-              onClick={() => router.push(`/wiki/${sid}`)}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-v2-sm px-2.5 text-sm font-medium text-v2-muted transition-colors hover:bg-v2-surface-soft hover:text-v2-fg"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              返回空间
-            </button>
-          )}
+    <DashboardFeedbackPage
+      header={
+        <PageHeader
+          eyebrow="知识空间"
           title="知识图谱"
           subtitle={`${nodes.length} 个页面，${edges.length} 条引用`}
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/wiki', label: '知识空间' },
+                { href: `/wiki/${sid}`, label: spaceName ?? '空间' },
+                { label: '知识图谱' },
+              ]}
+            />
+          }
+          actions={
+            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}`)}>
+              返回空间
+            </Button>
+          }
         />
-      )}
-    >
-      <div className="min-h-0 flex-1">
-        {isLoading ? (
-          <div className="flex h-full items-center justify-center text-sm text-v2-muted">加载中…</div>
+      }
+      feedback={
+        isLoading ? (
+          <LoadingState label="正在加载知识图谱…" />
         ) : nodes.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-v2-muted">
-            暂无页面引用关系
-          </div>
+          <EmptyState title="暂无页面引用关系" description="当前空间还没有可展示的引用关系。" />
         ) : (
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            fitView
-            onNodeClick={(_e, node) => router.push(`/wiki/${sid}/${node.id}`)}
-          >
-            <Background />
-            <Controls />
-            <MiniMap nodeColor={(n) => (n.style?.background as string) ?? '#94a3b8'} pannable zoomable />
-          </ReactFlow>
-        )}
-      </div>
-    </WorkspaceShell>
+          <div className="cwgsyw-card cwgsyw-card--md" style={{ height: 560 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              fitView
+              onNodeClick={(_event, node) => router.push(`/wiki/${sid}/${node.id}`)}
+            >
+              <Background />
+              <Controls />
+              <MiniMap nodeColor={(node) => (node.style?.background as string) ?? 'var(--cwgsyw-bg-surface-subtle)'} pannable zoomable />
+            </ReactFlow>
+          </div>
+        )
+      }
+    />
   )
 }

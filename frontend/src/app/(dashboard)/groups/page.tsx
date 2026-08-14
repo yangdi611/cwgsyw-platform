@@ -1,19 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
-import { Button } from '@/components/design-system'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  PageHeader,
+  Table,
+} from '@/design-system/figma-neutral/components'
 import GroupDialog from '@/components/group/GroupDialog'
 import MemberDialog from '@/components/group/MemberDialog'
 import GroupLifecycleDialog, {
   type GroupLifecycleAction,
   type GroupLifecycleTarget,
 } from '@/components/group/GroupLifecycleDialog'
-import { ErrorState, PageHeader, PageShell, DataTable, type ColumnDef } from '@/components/shared'
-import { Plus, Archive, Pencil, RotateCcw, Trash2, Users } from 'lucide-react'
 
 interface Group {
   id: number
@@ -101,174 +110,178 @@ export default function GroupsPage() {
     })
   }
 
-  const columns: ColumnDef<Group>[] = [
-    {
-      key: 'name',
-      title: '组名称',
-      render: (r) => <span className="font-semibold text-v2-fg">{r.name}</span>,
-    },
-    {
-      key: 'description',
-      title: '描述',
-      render: (r) => <span className="text-v2-muted">{r.description || '-'}</span>,
-    },
-    {
-      key: 'leaderRealName',
-      title: '组长',
-      render: (r) => <span className="text-v2-fg">{r.leaderRealName || '-'}</span>,
-    },
-    {
-      key: 'memberCount',
-      title: '组员',
-      render: (r) => (
-        <div className="text-v2-muted">
-          <span className="font-semibold text-v2-fg tabular-nums">{r.memberCount ?? 0}</span> 人
-          {r.memberPreview && r.memberPreview.length > 0 && (
-            <span className="ml-2 text-xs">
-              {r.memberPreview.join(', ')}
-              {(r.memberCount ?? 0) > 3 ? ', …' : ''}
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: '组名称' },
+      { key: 'description', label: '描述' },
+      { key: 'leaderRealName', label: '组长' },
+      { key: 'memberCount', label: '组员' },
+      ...(canUpdate || canArchive || canPurge ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+    ],
+    [canArchive, canPurge, canUpdate],
+  )
+
+  const rows = groups.map((group) => ({
+    id: String(group.id),
+    disabled: group.isBuiltin,
+    cells: {
+      name: group.name,
+      description: group.description || '-',
+      leaderRealName: group.leaderRealName || '-',
+      memberCount: (
+        <span>
+          <strong>{group.memberCount ?? 0}</strong> 人
+          {group.memberPreview && group.memberPreview.length > 0 ? (
+            <span>
+              {' '}
+              {group.memberPreview.join(', ')}
+              {(group.memberCount ?? 0) > 3 ? ', …' : ''}
             </span>
-          )}
+          ) : null}
+        </span>
+      ),
+      actions: (
+        <div className="cwgsyw-inline-controls">
+          {listState === 'active' && canUpdate ? (
+            <Button type="button" variant="ghost" size="sm" disabled={group.isBuiltin} onClick={() => setMemberGroup(group)}>
+              成员
+            </Button>
+          ) : null}
+          {listState === 'active' && canUpdate ? (
+            <Button type="button" variant="ghost" size="sm" disabled={group.isBuiltin} onClick={() => handleEdit(group)}>
+              编辑
+            </Button>
+          ) : null}
+          {listState === 'active' && canArchive ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={group.isBuiltin}
+              aria-label={`归档用户组 ${group.name}`}
+              data-testid={`group-archive-${group.id}`}
+              onClick={() => openLifecycleDialog('archive', group)}
+            >
+              归档
+            </Button>
+          ) : null}
+          {listState === 'archived' && canUpdate ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={`恢复用户组 ${group.name}`}
+              data-testid={`group-restore-${group.id}`}
+              onClick={() => openLifecycleDialog('restore', group)}
+            >
+              恢复
+            </Button>
+          ) : null}
+          {listState === 'archived' && canPurge ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              leadingIcon="trash"
+              aria-label={`永久清除用户组 ${group.name}`}
+              data-testid={`group-purge-${group.id}`}
+              onClick={() => openLifecycleDialog('purge', group)}
+            >
+              清除
+            </Button>
+          ) : null}
         </div>
       ),
     },
-    ...(canUpdate || canArchive || canPurge
-      ? [
-          {
-            key: 'actions',
-            title: '操作',
-            align: 'right' as const,
-            render: (r: Group) => (
-              <div className="flex items-center justify-end gap-1">
-                {listState === 'active' && canUpdate && (
-                  <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => setMemberGroup(r)}>
-                    <Users className="h-3.5 w-3.5" />
-                    成员
-                  </Button>
-                )}
-                {listState === 'active' && canUpdate && (
-                  <Button variant="ghost" size="sm" disabled={r.isBuiltin} onClick={() => handleEdit(r)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    编辑
-                  </Button>
-                )}
-                {listState === 'active' && canArchive && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-v2-danger"
-                    disabled={r.isBuiltin}
-                    aria-label={`归档用户组 ${r.name}`}
-                    data-testid={`group-archive-${r.id}`}
-                    onClick={() => openLifecycleDialog('archive', r)}
-                  >
-                    <Archive className="h-3.5 w-3.5" />
-                    归档
-                  </Button>
-                )}
-                {listState === 'archived' && canUpdate && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`恢复用户组 ${r.name}`}
-                    data-testid={`group-restore-${r.id}`}
-                    onClick={() => openLifecycleDialog('restore', r)}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    恢复
-                  </Button>
-                )}
-                {listState === 'archived' && canPurge && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-v2-danger"
-                    aria-label={`永久清除用户组 ${r.name}`}
-                    data-testid={`group-purge-${r.id}`}
-                    onClick={() => openLifecycleDialog('purge', r)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    清除
-                  </Button>
-                )}
-              </div>
-            ),
-          },
-        ]
-      : []),
-  ]
+  }))
+
+  const tableState = isLoading ? 'loading' : groups.length === 0 ? 'empty' : 'data'
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="身份与权限"
-        title="用户组管理"
-        subtitle="按业务团队组织用户，配置组长与成员，支撑日报审批与数据可见性范围。"
-        actions={
-          canCreate ? (
-            <div className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto" variant="primary" onClick={handleNew}>
-                <Plus className="h-4 w-4" />
-                新建组
-              </Button>
-            </div>
-          ) : undefined
+    <>
+      <DataManagementPage
+        embedded
+        layout="default"
+        header={
+          <PageHeader
+            eyebrow="身份与权限"
+            title="用户组管理"
+            subtitle="按业务团队组织用户，配置组长与成员，支撑日报审批与数据可见性范围。"
+            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '用户组管理' }]} />}
+            actions={
+              canCreate ? (
+                <Button type="button" variant="primary" onClick={handleNew}>
+                  新建组
+                </Button>
+              ) : null
+            }
+          />
+        }
+        filter={
+          canViewArchived ? (
+            <FilterBar
+              filterItems={
+                <div className="cwgsyw-tabs cwgsyw-tabs--segmented cwgsyw-tabs--md" role="tablist" aria-label="用户组状态">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    role="tab"
+                    aria-selected={listState === 'active'}
+                    data-testid="group-state-active"
+                    className="cwgsyw-tab"
+                    onClick={() => setListState('active')}
+                  >
+                    活动组
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    role="tab"
+                    aria-selected={listState === 'archived'}
+                    data-testid="group-state-archived"
+                    className="cwgsyw-tab"
+                    onClick={() => setListState('archived')}
+                  >
+                    已归档
+                  </Button>
+                </div>
+              }
+            />
+          ) : null
+        }
+        content={
+          isError ? (
+            <ErrorState
+              title="用户组加载失败"
+              description="无法读取用户组列表，请稍后重试。"
+              retry={
+                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <Table
+                columns={columns}
+                rows={rows}
+                showSearch={false}
+                state={tableState}
+                loading={<LoadingState label="正在加载用户组…" />}
+                empty={
+                  <EmptyState
+                    title={listState === 'active' ? '暂无用户组' : '暂无已归档用户组'}
+                    description={listState === 'active' ? '点击右上角“新建组”创建第一个团队。' : '归档后的用户组会显示在这里。'}
+                  />
+                }
+              />
+              <p className="cwgsyw-type-body-sm">
+                共 <strong>{total}</strong> 个{listState === 'active' ? '活动组' : '已归档组'}
+              </p>
+            </>
+          )
         }
       />
-
-      {canViewArchived && (
-        <div className="flex w-fit max-w-full flex-wrap rounded-v2-md border border-v2-border bg-v2-surface p-1" role="tablist" aria-label="用户组状态">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={listState === 'active'}
-            data-testid="group-state-active"
-            className={listState === 'active'
-              ? 'rounded-v2-sm bg-v2-primary px-4 py-2 text-sm font-semibold text-white'
-              : 'rounded-v2-sm px-4 py-2 text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover'}
-            onClick={() => setListState('active')}
-          >
-            活动组
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={listState === 'archived'}
-            data-testid="group-state-archived"
-            className={listState === 'archived'
-              ? 'rounded-v2-sm bg-v2-primary px-4 py-2 text-sm font-semibold text-white'
-              : 'rounded-v2-sm px-4 py-2 text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover'}
-            onClick={() => setListState('archived')}
-          >
-            已归档
-          </button>
-        </div>
-      )}
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
-          <ErrorState
-            title="用户组加载失败"
-            description="无法读取用户组列表，请稍后重试。"
-            onRetry={() => refetch()}
-          />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={groups}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          empty={listState === 'active'
-            ? { title: '暂无用户组', description: '点击右上角"新建组"创建第一个团队。' }
-            : { title: '暂无已归档用户组', description: '归档后的用户组会显示在这里。' }}
-        />
-      )}
-
-      <div className="text-sm text-v2-muted">
-        共 <span className="font-semibold text-v2-fg tabular-nums">{total}</span> 个{listState === 'active' ? '活动组' : '已归档组'}
-      </div>
 
       <GroupDialog
         open={dialogOpen}
@@ -282,21 +295,25 @@ export default function GroupsPage() {
         groupId={memberGroup?.id ?? 0}
         groupName={memberGroup?.name ?? ''}
         open={!!memberGroup}
-        onOpenChange={(o) => !o && setMemberGroup(null)}
+        onOpenChange={(open) => {
+          if (!open) setMemberGroup(null)
+        }}
       />
 
-      {lifecycleDialog && (
+      {lifecycleDialog ? (
         <GroupLifecycleDialog
           action={lifecycleDialog.action}
           target={lifecycleDialog.target}
           open
-          onOpenChange={(open) => { if (!open) setLifecycleDialog(null) }}
+          onOpenChange={(open) => {
+            if (!open) setLifecycleDialog(null)
+          }}
           onSuccess={async () => {
             await invalidateGroupQueries()
             await refetch()
           }}
         />
-      )}
-    </PageShell>
+      ) : null}
+    </>
   )
 }

@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button, Input, Label } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import { Button, Field, Input } from '@/design-system/figma-neutral/components'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { changeAccountPassword } from '@/lib/account-api'
 import { inspectPassword } from '@/lib/password-policy'
-import { PasswordStrengthHints } from './PasswordStrengthHints'
+import { NeutralPasswordHints } from './NeutralPasswordHints'
 
 interface PasswordFormData {
   currentPassword: string
@@ -23,7 +23,13 @@ interface PasswordFormProps {
 /** 用户自助修改密码表单（SPEC 11.2 POST /api/account/password）。 */
 export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
   const [submitting, setSubmitting] = useState(false)
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<PasswordFormData>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<PasswordFormData>({
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   })
 
@@ -48,34 +54,38 @@ export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="currentPassword">当前密码</Label>
+    <form className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <Field
+        htmlFor="currentPassword"
+        label="当前密码"
+        required
+        state={errors.currentPassword ? 'error' : 'default'}
+        errorText={errors.currentPassword?.message}
+      >
         <Input
-          id="currentPassword"
           type="password"
+          autoComplete="current-password"
           {...register('currentPassword', { required: '请输入当前密码' })}
         />
-        {errors.currentPassword && (
-          <p className="text-sm text-v2-danger">{errors.currentPassword.message}</p>
-        )}
+      </Field>
+      <Field htmlFor="newPassword" label="新密码" required>
+        <Input type="password" autoComplete="new-password" {...register('newPassword', { required: true })} />
+      </Field>
+      <NeutralPasswordHints username={username} password={newPassword} />
+      <Field
+        htmlFor="confirmPassword"
+        label="确认新密码"
+        required
+        state={confirmMismatch ? 'error' : 'default'}
+        errorText={confirmMismatch ? '两次输入的密码不一致' : undefined}
+      >
+        <Input type="password" autoComplete="new-password" {...register('confirmPassword', { required: true })} />
+      </Field>
+      <div className="cwgsyw-form__actions">
+        <Button type="submit" variant="primary" loading={submitting}>
+          {submitting ? '提交中…' : '修改密码'}
+        </Button>
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="newPassword">新密码</Label>
-        <Input id="newPassword" type="password" {...register('newPassword', { required: true })} />
-        <PasswordStrengthHints username={username} password={newPassword} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">确认新密码</Label>
-        <Input id="confirmPassword" type="password" {...register('confirmPassword', { required: true })} />
-        {confirmMismatch && <p className="text-sm text-v2-danger">两次输入的密码不一致</p>}
-      </div>
-
-      <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
-        {submitting ? '提交中…' : '修改密码'}
-      </Button>
     </form>
   )
 }

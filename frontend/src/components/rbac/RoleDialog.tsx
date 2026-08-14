@@ -3,9 +3,16 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
+import {
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  NeutralDialog,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 interface Permission {
   id: number
@@ -103,8 +110,7 @@ export function RoleDialog({ open, role, onClose, onSuccess }: RoleDialogProps) 
 
   const { data: assignedPermissions = [] } = useQuery({
     queryKey: ['role-permissions', role?.id],
-    queryFn: () => api.get(`/rbac/roles/${role!.id}/permissions`)
-      .then((response) => response.data.data as Permission[]),
+    queryFn: () => api.get(`/rbac/roles/${role!.id}/permissions`).then((response) => response.data.data as Permission[]),
     enabled: open && !!role,
   })
 
@@ -173,78 +179,85 @@ function RoleDialogForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{role ? '编辑功能角色' : '新建功能角色'}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <label className="block space-y-1.5 text-sm font-medium text-v2-fg">
-            角色名称
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：Wiki 只读测试员" />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium text-v2-fg">
-            角色编码
-            <Input
-              value={code}
-              disabled={!!role}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="例如：wiki_readonly_tester"
-            />
-            <span className="block text-xs font-normal text-v2-muted">小写字母开头，只能包含小写字母、数字和下划线。</span>
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium text-v2-fg">
-            描述
-            <Textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-          </label>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-v2-fg">功能权限</p>
-              <span className="text-xs text-v2-muted">已选 {permissionIds.length} / {permissions.length} 项</span>
-            </div>
-            <div className="max-h-80 space-y-3 overflow-y-auto rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
-              {permissionGroups.map((group) => {
-                const selectedCount = group.permissions.filter((permission) => permissionIds.includes(permission.id)).length
-                const isFullySelected = selectedCount === group.permissions.length
-                return (
-                  <section key={group.key} className="overflow-hidden rounded-v2-md border border-v2-border bg-v2-surface">
-                    <div className="flex items-center justify-between gap-3 border-b border-v2-border bg-v2-surface-soft px-3 py-2">
-                      <div>
-                        <h3 className="text-sm font-semibold text-v2-fg">{group.label}</h3>
-                        <p className="text-xs text-v2-muted">已选 {selectedCount} / {group.permissions.length} 项</p>
-                      </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroup(group)}>
-                        {isFullySelected ? '取消全选' : '全选本组'}
-                      </Button>
+    <NeutralDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose()
+      }}
+      title={role ? '编辑功能角色' : '新建功能角色'}
+      size="lg"
+      showClose={false}
+      footer={
+        <div className="cwgsyw-form__actions">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            取消
+          </Button>
+          <Button type="button" variant="primary" loading={saving} onClick={save}>
+            {saving ? '保存中…' : '保存'}
+          </Button>
+        </div>
+      }
+    >
+      <div className="cwgsyw-form">
+        <Field htmlFor="role-name" label="角色名称" required>
+          <Input id="role-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：Wiki 只读测试员" />
+        </Field>
+        <Field
+          htmlFor="role-code"
+          label="角色编码"
+          helperText="小写字母开头，只能包含小写字母、数字和下划线。"
+          state={role ? 'disabled' : 'default'}
+        >
+          <Input
+            id="role-code"
+            value={code}
+            disabled={!!role}
+            onChange={(event) => setCode(event.target.value)}
+            placeholder="例如：wiki_readonly_tester"
+          />
+        </Field>
+        <Field htmlFor="role-description" label="描述">
+          <Textarea id="role-description" value={description} onChange={(event) => setDescription(event.target.value)} />
+        </Field>
+        <div>
+          <div className="cwgsyw-inline-controls">
+            <div className="cwgsyw-type-label-sm">功能权限</div>
+            <span className="cwgsyw-type-label-xs">已选 {permissionIds.length} / {permissions.length} 项</span>
+          </div>
+          <div className="cwgsyw-stack-list">
+            {permissionGroups.map((group) => {
+              const selectedCount = group.permissions.filter((permission) => permissionIds.includes(permission.id)).length
+              const isFullySelected = selectedCount === group.permissions.length
+              return (
+                <section key={group.key} className="cwgsyw-permission-group">
+                  <div className="cwgsyw-permission-group__head">
+                    <div>
+                      <h3 className="cwgsyw-type-title-sm">{group.label}</h3>
+                      <p className="cwgsyw-type-label-xs">已选 {selectedCount} / {group.permissions.length} 项</p>
                     </div>
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-1 p-2 sm:grid-cols-2">
-                      {group.permissions.map((permission) => {
-                        const action = getPermissionAction(permission)
-                        return (
-                          <label key={permission.id} className="flex cursor-pointer items-start gap-2 rounded-v2-sm px-2 py-2 text-sm text-v2-fg hover:bg-v2-surface-hover">
-                            <Checkbox
-                              checked={permissionIds.includes(permission.id)}
-                              onCheckedChange={() => togglePermission(permission.id)}
-                            />
-                            <span className="min-w-0">
-                              <span className="block font-medium">{getPermissionName(permission)} · {actionLabels[action] ?? action}</span>
-                              <span className="block truncate text-xs text-v2-muted">{permission.code}</span>
-                            </span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </section>
-                )
-              })}
-            </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroup(group)}>
+                      {isFullySelected ? '取消全选' : '全选本组'}
+                    </Button>
+                  </div>
+                  <div className="cwgsyw-permission-group__body cwgsyw-permission-grid">
+                    {group.permissions.map((permission) => {
+                      const action = getPermissionAction(permission)
+                      return (
+                        <Checkbox
+                          key={permission.id}
+                          checked={permissionIds.includes(permission.id)}
+                          onChange={() => togglePermission(permission.id)}
+                          label={`${getPermissionName(permission)} · ${actionLabels[action] ?? action}（${permission.code}）`}
+                        />
+                      )
+                    })}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>取消</Button>
-          <Button variant="primary" disabled={saving} onClick={save}>{saving ? '保存中…' : '保存'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </NeutralDialog>
   )
 }

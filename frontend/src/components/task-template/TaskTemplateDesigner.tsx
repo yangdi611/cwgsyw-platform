@@ -2,12 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Eye, FileCheck2, LockKeyhole, Save } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { ErrorState, LoadingState, WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
-import { Button, Card, Input, Label, StatusBadge, Textarea } from '@/components/design-system'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import {
   getTaskTemplateVersion,
@@ -23,11 +19,33 @@ import {
   type TemplatePreview,
   type TemplateValidationIssue,
 } from '@/lib/task-template-api'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  FormSettingsPage,
+  Input,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 import { FieldLibrary } from './FieldLibrary'
 import { FormCanvas } from './FormCanvas'
 import { FieldPropertyPanel } from './FieldPropertyPanel'
 import { TemplatePreviewDialog } from './TemplatePreviewDialog'
 import { createTaskField, normalizeFieldOrder } from './designer-utils'
+
+const VERSION_STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  draft: { label: '草稿', tone: 'warning' },
+  published: { label: '已发布', tone: 'success' },
+  deprecated: { label: '已废弃', tone: 'neutral' },
+  archived: { label: '已归档', tone: 'neutral' },
+}
 
 export function TaskTemplateDesigner({ templateId, versionId }: { templateId: number; versionId: number }) {
   const versionQuery = useQuery({
@@ -39,8 +57,19 @@ export function TaskTemplateDesigner({ templateId, versionId }: { templateId: nu
     queryKey: ['task-field-types'],
     queryFn: listTaskFieldTypes,
   })
-  if (versionQuery.isLoading || fieldTypesQuery.isLoading) return <LoadingState />
-  if (versionQuery.isError || fieldTypesQuery.isError) return <ErrorState title="模板设计器加载失败" onRetry={() => { versionQuery.refetch(); fieldTypesQuery.refetch() }} />
+  if (versionQuery.isLoading || fieldTypesQuery.isLoading) return <LoadingState label="正在加载模板设计器…" />
+  if (versionQuery.isError || fieldTypesQuery.isError) {
+    return (
+      <ErrorState
+        title="模板设计器加载失败"
+        retry={
+          <Button type="button" variant="secondary" onClick={() => { void versionQuery.refetch(); void fieldTypesQuery.refetch() }}>
+            重试
+          </Button>
+        }
+      />
+    )
+  }
   if (!versionQuery.data || !fieldTypesQuery.data) return <ErrorState title="模板设计器数据不完整" />
 
   return (
@@ -78,6 +107,7 @@ function TaskTemplateDesignerWorkspace({
   )
   const selectedField = draft.fields.find((field) => field.key === selectedKey)
   const readOnly = draft.status !== 'draft'
+  const status = VERSION_STATUS[draft.status] ?? { label: draft.status, tone: 'neutral' as const }
 
   const updateDraft = (updates: Partial<TaskTemplateVersion>) => setDraft((current) => current ? { ...current, ...updates } : current)
   const updateField = (nextField: TaskFieldDefinition) => {
@@ -180,54 +210,69 @@ function TaskTemplateDesignerWorkspace({
   }
 
   return (
-    <WorkspaceShell
-      height="viewport"
-      className="-m-4 md:-m-6"
-      toolbar={(
-        <WorkspaceToolbar
+    <FormSettingsPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow={`统一任务平台 · v${draft.version}`}
           title={draft.name}
-          subtitle={readOnly ? `任务模板 · v${draft.version} · 此版本已发布或废弃，只读展示不可变快照。` : `任务模板 · v${draft.version} · 配置字段、校验、条件、公式、可见性和统计语义。`}
+          subtitle={readOnly ? '此版本已发布或废弃，只读展示不可变快照。' : '配置字段、校验、条件、公式、可见性和统计语义。'}
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/tasks', label: '我的任务' },
+                { href: '/tasks/templates', label: '任务模板' },
+                { href: `/tasks/templates/${templateId}`, label: '模板详情' },
+                { label: `v${draft.version}` },
+              ]}
+            />
+          }
+          status={<StatusBadge label={status.label} status={status.tone} />}
           actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/tasks/templates/${templateId}`}><Button variant="ghost"><ArrowLeft className="h-4 w-4" />版本历史</Button></Link>
-            <Button variant="secondary" onClick={() => handlePreview('executor')}><Eye className="h-4 w-4" />执行人预览</Button>
-            <Button variant="secondary" onClick={() => handlePreview('approver')}><Eye className="h-4 w-4" />审批人预览</Button>
-            {!readOnly && <Button variant="secondary" disabled={Boolean(busy)} onClick={handleSave}><Save className="h-4 w-4" />保存</Button>}
-            {!readOnly && <Button variant="secondary" disabled={Boolean(busy)} onClick={handleValidate}><FileCheck2 className="h-4 w-4" />校验</Button>}
-            {!readOnly && <Button variant="primary" disabled={Boolean(busy)} onClick={handlePublish}><LockKeyhole className="h-4 w-4" />发布并锁定</Button>}
-          </div>
+            <div className="cwgsyw-designer__actions">
+              <Button type="button" variant="ghost" onClick={() => router.push(`/tasks/templates/${templateId}`)}>版本历史</Button>
+              <Button type="button" variant="secondary" onClick={() => void handlePreview('executor')}>执行人预览</Button>
+              <Button type="button" variant="secondary" onClick={() => void handlePreview('approver')}>审批人预览</Button>
+              {!readOnly && <Button type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleSave()}>{busy === 'save' ? '保存中' : '保存'}</Button>}
+              {!readOnly && <Button type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleValidate()}>{busy === 'validate' ? '校验中' : '校验'}</Button>}
+              {!readOnly && <Button type="button" variant="primary" disabled={Boolean(busy)} onClick={() => void handlePublish()}>{busy === 'publish' ? '发布中' : '发布并锁定'}</Button>}
+            </div>
           }
         />
-      )}
-    >
-      <div className="min-h-0 overflow-y-auto p-4 md:p-6">
-      <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1"><Label>版本名称</Label><Input disabled={readOnly} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} /></div>
-          <div className="space-y-1"><Label>状态</Label><div className="h-9 pt-1"><StatusBadge status={draft.status === 'published' ? 'ok' : draft.status === 'draft' ? 'warn' : 'neutral'}>{draft.status}</StatusBadge></div></div>
-          <div className="space-y-1 md:col-span-2"><Label>描述</Label><Input disabled={readOnly} value={draft.description ?? ''} onChange={(event) => updateDraft({ description: event.target.value })} /></div>
-          <div className="space-y-1 md:col-span-2"><Label>执行说明</Label><Textarea disabled={readOnly} value={draft.instructions ?? ''} onChange={(event) => updateDraft({ instructions: event.target.value })} rows={3} /></div>
+      }
+      form={
+        <div className="cwgsyw-form">
+          <Card title="版本信息" description="名称和说明会随草稿一起保存。">
+            <div className="cwgsyw-form">
+              <Field label="版本名称">
+                <Input disabled={readOnly} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
+              </Field>
+              <Field label="描述">
+                <Input disabled={readOnly} value={draft.description ?? ''} onChange={(event) => updateDraft({ description: event.target.value })} />
+              </Field>
+              <Field label="执行说明">
+                <Textarea disabled={readOnly} value={draft.instructions ?? ''} onChange={(event) => updateDraft({ instructions: event.target.value })} rows={3} />
+              </Field>
+            </div>
+          </Card>
+          {issues.length > 0 ? (
+            <Alert
+              tone="warning"
+              title={`发布前校验问题（${issues.length}）`}
+              description={issues.map((issue) => `${issue.fieldKey || issue.path} · ${issue.message}`).join('；')}
+              showDismiss={false}
+            />
+          ) : null}
+          <div className="cwgsyw-designer">
+            <FieldLibrary fieldTypes={fieldTypes} disabled={readOnly} onAdd={addField} />
+            <FormCanvas fields={draft.fields} selectedKey={selectedKey} readOnly={readOnly} onSelect={setSelectedKey} onMove={moveField} onRemove={removeField} />
+            <FieldPropertyPanel field={selectedField} fieldType={selectedField ? fieldTypeMap.get(selectedField.type) : undefined} readOnly={readOnly} onChange={updateField} />
+          </div>
+          <TemplatePreviewDialog open={previewOpen} role={previewRole} preview={preview} loading={busy === 'preview'} onOpenChange={setPreviewOpen} />
         </div>
-      </Card>
-
-      {issues.length > 0 && (
-        <Card className="border border-v2-warning-border bg-v2-warning-soft p-4">
-          <h2 className="font-semibold text-v2-warning">发布前校验问题（{issues.length}）</h2>
-          <div className="mt-2 space-y-1">{issues.map((issue, index) => <p key={`${issue.code}-${issue.fieldKey}-${index}`} className="text-sm text-v2-warning"><span className="font-v2-mono text-xs">{issue.fieldKey || issue.path}</span> · {issue.message}</p>)}</div>
-        </Card>
-      )}
-
-      <Card className="overflow-hidden p-0">
-        <div className="grid min-w-[1100px] grid-cols-[260px_minmax(520px,1fr)_330px]">
-          <FieldLibrary fieldTypes={fieldTypes} disabled={readOnly} onAdd={addField} />
-          <FormCanvas fields={draft.fields} selectedKey={selectedKey} readOnly={readOnly} onSelect={setSelectedKey} onMove={moveField} onRemove={removeField} />
-          <FieldPropertyPanel field={selectedField} fieldType={selectedField ? fieldTypeMap.get(selectedField.type) : undefined} readOnly={readOnly} onChange={updateField} />
-        </div>
-      </Card>
-
-      <TemplatePreviewDialog open={previewOpen} role={previewRole} preview={preview} loading={busy === 'preview'} onOpenChange={setPreviewOpen} />
-      </div>
-    </WorkspaceShell>
+      }
+    />
   )
 }
 

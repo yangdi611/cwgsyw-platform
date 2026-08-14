@@ -2,15 +2,14 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/design-system'
-import { Minus, Plus, Scan } from 'lucide-react'
+import { Button } from '@/design-system/figma-neutral/components'
 import { pointsToPixels, rectToPixels, viewportForDocument } from '../model/geometry'
 import type { SpatialDocument, SpatialElement, SpatialRuntime } from '../model/types'
 import type { SpatialLayer } from './SpatialCanvasStage'
 
 const SpatialCanvasStage = dynamic(() => import('./SpatialCanvasStage').then((module) => module.SpatialCanvasStage), {
   ssr: false,
-  loading: () => <div className="h-full animate-pulse bg-v2-surface-soft" />,
+  loading: () => <div className="h-full animate-pulse " />,
 })
 
 interface SpatialViewerCanvasProps { document: SpatialDocument; runtime?: SpatialRuntime; layer: SpatialLayer; selectedElementId?: string; highlightedElementId?: string; focusElementId?: string; onSelect: (element: SpatialElement) => void }
@@ -43,16 +42,16 @@ export function SpatialViewerCanvas({ document, runtime, layer, selectedElementI
     const frame = requestAnimationFrame(() => setViewport({ scale, x: size.width / 2 - (bounds.x + bounds.width / 2) * scale, y: size.height / 2 - (bounds.y + bounds.height / 2) * scale }))
     return () => cancelAnimationFrame(frame)
   }, [document, focusElementId, size.height, size.width])
-  return <div ref={container} role="region" aria-label="机房空间布局画布" className="relative h-full min-h-[460px] overflow-hidden bg-v2-surface">
+  return <div ref={container} role="region" aria-label="机房空间布局画布" className="relative h-full min-h-[460px] overflow-hidden">
     <SpatialCanvasStage document={document} runtime={runtime} layer={layer} width={size.width} height={size.height}
       referenceImageUrl={document.reference?.assetId && document.reference.visibleInPublishedView ? `/api/cmdb/spatial/assets/${document.reference.assetId}/content` : undefined}
       scale={viewport.scale} position={{ x: viewport.x, y: viewport.y }} onPositionChange={(position) => setViewport((current) => ({ ...current, ...position }))}
       selectedElementId={selectedElementId} highlightedElementId={highlightedElementId} onSelect={onSelect} />
-    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-v2-sm border border-v2-border bg-v2-surface p-1 shadow-sm">
-      <Button variant="ghost" size="icon" title="缩小" onClick={() => setViewport((current) => ({ ...current, scale: Math.max(0.1, current.scale - 0.1) }))}><Minus className="h-4 w-4" /></Button>
-      <span className="w-11 text-center text-xs tabular-nums text-v2-muted">{Math.round(viewport.scale * 100)}%</span>
-      <Button variant="ghost" size="icon" title="放大" onClick={() => setViewport((current) => ({ ...current, scale: Math.min(4, current.scale + 0.1) }))}><Plus className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" title="适配画布" onClick={fit}><Scan className="h-4 w-4" /></Button>
+    <div className="cwgsyw-inline-controls" style={{ position: 'absolute', right: 12, top: 12 }}>
+      <Button type="button" size="sm" variant="ghost" onClick={() => setViewport((current) => ({ ...current, scale: Math.max(0.1, current.scale - 0.1) }))}>缩小</Button>
+      <span className="cwgsyw-type-label-sm">{Math.round(viewport.scale * 100)}%</span>
+      <Button type="button" size="sm" variant="ghost" onClick={() => setViewport((current) => ({ ...current, scale: Math.min(4, current.scale + 0.1) }))}>放大</Button>
+      <Button type="button" size="sm" variant="ghost" onClick={fit}>适配画布</Button>
     </div>
   </div>
 }

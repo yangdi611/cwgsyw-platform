@@ -1,14 +1,29 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
-import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/design-system'
-import { toast } from 'sonner'
-import { Trash2, Plus, GripVertical } from 'lucide-react'
 import { TableConfigEditor } from '@/components/change-doc/TableConfigEditor'
-import { DetailHeader } from '@/components/shared'
 import type { TableFieldConfig } from '@/components/change-doc/tableFieldTypes'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Badge,
+  Breadcrumb,
+  Button,
+  Card,
+  Checkbox,
+  Field,
+  FormSettingsPage,
+  IconButton,
+  Input,
+  LoadingState,
+  PageHeader,
+  Select,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 interface FieldConfigVO {
   id: number
@@ -60,6 +75,8 @@ const FIELD_TYPES = [
   { value: 'table', label: '表格' },
 ]
 
+const VALUE_FIELD_TYPES = new Set(['text', 'textarea', 'number', 'date', 'datetime', 'enum'])
+
 export default function TemplateFieldsPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
@@ -74,35 +91,27 @@ export default function TemplateFieldsPage() {
 
   const { data: tpl, isLoading } = useQuery<TemplateVO>({
     queryKey: ['change-doc-template', id],
-    queryFn: () => api.get(`/admin/change-doc-templates/${id}`).then((r) => r.data.data),
+    queryFn: () => api.get(`/admin/change-doc-templates/${id}`).then((response) => response.data.data),
   })
 
-  useEffect(() => {
-    if (tpl && !dirty) {
-      // Query data hydrates the editable field list until the user changes it.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFields(tpl.fields ?? [])
-    }
-  }, [tpl, dirty])
+  const displayedFields = dirty ? fields : (tpl?.fields ?? fields)
+  const displayedMeta = metaDirty
+    ? meta
+    : {
+        name: tpl?.name ?? meta.name,
+        description: tpl?.description ?? meta.description,
+        docType: tpl?.docType ?? meta.docType,
+      }
 
-  useEffect(() => {
-    if (tpl && !metaDirty) {
-      // Query data hydrates the editable metadata until the user changes it.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMeta({
-        name: tpl.name ?? '',
-        description: tpl.description ?? '',
-        docType: tpl.docType ?? 'general',
-      })
-    }
-  }, [tpl, metaDirty])
+  const currentFields = () => (dirty ? fields : (tpl?.fields ?? []))
+
 
   const saveMetaMutation = useMutation({
     mutationFn: () =>
       api.put(`/admin/change-doc-templates/${id}`, {
-        name: meta.name,
-        description: meta.description,
-        docType: meta.docType,
+        name: displayedMeta.name,
+        description: displayedMeta.description,
+        docType: displayedMeta.docType,
       }),
     onSuccess: () => {
       toast.success('基本信息已保存')
@@ -114,7 +123,7 @@ export default function TemplateFieldsPage() {
   })
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/admin/change-doc-templates/${id}/fields`, { fields }),
+    mutationFn: () => api.put(`/admin/change-doc-templates/${id}/fields`, { fields: displayedFields }),
     onSuccess: () => {
       toast.success('字段配置已保存')
       setDirty(false)
@@ -125,8 +134,7 @@ export default function TemplateFieldsPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (fieldId: number) =>
-      api.delete(`/admin/change-doc-templates/${id}/fields/${fieldId}`),
+    mutationFn: (fieldId: number) => api.delete(`/admin/change-doc-templates/${id}/fields/${fieldId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['change-doc-template', id] })
       setDirty(false)
@@ -136,9 +144,8 @@ export default function TemplateFieldsPage() {
 
   const update = (idx: number, key: keyof FieldConfigVO, val: unknown) => {
     setDirty(true)
-    setFields((f) =>
-      f.map((field, i) => {
-        if (i !== idx) return field
+    setFields(currentFields().map((field, index) => {
+        if (index !== idx) return field
         const next = { ...field, [key]: val }
         if (key === 'fieldType' && val === 'table' && !next.config) {
           next.config = { ...DEFAULT_TABLE_CONFIG }
@@ -150,21 +157,22 @@ export default function TemplateFieldsPage() {
 
   const updateTableConfig = (idx: number, config: TableFieldConfig) => {
     setDirty(true)
-    setFields((f) => f.map((field, i) => (i === idx ? { ...field, config } : field)))
+    setFields(currentFields().map((field, index) => (index === idx ? { ...field, config } : field)))
   }
 
   const updateFieldConfig = (idx: number, patch: Record<string, unknown>) => {
     setDirty(true)
-    setFields((items) => items.map((field, index) => index === idx
-      ? { ...field, config: { ...(field.config ?? {}), ...patch } }
-      : field))
+    setFields(currentFields().map((field, index) =>
+      index === idx ? { ...field, config: { ...(field.config ?? {}), ...patch } } : field,
+    ))
   }
 
   const addField = () => {
     setDirty(true)
-    const maxOrder = fields.reduce((m, f) => Math.max(m, f.sortOrder ?? 0), 0)
-    setFields((f) => [
-      ...f,
+    const base = currentFields()
+    const maxOrder = base.reduce((max, field) => Math.max(max, field.sortOrder ?? 0), 0)
+    setFields([
+      ...base,
       {
         id: 0,
         fieldKey: '',
@@ -179,263 +187,204 @@ export default function TemplateFieldsPage() {
   }
 
   const removeField = (idx: number, fieldId: number) => {
-    if (fieldId > 0) {
-      deleteMutation.mutate(fieldId)
-    }
-    setFields((f) => f.filter((_, i) => i !== idx))
+    if (fieldId > 0) deleteMutation.mutate(fieldId)
+    setFields(currentFields().filter((_, index) => index !== idx))
     setDirty(true)
   }
 
-  if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isLoading) return <LoadingState label="正在加载模板字段…" />
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <DetailHeader
-        backHref="/admin/change-doc-templates"
-        title={tpl?.name ?? '模板字段'}
-        subtitle={<>Word 模板中的 <code className="rounded bg-v2-surface-soft px-1 font-v2-mono">{'{{field_key}}'}</code> 与此处 field_key 对应</>}
-        status={tpl?.hasDocx ? (
-          <span className="inline-flex items-center rounded-md border border-v2-success-border bg-v2-success-soft px-2 py-1 text-xs font-medium text-v2-success">
-            已上传 .docx
-          </span>
-        ) : undefined}
-      />
+    <FormSettingsPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow="变更文档"
+          title={tpl?.name ?? '模板字段'}
+          subtitle="Word 模板中的 {{field_key}} 与此处 field_key 对应"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/admin/change-doc-templates', label: '模板管理' },
+                { label: tpl?.name ?? '模板字段' },
+              ]}
+            />
+          }
+          status={tpl?.hasDocx ? <Badge label="已上传 .docx" tone="success" /> : undefined}
+        />
+      }
+      form={
+        <div className="cwgsyw-form">
+          {!tpl?.hasDocx ? (
+            <Alert
+              tone="warning"
+              title="尚未上传 Word 模板"
+              description="可先配置字段，上传后点「解析书签」自动识别占位符。"
+              showDismiss={false}
+            />
+          ) : null}
 
-      {!tpl?.hasDocx && (
-        <div className="rounded-v2-md border border-v2-warning-border bg-v2-warning-soft p-3 text-sm text-v2-warning">
-          尚未上传 Word 模板文件。可先配置字段，上传后点「解析书签」自动识别占位符。
-        </div>
-      )}
+          <Card
+            title="基本信息"
+            headerAction={
+              metaDirty ? (
+                <Button type="button" size="sm" onClick={() => saveMetaMutation.mutate()} disabled={saveMetaMutation.isPending || !displayedMeta.name}>
+                  {saveMetaMutation.isPending ? '保存中…' : '保存基本信息'}
+                </Button>
+              ) : null
+            }
+          >
+            <div className="cwgsyw-form">
+              <Field htmlFor="template-name" label="名称">
+                <Input
+                  value={displayedMeta.name}
+                  onChange={(event) => {
+                    setMeta((current) => ({ ...current, name: event.target.value }))
+                    setMetaDirty(true)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="template-desc" label="描述">
+                <Input
+                  value={displayedMeta.description}
+                  onChange={(event) => {
+                    setMeta((current) => ({ ...current, description: event.target.value }))
+                    setMetaDirty(true)
+                  }}
+                />
+              </Field>
+              <Field htmlFor="template-type" label="类型">
+                <Select
+                  value={displayedMeta.docType}
+                  options={[
+                    { value: 'general', label: DOC_TYPE_LABEL.general },
+                    { value: 'application', label: DOC_TYPE_LABEL.application },
+                    { value: 'plan', label: DOC_TYPE_LABEL.plan },
+                  ]}
+                  onChange={(value) => {
+                    setMeta((current) => ({ ...current, docType: value as DocType }))
+                    setMetaDirty(true)
+                  }}
+                />
+              </Field>
+            </div>
+          </Card>
 
-      {/* 基本信息 */}
-      <Card>
-        <CardContent className="space-y-3 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-v2-fg">基本信息</h2>
-            {metaDirty && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => saveMetaMutation.mutate()}
-                disabled={saveMetaMutation.isPending || !meta.name}
-              >
-                {saveMetaMutation.isPending ? '保存中…' : '保存基本信息'}
-              </Button>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-v2-muted">名称</label>
-              <Input
-                value={meta.name}
-                onChange={(e) => {
-                  setMeta((m) => ({ ...m, name: e.target.value }))
-                  setMetaDirty(true)
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-v2-muted">描述</label>
-              <Input
-                value={meta.description}
-                onChange={(e) => {
-                  setMeta((m) => ({ ...m, description: e.target.value }))
-                  setMetaDirty(true)
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-v2-muted">类型</label>
-              <select
-                value={meta.docType}
-                onChange={(e) => {
-                  setMeta((m) => ({ ...m, docType: e.target.value as DocType }))
-                  setMetaDirty(true)
-                }}
-                className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg focus:border-v2-primary focus:outline-none"
-              >
-                <option value="general">{DOC_TYPE_LABEL.general}</option>
-                <option value="application">{DOC_TYPE_LABEL.application}</option>
-                <option value="plan">{DOC_TYPE_LABEL.plan}</option>
-              </select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-2">
-        {fields.map((field, idx) => (
-          <Card key={field.id || `new-${idx}`}>
-            <CardContent className="p-3">
-              <div className="flex items-start gap-2">
-                <GripVertical className="mt-2.5 h-4 w-4 shrink-0 text-v2-subtle" />
-                <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs text-v2-muted">书签 Key</label>
+          {displayedFields.map((field, idx) => (
+            <Card key={field.id || `new-${idx}`} title={field.label || '新字段'} showHeader padding="md">
+              <div className="cwgsyw-form">
+                <Field htmlFor={`field-key-${idx}`} label="书签 Key">
+                  <Input
+                    value={field.fieldKey}
+                    placeholder="例：change_desc"
+                    onChange={(event) => update(idx, 'fieldKey', event.target.value)}
+                  />
+                </Field>
+                {VALUE_FIELD_TYPES.has(field.fieldType) ? (
+                  <Field htmlFor={`field-default-${idx}`} label="默认值">
                     <Input
-                      value={field.fieldKey}
-                      className="h-8 font-v2-mono text-xs"
-                      placeholder="例：change_desc"
-                      onChange={(e) => update(idx, 'fieldKey', e.target.value)}
+                      value={String((field.config as { defaultValue?: unknown } | undefined)?.defaultValue ?? '')}
+                      onChange={(event) => updateFieldConfig(idx, { defaultValue: event.target.value })}
                     />
-                  </div>
-                  {(field.fieldType === 'text' || field.fieldType === 'textarea' || field.fieldType === 'number' || field.fieldType === 'date' || field.fieldType === 'datetime' || field.fieldType === 'enum') && (
-                    <div className="space-y-1">
-                      <label className="text-xs text-v2-muted">默认值</label>
-                      <Input
-                        value={String((field.config as { defaultValue?: unknown } | undefined)?.defaultValue ?? '')}
-                        className="h-8"
-                        onChange={(event) => updateFieldConfig(idx, { defaultValue: event.target.value })}
-                      />
-                    </div>
-                  )}
-                  {field.fieldType === 'enum' && (
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs text-v2-muted">枚举选项（每行：值|显示名称）</label>
-                      <textarea
-                        value={((field.config as { options?: { value: string; label: string }[] } | undefined)?.options ?? [])
-                          .map((option) => `${option.value}|${option.label}`).join('\n')}
-                        className="min-h-16 w-full rounded-v2-md border border-v2-border bg-v2-surface p-2 text-xs"
-                        onChange={(event) => updateFieldConfig(idx, {
-                          options: event.target.value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-                            const [value, label] = line.split('|', 2)
-                            return { value: value.trim(), label: (label ?? value).trim() }
-                          }),
-                        })}
-                      />
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <label className="text-xs text-v2-muted">排序</label>
-                    <Input
-                      type="number"
-                      value={field.sortOrder ?? 0}
-                      className="h-8"
-                      onChange={(event) => update(idx, 'sortOrder', Number(event.target.value))}
+                  </Field>
+                ) : null}
+                {field.fieldType === 'enum' ? (
+                  <Field htmlFor={`field-enum-${idx}`} label="枚举选项（每行：值|显示名称）">
+                    <Textarea
+                      value={((field.config as { options?: { value: string; label: string }[] } | undefined)?.options ?? [])
+                        .map((option) => `${option.value}|${option.label}`)
+                        .join('\n')}
+                      onChange={(event) =>
+                        updateFieldConfig(idx, {
+                          options: event.target.value
+                            .split('\n')
+                            .map((line) => line.trim())
+                            .filter(Boolean)
+                            .map((line) => {
+                              const [value, label] = line.split('|', 2)
+                              return { value: value.trim(), label: (label ?? value).trim() }
+                            }),
+                        })
+                      }
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-v2-muted">显示标签</label>
-                    <Input
-                      value={field.label}
-                      className="h-8"
-                      onChange={(e) => update(idx, 'label', e.target.value)}
+                  </Field>
+                ) : null}
+                <Field htmlFor={`field-order-${idx}`} label="排序">
+                  <Input type="number" value={field.sortOrder ?? 0} onChange={(event) => update(idx, 'sortOrder', Number(event.target.value))} />
+                </Field>
+                <Field htmlFor={`field-label-${idx}`} label="显示标签">
+                  <Input value={field.label} onChange={(event) => update(idx, 'label', event.target.value)} />
+                </Field>
+                <Field htmlFor={`field-type-${idx}`} label="字段类型">
+                  <Select value={field.fieldType} options={FIELD_TYPES} onChange={(value) => update(idx, 'fieldType', value || 'textarea')} />
+                </Field>
+                <Field htmlFor={`field-placeholder-${idx}`} label="提示文字">
+                  <Input
+                    value={field.placeholder ?? ''}
+                    placeholder="输入框提示…"
+                    onChange={(event) => update(idx, 'placeholder', event.target.value)}
+                  />
+                </Field>
+                {field.fieldType === 'ci_selector' ? (
+                  <Alert
+                    tone="info"
+                    title="CI 选择器用法说明"
+                    description="允许填写人搜索并选择受影响的 CI。选中后展示 2 层关联建议，并保存名称快照。"
+                    showDismiss={false}
+                  />
+                ) : null}
+                {field.fieldType === 'table' ? (
+                  <>
+                    <Alert
+                      tone="info"
+                      title="表格字段用法说明"
+                      description={`Word 模板用一行数据行表示，单元格写成 {{${field.fieldKey || 'table_key'}.列key}}，填表时按行复制。`}
+                      showDismiss={false}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-v2-muted">字段类型</label>
-                    <Select
-                      value={field.fieldType}
-                      onValueChange={(v) => update(idx, 'fieldType', v ?? 'textarea')}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue>
-                          {(v: string) => FIELD_TYPES.find((t) => t.value === v)?.label ?? v}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FIELD_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-v2-muted">提示文字</label>
-                    <Input
-                      value={field.placeholder ?? ''}
-                      className="h-8"
-                      placeholder="输入框提示…"
-                      onChange={(e) => update(idx, 'placeholder', e.target.value)}
+                    <TableConfigEditor
+                      value={
+                        field.config && (field.config as TableFieldConfig).tableMode === 'fixedDocxTable'
+                          ? (field.config as TableFieldConfig)
+                          : DEFAULT_TABLE_CONFIG
+                      }
+                      onChange={(next) => updateTableConfig(idx, next)}
                     />
-                  </div>
-                  {field.fieldType === 'ci_selector' && (
-                    <div className="col-span-2 mt-1 space-y-1 rounded-v2-md border border-v2-primary-border bg-v2-primary-soft p-3 text-xs text-v2-primary">
-                      <p className="font-semibold">CI 选择器用法说明</p>
-                      <p>允许填写人在变更文档中搜索并选择受影响的 CI 实例。</p>
-                      <ul className="list-inside list-disc space-y-0.5 opacity-80">
-                        <li>选中一个 CI 后，自动展示其 2 层关联 CI 作为候选建议</li>
-                        <li>存储选中时的 CI 名称快照，CI 删除后仍可查看历史记录</li>
-                        <li>变更文档详情页中以 CI 卡片列表呈现，可点击跳转 CMDB</li>
-                      </ul>
-                    </div>
-                  )}
-                  {field.fieldType === 'table' && (
-                    <div className="col-span-2 mt-1 space-y-2">
-                      <div className="rounded-v2-md border border-v2-primary-border bg-v2-primary-soft p-3 text-xs text-v2-primary">
-                        <p className="font-semibold">表格字段用法说明</p>
-                        <p>
-                          Word 模板中用一行数据行模板表示，行内单元格占位符写成{' '}
-                          <code className="rounded bg-v2-surface px-1 font-v2-mono">{`{{${field.fieldKey || 'table_key'}.列key}}`}</code>
-                          ，填表数据会按行复制该模板行。
-                        </p>
-                      </div>
-                      <TableConfigEditor
-                        value={
-                          field.config && (field.config as TableFieldConfig).tableMode === 'fixedDocxTable'
-                            ? (field.config as TableFieldConfig)
-                            : DEFAULT_TABLE_CONFIG
-                        }
-                        onChange={(next) => updateTableConfig(idx, next)}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="flex shrink-0 flex-col gap-2 pt-1">
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
-                    <input
-                      type="checkbox"
-                      checked={!!field.required}
-                      onChange={(e) => update(idx, 'required', e.target.checked)}
-                      className="rounded"
-                    />
-                    必填
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
-                    <input
-                      type="checkbox"
-                      checked={!!field.inForm}
-                      onChange={(e) => update(idx, 'inForm', e.target.checked)}
-                      className="rounded"
-                    />
-                    表单可见
-                  </label>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="mt-1 h-7 w-7 p-0 text-v2-danger"
-                    onClick={() => removeField(idx, field.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  </>
+                ) : null}
+                <div className="cwgsyw-designer__actions">
+                  <Checkbox
+                    label="必填"
+                    checked={!!field.required}
+                    onChange={(event) => update(idx, 'required', event.target.checked)}
+                  />
+                  <Checkbox
+                    label="表单可见"
+                    checked={!!field.inForm}
+                    onChange={(event) => update(idx, 'inForm', event.target.checked)}
+                  />
+                  <IconButton type="button" variant="ghost" size="sm" icon="trash" aria-label="删除字段" onClick={() => removeField(idx, field.id)} />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-        {fields.length === 0 && (
-          <div className="rounded-lg border border-v2-border bg-v2-surface py-8 text-center text-sm text-v2-muted">
-            暂无字段配置。上传 .docx 后点「解析书签」，或手动添加字段。
-          </div>
-        )}
-      </div>
+            </Card>
+          ))}
 
-      <div className="flex gap-2">
-        <Button variant="secondary" size="sm" onClick={addField}>
-          <Plus className="h-4 w-4" />
-          添加字段
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => saveMutation.mutate()}
-          disabled={!dirty || saveMutation.isPending}
-        >
-          {saveMutation.isPending ? '保存中…' : '保存配置'}
-        </Button>
-      </div>
-    </div>
+          {displayedFields.length === 0 ? (
+            <Card showHeader={false}>
+              <p>暂无字段配置。上传 .docx 后点「解析书签」，或手动添加字段。</p>
+            </Card>
+          ) : null}
+
+          <div className="cwgsyw-designer__actions">
+            <Button type="button" variant="secondary" size="sm" onClick={addField}>
+              添加字段
+            </Button>
+            <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={!dirty || saveMutation.isPending}>
+              {saveMutation.isPending ? '保存中…' : '保存配置'}
+            </Button>
+          </div>
+        </div>
+      }
+    />
   )
 }

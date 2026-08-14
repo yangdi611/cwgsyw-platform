@@ -3,32 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
-import {
-  Box,
-  FolderOpen,
-  FileText,
-  ServerCog,
-  Users,
-  BookOpen,
-  Search,
-  Loader2,
-} from 'lucide-react'
-import { Dialog, DialogPortal, DialogOverlay } from '@/components/design-system'
-import { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
-import { cn } from '@/lib/utils'
+import { NeutralDialog, SearchInput } from '@/design-system/figma-neutral/components'
 import { globalSearch, type SearchResultItem } from '@/lib/search-api'
 import { useCommandPalette } from '@/store/commandPaletteStore'
 
 /** 结果类型 → 图标。 */
-const TYPE_ICON: Record<SearchResultItem['type'], typeof Box> = {
-  ci: Box,
-  shared_file: FolderOpen,
-  change_doc: FileText,
-  device: ServerCog,
-  user: Users,
-  wiki: BookOpen,
-}
-
 /** 分组展示顺序（后端可能乱序返回，这里固定顺序更稳定）。 */
 const GROUP_ORDER = ['配置项 (CI)', '共享文件', '变更单', '设备', '用户', '知识库']
 
@@ -52,7 +31,7 @@ function highlightAll(text: string, kw: string): React.ReactNode {
     }
     if (idx > i) parts.push(text.slice(i, idx))
     parts.push(
-      <mark key={n++} className="bg-transparent font-semibold text-foreground">
+      <mark key={n++} className="bg-transparent font-semibold text-[var(--cwgsyw-text-primary)]">
         {text.slice(idx, idx + k.length)}
       </mark>
     )
@@ -159,43 +138,24 @@ export function CommandPalette() {
   const showPanel = hasQuery
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogPortal>
-        <DialogOverlay />
-        <DialogPrimitive.Popup
-          data-slot="command-palette"
-          className={cn(
-            'fixed top-[14vh] left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-hidden rounded-2xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10 shadow-2xl shadow-foreground/10 duration-100 outline-none sm:max-w-2xl data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95'
-          )}
-        >
-          <DialogPrimitive.Title className="sr-only">全局搜索</DialogPrimitive.Title>
-          <Command shouldFilter={false} className="flex flex-col">
-            {/* 搜索框：Spotlight 风格，高大醒目 */}
-            <div className="flex items-center gap-3 px-5">
-              {loading ? (
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
-              ) : (
-                <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
-              )}
-              <Command.Input
-                autoFocus
-                value={keyword}
-                onValueChange={handleKeywordChange}
-                placeholder="搜索 CI、共享文件、变更单、设备、用户、知识库…"
-                className="flex h-16 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-              />
-            </div>
+    <NeutralDialog open={open} onOpenChange={handleOpenChange} title="全局搜索" size="lg">
+          <Command shouldFilter={false} className="cwgsyw-stack-list">
+            <SearchInput
+              value={keyword}
+              onChange={(event) => handleKeywordChange(event.target.value)}
+              placeholder="搜索 CI、共享文件、变更单、设备、用户、知识库…"
+            />
 
             {/* 结果面板：仅在输入后出现 */}
             {showPanel && (
               <Command.List className="max-h-[55vh] overflow-y-auto overflow-x-hidden border-t p-2">
                 {loading && results.length === 0 && (
-                  <div className="py-10 text-center text-sm text-muted-foreground">
+                  <div className="py-10 text-center text-sm text-[var(--cwgsyw-text-secondary)]">
                     搜索中…
                   </div>
                 )}
                 {!loading && results.length === 0 && (
-                  <Command.Empty className="py-10 text-center text-sm text-muted-foreground">
+                  <Command.Empty className="py-10 text-center text-sm text-[var(--cwgsyw-text-secondary)]">
                     未找到匹配结果
                   </Command.Empty>
                 )}
@@ -203,13 +163,12 @@ export function CommandPalette() {
                   <Command.Group
                     key={group.label}
                     heading={
-                      <span className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      <span className="px-2 py-1.5 text-xs font-medium text-[var(--cwgsyw-text-secondary)]">
                         {group.label}
                       </span>
                     }
                   >
                     {group.items.map((item) => {
-                      const Icon = TYPE_ICON[item.type]
                       const kw = keyword.trim()
                       // 聚光灯仅用于「wiki 长正文截取片段」：关键词藏在 substring(content,pos-50,100)
                       // 的中部，左/右对齐都会把它推出可视区。阈值 30 ≈ 摘要列(≈340px)在 text-xs(12px)
@@ -224,15 +183,11 @@ export function CommandPalette() {
                           key={`${item.type}-${item.id}`}
                           value={`${item.type}-${item.id}`}
                           onSelect={() => handleSelect(item.url)}
-                          className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                          className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-[var(--cwgsyw-bg-surface-selected)] data-[selected=true]:text-[var(--cwgsyw-text-primary)]"
                         >
-                          <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
                           {/* 标题：聚光灯模式下让摘要占主区(限宽 40%)；非聚光灯下标题填满、把短摘要推到右侧 */}
                           <span
-                            className={cn(
-                              'truncate font-medium',
-                              spot ? 'max-w-[40%] shrink-0' : 'min-w-0 flex-1'
-                            )}
+                            className="cwgsyw-type-body-sm"
                           >
                             {highlightAll(item.title, kw)}
                           </span>
@@ -240,7 +195,7 @@ export function CommandPalette() {
                           {item.subtitle &&
                             (spot ? (
                               // 聚光灯：before 右端实/左端渐隐，match 居中加粗，after 左端实/右端渐隐
-                              <span className="flex min-w-0 flex-1 items-baseline overflow-hidden text-xs text-muted-foreground">
+                              <span className="flex min-w-0 flex-1 items-baseline overflow-hidden text-xs text-[var(--cwgsyw-text-secondary)]">
                                 <span
                                   className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-right"
                                   style={{
@@ -252,7 +207,7 @@ export function CommandPalette() {
                                 >
                                   {spot.before}
                                 </span>
-                                <span className="shrink-0 px-1 font-semibold text-foreground">
+                                <span className="shrink-0 px-1 font-semibold text-[var(--cwgsyw-text-primary)]">
                                   {spot.match}
                                 </span>
                                 <span
@@ -269,7 +224,7 @@ export function CommandPalette() {
                               </span>
                             ) : (
                               // 短摘要：右对齐贴边摆放，关键词加粗
-                              <span className="ml-auto max-w-[55%] shrink-0 truncate text-right text-xs text-muted-foreground">
+                              <span className="ml-auto max-w-[55%] shrink-0 truncate text-right text-xs text-[var(--cwgsyw-text-secondary)]">
                                 {highlightAll(item.subtitle, kw)}
                               </span>
                             ))}
@@ -281,8 +236,6 @@ export function CommandPalette() {
               </Command.List>
             )}
           </Command>
-        </DialogPrimitive.Popup>
-      </DialogPortal>
-    </Dialog>
+    </NeutralDialog>
   )
 }

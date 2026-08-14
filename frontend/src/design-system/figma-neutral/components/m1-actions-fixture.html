@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <title>CWGSYW Neutral M1 Actions</title>
+  <link rel="stylesheet" href="../generated/tokens.css" />
+  <link rel="stylesheet" href="../generated/recipes.css" />
+  <link rel="stylesheet" href="./actions.css" />
+  <style>
+    body { margin: 0; padding: var(--cwgsyw-space-5); background: var(--cwgsyw-bg-canvas); color: var(--cwgsyw-text-primary); font-family: var(--cwgsyw-font-family-sans), Inter, sans-serif; }
+    .row { display: flex; flex-wrap: wrap; gap: var(--cwgsyw-space-3); align-items: center; margin: var(--cwgsyw-space-4) 0; }
+  </style>
+</head>
+<body>
+  <h1 class="cwgsyw-type-title-sm">M1 Actions</h1>
+  <p class="cwgsyw-type-body-sm">Primary 是 Neutral。Status 只出现在 Spinner tone 和 Destructive。</p>
+  <div class="row">
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--primary" type="button">确认</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--secondary" type="button">次要</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--outline" type="button">描边</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--ghost" type="button">幽灵</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--destructive" type="button">删除</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--primary" type="button" disabled>禁用</button>
+    <button class="cwgsyw-btn cwgsyw-btn--md cwgsyw-btn--primary" type="button" data-loading="true" disabled>确认<span class="cwgsyw-spinner cwgsyw-spinner--sm cwgsyw-spinner--neutral"><span class="cwgsyw-spinner__mark"></span></span></button>
+  </div>
+  <div class="row">
+    <button class="cwgsyw-icon-btn cwgsyw-icon-btn--md cwgsyw-icon-btn--primary" type="button" aria-label="关闭">×</button>
+    <button class="cwgsyw-icon-btn cwgsyw-icon-btn--md cwgsyw-icon-btn--ghost" type="button" aria-label="搜索">⌕</button>
+    <span class="cwgsyw-spinner cwgsyw-spinner--sm cwgsyw-spinner--neutral"><span class="cwgsyw-spinner__mark"></span><span class="cwgsyw-type-label-sm">加载中</span></span>
+    <span class="cwgsyw-spinner cwgsyw-spinner--sm cwgsyw-spinner--danger"><span class="cwgsyw-spinner__mark"></span><span class="cwgsyw-type-label-sm">失败重试</span></span>
+  </div>
+  <div class="cwgsyw-separator cwgsyw-separator--horizontal" role="separator" aria-orientation="horizontal"></div>
+</body>
+</html>

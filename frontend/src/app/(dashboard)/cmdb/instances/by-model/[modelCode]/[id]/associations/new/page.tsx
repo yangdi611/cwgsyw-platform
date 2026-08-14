@@ -1,20 +1,32 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Badge, Button, Input, Label } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Search, Check, ChevronRight, Link2, ArrowRight, X } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { cn } from '@/lib/utils'
-import { DetailHeader, FormShell } from '@/components/shared'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Badge,
+  Breadcrumb,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  FormSettingsPage,
+  Input,
+  LoadingState,
+  PageHeader,
+  SearchInput,
+} from '@/design-system/figma-neutral/components'
 
 interface CiInstanceSummary { name: string; modelId: string; modelCode?: string }
 
-// 后端返回 ci_association_def 实体（全局 SNAKE_CASE 序列化）
 interface CiAssociationDefVO {
   defId: string
   kindId: string
@@ -24,6 +36,7 @@ interface CiAssociationDefVO {
   mapping: string
   onDelete: string
 }
+
 interface InstanceSearchVO {
   id: number
   name: string
@@ -39,7 +52,7 @@ export default function NewAssociationPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
 
-  const [step, setStep] = useState(0) // 0,1,2
+  const [step, setStep] = useState(0)
   const [selectedDefId, setSelectedDefId] = useState('')
   const [keyword, setKeyword] = useState('')
   const [selectedPeer, setSelectedPeer] = useState<InstanceSearchVO | null>(null)
@@ -69,24 +82,22 @@ export default function NewAssociationPage() {
     enabled: typeof window !== 'undefined',
   })
 
-  // 当前实例可作为 src 建立的关联定义（选择 def 而非裸 kind，AC3-8）
   const { data: applicableDefs = [] } = useQuery<CiAssociationDefVO[]>({
     queryKey: ['cmdb-rel-applicable-defs', id],
-    queryFn: () => api.get(`/cmdb/instances/${id}/relations/applicable-defs`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations/applicable-defs`).then((r) => r.data.data),
     enabled: typeof window !== 'undefined',
   })
 
   useBreadcrumbLabel(inst?.name)
 
-  const selectedDef = applicableDefs.find(d => d.defId === selectedDefId)
-  // applicable-defs 仅返回 src 端 = 当前模型 的 def，故目标恒为 dst 端
+  const selectedDef = applicableDefs.find((d) => d.defId === selectedDefId)
   const targetModelId = selectedDef ? selectedDef.dstModelId : null
 
   const { data: searchResult, isFetching: searching } = useQuery<{ records: InstanceSearchVO[]; total: number }>({
     queryKey: ['cmdb-rel-search', targetModelId, keyword],
     queryFn: () => api.get('/cmdb/instances/search', {
       params: { modelId: targetModelId, keyword, size: 12 },
-    }).then(r => r.data.data),
+    }).then((r) => r.data.data),
     enabled: !!targetModelId && step === 1,
   })
 
@@ -111,241 +122,164 @@ export default function NewAssociationPage() {
   const resetPeer = () => { setSelectedPeer(null); setKeyword(''); setError('') }
 
   return (
-    <FormShell width="form">
-      <DetailHeader
-        backHref={`/cmdb/instances/by-model/${modelCode}/${id}/associations`}
-        backLabel="返回关联管理"
-        title="新建关联"
-        subtitle={`为 ${inst?.name ?? `#${id}`} 创建新的关联关系`}
-      />
-
-      {/* 步骤指示器 */}
-      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:gap-0">
-        {STEPS.map((label, i) => (
-          <div key={label} className="flex min-w-0 items-center sm:flex-1 sm:last:flex-none">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border transition-colors',
-                i < step ? 'bg-primary text-primary-foreground border-primary'
-                  : i === step ? 'border-primary text-primary'
-                    : 'border-muted text-muted-foreground'
-              )}>
-                {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
-              </div>
-              <span className={cn(
-                'break-words text-sm',
-                i === step ? 'text-foreground font-medium' : 'text-muted-foreground'
-              )}>
-                {label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div className={cn('mx-3 hidden h-px flex-1 sm:block', i < step ? 'bg-primary' : 'bg-border')} />
-            )}
+    <FormSettingsPage
+      header={
+        <PageHeader
+          eyebrow="CMDB"
+          title="新建关联"
+          subtitle={`为 ${inst?.name ?? `#${id}`} 创建新的关联关系`}
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/cmdb', label: 'CMDB' },
+                { href: `/cmdb/instances/by-model/${modelCode}/${id}`, label: inst?.name ?? `#${id}` },
+                { href: `/cmdb/instances/by-model/${modelCode}/${id}/associations`, label: '关联管理' },
+                { label: '新建关联' },
+              ]}
+            />
+          }
+        />
+      }
+      form={
+        <div className="cwgsyw-form">
+          <div className="cwgsyw-inline-controls" role="list">
+            {STEPS.map((label, i) => (
+              <Chip key={label} label={`${i + 1}. ${label}`} selected={i === step} />
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* 步骤内容 */}
-      <div className="border rounded-lg p-5 min-h-[280px]">
-        {/* Step 1: 选择关联定义 */}
-        {step === 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Link2 className="h-4 w-4 text-primary" />
-              <Label className="text-sm">选择关联定义</Label>
-              <span className="text-xs text-muted-foreground">（仅显示当前模型作为源端的定义）</span>
-            </div>
-            {applicableDefs.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = {modelCode}）。
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {applicableDefs.map(d => {
-                  const isSelected = selectedDefId === d.defId
-                  return (
-                    <button
-                      key={d.defId}
-                      onClick={() => { setSelectedDefId(d.defId); resetPeer() }}
-                      className={cn(
-                        'w-full text-left p-3 rounded-md border transition-colors',
-                        isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Check className={cn('h-4 w-4', isSelected ? 'text-primary' : 'opacity-0')} />
-                          <span className="font-medium text-sm">{d.name ?? d.defId}</span>
-                          <Badge variant="outline" className="text-xs">{d.kindId}</Badge>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">{d.mapping}</Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1.5 ml-6 flex items-center gap-1">
-                        <span>{d.srcModelId}</span>
-                        <ArrowRight className="h-3 w-3" />
-                        <span>{d.dstModelId}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: 搜索目标实例 */}
-        {step === 1 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Search className="h-4 w-4 text-primary" />
-              <Label className="text-sm">
-                选择目标实例
-                {targetModelId && (
-                  <span className="text-muted-foreground ml-1.5 font-normal">（模型：{targetModelId}）</span>
-                )}
-              </Label>
-            </div>
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="搜索实例名称..."
-                value={keyword}
-                onChange={e => { setKeyword(e.target.value); setSelectedPeer(null) }}
-                autoFocus
-              />
-            </div>
-            <div className="border rounded-md max-h-64 overflow-y-auto">
-              {searching ? (
-                <p className="text-center text-muted-foreground text-sm py-6">搜索中...</p>
-              ) : (searchResult?.records ?? []).length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-6">
-                  {keyword ? '无匹配实例' : '请输入关键词搜索'}
-                </p>
+          <Card title={STEPS[step]}>
+            {step === 0 && (
+              applicableDefs.length === 0 ? (
+                <EmptyState
+                  title="暂无可用关联定义"
+                  description={`当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = ${modelCode}）。`}
+                />
               ) : (
-                (searchResult?.records ?? []).map(rec => {
-                  const isSelected = selectedPeer?.id === rec.id
-                  return (
-                    <button
-                      key={rec.id}
-                      className={cn(
-                        'w-full flex items-center justify-between text-left px-3 py-2.5 text-sm transition-colors',
-                        isSelected ? 'bg-primary/10 font-medium' : 'hover:bg-muted/50'
-                      )}
-                      onClick={() => setSelectedPeer(rec)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Check className={cn('h-3.5 w-3.5', isSelected ? 'text-primary' : 'opacity-0')} />
-                        {rec.name}
-                      </div>
-                      <Badge variant="secondary" className="text-xs">{rec.modelName}</Badge>
-                    </button>
-                  )
-                })
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: 确认提交 */}
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Check className="h-4 w-4 text-primary" />
-              <Label className="text-sm">确认关联信息</Label>
-            </div>
-            <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
-                <span className="text-muted-foreground">当前实例</span>
-                <span className="font-medium sm:col-span-2">{inst?.name ?? `#${id}`}</span>
-              </div>
-              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
-                <span className="text-muted-foreground">关联定义</span>
-                <span className="flex min-w-0 flex-wrap items-center gap-1.5 sm:col-span-2">
-                  <Badge variant="outline">{selectedDef?.kindId}</Badge>
-                  <Badge variant="secondary" className="text-xs">{selectedDef?.mapping}</Badge>
-                  <span>{selectedDef?.name ?? selectedDef?.defId}</span>
-                </span>
-              </div>
-              <div className="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-3">
-                <span className="text-muted-foreground">目标实例</span>
-                <span className="min-w-0 font-medium sm:col-span-2">
-                  {selectedPeer?.name}
-                  <span className="ml-1.5 text-muted-foreground">({selectedPeer?.modelName})</span>
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-3 border-t pt-2 text-sm">
-                <span className="max-w-full break-words rounded border bg-card px-3 py-1.5 text-center font-medium">
-                  {inst?.name ?? `#${id}`}
-                </span>
-                <ArrowRight className="h-4 w-4 text-primary" />
-                <span className="max-w-full break-words rounded border bg-card px-3 py-1.5 text-center font-medium">
-                  {selectedPeer?.name}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">关联属性</Label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <Input placeholder="属性名" value={attrKey} onChange={e => setAttrKey(e.target.value)} />
-                <Input placeholder="属性值" value={attrValue} onChange={e => setAttrValue(e.target.value)} />
-                <Button type="button" variant="outline" size="ui-sm" className="sm:self-end"
-                  onClick={() => {
-                    if (!attrKey.trim()) return
-                    setAssocAttrs(a => ({ ...a, [attrKey.trim()]: attrValue }))
-                    setAttrKey('')
-                    setAttrValue('')
-                  }}>
-                  添加
-                </Button>
-              </div>
-              {Object.keys(assocAttrs).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(assocAttrs).map(([k, v]) => (
-                    <Badge key={k} variant="secondary" className="text-xs">
-                      {k}: {v}
-                      <button type="button" onClick={() => setAssocAttrs(a => {
-                        const next = { ...a }
-                        delete next[k]
-                        return next
-                      })}>
-                        <X className="h-3 w-3 ml-0.5" />
-                      </button>
-                    </Badge>
+                <div className="cwgsyw-stack-list">
+                  {applicableDefs.map((d) => (
+                    <Card
+                      key={d.defId}
+                      title={d.name ?? d.defId}
+                      description={`${d.srcModelId} → ${d.dstModelId}`}
+                      variant={selectedDefId === d.defId ? 'selected' : 'interactive'}
+                      headerAction={<Badge label={`${d.kindId} · ${d.mapping}`} />}
+                      onClick={() => { setSelectedDefId(d.defId); resetPeer() }}
+                    />
                   ))}
                 </div>
-              )}
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <p className="text-xs text-muted-foreground">
-              关联方向：当前实例 → 目标实例（与关联定义 src→dst 一致）。非法组合将被后端拒绝。
-            </p>
-          </div>
-        )}
-      </div>
+              )
+            )}
 
-      {/* 底部操作栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-        <Button variant="ghost" size="ui-sm"
-          onClick={() => step === 0
-            ? router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
-            : (setStep(s => s - 1), setError(''))}>
-          {step === 0 ? '取消' : '上一步'}
-        </Button>
-        {step < 2 ? (
-          <Button variant="default" size="ui-sm" disabled={
-            (step === 0 && !selectedDefId) || (step === 1 && !selectedPeer)
-          } onClick={() => { setError(''); setStep(s => s + 1) }}>
-            下一步 <ChevronRight className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button variant="default" size="ui-sm" disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate()}>
-            {createMutation.isPending ? '创建中...' : '建立关联'}
-          </Button>
-        )}
-      </div>
-    </FormShell>
+            {step === 1 && (
+              <div className="cwgsyw-form">
+                <Field label={`选择目标实例${targetModelId ? `（模型：${targetModelId}）` : ''}`}>
+                  <SearchInput
+                    value={keyword}
+                    placeholder="搜索实例名称..."
+                    onChange={(event) => { setKeyword(event.target.value); setSelectedPeer(null) }}
+                  />
+                </Field>
+                {searching ? (
+                  <LoadingState label="搜索实例" />
+                ) : (searchResult?.records ?? []).length === 0 ? (
+                  <EmptyState title={keyword ? '无匹配实例' : '请输入关键词搜索'} />
+                ) : (
+                  <div className="cwgsyw-stack-list">
+                    {(searchResult?.records ?? []).map((rec) => (
+                      <Card
+                        key={rec.id}
+                        title={rec.name}
+                        description={rec.modelName}
+                        variant={selectedPeer?.id === rec.id ? 'selected' : 'interactive'}
+                        onClick={() => setSelectedPeer(rec)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="cwgsyw-form">
+                <p className="cwgsyw-type-body-sm">当前实例：{inst?.name ?? `#${id}`}</p>
+                <p className="cwgsyw-type-body-sm">
+                  关联定义：{selectedDef?.name ?? selectedDef?.defId}（{selectedDef?.kindId} · {selectedDef?.mapping}）
+                </p>
+                <p className="cwgsyw-type-body-sm">
+                  目标实例：{selectedPeer?.name}（{selectedPeer?.modelName}）
+                </p>
+                <p className="cwgsyw-type-label-sm">{inst?.name ?? `#${id}`} → {selectedPeer?.name}</p>
+                <Field label="关联属性">
+                  <div className="cwgsyw-inline-controls">
+                    <Input placeholder="属性名" value={attrKey} onChange={(e) => setAttrKey(e.target.value)} />
+                    <Input placeholder="属性值" value={attrValue} onChange={(e) => setAttrValue(e.target.value)} />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        if (!attrKey.trim()) return
+                        setAssocAttrs((a) => ({ ...a, [attrKey.trim()]: attrValue }))
+                        setAttrKey('')
+                        setAttrValue('')
+                      }}
+                    >
+                      添加
+                    </Button>
+                  </div>
+                </Field>
+                {Object.keys(assocAttrs).length > 0 ? (
+                  <div className="cwgsyw-inline-controls">
+                    {Object.entries(assocAttrs).map(([k, v]) => (
+                      <Chip
+                        key={k}
+                        label={`${k}: ${v}`}
+                        showRemove
+                        onRemove={() => setAssocAttrs((a) => {
+                          const next = { ...a }
+                          delete next[k]
+                          return next
+                        })}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                {error ? <Alert tone="danger" title="创建失败" description={error} showDismiss={false} /> : null}
+                <p className="cwgsyw-type-label-sm">
+                  关联方向：当前实例 → 目标实例（与关联定义 src→dst 一致）。非法组合将被后端拒绝。
+                </p>
+              </div>
+            )}
+          </Card>
+
+          <div className="cwgsyw-inline-controls">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => step === 0
+                ? router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)
+                : (setStep((s) => s - 1), setError(''))}
+            >
+              {step === 0 ? '取消' : '上一步'}
+            </Button>
+            {step < 2 ? (
+              <Button
+                type="button"
+                disabled={(step === 0 && !selectedDefId) || (step === 1 && !selectedPeer)}
+                onClick={() => { setError(''); setStep((s) => s + 1) }}
+              >
+                下一步
+              </Button>
+            ) : (
+              <Button type="button" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
+                {createMutation.isPending ? '创建中…' : '建立关联'}
+              </Button>
+            )}
+          </div>
+        </div>
+      }
+    />
   )
 }

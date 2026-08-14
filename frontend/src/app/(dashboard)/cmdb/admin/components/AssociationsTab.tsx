@@ -2,29 +2,25 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import { toast } from 'sonner'
-import { Plus, Trash2, PencilLine } from 'lucide-react'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 import { AssociationDefsSection } from './AssociationDefsSection'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
 import { getApiErrorMessage } from '@/lib/api-error'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  Checkbox,
+  Chip,
+  EmptyState,
+  Field,
+  Input,
+  LoadingState,
+  NeutralAlertDialog,
+  Select,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface AssociationAttrVO {
   id: number
@@ -169,257 +165,142 @@ function AssociationsTab() {
 
   const formValid = form.fieldKey && form.name
 
+  const [deleteAttr, setDeleteAttr] = useState<AssociationAttrVO | null>(null)
+
   return (
-    <div>
-      {/* ── Association Kinds ── */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">关联种类</h2>
-        </div>
-        <div className="border rounded-lg p-4">
-          {kinds.length === 0 ? (
-            <p className="text-sm text-muted-foreground">暂无关联种类</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {kinds.map(k => (
-                <Badge key={k.code} variant={k.isBuiltIn ? 'secondary' : 'outline'} className="text-xs">
-                  {k.name} <span className="ml-1 font-mono opacity-60">({k.code})</span>
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Association Defs ── */}
-      <div className="mb-8">
-        <AssociationDefsSection models={models} kinds={kinds} canWrite={canWrite} />
-      </div>
-
-      {/* ── Association Attribute Management (AC-5) ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">关联扩展属性管理</h2>
-          {activeKind && !showForm && canWrite && (
-            <Button size="ui-sm" variant="primary" onClick={() => { resetForm(); setShowForm(true) }}>
-              <Plus className="h-4 w-4 mr-1" />新增属性
-            </Button>
-          )}
-        </div>
-
-        {/* Kind Selector — populated from real /api/cmdb/association-kinds */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1">
-            <Label className="text-xs mb-1 block text-muted-foreground">选择关联类型</Label>
-            <Select value={selectedKind} onValueChange={v => setSelectedKind(v ?? '')}>
-              <SelectTrigger>
-                <SelectValue placeholder="请选择关联类型">
-                  {(v: string) => {
-                    const k = kinds.find(kk => kk.code === v)
-                    return k ? `${k.name} (${k.code})` : '请选择关联类型'
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {kinds.map(k => (
-                  <SelectItem key={k.code} value={k.code}>
-                    {k.name} <span className="text-muted-foreground ml-1 font-mono text-xs">({k.code})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="cwgsyw-form">
+      <section className="cwgsyw-form">
+        <div className="cwgsyw-type-label-sm">关联种类</div>
+        {kinds.length === 0 ? (
+          <EmptyState title="暂无关联种类" description="还没有可选择的关联类型。" />
+        ) : (
+          <div className="cwgsyw-inline-controls">
+            {kinds.map((kind) => (
+              <Chip key={kind.code} label={`${kind.name} (${kind.code})`} />
+            ))}
           </div>
-        </div>
+        )}
+      </section>
 
-        {/* Create / Edit Form */}
-        {showForm && (
-          <div className="border rounded-lg p-4 mb-4 bg-muted/30 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">字段标识 * <span className="text-muted-foreground">(英文/下划线)</span></Label>
-                <Input
-                  value={form.fieldKey}
-                  onChange={e => setForm(f => ({ ...f, fieldKey: e.target.value }))}
-                  placeholder="如: os_version"
-                  disabled={!!editingAttr}
+      <AssociationDefsSection models={models} kinds={kinds} canWrite={canWrite} />
+
+      <section className="cwgsyw-form">
+        <div className="cwgsyw-inline-controls">
+          <div className="cwgsyw-type-label-sm">关联扩展属性管理</div>
+          {activeKind && !showForm && canWrite ? (
+            <Button type="button" size="sm" onClick={() => { resetForm(); setShowForm(true) }}>新增属性</Button>
+          ) : null}
+        </div>
+        <Field label="选择关联类型" htmlFor="assoc-kind">
+          <Select
+            id="assoc-kind"
+            value={selectedKind}
+            placeholder="请选择关联类型"
+            options={kinds.map((kind) => ({ value: kind.code, label: `${kind.name} (${kind.code})` }))}
+            onChange={setSelectedKind}
+          />
+        </Field>
+
+        {showForm ? (
+          <div className="cwgsyw-form">
+            <div className="cwgsyw-filter-grid">
+              <Field label="字段标识" htmlFor="attr-key" required helperText="英文/下划线">
+                <Input id="attr-key" value={form.fieldKey} disabled={!!editingAttr} onChange={(event) => setForm((current) => ({ ...current, fieldKey: event.target.value }))} />
+              </Field>
+              <Field label="显示名称" htmlFor="attr-name" required>
+                <Input id="attr-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+              </Field>
+              <Field label="字段类型" htmlFor="attr-type">
+                <Select
+                  id="attr-type"
+                  value={form.fieldType}
+                  options={FIELD_TYPE_OPTIONS}
+                  onChange={(value) => setForm((current) => ({ ...current, fieldType: value }))}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">显示名称 *</Label>
-                <Input
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="如: 操作系统版本"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">字段类型</Label>
-                <Select value={form.fieldType} onValueChange={v => setForm(f => ({ ...f, fieldType: v ?? 'singlechar' }))}>
-                  <SelectTrigger>
-                    <SelectValue>
-                      {(v: string) => FIELD_TYPE_OPTIONS.find(o => o.value === v)?.label ?? v}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FIELD_TYPE_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">默认值</Label>
-                <Input
-                  value={form.defaultValue}
-                  onChange={e => setForm(f => ({ ...f, defaultValue: e.target.value }))}
-                  placeholder="可选"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">排序</Label>
-                <Input
-                  type="number"
-                  value={form.sortOrder}
-                  onChange={e => setForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-              <div className="flex items-end pb-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="is-required"
-                    checked={form.isRequired}
-                    onCheckedChange={v => setForm(f => ({ ...f, isRequired: !!v }))}
-                  />
-                  <Label htmlFor="is-required" className="text-xs cursor-pointer">必填</Label>
-                </div>
-              </div>
-              {form.fieldType === 'enum' && (
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">枚举选项 <span className="text-muted-foreground">(逗号分隔)</span></Label>
-                  <Input
-                    value={form.enumOptions}
-                    onChange={e => setForm(f => ({ ...f, enumOptions: e.target.value }))}
-                    placeholder="如: v1, v2, v3"
-                  />
-                </div>
-              )}
+              </Field>
+              <Field label="默认值" htmlFor="attr-default">
+                <Input id="attr-default" value={form.defaultValue} onChange={(event) => setForm((current) => ({ ...current, defaultValue: event.target.value }))} />
+              </Field>
+              <Field label="排序" htmlFor="attr-sort">
+                <Input id="attr-sort" type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: parseInt(event.target.value) || 0 }))} />
+              </Field>
+              <Checkbox
+                id="is-required"
+                label="必填"
+                checked={form.isRequired}
+                onChange={(event) => setForm((current) => ({ ...current, isRequired: event.currentTarget.checked }))}
+              />
             </div>
-            <div className="flex gap-2">
-              <Button variant="default" size="ui-sm" onClick={handleSubmit} disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending}>
+            {form.fieldType === 'enum' ? (
+              <Field label="枚举选项" htmlFor="attr-enum" helperText="逗号分隔">
+                <Input id="attr-enum" value={form.enumOptions} onChange={(event) => setForm((current) => ({ ...current, enumOptions: event.target.value }))} />
+              </Field>
+            ) : null}
+            <div className="cwgsyw-inline-controls">
+              <Button type="button" disabled={!formValid || createAttrMutation.isPending || updateAttrMutation.isPending} onClick={handleSubmit}>
                 {editingAttr ? '更新' : '创建'}
               </Button>
-              <Button size="ui-sm" variant="ghost" onClick={resetForm}>取消</Button>
+              <Button type="button" variant="ghost" onClick={resetForm}>取消</Button>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Attribute List */}
-        {activeKind && (
-          <>
-            {attrsLoading ? (
-              <p className="text-muted-foreground text-sm">加载中...</p>
-            ) : attrs.length === 0 ? (
-              <div className="border rounded-lg p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  关联类型「{activeKind}」暂无扩展属性定义
-                </p>
-                {canWrite && (
-                  <Button size="ui-sm" variant="outline" className="mt-3" onClick={() => { resetForm(); setShowForm(true) }}>
-                    <Plus className="h-4 w-4 mr-1" />新增属性
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">标识</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">名称</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">类型</th>
-                      <th className="text-center px-3 py-2 font-medium text-muted-foreground">必填</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">默认值</th>
-                      <th className="text-center px-3 py-2 font-medium text-muted-foreground">排序</th>
-                      {canWrite && <th className="text-right px-3 py-2 font-medium text-muted-foreground">操作</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {attrs.map(attr => (
-                      <tr key={attr.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2.5">
-                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{attr.fieldKey}</code>
-                        </td>
-                        <td className="px-3 py-2.5 font-medium">{attr.name}</td>
-                        <td className="px-3 py-2.5">
-                          <Badge variant="secondary" className="text-xs font-mono">
-                            {FIELD_TYPE_LABEL[attr.fieldType] ?? attr.fieldType}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {attr.isRequired ? <span className="text-destructive">是</span> : <span className="text-muted-foreground">否</span>}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{attr.defaultValue || '-'}</td>
-                        <td className="px-3 py-2.5 text-center text-muted-foreground">{attr.sortOrder}</td>
-                        {canWrite && (
-                          <td className="px-3 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0"
-                                onClick={() => startEdit(attr)}>
-                                <PencilLine className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
-                                onClick={() => {
-                                  if (confirm(`删除扩展属性「${attr.name}」?`)) deleteAttrMutation.mutate(attr)
-                                }}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+        {activeKind ? (
+          attrsLoading ? (
+            <LoadingState label="加载扩展属性" />
+          ) : attrs.length === 0 ? (
+            <EmptyState
+              title={`关联类型「${activeKind}」暂无扩展属性定义`}
+              action={canWrite ? <Button type="button" size="sm" onClick={() => { resetForm(); setShowForm(true) }}>新增属性</Button> : undefined}
+            />
+          ) : (
+            <Table
+              showSearch={false}
+              columns={[
+                { key: 'fieldKey', label: '标识' },
+                { key: 'name', label: '名称' },
+                { key: 'type', label: '类型' },
+                { key: 'required', label: '必填' },
+                { key: 'default', label: '默认值' },
+                { key: 'sort', label: '排序' },
+                ...(canWrite ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+              ]}
+              rows={attrs.map((attr) => ({
+                id: String(attr.id),
+                cells: {
+                  fieldKey: attr.fieldKey,
+                  name: attr.name,
+                  type: <StatusBadge label={FIELD_TYPE_LABEL[attr.fieldType] ?? attr.fieldType} status="neutral" />,
+                  required: attr.isRequired ? '是' : '否',
+                  default: attr.defaultValue || '-',
+                  sort: attr.sortOrder,
+                  actions: canWrite ? (
+                    <div className="cwgsyw-inline-controls">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => startEdit(attr)}>编辑</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteAttr(attr)}>删除</Button>
+                    </div>
+                  ) : null,
+                },
+              }))}
+            />
+          )
+        ) : null}
+      </section>
+
+      <NeutralAlertDialog
+        open={!!deleteAttr}
+        onOpenChange={(open) => !open && setDeleteAttr(null)}
+        title="确认删除扩展属性"
+        description={`删除扩展属性「${deleteAttr?.name ?? ''}」?`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => {
+          if (deleteAttr) deleteAttrMutation.mutate(deleteAttr)
+          setDeleteAttr(null)
+        }}
+      />
     </div>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Association Defs Section — manages ci_association_def
-// (which two models can be linked via which kind of association)
-// ─────────────────────────────────────────────────────────────────────────
-
-interface CiAssociationDefVO {
-  id: number
-  defId: string
-  name: string
-  kindId: string
-  kindName: string
-  srcModelId: string
-  srcModelName: string
-  dstModelId: string
-  dstModelName: string
-  mapping: string
-  onDelete: string | null
-  isBuiltIn: boolean
-}
-
-const MAPPING_OPTIONS = [
-  { value: '1:1', label: '一对一 (1:1)' },
-  { value: '1:n', label: '一对多 (1:n)' },
-  { value: 'n:1', label: '多对一 (n:1)' },
-  { value: 'n:n', label: '多对多 (n:n)' },
-]
-const ON_DELETE_OPTIONS = [
-  { value: 'none', label: '无操作' },
-  { value: 'cascade', label: '级联删除' },
-  { value: 'restrict', label: '禁止删除' },
-]
-
 
 export { AssociationsTab }

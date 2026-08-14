@@ -2,8 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Badge, Input } from '@/components/design-system'
-import { X } from 'lucide-react'
+import { Badge, Button, Input } from '@/design-system/figma-neutral/components'
 
 interface CiInstanceOption {
   id: number
@@ -74,16 +73,12 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
   return (
     <div ref={containerRef} className="relative">
       {value && !open ? (
-        <div className="flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
+        <div className="cwgsyw-control cwgsyw-control--md">
           <span className="flex-1 truncate">{label}</span>
           {!disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-v2-muted hover:text-v2-fg"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            <Button type="button" size="sm" variant="ghost" onClick={handleClear}>
+              清除
+            </Button>
           )}
         </div>
       ) : (
@@ -96,20 +91,21 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
         />
       )}
       {open && keyword.length >= 1 && (
-        <div className="absolute z-50 w-full mt-1 border rounded-md bg-background shadow-lg max-h-48 overflow-auto">
+        <div className="cwgsyw-listbox cwgsyw-listbox--overlay" role="listbox">
           {searchResults.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-v2-muted">无匹配结果</p>
+            <p className="cwgsyw-type-label-sm">无匹配结果</p>
           ) : (
             searchResults.map(inst => (
-              <button
+              <Button
                 key={inst.id}
                 type="button"
+                variant="ghost"
+                className="cwgsyw-picker-option"
                 onClick={() => handleSelect(inst)}
-                className="flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-muted text-left"
               >
                 <span>{inst.name}</span>
-                <Badge variant="outline" className="text-xs ml-2">{inst.modelName}</Badge>
-              </button>
+                <Badge label={inst.modelName} />
+              </Button>
             ))
           )}
         </div>

@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Plus, Trash2 } from 'lucide-react'
+import { Button, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
 
 interface Group {
   id: number
@@ -68,14 +67,12 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
   })
   const membershipsQuery = useQuery({
     queryKey: ['user-group-memberships', user?.id],
-    queryFn: () => api.get(`/users/${user!.id}/group-memberships`)
-      .then((response) => response.data.data as Membership[]),
+    queryFn: () => api.get(`/users/${user!.id}/group-memberships`).then((response) => response.data.data as Membership[]),
     enabled: open && !!user,
   })
   const assignmentsQuery = useQuery({
     queryKey: ['user-role-assignments', user?.id],
-    queryFn: () => api.get(`/users/${user!.id}/role-assignments`)
-      .then((response) => response.data.data as RoleAssignment[]),
+    queryFn: () => api.get(`/users/${user!.id}/role-assignments`).then((response) => response.data.data as RoleAssignment[]),
     enabled: open && !!user,
   })
 
@@ -84,7 +81,9 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
     setSaving(true)
     try {
       await api.post(`/users/${user.id}/group-memberships`, {
-        groupId: Number(groupId), membershipRole, primary: false,
+        groupId: Number(groupId),
+        membershipRole,
+        primary: false,
       })
       toast.success('组织成员关系已添加')
       setGroupId('')
@@ -142,69 +141,112 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
   const businessGroups = groups.filter((group) => group.groupType === 'business')
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader><DialogTitle>@{user?.username} — 组织与作用域授权</DialogTitle></DialogHeader>
-        <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
-          <section className="space-y-3">
-            <div>
-              <h3 className="font-semibold text-v2-fg">组织成员关系</h3>
-              <p className="text-sm text-v2-muted">用户可以属于多个组，并在每个组中分别担任组长或组员。</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select className="h-9 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-                <option value="">选择用户组</option>
-                {businessGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-              </select>
-              <select className="h-9 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm" value={membershipRole} onChange={(event) => setMembershipRole(event.target.value as 'leader' | 'member')}>
-                <option value="member">组员</option><option value="leader">组长</option>
-              </select>
-              <Button size="sm" variant="primary" disabled={saving || !groupId} onClick={addMembership}><Plus className="h-3.5 w-3.5" />添加</Button>
-            </div>
-            <div className="divide-y divide-v2-border rounded-v2-md border border-v2-border">
-              {(membershipsQuery.data ?? []).map((membership) => (
-                <div key={membership.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                  <span><strong>{membership.groupName ?? `组 #${membership.groupId}`}</strong><span className="ml-2 text-v2-muted">{membership.membershipRole === 'leader' ? '组长' : '组员'}{membership.primary ? ' · 主组' : ''}</span></span>
-                  <Button variant="ghost" size="sm" className="text-v2-danger" onClick={() => removeMembership(membership.id)}><Trash2 className="h-3.5 w-3.5" />移除</Button>
-                </div>
-              ))}
-              {(membershipsQuery.data ?? []).length === 0 && <p className="px-3 py-5 text-center text-sm text-v2-muted">暂无成员关系</p>}
-            </div>
-          </section>
-
-          <section className="space-y-3 border-t border-v2-border pt-5">
-            <div>
-              <h3 className="font-semibold text-v2-fg">作用域功能角色</h3>
-              <p className="text-sm text-v2-muted">功能角色必须绑定租户或具体用户组；新分配先进入影子数据，账户通过迁移对账并切换后生效。</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select className="h-9 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm" value={roleId} onChange={(event) => setRoleId(event.target.value)}>
-                <option value="">选择功能角色</option>
-                {assignableRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-              </select>
-              <select className="h-9 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm" value={scopeType} onChange={(event) => setScopeType(event.target.value as 'tenant' | 'group')}>
-                <option value="group">用户组范围</option><option value="tenant">当前租户</option>
-              </select>
-              {scopeType === 'group' && (
-                <select className="h-9 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm" value={scopeId} onChange={(event) => setScopeId(event.target.value)}>
-                  <option value="">选择作用域组</option>
-                  {businessGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                </select>
-              )}
-              <Button size="sm" variant="primary" disabled={saving || !roleId || (scopeType === 'group' && !scopeId)} onClick={addAssignment}><Plus className="h-3.5 w-3.5" />分配</Button>
-            </div>
-            <div className="divide-y divide-v2-border rounded-v2-md border border-v2-border">
-              {(assignmentsQuery.data ?? []).map((assignment) => (
-                <div key={assignment.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                  <span><strong>{assignment.roleName ?? assignment.roleCode}</strong><span className="ml-2 text-v2-muted">{assignment.scopeType === 'tenant' ? '当前租户' : assignment.scopeName ?? `组 #${assignment.scopeId}`}</span></span>
-                  <Button variant="ghost" size="sm" className="text-v2-danger" onClick={() => removeAssignment(assignment.id)}><Trash2 className="h-3.5 w-3.5" />撤销</Button>
-                </div>
-              ))}
-              {(assignmentsQuery.data ?? []).length === 0 && <p className="px-3 py-5 text-center text-sm text-v2-muted">暂无作用域角色</p>}
-            </div>
-          </section>
+    <NeutralDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+      title={`@${user?.username ?? ''} — 组织与作用域授权`}
+      size="lg"
+      showClose
+    >
+      <section className="cwgsyw-form">
+        <div>
+          <h3 className="cwgsyw-type-title-sm">组织成员关系</h3>
+          <p className="cwgsyw-type-body-sm">用户可以属于多个组，并在每个组中分别担任组长或组员。</p>
         </div>
-      </DialogContent>
-    </Dialog>
+        <div className="cwgsyw-inline-controls">
+          <Select
+            aria-label="选择用户组"
+            placeholder="选择用户组"
+            value={groupId}
+            options={[{ value: '', label: '选择用户组' }, ...businessGroups.map((group) => ({ value: String(group.id), label: group.name }))]}
+            onChange={setGroupId}
+          />
+          <Select
+            aria-label="成员角色"
+            value={membershipRole}
+            options={[{ value: 'member', label: '组员' }, { value: 'leader', label: '组长' }]}
+            onChange={(value) => setMembershipRole(value as 'leader' | 'member')}
+          />
+          <Button type="button" size="sm" variant="primary" disabled={saving || !groupId} onClick={addMembership}>
+            添加
+          </Button>
+        </div>
+        <div className="cwgsyw-stack-list">
+          {(membershipsQuery.data ?? []).map((membership) => (
+            <div key={membership.id} className="cwgsyw-stack-list__item">
+              <span>
+                <strong>{membership.groupName ?? `组 #${membership.groupId}`}</strong>
+                <span className="cwgsyw-type-label-xs">
+                  {membership.membershipRole === 'leader' ? '组长' : '组员'}
+                  {membership.primary ? ' · 主组' : ''}
+                </span>
+              </span>
+              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => removeMembership(membership.id)}>
+                移除
+              </Button>
+            </div>
+          ))}
+          {(membershipsQuery.data ?? []).length === 0 ? <p className="cwgsyw-stack-list__empty">暂无成员关系</p> : null}
+        </div>
+      </section>
+
+      <section className="cwgsyw-form">
+        <div>
+          <h3 className="cwgsyw-type-title-sm">作用域功能角色</h3>
+          <p className="cwgsyw-type-body-sm">功能角色必须绑定租户或具体用户组；新分配先进入影子数据，账户通过迁移对账并切换后生效。</p>
+        </div>
+        <div className="cwgsyw-inline-controls">
+          <Select
+            aria-label="选择功能角色"
+            placeholder="选择功能角色"
+            value={roleId}
+            options={[{ value: '', label: '选择功能角色' }, ...assignableRoles.map((role) => ({ value: String(role.id), label: role.name }))]}
+            onChange={setRoleId}
+          />
+          <Select
+            aria-label="作用域类型"
+            value={scopeType}
+            options={[{ value: 'group', label: '用户组范围' }, { value: 'tenant', label: '当前租户' }]}
+            onChange={(value) => setScopeType(value as 'tenant' | 'group')}
+          />
+          {scopeType === 'group' ? (
+            <Select
+              aria-label="选择作用域组"
+              placeholder="选择作用域组"
+              value={scopeId}
+              options={[{ value: '', label: '选择作用域组' }, ...businessGroups.map((group) => ({ value: String(group.id), label: group.name }))]}
+              onChange={setScopeId}
+            />
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            disabled={saving || !roleId || (scopeType === 'group' && !scopeId)}
+            onClick={addAssignment}
+          >
+            分配
+          </Button>
+        </div>
+        <div className="cwgsyw-stack-list">
+          {(assignmentsQuery.data ?? []).map((assignment) => (
+            <div key={assignment.id} className="cwgsyw-stack-list__item">
+              <span>
+                <strong>{assignment.roleName ?? assignment.roleCode}</strong>
+                <span className="cwgsyw-type-label-xs">
+                  {assignment.scopeType === 'tenant' ? '当前租户' : assignment.scopeName ?? `组 #${assignment.scopeId}`}
+                </span>
+              </span>
+              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => removeAssignment(assignment.id)}>
+                撤销
+              </Button>
+            </div>
+          ))}
+          {(assignmentsQuery.data ?? []).length === 0 ? <p className="cwgsyw-stack-list__empty">暂无作用域角色</p> : null}
+        </div>
+      </section>
+    </NeutralDialog>
   )
 }

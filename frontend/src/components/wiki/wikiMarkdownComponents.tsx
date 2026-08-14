@@ -50,7 +50,7 @@ export function createWikiMarkdownComponents(
         return (
           <span className="inline-flex items-center gap-1" role="status" aria-label="该页面尚未创建">
             <code>{children}</code>
-            <span className="text-xs text-v2-muted" title="该页面尚未创建">待创建</span>
+            <span className="text-xs text-[var(--cwgsyw-text-secondary)]" title="该页面尚未创建">待创建</span>
           </span>
         )
       }

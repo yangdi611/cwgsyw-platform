@@ -1,0 +1,51 @@
+.cwgsyw-overlay-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--cwgsyw-overlay-scrim);
+  z-index: 40;
+}
+.cwgsyw-dialog,
+.cwgsyw-drawer,
+.cwgsyw-popover,
+.cwgsyw-menu,
+.cwgsyw-tooltip,
+.cwgsyw-command {
+  background: var(--cwgsyw-bg-surface);
+  color: var(--cwgsyw-text-primary);
+  border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-subtle);
+  border-radius: var(--cwgsyw-radius-lg);
+  box-shadow: none;
+}
+.cwgsyw-dialog { position: fixed; inset: auto; top: 20%; left: 50%; transform: translateX(-50%); z-index: 50; padding: var(--cwgsyw-space-5); width: min(560px, calc(100vw - 32px)); }
+.cwgsyw-dialog--sm { width: min(400px, calc(100vw - 32px)); }
+.cwgsyw-dialog--lg { width: min(720px, calc(100vw - 32px)); }
+.cwgsyw-drawer { position: fixed; top: 0; bottom: 0; z-index: 50; width: min(420px, 100vw); padding: var(--cwgsyw-space-5); border-radius: 0; }
+.cwgsyw-drawer--right { right: 0; }
+.cwgsyw-drawer--left { left: 0; }
+.cwgsyw-menu, .cwgsyw-popover, .cwgsyw-tooltip { padding: var(--cwgsyw-space-2); min-width: 180px; }
+.cwgsyw-tooltip { background: var(--cwgsyw-action-primary); color: var(--cwgsyw-text-inverse); }
+.cwgsyw-popover--hover {
+  position: absolute;
+  z-index: 50;
+  pointer-events: none;
+}
+.cwgsyw-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cwgsyw-space-3);
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: var(--cwgsyw-space-2) var(--cwgsyw-space-3);
+  text-align: left;
+}
+.cwgsyw-menu-item[data-type="destructive"] { color: var(--cwgsyw-status-danger-fg); }
+.cwgsyw-menu-item:disabled { color: var(--cwgsyw-text-disabled); }
+.cwgsyw-menu-item:hover, .cwgsyw-menu-item[data-selected="true"] { background: var(--cwgsyw-bg-surface-hover); }
+.cwgsyw-calendar { display: grid; gap: var(--cwgsyw-space-3); }
+.cwgsyw-calendar__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--cwgsyw-space-1); }
+.cwgsyw-calendar__day { min-height: var(--cwgsyw-control-height-sm); border: 0; background: transparent; color: var(--cwgsyw-text-primary); }
+.cwgsyw-calendar__day[aria-selected="true"] { background: var(--cwgsyw-action-primary); color: var(--cwgsyw-text-inverse); border-radius: var(--cwgsyw-radius-sm); }
+.cwgsyw-command { padding: var(--cwgsyw-space-3); }

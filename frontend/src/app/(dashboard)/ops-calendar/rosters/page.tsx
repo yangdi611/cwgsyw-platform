@@ -1,23 +1,41 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label } from '@/components/design-system'
 import { type RosterVO, ymd, errMsg } from '@/lib/opsCalendar'
 import { listDirectoryGroups, type DirectoryGroup } from '@/lib/task-plan-api'
-import { Plus, ArrowLeft } from 'lucide-react'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  Field,
+  FilterBar,
+  Input,
+  NeutralAlertDialog,
+  NeutralDialog,
+  PageHeader,
+  Select,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
-interface UserOpt { id: number; realName: string | null; username: string }
+interface UserOpt {
+  id: number
+  realName: string | null
+  username: string
+}
 
 export default function RostersPage() {
   const router = useRouter()
   const { hasPermission } = usePermission()
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!hasPermission('calendar_settings', 'read')) router.replace('/ops-calendar')
@@ -28,37 +46,65 @@ export default function RostersPage() {
   const [to, setTo] = useState(ymd(new Date(today.getFullYear(), today.getMonth() + 1, 0)))
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<RosterVO | null>(null)
-  const [form, setForm] = useState({ dutyDate: ymd(today), startAt: '', endAt: '', shiftName: '全天', assigneeId: '', backupAssigneeId: '', groupId: '', phoneOverride: '', remark: '' })
+  const [deleteTarget, setDeleteTarget] = useState<RosterVO | null>(null)
+  const [form, setForm] = useState({
+    dutyDate: ymd(today),
+    startAt: '',
+    endAt: '',
+    shiftName: '全天',
+    assigneeId: '',
+    backupAssigneeId: '',
+    groupId: '',
+    phoneOverride: '',
+    remark: '',
+  })
   const [conflictMsg, setConflictMsg] = useState<string[]>([])
 
   const { data: rosters = [], isLoading } = useQuery({
     queryKey: ['calendar-settings-rosters', from, to],
-    queryFn: () => api.get('/calendar-settings/rosters', { params: { from, to } }).then((r) => r.data.data as RosterVO[]),
+    queryFn: () => api.get('/calendar-settings/rosters', { params: { from, to } }).then((response) => response.data.data as RosterVO[]),
   })
 
   const { data: users = [] } = useQuery({
     queryKey: ['ops-users-min'],
-    queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((r) => r.data.data.records as UserOpt[]),
+    queryFn: () => api.get('/users', { params: { page: 1, size: 200 } }).then((response) => response.data.data.records as UserOpt[]),
   })
-  const { data: groups = [] } = useQuery<DirectoryGroup[]>({ queryKey: ['calendar-settings-groups'], queryFn: listDirectoryGroups })
+  const { data: groups = [] } = useQuery<DirectoryGroup[]>({
+    queryKey: ['calendar-settings-groups'],
+    queryFn: listDirectoryGroups,
+  })
   const canManage = hasPermission('calendar_settings', 'manage')
-
-  const userName = (u: UserOpt) => u.realName || u.username
+  const userName = (user: UserOpt) => user.realName || user.username
 
   function openCreate() {
     setEditing(null)
-    setForm({ dutyDate: ymd(today), startAt: '', endAt: '', shiftName: '全天', assigneeId: '', backupAssigneeId: '', groupId: '', phoneOverride: '', remark: '' })
+    setForm({
+      dutyDate: ymd(today),
+      startAt: '',
+      endAt: '',
+      shiftName: '全天',
+      assigneeId: '',
+      backupAssigneeId: '',
+      groupId: '',
+      phoneOverride: '',
+      remark: '',
+    })
     setConflictMsg([])
     setOpen(true)
   }
 
-  function openEdit(r: RosterVO) {
-    setEditing(r)
+  function openEdit(roster: RosterVO) {
+    setEditing(roster)
     setForm({
-      dutyDate: r.dutyDate, startAt: r.startAt?.slice(0, 16) ?? '', endAt: r.endAt?.slice(0, 16) ?? '', shiftName: r.shiftName,
-      assigneeId: r.assigneeId ? String(r.assigneeId) : '',
-      backupAssigneeId: r.backupAssigneeId ? String(r.backupAssigneeId) : '',
-      groupId: r.groupId ? String(r.groupId) : '', phoneOverride: r.phoneOverride ?? '', remark: r.remark ?? '',
+      dutyDate: roster.dutyDate,
+      startAt: roster.startAt?.slice(0, 16) ?? '',
+      endAt: roster.endAt?.slice(0, 16) ?? '',
+      shiftName: roster.shiftName,
+      assigneeId: roster.assigneeId ? String(roster.assigneeId) : '',
+      backupAssigneeId: roster.backupAssigneeId ? String(roster.backupAssigneeId) : '',
+      groupId: roster.groupId ? String(roster.groupId) : '',
+      phoneOverride: roster.phoneOverride ?? '',
+      remark: roster.remark ?? '',
     })
     setConflictMsg([])
     setOpen(true)
@@ -79,121 +125,203 @@ export default function RostersPage() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => editing
-      ? api.put(`/calendar-settings/rosters/${editing.id}`, buildBody())
-      : api.post('/calendar-settings/rosters', buildBody()),
+    mutationFn: () =>
+      editing ? api.put(`/calendar-settings/rosters/${editing.id}`, buildBody()) : api.post('/calendar-settings/rosters', buildBody()),
     onSuccess: () => {
       toast.success(editing ? '排班已更新' : '排班已创建')
-      qc.invalidateQueries({ queryKey: ['calendar-settings-rosters'] })
+      queryClient.invalidateQueries({ queryKey: ['calendar-settings-rosters'] })
       setOpen(false)
     },
-    onError: (e) => toast.error(errMsg(e, '保存失败')),
+    onError: (error) => toast.error(errMsg(error, '保存失败')),
   })
 
   async function checkConflicts() {
     try {
       const { data } = await api.post('/calendar-settings/rosters/check-conflicts', buildBody())
-      const msgs = [...(data.data.conflicts ?? []), ...(data.data.warnings ?? [])].map((c: { message: string }) => c.message)
-      setConflictMsg(msgs.length ? msgs : ['无冲突'])
-    } catch { setConflictMsg(['检测失败']) }
+      const messages = [...(data.data.conflicts ?? []), ...(data.data.warnings ?? [])].map((item: { message: string }) => item.message)
+      setConflictMsg(messages.length ? messages : ['无冲突'])
+    } catch {
+      setConflictMsg(['检测失败'])
+    }
   }
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/calendar-settings/rosters/${id}`),
-    onSuccess: () => { toast.success('排班已删除'); qc.invalidateQueries({ queryKey: ['calendar-settings-rosters'] }) },
+    onSuccess: () => {
+      toast.success('排班已删除')
+      queryClient.invalidateQueries({ queryKey: ['calendar-settings-rosters'] })
+      setDeleteTarget(null)
+    },
     onError: (error: unknown) => toast.error(errMsg(error, '删除失败')),
   })
 
-  const columns: ColumnDef<RosterVO>[] = useMemo(() => [
-    { key: 'dutyDate', title: '日期', render: (r) => <span className="font-v2-mono text-sm">{r.dutyDate}</span> },
-    { key: 'shiftName', title: '班次', render: (r) => <div><div>{r.shiftName}</div><div className="font-v2-mono text-xs text-v2-muted">{r.startAt?.slice(11, 16) ?? '00:00'} - {r.endAt?.slice(11, 16) ?? '24:00'}</div></div> },
-    { key: 'assignee', title: '负责人', render: (r) => r.assigneeName ?? '-' },
-    { key: 'phone', title: '联系电话', render: (r) => r.assigneePhone
-        ? <span className="font-v2-mono text-sm">{r.assigneePhone}</span>
-        : <span className="text-amber-600 text-xs">缺手机号</span> },
-    { key: 'backup', title: '备份', render: (r) => r.backupAssigneeName ?? '-' },
-    { key: 'group', title: '所属组', render: (r) => r.groupName
-        ? <span className="text-sm text-v2-fg">{r.groupName}{r.groupArchived ? '（已归档）' : ''}</span>
-        : <span className="text-v2-subtle">-</span> },
-    { key: 'remark', title: '备注', render: (r) => <span className="text-v2-muted text-sm">{r.remark ?? '-'}</span> },
-    { key: 'updatedAt', title: '最近更新', render: (r) => <div className="text-xs text-v2-muted"><div>{r.updatedBy ? `用户 #${r.updatedBy}` : '-'}</div><div className="font-v2-mono">{r.updatedAt?.slice(0, 16).replace('T', ' ') ?? '-'}</div></div> },
-    { key: 'ops', title: '操作', align: 'right' as const, render: (r) => (
-        canManage ? <div className="flex justify-end gap-1"><Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(r) }}>编辑</Button><Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); if (window.confirm(`确认删除 ${r.dutyDate} 的排班？`)) deleteMutation.mutate(r.id) }}>删除</Button></div> : null
-      ) },
-  ], [canManage, deleteMutation])
+  const userOptions = [{ value: '', label: '选择' }, ...users.map((user) => ({ value: String(user.id), label: userName(user) }))]
+  const groupOptions = [{ value: '', label: '选择' }, ...groups.map((group) => ({ value: String(group.id), label: group.name }))]
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="运维日历"
-        title="排班管理"
-        subtitle="维护值班安排、备份负责人与联系方式，支撑节假日值守与巡检提醒。"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => router.push('/ops-calendar')}><ArrowLeft className="h-4 w-4" />返回</Button>
-            {canManage && <Button variant="primary" onClick={openCreate}><Plus className="h-4 w-4" />新建排班</Button>}
-          </div>
+    <>
+      <DataManagementPage
+        embedded
+        header={
+          <PageHeader
+            eyebrow="运维日历"
+            title="排班管理"
+            subtitle="维护值班安排、备份负责人与联系方式，支撑节假日值守与巡检提醒。"
+            breadcrumb={
+              <Breadcrumb
+                items={[
+                  { href: '/', label: '工作台' },
+                  { href: '/ops-calendar', label: '运维日历' },
+                  { label: '排班管理' },
+                ]}
+              />
+            }
+            actions={
+              <div className="cwgsyw-inline-controls">
+                <Button type="button" variant="secondary" onClick={() => router.push('/ops-calendar')}>
+                  返回
+                </Button>
+                {canManage ? (
+                  <Button type="button" variant="primary" onClick={openCreate}>
+                    新建排班
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
+        }
+        filter={
+          <FilterBar
+            filterItems={
+              <div className="cwgsyw-inline-controls">
+                <Field htmlFor="roster-from" label="从">
+                  <Input id="roster-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+                </Field>
+                <Field htmlFor="roster-to" label="到">
+                  <Input id="roster-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+                </Field>
+              </div>
+            }
+          />
+        }
+        content={
+          <Table
+            showSearch={false}
+            columns={[
+              { key: 'dutyDate', label: '日期' },
+              { key: 'shiftName', label: '班次' },
+              { key: 'assignee', label: '负责人' },
+              { key: 'phone', label: '联系电话' },
+              { key: 'backup', label: '备份' },
+              { key: 'group', label: '所属组' },
+              { key: 'remark', label: '备注' },
+              { key: 'updatedAt', label: '最近更新' },
+              { key: 'ops', label: '操作', align: 'right' },
+            ]}
+            rows={rosters.map((roster) => ({
+              id: String(roster.id),
+              cells: {
+                dutyDate: roster.dutyDate,
+                shiftName: `${roster.shiftName} ${roster.startAt?.slice(11, 16) ?? '00:00'} - ${roster.endAt?.slice(11, 16) ?? '24:00'}`,
+                assignee: roster.assigneeName ?? '-',
+                phone: roster.assigneePhone ? roster.assigneePhone : <StatusBadge label="缺手机号" status="warning" />,
+                backup: roster.backupAssigneeName ?? '-',
+                group: roster.groupName ? `${roster.groupName}${roster.groupArchived ? '（已归档）' : ''}` : '-',
+                remark: roster.remark ?? '-',
+                updatedAt: `${roster.updatedBy ? `用户 #${roster.updatedBy}` : '-'} ${roster.updatedAt?.slice(0, 16).replace('T', ' ') ?? ''}`,
+                ops: canManage ? (
+                  <div className="cwgsyw-inline-controls">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(roster)}>
+                      编辑
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteTarget(roster)}>
+                      删除
+                    </Button>
+                  </div>
+                ) : null,
+              },
+            }))}
+            state={isLoading ? 'loading' : rosters.length === 0 ? 'empty' : 'data'}
+            empty={<EmptyState title="暂无排班" description="点击右上角新建排班。" showAction={false} />}
+          />
         }
       />
 
-      <div className="flex items-center gap-2">
-        <Label className="text-sm text-v2-muted">从</Label>
-        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-        <Label className="text-sm text-v2-muted">到</Label>
-        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-      </div>
-
-      <DataTable
-        columns={columns} data={rosters} rowKey={(r) => r.id} loading={isLoading}
-        empty={{ title: '暂无排班', description: '点击右上角新建排班。' }}
-      />
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? '编辑排班' : '新建排班'}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>日期</Label><Input type="date" value={form.dutyDate} onChange={(e) => setForm({ ...form, dutyDate: e.target.value })} /></div>
-              <div><Label>班次</Label><Input value={form.shiftName} onChange={(e) => setForm({ ...form, shiftName: e.target.value })} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>开始时间</Label><Input type="datetime-local" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} /></div>
-              <div><Label>结束时间</Label><Input type="datetime-local" value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>负责人</Label>
-                <select className="w-full h-9 rounded-md border border-v2-border bg-v2-surface px-2 text-sm"
-                  value={form.assigneeId} onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}>
-                  <option value="">选择</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{userName(u)}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label>备份负责人</Label>
-                <select className="w-full h-9 rounded-md border border-v2-border bg-v2-surface px-2 text-sm"
-                  value={form.backupAssigneeId} onChange={(e) => setForm({ ...form, backupAssigneeId: e.target.value })}>
-                  <option value="">选择</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{userName(u)}</option>)}
-                </select>
-              </div>
-            </div>
-            <div><Label>所属组</Label><select className="h-9 w-full rounded-md border border-v2-border bg-v2-surface px-2 text-sm" value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}><option value="">选择</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></div>
-            <div><Label>联系电话覆盖（可选）</Label><Input value={form.phoneOverride} onChange={(e) => setForm({ ...form, phoneOverride: e.target.value })} placeholder="留空则用用户默认手机号" /></div>
-            <div><Label>备注</Label><Input value={form.remark} onChange={(e) => setForm({ ...form, remark: e.target.value })} /></div>
-            {conflictMsg.length > 0 && (
-              <div className="text-xs rounded-md bg-amber-50 border border-amber-200 p-2 text-amber-800 space-y-1">
-                {conflictMsg.map((m, i) => <div key={i}>• {m}</div>)}
-              </div>
-            )}
+      <NeutralDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={editing ? '编辑排班' : '新建排班'}
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="ghost" onClick={() => void checkConflicts()}>
+              冲突检测
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              loading={saveMutation.isPending}
+              disabled={!form.assigneeId || !form.groupId || Boolean(form.startAt) !== Boolean(form.endAt)}
+              onClick={() => saveMutation.mutate()}
+            >
+              保存
+            </Button>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={checkConflicts}>冲突检测</Button>
-            <Button variant="secondary" onClick={() => setOpen(false)}>取消</Button>
-            <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.assigneeId || !form.groupId || (!!form.startAt !== !!form.endAt)}>保存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        }
+      >
+        <div className="cwgsyw-form">
+          <Field htmlFor="roster-date" label="日期" required>
+            <Input id="roster-date" type="date" value={form.dutyDate} onChange={(event) => setForm({ ...form, dutyDate: event.target.value })} />
+          </Field>
+          <Field htmlFor="roster-shift" label="班次">
+            <Input id="roster-shift" value={form.shiftName} onChange={(event) => setForm({ ...form, shiftName: event.target.value })} />
+          </Field>
+          <Field htmlFor="roster-start" label="开始时间">
+            <Input id="roster-start" type="datetime-local" value={form.startAt} onChange={(event) => setForm({ ...form, startAt: event.target.value })} />
+          </Field>
+          <Field htmlFor="roster-end" label="结束时间">
+            <Input id="roster-end" type="datetime-local" value={form.endAt} onChange={(event) => setForm({ ...form, endAt: event.target.value })} />
+          </Field>
+          <Field htmlFor="roster-assignee" label="负责人" required>
+            <Select id="roster-assignee" value={form.assigneeId} options={userOptions} onChange={(value) => setForm({ ...form, assigneeId: value })} />
+          </Field>
+          <Field htmlFor="roster-backup" label="备份负责人">
+            <Select id="roster-backup" value={form.backupAssigneeId} options={userOptions} onChange={(value) => setForm({ ...form, backupAssigneeId: value })} />
+          </Field>
+          <Field htmlFor="roster-group" label="所属组" required>
+            <Select id="roster-group" value={form.groupId} options={groupOptions} onChange={(value) => setForm({ ...form, groupId: value })} />
+          </Field>
+          <Field htmlFor="roster-phone" label="联系电话覆盖（可选）" helperText="留空则用用户默认手机号">
+            <Input id="roster-phone" value={form.phoneOverride} onChange={(event) => setForm({ ...form, phoneOverride: event.target.value })} />
+          </Field>
+          <Field htmlFor="roster-remark" label="备注">
+            <Input id="roster-remark" value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} />
+          </Field>
+          {conflictMsg.length > 0 ? (
+            <Alert
+              tone="warning"
+              title="冲突检测"
+              description={conflictMsg.join('；')}
+              showDismiss={false}
+            />
+          ) : null}
+        </div>
+      </NeutralDialog>
+
+      <NeutralAlertDialog
+        open={!!deleteTarget}
+        title="确认删除排班"
+        description={deleteTarget ? `确认删除 ${deleteTarget.dutyDate} 的排班？` : '确认删除该排班？'}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onOpenChange={(next) => {
+          if (!next) setDeleteTarget(null)
+        }}
+      />
+    </>
   )
 }

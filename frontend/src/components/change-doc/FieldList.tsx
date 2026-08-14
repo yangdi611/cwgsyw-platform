@@ -1,9 +1,9 @@
 'use client'
 
-import { Button, Input, Label, Textarea } from '@/components/design-system'
-import { Sparkles } from 'lucide-react'
 import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
-import { isTableFieldConfig, type TableRow, type FieldConfigVO } from '@/components/change-doc/tableFieldTypes'
+import { isTableFieldConfig, type FieldConfigVO, type TableRow } from '@/components/change-doc/tableFieldTypes'
+import '@/design-system/figma-neutral/index.css'
+import { Button, Field, Input, Select, Textarea } from '@/design-system/figma-neutral/components'
 
 interface FieldListProps {
   fields: FieldConfigVO[]
@@ -25,25 +25,19 @@ export function FieldList({
   onAiGenerate,
 }: FieldListProps) {
   return (
-    <>
+    <div className="cwgsyw-form">
       {fields.map((field) => {
         if (field.fieldType === 'table' && isTableFieldConfig(field.config)) {
-          const rows = Array.isArray(fieldsData[field.fieldKey])
-            ? (fieldsData[field.fieldKey] as TableRow[])
-            : []
+          const rows = Array.isArray(fieldsData[field.fieldKey]) ? (fieldsData[field.fieldKey] as TableRow[]) : []
           return (
-            <div key={field.fieldKey} className="space-y-1.5">
-              <Label>
-                {field.label}
-                {field.required && <span className="ml-1 text-v2-danger">*</span>}
-              </Label>
+            <Field key={field.fieldKey} label={field.label} required={field.required}>
               <TableFieldEditor
                 config={field.config}
                 rows={rows}
                 onChange={onTableFieldChange(field.fieldKey)}
                 disabled={!editable}
               />
-            </div>
+            </Field>
           )
         }
 
@@ -51,71 +45,63 @@ export function FieldList({
         const value = rawValue === null || rawValue === undefined ? '' : String(rawValue)
         const isTextarea = field.fieldType === 'textarea'
         const enumOptions = Array.isArray((field.config as { options?: unknown } | undefined)?.options)
-          ? ((field.config as { options: { value: string; label: string }[] }).options)
+          ? (field.config as { options: { value: string; label: string }[] }).options
           : []
 
         return (
-          <div key={field.fieldKey} className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>
-                {field.label}
-                {field.required && <span className="ml-1 text-v2-danger">*</span>}
-              </Label>
-              {editable && isTextarea && (
+          <div key={field.fieldKey} className="cwgsyw-form">
+            <div className="cwgsyw-designer__actions">
+              {editable && isTextarea ? (
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs"
                   onClick={() => onAiGenerate(field.fieldKey)}
                   disabled={aiLoadingField === field.fieldKey}
                 >
-                  <Sparkles className="h-3 w-3" />
                   {aiLoadingField === field.fieldKey ? 'AI 生成中…' : 'AI 生成'}
                 </Button>
-              )}
+              ) : null}
             </div>
             {editable ? (
-              isTextarea ? (
-                <Textarea
-                  value={value}
-                  onChange={onFieldChange(field.fieldKey)}
-                  placeholder={field.placeholder ?? undefined}
-                  rows={4}
-                />
-              ) : field.fieldType === 'number' ? (
-                <Input type="number" value={value} onChange={onFieldChange(field.fieldKey)} placeholder={field.placeholder ?? undefined} />
-              ) : field.fieldType === 'enum' ? (
-                <select
-                  value={value}
-                  onChange={onFieldChange(field.fieldKey)}
-                  className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3 text-sm text-v2-fg"
-                >
-                  <option value="">请选择</option>
-                  {enumOptions.map((option) => {
-                    return <option key={option.value} value={option.value}>{option.label}</option>
-                  })}
-                </select>
-              ) : field.fieldType === 'date' ? (
-                <Input type="date" value={value} onChange={onFieldChange(field.fieldKey)} />
-              ) : field.fieldType === 'datetime' ? (
-                <Input
-                  type="datetime-local"
-                  value={value}
-                  onChange={onFieldChange(field.fieldKey)}
-                />
+              field.fieldType === 'enum' ? (
+                <Field label={field.label} required={field.required}>
+                  <Select
+                    value={value}
+                    placeholder="请选择"
+                    options={[{ value: '', label: '请选择' }, ...enumOptions]}
+                    onChange={(next) =>
+                      onFieldChange(field.fieldKey)({ target: { value: next } } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                  />
+                </Field>
+              ) : isTextarea ? (
+                <Field label={field.label} required={field.required}>
+                  <Textarea
+                    value={value}
+                    rows={4}
+                    placeholder={field.placeholder ?? undefined}
+                    onChange={onFieldChange(field.fieldKey)}
+                  />
+                </Field>
               ) : (
-                <Input
-                  value={value}
-                  onChange={onFieldChange(field.fieldKey)}
-                  placeholder={field.placeholder ?? undefined}
-                />
+                <Field label={field.label} required={field.required}>
+                  <Input
+                    type={field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : field.fieldType === 'datetime' ? 'datetime-local' : 'text'}
+                    value={value}
+                    placeholder={field.placeholder ?? undefined}
+                    onChange={onFieldChange(field.fieldKey)}
+                  />
+                </Field>
               )
             ) : (
-              <p className="whitespace-pre-wrap text-sm text-v2-fg">{value || '—'}</p>
+              <Field label={field.label} required={field.required}>
+                <p>{value || '—'}</p>
+              </Field>
             )}
           </div>
         )
       })}
-    </>
+    </div>
   )
 }

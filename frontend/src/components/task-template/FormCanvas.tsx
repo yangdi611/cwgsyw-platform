@@ -1,7 +1,7 @@
 'use client'
 
-import { ChevronDown, ChevronUp, GripVertical, Trash2 } from 'lucide-react'
 import type { TaskFieldDefinition } from '@/lib/task-template-api'
+import { Button, Chip, IconButton, StatusBadge } from '@/design-system/figma-neutral/components'
 
 export function FormCanvas({
   fields,
@@ -19,52 +19,52 @@ export function FormCanvas({
   onRemove: (key: string) => void
 }) {
   return (
-    <main className="min-h-[680px] bg-v2-canvas p-4">
-      <div className="mx-auto max-w-3xl rounded-v2-xl border border-v2-border bg-v2-surface p-5 shadow-v2-sm">
-        <div className="mb-5 border-b border-v2-border pb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-v2-primary">表单画布</p>
-          <p className="mt-1 text-sm text-v2-muted">移动端自动降级为单列；发布版本仅可预览。</p>
+    <section className="cwgsyw-designer__pane cwgsyw-designer__canvas">
+      <div className="cwgsyw-designer__canvas-card">
+        <div>
+          <p className="cwgsyw-type-label-xs">表单画布</p>
+          <p className="cwgsyw-type-body-sm">移动端自动降级为单列；发布版本仅可预览。</p>
         </div>
         {fields.length === 0 ? (
-          <div className="flex min-h-80 items-center justify-center rounded-v2-lg border border-dashed border-v2-border text-sm text-v2-muted">
-            从左侧添加字段开始设计
-          </div>
+          <div className="cwgsyw-designer__empty">从左侧添加字段开始设计</div>
         ) : (
-          <div className="space-y-2">
+          <div className="cwgsyw-designer__stack">
             {fields.map((field, index) => (
-              <button
+              <div
                 key={field.key}
-                type="button"
-                onClick={() => onSelect(field.key)}
-                className={`flex w-full items-start gap-3 rounded-v2-lg border p-3 text-left transition ${
-                  selectedKey === field.key
-                    ? 'border-v2-primary bg-v2-primary-soft shadow-v2-sm'
-                    : 'border-v2-border bg-v2-surface hover:bg-v2-surface-hover'
-                }`}
+                className="cwgsyw-designer__field"
+                data-selected={selectedKey === field.key}
               >
-                <GripVertical className="mt-1 h-4 w-4 shrink-0 text-v2-muted" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-v2-fg">{field.label}</span>
-                    {field.required && <span className="text-v2-danger">*</span>}
-                    <span className="rounded bg-v2-surface-hover px-1.5 py-0.5 font-v2-mono text-[10px] text-v2-muted">{field.type}</span>
-                    {field.sensitive && <span className="rounded bg-v2-warning-soft px-1.5 py-0.5 text-[10px] text-v2-warning">敏感</span>}
-                    {field.analytics.enabled === true && <span className="rounded bg-v2-success-soft px-1.5 py-0.5 text-[10px] text-v2-success">统计</span>}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="cwgsyw-designer__field-select"
+                  aria-pressed={selectedKey === field.key}
+                  onClick={() => onSelect(field.key)}
+                >
+                  <div className="cwgsyw-form">
+                    <div className="cwgsyw-designer__chips">
+                      <strong>{field.label}</strong>
+                      {field.required ? <span className="cwgsyw-field__required">*</span> : null}
+                      <StatusBadge label={field.type} status="neutral" size="sm" />
+                      {field.sensitive ? <Chip label="敏感" tone="warning" /> : null}
+                      {field.analytics.enabled === true ? <Chip label="统计" tone="success" /> : null}
+                    </div>
+                    <p className="cwgsyw-type-label-xs">{field.key}</p>
                   </div>
-                  <p className="mt-1 truncate font-v2-mono text-xs text-v2-muted">{field.key}</p>
-                </div>
-                {!readOnly && (
-                  <div className="flex shrink-0 gap-1" onClick={(event) => event.stopPropagation()}>
-                    <span role="button" tabIndex={0} aria-label="上移" onClick={() => onMove(index, -1)} className="rounded p-1 text-v2-muted hover:bg-v2-surface-hover"><ChevronUp className="h-4 w-4" /></span>
-                    <span role="button" tabIndex={0} aria-label="下移" onClick={() => onMove(index, 1)} className="rounded p-1 text-v2-muted hover:bg-v2-surface-hover"><ChevronDown className="h-4 w-4" /></span>
-                    <span role="button" tabIndex={0} aria-label="删除" onClick={() => onRemove(field.key)} className="rounded p-1 text-v2-danger hover:bg-v2-danger-soft"><Trash2 className="h-4 w-4" /></span>
+                </Button>
+                {!readOnly ? (
+                  <div className="cwgsyw-designer__actions">
+                    <IconButton type="button" variant="ghost" size="sm" icon="chevron-up" aria-label="上移" onClick={() => onMove(index, -1)} />
+                    <IconButton type="button" variant="ghost" size="sm" icon="chevron-down" aria-label="下移" onClick={() => onMove(index, 1)} />
+                    <IconButton type="button" variant="destructive" size="sm" icon="trash" aria-label="删除" onClick={() => onRemove(field.key)} />
                   </div>
-                )}
-              </button>
+                ) : null}
+              </div>
             ))}
           </div>
         )}
       </div>
-    </main>
+    </section>
   )
 }

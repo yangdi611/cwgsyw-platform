@@ -1,19 +1,23 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, buttonVariants, Input } from '@/components/design-system'
-import Link from 'next/link'
-import { ArrowLeft, GitCompare, Loader2 } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { CiTopologyGraph, TopologyNode, TopologyEdge, DiffStatus } from '@/components/cmdb/CiTopologyGraph'
+import '@/design-system/figma-neutral/index.css'
 import {
-  CiTopologyGraph, TopologyNode, TopologyEdge, DiffStatus,
-} from '@/components/cmdb/CiTopologyGraph'
-import { cn } from '@/lib/utils'
-import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
-
-// ── Types ────────────────────────────────────────────────────────────────────
+  Breadcrumb,
+  Button,
+  DetailDrawerPage,
+  EmptyState,
+  ErrorState,
+  Input,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
 interface CompareNodeV2 extends TopologyNode {
   fieldsData?: Record<string, unknown> | null
@@ -33,19 +37,18 @@ interface TopologyCompareVO {
   edges: CompareEdge[]
 }
 
-const DIFF_LEGEND: { status: DiffStatus; label: string; cls: string }[] = [
-  { status: 'added', label: '新增', cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
-  { status: 'removed', label: '删除', cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
-  { status: 'modified', label: '修改', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-  { status: 'unchanged', label: '未变', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/40' },
+const DIFF_LEGEND: { status: DiffStatus; label: string; tone: 'success' | 'danger' | 'warning' | 'neutral' }[] = [
+  { status: 'added', label: '新增', tone: 'success' },
+  { status: 'removed', label: '删除', tone: 'danger' },
+  { status: 'modified', label: '修改', tone: 'warning' },
+  { status: 'unchanged', label: '未变', tone: 'neutral' },
 ]
 
-/** Merge a compare VO into the graph's node/edge + diff-map inputs. */
 function mergeCompare(vo: TopologyCompareVO) {
   const nodes: TopologyNode[] = []
   const nodeDiffMap = new Map<number, DiffStatus>()
-  ;(['added', 'removed', 'modified', 'unchanged'] as DiffStatus[]).forEach(status => {
-    vo[status].forEach(n => {
+  ;(['added', 'removed', 'modified', 'unchanged'] as DiffStatus[]).forEach((status) => {
+    vo[status].forEach((n) => {
       nodes.push({
         id: n.id, name: n.name, modelId: n.modelId, modelName: n.modelName,
         modelColor: n.modelColor, status: n.status, owner: n.owner,
@@ -54,18 +57,14 @@ function mergeCompare(vo: TopologyCompareVO) {
       nodeDiffMap.set(n.id, status)
     })
   })
-  const edges: TopologyEdge[] = vo.edges.map(e => ({
+  const edges: TopologyEdge[] = vo.edges.map((e) => ({
     src: e.src, dst: e.dst, kind: e.kind, label: e.label,
   }))
   const edgeDiffMap = new Map<string, DiffStatus>()
-  vo.edges.forEach(e => edgeDiffMap.set(`${e.src}-${e.dst}-${e.kind}`, e.status ?? 'unchanged'))
+  vo.edges.forEach((e) => edgeDiffMap.set(`${e.src}-${e.dst}-${e.kind}`, e.status ?? 'unchanged'))
   return { nodes, edges, nodeDiffMap, edgeDiffMap }
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
-// AC10 (Issue #64): 拓扑对比从 /cmdb/topology/[instanceId] 的内嵌模式分离为独立子路由，
-// 职责单一——仅做两个时间点之间的拓扑差异对比。
 export default function TopologyComparePage() {
   const { instanceId } = useParams<{ instanceId: string }>()
   const { hasPermission, isHydrated } = usePermission()
@@ -92,7 +91,7 @@ export default function TopologyComparePage() {
             depth: compareDepth,
           },
         })
-        .then(r => r.data.data),
+        .then((r) => r.data.data),
     enabled: compareNonce > 0 && !!fromTime && !!toTime && isHydrated
       && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_topology', 'read'),
   })
@@ -102,80 +101,68 @@ export default function TopologyComparePage() {
     return { nodes: [], edges: [], nodeDiffMap: null, edgeDiffMap: null }
   }, [compareQuery.data])
 
-  const rootNode = graphInput.nodes.find(n => n.isRoot)
+  const rootNode = graphInput.nodes.find((n) => n.isRoot)
 
   return (
-    <WorkspaceShell
-      height="viewport"
-      className="-m-4 md:-m-6"
-      toolbar={
-        <>
-          <WorkspaceToolbar
-            leading={(
-              <Link
-                href={`/cmdb/topology/${instanceId}`}
-                className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />返回拓扑图
-              </Link>
-            )}
-            title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑对比`}
-            subtitle="选择起止日期后开始对比"
-          />
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-v2-border bg-v2-surface-soft px-3 py-2 sm:px-4">
-        <span className="text-xs text-v2-muted">起始时间</span>
-        <Input type="datetime-local" step="1" value={fromTime} onChange={e => setFromTime(e.target.value)} className="w-52 h-8" />
-        <span className="text-xs text-v2-muted">截止时间</span>
-        <Input type="datetime-local" step="1" value={toTime} onChange={e => setToTime(e.target.value)} className="w-52 h-8" />
-        <span className="text-xs text-v2-muted">深度</span>
-        <Input
-          type="number"
-          min={1}
-          max={5}
-          value={compareDepth}
-          onChange={e => setCompareDepth(Math.min(5, Math.max(1, Number(e.target.value) || 3)))}
-          className="w-16 h-8"
+    <DetailDrawerPage
+      header={
+        <PageHeader
+          eyebrow="CMDB"
+          title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑对比`}
+          subtitle="选择起止日期后开始对比"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: `/cmdb/topology/${instanceId}`, label: '拓扑图' },
+                { label: '对比' },
+              ]}
+            />
+          }
+          actions={
+            <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/topology/${instanceId}`)}>
+              返回拓扑图
+            </Button>
+          }
         />
-        <Button variant="default"
-          size="ui-sm"
-          onClick={() => setCompareNonce(n => n + 1)}
-          disabled={!fromTime || !toTime || compareQuery.isFetching}
-        >
-          {compareQuery.isFetching ? (
-            <><Loader2 className="h-4 w-4 mr-1 animate-spin" />对比中</>
-          ) : (
-            <><GitCompare className="h-4 w-4 mr-1" />开始对比</>
-          )}
-        </Button>
-        {compareQuery.data && (
-          <div className="flex items-center gap-1.5 ml-2">
-            {DIFF_LEGEND.map(l => {
-              const count = compareQuery.data[l.status]?.length ?? 0
-              return (
-                <span key={l.status} className={cn('text-[11px] px-1.5 py-0.5 rounded border', l.cls)}>
-                  {l.label} {count}
-                </span>
-              )
-            })}
-          </div>
-        )}
-      </div>
-        </>
       }
-    >
-      <div className="relative flex flex-1 overflow-hidden">
-        {compareQuery.isFetching ? (
-          <div className="flex items-center justify-center h-full text-v2-muted text-sm gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />加载中...
-          </div>
+      workspaceToolbar={
+        <div className="cwgsyw-inline-controls">
+          <span className="cwgsyw-type-label-sm">起始时间</span>
+          <Input type="datetime-local" step="1" value={fromTime} onChange={(e) => setFromTime(e.target.value)} />
+          <span className="cwgsyw-type-label-sm">截止时间</span>
+          <Input type="datetime-local" step="1" value={toTime} onChange={(e) => setToTime(e.target.value)} />
+          <span className="cwgsyw-type-label-sm">深度</span>
+          <Input
+            type="number"
+            min={1}
+            max={5}
+            value={String(compareDepth)}
+            onChange={(e) => setCompareDepth(Math.min(5, Math.max(1, Number(e.target.value) || 3)))}
+          />
+          <Button
+            type="button"
+            disabled={!fromTime || !toTime || compareQuery.isFetching}
+            onClick={() => setCompareNonce((n) => n + 1)}
+          >
+            {compareQuery.isFetching ? '对比中' : '开始对比'}
+          </Button>
+          {compareQuery.data ? DIFF_LEGEND.map((item) => (
+            <StatusBadge
+              key={item.status}
+              label={`${item.label} ${compareQuery.data[item.status]?.length ?? 0}`}
+              status={item.tone}
+            />
+          )) : null}
+        </div>
+      }
+      content={
+        compareQuery.isFetching ? (
+          <LoadingState label="加载对比结果" />
         ) : compareQuery.isError ? (
-          <div className="flex items-center justify-center h-full text-v2-danger text-sm">
-            对比失败，请检查时间范围与深度
-          </div>
+          <ErrorState title="对比失败" description="请检查时间范围与深度。" showRetry={false} />
         ) : !graphInput.nodes.length ? (
-          <div className="flex items-center justify-center h-full text-v2-muted text-sm">
-            点击「开始对比」生成差异拓扑
-          </div>
+          <EmptyState title="点击「开始对比」生成差异拓扑" />
         ) : (
           <CiTopologyGraph
             nodes={graphInput.nodes}
@@ -185,8 +172,8 @@ export default function TopologyComparePage() {
             nodeDiffMap={graphInput.nodeDiffMap}
             edgeDiffMap={graphInput.edgeDiffMap}
           />
-        )}
-      </div>
-    </WorkspaceShell>
+        )
+      }
+    />
   )
 }

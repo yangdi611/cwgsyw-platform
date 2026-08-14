@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
+import {
+  Button,
+  NeutralAlertDialog,
+  NeutralDialog,
+  SearchInput,
+} from '@/design-system/figma-neutral/components'
 
 interface GroupMember {
   userId: number
@@ -52,8 +57,8 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
     try {
       const res = await api.get('/users', { params: { keyword, page: 1, size: 20 } })
       const allUsers = res.data.data?.records ?? []
-      const memberIds = new Set(members.map(m => m.userId))
-      const available = (allUsers as SearchUser[]).filter(u => !memberIds.has(u.id))
+      const memberIds = new Set(members.map((member) => member.userId))
+      const available = (allUsers as SearchUser[]).filter((user) => !memberIds.has(user.id))
       setSearchResults(available)
     } catch (err) {
       console.warn('搜索用户失败', err)
@@ -62,8 +67,6 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
 
   useEffect(() => {
     if (open) {
-      // Opening the dialog resets its transient search state and fetches the external member list.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchKeyword('')
       setSearchResults([])
       void loadMembers()
@@ -105,96 +108,74 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{groupName} — 成员管理</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex gap-4 min-h-[300px] max-h-[400px]">
-            {/* Left: current members */}
-            <div className="flex-1 border rounded-md flex flex-col">
-              <div className="bg-muted px-3 py-2 text-sm font-medium border-b">
-                当前成员 ({members.length})
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                {members.length === 0 ? (
-                  <p className="text-sm text-v2-muted text-center py-8">暂无成员</p>
-                ) : (
-                  members.map((m) => (
-                    <div key={m.userId} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
-                      <div>
-                        <span className="text-sm font-medium">{m.realName || m.username}</span>
-                        <span className="text-xs text-v2-muted ml-1">@{m.username}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="ui-sm"
-                        className="text-red-500 h-auto px-1 py-0 text-xs"
-                        disabled={loading}
-                        onClick={() => setRemoveTarget(m)}
-                      >
-                        移除
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
+      <NeutralDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={`${groupName} — 成员管理`}
+        size="lg"
+      >
+        <div className="cwgsyw-split">
+          <section className="cwgsyw-split__pane">
+            <div className="cwgsyw-split__pane-head cwgsyw-type-label-sm">当前成员 ({members.length})</div>
+            <div className="cwgsyw-split__pane-body">
+              {members.length === 0 ? (
+                <p className="cwgsyw-stack-list__empty">暂无成员</p>
+              ) : (
+                members.map((member) => (
+                  <div key={member.userId} className="cwgsyw-stack-list__item">
+                    <span>
+                      <strong>{member.realName || member.username}</strong>
+                      <span className="cwgsyw-type-label-xs"> @{member.username}</span>
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setRemoveTarget(member)}>
+                      移除
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
-
-            {/* Right: search + add */}
-            <div className="flex-1 flex flex-col gap-2">
-              <Input
-                placeholder="搜索用户..."
+          </section>
+          <section className="cwgsyw-split__pane">
+            <div className="cwgsyw-split__pane-head">
+              <SearchInput
                 value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                className="h-8 text-sm"
+                placeholder="搜索用户..."
+                onChange={(event) => setSearchKeyword(event.target.value)}
+                onClear={() => setSearchKeyword('')}
               />
-              <div className="flex-1 border rounded-md overflow-y-auto">
-                {searchResults.length === 0 ? (
-                  <p className="text-sm text-v2-muted text-center py-8">
-                    {searchKeyword ? '无匹配用户' : '输入关键词搜索'}
-                  </p>
-                ) : (
-                  searchResults.map((u) => (
-                    <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0">
-                      <div>
-                        <span className="text-sm font-medium">{u.realName || u.username}</span>
-                        <span className="text-xs text-v2-muted ml-1">@{u.username}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="ui-sm"
-                        className="text-blue-500 h-auto px-1 py-0 text-xs"
-                        disabled={loading}
-                        onClick={() => handleAdd(u.id)}
-                      >
-                        加入
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="cwgsyw-split__pane-body">
+              {searchResults.length === 0 ? (
+                <p className="cwgsyw-stack-list__empty">{searchKeyword ? '无匹配用户' : '输入关键词搜索'}</p>
+              ) : (
+                searchResults.map((user) => (
+                  <div key={user.id} className="cwgsyw-stack-list__item">
+                    <span>
+                      <strong>{user.realName || user.username}</strong>
+                      <span className="cwgsyw-type-label-xs"> @{user.username}</span>
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => handleAdd(user.id)}>
+                      加入
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      </NeutralDialog>
 
-      {/* Remove confirmation (sibling, not nested) */}
-      <Dialog open={!!removeTarget} onOpenChange={(o) => { if (!o) setRemoveTarget(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>确认移除</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-v2-muted">
-            确定要将 <strong>{removeTarget?.realName || removeTarget?.username}</strong> 从 {groupName} 移除吗？
-          </p>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button size="default" variant="outline" onClick={() => setRemoveTarget(null)}>取消</Button>
-            <Button size="default" variant="default" className="bg-red-500 hover:bg-red-600" onClick={handleRemove}>移除</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NeutralAlertDialog
+        open={!!removeTarget}
+        title="确认移除"
+        description={`确定要将 ${removeTarget?.realName || removeTarget?.username || ''} 从 ${groupName} 移除吗？`}
+        intent="destructive"
+        confirmLabel="移除"
+        onConfirm={handleRemove}
+        onOpenChange={(next) => {
+          if (!next) setRemoveTarget(null)
+        }}
+      />
     </>
   )
 }

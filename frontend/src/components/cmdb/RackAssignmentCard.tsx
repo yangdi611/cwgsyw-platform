@@ -2,23 +2,9 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Server, Plus, X } from 'lucide-react'
 import api from '@/lib/api'
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import { toast } from 'sonner'
+import { Button, Input, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 
 import { getApiErrorMessage } from '@/lib/api-error'
@@ -124,38 +110,39 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
   if (rackDefs.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-v2-border bg-v2-surface overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-v2-border bg-v2-surface-soft">
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-v2-muted">
-          <Server className="h-3.5 w-3.5" />
+    <div className="rounded-xl border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface-subtle)]">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--cwgsyw-text-secondary)]">
+          
           所在机柜
         </span>
         {canWrite && (
-          <Button size="ui-sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
-            <Plus className="h-3.5 w-3.5 mr-1" />装入机柜
+          <Button size="sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
+            装入机柜
           </Button>
         )}
       </div>
       <div className="px-4 py-3">
         {rackMemberships.length === 0 ? (
-          <span className="text-sm text-v2-subtle">未装入任何机柜</span>
+          <span className="text-sm text-[var(--cwgsyw-text-tertiary)]">未装入任何机柜</span>
         ) : (
           <ul className="space-y-1.5">
             {rackMemberships.map((rel) => {
               return (
                 <li key={rel.id} className="flex items-center justify-between text-sm">
-                  <span className="text-v2-fg">
+                  <span className="text-[var(--cwgsyw-text-primary)]">
                     {rel.srcInstanceName ?? `机柜 #${rel.srcInstanceId}`}
                   </span>
                   {canWrite && (
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="destructive"
+                      aria-label="移出机柜"
                       onClick={() => removeMutation.mutate(rel.id)}
-                      className="text-v2-danger hover:opacity-70"
-                      title="移出机柜"
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      删除
+                    </Button>
                   )}
                 </li>
               )
@@ -164,67 +151,41 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>装入机柜</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {rackDefs.length > 1 && (
-              <div className="space-y-1">
-                <Label className="text-xs">关联类型</Label>
-                <Select value={defId} onValueChange={(v) => setDefId(v ?? '')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择关联类型">
-                      {(v: string) => rackDefs.find((d) => d.defId === v)?.name ?? '选择关联类型'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rackDefs.map((d) => <SelectItem key={d.defId} value={d.defId}>{d.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="space-y-1">
-              <Label className="text-xs">机柜</Label>
-              <Input
-                placeholder="搜索机柜名称…"
-                value={rackKeyword}
-                onChange={(e) => setRackKeyword(e.target.value)}
+      <NeutralDialog open={open} onOpenChange={setOpen} title="装入机柜">
+        <div className="cwgsyw-form">
+          {rackDefs.length > 1 ? (
+            <div className="cwgsyw-stack-list">
+              <span className="cwgsyw-type-label-sm">关联类型</span>
+              <Select
+                value={defId}
+                placeholder="选择关联类型"
+                options={rackDefs.map((d) => ({ value: d.defId, label: d.name }))}
+                onChange={setDefId}
               />
-              <Select value={rackId} onValueChange={(v) => setRackId(v ?? '')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择机柜">
-                    {(v: string) => (rackList ?? []).find((r) => String(r.id) === v)?.name ?? '选择机柜'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(rackList ?? []).map((r) => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">起始 U 位</Label>
-                <Input type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="如 1" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">结束 U 位</Label>
-                <Input type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="如 2" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button size="default" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-              <Button size="default" variant="default"
-                onClick={() => assignMutation.mutate()}
-                disabled={!defId || !rackId || assignMutation.isPending}
-              >
-                确认装入
-              </Button>
-            </div>
+          ) : null}
+          <div className="cwgsyw-stack-list">
+            <span className="cwgsyw-type-label-sm">机柜</span>
+            <Input placeholder="搜索机柜名称…" value={rackKeyword} onChange={(e) => setRackKeyword(e.target.value)} />
+            <Select
+              value={rackId}
+              placeholder="选择机柜"
+              options={(rackList ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
+              onChange={setRackId}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="cwgsyw-inline-controls">
+            <Input type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="起始 U 位" />
+            <Input type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="结束 U 位" />
+          </div>
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+            <Button type="button" disabled={!defId || !rackId || assignMutation.isPending} onClick={() => assignMutation.mutate()}>
+              确认装入
+            </Button>
+          </div>
+        </div>
+      </NeutralDialog>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { Icon } from '@/design-system/figma-neutral/components'
 import { resolveBreadcrumb } from '@/lib/breadcrumb-config'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { cn } from '@/lib/utils'
@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  * - 根模块：侧栏同款图标 + 宝蓝高亮，boldness 全压在这里
  * - 祖先层级：灰色可点跳转，hover 转墨色
  * - 当前页（末段）：墨色加粗，不可点
- * - 分隔符：细灰 ChevronRight
+ * - 分隔符：Neutral chevron-right
  * 动态末段名由详情页通过 useBreadcrumbStore.setDynamicLabel 注册。
  */
 export function Breadcrumb() {
@@ -37,18 +37,19 @@ export function Breadcrumb() {
           return (
             <li key={i} className="flex min-w-0 items-center gap-1.5">
               {i > 0 && (
-                <ChevronRight
-                  className="h-3.5 w-3.5 shrink-0 text-v2-subtle"
-                  aria-hidden
+                <Icon
+                  name="chevron-right"
+                  size="sm"
+                  className="shrink-0 text-[var(--cwgsyw-text-tertiary)]"
                 />
               )}
               {RootIcon && (
-                <RootIcon className="h-4 w-4 shrink-0 text-v2-primary" aria-hidden />
+                <RootIcon className="h-4 w-4 shrink-0 text-[var(--cwgsyw-action-primary)]" aria-hidden />
               )}
               {c.href && !isLast ? (
                 <Link
                   href={c.href}
-                  className="truncate text-v2-muted transition-colors hover:text-v2-fg"
+                  className="truncate text-[var(--cwgsyw-text-secondary)] transition-colors hover:text-[var(--cwgsyw-text-primary)]"
                 >
                   {c.label}
                 </Link>
@@ -56,7 +57,7 @@ export function Breadcrumb() {
                 <span
                   className={cn(
                     'truncate',
-                    isLast ? 'font-semibold text-v2-fg' : 'text-v2-muted',
+                    isLast ? 'font-semibold text-[var(--cwgsyw-text-primary)]' : 'text-[var(--cwgsyw-text-secondary)]',
                   )}
                   aria-current={isLast ? 'page' : undefined}
                 >

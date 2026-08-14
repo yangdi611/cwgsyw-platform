@@ -3,27 +3,20 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/design-system'
-import { toast } from 'sonner'
-import { Pencil, Save, X } from 'lucide-react'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 import type { CiInstanceVO, InstanceBasicInfoModelShape, CiAttributeVO } from './InstanceBasicInfoTab/types'
 import { renderDisplayValue } from './InstanceBasicInfoTab/FieldDisplay'
 import { renderEditField } from './InstanceBasicInfoTab/FieldEditor'
 import { MaintStatusBadge, BaselineBadge } from './InstanceBasicInfoTab/StatusBadges'
 import { TableFieldDisplay, TableFieldEditor } from './InstanceBasicInfoTab/TableField'
+import { Button, Card } from '@/design-system/figma-neutral/components'
 
 interface Props {
   modelCode: string
   inst: CiInstanceVO
 }
 
-/**
- * Basic-info tab for the instance detail view. Renders attribute groups (read
- * mode) and an inline edit mode with per-field dynamic controls via
- * {@link renderEditField}. Self-contained: fetches its own model (for group
- * names) and owns the edit/save state that previously lived in the page.
- */
 export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
@@ -33,7 +26,7 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
 
   const modelRes = useQuery({
     queryKey: ['cmdb-model', modelCode],
-    queryFn: () => api.get(`/cmdb/models/${modelCode}`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/models/${modelCode}`).then((r) => r.data.data),
     staleTime: 600_000,
   })
 
@@ -52,7 +45,7 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
     onSuccess: () => {
       toast.success('已保存')
       setEditing(false)
-      queryClient.invalidateQueries({ queryKey: ['cmdb-instance', inst.id] })
+      queryClient.invalidateQueries({ queryKey: ['cmdb-instance', modelCode, String(inst.id)] })
     },
     onError: (e: Error) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '保存失败'),
   })
@@ -91,100 +84,76 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const maintStatus = inst.fieldsData['_maint_status_derived']
   const maintExpire = inst.fieldsData['maint_expire']
   const baselineVal = inst.fieldsData['_baseline_completeness']
-
   const canEdit = hasPermission('cmdb_instance', 'update')
 
   return (
-    <div className="space-y-6">
+    <div className="cwgsyw-stack-list">
       {(maintStatus || typeof baselineVal === 'number') && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="cwgsyw-inline-controls">
           <MaintStatusBadge value={maintStatus} expire={maintExpire} />
           <BaselineBadge value={baselineVal} />
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-v2-fg">基本信息</h3>
+      <div className="cwgsyw-inline-controls">
+        <h3 className="cwgsyw-type-title-sm">基本信息</h3>
         {canEdit && !editing && (
-          <Button size="ui-sm" variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="mr-1 h-3.5 w-3.5" />编辑
+          <Button type="button" size="sm" variant="secondary" onClick={() => setEditing(true)}>
+            编辑
           </Button>
         )}
         {editing && (
-          <div className="flex gap-2">
-            <Button size="ui-sm" variant="outline" onClick={() => { setEditing(false); setEditAttrs({}) }}>
-              <X className="mr-1 h-3.5 w-3.5" />取消
+          <>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setEditing(false); setEditAttrs({}) }}>
+              取消
             </Button>
-            <Button variant="default" size="ui-sm" onClick={handleSave} disabled={updateMut.isPending}>
-              <Save className="mr-1 h-3.5 w-3.5" />{updateMut.isPending ? '保存中…' : '保存'}
+            <Button type="button" size="sm" onClick={handleSave} disabled={updateMut.isPending}>
+              {updateMut.isPending ? '保存中…' : '保存'}
             </Button>
-          </div>
+          </>
         )}
       </div>
 
-      {sortedGroupIds.map(grp => {
+      {sortedGroupIds.map((grp) => {
         const attrs = attrsByGroup.get(grp.id) ?? []
         return (
-          <div key={grp.id} className="overflow-hidden rounded-xl border border-v2-border bg-v2-surface">
-            <div className="px-4 py-2 border-b border-v2-border bg-v2-surface-soft">
-              <span className="text-xs font-bold uppercase tracking-wider text-v2-muted">
-                {grp.name}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {attrs.map((a, idx) => {
+          <Card key={grp.id} title={grp.name}>
+            <div className="cwgsyw-form">
+              {attrs.map((a) => {
                 const rawVal = inst.fieldsData[a.fieldKey]
                 const editVal = a.fieldKey in editAttrs ? editAttrs[a.fieldKey] : rawVal
                 const isTableField = a.fieldType === 'table'
                 const isEditing = editing && a.isEditable
-                const isLastInRow = (idx + 1) % 3 === 0 || idx === attrs.length - 1
-
                 return (
-                  <div
-                    key={a.id}
-                    className={`px-4 py-2.5 border-b border-v2-border last:border-b-0 ${
-                      isTableField ? 'md:col-span-2 lg:col-span-3' : ''
-                    } ${
-                      !isTableField && !isLastInRow ? 'lg:border-r' : ''
-                    } ${
-                      isEditing || isTableField ? '' : 'flex items-baseline gap-3'
-                    }`}
-                  >
-                    <dt
-                      className={`text-xs text-v2-muted ${
-                        isEditing || isTableField ? 'mb-1.5' : 'w-28 shrink-0 truncate'
-                      }`}
-                      title={a.name}
-                    >
+                  <div key={a.id} className="cwgsyw-stack-list">
+                    <div className="cwgsyw-type-label-sm">
                       {a.name}
-                      {a.unit && <span className="ml-0.5">({a.unit})</span>}
-                      {a.isRequired && <span className="ml-0.5 text-v2-danger">*</span>}
-                    </dt>
-                    <dd className={`${isEditing || isTableField ? '' : 'min-w-0 flex-1 text-sm text-v2-fg'}`}>
-                      {isEditing ? (
-                        isTableField ? (
-                          <TableFieldEditor
-                            schema={a.option}
-                            rows={Array.isArray(editVal) ? editVal as Record<string, unknown>[] : []}
-                            onChange={rows => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: rows }))}
-                          />
-                        ) : (
-                          renderEditField(a, String(editVal ?? ''), v => setEditAttrs(prev => ({ ...prev, [a.fieldKey]: v })))
-                        )
-                      ) : isTableField ? (
-                        <TableFieldDisplay
+                      {a.unit ? ` (${a.unit})` : ''}
+                      {a.isRequired ? ' *' : ''}
+                    </div>
+                    {isEditing ? (
+                      isTableField ? (
+                        <TableFieldEditor
                           schema={a.option}
-                          rows={Array.isArray(rawVal) ? rawVal as Record<string, unknown>[] : []}
+                          rows={Array.isArray(editVal) ? editVal as Record<string, unknown>[] : []}
+                          onChange={(rows) => setEditAttrs((prev) => ({ ...prev, [a.fieldKey]: rows }))}
                         />
                       ) : (
-                        renderDisplayValue(a, rawVal)
-                      )}
-                    </dd>
+                        renderEditField(a, String(editVal ?? ''), (v) => setEditAttrs((prev) => ({ ...prev, [a.fieldKey]: v })))
+                      )
+                    ) : isTableField ? (
+                      <TableFieldDisplay
+                        schema={a.option}
+                        rows={Array.isArray(rawVal) ? rawVal as Record<string, unknown>[] : []}
+                      />
+                    ) : (
+                      renderDisplayValue(a, rawVal)
+                    )}
                   </div>
                 )
               })}
             </div>
-          </div>
+          </Card>
         )
       })}
     </div>

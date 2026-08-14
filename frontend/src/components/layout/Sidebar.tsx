@@ -8,6 +8,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/api'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { IconButton } from '@/design-system/figma-neutral/components'
 import { navItems } from './sidebar/navItems'
 import { isGroup } from './sidebar/utils'
 import { useOpenGroup, useCollapsed } from './sidebar/useSidebarState'
@@ -98,44 +99,49 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'bg-v2-sidebar text-v2-sidebar-fg border-r border-v2-sidebar-border flex min-h-0 h-full flex-col sticky top-0 overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
+        'bg-[var(--cwgsyw-bg-surface)] text-[var(--cwgsyw-text-primary)] border-r border-[var(--cwgsyw-border-subtle)] flex min-h-0 h-full flex-col sticky top-0 overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
         collapsed ? 'w-[76px]' : 'w-[76px] md:w-[280px]',
       )}
     >
       {/* Brand */}
       <div
         className={cn(
-          'h-14 flex items-center border-b border-v2-sidebar-border shrink-0',
+          'h-14 flex items-center border-b border-[var(--cwgsyw-border-subtle)] shrink-0',
           collapsed ? 'justify-center px-2' : 'justify-center px-2 md:justify-start md:gap-3 md:px-5',
         )}
       >
-        <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
+        <div className="w-[34px] h-[34px] rounded-[10px] bg-[var(--cwgsyw-action-primary)] shrink-0" />
         {!collapsed && (
           <div className="hidden min-w-0 flex-1 items-center gap-3 md:flex">
             <div className="min-w-0 flex-1">
               <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">CWGSYW 平台</div>
-              <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">企业运维与 CMDB 工作台</div>
+              <div className="text-xs text-[var(--cwgsyw-text-secondary)] mt-0.5 whitespace-nowrap">企业运维与 CMDB 工作台</div>
             </div>
-            <button
-              onClick={toggleCollapsed}
+            <IconButton
+              type="button"
+              variant="ghost"
+              size="sm"
               title="收起侧栏"
-              className="shrink-0 rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
-            >
-              <PanelLeftClose className="h-[18px] w-[18px]" />
-            </button>
+              aria-label="收起侧栏"
+              className="shrink-0"
+              icon={<PanelLeftClose className="h-[18px] w-[18px]" />}
+              onClick={toggleCollapsed}
+            />
           </div>
         )}
       </div>
 
       {collapsed && (
         <div className="flex justify-center py-2 shrink-0">
-          <button
-            onClick={toggleCollapsed}
+          <IconButton
+            type="button"
+            variant="ghost"
+            size="sm"
             title="展开侧栏"
-            className="rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
-          >
-            <PanelLeftOpen className="h-[18px] w-[18px]" />
-          </button>
+            aria-label="展开侧栏"
+            icon={<PanelLeftOpen className="h-[18px] w-[18px]" />}
+            onClick={toggleCollapsed}
+          />
         </div>
       )}
 
@@ -199,14 +205,14 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                    : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                    ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+                    : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]'
                 )}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0 opacity-85" />
                 <span className="flex-1 truncate">{label}</span>
                 {badge !== undefined && badge > 0 && (
-                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1.5 font-mono text-[11px] tabular-nums text-[var(--cwgsyw-status-danger-fg)]">
                     {badge > 99 ? '99+' : badge}
                   </span>
                 )}
@@ -219,30 +225,30 @@ export function Sidebar() {
 
       {/* Footer: Version Info（折叠态隐藏） */}
       {!collapsed && (
-        <div className="hidden shrink-0 space-y-2 border-t border-v2-sidebar-border px-4 py-3 md:block">
+        <div className="hidden shrink-0 space-y-2 border-t border-[var(--cwgsyw-border-subtle)] px-4 py-3 md:block">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
+            <span className="text-[11px] font-mono text-[var(--cwgsyw-text-secondary)]">App</span>
             <span
-              className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded"
+              className="text-[11px] font-mono text-[var(--cwgsyw-text-secondary)] bg-[var(--cwgsyw-bg-surface-subtle)] px-1.5 py-0.5 rounded"
               title={`build ${gitCommit}`}
             >
               v{appVersion}
-              <span className="text-slate-500 ml-1">·{gitCommit}</span>
+              <span className="text-[var(--cwgsyw-text-tertiary)] ml-1">·{gitCommit}</span>
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono text-v2-sidebar-muted">Schema</span>
-            <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">
+            <span className="text-[11px] font-mono text-[var(--cwgsyw-text-secondary)]">Schema</span>
+            <span className="text-[11px] font-mono text-[var(--cwgsyw-text-secondary)] bg-[var(--cwgsyw-bg-surface-subtle)] px-1.5 py-0.5 rounded">
               {schemaVersion ? `V${schemaVersion}` : '—'}
             </span>
           </div>
-          <div className="pt-1 border-t border-white/8 flex items-center justify-between">
-            <span className="text-[10px] text-v2-sidebar-muted">© 2026 All rights reserved</span>
+          <div className="pt-1 border-t border-[var(--cwgsyw-border-subtle)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--cwgsyw-text-secondary)]">© 2026 All rights reserved</span>
             <a
               href="https://github.com/cwgsyw/platform"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
+              className="text-[10px] text-[var(--cwgsyw-text-tertiary)] hover:text-[var(--cwgsyw-text-primary)] transition-colors"
             >
               GitHub ↗
             </a>

@@ -7,6 +7,7 @@ import {
   Handle, Position, NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,25 +97,24 @@ function hashHex(seed: string): string {
 
 interface Palette { border: string; bg: string; text: string }
 
-function resolvePalette(color: string | null, seed: string | null): Palette {
-  const base = normalizeHex(color) ?? hashHex(seed ?? 'default')
+function resolvePalette(_color: string | null, _seed: string | null): Palette {
   return {
-    border: base,
-    bg: mixHex(base, '#0f172a', 0.80),
-    text: mixHex(base, '#ffffff', 0.30),
+    border: CANVAS_NEUTRAL[600],
+    bg: CANVAS_NEUTRAL[900],
+    text: CANVAS_NEUTRAL[100],
   }
 }
 
 // ── Status border + diff styling ─────────────────────────────────────────────
 
 const STATUS_BORDER: Record<string, { border: string; style: string }> = {
-  online:      { border: '#22c55e', style: 'solid' },
-  running:     { border: '#22c55e', style: 'solid' },
-  active:      { border: '#22c55e', style: 'solid' },
-  offline:     { border: '#ef4444', style: 'dashed' },
-  stopped:     { border: '#ef4444', style: 'dashed' },
-  error:       { border: '#ef4444', style: 'dashed' },
-  maintenance: { border: '#eab308', style: 'dashed' },
+  online:      { border: CANVAS_STATUS.success, style: 'solid' },
+  running:     { border: CANVAS_STATUS.success, style: 'solid' },
+  active:      { border: CANVAS_STATUS.success, style: 'solid' },
+  offline:     { border: CANVAS_STATUS.danger, style: 'dashed' },
+  stopped:     { border: CANVAS_STATUS.danger, style: 'dashed' },
+  error:       { border: CANVAS_STATUS.danger, style: 'dashed' },
+  maintenance: { border: CANVAS_STATUS.warning, style: 'dashed' },
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -123,30 +123,30 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  online: '#22c55e', running: '#22c55e', active: '#22c55e',
-  offline: '#ef4444', stopped: '#ef4444', error: '#ef4444',
-  maintenance: '#eab308',
+  online: CANVAS_STATUS.success, running: CANVAS_STATUS.success, active: CANVAS_STATUS.success,
+  offline: CANVAS_STATUS.danger, stopped: CANVAS_STATUS.danger, error: CANVAS_STATUS.danger,
+  maintenance: CANVAS_STATUS.warning,
 }
 
 const DIFF_NODE: Record<DiffStatus, { bg: string; border: string; borderStyle: string }> = {
-  added:      { bg: '#14532d', border: '#22c55e', borderStyle: 'solid' },
-  removed:    { bg: '#451a1f', border: '#ef4444', borderStyle: 'dashed' },
-  modified:   { bg: '#45190f', border: '#eab308', borderStyle: 'solid' },
-  unchanged:  { bg: '#1e293b', border: '#475569', borderStyle: 'solid' },
+  added:      { bg: CANVAS_STATUS.successFg, border: CANVAS_STATUS.success, borderStyle: 'solid' },
+  removed:    { bg: CANVAS_STATUS.dangerFg, border: CANVAS_STATUS.danger, borderStyle: 'dashed' },
+  modified:   { bg: CANVAS_STATUS.warningFg, border: CANVAS_STATUS.warning, borderStyle: 'solid' },
+  unchanged:  { bg: CANVAS_NEUTRAL[800], border: CANVAS_NEUTRAL[600], borderStyle: 'solid' },
 }
 
 const DIFF_EDGE: Record<DiffStatus, { stroke: string; dashed: boolean }> = {
-  added:     { stroke: '#22c55e', dashed: false },
-  removed:   { stroke: '#ef4444', dashed: true },
-  modified:  { stroke: '#eab308', dashed: false },
-  unchanged: { stroke: '#475569', dashed: false },
+  added:     { stroke: CANVAS_STATUS.success, dashed: false },
+  removed:   { stroke: CANVAS_STATUS.danger, dashed: true },
+  modified:  { stroke: CANVAS_STATUS.warning, dashed: false },
+  unchanged: { stroke: CANVAS_NEUTRAL[600], dashed: false },
 }
 
 const DIFF_BADGE: Record<DiffStatus, { label: string; cls: string }> = {
-  added:     { label: '新增', cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
-  removed:   { label: '删除', cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
-  modified:  { label: '修改', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-  unchanged: { label: '未变', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/40' },
+  added:     { label: '新增', cls: 'cwgsyw-type-label-sm' },
+  removed:   { label: '删除', cls: 'cwgsyw-type-label-sm' },
+  modified:  { label: '修改', cls: 'cwgsyw-type-label-sm' },
+  unchanged: { label: '未变', cls: 'cwgsyw-type-label-sm' },
 }
 
 // ── Custom CI node ───────────────────────────────────────────────────────────
@@ -166,41 +166,41 @@ function NodeTooltip({ d, palette }: { d: TopologyNodeData; palette: Palette }) 
   const statusLabel = d.status ? (STATUS_LABEL[d.status] ?? d.status) : null
   const keyAttrEntries = d.keyAttrs ? Object.entries(d.keyAttrs).slice(0, 6) : []
   return (
-    <div className="hidden group-hover:block absolute z-50 left-0 top-full mt-2 pointer-events-none w-64 rounded-lg border bg-popover text-popover-foreground shadow-xl backdrop-blur p-3">
+    <div className="cwgsyw-popover cwgsyw-popover--hover hidden group-hover:block left-0 top-full mt-2 w-64">
       <div className="flex items-center gap-2 mb-2">
         <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: palette.border }} />
         <span className="font-semibold text-sm truncate">{d.name}</span>
       </div>
       <dl className="space-y-1 text-xs">
         <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">模型</dt>
+          <dt className="cwgsyw-type-label-sm">模型</dt>
           <dd className="font-medium truncate">{d.modelName ?? d.modelId ?? '—'}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">状态</dt>
+          <dt className="cwgsyw-type-label-sm">状态</dt>
           <dd className="flex items-center gap-1.5 font-medium">
             {d.status && <StatusDot status={d.status} />}
             {statusLabel ?? '—'}
           </dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">负责人</dt>
+          <dt className="cwgsyw-type-label-sm">负责人</dt>
           <dd className="font-medium truncate">{d.owner ?? '—'}</dd>
         </div>
         {d.isRoot && (
           <div className="flex justify-between gap-2">
-            <dt className="text-v2-muted">根节点</dt>
-            <dd className="font-medium text-amber-500">是</dd>
+            <dt className="cwgsyw-type-label-sm">根节点</dt>
+            <dd className="font-medium text-[var(--cwgsyw-status-warning-fg)]">是</dd>
           </div>
         )}
       </dl>
       {keyAttrEntries.length > 0 && (
         <div className="mt-2 pt-2 border-t">
-          <p className="text-[11px] text-v2-muted mb-1">关键属性</p>
+          <p className="text-[11px] cwgsyw-type-label-sm mb-1">关键属性</p>
           <div className="grid grid-cols-1 gap-0.5 text-xs">
             {keyAttrEntries.map(([k, v]) => (
               <div key={k} className="flex justify-between gap-2">
-                <span className="text-v2-muted font-mono text-[11px]">{k}</span>
+                <span className="cwgsyw-type-label-sm font-mono text-[11px]">{k}</span>
                 <span className="font-medium truncate">{String(v ?? '—')}</span>
               </div>
             ))}
@@ -251,7 +251,7 @@ function CiNode({ data }: NodeProps) {
               {d.collapsed ? '+' : '−'}
             </span>
           )}
-          <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }} className="truncate max-w-[140px]">
+          <span style={{ fontWeight: 600, fontSize: 13, color: CANVAS_NEUTRAL[200] }} className="truncate max-w-[140px]">
             {d.name}
           </span>
         </div>
@@ -417,14 +417,14 @@ function toRFEdges(
         source: String(e.src),
         target: String(e.dst),
         label: e.label || undefined,
-        markerEnd: { type: MarkerType.ArrowClosed, color: style?.stroke ?? '#64748b' },
+        markerEnd: { type: MarkerType.ArrowClosed, color: style?.stroke ?? CANVAS_NEUTRAL[500] },
         style: {
-          stroke: style?.stroke ?? '#475569',
+          stroke: style?.stroke ?? CANVAS_NEUTRAL[600],
           strokeWidth: status === 'removed' || status === 'added' ? 2 : 1.5,
           strokeDasharray: style?.dashed ? '6 4' : undefined,
         },
-        labelStyle: { fontSize: 10, fill: '#94a3b8' },
-        labelBgStyle: { fill: '#1e293b' },
+        labelStyle: { fontSize: 10, fill: CANVAS_NEUTRAL[400] },
+        labelBgStyle: { fill: CANVAS_NEUTRAL[800] },
       }
     })
 }
@@ -510,7 +510,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     }, [onNodeClick, topoNodes, neighbors])
 
     return (
-      <div ref={ref} style={{ height: '100%', width: '100%', background: '#0f172a', borderRadius: 8 }}>
+      <div ref={ref} style={{ height: '100%', width: '100%', background: CANVAS_NEUTRAL[900], borderRadius: 8 }}>
         <ReactFlow
           nodes={stateNodes}
           edges={stateEdges}
@@ -528,7 +528,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
           maxZoom={2}
           colorMode="dark"
         >
-          <Background color="#1e293b" gap={20} />
+          <Background color={CANVAS_NEUTRAL[800]} gap={20} />
           {!preview && <Controls />}
           {!preview && (
             <MiniMap

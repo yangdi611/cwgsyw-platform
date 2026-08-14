@@ -2,10 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye, Pause, Pencil, Play, Plus, RefreshCw, Trash2, X } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, StatusBadge } from '@/components/design-system'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 import { listDirectoryUsers, listPublishedTemplates } from '@/lib/task-plan-api'
@@ -22,6 +19,22 @@ import {
   type TaskAutomationRule,
   type TaskAutomationRulePayload,
 } from '@/lib/task-analytics-api'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  PageHeader,
+  Select,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
 export function TaskAutomationsManager() {
   const { hasPermission } = usePermission()
@@ -99,31 +112,100 @@ export function TaskAutomationsManager() {
     delete: hasPermission('task_analytics', 'delete'),
   }
 
-  if (rules.isLoading || templates.isLoading || users.isLoading) return <LoadingState label="正在加载自动化规则" minHeight={360} />
+  if (rules.isLoading || templates.isLoading || users.isLoading) return <LoadingState label="正在加载自动化规则" />
   if (rules.isError || templates.isError || users.isError) {
-    return <ErrorState title="自动化配置加载失败" onRetry={() => { void rules.refetch(); void templates.refetch(); void users.refetch() }} />
+    return (
+      <ErrorState
+        title="自动化配置加载失败"
+        retry={<Button type="button" variant="secondary" onClick={() => { void rules.refetch(); void templates.refetch(); void users.refetch() }}>重试</Button>}
+      />
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="统一任务平台 / 事件驱动" title="任务自动化" subtitle="以任务完成、审批通过或指标阈值为触发器，受控地创建后续任务或发送通知。" />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
-        <Card>
-          <CardHeader><CardTitle>新建规则</CardTitle><CardDescription>触发器、条件和动作均为受控字段，不执行脚本、SQL 或任意 URL。</CardDescription></CardHeader>
-          <CardContent>{permissions.create ? <AutomationForm value={createDraft} onChange={setCreateDraft} templates={templates.data ?? []} users={users.data ?? []} onSubmit={() => create.mutate()} busy={create.isPending} submitLabel="创建草稿规则" /> : <p className="text-sm text-v2-muted">你没有创建自动化规则的权限。</p>}</CardContent>
+    <DataManagementPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow="统一任务平台"
+          title="任务自动化"
+          subtitle="以任务完成、审批通过或指标阈值为触发器，受控地创建后续任务或发送通知。"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/tasks', label: '我的任务' },
+                { label: '任务自动化' },
+              ]}
+            />
+          }
+        />
+      }
+      filter={
+        <Card title="新建规则" description="触发器、条件和动作均为受控字段，不执行脚本、SQL 或任意 URL。">
+          {permissions.create ? (
+            <AutomationForm value={createDraft} onChange={setCreateDraft} templates={templates.data ?? []} users={users.data ?? []} onSubmit={() => create.mutate()} busy={create.isPending} submitLabel="创建草稿规则" />
+          ) : (
+            <p className="cwgsyw-type-body-sm">你没有创建自动化规则的权限。</p>
+          )}
         </Card>
-        <section className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>规则列表</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {rules.data?.map((rule) => <button key={rule.id} type="button" onClick={() => { setSelectedId(rule.id); setEditingDraft(undefined) }} className={`block w-full border p-3 text-left ${selectedId === rule.id ? 'border-v2-primary bg-v2-primary-soft' : 'border-v2-border hover:bg-v2-surface-hover'}`}><div className="flex items-center justify-between gap-2"><span className="font-medium">{rule.name}</span><StatusBadge status={rule.status === 'active' ? 'ok' : rule.status === 'paused' ? 'warn' : 'neutral'}>{rule.status}</StatusBadge></div><p className="mt-1 text-xs text-v2-muted">{triggerLabel(rule.triggerType)} → {actionLabel(rule.actionType)}</p></button>)}
-              {rules.data?.length === 0 && <p className="text-sm text-v2-muted">暂无自动化规则。</p>}
-            </CardContent>
+      }
+      content={
+        <div className="cwgsyw-split">
+          <Card title="规则列表">
+            <div className="cwgsyw-form">
+              {(rules.data ?? []).map((rule) => (
+                <Button
+                  key={rule.id}
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setSelectedId(rule.id); setEditingDraft(undefined) }}
+                  className="cwgsyw-dashboard-tile"
+                  data-selected={selectedId === rule.id}
+                >
+                  <span>
+                    <strong>{rule.name}</strong>
+                    <span className="cwgsyw-type-label-xs">{triggerLabel(rule.triggerType)} → {actionLabel(rule.actionType)}</span>
+                  </span>
+                  <StatusBadge label={ruleStatusLabel(rule.status)} status={ruleStatusTone(rule.status)} />
+                </Button>
+              ))}
+              {(rules.data ?? []).length === 0 ? <EmptyState title="暂无自动化规则" description="创建一条草稿规则后即可预演和激活。" /> : null}
+            </div>
           </Card>
-          {selected && <RuleDetail rule={selected} editDraft={editingDraft} onEditDraft={setEditingDraft} templates={templates.data ?? []} users={users.data ?? []} canUpdate={permissions.update} canDelete={permissions.delete} sourceTaskId={sourceTaskId} onSourceTaskId={setSourceTaskId} metricValue={metricValue} onMetricValue={setMetricValue} onPreview={() => preview.mutate()} preview={preview.data} previewing={preview.isPending} executions={executions.data ?? []} onRetry={(id) => retry.mutate(id)} retrying={retry.isPending} onSave={() => update.mutate()} saving={update.isPending} onStartEdit={() => setEditingDraft(draftFrom(selected))} onCancelEdit={() => setEditingDraft(undefined)} onLifecycle={(action) => lifecycle.mutate({ id: selected.id, action })} changing={lifecycle.isPending} onDelete={() => remove.mutate(selected.id)} />}
-        </section>
-      </div>
-    </div>
+          {selected ? (
+            <RuleDetail
+              rule={selected}
+              editDraft={editingDraft}
+              onEditDraft={setEditingDraft}
+              templates={templates.data ?? []}
+              users={users.data ?? []}
+              canUpdate={permissions.update}
+              canDelete={permissions.delete}
+              sourceTaskId={sourceTaskId}
+              onSourceTaskId={setSourceTaskId}
+              metricValue={metricValue}
+              onMetricValue={setMetricValue}
+              onPreview={() => preview.mutate()}
+              preview={preview.data}
+              previewing={preview.isPending}
+              executions={executions.data ?? []}
+              onRetry={(id) => retry.mutate(id)}
+              retrying={retry.isPending}
+              onSave={() => update.mutate()}
+              saving={update.isPending}
+              onStartEdit={() => setEditingDraft(draftFrom(selected))}
+              onCancelEdit={() => setEditingDraft(undefined)}
+              onLifecycle={(action) => lifecycle.mutate({ id: selected.id, action })}
+              changing={lifecycle.isPending}
+              onDelete={() => remove.mutate(selected.id)}
+            />
+          ) : (
+            <EmptyState title="选择一条规则" description="查看详情、预演或管理生命周期。" />
+          )}
+        </div>
+      }
+    />
   )
 }
 
@@ -138,36 +220,162 @@ function AutomationForm({ value, onChange, templates, users, onSubmit, busy, sub
 }) {
   const fields = conditionFields(value.triggerType)
   const valid = value.name.trim() && (value.actionType === 'create_task' ? value.templateVersionId && value.assigneeId : value.recipientId) && (value.triggerType !== 'metric_threshold' || value.metricId)
-  return <div className="grid gap-3 md:grid-cols-2">
-    <label className="text-sm md:col-span-2">规则名称<Input value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} /></label>
-    <label className="text-sm md:col-span-2">说明<Input value={value.description} onChange={(event) => onChange({ ...value, description: event.target.value })} /></label>
-    <label className="text-sm">触发器<Select value={value.triggerType} onChange={(triggerType) => onChange({ ...value, triggerType: triggerType as AutomationDraft['triggerType'], conditionField: '' })} options={[{ value: 'submission_approved', label: '审批通过' }, { value: 'task_completed', label: '任务完成' }, { value: 'metric_threshold', label: '指标阈值' }]} /></label>
-    {value.triggerType === 'metric_threshold' && <label className="text-sm">指标 ID<Input inputMode="numeric" value={value.metricId} onChange={(event) => onChange({ ...value, metricId: event.target.value })} /></label>}
-    <label className="text-sm">动作<Select value={value.actionType} onChange={(actionType) => onChange({ ...value, actionType: actionType as AutomationDraft['actionType'] })} options={[{ value: 'create_task', label: '创建任务' }, { value: 'notify', label: '发送通知' }]} /></label>
-    {value.actionType === 'create_task' ? <>
-      <label className="text-sm">已发布模板<select className={selectClass} value={value.templateVersionId} onChange={(event) => onChange({ ...value, templateVersionId: event.target.value })}><option value="">选择模板</option>{templates.map((template) => <option key={template.latestVersionId} value={template.latestVersionId}>{template.name}</option>)}</select></label>
-      <label className="text-sm">执行人<select className={selectClass} value={value.assigneeId} onChange={(event) => onChange({ ...value, assigneeId: event.target.value })}><option value="">选择执行人</option>{users.map((user) => <option key={user.id} value={user.id}>{user.realName || user.username}</option>)}</select></label>
-      <label className="text-sm">截止小时数<Input type="number" min="1" value={value.dueHours} onChange={(event) => onChange({ ...value, dueHours: event.target.value })} /></label>
-    </> : <>
-      <label className="text-sm">接收人<select className={selectClass} value={value.recipientId} onChange={(event) => onChange({ ...value, recipientId: event.target.value })}><option value="">选择接收人</option>{users.map((user) => <option key={user.id} value={user.id}>{user.realName || user.username}</option>)}</select></label>
-      <label className="text-sm">通知标题<Input value={value.notificationTitle} onChange={(event) => onChange({ ...value, notificationTitle: event.target.value })} /></label>
-    </>}
-    <label className="text-sm">条件字段（可选）<select className={selectClass} value={value.conditionField} onChange={(event) => onChange({ ...value, conditionField: event.target.value })}><option value="">不设置条件</option>{fields.map((field) => <option key={field.value} value={field.value}>{field.label}</option>)}</select></label>
-    {value.conditionField && <><label className="text-sm">条件运算符<Select value={value.conditionOperator} onChange={(conditionOperator) => onChange({ ...value, conditionOperator })} options={[{ value: 'eq', label: '等于' }, { value: 'ne', label: '不等于' }, { value: 'gt', label: '大于' }, { value: 'gte', label: '大于等于' }, { value: 'lt', label: '小于' }, { value: 'lte', label: '小于等于' }]} /></label><label className="text-sm">条件值<Input value={value.conditionValue} onChange={(event) => onChange({ ...value, conditionValue: event.target.value })} /></label></>}
-    <div className="md:col-span-2"><Button onClick={onSubmit} disabled={busy || !valid}><Plus className="h-4 w-4" />{submitLabel}</Button></div>
-  </div>
+  return (
+    <div className="cwgsyw-filter-grid">
+      <div className="cwgsyw-filter-grid--span-3">
+        <Field label="规则名称">
+          <Input value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} />
+        </Field>
+      </div>
+      <div className="cwgsyw-filter-grid--span-3">
+        <Field label="说明">
+          <Input value={value.description} onChange={(event) => onChange({ ...value, description: event.target.value })} />
+        </Field>
+      </div>
+      <Field label="触发器">
+        <Select
+          value={value.triggerType}
+          onChange={(triggerType) => onChange({ ...value, triggerType: triggerType as AutomationDraft['triggerType'], conditionField: '' })}
+          options={[{ value: 'submission_approved', label: '审批通过' }, { value: 'task_completed', label: '任务完成' }, { value: 'metric_threshold', label: '指标阈值' }]}
+        />
+      </Field>
+      {value.triggerType === 'metric_threshold' ? (
+        <Field label="指标 ID">
+          <Input inputMode="numeric" value={value.metricId} onChange={(event) => onChange({ ...value, metricId: event.target.value })} />
+        </Field>
+      ) : null}
+      <Field label="动作">
+        <Select
+          value={value.actionType}
+          onChange={(actionType) => onChange({ ...value, actionType: actionType as AutomationDraft['actionType'] })}
+          options={[{ value: 'create_task', label: '创建任务' }, { value: 'notify', label: '发送通知' }]}
+        />
+      </Field>
+      {value.actionType === 'create_task' ? (
+        <>
+          <Field label="已发布模板">
+            <Select
+              value={value.templateVersionId}
+              onChange={(templateVersionId) => onChange({ ...value, templateVersionId })}
+              options={templates.filter((template) => template.latestVersionId != null).map((template) => ({ value: String(template.latestVersionId), label: template.name }))}
+              placeholder="选择模板"
+            />
+          </Field>
+          <Field label="执行人">
+            <Select
+              value={value.assigneeId}
+              onChange={(assigneeId) => onChange({ ...value, assigneeId })}
+              options={users.map((user) => ({ value: String(user.id), label: user.realName || user.username }))}
+              placeholder="选择执行人"
+            />
+          </Field>
+          <Field label="截止小时数">
+            <Input type="number" min={1} value={value.dueHours} onChange={(event) => onChange({ ...value, dueHours: event.target.value })} />
+          </Field>
+        </>
+      ) : (
+        <>
+          <Field label="接收人">
+            <Select
+              value={value.recipientId}
+              onChange={(recipientId) => onChange({ ...value, recipientId })}
+              options={users.map((user) => ({ value: String(user.id), label: user.realName || user.username }))}
+              placeholder="选择接收人"
+            />
+          </Field>
+          <Field label="通知标题">
+            <Input value={value.notificationTitle} onChange={(event) => onChange({ ...value, notificationTitle: event.target.value })} />
+          </Field>
+        </>
+      )}
+      <Field label="条件字段（可选）">
+        <Select
+          value={value.conditionField}
+          onChange={(conditionField) => onChange({ ...value, conditionField })}
+          options={[{ value: '', label: '不设置条件' }, ...fields]}
+        />
+      </Field>
+      {value.conditionField ? (
+        <>
+          <Field label="条件运算符">
+            <Select
+              value={value.conditionOperator}
+              onChange={(conditionOperator) => onChange({ ...value, conditionOperator })}
+              options={[{ value: 'eq', label: '等于' }, { value: 'ne', label: '不等于' }, { value: 'gt', label: '大于' }, { value: 'gte', label: '大于等于' }, { value: 'lt', label: '小于' }, { value: 'lte', label: '小于等于' }]}
+            />
+          </Field>
+          <Field label="条件值">
+            <Input value={value.conditionValue} onChange={(event) => onChange({ ...value, conditionValue: event.target.value })} />
+          </Field>
+        </>
+      ) : null}
+      <div>
+        <Button type="button" onClick={onSubmit} disabled={busy || !valid}>{submitLabel}</Button>
+      </div>
+    </div>
+  )
 }
 
 function RuleDetail({ rule, editDraft, onEditDraft, templates, users, canUpdate, canDelete, sourceTaskId, onSourceTaskId, metricValue, onMetricValue, onPreview, preview, previewing, executions, onRetry, retrying, onSave, saving, onStartEdit, onCancelEdit, onLifecycle, changing, onDelete }: RuleDetailProps) {
   const editing = Boolean(editDraft)
-  return <Card>
-    <CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle>{rule.name}</CardTitle><CardDescription>{rule.description || `${triggerLabel(rule.triggerType)} → ${actionLabel(rule.actionType)}`}</CardDescription></div><div className="flex gap-1">{canUpdate && !editing && ['draft', 'paused'].includes(rule.status) && <Button size="sm" variant="ghost" title="编辑规则" onClick={onStartEdit}><Pencil className="h-4 w-4" /></Button>}{canUpdate && rule.status === 'active' && <Button size="sm" title="暂停规则" onClick={() => onLifecycle('pause')} disabled={changing}><Pause className="h-4 w-4" /></Button>}{canUpdate && rule.status !== 'active' && rule.status !== 'archived' && <Button size="sm" title="激活规则" onClick={() => onLifecycle('activate')} disabled={changing}><Play className="h-4 w-4" /></Button>}{canDelete && <Button size="sm" variant="danger" title="删除规则" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>}</div></div></CardHeader>
-    <CardContent className="space-y-5">
-      {editDraft && <div className="space-y-2"><AutomationForm value={editDraft} onChange={(value) => onEditDraft(value)} templates={templates} users={users} onSubmit={onSave} busy={saving} submitLabel="保存规则" /><Button size="sm" variant="ghost" onClick={onCancelEdit}><X className="h-4 w-4" />取消编辑</Button></div>}
-      <section className="grid gap-3 border border-v2-border bg-v2-surface-soft p-3 md:grid-cols-[1fr_1fr_auto] md:items-end"><label className="text-sm">来源任务 ID<Input inputMode="numeric" value={sourceTaskId} onChange={(event) => onSourceTaskId(event.target.value)} /></label>{rule.triggerType === 'metric_threshold' && <label className="text-sm">预演指标值<Input type="number" step="any" value={metricValue} onChange={(event) => onMetricValue(event.target.value)} /></label>}<Button size="sm" onClick={onPreview} disabled={previewing || !sourceTaskId}><Eye className="h-4 w-4" />预演</Button>{preview && <p className={`md:col-span-3 text-sm ${preview.matched ? 'text-v2-success' : 'text-v2-warning'}`}>{preview.reason} · 动作：{JSON.stringify(preview.resolvedAction)}</p>}</section>
-      <section><h2 className="mb-2 text-sm font-semibold">执行记录</h2><div className="divide-y divide-v2-border border-y border-v2-border">{executions.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-3 py-3 text-sm"><StatusBadge status={executionTone(item.status)}>{item.status}</StatusBadge><span>尝试 {item.attemptCount ?? 0} 次</span><span className="flex-1 text-v2-muted">{item.resultTaskId ? `生成任务 #${item.resultTaskId}` : item.lastError || new Date(item.createdAt).toLocaleString('zh-CN')}</span>{canUpdate && ['failed', 'dead'].includes(item.status) && <Button size="sm" variant="ghost" title="重试执行" disabled={retrying} onClick={() => onRetry(item.id)}><RefreshCw className="h-4 w-4" /></Button>}</div>)}</div>{executions.length === 0 && <p className="mt-3 text-sm text-v2-muted">规则尚未产生执行记录。</p>}</section>
-    </CardContent>
-  </Card>
+  return (
+    <Card
+      title={rule.name}
+      description={rule.description || `${triggerLabel(rule.triggerType)} → ${actionLabel(rule.actionType)}`}
+      headerAction={
+        <div className="cwgsyw-designer__actions">
+          {canUpdate && !editing && ['draft', 'paused'].includes(rule.status) ? <Button type="button" size="sm" variant="ghost" onClick={onStartEdit}>编辑</Button> : null}
+          {canUpdate && rule.status === 'active' ? <Button type="button" size="sm" variant="secondary" onClick={() => onLifecycle('pause')} disabled={changing}>暂停</Button> : null}
+          {canUpdate && rule.status !== 'active' && rule.status !== 'archived' ? <Button type="button" size="sm" variant="secondary" onClick={() => onLifecycle('activate')} disabled={changing}>激活</Button> : null}
+          {canDelete ? <Button type="button" size="sm" variant="destructive" onClick={onDelete}>删除</Button> : null}
+        </div>
+      }
+    >
+      <div className="cwgsyw-form">
+        {editDraft ? (
+          <div className="cwgsyw-form">
+            <AutomationForm value={editDraft} onChange={(value) => onEditDraft(value)} templates={templates} users={users} onSubmit={onSave} busy={saving} submitLabel="保存规则" />
+            <Button type="button" size="sm" variant="ghost" onClick={onCancelEdit}>取消编辑</Button>
+          </div>
+        ) : null}
+        <div className="cwgsyw-filter-grid">
+          <Field label="来源任务 ID">
+            <Input inputMode="numeric" value={sourceTaskId} onChange={(event) => onSourceTaskId(event.target.value)} />
+          </Field>
+          {rule.triggerType === 'metric_threshold' ? (
+            <Field label="预演指标值">
+              <Input type="number" step="any" value={metricValue} onChange={(event) => onMetricValue(event.target.value)} />
+            </Field>
+          ) : null}
+          <div>
+            <Button type="button" size="sm" onClick={onPreview} disabled={previewing || !sourceTaskId}>预演</Button>
+          </div>
+        </div>
+        {preview ? (
+          <Alert
+            tone={preview.matched ? 'success' : 'warning'}
+            title={preview.matched ? '预演命中' : '预演未命中'}
+            description={`${preview.reason} · 动作：${JSON.stringify(preview.resolvedAction)}`}
+            showDismiss={false}
+          />
+        ) : null}
+        <section className="cwgsyw-form">
+          <h2 className="cwgsyw-type-title-sm">执行记录</h2>
+          {executions.map((item) => (
+            <div key={item.id} className="cwgsyw-designer__inline">
+              <StatusBadge label={item.status} status={executionTone(item.status)} />
+              <span className="cwgsyw-type-body-sm">尝试 {item.attemptCount ?? 0} 次</span>
+              <span className="cwgsyw-type-label-xs">{item.resultTaskId ? `生成任务 #${item.resultTaskId}` : item.lastError || new Date(item.createdAt).toLocaleString('zh-CN')}</span>
+              {canUpdate && ['failed', 'dead'].includes(item.status) ? (
+                <Button type="button" size="sm" variant="ghost" disabled={retrying} onClick={() => onRetry(item.id)}>重试</Button>
+              ) : null}
+            </div>
+          ))}
+          {executions.length === 0 ? <EmptyState title="规则尚未产生执行记录" description="激活后产生执行时会显示在这里。" /> : null}
+        </section>
+      </div>
+    </Card>
+  )
 }
 
 function previewAttributes(rule: TaskAutomationRule | undefined, metricValue: string) {
@@ -220,10 +428,9 @@ function numericOrText(value: string): string | number {
 function textValue(value: unknown) { return value == null ? '' : String(value) }
 function triggerLabel(value: string) { return value === 'submission_approved' ? '审批通过' : value === 'task_completed' ? '任务完成' : '指标阈值' }
 function actionLabel(value: string) { return value === 'create_task' ? '创建任务' : '发送通知' }
-function executionTone(status: string): 'ok' | 'warn' | 'danger' | 'neutral' { return status === 'succeeded' ? 'ok' : status === 'failed' || status === 'dead' ? 'danger' : status === 'pending' ? 'warn' : 'neutral' }
-
-const selectClass = 'mt-1 h-9 w-full border border-v2-border bg-v2-surface px-2'
-function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }> }) { return <select className={selectClass} value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> }
+function ruleStatusLabel(status: string) { return status === 'active' ? '已激活' : status === 'paused' ? '已暂停' : status === 'archived' ? '已归档' : '草稿' }
+function ruleStatusTone(status: string): 'success' | 'warning' | 'neutral' { return status === 'active' ? 'success' : status === 'paused' || status === 'draft' ? 'warning' : 'neutral' }
+function executionTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' { return status === 'succeeded' ? 'success' : status === 'failed' || status === 'dead' ? 'danger' : status === 'pending' ? 'warning' : 'neutral' }
 
 interface AutomationDraft { name: string; description: string; triggerType: 'submission_approved' | 'metric_threshold' | 'task_completed'; metricId: string; actionType: 'create_task' | 'notify'; templateVersionId: string; assigneeId: string; dueHours: string; recipientId: string; notificationTitle: string; conditionField: string; conditionOperator: string; conditionValue: string }
 interface RuleDetailProps { rule: TaskAutomationRule; editDraft?: AutomationDraft; onEditDraft: (value?: AutomationDraft) => void; templates: Array<{ latestVersionId?: number; name: string }>; users: Array<{ id: number; username: string; realName?: string }>; canUpdate: boolean; canDelete: boolean; sourceTaskId: string; onSourceTaskId: (value: string) => void; metricValue: string; onMetricValue: (value: string) => void; onPreview: () => void; preview?: { matched: boolean; reason: string; resolvedAction: Record<string, unknown> }; previewing: boolean; executions: TaskAutomationExecution[]; onRetry: (id: number) => void; retrying: boolean; onSave: () => void; saving: boolean; onStartEdit: () => void; onCancelEdit: () => void; onLifecycle: (action: 'activate' | 'pause') => void; changing: boolean; onDelete: () => void }

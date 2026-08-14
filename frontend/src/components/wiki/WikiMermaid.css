@@ -1,0 +1,92 @@
+.wiki-mermaid {
+  margin: var(--cwgsyw-space-4) 0;
+  border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  border-radius: var(--cwgsyw-radius-xl);
+  background: var(--cwgsyw-bg-surface-subtle);
+  overflow: hidden;
+}
+
+.wiki-mermaid__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cwgsyw-space-1);
+  border-bottom: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  background: var(--cwgsyw-bg-surface);
+  padding: var(--cwgsyw-space-1) var(--cwgsyw-space-2);
+}
+
+.wiki-mermaid__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--cwgsyw-space-4);
+}
+
+.wiki-mermaid__svg {
+  display: flex;
+  justify-content: center;
+  min-width: max-content;
+}
+
+.wiki-mermaid__svg svg {
+  max-width: none;
+  height: auto;
+}
+
+.wiki-mermaid__source {
+  margin: 0;
+  border-top: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  background: var(--cwgsyw-bg-canvas);
+  overflow-x: auto;
+  padding: var(--cwgsyw-space-4);
+  color: var(--cwgsyw-text-primary);
+  font-family: var(--cwgsyw-font-family-mono), ui-monospace, monospace;
+  font-size: var(--cwgsyw-font-size-body-xs);
+  line-height: 1.6;
+}
+
+.wiki-mermaid__fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cwgsyw-overlay-scrim);
+  padding: var(--cwgsyw-space-4);
+}
+
+.wiki-mermaid__fullscreen-panel {
+  position: relative;
+  width: min(96vw, 1280px);
+  height: min(92vh, 900px);
+  border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  border-radius: var(--cwgsyw-radius-2xl);
+  background: var(--cwgsyw-bg-surface);
+  box-shadow: var(--cwgsyw-elevation-lg);
+}
+
+.wiki-mermaid__fullscreen-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: var(--cwgsyw-space-5);
+}
+
+.wiki-mermaid__fullscreen-close {
+  position: fixed;
+  right: var(--cwgsyw-space-5);
+  top: var(--cwgsyw-space-5);
+  z-index: 81;
+}
+
+@media (max-width: 640px) {
+  .wiki-mermaid__fullscreen {
+    padding: var(--cwgsyw-space-2);
+  }
+
+  .wiki-mermaid__fullscreen-panel {
+    width: 100%;
+    height: 92vh;
+  }
+}

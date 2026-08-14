@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { usePermission } from '@/hooks/usePermission'
+import '@/design-system/figma-neutral/index.css'
 import { SpatialVersionHistory } from '@/features/cmdb-spatial/components/SpatialVersionHistory'
 
 export default function SpatialVersionsPage() {

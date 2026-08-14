@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
-import { Button } from '@/components/design-system'
-import { ChevronDown, ChevronRight, RotateCcw, FileDown } from 'lucide-react'
 import type { WikiVersion } from '@/types/wiki'
+import '@/design-system/figma-neutral/index.css'
+import { Button, Card, NeutralAlertDialog } from '@/design-system/figma-neutral/components'
 
 export function WikiVersionsPanel({ pageId }: { pageId: number }) {
   const [open, setOpen] = useState(false)
+  const [revertTarget, setRevertTarget] = useState<WikiVersion | null>(null)
   const queryClient = useQueryClient()
 
   const { data } = useQuery<WikiVersion[]>({
@@ -24,76 +25,77 @@ export function WikiVersionsPanel({ pageId }: { pageId: number }) {
       queryClient.invalidateQueries({ queryKey: ['wiki-page', pageId] })
       toast.success('已回滚到该版本')
     },
-    onError: (e: unknown) => {
-      const msg =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '回滚失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '回滚失败'
+      toast.error(message)
     },
   })
 
   const versions = data ?? []
 
   return (
-    <div className="rounded-v2-md border border-v2-border bg-v2-surface">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-v2-fg"
-      >
-        <span>版本历史</span>
-        {open ? <ChevronDown className="h-4 w-4 text-v2-muted" /> : <ChevronRight className="h-4 w-4 text-v2-muted" />}
-      </button>
-
-      {open && (
-        <div className="border-t border-v2-border px-4 py-3">
-          {versions.length === 0 ? (
-            <p className="text-xs text-v2-muted">暂无历史版本</p>
-          ) : (
-            <ul className="space-y-2">
-              {versions.map((v) => (
-                <li key={v.version} className="text-xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-v2-fg">
-                        v{v.version} — {v.title}
-                      </p>
-                      {v.comment && (
-                        <p className="truncate text-v2-muted">{v.comment}</p>
-                      )}
-                      <p className="text-v2-subtle">
-                        {v.createdByName} ·{' '}
-                        {new Date(v.createdAt).toLocaleString('zh-CN', {
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        title="导出此版本"
-                        onClick={() => { wikiApi.exportPageVersion(pageId, v.version, `${v.title}-v${v.version}.md`).catch(() => toast.error('导出失败')) }}
-                        className="flex h-6 w-6 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-                      >
-                        <FileDown className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="回滚到此版本"
-                        onClick={() => {
-                          if (confirm(`确认回滚到 v${v.version}？`)) revertMutation.mutate(v.version)
-                        }}
-                        className="flex h-6 w-6 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-danger"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+    <Card
+      title="版本历史"
+      headerAction={
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((value) => !value)}>
+          {open ? '收起' : '展开'}
+        </Button>
+      }
+    >
+      {open ? (
+        versions.length === 0 ? (
+          <p>暂无历史版本</p>
+        ) : (
+          <div className="cwgsyw-form">
+            {versions.map((version) => (
+              <div key={version.version} className="cwgsyw-form">
+                <strong>
+                  v{version.version} — {version.title}
+                </strong>
+                {version.comment ? <p>{version.comment}</p> : null}
+                <p>
+                  {version.createdByName} · {new Date(version.createdAt).toLocaleString('zh-CN')}
+                </p>
+                <div className="cwgsyw-designer__actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      wikiApi.exportPageVersion(pageId, version.version, `${version.title}-v${version.version}.md`).catch(() => toast.error('导出失败'))
+                    }}
+                  >
+                    导出
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRevertTarget(version)}
+                  >
+                    回滚
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        <p>展开查看历史版本</p>
       )}
-    </div>
+      {revertTarget ? (
+        <NeutralAlertDialog
+          open
+          onOpenChange={(openDialog) => { if (!openDialog && !revertMutation.isPending) setRevertTarget(null) }}
+          intent="destructive"
+          title="确认回滚版本？"
+          description={`将回滚到 v${revertTarget.version}。当前内容会被该版本覆盖。`}
+          confirmLabel={revertMutation.isPending ? '正在回滚' : '确认回滚'}
+          cancelLabel="取消"
+          onConfirm={() => revertMutation.mutate(revertTarget.version, { onSuccess: () => setRevertTarget(null) })}
+        />
+      ) : null}
+    </Card>
   )
 }

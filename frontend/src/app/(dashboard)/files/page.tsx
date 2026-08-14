@@ -1,43 +1,37 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
+import axios from 'axios'
 import api from '@/lib/api'
 import { downloadSharedFile } from '@/lib/shared-file-content'
 import { usePermission } from '@/hooks/usePermission'
-import { PageHeader, DataTable, Pagination, EmptyState, type ColumnDef } from '@/components/shared'
-import {
-  Button,
-  Card,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-} from '@/components/design-system'
-import {
-  FolderOpen,
-  Upload,
-  FolderPlus,
-  Search,
-  Download,
-  Eye,
-  Trash2,
-  Pencil,
-  File,
-  Lock,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
-import axios from 'axios'
 import { FolderTreeNode } from './components/FolderTreeNode'
 import { AuditPanel } from './components/AuditPanel'
 import type { FolderNode, SharedFile } from './components/types'
 import { formatBytes, fileTypeLabel } from './components/utils'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  Field,
+  FilterBar,
+  Input,
+  NeutralAlertDialog,
+  NeutralDialog,
+  PageHeader,
+  Pagination,
+  Progress,
+  SearchInput,
+  Select,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 export default function FilesPage() {
   const router = useRouter()
@@ -62,6 +56,8 @@ export default function FilesPage() {
   const [renameValue, setRenameValue] = useState('')
   const [moving, setMoving] = useState<SharedFile | null>(null)
   const [moveFolderId, setMoveFolderId] = useState('')
+  const [deleteFile, setDeleteFile] = useState<SharedFile | null>(null)
+  const [deleteFolder, setDeleteFolder] = useState<FolderNode | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadAbortRef = useRef<AbortController | null>(null)
@@ -75,7 +71,7 @@ export default function FilesPage() {
 
   const { data: folderData } = useQuery<{ data: FolderNode[] }>({
     queryKey: ['file-folders'],
-    queryFn: () => api.get('/files/folders').then((r) => r.data),
+    queryFn: () => api.get('/files/folders').then((response) => response.data),
   })
 
   const { data: fileData, isLoading: filesLoading } = useQuery<{
@@ -92,7 +88,7 @@ export default function FilesPage() {
             size: pageSize,
           },
         })
-        .then((r) => r.data),
+        .then((response) => response.data),
   })
 
   const { data: groups = [] } = useQuery<{ id: number; name: string }[]>({
@@ -126,6 +122,7 @@ export default function FilesPage() {
     mutationFn: (id: number) => api.delete(`/files/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files'] })
+      setDeleteFile(null)
     },
   })
 
@@ -155,13 +152,13 @@ export default function FilesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['file-folders'] })
       if (selectedFolderId === deleteFolderMutation.variables) setSelectedFolderId(null)
+      setDeleteFolder(null)
       toast.success('文件夹已删除')
     },
-    onError: (e: unknown) => {
-      const msg =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '删除失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '删除失败'
+      toast.error(message)
     },
   })
 
@@ -202,8 +199,8 @@ export default function FilesPage() {
   })
 
   const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
       if (!file) return
       setUploading(true)
       try {
@@ -233,6 +230,7 @@ export default function FilesPage() {
   const folders = folderData?.data ?? []
   const files = fileData?.data?.records ?? []
   const total = fileData?.data?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const flatFolders = (nodes: FolderNode[]): FolderNode[] => nodes.flatMap((node) => [node, ...flatFolders(node.children ?? [])])
 
   const canUpload = hasPermission('shared_file', 'upload')
@@ -241,336 +239,403 @@ export default function FilesPage() {
   const canManage = hasPermission('shared_file', 'manage')
   const canManageAcl = hasPermission('shared_file', 'manage_acl')
 
-  const handleDeleteFolder = useCallback(
-    (node: FolderNode) => {
-      if (confirm(`确认删除文件夹「${node.name}」？（仅当文件夹为空时可删除）`)) {
-        deleteFolderMutation.mutate(node.id)
-      }
-    },
-    [deleteFolderMutation],
-  )
+  const selectFolder = (id: number | null) => {
+    setSelectedFolderId(id)
+    setPage(1)
+  }
 
-  const columns: ColumnDef<SharedFile>[] = [
-    {
-      key: 'name',
-      title: '名称',
-      render: (r) => (
-        <div className="flex items-center gap-2">
-          <File className="h-4 w-4 shrink-0 text-v2-muted" />
-          <span className="max-w-[240px] truncate text-v2-fg">{r.name}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'fileType',
-      title: '类型',
-      render: (r) => <span className="text-sm text-v2-muted">{fileTypeLabel(r.fileType)}</span>,
-    },
-    {
-      key: 'size',
-      title: '大小',
-      render: (r) => (
-        <span className="tabular-nums text-sm text-v2-muted">{formatBytes(r.sizeBytes)}</span>
-      ),
-    },
-    {
-      key: 'createdByName',
-      title: '上传者',
-      render: (r) => <span className="text-sm text-v2-fg">{r.createdByName}</span>,
-    },
-    {
-      key: 'createdAt',
-      title: '上传时间',
-      render: (r) => (
-        <span className="whitespace-nowrap text-sm text-v2-muted">
-          {new Date(r.createdAt).toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      title: '操作',
-      align: 'right',
-      render: (r) => (
-        <div className="flex items-center justify-end gap-1">
-          <Link
-            href={`/files/preview/${r.id}`}
-            title="预览"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-          >
-            <Eye className="h-4 w-4" />
-          </Link>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 px-0"
-            title="下载"
-            onClick={() => handleDownload(r.id, r.originalName)}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          {canManageAcl && r.canManageAcl && (
-            <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="权限设置" onClick={() => setFileAclTarget(r)}>
-              <Lock className="h-4 w-4" />
-            </Button>
-          )}
-          {canUpdate && (
-            <Button variant="ghost" size="sm" className="h-8 w-8 px-0" title="重命名" onClick={() => {
-              setRenaming(r)
-              setRenameValue(r.name)
-            }}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
-          {canManage && (
-            <Button variant="ghost" size="sm" className="h-8 px-2" title="移动文件" onClick={() => {
-              setMoving(r)
-              setMoveFolderId(r.folderId === null ? '' : String(r.folderId))
-            }}>
-              移动
-            </Button>
-          )}
-          {canDelete && r.canDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 px-0 text-v2-danger"
-              title="删除"
-              onClick={() => {
-                if (confirm(`确认删除文件「${r.name}」？`)) deleteMutation.mutate(r.id)
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      ),
-    },
+  const folderOptions = [
+    { value: '', label: '根目录' },
+    ...flatFolders(folders).map((folder) => ({ value: String(folder.id), label: folder.name })),
   ]
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="资源管理"
-        title="共享文档"
-        subtitle="集中管理运维文档与归档文件，支持文件夹分类、上传下载与在线预览。"
-        actions={
-          <>
-            {canManage && (
-              <Button variant="secondary" onClick={() => setNewFolderOpen(true)}>
-                <FolderPlus className="h-4 w-4" />
-                新建文件夹
-              </Button>
-            )}
-            {canUpload && (
-              <>
-              <Button variant="primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4" />
-                {uploading ? `上传中${uploadProgress === null ? '…' : ` ${uploadProgress}%`}` : '上传文件'}
-              </Button>
-              {uploading && <Button variant="secondary" onClick={() => uploadAbortRef.current?.abort()}>取消上传</Button>}
-              </>
-            )}
-          </>
+    <>
+      <DataManagementPage
+        embedded
+        header={
+          <PageHeader
+            eyebrow="资源管理"
+            title="共享文档"
+            subtitle="集中管理运维文档与归档文件，支持文件夹分类、上传下载与在线预览。"
+            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '共享文档' }]} />}
+            actions={
+              <div className="cwgsyw-inline-controls">
+                {canManage ? (
+                  <Button type="button" variant="secondary" onClick={() => setNewFolderOpen(true)}>
+                    新建文件夹
+                  </Button>
+                ) : null}
+                {canUpload ? (
+                  <>
+                    <Button type="button" variant="primary" loading={uploading} onClick={() => fileInputRef.current?.click()}>
+                      {uploading ? `上传中${uploadProgress == null ? '…' : ` ${uploadProgress}%`}` : '上传文件'}
+                    </Button>
+                    {uploading ? (
+                      <Button type="button" variant="secondary" onClick={() => uploadAbortRef.current?.abort()}>
+                        取消上传
+                      </Button>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            }
+          />
+        }
+        filter={
+          <FilterBar
+            search={
+              <SearchInput
+                placeholder="搜索文件名…"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
+              />
+            }
+          />
+        }
+        content={
+          <div className="cwgsyw-form">
+            <input ref={fileInputRef} type="file" className="cwgsyw-sr-only" onChange={handleFileChange} />
+            {uploading && uploadProgress != null ? (
+              <Progress value={uploadProgress} label="上传进度" showLabel showPercentage size="sm" tone="neutral" />
+            ) : null}
+            <div className="cwgsyw-split cwgsyw-split--nav">
+              <aside className="cwgsyw-split__pane">
+                <div className="cwgsyw-split__pane-head">
+                  <div className="cwgsyw-type-label-xs">文件夹</div>
+                </div>
+                <div className="cwgsyw-split__pane-body">
+                  <div className="cwgsyw-tree">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="cwgsyw-tree-item"
+                      data-selected={selectedFolderId === null}
+                      onClick={() => selectFolder(null)}
+                    >
+                      全部文件
+                    </Button>
+                    {folders.map((node) => (
+                      <FolderTreeNode
+                        key={node.id}
+                        node={node}
+                        selectedId={selectedFolderId}
+                        onSelect={selectFolder}
+                        depth={0}
+                        canManage={canManage}
+                        canManageAcl={canManageAcl}
+                        onDelete={setDeleteFolder}
+                        onEdit={(node) => {
+                          setEditingFolder(node)
+                          setFolderName(node.name)
+                          setFolderParentId(node.parentId === null ? '' : String(node.parentId))
+                        }}
+                        onEditAcl={setAclTarget}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </aside>
+              <section className="cwgsyw-split__pane">
+                <div className="cwgsyw-split__pane-head">
+                  <div className="cwgsyw-type-label-xs">文件列表</div>
+                </div>
+                <div className="cwgsyw-split__pane-body">
+                  <Table
+                    showSearch={false}
+                    columns={[
+                      { key: 'name', label: '名称' },
+                      { key: 'fileType', label: '类型' },
+                      { key: 'size', label: '大小' },
+                      { key: 'createdByName', label: '上传者' },
+                      { key: 'createdAt', label: '上传时间' },
+                      { key: 'actions', label: '操作', align: 'right' },
+                    ]}
+                    rows={files.map((file) => ({
+                      id: String(file.id),
+                      cells: {
+                        name: file.name,
+                        fileType: fileTypeLabel(file.fileType),
+                        size: formatBytes(file.sizeBytes),
+                        createdByName: file.createdByName,
+                        createdAt: new Date(file.createdAt).toLocaleString('zh-CN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }),
+                        actions: (
+                          <div className="cwgsyw-inline-controls">
+                            <Link href={`/files/preview/${file.id}`}>预览</Link>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => handleDownload(file.id, file.originalName)}>
+                              下载
+                            </Button>
+                            {canManageAcl && file.canManageAcl ? (
+                              <Button type="button" size="sm" variant="ghost" onClick={() => setFileAclTarget(file)}>
+                                权限
+                              </Button>
+                            ) : null}
+                            {canUpdate ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setRenaming(file)
+                                  setRenameValue(file.name)
+                                }}
+                              >
+                                重命名
+                              </Button>
+                            ) : null}
+                            {canManage ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setMoving(file)
+                                  setMoveFolderId(file.folderId === null ? '' : String(file.folderId))
+                                }}
+                              >
+                                移动
+                              </Button>
+                            ) : null}
+                            {canDelete && file.canDelete ? (
+                              <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteFile(file)}>
+                                删除
+                              </Button>
+                            ) : null}
+                          </div>
+                        ),
+                      },
+                    }))}
+                    state={filesLoading ? 'loading' : files.length === 0 ? 'empty' : 'data'}
+                    empty={<EmptyState title="暂无文件" description="当前文件夹为空，点击右上角上传文件或新建文件夹。" showAction={false} />}
+                  />
+                  <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
+                </div>
+              </section>
+            </div>
+            <AuditPanel />
+          </div>
         }
       />
 
-      <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
-
-      <Dialog open={!!renaming} onOpenChange={(open) => !open && setRenaming(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>重命名文件</DialogTitle></DialogHeader>
-          <Input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} autoFocus />
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setRenaming(null)}>取消</Button>
-            <Button variant="primary" disabled={!renameValue.trim() || renameMutation.isPending} onClick={() => {
-              if (renaming) renameMutation.mutate({ id: renaming.id, name: renameValue.trim() })
-            }}>保存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!moving} onOpenChange={(open) => !open && setMoving(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>移动文件</DialogTitle></DialogHeader>
-          <label className="block space-y-1 text-sm text-v2-fg">
-            <span>移动到</span>
-            <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={moveFolderId} onChange={(event) => setMoveFolderId(event.target.value)}>
-              <option value="">根目录</option>
-              {flatFolders(folders).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-            </select>
-          </label>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setMoving(null)}>取消</Button>
-            <Button variant="primary" disabled={moveMutation.isPending} onClick={() => {
-              if (moving) moveMutation.mutate({ id: moving.id, parentId: moveFolderId })
-            }}>保存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex gap-4">
-        {/* Left: Folder Tree */}
-        <Card className="w-60 shrink-0 p-3">
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-v2-muted">文件夹</h3>
-          <div className="space-y-0.5">
-            <button
-              onClick={() => setSelectedFolderId(null)}
-              className={cn(
-                'flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm transition-colors',
-                selectedFolderId === null
-                  ? 'bg-v2-primary-soft font-semibold text-v2-primary'
-                  : 'text-v2-fg hover:bg-v2-surface-hover',
-              )}
-            >
-              <span className="w-3" />
-              <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-              <span>全部文件</span>
-            </button>
-            {folders.map((node) => (
-              <FolderTreeNode
-                key={node.id}
-                node={node}
-                selectedId={selectedFolderId}
-                onSelect={setSelectedFolderId}
-                depth={0}
-                canManage={canManage}
-                canManageAcl={canManageAcl}
-                onDelete={handleDeleteFolder}
-                onEdit={(node) => {
-                  setEditingFolder(node)
-                  setFolderName(node.name)
-                  setFolderParentId(node.parentId === null ? '' : String(node.parentId))
-                }}
-                onEditAcl={setAclTarget}
-              />
-            ))}
-          </div>
-        </Card>
-
-        {/* Right: File List */}
-        <div className="min-w-0 flex-1 space-y-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
-            <Input
-              className="pl-8"
-              placeholder="搜索文件名…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
-            />
-          </div>
-
-          {filesLoading ? null : files.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={<File className="h-5 w-5 text-v2-muted" />}
-                title="暂无文件"
-                description="当前文件夹为空，点击右上角上传文件或新建文件夹。"
-              />
-            </Card>
-          ) : (
-            <DataTable columns={columns} data={files} rowKey={(r) => r.id} />
-          )}
-
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
-
-          {/* Audit log panel */}
-          <AuditPanel />
-        </div>
-      </div>
-
-      {/* New Folder Dialog */}
-      <Dialog open={newFolderOpen} onOpenChange={(open) => open ? setNewFolderOpen(true) : closeNewFolderDialog()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新建文件夹</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Input
-              placeholder="文件夹名称"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newFolderName.trim()) {
-                  createFolderMutation.mutate(newFolderName.trim())
-                }
-              }}
-            />
-            {selectedFolderId === null && groups.length > 0 && (
-              <label className="block space-y-1 text-sm text-v2-fg">
-                <span>归属组</span>
-                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>
-                  <option value="">使用主组</option>
-                  {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                </select>
-              </label>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={closeNewFolderDialog}>
+      <NeutralDialog
+        open={!!renaming}
+        onOpenChange={(open) => {
+          if (!open) setRenaming(null)
+        }}
+        title="重命名文件"
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="secondary" onClick={() => setRenaming(null)}>
               取消
             </Button>
             <Button
+              type="button"
               variant="primary"
-              disabled={!newFolderName.trim() || createFolderMutation.isPending}
+              loading={renameMutation.isPending}
+              disabled={!renameValue.trim()}
+              onClick={() => {
+                if (renaming) renameMutation.mutate({ id: renaming.id, name: renameValue.trim() })
+              }}
+            >
+              保存
+            </Button>
+          </div>
+        }
+      >
+        <Field htmlFor="file-rename" label="文件名" required>
+          <Input id="file-rename" value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
+        </Field>
+      </NeutralDialog>
+
+      <NeutralDialog
+        open={!!moving}
+        onOpenChange={(open) => {
+          if (!open) setMoving(null)
+        }}
+        title="移动文件"
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="secondary" onClick={() => setMoving(null)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              loading={moveMutation.isPending}
+              onClick={() => {
+                if (moving) moveMutation.mutate({ id: moving.id, parentId: moveFolderId })
+              }}
+            >
+              保存
+            </Button>
+          </div>
+        }
+      >
+        <Field htmlFor="file-move" label="移动到">
+          <Select id="file-move" value={moveFolderId} options={folderOptions} onChange={setMoveFolderId} />
+        </Field>
+      </NeutralDialog>
+
+      <NeutralDialog
+        open={newFolderOpen}
+        onOpenChange={(open) => {
+          if (open) setNewFolderOpen(true)
+          else closeNewFolderDialog()
+        }}
+        title="新建文件夹"
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="secondary" onClick={closeNewFolderDialog}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              loading={createFolderMutation.isPending}
+              disabled={!newFolderName.trim()}
               onClick={() => createFolderMutation.mutate(newFolderName.trim())}
             >
               创建
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>编辑文件夹</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <Input value={folderName} onChange={(event) => setFolderName(event.target.value)} autoFocus />
-            <label className="block space-y-1 text-sm text-v2-fg">
-              <span>移动到</span>
-              <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={folderParentId} onChange={(event) => setFolderParentId(event.target.value)}>
-                <option value="">根目录</option>
-                {flatFolders(folders).filter((folder) => folder.id !== editingFolder?.id).map((folder) => (
-                  <option key={folder.id} value={folder.id}>{folder.name}</option>
-                ))}
-              </select>
-            </label>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setEditingFolder(null)}>取消</Button>
-            <Button variant="primary" disabled={!folderName.trim() || updateFolderMutation.isPending} onClick={() => {
-              if (editingFolder) updateFolderMutation.mutate({
-                id: editingFolder.id,
-                name: folderName.trim(),
-                parentId: folderParentId === (editingFolder.parentId === null ? '' : String(editingFolder.parentId))
-                  ? undefined
-                  : folderParentId,
-              })
-            }}>保存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <div className="cwgsyw-form">
+          <Field htmlFor="folder-name" label="文件夹名称" required>
+            <Input
+              id="folder-name"
+              value={newFolderName}
+              placeholder="文件夹名称"
+              onChange={(event) => setNewFolderName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && newFolderName.trim()) {
+                  createFolderMutation.mutate(newFolderName.trim())
+                }
+              }}
+            />
+          </Field>
+          {selectedFolderId === null && groups.length > 0 ? (
+            <Field htmlFor="folder-owner-group" label="归属组">
+              <Select
+                id="folder-owner-group"
+                value={ownerGroupId}
+                options={[{ value: '', label: '使用主组' }, ...groups.map((group) => ({ value: String(group.id), label: group.name }))]}
+                onChange={setOwnerGroupId}
+              />
+            </Field>
+          ) : null}
+        </div>
+      </NeutralDialog>
 
-      {/* Folder ACL Dialog */}
-      {aclTarget && (
-        <ResourceAccessDialog resourceType="shared_folder" resourceId={aclTarget.id}
-          title={aclTarget.name} container open={!!aclTarget}
-          onOpenChange={(value) => { if (!value) setAclTarget(null) }} />
-      )}
-      {fileAclTarget && (
-        <ResourceAccessDialog resourceType="shared_file" resourceId={fileAclTarget.id}
-          title={fileAclTarget.name} container={false} open
-          onOpenChange={(value) => { if (!value) setFileAclTarget(null) }} />
-      )}
-    </div>
+      <NeutralDialog
+        open={!!editingFolder}
+        onOpenChange={(open) => {
+          if (!open) setEditingFolder(null)
+        }}
+        title="编辑文件夹"
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="secondary" onClick={() => setEditingFolder(null)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              loading={updateFolderMutation.isPending}
+              disabled={!folderName.trim()}
+              onClick={() => {
+                if (!editingFolder) return
+                updateFolderMutation.mutate({
+                  id: editingFolder.id,
+                  name: folderName.trim(),
+                  parentId:
+                    folderParentId === (editingFolder.parentId === null ? '' : String(editingFolder.parentId))
+                      ? undefined
+                      : folderParentId,
+                })
+              }}
+            >
+              保存
+            </Button>
+          </div>
+        }
+      >
+        <div className="cwgsyw-form">
+          <Field htmlFor="folder-edit-name" label="名称" required>
+            <Input id="folder-edit-name" value={folderName} onChange={(event) => setFolderName(event.target.value)} />
+          </Field>
+          <Field htmlFor="folder-edit-parent" label="移动到">
+            <Select
+              id="folder-edit-parent"
+              value={folderParentId}
+              options={folderOptions.filter((option) => option.value !== String(editingFolder?.id ?? ''))}
+              onChange={setFolderParentId}
+            />
+          </Field>
+        </div>
+      </NeutralDialog>
+
+      <NeutralAlertDialog
+        open={!!deleteFile}
+        title="确认删除文件"
+        description={deleteFile ? `确认删除文件「${deleteFile.name}」？` : '确认删除该文件？'}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => deleteFile && deleteMutation.mutate(deleteFile.id)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteFile(null)
+        }}
+      />
+
+      <NeutralAlertDialog
+        open={!!deleteFolder}
+        title="确认删除文件夹"
+        description={deleteFolder ? `确认删除文件夹「${deleteFolder.name}」？（仅当文件夹为空时可删除）` : '确认删除该文件夹？'}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => deleteFolder && deleteFolderMutation.mutate(deleteFolder.id)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteFolder(null)
+        }}
+      />
+
+      {aclTarget ? (
+        <ResourceAccessDialog
+          resourceType="shared_folder"
+          resourceId={aclTarget.id}
+          title={aclTarget.name}
+          container
+          open={!!aclTarget}
+          onOpenChange={(value) => {
+            if (!value) setAclTarget(null)
+          }}
+        />
+      ) : null}
+      {fileAclTarget ? (
+        <ResourceAccessDialog
+          resourceType="shared_file"
+          resourceId={fileAclTarget.id}
+          title={fileAclTarget.name}
+          container={false}
+          open
+          onOpenChange={(value) => {
+            if (!value) setFileAclTarget(null)
+          }}
+        />
+      ) : null}
+    </>
   )
 }

@@ -1,28 +1,23 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import { toast } from 'sonner'
-import { Plus, PencilLine, Trash2, RefreshCw, ArrowRight } from 'lucide-react'
+import { toast } from '@/design-system/figma-neutral/toast'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
-import { getModelDisplayName } from './utils'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  NeutralAlertDialog,
+  Select,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface CiAssociationDefVO {
   id: number
@@ -119,279 +114,134 @@ function AssociationDefsSection({
 
   const formValid = form.defId && form.name && form.kindId && form.srcModelId && form.dstModelId && form.mapping
 
+  const [deleteDef, setDeleteDef] = useState<{ id: number; name: string } | null>(null)
+
+  const modelOptions = models.map((item) => ({
+    value: item.modelId,
+    label: `${item.displayName ?? item.name} (${item.modelId})`,
+  }))
+  const kindOptions = kinds.map((item) => ({ value: item.code, label: `${item.name} (${item.code})` }))
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
+    <div className="cwgsyw-form">
+      <div className="cwgsyw-inline-controls">
         <div>
-          <h2 className="font-semibold">模型关联定义</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            声明「哪两个模型之间能用哪种关联种类建立关系」。实例详情页的「添加关联」依赖此处的定义。
-          </p>
+          <div className="cwgsyw-type-label-sm">模型关联定义</div>
+          <p className="cwgsyw-type-body-sm">声明哪两个模型之间能用哪种关联种类建立关系。实例详情页的「添加关联」依赖此处的定义。</p>
         </div>
-        {canWrite && !creating && (
-          <Button size="ui-sm" variant="primary" onClick={() => { setForm(emptyForm); setCreating(true) }}>
-            <Plus className="h-4 w-4 mr-1" />新建关联定义
-          </Button>
-        )}
+        {canWrite && !creating ? (
+          <Button type="button" size="sm" onClick={() => { setForm(emptyForm); setCreating(true) }}>新建关联定义</Button>
+        ) : null}
       </div>
 
-      {creating && (
-        <div className="border rounded-lg p-4 mb-4 bg-muted/30 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">标识 * <span className="text-muted-foreground">(英文/下划线，唯一)</span></Label>
-              <Input
-                value={form.defId}
-                onChange={e => setForm(f => ({ ...f, defId: e.target.value }))}
-                placeholder="如: app_run_on_host"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">名称 *</Label>
-              <Input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="如: 应用运行在主机"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">源模型 *</Label>
-              <Select value={form.srcModelId} onValueChange={v => setForm(f => ({ ...f, srcModelId: v ?? '' }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {form.srcModelId
-                      ? (models.find(m => m.modelId === form.srcModelId)?.displayName ?? models.find(m => m.modelId === form.srcModelId)?.name ?? form.srcModelId)
-                      : '请选择源模型'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map(m => (
-                    <SelectItem key={m.modelId} value={m.modelId}>
-                      {m.displayName ?? m.name} <span className="text-muted-foreground ml-1 font-mono text-xs">({m.modelId})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">目标模型 *</Label>
-              <Select value={form.dstModelId} onValueChange={v => setForm(f => ({ ...f, dstModelId: v ?? '' }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {form.dstModelId
-                      ? (models.find(m => m.modelId === form.dstModelId)?.displayName ?? models.find(m => m.modelId === form.dstModelId)?.name ?? form.dstModelId)
-                      : '请选择目标模型'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map(m => (
-                    <SelectItem key={m.modelId} value={m.modelId}>
-                      {m.displayName ?? m.name} <span className="text-muted-foreground ml-1 font-mono text-xs">({m.modelId})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">关联种类 *</Label>
-              <Select value={form.kindId} onValueChange={v => setForm(f => ({ ...f, kindId: v ?? '' }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {form.kindId ? (kinds.find(k => k.code === form.kindId)?.name ?? form.kindId) : '请选择关联种类'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {kinds.map(k => (
-                    <SelectItem key={k.code} value={k.code}>
-                      {k.name} <span className="text-muted-foreground ml-1 font-mono text-xs">({k.code})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">基数 *</Label>
-              <Select value={form.mapping} onValueChange={v => setForm(f => ({ ...f, mapping: v ?? '1:n' }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {MAPPING_OPTIONS.find(o => o.value === form.mapping)?.label ?? form.mapping}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {MAPPING_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">删除策略</Label>
-              <Select value={form.onDelete} onValueChange={v => setForm(f => ({ ...f, onDelete: v ?? 'none' }))}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {ON_DELETE_OPTIONS.find(o => o.value === form.onDelete)?.label ?? form.onDelete}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {ON_DELETE_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {creating ? (
+        <div className="cwgsyw-form">
+          <div className="cwgsyw-filter-grid">
+            <Field label="标识" htmlFor="def-id" required helperText="英文/下划线，唯一">
+              <Input id="def-id" value={form.defId} onChange={(event) => setForm((current) => ({ ...current, defId: event.target.value }))} />
+            </Field>
+            <Field label="名称" htmlFor="def-name" required>
+              <Input id="def-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+            </Field>
+            <Field label="源模型" htmlFor="def-src" required>
+              <Select id="def-src" value={form.srcModelId} placeholder="请选择源模型" options={modelOptions} onChange={(value) => setForm((current) => ({ ...current, srcModelId: value }))} />
+            </Field>
+            <Field label="目标模型" htmlFor="def-dst" required>
+              <Select id="def-dst" value={form.dstModelId} placeholder="请选择目标模型" options={modelOptions} onChange={(value) => setForm((current) => ({ ...current, dstModelId: value }))} />
+            </Field>
+            <Field label="关联种类" htmlFor="def-kind" required>
+              <Select id="def-kind" value={form.kindId} placeholder="请选择关联种类" options={kindOptions} onChange={(value) => setForm((current) => ({ ...current, kindId: value }))} />
+            </Field>
+            <Field label="基数" htmlFor="def-mapping" required>
+              <Select id="def-mapping" value={form.mapping} options={MAPPING_OPTIONS} onChange={(value) => setForm((current) => ({ ...current, mapping: value }))} />
+            </Field>
+            <Field label="删除策略" htmlFor="def-delete">
+              <Select id="def-delete" value={form.onDelete} options={ON_DELETE_OPTIONS} onChange={(value) => setForm((current) => ({ ...current, onDelete: value }))} />
+            </Field>
           </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="ui-sm" onClick={() => { setCreating(false); setForm(emptyForm) }}>取消</Button>
-            <Button variant="default" size="ui-sm" disabled={!formValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" variant="secondary" onClick={() => { setCreating(false); setForm(emptyForm) }}>取消</Button>
+            <Button type="button" disabled={!formValid || createMutation.isPending} onClick={() => createMutation.mutate()}>
               {createMutation.isPending ? '创建中...' : '创建'}
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {isLoading ? (
+        <LoadingState label="加载关联定义" />
+      ) : isError ? (
+        <ErrorState
+          title="加载失败"
+          description={isAxiosError(error) && error.response?.status === 403 ? '无 cmdb_relation:read 权限，请联系管理员' : `加载失败：${getApiErrorMessage(error, '未知错误')}`}
+          retry={<Button type="button" variant="secondary" onClick={() => refetch()}>重试</Button>}
+        />
+      ) : defs.length === 0 ? (
+        <EmptyState title="暂无关联定义" description={canWrite ? '点击右上角新建关联定义开始配置。' : '当前没有可显示的关联定义。'} />
+      ) : (
+        <Table
+          showSearch={false}
+          columns={[
+            { key: 'defId', label: '标识' },
+            { key: 'name', label: '名称' },
+            { key: 'path', label: '源 → 目标' },
+            { key: 'kind', label: '关联种类' },
+            { key: 'mapping', label: '基数' },
+            { key: 'onDelete', label: '删除策略' },
+            ...(canWrite ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+          ]}
+          rows={defs.map((item: CiAssociationDefVO) => ({
+            id: String(item.id),
+            cells: {
+              defId: item.defId,
+              name: (
+                <span className="cwgsyw-inline-controls">
+                  {editingId === item.id ? (
+                    <Input value={editForm.name} onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))} />
+                  ) : item.name}
+                  {item.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
+                </span>
+              ),
+              path: `${item.srcModelName} → ${item.dstModelName}`,
+              kind: item.kindName,
+              mapping: editingId === item.id ? (
+                <Select value={editForm.mapping} options={MAPPING_OPTIONS} onChange={(value) => setEditForm((current) => ({ ...current, mapping: value }))} />
+              ) : item.mapping,
+              onDelete: editingId === item.id ? (
+                <Select value={editForm.onDelete} options={ON_DELETE_OPTIONS} onChange={(value) => setEditForm((current) => ({ ...current, onDelete: value }))} />
+              ) : (ON_DELETE_OPTIONS.find((option) => option.value === (item.onDelete ?? 'none'))?.label ?? item.onDelete),
+              actions: canWrite ? (
+                editingId === item.id ? (
+                  <div className="cwgsyw-inline-controls">
+                    <Button type="button" size="sm" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate({ id: item.id, body: editForm })}>保存</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                  </div>
+                ) : (
+                  <div className="cwgsyw-inline-controls">
+                    <Button type="button" size="sm" variant="ghost" disabled={item.isBuiltIn} onClick={() => startEdit(item)}>编辑</Button>
+                    <Button type="button" size="sm" variant="ghost" disabled={item.isBuiltIn} onClick={() => setDeleteDef({ id: item.id, name: item.name })}>删除</Button>
+                  </div>
+                )
+              ) : null,
+            },
+          }))}
+        />
       )}
 
-      <div className="border rounded-lg overflow-hidden">
-        {isLoading ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">加载中...</div>
-        ) : isError ? (
-          <div className="p-6 text-center space-y-3">
-            <p className="text-sm text-destructive">
-              {isAxiosError(error) && error.response?.status === 403
-                ? '无 cmdb_relation:read 权限，请联系管理员'
-                : `加载失败：${getApiErrorMessage(error, '未知错误')}`}
-            </p>
-            <Button size="ui-sm" variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-1" />重试
-            </Button>
-          </div>
-        ) : defs.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">
-            暂无关联定义。{canWrite && '点击右上角"新建关联定义"开始配置。'}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">标识</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">名称</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">源 → 目标</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">关联种类</th>
-                <th className="text-center px-3 py-2 font-medium text-muted-foreground">基数</th>
-                <th className="text-center px-3 py-2 font-medium text-muted-foreground">删除策略</th>
-                {canWrite && <th className="text-right px-3 py-2 font-medium text-muted-foreground">操作</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {defs.map((d: CiAssociationDefVO) => editingId === d.id ? (
-                <tr key={d.id} className="bg-muted/20">
-                  <td className="px-3 py-2.5 font-mono text-xs">{d.defId}</td>
-                  <td className="px-3 py-2.5">
-                    <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                    {d.srcModelName} → {d.dstModelName}
-                  </td>
-                  <td className="px-3 py-2.5">{d.kindName}</td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Select value={editForm.mapping} onValueChange={v => setEditForm(f => ({ ...f, mapping: v ?? '1:n' }))}>
-                      <SelectTrigger className="h-7 text-xs">
-                        <SelectValue>{MAPPING_OPTIONS.find(o => o.value === editForm.mapping)?.label ?? editForm.mapping}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MAPPING_OPTIONS.map(o => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Select value={editForm.onDelete} onValueChange={v => setEditForm(f => ({ ...f, onDelete: v ?? 'none' }))}>
-                      <SelectTrigger className="h-7 text-xs">
-                        <SelectValue>{ON_DELETE_OPTIONS.find(o => o.value === editForm.onDelete)?.label}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ON_DELETE_OPTIONS.map(o => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="default" size="ui-sm" className="h-7" disabled={updateMutation.isPending}
-                        onClick={() => updateMutation.mutate({ id: d.id, body: editForm })}>
-                        保存
-                      </Button>
-                      <Button variant="ghost" size="ui-sm" className="h-7" onClick={() => setEditingId(null)}>
-                        取消
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={d.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-2.5">
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{d.defId}</code>
-                  </td>
-                  <td className="px-3 py-2.5 font-medium">
-                    {d.name}
-                    {d.isBuiltIn && <Badge variant="secondary" className="ml-2 text-xs">内置</Badge>}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs">
-                    <span className="text-foreground">{d.srcModelName}</span>
-                    <ArrowRight className="inline h-3 w-3 mx-1 text-muted-foreground" />
-                    <span className="text-foreground">{d.dstModelName}</span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Badge variant="outline" className="text-xs">{d.kindName}</Badge>
-                  </td>
-                  <td className="px-3 py-2.5 text-center font-mono text-xs">{d.mapping}</td>
-                  <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">
-                    {ON_DELETE_OPTIONS.find(o => o.value === (d.onDelete ?? 'none'))?.label ?? d.onDelete}
-                  </td>
-                  {canWrite && (
-                    <td className="px-3 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0"
-                          disabled={d.isBuiltIn}
-                          title={d.isBuiltIn ? '内置定义不可编辑' : '编辑'}
-                          onClick={() => startEdit(d)}>
-                          <PencilLine className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="ui-sm" className="h-7 w-7 p-0 text-destructive"
-                          disabled={d.isBuiltIn}
-                          title={d.isBuiltIn ? '内置定义不可删除' : '删除'}
-                          onClick={() => {
-                            if (confirm(`删除关联定义「${d.name}」？已被实例使用时会拒绝删除。`)) {
-                              deleteMutation.mutate(d.id)
-                            }
-                          }}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <NeutralAlertDialog
+        open={!!deleteDef}
+        onOpenChange={(open) => !open && setDeleteDef(null)}
+        title="确认删除关联定义"
+        description={`删除关联定义「${deleteDef?.name ?? ''}」？已被实例使用时会拒绝删除。`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => {
+          if (deleteDef) deleteMutation.mutate(deleteDef.id)
+          setDeleteDef(null)
+        }}
+      />
     </div>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Attribute Groups Tab — manages ci_attribute_group, scoped per model
-// ─────────────────────────────────────────────────────────────────────────
-
-interface AttributeGroupVO {
-  id: number
-  groupId: string
-  name: string
-  sortOrder: number
-  isBuiltIn: boolean
-  attributeCount: number
-}
-
 
 export { AssociationDefsSection }

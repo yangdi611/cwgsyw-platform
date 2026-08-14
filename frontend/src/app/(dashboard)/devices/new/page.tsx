@@ -1,15 +1,24 @@
 'use client'
+
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Card, CardContent, Input, Label, Textarea } from '@/components/design-system'
-import { toast } from 'sonner'
-import { Lock } from 'lucide-react'
-import Link from 'next/link'
-import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { DetailHeader, FormShell } from '@/components/shared'
+import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  Card,
+  Field,
+  FormSettingsPage,
+  Input,
+  PageHeader,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 interface CiDetail {
   id: number
@@ -19,7 +28,6 @@ interface CiDetail {
   fieldsData: Record<string, unknown>
 }
 
-// CMDB modelId → 设备类型中文（与后端 mapModelToDeviceType 对齐）
 function deviceTypeName(modelId?: string): string {
   if (!modelId) return '其他'
   if (['host', 'app'].includes(modelId)) return '服务器'
@@ -33,7 +41,6 @@ export default function NewDevicePage() {
   const [ciId, setCiId] = useState<number | null>(null)
   const [form, setForm] = useState({ category: '', description: '' })
 
-  // 选中 CI 后拉详情，派生只读字段
   const { data: ci } = useQuery<CiDetail>({
     queryKey: ['ci-detail-for-device', ciId],
     queryFn: () => api.get(`/cmdb/instances/${ciId}`).then((r) => r.data.data),
@@ -51,96 +58,104 @@ export default function NewDevicePage() {
       toast.success('设备已创建')
       router.push(`/devices/${res.data.data.id}`)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
 
   return (
-    <FormShell width="form">
-      <DetailHeader backHref="/devices" title="新增设备凭证" />
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          {/* CI 选择（必填） */}
-          <div className="space-y-1.5">
-            <Label>选择 CMDB 资产 *</Label>
-            <CiInstanceSelect value={ciId} onChange={setCiId} />
-            {!ciId && (
-              <p className="text-xs text-v2-muted">
-                密码必须关联到已存在的 CMDB 资产。找不到？{' '}
-                <Link href="/cmdb/instances" className="text-v2-primary hover:underline">
-                  去 CMDB 创建
-                </Link>
-              </p>
-            )}
-          </div>
-
-          {ci && (
-            <>
-              {/* 只读字段：来自 CMDB */}
-              <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-v2-muted uppercase tracking-wider">
-                  <Lock className="h-3.5 w-3.5" />
-                  以下信息来自 CMDB（只读）
-                </div>
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs text-v2-muted">设备名称</dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-v2-fg">{ci.name}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-v2-muted">IP 地址</dt>
-                    <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">
-                      {String(ci.fieldsData?.inner_ip ?? '-')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-v2-muted">设备类型</dt>
-                    <dd className="mt-0.5 text-sm text-v2-fg">{deviceTypeName(ci.modelId)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-v2-muted">模型</dt>
-                    <dd className="mt-0.5 text-sm text-v2-fg">{ci.modelName}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* 可编辑字段 */}
-              <div className="space-y-1.5">
-                <Label>分类标签</Label>
-                <Input
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  placeholder="例：生产环境、MySQL 主库"
-                />
-                <p className="text-xs text-v2-muted">可选，用于进一步分类筛选</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>备注</Label>
-                <Textarea
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="用途、注意事项等补充说明"
-                  rows={3}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="primary"
-              onClick={() => createMutation.mutate()}
-              disabled={!ciId || createMutation.isPending}
+    <FormSettingsPage
+      embedded
+      layout="default"
+      header={
+        <PageHeader
+          eyebrow="资源管理"
+          title="新增设备凭证"
+          subtitle="把访问凭证绑定到已有 CMDB 资产。名称、IP 和类型从资产只读带出。"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/devices', label: '设备密码库' },
+                { label: '新增设备' },
+              ]}
+            />
+          }
+        />
+      }
+      form={
+        <Card title="创建设备">
+          <div className="cwgsyw-form">
+            <Field
+              label="选择 CMDB 资产"
+              required
+              helperText="密码必须关联到已存在的 CMDB 资产。"
             >
-              {createMutation.isPending ? '创建中…' : '创建设备'}
-            </Button>
-            <Button variant="secondary" onClick={() => router.push('/devices')}>
-              取消
-            </Button>
+              <CiInstanceSelect value={ciId} onChange={setCiId} />
+            </Field>
+            {!ciId ? (
+              <p className="cwgsyw-type-label-xs">
+                找不到资产？<Link href="/cmdb/instances">去 CMDB 创建</Link>
+              </p>
+            ) : null}
+
+            {ci ? (
+              <>
+                <Card title="来自 CMDB（只读）" description="这些字段由所选资产带出，不能在本页修改。">
+                  <dl className="cwgsyw-permission-grid">
+                    <div>
+                      <dt className="cwgsyw-type-label-xs">设备名称</dt>
+                      <dd className="cwgsyw-type-body-sm">{ci.name}</dd>
+                    </div>
+                    <div>
+                      <dt className="cwgsyw-type-label-xs">IP 地址</dt>
+                      <dd className="cwgsyw-type-body-sm">{String(ci.fieldsData?.inner_ip ?? '-')}</dd>
+                    </div>
+                    <div>
+                      <dt className="cwgsyw-type-label-xs">设备类型</dt>
+                      <dd className="cwgsyw-type-body-sm">{deviceTypeName(ci.modelId)}</dd>
+                    </div>
+                    <div>
+                      <dt className="cwgsyw-type-label-xs">模型</dt>
+                      <dd className="cwgsyw-type-body-sm">{ci.modelName}</dd>
+                    </div>
+                  </dl>
+                </Card>
+                <Field htmlFor="device-category" label="分类标签" helperText="可选，用于进一步分类筛选">
+                  <Input
+                    id="device-category"
+                    value={form.category}
+                    placeholder="例：生产环境、MySQL 主库"
+                    onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
+                  />
+                </Field>
+                <Field htmlFor="device-description" label="备注">
+                  <Textarea
+                    id="device-description"
+                    rows={3}
+                    placeholder="用途、注意事项等补充说明"
+                    value={form.description}
+                    onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  />
+                </Field>
+              </>
+            ) : null}
+
+            <div className="cwgsyw-inline-controls">
+              <Button
+                type="button"
+                variant="primary"
+                loading={createMutation.isPending}
+                disabled={!ciId}
+                onClick={() => createMutation.mutate()}
+              >
+                {createMutation.isPending ? '创建中…' : '创建设备'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => router.push('/devices')}>
+                取消
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </FormShell>
+        </Card>
+      }
+    />
   )
 }

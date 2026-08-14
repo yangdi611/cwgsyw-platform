@@ -1,26 +1,35 @@
 'use client'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { toast } from '@/design-system/figma-neutral/toast'
+import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge } from '@/components/design-system'
-import { getApiErrorMessage } from '@/lib/api-error'
+import '@/design-system/figma-neutral/index.css'
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/design-system'
-import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
-import { toast } from 'sonner'
-import { Plus, Trash2, Search, Eye } from 'lucide-react'
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  Field,
+  FilterBar,
+  Input,
+  LoadingState,
+  NeutralAlertDialog,
+  NeutralDialog,
+  PageHeader,
+  Pagination,
+  Progress,
+  SearchInput,
+  Select,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface IpPoolVO {
   id: number
@@ -43,11 +52,11 @@ interface Group {
   name: string
 }
 
-function poolStatusMeta(s: string): { variant: 'ok' | 'warn' | 'danger' | 'neutral'; label: string } {
-  if (s === 'active') return { variant: 'ok', label: '活跃' }
-  if (s === 'full') return { variant: 'danger', label: '已满' }
-  if (s === 'disabled') return { variant: 'neutral', label: '已禁用' }
-  return { variant: 'neutral', label: s || '未知' }
+function poolStatusMeta(status: string): { tone: 'success' | 'warning' | 'danger' | 'neutral'; label: string } {
+  if (status === 'active') return { tone: 'success', label: '活跃' }
+  if (status === 'full') return { tone: 'danger', label: '已满' }
+  if (status === 'disabled') return { tone: 'neutral', label: '已禁用' }
+  return { tone: 'neutral', label: status || '未知' }
 }
 
 export default function IpamPage() {
@@ -90,22 +99,23 @@ export default function IpamPage() {
         .get('/ip-pools', {
           params: { keyword: keyword || undefined, status: status || undefined, page, size },
         })
-        .then((r) => r.data.data),
+        .then((response) => response.data.data),
     enabled: hasPermission('ip_pool', 'read'),
   })
 
   const pools = (data?.records ?? []) as IpPoolVO[]
   const total = data?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / size) || 1)
 
   const createMutation = useMutation({
-    mutationFn: (body: typeof createForm) => api.post('/ip-pools', { ...body, groupId: Number(body.groupId) }).then((r) => r.data),
+    mutationFn: (body: typeof createForm) => api.post('/ip-pools', { ...body, groupId: Number(body.groupId) }).then((response) => response.data),
     onSuccess: () => {
       toast.success('地址池已创建')
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setCreateOpen(false)
       setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
 
   const deleteMutation = useMutation({
@@ -115,7 +125,7 @@ export default function IpamPage() {
       queryClient.invalidateQueries({ queryKey: ['ip-pools'] })
       setDeleteTarget(null)
     },
-    onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, '删除失败')),
   })
 
   const handleCreate = () => {
@@ -134,266 +144,239 @@ export default function IpamPage() {
     createMutation.mutate({ ...createForm, groupId: String(userGroupId ?? createForm.groupId) })
   }
 
-  const columns: ColumnDef<IpPoolVO>[] = [
-    {
-      key: 'name',
-      title: '名称',
-      render: (r) => (
-        <div>
-          <span className="font-semibold text-v2-fg">{r.name}</span>
-          {r.description && (
-            <p className="max-w-48 truncate text-xs text-v2-muted">{r.description}</p>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'cidr',
-      title: 'CIDR',
-      render: (r) => <span className="font-v2-mono text-sm text-v2-fg">{r.cidr}</span>,
-    },
-    {
-      key: 'gateway',
-      title: '网关',
-      render: (r) => <span className="text-sm text-v2-fg">{r.gateway || '-'}</span>,
-    },
-    {
-      key: 'utilization',
-      title: '使用率',
-      render: (r) => {
-        const pct = r.utilizationPercent
-        const barColor = pct >= 90 ? 'bg-v2-danger' : pct >= 70 ? 'bg-v2-warning' : 'bg-v2-success'
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-24 h-2 bg-v2-surface-soft rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${barColor}`}
-                style={{ width: `${Math.min(pct, 100)}%` }}
-              />
-            </div>
-            <span className="whitespace-nowrap text-xs text-v2-muted">
-              {r.allocatedCount}/{r.totalCount} ({pct.toFixed(1)}%)
-            </span>
-          </div>
-        )
-      },
-    },
-    {
-      key: 'status',
-      title: '状态',
-      render: (r) => {
-        const m = poolStatusMeta(r.status)
-        return <StatusBadge status={m.variant}>{m.label}</StatusBadge>
-      },
-    },
-    {
-      key: 'actions',
-      title: '操作',
-      align: 'right',
-      render: (r) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="sm" onClick={() => router.push(`/ipam/${r.id}`)}>
-            <Eye className="h-3.5 w-3.5" />
-            详情
-          </Button>
-          <PermissionGuard resource="ip_pool" action="delete">
-            <Button
-              variant="ghost"
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: '名称' },
+      { key: 'cidr', label: 'CIDR' },
+      { key: 'gateway', label: '网关' },
+      { key: 'utilization', label: '使用率' },
+      { key: 'status', label: '状态' },
+      { key: 'actions', label: '操作', align: 'right' as const },
+    ],
+    [],
+  )
+
+  const rows = pools.map((pool) => {
+    const meta = poolStatusMeta(pool.status)
+    const utilizationTone = pool.utilizationPercent >= 90 ? 'danger' : pool.utilizationPercent >= 70 ? 'warning' : 'success'
+    return {
+      id: String(pool.id),
+      cells: {
+        name: (
+          <span>
+            <strong>{pool.name}</strong>
+            {pool.description ? <span className="cwgsyw-type-label-xs"> {pool.description}</span> : null}
+          </span>
+        ),
+        cidr: pool.cidr,
+        gateway: pool.gateway || '-',
+        utilization: (
+          <div>
+            <Progress
+              value={pool.utilizationPercent}
+              label={`${pool.allocatedCount}/${pool.totalCount}`}
+              showLabel
+              showPercentage
               size="sm"
-              className="text-v2-danger"
-              onClick={() => setDeleteTarget(r)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
+              tone={utilizationTone}
+            />
+          </div>
+        ),
+        status: <StatusBadge label={meta.label} status={meta.tone} />,
+        actions: (
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" variant="ghost" size="sm" onClick={() => router.push(`/ipam/${pool.id}`)}>
+              详情
             </Button>
-          </PermissionGuard>
-        </div>
-      ),
-    },
-  ]
+            <PermissionGuard resource="ip_pool" action="delete">
+              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => setDeleteTarget(pool)}>
+                删除
+              </Button>
+            </PermissionGuard>
+          </div>
+        ),
+      },
+    }
+  })
+
+  const tableState = isLoading ? 'loading' : pools.length === 0 ? 'empty' : 'data'
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="资源管理"
-        title="IP 地址池"
-        subtitle="管理网络地址段、网关与 DNS，监控地址分配率与冲突状态。"
-        actions={
-          <PermissionGuard resource="ip_pool" action="create">
-            <div className="w-full sm:w-auto">
-              <Button
-                className="w-full sm:w-auto"
-                variant="primary"
-                onClick={() => {
-                  setCreateOpen(true)
-                  setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
+    <>
+      <DataManagementPage
+        embedded
+        layout="default"
+        header={
+          <PageHeader
+            eyebrow="资源管理"
+            title="IP 地址池"
+            subtitle="管理网络地址段、网关与 DNS，监控地址分配率与冲突状态。"
+            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: 'IP 地址池' }]} />}
+            actions={
+              <PermissionGuard resource="ip_pool" action="create">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    setCreateOpen(true)
+                    setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
+                  }}
+                >
+                  新建地址池
+                </Button>
+              </PermissionGuard>
+            }
+          />
+        }
+        filter={
+          <FilterBar
+            search={
+              <SearchInput
+                value={keyword}
+                placeholder="搜索名称、CIDR、描述…"
+                onChange={(event) => {
+                  setKeyword(event.target.value)
+                  setPage(1)
                 }}
-              >
-                <Plus className="h-4 w-4" />
-                新建地址池
-              </Button>
-            </div>
-          </PermissionGuard>
+                onClear={() => {
+                  setKeyword('')
+                  setPage(1)
+                }}
+              />
+            }
+            filterItems={
+              <Select
+                value={status || '__all__'}
+                placeholder="全部状态"
+                options={[
+                  { value: '__all__', label: '全部状态' },
+                  { value: 'active', label: '活跃' },
+                  { value: 'disabled', label: '已禁用' },
+                  { value: 'full', label: '已满' },
+                ]}
+                onChange={(value) => {
+                  setStatus(value === '__all__' ? '' : value)
+                  setPage(1)
+                }}
+              />
+            }
+          />
+        }
+        content={
+          isError ? (
+            <ErrorState
+              title="地址池加载失败"
+              description="无法读取 IP 地址池，请稍后重试。"
+              retry={
+                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <Table
+                columns={columns}
+                rows={rows}
+                showSearch={false}
+                state={tableState}
+                loading={<LoadingState label="正在加载地址池…" />}
+                empty={<EmptyState title="暂无地址池" description="点击右上角“新建地址池”添加第一个网段。" />}
+              />
+              <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
+            </>
+          )
         }
       />
 
-      <FilterBar className="w-full items-stretch sm:items-center">
-        <div className="relative w-full sm:max-w-sm sm:flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
-          <Input
-            className="pl-8"
-            placeholder="搜索名称、CIDR、描述…"
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value)
-              setPage(1)
-            }}
-          />
-        </div>
-        <Select
-          value={status || '__all__'}
-          onValueChange={(v) => {
-            setStatus(v === '__all__' ? '' : v ?? '')
-            setPage(1)
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-32">
-            <SelectValue placeholder="全部状态">
-              {(v: string) => (v === '__all__' || !v ? '全部状态' : poolStatusMeta(v).label)}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">全部状态</SelectItem>
-            <SelectItem value="active">活跃</SelectItem>
-            <SelectItem value="disabled">已禁用</SelectItem>
-            <SelectItem value="full">已满</SelectItem>
-          </SelectContent>
-        </Select>
-      </FilterBar>
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
-          <ErrorState
-            title="地址池加载失败"
-            description="无法读取 IP 地址池，请稍后重试。"
-            onRetry={() => refetch()}
-          />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={pools}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          empty={{ title: '暂无地址池', description: '点击右上角"新建地址池"添加第一个网段。' }}
-        />
-      )}
-
-      <Pagination page={page} pageSize={size} total={total} onPageChange={setPage} />
-
-      {/* Create Pool Dialog */}
-      <Dialog open={createOpen} onOpenChange={(v) => !v && setCreateOpen(false)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>新建地址池</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>名称 *</Label>
-                <Input
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="例：生产网段 A"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>CIDR *</Label>
-                <Input
-                  value={createForm.cidr}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, cidr: e.target.value }))}
-                  placeholder="例：192.168.1.0/24"
-                />
-              </div>
-            </div>
-            {needsGroupSelect && (
-              <div className="space-y-1.5">
-                <Label>归属组 *</Label>
-                <Select value={createForm.groupId} onValueChange={(value) => setCreateForm((form) => ({ ...form, groupId: value ?? '' }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="请选择归属组">
-                      {(value: string) => groups.find((group) => String(group.id) === value)?.name ?? '请选择归属组'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {groups.map((group) => <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>网关</Label>
-                <Input
-                  value={createForm.gateway}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, gateway: e.target.value }))}
-                  placeholder="192.168.1.1"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>DNS</Label>
-                <Input
-                  value={createForm.dns}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, dns: e.target.value }))}
-                  placeholder="8.8.8.8"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>描述</Label>
-              <Input
-                value={createForm.description}
-                onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" size="sm" onClick={() => setCreateOpen(false)}>
+      <NeutralDialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          if (!open) setCreateOpen(false)
+        }}
+        title="新建地址池"
+        showClose={false}
+        footer={
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
             <Button
+              type="button"
               variant="primary"
-              size="sm"
+              loading={createMutation.isPending}
+              disabled={!createForm.name.trim() || !createForm.cidr.trim() || (needsGroupSelect && !createForm.groupId)}
               onClick={handleCreate}
-              disabled={!createForm.name.trim() || !createForm.cidr.trim() || (needsGroupSelect && !createForm.groupId) || createMutation.isPending}
             >
               {createMutation.isPending ? '创建中…' : '创建'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        }
+      >
+        <div className="cwgsyw-form">
+          <Field htmlFor="pool-name" label="名称" required>
+            <Input
+              id="pool-name"
+              value={createForm.name}
+              placeholder="例：生产网段 A"
+              onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
+            />
+          </Field>
+          <Field htmlFor="pool-cidr" label="CIDR" required>
+            <Input
+              id="pool-cidr"
+              value={createForm.cidr}
+              placeholder="例：192.168.1.0/24"
+              onChange={(event) => setCreateForm((current) => ({ ...current, cidr: event.target.value }))}
+            />
+          </Field>
+          {needsGroupSelect ? (
+            <Field label="归属组" required>
+              <Select
+                value={createForm.groupId}
+                placeholder="请选择归属组"
+                options={groups.map((group) => ({ value: String(group.id), label: group.name }))}
+                onChange={(value) => setCreateForm((current) => ({ ...current, groupId: value }))}
+              />
+            </Field>
+          ) : null}
+          <Field htmlFor="pool-gateway" label="网关">
+            <Input
+              id="pool-gateway"
+              value={createForm.gateway}
+              placeholder="192.168.1.1"
+              onChange={(event) => setCreateForm((current) => ({ ...current, gateway: event.target.value }))}
+            />
+          </Field>
+          <Field htmlFor="pool-dns" label="DNS">
+            <Input
+              id="pool-dns"
+              value={createForm.dns}
+              placeholder="8.8.8.8"
+              onChange={(event) => setCreateForm((current) => ({ ...current, dns: event.target.value }))}
+            />
+          </Field>
+          <Field htmlFor="pool-description" label="描述">
+            <Input
+              id="pool-description"
+              value={createForm.description}
+              onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))}
+            />
+          </Field>
+        </div>
+      </NeutralDialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要删除地址池「{deleteTarget?.name}」（{deleteTarget?.cidr}）吗？地址池中已分配的 IP 需要先释放。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-              disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? '删除中…' : '确认删除'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </PageShell>
+      <NeutralAlertDialog
+        open={!!deleteTarget}
+        title="确认删除"
+        description={`确定要删除地址池「${deleteTarget?.name ?? ''}」（${deleteTarget?.cidr ?? ''}）吗？地址池中已分配的 IP 需要先释放。`}
+        intent="destructive"
+        confirmLabel={deleteMutation.isPending ? '删除中…' : '确认删除'}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      />
+    </>
   )
 }

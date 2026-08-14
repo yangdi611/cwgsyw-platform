@@ -1,26 +1,27 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
-import {
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-} from '@/components/design-system'
-import { DetailHeader, FormShell } from '@/components/shared'
-import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { getApiErrorMessage } from '@/lib/api-error'
-import type { CiModelWithAttributes, CmdbFieldsData, CiAttributeResponse } from '@/types/cmdb-model'
+import type { CiAttributeResponse, CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  Card,
+  Checkbox,
+  Field,
+  FormSettingsPage,
+  Input,
+  LoadingState,
+  PageHeader,
+  Select,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 export default function NewInstancePage() {
   const { modelCode } = useParams<{ modelCode: string }>()
@@ -31,8 +32,7 @@ export default function NewInstancePage() {
 
   useEffect(() => {
     if (!isHydrated) return
-    if (!hasPermission('cmdb_instance', 'create'))
-      router.replace(`/cmdb/instances/by-model/${modelCode}`)
+    if (!hasPermission('cmdb_instance', 'create')) router.replace(`/cmdb/instances/by-model/${modelCode}`)
   }, [isHydrated, hasPermission, router, modelCode])
 
   const { data: model, isLoading } = useQuery<CiModelWithAttributes>({
@@ -57,98 +57,92 @@ export default function NewInstancePage() {
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '创建失败')),
   })
 
-  const set = (key: string, val: string) => setAttrs((a) => ({ ...a, [key]: val }))
-
+  const set = (key: string, val: string) => setAttrs((current) => ({ ...current, [key]: val }))
   const groups = model?.attributeGroups ?? []
-  const attrsByGroup = (model?.attributes ?? []).reduce((acc, a) => {
-    const g = a.groupId || 'default'
-    if (!acc[g]) acc[g] = []
-    acc[g].push(a)
+  const attrsByGroup = (model?.attributes ?? []).reduce((acc, attr) => {
+    const groupId = attr.groupId || 'default'
+    if (!acc[groupId]) acc[groupId] = []
+    acc[groupId].push(attr)
     return acc
   }, {} as Record<string, CiAttributeResponse[]>)
 
-  if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isLoading) return <LoadingState label="加载模型" />
 
   return (
-    <FormShell width="wide">
-      <DetailHeader
-        backHref={`/cmdb/instances/by-model/${modelCode}`}
-        backLabel="返回列表"
-        title={`新建 ${model?.name ?? modelCode} 实例`}
-      />
-
-      <Card>
-        <CardContent className="space-y-1.5 p-5">
-          <Label className="text-sm">
-            实例名称<span className="ml-1 text-v2-danger">*</span>
-          </Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="请输入实例名称" />
-        </CardContent>
-      </Card>
-
-      {groups
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-        .map((group) => {
-          const groupAttrs = (attrsByGroup[group.groupId] ?? []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-          if (groupAttrs.length === 0) return null
-          return (
-            <Card key={group.groupId}>
-              <CardContent className="p-5">
-                <h2 className="mb-4 text-sm font-bold text-v2-fg">{group.name}</h2>
-                <div className="space-y-4">
-                  {groupAttrs.map((attr) => (
-                    <div key={attr.fieldKey} className="space-y-1.5">
-                      <Label className="text-sm">
-                        {attr.name}
-                        {attr.isRequired && <span className="ml-1 text-v2-danger">*</span>}
-                        {attr.unit && (
-                          <span className="ml-1 text-xs text-v2-muted">({attr.unit})</span>
-                        )}
-                      </Label>
-                      {renderField(attr, String(attrs[attr.fieldKey] ?? ''), (val) => set(attr.fieldKey, val))}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-
-      <div className="flex gap-2">
-        <Button variant="primary" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-          {createMutation.isPending ? '创建中…' : '创建实例'}
-        </Button>
-        <Button variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}`)}>
-          取消
-        </Button>
-      </div>
-    </FormShell>
+    <FormSettingsPage
+      header={
+        <PageHeader
+          eyebrow="CMDB"
+          title={`新建 ${model?.name ?? modelCode} 实例`}
+          subtitle="填写实例名称和模型属性后创建。"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/cmdb', label: 'CMDB' },
+                { href: `/cmdb/instances/by-model/${modelCode}`, label: model?.name ?? modelCode },
+                { label: '新建实例' },
+              ]}
+            />
+          }
+        />
+      }
+      form={
+        <div className="cwgsyw-form">
+          <Field label="实例名称" htmlFor="instance-name" required>
+            <Input id="instance-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入实例名称" />
+          </Field>
+          {groups
+            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+            .map((group) => {
+              const groupAttrs = (attrsByGroup[group.groupId] ?? []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+              if (groupAttrs.length === 0) return null
+              return (
+                <Card key={group.groupId} title={group.name}>
+                  <div className="cwgsyw-form">
+                    {groupAttrs.map((attr) => (
+                      <Field
+                        key={attr.fieldKey}
+                        label={attr.unit ? `${attr.name} (${attr.unit})` : attr.name}
+                        htmlFor={attr.fieldKey}
+                        required={attr.isRequired}
+                      >
+                        {renderField(attr, String(attrs[attr.fieldKey] ?? ''), (value) => set(attr.fieldKey, value))}
+                      </Field>
+                    ))}
+                  </div>
+                </Card>
+              )
+            })}
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
+              {createMutation.isPending ? '创建中…' : '创建实例'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}`)}>
+              取消
+            </Button>
+          </div>
+        </div>
+      }
+    />
   )
 }
 
-function renderField(attr: CiAttributeResponse, value: string, onChange: (v: string) => void) {
+function renderField(attr: CiAttributeResponse, value: string, onChange: (value: string) => void) {
   const { fieldType, option, placeholder } = attr
   const ph = placeholder ?? ''
   if (fieldType === 'longchar') {
-    return <Textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} rows={3} />
+    return <Textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} rows={3} />
   }
   if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     return (
-      <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
-        <SelectTrigger>
-          <SelectValue placeholder="请选择">
-            {(v: string) => opts.find((o) => o.id === v)?.name ?? '请选择'}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {opts.map((o) => (
-            <SelectItem key={o.id} value={o.id}>
-              {o.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Select
+        value={value}
+        placeholder="请选择"
+        options={opts.map((item) => ({ value: item.id, label: item.name }))}
+        onChange={onChange}
+      />
     )
   }
   if (fieldType === 'enummulti' && Array.isArray(option)) {
@@ -160,44 +154,38 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (v: str
         return []
       }
     })()
-    const toggle = (id: string) => {
-      const next = selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]
-      onChange(JSON.stringify(next))
-    }
     return (
-      <div className="flex flex-wrap gap-3">
-        {opts.map((o) => (
-          <label key={o.id} className="flex cursor-pointer items-center gap-1.5 text-sm text-v2-fg">
-            <input
-              type="checkbox"
-              checked={selected.includes(o.id)}
-              onChange={() => toggle(o.id)}
-              className="rounded"
-            />
-            {o.name}
-          </label>
+      <div className="cwgsyw-inline-controls">
+        {opts.map((item) => (
+          <Checkbox
+            key={item.id}
+            label={item.name}
+            checked={selected.includes(item.id)}
+            onChange={() => {
+              const next = selected.includes(item.id) ? selected.filter((id) => id !== item.id) : [...selected, item.id]
+              onChange(JSON.stringify(next))
+            }}
+          />
         ))}
       </div>
     )
   }
   if (fieldType === 'bool') {
     return (
-      <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
-        <SelectTrigger>
-          <SelectValue placeholder="请选择">
-            {(v: string) => (v === 'true' ? '是' : v === 'false' ? '否' : '请选择')}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="true">是</SelectItem>
-          <SelectItem value="false">否</SelectItem>
-        </SelectContent>
-      </Select>
+      <Select
+        value={value}
+        placeholder="请选择"
+        options={[
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ]}
+        onChange={onChange}
+      />
     )
   }
-  if (fieldType === 'date') return <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+  if (fieldType === 'date') return <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
   if (fieldType === 'int' || fieldType === 'float') {
-    return <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
+    return <Input type="number" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
   }
-  return <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
+  return <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
 }

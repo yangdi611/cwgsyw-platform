@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { ChevronDown } from 'lucide-react'
+import { Button, Icon } from '@/design-system/figma-neutral/components'
 import type { NavGroup } from './types'
 import { groupActiveChild } from './utils'
 
@@ -24,24 +24,30 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
 
   return (
     <div className="mb-1">
-      <button
+      <Button
+        type="button"
+        variant="ghost"
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label={group.label}
         className={cn(
           'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
           isAnyChildActive
-            ? 'bg-white/10 text-v2-sidebar-fg'
-            : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-v2-sidebar-fg'
+            ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+            : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]'
         )}
       >
         <group.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
-        <ChevronDown
+        <Icon
+          name="chevron-down"
+          size="sm"
           className={cn(
-            'h-3.5 w-3.5 transition-transform duration-200 ease-out motion-reduce:transition-none',
+            'transition-transform duration-200 ease-out motion-reduce:transition-none',
             isOpen ? 'rotate-0' : '-rotate-90',
           )}
         />
-      </button>
+      </Button>
 
       <div
         className={cn(
@@ -65,14 +71,14 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
                   className={cn(
                     'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-3',
                     isActive
-                      ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                      : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                      ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+                      : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]'
                   )}
                 >
                   <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                    <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1.5 font-mono text-[11px] tabular-nums text-[var(--cwgsyw-status-danger-fg)]">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}

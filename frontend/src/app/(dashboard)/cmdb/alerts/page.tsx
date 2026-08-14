@@ -1,22 +1,26 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
+import { toast } from '@/design-system/figma-neutral/toast'
+import '@/design-system/figma-neutral/index.css'
 import {
+  Breadcrumb,
   Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  FilterBar,
+  PageHeader,
+  Pagination,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   StatusBadge,
-} from '@/components/design-system'
-import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
-import { CheckCircle2 } from 'lucide-react'
-import { toast } from 'sonner'
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface AlertVO {
   id: number
@@ -40,19 +44,19 @@ interface PageData {
   size: number
 }
 
-type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
+type StatusTone = 'success' | 'warning' | 'danger' | 'neutral'
 
-function severityMeta(s: string): { variant: StatusVariant; label: string } {
-  if (s === 'critical') return { variant: 'danger', label: '严重' }
-  if (s === 'warning') return { variant: 'warn', label: '警告' }
-  if (s === 'info') return { variant: 'neutral', label: '提示' }
-  return { variant: 'neutral', label: s || '未知' }
+function severityMeta(s: string): { tone: StatusTone; label: string } {
+  if (s === 'critical') return { tone: 'danger', label: '严重' }
+  if (s === 'warning') return { tone: 'warning', label: '警告' }
+  if (s === 'info') return { tone: 'neutral', label: '提示' }
+  return { tone: 'neutral', label: s || '未知' }
 }
 
-function statusMeta(s: string): { variant: StatusVariant; label: string } {
-  if (s === 'firing') return { variant: 'danger', label: '触发中' }
-  if (s === 'resolved') return { variant: 'ok', label: '已恢复' }
-  return { variant: 'neutral', label: s || '—' }
+function statusMeta(s: string): { tone: StatusTone; label: string } {
+  if (s === 'firing') return { tone: 'danger', label: '触发中' }
+  if (s === 'resolved') return { tone: 'success', label: '已恢复' }
+  return { tone: 'neutral', label: s || '—' }
 }
 
 const SEVERITY_OPTIONS = [
@@ -117,151 +121,102 @@ export default function CmdbAlertsPage() {
 
   const alerts = data?.records ?? []
   const total = data?.total ?? 0
-
-  const columns: ColumnDef<AlertVO>[] = [
-    {
-      key: 'severity',
-      title: '级别',
-      render: (r) => {
-        const m = severityMeta(r.severity)
-        return <StatusBadge status={m.variant}>{m.label}</StatusBadge>
-      },
-    },
-    {
-      key: 'status',
-      title: '状态',
-      render: (r) => {
-        const m = statusMeta(r.status)
-        return <StatusBadge status={m.variant}>{m.label}</StatusBadge>
-      },
-    },
-    {
-      key: 'alert_name',
-      title: '告警名称',
-      render: (r) => (
-        <div>
-          <div className="font-medium text-v2-fg">{r.alertName}</div>
-          {r.description && (
-            <div className="mt-0.5 line-clamp-1 text-xs text-v2-muted">{r.description}</div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'ci_instance',
-      title: '关联实例',
-      render: (r) => (
-        <span className="text-sm text-v2-fg">
-          {r.ciInstanceId ? r.ciInstanceName ?? `#${r.ciInstanceId}` : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'summary',
-      title: '摘要',
-      render: (r) => <span className="line-clamp-1 text-sm text-v2-muted">{r.summary ?? '-'}</span>,
-    },
-    {
-      key: 'starts_at',
-      title: '触发时间',
-      render: (r) => (
-        <span className="whitespace-nowrap text-xs text-v2-muted">
-          {r.startsAt ? new Date(r.startsAt).toLocaleString('zh-CN') : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      title: '操作',
-      align: 'right',
-      render: (r) =>
-        r.acknowledged ? (
-          <span className="inline-flex items-center gap-1 text-xs text-v2-muted">
-            <CheckCircle2 className="h-3 w-3" />
-            已确认
-          </span>
-        ) : canAck ? (
-          <Button size="sm" variant="secondary" disabled={ack.isPending} onClick={() => onAck(r.id)}>
-            确认
-          </Button>
-        ) : (
-          <span className="text-v2-subtle">-</span>
-        ),
-    },
-  ]
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="CMDB"
-        title="告警中心"
-        subtitle="查看 Prometheus 告警，按级别与状态筛选，及时确认并关联到 CI 实例。"
-      />
-
-      <FilterBar className="w-full items-stretch sm:items-center">
-        <Select
-          value={severity || '__all__'}
-          onValueChange={(v) => {
-            setSeverity(v === '__all__' ? '' : v ?? '')
-            setPage(1)
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder="全部级别">
-              {(v: string) => SEVERITY_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部级别'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {SEVERITY_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={status || '__all__'}
-          onValueChange={(v) => {
-            setStatus(v === '__all__' ? '' : v ?? '')
-            setPage(1)
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder="全部状态">
-              {(v: string) => STATUS_OPTIONS.find((o) => o.value === (v || '__all__'))?.label ?? '全部状态'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FilterBar>
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
+    <DataManagementPage
+      header={
+        <PageHeader
+          eyebrow="CMDB"
+          title="告警中心"
+          subtitle="查看 Prometheus 告警，按级别与状态筛选，及时确认并关联到 CI 实例。"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/cmdb', label: 'CMDB' },
+                { label: '告警中心' },
+              ]}
+            />
+          }
+        />
+      }
+      filter={
+        <FilterBar
+          filterItems={
+            <div className="cwgsyw-inline-controls">
+              <Select
+                value={severity || '__all__'}
+                options={SEVERITY_OPTIONS}
+                onChange={(value) => {
+                  setSeverity(value === '__all__' ? '' : value)
+                  setPage(1)
+                }}
+              />
+              <Select
+                value={status || '__all__'}
+                options={STATUS_OPTIONS}
+                onChange={(value) => {
+                  setStatus(value === '__all__' ? '' : value)
+                  setPage(1)
+                }}
+              />
+            </div>
+          }
+        />
+      }
+      content={
+        isError ? (
           <ErrorState
             title="告警加载失败"
             description="无法读取告警记录，请稍后重试。"
-            onRetry={() => refetch()}
+            retry={
+              <Button type="button" variant="secondary" onClick={() => refetch()}>
+                重试
+              </Button>
+            }
           />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={alerts}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          empty={{ title: '暂无告警', description: '当前筛选条件下没有告警记录。' }}
-        />
-      )}
-
-      <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
-    </PageShell>
+        ) : alerts.length === 0 && !isLoading ? (
+          <EmptyState title="暂无告警" description="当前筛选条件下没有告警记录。" />
+        ) : (
+          <>
+            <Table
+              showSearch={false}
+              state={isLoading ? 'loading' : 'data'}
+              columns={[
+                { key: 'severity', label: '级别' },
+                { key: 'status', label: '状态' },
+                { key: 'alert_name', label: '告警名称' },
+                { key: 'ci_instance', label: '关联实例' },
+                { key: 'summary', label: '摘要' },
+                { key: 'starts_at', label: '触发时间' },
+                { key: 'actions', label: '操作', align: 'right' },
+              ]}
+              rows={alerts.map((item) => ({
+                id: String(item.id),
+                cells: {
+                  severity: <StatusBadge label={severityMeta(item.severity).label} status={severityMeta(item.severity).tone} />,
+                  status: <StatusBadge label={statusMeta(item.status).label} status={statusMeta(item.status).tone} />,
+                  alert_name: item.alertName,
+                  ci_instance: item.ciInstanceId ? item.ciInstanceName ?? `#${item.ciInstanceId}` : '-',
+                  summary: item.summary ?? '-',
+                  starts_at: item.startsAt ? new Date(item.startsAt).toLocaleString('zh-CN') : '-',
+                  actions: item.acknowledged ? (
+                    '已确认'
+                  ) : canAck ? (
+                    <Button type="button" size="sm" variant="secondary" disabled={ack.isPending} onClick={() => onAck(item.id)}>
+                      确认
+                    </Button>
+                  ) : (
+                    '-'
+                  ),
+                },
+              }))}
+            />
+            <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
+          </>
+        )
+      }
+    />
   )
 }

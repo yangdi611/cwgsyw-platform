@@ -3,70 +3,84 @@
 ## 1. 当前指针
 
 ```yaml
-tracker: YAN-10
-branch: docs/YAN-10-figma-neutral-frontend-migration
-base: origin/development@1ed8c9ab7b148d697f8a75f828801cfae96a1459
-status: UNIFIED_DESIGN_AND_MIGRATION_BASELINE_MERGED_LOCAL
-currentPhase: M0
-currentPointer: CREATE_FIRST_IMPLEMENTATION_SLICE_ISSUE
-figmaDesignStatus: P4_DELIVERED
-reactMigrationStarted: false
-lastUpdatedAt: 2026-08-13
+tracker: YAN-91
+branch: feat/YAN-71-figma-neutral-m7-workflow-design
+worktree: /Users/byron/AI/worktrees/YAN-71
+status: M8_LOCAL_COMMIT_AUTHORIZED
+currentPhase: M8
+currentPointer: WAITING_USER_AUTH_FOR_PUSH_PR
+visualAudit: WAIVED
+lastUpdatedAt: 2026-08-14
+baselineSha: cd983965e
+ready: READY WITH APPROVED EXCEPTION
+handoff: docs/migration/figma-neutral-frontend/HANDOFF.md
 ```
 
-## 2. YAN-10 状态
+## 2. 本轮状态
 
 | 交付项 | 状态 | 证据 |
 |---|---|---|
-| Linear Issue、范围、验收、风险和回滚 | COMPLETE | YAN-10 |
-| 独立分支与 worktree | COMPLETE | `docs/YAN-10-figma-neutral-frontend-migration`; `/Users/byron/AI/worktrees/YAN-10` |
-| 迁移入口 | COMPLETE | `README.md` |
-| Figma 设计源归档 | COMPLETE | `design-source/` 10 份权威资料 |
-| 总体迁移计划 | COMPLETE | `MIGRATION-PLAN.md` |
-| 页面迁移矩阵 | COMPLETE | `PAGE-MIGRATION-MATRIX.md` |
-| 视觉验证闭环 | COMPLETE | `VISUAL-VALIDATION-RUNBOOK.md` |
-| Markdown 链接和文档校验 | PASS | 16 份文件完整；相对链接无断链；`git diff --check` 通过 |
-| 历史 refactor 清理 | PASS | 34 份远端基线历史资料删除；共享组件 README 旧入口已替换 |
-| 交付报告 | COMPLETE | `DELIVERY-REPORT.md` |
-| Task commit | COMPLETE | `ab421e229` |
-| Local development merge | COMPLETE | `091d86f37` |
-| Push / PR | NOT AUTHORIZED | 未推送，未创建 PR |
+| 删除 `@/components/design-system` | PASS | 目录已不存在 |
+| 删除 `@/components/v2` | PASS | 目录已不存在 |
+| 删除无消费者的 `@/components/ui` | PASS | 目录已不存在 |
+| shared 只留 PermissionGuard | PASS | `shared/index.ts` |
+| leftover `*-v2-*` / `--v2-*` | PASS | `frontend/test/figma-neutral-m8-leftover-tokens.test.cjs` |
+| leftover 蓝/紫/青绿 accent hex | PASS | `frontend/test/figma-neutral-m8-leftover-accents.test.cjs` |
+| leftover shadcn / gray 工具色 | PASS | `frontend/test/figma-neutral-m8-leftover-shadcn.test.cjs` |
+| leftover 画布裸 hex / 坏 token 属性 | PASS | `frontend/test/figma-neutral-m8-leftover-canvas-hex.test.cjs` |
+| leftover globals / sonner 主题 | PASS | `frontend/test/figma-neutral-m8-leftover-globals-theme.test.cjs` |
+| leftover sonner 运行时 | PASS | `frontend/test/figma-neutral-m8-leftover-sonner.test.cjs` |
+| leftover spatial native select/checkbox/palette | PASS | `frontend/test/figma-neutral-m8-leftover-spatial-chrome.test.cjs` |
+| leftover wiki mermaid chrome | PASS | `frontend/test/figma-neutral-m8-leftover-wiki-mermaid.test.cjs` |
+| leftover wiki editor chrome | PASS | `frontend/test/figma-neutral-m8-leftover-wiki-editor.test.cjs` |
+| leftover resource access selects | PASS | `frontend/test/figma-neutral-m8-leftover-access-selects.test.cjs` |
+| leftover user/group selects | PASS | `frontend/test/figma-neutral-m8-leftover-user-group-selects.test.cjs` |
+| leftover analytics selects | PASS | `frontend/test/figma-neutral-m8-leftover-analytics-selects.test.cjs` |
+| leftover sidebar collapse | PASS | `frontend/test/figma-neutral-m8-leftover-sidebar-collapse.test.cjs` |
+| leftover wiki status dots | PASS | `frontend/test/figma-neutral-m8-leftover-wiki-status-dots.test.cjs` |
+| leftover wiki tree buttons | PASS | `frontend/test/figma-neutral-m8-leftover-wiki-tree.test.cjs` |
+| leftover ops calendar buttons | PASS | `frontend/test/figma-neutral-m8-leftover-ops-calendar.test.cjs` |
+| leftover native action buttons | PASS | `frontend/test/figma-neutral-m8-leftover-native-btns.test.cjs` |
+| leftover overlays / lightbox | PASS | `frontend/test/figma-neutral-m8-leftover-overlays.test.cjs` |
+| leftover stripped utilities / popover | PASS | `frontend/test/figma-neutral-m8-leftover-stripped-utils.test.cjs` |
+| leftover app chrome buttons | PASS | `frontend/test/figma-neutral-m8-leftover-app-chrome.test.cjs` |
+| leftover list buttons | PASS | `frontend/test/figma-neutral-m8-leftover-list-buttons.test.cjs` |
+| leftover files tree buttons | PASS | `frontend/test/figma-neutral-m8-leftover-files-tree.test.cjs` |
+| leftover field library / form canvas | PASS | `frontend/test/figma-neutral-m8-leftover-field-library.test.cjs` |
+| leftover designer / picker buttons | PASS | `frontend/test/figma-neutral-m8-leftover-designer-pickers.test.cjs` |
+| leftover CMDB search dropdowns | PASS | `frontend/test/figma-neutral-m8-leftover-search-dropdowns.test.cjs` |
+| leftover Neutral chevron icons | PASS | `frontend/test/figma-neutral-m8-leftover-lucide-chevrons.test.cjs` |
+| leftover analytics mapped icons | PASS | `frontend/test/figma-neutral-m8-leftover-analytics-icons.test.cjs` |
+| leftover wiki/spatial mapped lucide | PASS | `frontend/test/figma-neutral-m8-leftover-mapped-lucide.test.cjs` |
+| leftover header search icon | PASS | `frontend/test/figma-neutral-m8-leftover-app-chrome.test.cjs` |
+| leftover chrome / dashboard tiles | PASS | `frontend/test/figma-neutral-m8-leftover-chrome-buttons.test.cjs` |
+| leftover consumer native `<button>` | PASS | `frontend/src` 除 Neutral primitives 外已无 `<button` |
+| leftover M8 scan lock | PASS | `frontend/test/figma-neutral-m8-leftover-scan.test.cjs` 含原生 dialog |
+| leftover notification bell | PASS | `frontend/test/figma-neutral-m8-leftover-notification.test.cjs` |
+| 81 page coverage lock | PASS | `frontend/test/figma-neutral-m8-page-coverage.test.cjs` |
+| 78 page m7 test coverage lock | PASS | `frontend/test/figma-neutral-m8-page-test-coverage.test.cjs` |
+| five page pattern route consumers | PASS | `frontend/test/figma-neutral-m8-page-pattern-consumers.test.cjs` |
+| leftover native confirm/alert dialogs | PASS | `frontend/test/figma-neutral-m8-leftover-native-dialogs.test.cjs` |
+| 81 页面入口 | PASS | 78 Neutral + 3 EXCLUDED redirect |
+| 页面矩阵覆盖 | PASS | 81 入口均已入 `PAGE-MIGRATION-MATRIX.md`（VERIFYING / EXCLUDED） |
+| 视觉审计 | WAIVED | 用户 2026-08-14 授权后续都不做 |
+| Neutral Checkbox/Badge API | PASS | `frontend/test/figma-neutral-m8-neutral-api.test.cjs` |
+| Date Range Picker | PASS | `frontend/test/figma-neutral-m5-overlay.test.cjs` |
+| 正式子资产导出 | PASS | `frontend/test/figma-neutral-m8-formal-exports.test.cjs` 锁 61 个正式根 |
+| 空间房间 4 页 fixture | PASS | `frontend/test/figma-neutral-m7-cmdb-spatial-rooms.test.cjs` |
+| 完成度审计 | PARTIAL | `evidence/YAN-91/COMPLETION-AUDIT.md` |
+| 下一张 Linear | PASS | [YAN-91](https://linear.app/yangdi/issue/YAN-91/授权提交-figma-neutral-本地实现) |
+| Commit | AUTHORIZED | 用户 2026-08-14 授权在 YAN-71 本地提交 |
+| Push / PR / 部署 | NOT AUTHORIZED | |
 
-## 3. 设计与代码基线
+## 3. 已完成切片
 
-| 项目 | YAN-10 基线 |
-|---|---|
-| Figma file key | `Z8EC6psFOj7KMfXapAFk24` |
-| Figma 设计状态 | P0-P4 已交付 |
-| 正式 Component / Pattern 根 | 61，未来切片开始前实时复核 |
-| 正式 Variables | 176，未来切片开始前实时复核 |
-| 正式 Page Pattern | 5 |
-| 当前 Next.js 页面入口 | 81 |
-| 当前共享组件入口 | `components/design-system`、`components/ui`、`components/v2`、`components/shared` 并存 |
-| React 重构 | 尚未开始 |
+Token pipeline、Neutral 组件、Page Pattern、81 个入口、旧视觉入口删除、leftover v2 class / CSS 变量清理，以及空间 / 拓扑 / BPMN 画布 token 接线都已在 YAN-71 本地完成。
 
-## 4. 当前约束与依赖
+本提交收入本地实现。`globals.css` 已去掉 `--v2-*` 和 `--color-v2-*`。侧栏不再用深蓝 / 蓝色高亮，改走 Neutral surface。空间编辑器 / 查看器 / spike 不再写裸 hex，Konva 色走 `canvas-tokens.ts`。`globals.css` 的 shadcn 兼容色和暗色侧栏蓝紫主色已改接到 Neutral；sonner 运行时已换成 Neutral Toast 队列。spatial editor 的 select/checkbox/关闭按钮已改走 Neutral Select / Checkbox / IconButton。Wiki mermaid 工具栏/错误/加载已改走 Neutral，图表现在用 canvas-tokens 上色。Wiki markdown 编辑器主题已从 globals 挪到 WikiEditor.css，并用 Neutral token 替换魔法数字。spatial 组件库瓦片已改走 Neutral Button。资源授权、用户授权、组对话框和任务 analytics/metrics 的原生 select 已改走 Neutral Select。Wiki 树侧栏操作按钮已改走 Neutral Button / IconButton。运维日历格子、事项和设置菜单已改走 Neutral Button / MenuItem。顶栏用户菜单和侧栏分组展开已改走 Neutral Button / MenuItem。任务/工作重试、批量编辑页脚和工作分类 Tabs 已改走 Neutral 组件。文件树展开/选择已改走 Neutral Button / IconButton。应用侧栏收起/展开改走 Neutral IconButton。Wiki 树状态点改回 Neutral status token。任务/工作项重试、批量编辑页脚、端点删除、CI 移除和机柜移出改走 Neutral Button。Wiki 灯箱改走 Neutral overlay scrim + IconButton。空间发布框改走 NeutralDialog。字段组件库、表单画布、版本行、计划步骤、CI picker、用户组 Tabs、模板选择卡、折叠行、密码显隐、dashboard tile 和 analytics widget 已改走 Neutral Button / Card / IconButton。消费层除 Neutral primitives 外已无原生 button。拓扑节点提示去掉 shadcn `bg-popover`。任务统计 / 指标 / 权限 diff 的空 `border` / `divide-y` / `hover:` 接到 Neutral token。整包 `node --test test/figma-neutral-*.test.cjs` 为 242/242 PASS。
 
-- Figma 是唯一视觉、Token、组件 API 和布局设计源。
-- 当前系统仅提供功能、路由、权限、数据、交互和业务状态清单。
-- 常规 UI 只用 Neutral；Status 色只用于真实状态。
-- Figma 设计源已迁入 `docs/migration/figma-neutral-frontend/design-source/`，与迁移执行文档共享同一版本边界。
-- 历史 `docs/open-design-refactor/` 已清理，不再作为本次设计或迁移输入。
-- 本资料包被 `docs/*` 忽略；未来提交时必须精确强制加入本目录并审查完整 diff。
-- YAN-10 只建立迁移执行基线，不授权 React、Figma、API、数据、权限或路由修改。
+## 4. 下一动作
 
-## 5. 后续 Issue 建议
-
-下一任务应从 M0 开始，建立 Figma baseline manifest、Token 白名单导出、Light/Dark theme、Typography/Effect recipes 和确定性视觉 fixture。该任务需要重新通过 Definition of Ready，并在编码前执行 GitNexus impact analysis。
-
-后续每个阶段都应拆为小型垂直切片，更新本状态文件和页面矩阵；不得将整个前端迁移塞入一个长期分支。
-
-## 6. 状态更新协议
-
-每次续跑必须：
-
-1. 读取 YAN-10、本目录、实时 Figma 设计合同和上一个切片交付报告。
-2. 从 `currentPointer` 指向的最早未完成项继续，不重做已验证项。
-3. 将结果标记为 `PASS`、`FAIL`、`BLOCKED`、`DEFERRED` 或 `NOT RUN`。
-4. 记录真实命令、截图、消费者、风险和回滚证据。
-5. 更新页面矩阵和旧入口剩余消费者，避免状态只存在于对话中。
+1. 本地 commit 完成后等人授权 push / draft PR。
+2. 未再授权不要部署，也不要把 Linear 标 Done。
+3. 视觉审计保持 WAIVED，不要回头做截图评分。

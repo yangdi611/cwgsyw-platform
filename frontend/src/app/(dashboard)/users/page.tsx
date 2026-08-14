@@ -1,14 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, StatusBadge } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  NeutralAlertDialog,
+  PageHeader,
+  Pagination,
+  SearchInput,
+  StatusBadge,
+  Table,
+} from '@/design-system/figma-neutral/components'
 import UserDialog from '@/components/user/UserDialog'
-import { ErrorState, PageHeader, PageShell, FilterBar, DataTable, Pagination, type ColumnDef } from '@/components/shared'
-import { Plus, Search, Trash2, Pencil, ShieldCheck } from 'lucide-react'
 import { UserAuthorizationDialog } from '@/components/user/UserAuthorizationDialog'
 
 interface User {
@@ -50,10 +63,9 @@ export default function UsersPage() {
     enabled: canRead,
   })
 
-  if (!canRead) return null
-
   const users = data?.records ?? []
   const total = data?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / pageSize) || 1)
 
   const handleNew = () => {
     setDialogMode('create')
@@ -79,135 +91,133 @@ export default function UsersPage() {
     }
   }
 
-  const columns: ColumnDef<User>[] = [
-    {
-      key: 'username',
-      title: '用户名',
-      render: (r) => <span className="font-semibold text-v2-fg">@{r.username}</span>,
-    },
-    {
-      key: 'realName',
-      title: '真实姓名',
-      render: (r) => <span className="text-v2-fg">{r.realName || '-'}</span>,
-    },
-    {
-      key: 'email',
-      title: '邮箱',
-      render: (r) => <span className="text-v2-muted">{r.email || '-'}</span>,
-    },
-    {
-      key: 'groupName',
-      title: '所属组',
-      render: (r) => <span className="text-v2-fg">{r.groupName || '-'}</span>,
-    },
-    {
-      key: 'status',
-      title: '状态',
-      render: (r) => (
-        <StatusBadge status={r.status === 1 ? 'ok' : 'neutral'}>
-          {r.status === 1 ? '启用' : '禁用'}
-        </StatusBadge>
+  const columns = useMemo(
+    () => [
+      { key: 'username', label: '用户名' },
+      { key: 'realName', label: '真实姓名' },
+      { key: 'email', label: '邮箱' },
+      { key: 'groupName', label: '所属组' },
+      { key: 'status', label: '状态' },
+      ...(canUpdate || canDelete ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+    ],
+    [canDelete, canUpdate],
+  )
+
+  const rows = users.map((user) => ({
+    id: String(user.id),
+    cells: {
+      username: `@${user.username}`,
+      realName: user.realName || '-',
+      email: user.email || '-',
+      groupName: user.groupName || '-',
+      status: (
+        <StatusBadge
+          label={user.status === 1 ? '启用' : '禁用'}
+          status={user.status === 1 ? 'success' : 'neutral'}
+        />
+      ),
+      actions: (
+        <div className="cwgsyw-inline-controls">
+          {canUpdate ? (
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAuthorizationTarget(user)}>
+              授权
+            </Button>
+          ) : null}
+          {canUpdate ? (
+            <Button type="button" size="sm" variant="ghost" onClick={() => handleEdit(user)}>
+              编辑
+            </Button>
+          ) : null}
+          {canDelete ? (
+            <Button type="button" size="sm" variant="ghost" leadingIcon="trash" onClick={() => setDeleteTarget(user)}>
+              删除
+            </Button>
+          ) : null}
+        </div>
       ),
     },
-    ...(canUpdate || canDelete
-      ? [
-          {
-            key: 'actions',
-            title: '操作',
-            align: 'right' as const,
-            render: (r: User) => (
-              <div className="flex items-center justify-end gap-1">
-                {canUpdate && (
-                  <Button variant="ghost" size="sm" onClick={() => setAuthorizationTarget(r)}>
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    授权
-                  </Button>
-                )}
-                {canUpdate && (
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(r)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    编辑
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-v2-danger"
-                    onClick={() => setDeleteTarget(r)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    删除
-                  </Button>
-                )}
-              </div>
-            ),
-          },
-        ]
-      : []),
-  ]
+  }))
+
+  if (!canRead) return null
+
+  const tableState = isLoading ? 'loading' : users.length === 0 ? 'empty' : 'data'
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="身份与权限"
-        title="用户管理"
-        subtitle="维护平台用户账号、所属组与启用状态，按需分配角色与权限。"
-        actions={
-          canCreate ? (
-            <div className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto" variant="primary" onClick={handleNew}>
-                <Plus className="h-4 w-4" />
-                新建用户
-              </Button>
-            </div>
-          ) : undefined
+    <>
+      <DataManagementPage
+        embedded
+        layout="default"
+        header={
+          <PageHeader
+            eyebrow="身份与权限"
+            title="用户管理"
+            subtitle="维护平台用户账号、所属组与启用状态，按需分配角色与权限。"
+            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '用户管理' }]} />}
+            actions={
+              canCreate ? (
+                <Button type="button" variant="primary" onClick={handleNew}>
+                  新建用户
+                </Button>
+              ) : null
+            }
+          />
+        }
+        filter={
+          <FilterBar
+            search={
+              <SearchInput
+                value={keyword}
+                placeholder="搜索用户名…"
+                onChange={(event) => {
+                  setKeyword(event.target.value)
+                  setPage(1)
+                }}
+                onClear={() => {
+                  setKeyword('')
+                  setPage(1)
+                }}
+              />
+            }
+          />
+        }
+        content={
+          isError ? (
+            <ErrorState
+              title="用户加载失败"
+              description="无法读取用户列表，请稍后重试。"
+              retry={
+                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <Table
+                columns={columns}
+                rows={rows}
+                showSearch={false}
+                state={tableState}
+                loading={<LoadingState label="正在加载用户…" />}
+                empty={
+                  <EmptyState
+                    title="暂无用户"
+                    description='点击右上角“新建用户”添加第一个账号。'
+                    action={
+                      canCreate ? (
+                        <Button type="button" variant="primary" onClick={handleNew}>
+                          新建用户
+                        </Button>
+                      ) : null
+                    }
+                  />
+                }
+              />
+              <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
+            </>
+          )
         }
       />
-
-      <FilterBar className="w-full items-stretch sm:items-center">
-        <div className="relative w-full sm:max-w-xs sm:flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
-          <Input
-            placeholder="搜索用户名…"
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value)
-              setPage(1)
-            }}
-          />
-        </div>
-      </FilterBar>
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
-          <ErrorState
-            title="用户加载失败"
-            description="无法读取用户列表，请稍后重试。"
-            onRetry={() => refetch()}
-          />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={users}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          empty={{
-            title: '暂无用户',
-            description: '点击右上角"新建用户"添加第一个账号。',
-            action: canCreate ? (
-              <Button variant="primary" size="sm" onClick={handleNew}>
-                <Plus className="h-4 w-4" />
-                新建用户
-              </Button>
-            ) : undefined,
-          }}
-        />
-      )}
-
-      <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
 
       <UserDialog
         open={dialogOpen}
@@ -217,30 +227,23 @@ export default function UsersPage() {
         onSuccess={() => refetch()}
       />
 
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            确定要删除用户 <strong>@{deleteTarget?.username}</strong> 吗？此操作不可撤销。
-          </p>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-              取消
-            </Button>
-            <Button variant="danger" onClick={handleDelete}>
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NeutralAlertDialog
+        open={!!deleteTarget}
+        title="确认删除"
+        description={`确定要删除用户 @${deleteTarget?.username ?? ''} 吗？此操作不可撤销。`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={handleDelete}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      />
 
       <UserAuthorizationDialog
         user={authorizationTarget}
         open={!!authorizationTarget}
         onClose={() => setAuthorizationTarget(null)}
       />
-    </PageShell>
+    </>
   )
 }

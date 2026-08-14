@@ -2,10 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Download, Paperclip, RotateCcw, SquareX } from 'lucide-react'
-import { toast } from 'sonner'
-import { DetailDrawer, ErrorState, LoadingState } from '@/components/shared'
-import { Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Textarea } from '@/components/design-system'
+import { toast } from '@/design-system/figma-neutral/toast'
 import {
   actOnApprovalTask,
   approvalActionLabel,
@@ -17,6 +14,17 @@ import {
 } from '@/lib/approval-api'
 import { getApiErrorMessage } from '@/lib/api-error'
 import type { TaskFieldDefinition } from '@/lib/task-template-api'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  ErrorState,
+  Field,
+  LoadingState,
+  NeutralDrawer,
+  Select,
+  StatusBadge,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 type FieldCommentDraft = { severity: ApprovalFieldComment['severity']; comment: string }
 
@@ -49,60 +57,80 @@ export function ApprovalTaskDrawer({ approvalTaskId, onClose }: { approvalTaskId
     onError: (error) => toast.error(getApiErrorMessage(error, '审批操作失败')),
   })
 
-  const footer = detail.data ? (
-    <div className="flex flex-wrap justify-end gap-2">
-      {detail.data.allowedActions.map((name) => (
-        <Button
-          key={name}
-          variant={name === 'approve' ? 'primary' : name === 'terminate' ? 'danger' : 'secondary'}
-          disabled={action.isPending}
-          onClick={() => action.mutate(name)}
-        >
-          {actionIcon(name)}
-          {action.isPending && action.variables === name ? '处理中' : approvalActionLabel(name)}
-        </Button>
-      ))}
-    </div>
-  ) : undefined
-
   return (
-    <DetailDrawer
+    <NeutralDrawer
       open={Boolean(approvalTaskId)}
-      onClose={onClose}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
       title={detail.data?.task.title ?? '审批详情'}
-      subtitle={detail.data ? `${detail.data.task.nodeName} · 提交 V${detail.data.submissionVersion}` : undefined}
-      width="min(760px, 100vw)"
-      footer={footer}
+      description={detail.data ? `${detail.data.task.nodeName} · 提交 V${detail.data.submissionVersion}` : undefined}
     >
-      {detail.isLoading ? <LoadingState label="正在加载审批内容…" /> : detail.isError || !detail.data ? (
-        <ErrorState title="审批详情加载失败" onRetry={() => detail.refetch()} />
-      ) : (
-        <ApprovalContent
-          detail={detail.data}
-          comment={comment}
-          fieldComments={fieldComments}
-          attachmentComments={attachmentComments}
-          downloadingId={downloadingId}
-          onCommentChange={setComment}
-          onFieldCommentChange={(fieldKey, value) => setFieldComments((current) => ({ ...current, [fieldKey]: value }))}
-          onAttachmentCommentChange={(attachmentId, value) => setAttachmentComments((current) => ({ ...current, [attachmentId]: value }))}
-          onDownload={async (attachmentId, fileName) => {
-            setDownloadingId(attachmentId)
-            try {
-              await downloadApprovalAttachment(approvalTaskId as string, attachmentId, fileName)
-            } catch (error) {
-              toast.error(getApiErrorMessage(error, '附件下载失败'))
-            } finally {
-              setDownloadingId(undefined)
-            }
-          }}
+      {detail.isLoading ? (
+        <LoadingState label="正在加载审批内容…" />
+      ) : detail.isError || !detail.data ? (
+        <ErrorState
+          title="审批详情加载失败"
+          description="无法读取审批内容，请重试。"
+          retry={
+            <Button type="button" variant="secondary" onClick={() => void detail.refetch()}>
+              重试
+            </Button>
+          }
         />
+      ) : (
+        <div className="cwgsyw-form">
+          <ApprovalContent
+            detail={detail.data}
+            comment={comment}
+            fieldComments={fieldComments}
+            attachmentComments={attachmentComments}
+            downloadingId={downloadingId}
+            onCommentChange={setComment}
+            onFieldCommentChange={(fieldKey, value) => setFieldComments((current) => ({ ...current, [fieldKey]: value }))}
+            onAttachmentCommentChange={(attachmentId, value) => setAttachmentComments((current) => ({ ...current, [attachmentId]: value }))}
+            onDownload={async (attachmentId, fileName) => {
+              setDownloadingId(attachmentId)
+              try {
+                await downloadApprovalAttachment(approvalTaskId as string, attachmentId, fileName)
+              } catch (error) {
+                toast.error(getApiErrorMessage(error, '附件下载失败'))
+              } finally {
+                setDownloadingId(undefined)
+              }
+            }}
+          />
+          <div className="cwgsyw-form__actions">
+            {detail.data.allowedActions.map((name) => (
+              <Button
+                key={name}
+                type="button"
+                variant={name === 'approve' ? 'primary' : name === 'terminate' ? 'destructive' : 'secondary'}
+                loading={action.isPending && action.variables === name}
+                disabled={action.isPending}
+                onClick={() => action.mutate(name)}
+              >
+                {approvalActionLabel(name)}
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
-    </DetailDrawer>
+    </NeutralDrawer>
   )
 }
 
-function ApprovalContent({ detail, comment, fieldComments, attachmentComments, downloadingId, onCommentChange, onFieldCommentChange, onAttachmentCommentChange, onDownload }: {
+function ApprovalContent({
+  detail,
+  comment,
+  fieldComments,
+  attachmentComments,
+  downloadingId,
+  onCommentChange,
+  onFieldCommentChange,
+  onAttachmentCommentChange,
+  onDownload,
+}: {
   detail: Awaited<ReturnType<typeof getApprovalTask>>
   comment: string
   fieldComments: Record<string, FieldCommentDraft>
@@ -114,40 +142,105 @@ function ApprovalContent({ detail, comment, fieldComments, attachmentComments, d
   onDownload: (attachmentId: number, fileName: string) => Promise<void>
 }) {
   const attachments = detail.attachments
-  const attachmentsByField = useMemo(() => attachments.reduce((groups, attachment) => {
-    const values = groups.get(attachment.fieldKey) ?? []
-    values.push(attachment)
-    groups.set(attachment.fieldKey, values)
-    return groups
-  }, new Map<string, typeof attachments>()), [attachments])
-  return <div className="space-y-5">
-    <div className="flex flex-wrap items-center gap-2">
-      <StatusBadge status={detail.task.overdue ? 'danger' : 'warn'}>{detail.task.overdue ? '已逾期' : '待审批'}</StatusBadge>
-      <StatusBadge status={detail.task.priority === 'critical' ? 'danger' : detail.task.priority === 'high' ? 'warn' : 'neutral'}>{priorityLabel(detail.task.priority)}</StatusBadge>
-      {detail.task.dueAt && <span className="text-xs text-v2-muted">截止 {new Date(detail.task.dueAt).toLocaleString('zh-CN')}</span>}
-    </div>
+  const attachmentsByField = useMemo(
+    () =>
+      attachments.reduce((groups, attachment) => {
+        const values = groups.get(attachment.fieldKey) ?? []
+        values.push(attachment)
+        groups.set(attachment.fieldKey, values)
+        return groups
+      }, new Map<string, typeof attachments>()),
+    [attachments],
+  )
 
-    <section className="space-y-3">
-      <div><h3 className="font-semibold text-v2-fg">提交内容</h3><p className="mt-1 text-xs text-v2-muted">字段意见会随审批动作保存，并在退回后向执行人展示。</p></div>
-      {detail.fields.map((field) => {
-        const draft = fieldComments[field.key] ?? { severity: 'error' as const, comment: '' }
-        return <div key={field.key} className="rounded-v2-md border border-v2-border p-4">
-          <div className="flex flex-wrap items-center gap-2"><span className="font-medium text-v2-fg">{field.label}</span><StatusBadge status="neutral">{field.type}</StatusBadge>{field.sensitive && <StatusBadge status="warn">敏感</StatusBadge>}</div>
-          <div className="mt-3 rounded-v2-md bg-v2-surface-soft p-3 text-sm text-v2-fg">{renderValue(field, detail.formData[field.key], detail.computedValues[field.key])}</div>
-          {(attachmentsByField.get(field.key) ?? []).map((attachment) => (
-            <div key={attachment.id} className="mt-3 space-y-2 rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
-              <div className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-v2-muted" /><span className="min-w-0 flex-1 truncate text-sm text-v2-fg">{attachment.fileName}</span><span className="text-xs text-v2-muted">{formatBytes(attachment.sizeBytes)}</span><Button size="sm" variant="ghost" title="下载附件" disabled={downloadingId === attachment.id} onClick={() => void onDownload(attachment.id, attachment.fileName)}><Download className="h-4 w-4" /></Button></div>
-              <Textarea rows={2} value={attachmentComments[attachment.id] ?? ''} placeholder="添加附件意见（可选）" onChange={(event) => onAttachmentCommentChange(attachment.id, event.target.value)} />
-            </div>
-          ))}
-          {field.type === 'table' && <TableAttachments field={field} attachments={attachments} comments={attachmentComments} downloadingId={downloadingId} onCommentChange={onAttachmentCommentChange} onDownload={onDownload} />}
-          {!['section', 'help_text'].includes(field.type) && <div className="mt-3 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)]"><Select value={draft.severity} onValueChange={(value) => onFieldCommentChange(field.key, { ...draft, severity: value as FieldCommentDraft['severity'] })}><SelectTrigger><SelectValue>{(value: string) => ({ info: '提示', warning: '注意', error: '需修改' })[value] ?? value}</SelectValue></SelectTrigger><SelectContent><SelectItem value="info">提示</SelectItem><SelectItem value="warning">注意</SelectItem><SelectItem value="error">需修改</SelectItem></SelectContent></Select><Textarea rows={2} value={draft.comment} placeholder="添加字段意见（可选）" onChange={(event) => onFieldCommentChange(field.key, { ...draft, comment: event.target.value })} /></div>}
+  return (
+    <>
+      <div className="cwgsyw-inline-controls">
+        <StatusBadge label={detail.task.overdue ? '已逾期' : '待审批'} status={detail.task.overdue ? 'danger' : 'warning'} />
+        <StatusBadge
+          label={priorityLabel(detail.task.priority)}
+          status={detail.task.priority === 'critical' ? 'danger' : detail.task.priority === 'high' ? 'warning' : 'neutral'}
+        />
+        {detail.task.dueAt ? <span className="cwgsyw-type-label-xs">截止 {new Date(detail.task.dueAt).toLocaleString('zh-CN')}</span> : null}
+      </div>
+
+      <section className="cwgsyw-form">
+        <div>
+          <h3 className="cwgsyw-type-title-sm">提交内容</h3>
+          <p className="cwgsyw-type-body-sm">字段意见会随审批动作保存，并在退回后向执行人展示。</p>
         </div>
-      })}
-    </section>
+        {detail.fields.map((field) => {
+          const draft = fieldComments[field.key] ?? { severity: 'error' as const, comment: '' }
+          return (
+            <article key={field.key} className="cwgsyw-card cwgsyw-card--md">
+              <div className="cwgsyw-inline-controls">
+                <span className="cwgsyw-type-label-md">{field.label}</span>
+                <StatusBadge label={field.type} status="neutral" />
+                {field.sensitive ? <StatusBadge label="敏感" status="warning" /> : null}
+              </div>
+              <div className="cwgsyw-type-body-sm">{renderValue(field, detail.formData[field.key], detail.computedValues[field.key])}</div>
+              {(attachmentsByField.get(field.key) ?? []).map((attachment) => (
+                <div key={attachment.id} className="cwgsyw-form">
+                  <div className="cwgsyw-inline-controls">
+                    <span className="cwgsyw-type-body-sm">{attachment.fileName}</span>
+                    <span className="cwgsyw-type-label-xs">{formatBytes(attachment.sizeBytes)}</span>
+                    <Button type="button" size="sm" variant="ghost" disabled={downloadingId === attachment.id} onClick={() => void onDownload(attachment.id, attachment.fileName)}>
+                      下载
+                    </Button>
+                  </div>
+                  <Textarea
+                    rows={2}
+                    value={attachmentComments[attachment.id] ?? ''}
+                    placeholder="添加附件意见（可选）"
+                    onChange={(event) => onAttachmentCommentChange(attachment.id, event.target.value)}
+                  />
+                </div>
+              ))}
+              {field.type === 'table' ? (
+                <TableAttachments
+                  field={field}
+                  attachments={attachments}
+                  comments={attachmentComments}
+                  downloadingId={downloadingId}
+                  onCommentChange={onAttachmentCommentChange}
+                  onDownload={onDownload}
+                />
+              ) : null}
+              {!['section', 'help_text'].includes(field.type) ? (
+                <div className="cwgsyw-form">
+                  <Select
+                    value={draft.severity}
+                    options={[
+                      { value: 'info', label: '提示' },
+                      { value: 'warning', label: '注意' },
+                      { value: 'error', label: '需修改' },
+                    ]}
+                    onChange={(value) => onFieldCommentChange(field.key, { ...draft, severity: value as FieldCommentDraft['severity'] })}
+                  />
+                  <Textarea
+                    rows={2}
+                    value={draft.comment}
+                    placeholder="添加字段意见（可选）"
+                    onChange={(event) => onFieldCommentChange(field.key, { ...draft, comment: event.target.value })}
+                  />
+                </div>
+              ) : null}
+            </article>
+          )
+        })}
+      </section>
 
-    <section className="space-y-2"><Label htmlFor="approval-comment">审批意见 / 退回理由</Label><Textarea id="approval-comment" rows={4} value={comment} onChange={(event) => onCommentChange(event.target.value)} placeholder="通过时可选；退回修改、退回上一节点或终止时必填" /></section>
-  </div>
+      <Field htmlFor="approval-comment" label="审批意见 / 退回理由">
+        <Textarea
+          id="approval-comment"
+          rows={4}
+          value={comment}
+          onChange={(event) => onCommentChange(event.target.value)}
+          placeholder="通过时可选；退回修改、退回上一节点或终止时必填"
+        />
+      </Field>
+    </>
+  )
 }
 
 function buildPayload(action: ApprovalActionName, comment: string, fields: Record<string, FieldCommentDraft>, attachments: Record<number, string>) {
@@ -160,40 +253,102 @@ function buildPayload(action: ApprovalActionName, comment: string, fields: Recor
   return { action, comment: comment.trim() || undefined, fieldComments, attachmentComments }
 }
 
-function requiresReason(action: ApprovalActionName) { return action !== 'approve' }
-function actionIcon(action: ApprovalActionName) {
-  if (action === 'approve') return <Check className="h-4 w-4" />
-  if (action === 'terminate') return <SquareX className="h-4 w-4" />
-  return <RotateCcw className="h-4 w-4" />
+function requiresReason(action: ApprovalActionName) {
+  return action !== 'approve'
 }
-function priorityLabel(priority: string) { return { low: '低', normal: '普通', high: '高', critical: '紧急' }[priority] ?? priority }
-function formatBytes(size: number) { return size < 1024 * 1024 ? `${Math.ceil(size / 1024)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB` }
+function priorityLabel(priority: string) {
+  return { low: '低', normal: '普通', high: '高', critical: '紧急' }[priority] ?? priority
+}
+function formatBytes(size: number) {
+  return size < 1024 * 1024 ? `${Math.ceil(size / 1024)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`
+}
 function renderValue(field: TaskFieldDefinition, value: unknown, computedValue: unknown) {
   const shown = computedValue ?? value
-  if (field.type === 'section') return <span className="text-v2-muted">表单分区</span>
-  if (field.type === 'help_text') return <span className="text-v2-muted">{field.label}</span>
-  if (shown == null || shown === '') return <span className="text-v2-subtle">未填写</span>
+  if (field.type === 'section') return <span className="cwgsyw-type-label-xs">表单分区</span>
+  if (field.type === 'help_text') return <span className="cwgsyw-type-label-xs">{field.label}</span>
+  if (shown == null || shown === '') return <span className="cwgsyw-type-label-xs">未填写</span>
   if (typeof shown === 'boolean') return shown ? '是' : '否'
   if (field.type === 'table' && Array.isArray(shown)) return <ReadonlyTable field={field} rows={shown} />
-  if (typeof shown === 'object') return <pre className="overflow-auto whitespace-pre-wrap font-v2-mono text-xs">{JSON.stringify(shown, null, 2)}</pre>
+  if (typeof shown === 'object') return <pre className="cwgsyw-type-label-xs">{JSON.stringify(shown, null, 2)}</pre>
   return String(shown)
 }
 
 function ReadonlyTable({ field, rows }: { field: TaskFieldDefinition; rows: unknown[] }) {
   const columns = Array.isArray(field.validation?.columns) ? field.validation.columns.filter(isTableColumn) : []
-  if (columns.length === 0) return <span className="text-v2-muted">表格未配置列</span>
-  return <div className="overflow-x-auto"><table className="min-w-full text-xs"><thead><tr>{columns.map((column) => <th key={column.key} className="border-b border-v2-border px-2 py-2 text-left font-semibold">{column.label}</th>)}</tr></thead><tbody>{rows.filter(isRow).map((row, rowIndex) => <tr key={String(row.__rowId ?? rowIndex)}>{columns.map((column) => <td key={column.key} className="border-b border-v2-border px-2 py-2 align-top">{formatTableCell(row[column.key])}</td>)}</tr>)}</tbody></table></div>
+  if (columns.length === 0) return <span className="cwgsyw-type-label-xs">表格未配置列</span>
+  return (
+    <table className="cwgsyw-preview">
+      <thead>
+        <tr>
+          {columns.map((column) => (
+            <th key={column.key}>{column.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.filter(isRow).map((row, rowIndex) => (
+          <tr key={String(row.__rowId ?? rowIndex)}>
+            {columns.map((column) => (
+              <td key={column.key}>{formatTableCell(row[column.key])}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
 }
 
-function TableAttachments({ field, attachments, comments, downloadingId, onCommentChange, onDownload }: { field: TaskFieldDefinition; attachments: Awaited<ReturnType<typeof getApprovalTask>>['attachments']; comments: Record<number, string>; downloadingId?: number; onCommentChange: (id: number, value: string) => void; onDownload: (id: number, fileName: string) => Promise<void> }) {
+function TableAttachments({
+  field,
+  attachments,
+  comments,
+  downloadingId,
+  onCommentChange,
+  onDownload,
+}: {
+  field: TaskFieldDefinition
+  attachments: Awaited<ReturnType<typeof getApprovalTask>>['attachments']
+  comments: Record<number, string>
+  downloadingId?: number
+  onCommentChange: (id: number, value: string) => void
+  onDownload: (id: number, fileName: string) => Promise<void>
+}) {
   const prefix = `${field.key}~`
   const tableAttachments = attachments.filter((attachment) => attachment.fieldKey.startsWith(prefix))
   if (tableAttachments.length === 0) return null
   const columns = Array.isArray(field.validation?.columns) ? field.validation.columns.filter(isTableColumn) : []
-  return <div className="mt-3 space-y-2"><p className="text-xs font-medium text-v2-muted">表格行内附件</p>{tableAttachments.map((attachment) => { const [, rowId, columnKey] = attachment.fieldKey.split('~'); const column = columns.find((item) => item.key === columnKey); return <div key={attachment.id} className="space-y-2 rounded-v2-md border border-v2-border bg-v2-surface-soft p-3"><div className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-v2-muted" /><span className="min-w-0 flex-1 truncate text-sm text-v2-fg">第 {rowId?.slice(0, 6) ?? '-'} 行 · {column?.label ?? columnKey} · {attachment.fileName}</span><Button size="sm" variant="ghost" title="下载附件" disabled={downloadingId === attachment.id} onClick={() => void onDownload(attachment.id, attachment.fileName)}><Download className="h-4 w-4" /></Button></div><Textarea rows={2} value={comments[attachment.id] ?? ''} placeholder="添加附件意见（可选）" onChange={(event) => onCommentChange(attachment.id, event.target.value)} /></div>})}</div>
+  return (
+    <div className="cwgsyw-form">
+      <p className="cwgsyw-type-label-xs">表格行内附件</p>
+      {tableAttachments.map((attachment) => {
+        const [, rowId, columnKey] = attachment.fieldKey.split('~')
+        const column = columns.find((item) => item.key === columnKey)
+        return (
+          <div key={attachment.id} className="cwgsyw-form">
+            <div className="cwgsyw-inline-controls">
+              <span className="cwgsyw-type-body-sm">
+                第 {rowId?.slice(0, 6) ?? '-'} 行 · {column?.label ?? columnKey} · {attachment.fileName}
+              </span>
+              <Button type="button" size="sm" variant="ghost" disabled={downloadingId === attachment.id} onClick={() => void onDownload(attachment.id, attachment.fileName)}>
+                下载
+              </Button>
+            </div>
+            <Textarea rows={2} value={comments[attachment.id] ?? ''} placeholder="添加附件意见（可选）" onChange={(event) => onCommentChange(attachment.id, event.target.value)} />
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 type TableColumn = { key: string; label: string }
-function isTableColumn(value: unknown): value is TableColumn { return typeof value === 'object' && value !== null && 'key' in value && 'label' in value }
-function isRow(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null }
-function formatTableCell(value: unknown) { if (value == null || value === '') return '-'; return typeof value === 'object' ? JSON.stringify(value) : String(value) }
+function isTableColumn(value: unknown): value is TableColumn {
+  return typeof value === 'object' && value !== null && 'key' in value && 'label' in value
+}
+function isRow(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+function formatTableCell(value: unknown) {
+  if (value == null || value === '') return '-'
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}

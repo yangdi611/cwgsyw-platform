@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { Toaster } from '@/components/design-system'
+import '@/design-system/figma-neutral/index.css'
+import { NeutralToaster } from '@/design-system/figma-neutral/toast'
 import Providers from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,7 +21,7 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
-        <Toaster />
+        <NeutralToaster />
       </body>
     </html>
   )

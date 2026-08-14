@@ -1,13 +1,21 @@
 'use client'
 
-import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
-import { Card, Input } from '@/components/design-system'
-import { PageHeader, EmptyState, Pagination } from '@/components/shared'
-import { Search, FileText } from 'lucide-react'
 import type { WikiSearchResult } from '@/types/wiki'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  Pagination,
+  SearchInput,
+} from '@/design-system/figma-neutral/components'
 
 function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: number }) {
   const router = useRouter()
@@ -34,14 +42,13 @@ function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: n
     router.push(nextUrl, { scroll: false })
   }, [router])
 
-  // Debounce typed input
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (keyword === urlKeyword) return
       setDebouncedKw(keyword)
       pushSearchUrl(keyword, 1)
     }, 400)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [keyword, pushSearchUrl, urlKeyword])
 
   const { data, isLoading } = useQuery({
@@ -62,64 +69,62 @@ function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: n
 
   const records: WikiSearchResult[] = data?.records ?? []
   const total = data?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="知识库" title="全文搜索" />
-
-      <div className="relative max-w-xl">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-v2-muted" />
-        <Input
-          className="pl-9"
-          placeholder="搜索知识库…"
+    <DataManagementPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow="知识库"
+          title="全文搜索"
+          subtitle="按标题和正文检索知识空间中的页面。"
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/wiki', label: '知识空间' },
+                { label: '全文搜索' },
+              ]}
+            />
+          }
+        />
+      }
+      filter={
+        <SearchInput
           autoFocus
           value={keyword}
-          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="搜索知识库…"
+          onChange={(event) => handleSearch(event.target.value)}
+          onClear={() => handleSearch('')}
         />
-      </div>
-
-      {!debouncedKw ? null : isLoading ? (
-        <p className="text-sm text-v2-muted">搜索中…</p>
-      ) : records.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<FileText className="h-5 w-5 text-v2-muted" />}
-            title="未找到相关页面"
-            description={`没有找到与「${debouncedKw}」相关的内容。`}
-          />
-        </Card>
-      ) : (
-        <>
-          <p className="text-sm text-v2-muted">
-            找到 <span className="font-semibold text-v2-fg">{total}</span> 条结果
-          </p>
-          <div className="space-y-2">
-            {records.map((r) => (
-              <Card
-                key={r.pageId}
-                hover
-                className="cursor-pointer p-4"
-                onClick={() => router.push(`/wiki/${r.spaceId}/${r.pageId}`)}
+      }
+      content={
+        !debouncedKw ? (
+          <EmptyState title="输入关键词开始搜索" description="支持按页面标题和正文检索。" />
+        ) : isLoading ? (
+          <LoadingState label="搜索中…" />
+        ) : records.length === 0 ? (
+          <EmptyState title="未找到相关页面" description={`没有找到与「${debouncedKw}」相关的内容。`} />
+        ) : (
+          <div className="cwgsyw-form">
+            <p>找到 {total} 条结果</p>
+            {records.map((result) => (
+              <Button
+                key={result.pageId}
+                type="button"
+                variant="ghost"
+                onClick={() => router.push(`/wiki/${result.spaceId}/${result.pageId}`)}
               >
-                <div className="flex items-start gap-3">
-                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-v2-muted" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-v2-fg">{r.title}</p>
-                    {r.highlight && (
-                      <p className="mt-1 line-clamp-2 text-sm text-v2-muted">{r.highlight}</p>
-                    )}
-                    <p className="mt-1 text-xs text-v2-subtle">
-                      {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : ''}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+                {result.title}
+                {result.highlight ? ` ${result.highlight}` : ''}
+              </Button>
             ))}
+            <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={handlePageChange} />
           </div>
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={handlePageChange} />
-        </>
-      )}
-    </div>
+        )
+      }
+    />
   )
 }
 
@@ -128,13 +133,12 @@ function WikiSearchContent() {
   const urlKeyword = searchParams.get('keyword') ?? ''
   const parsedPage = Number(searchParams.get('page') ?? '1')
   const urlPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
-
   return <SearchResults urlKeyword={urlKeyword} urlPage={urlPage} />
 }
 
 export default function WikiSearchPage() {
   return (
-    <Suspense fallback={<div className="py-12 text-center text-sm text-v2-muted">加载中…</div>}>
+    <Suspense fallback={<LoadingState label="正在加载搜索…" />}>
       <WikiSearchContent />
     </Suspense>
   )

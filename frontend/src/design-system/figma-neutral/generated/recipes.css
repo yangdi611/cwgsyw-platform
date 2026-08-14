@@ -1,0 +1,158 @@
+/* Generated typography and effect recipes from official Figma styles. */
+:root {
+  --cwgsyw-type-body-sm-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-body-sm-font-size: 14px;
+  --cwgsyw-type-body-sm-line-height: 20px;
+  --cwgsyw-type-body-sm-font-weight: var(--cwgsyw-font-weight-regular);
+  --cwgsyw-type-body-sm-letter-spacing: 0px;
+  --cwgsyw-type-label-sm-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-label-sm-font-size: 12px;
+  --cwgsyw-type-label-sm-line-height: 16px;
+  --cwgsyw-type-label-sm-font-weight: var(--cwgsyw-font-weight-semibold);
+  --cwgsyw-type-label-sm-letter-spacing: 0px;
+  --cwgsyw-type-body-md-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-body-md-font-size: 16px;
+  --cwgsyw-type-body-md-line-height: 24px;
+  --cwgsyw-type-body-md-font-weight: var(--cwgsyw-font-weight-regular);
+  --cwgsyw-type-body-md-letter-spacing: 0px;
+  --cwgsyw-type-body-lg-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-body-lg-font-size: 18px;
+  --cwgsyw-type-body-lg-line-height: 28px;
+  --cwgsyw-type-body-lg-font-weight: var(--cwgsyw-font-weight-regular);
+  --cwgsyw-type-body-lg-letter-spacing: 0px;
+  --cwgsyw-type-title-sm-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-title-sm-font-size: 20px;
+  --cwgsyw-type-title-sm-line-height: 28px;
+  --cwgsyw-type-title-sm-font-weight: var(--cwgsyw-font-weight-semibold);
+  --cwgsyw-type-title-sm-letter-spacing: 0px;
+  --cwgsyw-type-title-md-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-title-md-font-size: 24px;
+  --cwgsyw-type-title-md-line-height: 32px;
+  --cwgsyw-type-title-md-font-weight: var(--cwgsyw-font-weight-semibold);
+  --cwgsyw-type-title-md-letter-spacing: 0px;
+  --cwgsyw-type-title-lg-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-title-lg-font-size: 32px;
+  --cwgsyw-type-title-lg-line-height: 40px;
+  --cwgsyw-type-title-lg-font-weight: var(--cwgsyw-font-weight-bold);
+  --cwgsyw-type-title-lg-letter-spacing: 0px;
+  --cwgsyw-type-label-xs-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-label-xs-font-size: 12px;
+  --cwgsyw-type-label-xs-line-height: 16px;
+  --cwgsyw-type-label-xs-font-weight: var(--cwgsyw-font-weight-medium);
+  --cwgsyw-type-label-xs-letter-spacing: 0em;
+  --cwgsyw-type-label-md-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-label-md-font-size: 14px;
+  --cwgsyw-type-label-md-line-height: 20px;
+  --cwgsyw-type-label-md-font-weight: var(--cwgsyw-font-weight-medium);
+  --cwgsyw-type-label-md-letter-spacing: 0em;
+  --cwgsyw-type-label-lg-font-family: var(--cwgsyw-font-family-sans);
+  --cwgsyw-type-label-lg-font-size: 16px;
+  --cwgsyw-type-label-lg-line-height: 24px;
+  --cwgsyw-type-label-lg-font-weight: var(--cwgsyw-font-weight-semibold);
+  --cwgsyw-type-label-lg-letter-spacing: 0px;
+  --cwgsyw-shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --cwgsyw-elevation-none: none;
+  --cwgsyw-elevation-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.08);
+  --cwgsyw-elevation-md: 0px 4px 8px -1px rgba(0, 0, 0, 0.12);
+  --cwgsyw-elevation-lg: 0px 12px 20px -4px rgba(0, 0, 0, 0.16);
+}
+
+.cwgsyw-type-body-sm {
+  font-family: var(--cwgsyw-type-body-sm-font-family);
+  font-size: var(--cwgsyw-type-body-sm-font-size);
+  line-height: var(--cwgsyw-type-body-sm-line-height);
+  font-weight: var(--cwgsyw-type-body-sm-font-weight);
+  letter-spacing: var(--cwgsyw-type-body-sm-letter-spacing);
+}
+
+.cwgsyw-type-label-sm {
+  font-family: var(--cwgsyw-type-label-sm-font-family);
+  font-size: var(--cwgsyw-type-label-sm-font-size);
+  line-height: var(--cwgsyw-type-label-sm-line-height);
+  font-weight: var(--cwgsyw-type-label-sm-font-weight);
+  letter-spacing: var(--cwgsyw-type-label-sm-letter-spacing);
+}
+
+.cwgsyw-type-body-md {
+  font-family: var(--cwgsyw-type-body-md-font-family);
+  font-size: var(--cwgsyw-type-body-md-font-size);
+  line-height: var(--cwgsyw-type-body-md-line-height);
+  font-weight: var(--cwgsyw-type-body-md-font-weight);
+  letter-spacing: var(--cwgsyw-type-body-md-letter-spacing);
+}
+
+.cwgsyw-type-body-lg {
+  font-family: var(--cwgsyw-type-body-lg-font-family);
+  font-size: var(--cwgsyw-type-body-lg-font-size);
+  line-height: var(--cwgsyw-type-body-lg-line-height);
+  font-weight: var(--cwgsyw-type-body-lg-font-weight);
+  letter-spacing: var(--cwgsyw-type-body-lg-letter-spacing);
+}
+
+.cwgsyw-type-title-sm {
+  font-family: var(--cwgsyw-type-title-sm-font-family);
+  font-size: var(--cwgsyw-type-title-sm-font-size);
+  line-height: var(--cwgsyw-type-title-sm-line-height);
+  font-weight: var(--cwgsyw-type-title-sm-font-weight);
+  letter-spacing: var(--cwgsyw-type-title-sm-letter-spacing);
+}
+
+.cwgsyw-type-title-md {
+  font-family: var(--cwgsyw-type-title-md-font-family);
+  font-size: var(--cwgsyw-type-title-md-font-size);
+  line-height: var(--cwgsyw-type-title-md-line-height);
+  font-weight: var(--cwgsyw-type-title-md-font-weight);
+  letter-spacing: var(--cwgsyw-type-title-md-letter-spacing);
+}
+
+.cwgsyw-type-title-lg {
+  font-family: var(--cwgsyw-type-title-lg-font-family);
+  font-size: var(--cwgsyw-type-title-lg-font-size);
+  line-height: var(--cwgsyw-type-title-lg-line-height);
+  font-weight: var(--cwgsyw-type-title-lg-font-weight);
+  letter-spacing: var(--cwgsyw-type-title-lg-letter-spacing);
+}
+
+.cwgsyw-type-label-xs {
+  font-family: var(--cwgsyw-type-label-xs-font-family);
+  font-size: var(--cwgsyw-type-label-xs-font-size);
+  line-height: var(--cwgsyw-type-label-xs-line-height);
+  font-weight: var(--cwgsyw-type-label-xs-font-weight);
+  letter-spacing: var(--cwgsyw-type-label-xs-letter-spacing);
+}
+
+.cwgsyw-type-label-md {
+  font-family: var(--cwgsyw-type-label-md-font-family);
+  font-size: var(--cwgsyw-type-label-md-font-size);
+  line-height: var(--cwgsyw-type-label-md-line-height);
+  font-weight: var(--cwgsyw-type-label-md-font-weight);
+  letter-spacing: var(--cwgsyw-type-label-md-letter-spacing);
+}
+
+.cwgsyw-type-label-lg {
+  font-family: var(--cwgsyw-type-label-lg-font-family);
+  font-size: var(--cwgsyw-type-label-lg-font-size);
+  line-height: var(--cwgsyw-type-label-lg-line-height);
+  font-weight: var(--cwgsyw-type-label-lg-font-weight);
+  letter-spacing: var(--cwgsyw-type-label-lg-letter-spacing);
+}
+
+.cwgsyw-shadow-sm {
+  box-shadow: var(--cwgsyw-shadow-sm);
+}
+
+.cwgsyw-elevation-none {
+  box-shadow: var(--cwgsyw-elevation-none);
+}
+
+.cwgsyw-elevation-sm {
+  box-shadow: var(--cwgsyw-elevation-sm);
+}
+
+.cwgsyw-elevation-md {
+  box-shadow: var(--cwgsyw-elevation-md);
+}
+
+.cwgsyw-elevation-lg {
+  box-shadow: var(--cwgsyw-elevation-lg);
+}

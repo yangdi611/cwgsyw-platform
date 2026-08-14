@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermission } from '@/hooks/usePermission'
 import { SpatialLayoutIndex } from '@/features/cmdb-spatial/components/SpatialLayoutIndex'
+import '@/design-system/figma-neutral/index.css'
 
 export default function SpatialLayoutPage() {
   const router = useRouter(); const { hasPermission, isHydrated } = usePermission(); const canRead = hasPermission('cmdb_spatial', 'read') && hasPermission('cmdb_instance', 'read'); const canCreate = hasPermission('cmdb_spatial', 'create'); const canPublish = hasPermission('cmdb_spatial', 'publish')

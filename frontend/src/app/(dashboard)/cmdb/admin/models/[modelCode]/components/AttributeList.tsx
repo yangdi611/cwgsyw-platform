@@ -1,7 +1,16 @@
-import { Button, Chip, StatusBadge } from '@/components/design-system'
-import { Pencil, Trash2 } from 'lucide-react'
+'use client'
+
+import { useState } from 'react'
 import type { AttributeAdminItem } from './types'
 import { FIELD_TYPES } from './types'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  Card,
+  Chip,
+  NeutralAlertDialog,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
 interface AttributeListProps {
   attributes: AttributeAdminItem[]
@@ -12,6 +21,7 @@ interface AttributeListProps {
 }
 
 export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDelete }: AttributeListProps) {
+  const [deleteTarget, setDeleteTarget] = useState<AttributeAdminItem | null>(null)
   const grouped = attributes.reduce(
     (acc, attr) => {
       const key = attr.groupName ?? '__ungrouped__'
@@ -23,7 +33,7 @@ export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDele
   )
 
   return (
-    <div className="space-y-6">
+    <div className="cwgsyw-form">
       {Object.entries(grouped)
         .sort(([a], [b]) => {
           if (a === '__ungrouped__') return 1
@@ -31,77 +41,56 @@ export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDele
           return a.localeCompare(b)
         })
         .map(([groupName, attrs]) => (
-          <div key={groupName}>
-            <h3 className="mb-3 text-sm font-bold text-v2-muted">
-              {groupName === '__ungrouped__' ? '未分组' : groupName}
-            </h3>
-            <div className="space-y-2">
-              {attrs
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((attr) => (
-                  <div
-                    key={attr.id}
-                    className="flex items-start gap-3 rounded-v2-md border border-v2-border bg-v2-surface p-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="font-semibold text-v2-fg">{attr.name}</span>
-                        <code className="rounded bg-v2-surface-soft px-1.5 py-0.5 font-v2-mono text-xs text-v2-muted">
-                          {attr.fieldKey}
-                        </code>
-                        {attr.isBuiltIn && (
-                          <StatusBadge status="neutral">内置</StatusBadge>
-                        )}
-                      </div>
-                      <div className="mb-2 text-xs text-v2-muted">
-                        类型：{FIELD_TYPES[attr.fieldType] ?? attr.fieldType}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Chip active={attr.isRequired}>必填</Chip>
-                        <Chip active={attr.isEditable}>实例可编辑</Chip>
-                        <Chip active={attr.isUnique}>唯一</Chip>
-                        <Chip active={attr.isListShow}>列表显示</Chip>
-                        <Chip active={attr.isDrawerShow}>详情表单显示</Chip>
-                      </div>
-                    </div>
-                    {(canUpdate || canDelete) && (
-                      <div className="flex shrink-0 gap-1">
-                        {canUpdate && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`编辑属性 ${attr.name}`}
-                            title={`编辑属性 ${attr.name}`}
-                            onClick={() => onEdit(attr)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {canDelete && !attr.isBuiltIn && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`删除属性 ${attr.name}`}
-                            title={`删除属性 ${attr.name}`}
-                            className="text-v2-danger hover:text-v2-danger"
-                            onClick={() => {
-                              if (
-                                confirm(`确认删除属性「${attr.name}」？此操作不可恢复。`)
-                              ) {
-                                onDelete(attr)
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
+          <section key={groupName} className="cwgsyw-form">
+            <div className="cwgsyw-type-label-sm">{groupName === '__ungrouped__' ? '未分组' : groupName}</div>
+            {attrs
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((attr) => (
+                <Card key={attr.id} showHeader={false} padding="sm">
+                  <div className="cwgsyw-inline-controls">
+                    <strong className="cwgsyw-type-title-sm">{attr.name}</strong>
+                    <span className="cwgsyw-type-label-xs">{attr.fieldKey}</span>
+                    {attr.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
                   </div>
-                ))}
-            </div>
-          </div>
+                  <div className="cwgsyw-type-label-xs">类型：{FIELD_TYPES[attr.fieldType] ?? attr.fieldType}</div>
+                  <div className="cwgsyw-inline-controls">
+                    <Chip label="必填" selected={attr.isRequired} />
+                    <Chip label="实例可编辑" selected={attr.isEditable} />
+                    <Chip label="唯一" selected={attr.isUnique} />
+                    <Chip label="列表显示" selected={attr.isListShow} />
+                    <Chip label="详情表单显示" selected={attr.isDrawerShow} />
+                  </div>
+                  {(canUpdate || canDelete) ? (
+                    <div className="cwgsyw-inline-controls">
+                      {canUpdate ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(attr)}>
+                          编辑
+                        </Button>
+                      ) : null}
+                      {canDelete && !attr.isBuiltIn ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteTarget(attr)}>
+                          删除
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </Card>
+              ))}
+          </section>
         ))}
+
+      <NeutralAlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="确认删除属性"
+        description={`确认删除属性「${deleteTarget?.name ?? ''}」？此操作不可恢复。`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => {
+          if (deleteTarget) onDelete(deleteTarget)
+          setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }

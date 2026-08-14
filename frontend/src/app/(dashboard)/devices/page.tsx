@@ -1,21 +1,25 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Chip, Input } from '@/components/design-system'
-import {
-  PageHeader,
-  PageShell,
-  FilterBar,
-  FilterChip,
-  DataTable,
-  DetailDrawer,
-  ErrorState,
-  type ColumnDef,
-} from '@/components/shared'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
-import { Plus, Search, Server, Network, Shield, Cloud, HardDrive, KeyRound, ArrowRight } from 'lucide-react'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  Chip,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  NeutralDrawer,
+  PageHeader,
+  SearchInput,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface Device {
   id: number
@@ -31,43 +35,31 @@ interface Device {
 
 const UNGROUPED = '__ungrouped__'
 
-const typeConfig: Record<string, { label: string; icon: React.ElementType }> = {
-  server: { label: '服务器', icon: Server },
-  network: { label: '网络设备', icon: Network },
-  security: { label: '安全设备', icon: Shield },
-  cloud: { label: '云资源', icon: Cloud },
-  other: { label: '其他', icon: HardDrive },
-}
-
-function TypeBadge({ type }: { type: string }) {
-  const tc = typeConfig[type] ?? typeConfig.other
-  const Icon = tc.icon
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm text-v2-fg">
-      <Icon className="h-3.5 w-3.5 text-v2-muted" />
-      {tc.label}
-    </span>
-  )
+const typeLabel: Record<string, string> = {
+  server: '服务器',
+  network: '网络设备',
+  security: '安全设备',
+  cloud: '云资源',
+  other: '其他',
 }
 
 export default function DevicesPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState('all')
-  const [selected, setSelected] = useState<Device | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then((r) => r.data.data.records as Device[]),
   })
 
-  // 动态聚合设备里出现过的 CMDB 模型分组，作为筛选项（只显示真正有设备的分组）
   const groupOptions = (() => {
     const seen = new Map<string, string>()
     let hasUngrouped = false
-    for (const d of data ?? []) {
-      if (d.modelGroupCode) {
-        if (!seen.has(d.modelGroupCode)) seen.set(d.modelGroupCode, d.modelGroupName || d.modelGroupCode)
+    for (const device of data ?? []) {
+      if (device.modelGroupCode) {
+        if (!seen.has(device.modelGroupCode)) seen.set(device.modelGroupCode, device.modelGroupName || device.modelGroupCode)
       } else {
         hasUngrouped = true
       }
@@ -78,176 +70,171 @@ export default function DevicesPage() {
     return opts
   })()
 
-  const filtered = (data ?? []).filter((d) => {
+  const filtered = (data ?? []).filter((device) => {
     if (groupFilter !== 'all') {
-      const code = d.modelGroupCode ?? UNGROUPED
+      const code = device.modelGroupCode ?? UNGROUPED
       if (code !== groupFilter) return false
     }
     if (!search.trim()) return true
-    const q = search.toLowerCase()
+    const query = search.toLowerCase()
     return (
-      d.name?.toLowerCase().includes(q) ||
-      d.ip?.toLowerCase().includes(q) ||
-      d.category?.toLowerCase().includes(q) ||
-      d.groupName?.toLowerCase().includes(q) ||
-      d.modelGroupName?.toLowerCase().includes(q) ||
-      (typeConfig[d.deviceType]?.label ?? '').includes(q)
+      device.name?.toLowerCase().includes(query) ||
+      device.ip?.toLowerCase().includes(query) ||
+      device.category?.toLowerCase().includes(query) ||
+      device.groupName?.toLowerCase().includes(query) ||
+      device.modelGroupName?.toLowerCase().includes(query) ||
+      (typeLabel[device.deviceType] ?? '').includes(query)
     )
   })
 
-  const columns: ColumnDef<Device>[] = [
-    {
-      key: 'name',
-      title: '设备名称',
-      render: (r) => <span className="font-semibold text-v2-fg">{r.name}</span>,
+  const selected = filtered.find((device) => String(device.id) === selectedId) ?? null
+
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: '设备名称' },
+      { key: 'ip', label: 'IP 地址' },
+      { key: 'deviceType', label: '类型' },
+      { key: 'modelGroupName', label: '模型分组' },
+      { key: 'category', label: '分类' },
+      { key: 'groupName', label: '所属组' },
+    ],
+    [],
+  )
+
+  const rows = filtered.map((device) => ({
+    id: String(device.id),
+    selected: String(device.id) === selectedId,
+    cells: {
+      name: device.name,
+      ip: device.ip || '-',
+      deviceType: typeLabel[device.deviceType] ?? typeLabel.other,
+      modelGroupName: device.modelGroupName ? <Chip label={device.modelGroupName} /> : '未分类',
+      category: device.category ? <Chip label={device.category} /> : '-',
+      groupName: device.groupName || '-',
     },
-    {
-      key: 'ip',
-      title: 'IP 地址',
-      render: (r) =>
-        r.ip ? <span className="font-v2-mono text-sm text-v2-fg">{r.ip}</span> : <span className="text-v2-subtle">-</span>,
-    },
-    {
-      key: 'deviceType',
-      title: '类型',
-      render: (r) => <TypeBadge type={r.deviceType} />,
-    },
-    {
-      key: 'modelGroupName',
-      title: '模型分组',
-      render: (r) =>
-        r.modelGroupName ? <Chip>{r.modelGroupName}</Chip> : <span className="text-v2-subtle">未分类</span>,
-    },
-    {
-      key: 'category',
-      title: '分类',
-      render: (r) => (r.category ? <Chip>{r.category}</Chip> : <span className="text-v2-subtle">-</span>),
-    },
-    {
-      key: 'groupName',
-      title: '所属组',
-      render: (r) => <span className="text-v2-fg">{r.groupName || '-'}</span>,
-    },
-  ]
+  }))
+
+  const tableState = isLoading ? 'loading' : filtered.length === 0 ? 'empty' : 'data'
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="资源管理"
-        title="设备密码库"
-        subtitle="集中管理服务器、网络、安全设备和云资源的访问凭证，点击设备查看详情与密码。"
-        actions={
-          <PermissionGuard resource="device" action="create">
-            <div className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto" variant="primary" onClick={() => router.push('/devices/new')}>
-                <Plus className="h-4 w-4" />
-                新增设备
-              </Button>
-            </div>
-          </PermissionGuard>
+    <>
+      <DataManagementPage
+        embedded
+        layout="default"
+        header={
+          <PageHeader
+            eyebrow="资源管理"
+            title="设备密码库"
+            subtitle="集中管理服务器、网络、安全设备和云资源的访问凭证，点击设备查看详情与密码。"
+            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '设备密码库' }]} />}
+            actions={
+              <PermissionGuard resource="device" action="create">
+                <Button type="button" variant="primary" onClick={() => router.push('/devices/new')}>
+                  新增设备
+                </Button>
+              </PermissionGuard>
+            }
+          />
+        }
+        filter={
+          <FilterBar
+            search={
+              <SearchInput
+                value={search}
+                placeholder="搜索名称、IP、分类、组…"
+                onChange={(event) => setSearch(event.target.value)}
+                onClear={() => setSearch('')}
+              />
+            }
+            filterItems={
+              <div className="cwgsyw-inline-controls">
+                <Chip label="全部" selected={groupFilter === 'all'} onClick={() => setGroupFilter('all')} />
+                {groupOptions.map((group) => (
+                  <Chip
+                    key={group.code}
+                    label={group.name}
+                    selected={groupFilter === group.code}
+                    onClick={() => setGroupFilter(group.code)}
+                  />
+                ))}
+              </div>
+            }
+          />
+        }
+        content={
+          isError ? (
+            <ErrorState
+              title="设备加载失败"
+              description="无法读取设备列表，请稍后重试。"
+              retry={
+                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          ) : (
+            <Table
+              columns={columns}
+              rows={rows}
+              showSearch={false}
+              state={tableState}
+              onRowClick={setSelectedId}
+              loading={<LoadingState label="正在加载设备…" />}
+              empty={
+                <EmptyState
+                  title={search ? `未找到包含“${search}”的设备` : '暂无设备'}
+                  description={search ? '请调整搜索关键词或类型筛选。' : '点击右上角“新增设备”添加第一条设备记录。'}
+                />
+              }
+            />
+          )
         }
       />
 
-      <FilterBar className="w-full items-stretch sm:items-center">
-        <div className="relative w-full sm:max-w-sm sm:flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
-          <Input
-            className="pl-8"
-            placeholder="搜索名称、IP、分类、组…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <FilterChip active={groupFilter === 'all'} onClick={() => setGroupFilter('all')}>
-          全部
-        </FilterChip>
-        {groupOptions.map((g) => (
-          <FilterChip key={g.code} active={groupFilter === g.code} onClick={() => setGroupFilter(g.code)}>
-            {g.name}
-          </FilterChip>
-        ))}
-      </FilterBar>
-
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
-          <ErrorState
-            title="设备加载失败"
-            description="无法读取设备列表，请稍后重试。"
-            onRetry={() => refetch()}
-          />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          onRowClick={(r) => setSelected(r)}
-          empty={{
-            title: search ? `未找到包含"${search}"的设备` : '暂无设备',
-            description: search
-              ? '请调整搜索关键词或类型筛选。'
-              : '点击右上角"新增设备"添加第一条设备记录。',
-          }}
-        />
-      )}
-
-      <DetailDrawer
+      <NeutralDrawer
         open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected?.name}
-        subtitle={selected ? <TypeBadge type={selected.deviceType} /> : undefined}
-        footer={
-          selected ? (
-            <div className="flex items-center justify-end">
-              <Button variant="primary" size="sm" onClick={() => router.push(`/devices/${selected.id}`)}>
-                <KeyRound className="h-4 w-4" />
-                查看凭证与详情
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : undefined
-        }
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null)
+        }}
+        title={selected?.name ?? '设备详情'}
+        description={selected ? typeLabel[selected.deviceType] ?? typeLabel.other : undefined}
       >
-        {selected && (
-          <div className="space-y-5">
-            {selected.description && (
-              <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
-                <div className="text-xs font-semibold text-v2-muted mb-1">描述</div>
-                <p className="text-sm text-v2-fg leading-relaxed">{selected.description}</p>
+        {selected ? (
+          <div className="cwgsyw-form">
+            {selected.description ? (
+              <div>
+                <div className="cwgsyw-type-label-xs">描述</div>
+                <p className="cwgsyw-type-body-sm">{selected.description}</p>
               </div>
-            )}
-            <div>
-              <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">基本信息</div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <div>
-                  <dt className="text-xs text-v2-muted">IP 地址</dt>
-                  <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">{selected.ip || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-v2-muted">类型</dt>
-                  <dd className="mt-0.5">
-                    <TypeBadge type={selected.deviceType} />
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-v2-muted">分类</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.category || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-v2-muted">所属组</dt>
-                  <dd className="mt-0.5 text-sm text-v2-fg">{selected.groupName || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-v2-muted">设备 ID</dt>
-                  <dd className="mt-0.5 font-v2-mono text-sm text-v2-fg">{selected.id}</dd>
-                </div>
-              </dl>
-            </div>
+            ) : null}
+            <dl className="cwgsyw-permission-grid">
+              <div>
+                <dt className="cwgsyw-type-label-xs">IP 地址</dt>
+                <dd className="cwgsyw-type-body-sm">{selected.ip || '-'}</dd>
+              </div>
+              <div>
+                <dt className="cwgsyw-type-label-xs">类型</dt>
+                <dd className="cwgsyw-type-body-sm">{typeLabel[selected.deviceType] ?? typeLabel.other}</dd>
+              </div>
+              <div>
+                <dt className="cwgsyw-type-label-xs">分类</dt>
+                <dd className="cwgsyw-type-body-sm">{selected.category || '-'}</dd>
+              </div>
+              <div>
+                <dt className="cwgsyw-type-label-xs">所属组</dt>
+                <dd className="cwgsyw-type-body-sm">{selected.groupName || '-'}</dd>
+              </div>
+              <div>
+                <dt className="cwgsyw-type-label-xs">设备 ID</dt>
+                <dd className="cwgsyw-type-body-sm">{selected.id}</dd>
+              </div>
+            </dl>
+            <Button type="button" variant="primary" onClick={() => router.push(`/devices/${selected.id}`)}>
+              查看凭证与详情
+            </Button>
           </div>
-        )}
-      </DetailDrawer>
-    </PageShell>
+        ) : null}
+      </NeutralDrawer>
+    </>
   )
 }

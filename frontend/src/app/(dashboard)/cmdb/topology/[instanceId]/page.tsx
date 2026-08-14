@@ -1,23 +1,28 @@
 'use client'
-import { useState, useEffect, useMemo, useRef } from 'react'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { toPng } from 'html-to-image'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
-import { Button, buttonVariants } from '@/components/design-system'
-import Link from 'next/link'
-import {
-  ArrowLeft, ExternalLink, X, GitCompare, Download, Filter,
-} from 'lucide-react'
-import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
+import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
+import '@/design-system/figma-neutral/index.css'
+import { CANVAS_NEUTRAL } from '@/design-system/figma-neutral/canvas-tokens'
 import {
-  CiTopologyGraph, TopologyNode, TopologyEdge,
-} from '@/components/cmdb/CiTopologyGraph'
-import { cn } from '@/lib/utils'
-import { WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
-
-// ── Types ────────────────────────────────────────────────────────────────────
+  Badge,
+  Breadcrumb,
+  Button,
+  Card,
+  Checkbox,
+  Chip,
+  DetailDrawerPage,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 interface CiTopologyResult {
   nodes: TopologyNode[]
@@ -29,11 +34,6 @@ const STATUS_OPTIONS = [
   { value: 'offline', label: '离线' },
   { value: 'maintenance', label: '维护中' },
 ]
-
-// NOTE (AC10, Issue #64): 拓扑对比模式已分离为独立子路由
-// /cmdb/topology/[instanceId]/compare，本页只负责常规拓扑浏览。
-
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TopologyPage() {
   const { instanceId } = useParams<{ instanceId: string }>()
@@ -68,10 +68,9 @@ export default function TopologyPage() {
   const nodes = data?.nodes ?? []
   const edges = data?.edges ?? []
 
-  // ── derived filter option lists ──
   const modelOptions = useMemo(() => {
     const map = new Map<string, string>()
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       if (n.modelId) map.set(n.modelId, n.modelName ?? n.modelId)
     })
     return [...map.entries()].map(([id, name]) => ({ id, name }))
@@ -79,8 +78,8 @@ export default function TopologyPage() {
 
   const statusOptions = useMemo(() => {
     const present = new Set<string>()
-    nodes.forEach(n => { if (n.status) present.add(n.status) })
-    return STATUS_OPTIONS.filter(s => present.has(s.value))
+    nodes.forEach((n) => { if (n.status) present.add(n.status) })
+    return STATUS_OPTIONS.filter((s) => present.has(s.value))
   }, [nodes])
 
   const filterNodeIds = useMemo(() => {
@@ -89,7 +88,7 @@ export default function TopologyPage() {
     const sm = selectedModels
     const ss = selectedStatuses
     const ids = new Set<number>()
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       const modelOk = !sm || sm.has(n.modelId ?? '')
       const statusOk = !ss || !n.status || ss.has(n.status)
       if (modelOk && statusOk) ids.add(n.id)
@@ -98,21 +97,21 @@ export default function TopologyPage() {
   }, [nodes, selectedModels, selectedStatuses])
 
   const toggleModel = (id: string) =>
-    setSelectedModels(prev => {
-      const base = prev ?? new Set(modelOptions.map(m => m.id))
+    setSelectedModels((prev) => {
+      const base = prev ?? new Set(modelOptions.map((m) => m.id))
       const next = new Set(base)
       if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
   const toggleStatus = (id: string) =>
-    setSelectedStatuses(prev => {
-      const base = prev ?? new Set(statusOptions.map(s => s.value))
+    setSelectedStatuses((prev) => {
+      const base = prev ?? new Set(statusOptions.map((s) => s.value))
       const next = new Set(base)
       if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
 
-  const rootNode = nodes.find(n => n.isRoot)
+  const rootNode = nodes.find((n) => n.isRoot)
 
   const handleExport = async () => {
     if (!graphRef.current) return
@@ -122,7 +121,7 @@ export default function TopologyPage() {
     try {
       const dataUrl = await toPng(el, {
         pixelRatio,
-        backgroundColor: '#0f172a',
+        backgroundColor: CANVAS_NEUTRAL[900],
         cacheBust: true,
       })
       const a = document.createElement('a')
@@ -136,207 +135,126 @@ export default function TopologyPage() {
   }
 
   return (
-    <WorkspaceShell
-      height="viewport"
-      className="-m-4 md:-m-6"
-      toolbar={
-        <WorkspaceToolbar
-          leading={rootNode ? (
-            <Link
-              href={`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`}
-              className={buttonVariants({ variant: 'ghost', size: 'ui-sm' })}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />返回实例
-            </Link>
-          ) : (
-            <button className={cn(buttonVariants({ variant: 'ghost', size: 'ui-sm' }), 'opacity-50 cursor-not-allowed')} disabled>
-              <ArrowLeft className="h-4 w-4 mr-1" />返回实例
-            </button>
-          )}
+    <DetailDrawerPage
+      header={
+        <PageHeader
+          eyebrow="CMDB"
           title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑图`}
           subtitle={`${nodes.length} 个节点，${edges.length} 条关联`}
-          actions={(
-            <>
-              <Link
-                href={`/cmdb/topology/${instanceId}/compare`}
-                className={buttonVariants({ variant: 'outline', size: 'ui-sm' })}
+          breadcrumb={
+            <Breadcrumb
+              items={[
+                { href: '/', label: '工作台' },
+                { href: '/cmdb', label: 'CMDB' },
+                { label: '拓扑图' },
+              ]}
+            />
+          }
+          actions={
+            <div className="cwgsyw-inline-controls">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!rootNode}
+                onClick={() => rootNode && router.push(`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`)}
               >
-                <GitCompare className="h-4 w-4 mr-1" />拓扑对比
-              </Link>
-              <Button size="ui-sm" variant="outline" onClick={handleExport} disabled={!nodes.length}>
-                <Download className="h-4 w-4 mr-1" />导出 PNG
+                返回实例
               </Button>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-v2-muted mr-1">深度：</span>
-                {[1, 2, 3].map(d => (
-                  <button
-                    key={d}
-                    onClick={() => setDepth(d)}
-                    className={cn(
-                      'w-7 h-7 rounded text-xs font-medium transition-colors',
-                      depth === d ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-v2-muted',
-                    )}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+              <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/topology/${instanceId}/compare`)}>
+                拓扑对比
+              </Button>
+              <Button type="button" variant="secondary" disabled={!nodes.length} onClick={() => void handleExport()}>
+                导出 PNG
+              </Button>
+            </div>
+          }
         />
       }
-    >
-
-      {/* Graph + sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-hidden relative">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full text-v2-muted text-sm">
-              加载中...
-            </div>
-          ) : isError ? (
-            <div className="flex items-center justify-center h-full text-v2-danger text-sm">加载失败，请刷新重试</div>
-          ) : !nodes.length ? (
-            <div className="flex items-center justify-center h-full text-v2-muted text-sm">
-              暂无关联数据
-            </div>
-          ) : (
-            <CiTopologyGraph
-              ref={graphRef}
-              nodes={nodes}
-              edges={edges}
-              rootId={Number(instanceId)}
-              preview={false}
-              onNodeClick={setSelectedNode}
-              filterNodeIds={filterNodeIds}
-            />
-          )}
+      workspaceToolbar={
+        <div className="cwgsyw-inline-controls">
+          <span className="cwgsyw-type-label-sm">深度</span>
+          {[1, 2, 3].map((d) => (
+            <Chip key={d} label={String(d)} selected={depth === d} onClick={() => setDepth(d)} />
+          ))}
         </div>
-
-        {/* Right sidebar: filters + selected node */}
-        <div className="w-72 border-l bg-background flex-shrink-0 overflow-y-auto">
-          {/* Filter panel */}
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-v2-muted" />
-              <h3 className="font-semibold text-sm">过滤</h3>
-              {(selectedModels || selectedStatuses) && (
-                <button
-                  className="text-xs text-v2-muted hover:text-v2-fg ml-auto"
-                  onClick={() => { setSelectedModels(null); setSelectedStatuses(null) }}
-                >
-                  重置
-                </button>
-              )}
+      }
+      content={
+        isLoading ? (
+          <LoadingState label="加载拓扑" />
+        ) : isError ? (
+          <ErrorState title="拓扑加载失败" description="请刷新重试。" showRetry={false} />
+        ) : !nodes.length ? (
+          <EmptyState title="暂无关联数据" />
+        ) : (
+          <CiTopologyGraph
+            ref={graphRef}
+            nodes={nodes}
+            edges={edges}
+            rootId={Number(instanceId)}
+            preview={false}
+            onNodeClick={setSelectedNode}
+            filterNodeIds={filterNodeIds}
+          />
+        )
+      }
+      drawer={
+        <Card
+          title="过滤"
+          headerAction={(selectedModels || selectedStatuses) ? (
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedModels(null); setSelectedStatuses(null) }}>
+              重置
+            </Button>
+          ) : null}
+        >
+          {selectedNode ? (
+            <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`)}>
+              访问实例
+            </Button>
+          ) : null}
+          {modelOptions.length > 0 ? (
+            <div className="cwgsyw-stack-list">
+              <p className="cwgsyw-type-label-sm">模型类型</p>
+              {modelOptions.map((m) => {
+                const checked = (selectedModels ?? new Set(modelOptions.map((x) => x.id))).has(m.id)
+                return <Checkbox key={m.id} label={m.name} checked={checked} onChange={() => toggleModel(m.id)} />
+              })}
             </div>
-
-            {selectedNode && (
-              <Link
-                href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }), 'w-full mt-2')}
-              >
-                <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
-              </Link>
-            )}
-
-            {modelOptions.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-v2-muted mb-1.5">模型类型</p>
-                <div className="space-y-1">
-                  {modelOptions.map(m => {
-                    const checked = (selectedModels ?? new Set(modelOptions.map(x => x.id))).has(m.id)
-                    return (
-                      <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" checked={checked} onChange={() => toggleModel(m.id)} />
-                        <span className="truncate">{m.name}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {statusOptions.length > 0 && (
-              <div>
-                <p className="text-xs text-v2-muted mb-1.5">状态</p>
-                <div className="space-y-1">
-                  {statusOptions.map(s => {
-                    const checked = (selectedStatuses ?? new Set(statusOptions.map(x => x.value))).has(s.value)
-                    return (
-                      <label key={s.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" checked={checked} onChange={() => toggleStatus(s.value)} />
-                        <span>{s.label}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <p className="text-[11px] text-v2-muted mt-3">
-              未选中的节点将半透明显示，保持拓扑连通性。
-            </p>
-          </div>
-
-          {/* Selected node detail */}
-          {selectedNode && (
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-sm">节点详情</h3>
-                <button onClick={() => setSelectedNode(null)} className="text-v2-muted hover:text-v2-fg">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <p className="text-xs text-v2-muted">名称</p>
-                  <p className="font-medium">{selectedNode.name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-v2-muted">模型</p>
-                  <p>{selectedNode.modelName ?? selectedNode.modelId ?? '—'}</p>
-                </div>
-                {selectedNode.status && (
-                  <div>
-                    <p className="text-xs text-v2-muted">状态</p>
-                    <p>{selectedNode.status}</p>
-                  </div>
-                )}
-                {selectedNode.owner && (
-                  <div>
-                    <p className="text-xs text-v2-muted">负责人</p>
-                    <p>{selectedNode.owner}</p>
-                  </div>
-                )}
-                {selectedNode.keyAttrs && Object.keys(selectedNode.keyAttrs).length > 0 && (
-                  <div>
-                    <p className="text-xs text-v2-muted">关键属性</p>
-                    <dl className="text-xs space-y-0.5 mt-1">
-                      {Object.entries(selectedNode.keyAttrs).map(([k, v]) => (
-                        <div key={k} className="flex justify-between gap-2">
-                          <dt className="text-v2-muted font-mono">{k}</dt>
-                          <dd className="truncate">{String(v ?? '—')}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                )}
-                {selectedNode.isRoot && (
-                  <div className="px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-600 dark:text-amber-400">
-                    当前根节点
-                  </div>
-                )}
-                <Link
-                  href={`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`}
-                  className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }), 'w-full mt-2')}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" />访问实例
-                </Link>
-              </div>
+          ) : null}
+          {statusOptions.length > 0 ? (
+            <div className="cwgsyw-stack-list">
+              <p className="cwgsyw-type-label-sm">状态</p>
+              {statusOptions.map((s) => {
+                const checked = (selectedStatuses ?? new Set(statusOptions.map((x) => x.value))).has(s.value)
+                return <Checkbox key={s.value} label={s.label} checked={checked} onChange={() => toggleStatus(s.value)} />
+              })}
             </div>
-          )}
-        </div>
-      </div>
-    </WorkspaceShell>
+          ) : null}
+          <p className="cwgsyw-type-label-sm">未选中的节点将半透明显示，保持拓扑连通性。</p>
+          {selectedNode ? (
+            <div className="cwgsyw-stack-list">
+              <div className="cwgsyw-inline-controls">
+                <h3 className="cwgsyw-type-title-sm">节点详情</h3>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedNode(null)}>关闭</Button>
+              </div>
+              <p className="cwgsyw-type-body-sm">{selectedNode.name}</p>
+              <p className="cwgsyw-type-label-sm">{selectedNode.modelName ?? selectedNode.modelId ?? '—'}</p>
+              {selectedNode.status ? <p className="cwgsyw-type-label-sm">状态 {selectedNode.status}</p> : null}
+              {selectedNode.owner ? <p className="cwgsyw-type-label-sm">负责人 {selectedNode.owner}</p> : null}
+              {selectedNode.keyAttrs && Object.keys(selectedNode.keyAttrs).length > 0 ? (
+                <dl className="cwgsyw-stack-list">
+                  {Object.entries(selectedNode.keyAttrs).map(([k, v]) => (
+                    <div key={k} className="cwgsyw-inline-controls">
+                      <dt className="cwgsyw-type-label-sm">{k}</dt>
+                      <dd className="cwgsyw-type-body-sm">{String(v ?? '—')}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+              {selectedNode.isRoot ? <Badge label="当前根节点" /> : null}
+            </div>
+          ) : null}
+        </Card>
+      }
+    />
   )
 }

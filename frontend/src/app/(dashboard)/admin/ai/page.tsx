@@ -1,12 +1,25 @@
 'use client'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
-import api from '@/lib/api'
-import { Button, Card, CardContent, Input, Label, Switch, Textarea } from '@/components/design-system'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { toast } from 'sonner'
-import { usePermission } from '@/hooks/usePermission'
+
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from '@/design-system/figma-neutral/toast'
+import api from '@/lib/api'
+import { usePermission } from '@/hooks/usePermission'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  FormSettingsPage,
+  Input,
+  LoadingState,
+  PageHeader,
+  Switch,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 interface AiProviderConfigVO {
   provider: string
@@ -26,13 +39,7 @@ interface ProviderFormState {
   systemPrompt: string
 }
 
-function ProviderCard({
-  config,
-  canWrite,
-}: {
-  config: AiProviderConfigVO
-  canWrite: boolean
-}) {
+function ProviderCard({ config, canWrite }: { config: AiProviderConfigVO; canWrite: boolean }) {
   const [form, setForm] = useState<ProviderFormState>({
     apiKey: '',
     baseUrl: config.baseUrl,
@@ -59,82 +66,65 @@ function ProviderCard({
   })
 
   const testMutation = useMutation({
-    mutationFn: () =>
-      api.post(`/admin/ai/providers/${config.provider}/test`).then((r) => r.data.data as string),
+    mutationFn: () => api.post(`/admin/ai/providers/${config.provider}/test`).then((r) => r.data.data as string),
     onSuccess: (reply: string) => toast.success(`测试成功：${reply}`),
     onError: () => toast.error('测试失败'),
   })
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-v2-fg">{config.providerLabel}</h2>
-          <div className="flex items-center gap-2">
-            <Switch
-              id={`${config.provider}-enabled`}
-              checked={form.enabled}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
-              disabled={!canWrite}
-            />
-            <Label htmlFor={`${config.provider}-enabled`}>启用</Label>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label>API Key</Label>
+    <Card title={config.providerLabel} headerAction={
+      <Switch
+        id={`${config.provider}-enabled`}
+        label="启用"
+        checked={form.enabled}
+        disabled={!canWrite}
+        onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
+      />
+    }>
+      <div className="cwgsyw-form">
+        <Field label="API Key">
           <Input
             type="password"
             value={form.apiKey}
-            onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
+            onChange={(event) => setForm((current) => ({ ...current, apiKey: event.target.value }))}
             placeholder={config.configured ? '••••••••（已配置，留空则不修改）' : '请输入 API Key'}
             disabled={!canWrite}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Base URL</Label>
+        </Field>
+        <div className="cwgsyw-filter-grid">
+          <Field label="Base URL">
             <Input
               value={form.baseUrl}
-              onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
+              onChange={(event) => setForm((current) => ({ ...current, baseUrl: event.target.value }))}
               placeholder="https://api.example.com/v1"
               disabled={!canWrite}
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label>模型</Label>
+          </Field>
+          <Field label="模型">
             <Input
               value={form.model}
-              onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+              onChange={(event) => setForm((current) => ({ ...current, model: event.target.value }))}
               placeholder="model-name"
               disabled={!canWrite}
             />
-          </div>
+          </Field>
         </div>
-        <div className="space-y-1.5">
-          <Label>系统提示词</Label>
+        <Field label="系统提示词">
           <Textarea
             value={form.systemPrompt}
-            onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
+            onChange={(event) => setForm((current) => ({ ...current, systemPrompt: event.target.value }))}
             rows={4}
             placeholder="You are a helpful assistant..."
             disabled={!canWrite}
           />
-        </div>
-        {canWrite && (
-          <div className="flex gap-2">
-            <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              保存
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => testMutation.mutate()}
-              disabled={testMutation.isPending}
-            >
-              测试
-            </Button>
+        </Field>
+        {canWrite ? (
+          <div className="cwgsyw-designer__actions">
+            <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
+            <Button type="button" variant="secondary" onClick={() => testMutation.mutate()} disabled={testMutation.isPending}>测试</Button>
           </div>
-        )}
-      </CardContent>
+        ) : null}
+      </div>
     </Card>
   )
 }
@@ -158,29 +148,37 @@ export default function AdminAiPage() {
   if (!canRead) return null
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader
-        eyebrow="系统管理"
-        title="AI 网关配置"
-        subtitle="配置 AI 供应商的 API Key、模型与系统提示词，供变更文档 AI 生成使用。"
-      />
-      {isLoading ? (
-        <LoadingState label="正在加载 AI 网关配置…" minHeight={180} />
-      ) : isError ? (
-        <ErrorState
-          title="AI 网关配置加载失败"
-          description="无法读取供应商配置，请重试。"
-          onRetry={() => void refetch()}
+    <FormSettingsPage
+      embedded
+      header={
+        <PageHeader
+          eyebrow="系统管理"
+          title="AI 网关配置"
+          subtitle="配置 AI 供应商的 API Key、模型与系统提示词，供变更文档 AI 生成使用。"
+          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { href: '/admin/config', label: '系统配置' }, { label: 'AI 网关' }]} />}
         />
-      ) : (
-        providers.map((p) => (
-          <ProviderCard
-            key={`${p.provider}:${p.baseUrl}:${p.model}:${p.enabled}:${p.systemPrompt}`}
-            config={p}
-            canWrite={canWrite}
+      }
+      form={
+        isLoading ? (
+          <LoadingState label="正在加载 AI 网关配置…" />
+        ) : isError ? (
+          <ErrorState
+            title="AI 网关配置加载失败"
+            description="无法读取供应商配置，请重试。"
+            retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
           />
-        ))
-      )}
-    </div>
+        ) : (
+          <div className="cwgsyw-form">
+            {providers.map((provider) => (
+              <ProviderCard
+                key={`${provider.provider}:${provider.baseUrl}:${provider.model}:${provider.enabled}:${provider.systemPrompt}`}
+                config={provider}
+                canWrite={canWrite}
+              />
+            ))}
+          </div>
+        )
+      }
+    />
   )
 }

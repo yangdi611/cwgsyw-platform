@@ -1,4 +1,5 @@
 'use client'
+import '@/design-system/figma-neutral/index.css'
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -85,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex h-dvh min-h-0 overflow-hidden bg-v2-bg">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-[var(--cwgsyw-bg-canvas)]">
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header />

@@ -1,12 +1,21 @@
 'use client'
+
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, Suspense } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Card, Checkbox } from '@/components/design-system'
-import { PageHeader, EmptyState } from '@/components/shared'
-import { toast } from 'sonner'
-import { ShieldCheck } from 'lucide-react'
+import { toast } from '@/design-system/figma-neutral/toast'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Breadcrumb,
+  Button,
+  Checkbox,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 interface Resource {
   id: number
@@ -28,36 +37,34 @@ function PermissionsContent() {
   const roleId = searchParams.get('roleId')
   const queryClient = useQueryClient()
 
-  const { data: resources } = useQuery({
+  const resourcesQuery = useQuery({
     queryKey: ['resources'],
     queryFn: () => api.get('/rbac/resources').then((r) => r.data.data as Resource[]),
+    enabled: !!roleId,
   })
 
-  const { data: allPerms } = useQuery({
+  const allPermsQuery = useQuery({
     queryKey: ['all-permissions'],
     queryFn: () => api.get('/rbac/permissions').then((r) => r.data.data as Permission[]),
+    enabled: !!roleId,
   })
 
-  const { data: rolePerms } = useQuery({
+  const rolePermsQuery = useQuery({
     queryKey: ['role-permissions', roleId],
-    queryFn: () =>
-      api.get(`/rbac/roles/${roleId}/permissions`).then((r) => r.data.data as Permission[]),
+    queryFn: () => api.get(`/rbac/roles/${roleId}/permissions`).then((r) => r.data.data as Permission[]),
     enabled: !!roleId,
   })
 
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    if (rolePerms) {
-      // Server permissions initialize the editable role selection.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelected(new Set(rolePerms.map((p) => p.id)))
+    if (rolePermsQuery.data) {
+      setSelected(new Set(rolePermsQuery.data.map((permission) => permission.id)))
     }
-  }, [rolePerms])
+  }, [rolePermsQuery.data])
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      api.put(`/rbac/roles/${roleId}/permissions`, { permissionIds: [...selected] }),
+    mutationFn: () => api.put(`/rbac/roles/${roleId}/permissions`, { permissionIds: [...selected] }),
     onSuccess: () => {
       toast.success('权限已保存')
       queryClient.invalidateQueries({ queryKey: ['role-permissions', roleId] })
@@ -73,59 +80,107 @@ function PermissionsContent() {
     })
   }
 
+  const header = (
+    <PageHeader
+      eyebrow="身份与权限"
+      title="权限配置"
+      subtitle="为当前角色勾选资源操作权限，修改后点击保存生效。"
+      breadcrumb={
+        <Breadcrumb
+          items={[
+            { href: '/', label: '工作台' },
+            { href: '/rbac/roles', label: '角色管理' },
+            { label: '权限配置' },
+          ]}
+        />
+      }
+      actions={
+        roleId ? (
+          <Button type="button" variant="primary" loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {saveMutation.isPending ? '保存中…' : '保存权限'}
+          </Button>
+        ) : null
+      }
+    />
+  )
+
   if (!roleId) {
     return (
-      <Card>
-        <EmptyState
-          icon={<ShieldCheck className="h-5 w-5 text-v2-muted" />}
-          title="请先选择角色"
-          description="从角色管理页点击「配置权限」进入此页面。"
-        />
-      </Card>
+      <DataManagementPage
+        embedded
+        header={header}
+        content={<EmptyState title="请先选择角色" description="从角色管理页点击「配置权限」进入此页面。" />}
+      />
+    )
+  }
+
+  if (resourcesQuery.isLoading || allPermsQuery.isLoading || rolePermsQuery.isLoading) {
+    return <DataManagementPage embedded header={header} content={<LoadingState label="正在加载权限…" />} />
+  }
+
+  if (resourcesQuery.isError || allPermsQuery.isError || rolePermsQuery.isError) {
+    return (
+      <DataManagementPage
+        embedded
+        header={header}
+        content={
+          <ErrorState
+            title="权限加载失败"
+            description="无法读取角色权限，请稍后重试。"
+            retry={
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  resourcesQuery.refetch()
+                  allPermsQuery.refetch()
+                  rolePermsQuery.refetch()
+                }}
+              >
+                重试
+              </Button>
+            }
+          />
+        }
+      />
     )
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="身份与权限"
-        title="权限配置"
-        subtitle="为当前角色勾选资源操作权限，修改后点击保存生效。"
-        actions={
-          <Button variant="primary" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? '保存中…' : '保存权限'}
-          </Button>
-        }
-      />
-
-      <div className="space-y-4">
-        {(resources ?? []).map((resource) => {
-          const perms = (allPerms ?? []).filter((p) => p.resourceId === resource.id)
-          return (
-            <Card key={resource.id} className="p-4">
-              <h3 className="mb-3 font-semibold text-v2-fg">{resource.name}</h3>
-              <div className="flex flex-wrap gap-4">
-                {perms.map((perm) => (
-                  <label key={perm.id} className="flex cursor-pointer items-center gap-2">
+    <DataManagementPage
+      embedded
+      header={header}
+      content={
+        <div className="cwgsyw-form">
+          {(resourcesQuery.data ?? []).map((resource) => {
+            const perms = (allPermsQuery.data ?? []).filter((permission) => permission.resourceId === resource.id)
+            return (
+              <section key={resource.id} className="cwgsyw-permission-group">
+                <div className="cwgsyw-permission-group__head">
+                  <h3 className="cwgsyw-type-title-sm">{resource.name}</h3>
+                </div>
+                <div className="cwgsyw-permission-group__body cwgsyw-inline-controls">
+                  {perms.map((permission) => (
                     <Checkbox
-                      checked={selected.has(perm.id)}
-                      onCheckedChange={() => toggle(perm.id)}
+                      key={permission.id}
+                      checked={selected.has(permission.id)}
+                      onChange={() => toggle(permission.id)}
+                      label={permission.action}
                     />
-                    <span className="text-sm text-v2-fg">{perm.action}</span>
-                  </label>
-                ))}
-              </div>
-            </Card>
-          )
-        })}
-      </div>
-    </div>
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      }
+    />
   )
 }
 
 export default function PermissionsPage() {
   return (
-    <Suspense fallback={<p className="text-v2-muted">加载中…</p>}>
+    <Suspense fallback={<LoadingState label="正在加载权限…" />}>
       <PermissionsContent />
     </Suspense>
   )
