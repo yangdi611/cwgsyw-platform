@@ -15,12 +15,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Alert,
   Breadcrumb,
   Button,
-  Card,
-  DashboardFeedbackPage,
-  EmptyState,
   ErrorState,
   Icon,
   IconButton,

@@ -17,3 +17,14 @@ test('sidebar collapse controls use Neutral IconButton', () => {
   assert.doesNotMatch(source, /<button[\s\S]*aria-label="收起侧栏"/)
   assert.doesNotMatch(source, /<button[\s\S]*aria-label="展开侧栏"/)
 })
+
+test('collapsed sidebar flyouts use Neutral popover recipes', () => {
+  const flyout = fs.readFileSync(
+    path.resolve(__dirname, '../src/components/layout/sidebar/CollapsedEntry.tsx'),
+    'utf8',
+  )
+  assert.match(flyout, /cwgsyw-popover w-56/)
+  assert.match(flyout, /cwgsyw-popover cwgsyw-popover--compact/)
+  assert.doesNotMatch(flyout, /shadow-\[var\(--cwgsyw-elevation-lg\)\]/)
+  assert.doesNotMatch(flyout, /cwgsyw-popover--hover/)
+})

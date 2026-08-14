@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import { CANVAS_NEUTRAL, CANVAS_STATUS, CANVAS_ZONE_DEFAULT } from '@/design-system/figma-neutral/canvas-tokens'
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
 
 export type CalendarView = 'month' | 'week' | 'list'
 export type CalendarScope = 'my' | 'group' | 'all'

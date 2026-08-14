@@ -70,7 +70,6 @@ export function NeutralToaster() {
   const [toasts, setToasts] = useState<ToastRecord[]>(queue)
   useEffect(() => {
     listeners.add(setToasts)
-    setToasts(queue)
     return () => {
       listeners.delete(setToasts)
     }

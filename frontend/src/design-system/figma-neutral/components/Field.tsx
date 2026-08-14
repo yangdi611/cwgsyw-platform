@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react'
+import { Children, cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from 'react'
 
 export type FieldState = 'default' | 'error' | 'disabled'
 
@@ -14,7 +14,6 @@ export interface FieldProps {
   children: ReactNode
 }
 
-let fieldCount = 0
 
 export function Field({
   label,
@@ -27,8 +26,8 @@ export function Field({
   state = 'default',
   children,
 }: FieldProps) {
-  fieldCount += 1
-  const controlId = htmlFor || `cwgsyw-field-${fieldCount}`
+  const generatedId = useId()
+  const controlId = htmlFor || `cwgsyw-field-${generatedId}`
   const helperId = `${controlId}-helper`
   const errorId = `${controlId}-error`
   const isError = state === 'error' || showError === true

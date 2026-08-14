@@ -46,6 +46,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "test/**/*.cjs",
+    "src/design-system/figma-neutral/**/*.cjs",
   ]),
 ]);
 

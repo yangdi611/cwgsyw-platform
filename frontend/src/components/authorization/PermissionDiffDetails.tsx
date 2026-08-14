@@ -1,6 +1,6 @@
 'use client'
 
-import { Alert, StatusBadge } from '@/design-system/figma-neutral/components'
+import { StatusBadge } from '@/design-system/figma-neutral/components'
 
 export interface PermissionSource {
   roleId: number

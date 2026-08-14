@@ -8,7 +8,6 @@ import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
 import { Button } from './Button'
 import { DateInput } from './DateInput'
-import { Icon } from './Icon'
 import { Input } from './Input'
 
 export function MenuItem({

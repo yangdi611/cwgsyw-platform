@@ -1244,6 +1244,7 @@ function PropertiesPanel({
             <label className="cwgsyw-type-label-sm" htmlFor="spatial-element-name">名称</label>
             <Input
               id="spatial-element-name"
+              size="sm"
               value={element.name || ""}
               onChange={(event) =>
                 onChange(
@@ -1640,6 +1641,7 @@ function BatchRackDimensionControls({
           />
           <Input
             aria-label="批量机柜间距调整"
+            size="sm"
             type="number"
             min="0"
             max="20"

@@ -1,4 +1,4 @@
-import { CANVAS_NEUTRAL, CANVAS_STATUS, CANVAS_ZONE_DEFAULT } from '@/design-system/figma-neutral/canvas-tokens'
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
 // 运维日历共享类型与工具函数（无第三方日期库，使用原生 Date）
 
 export type CalendarView = 'month' | 'week' | 'list'
