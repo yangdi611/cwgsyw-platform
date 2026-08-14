@@ -29,6 +29,10 @@
   z-index: 50;
   pointer-events: none;
 }
+.cwgsyw-popover--compact {
+  min-width: 0;
+  width: max-content;
+}
 .cwgsyw-menu-item {
   display: flex;
   align-items: center;

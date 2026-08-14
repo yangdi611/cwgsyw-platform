@@ -100,7 +100,7 @@ function TransformableRect({ element, rect, style, selected, multiSelected, labe
   }
   return <>
     <Group ref={shapeRef} x={rect.x} y={rect.y} rotation={rect.rotation} draggable={!element.locked} onClick={(event) => onSelect(element.id, event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey)} onTap={(event) => onSelect(element.id, event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey)} onDragMove={previewFromNode} onDragEnd={(event) => { updateFromNode(event.target as Konva.Group); onDragFinish() }} onTransformEnd={(event) => { updateFromNode(event.target as Konva.Group); onDragFinish() }}>
-      <Rect width={rect.width} height={rect.height} fill={style.fill} opacity={style.fillOpacity} stroke={selected ? CANVAS_NEUTRAL[800] : style.stroke} strokeWidth={selected ? 4 : 2} dash={element.type === 'RACK_ROW' ? [6, 4] : undefined} cornerRadius={2} />
+      <Rect width={rect.width} height={rect.height} fill={style.fill} opacity={style.fillOpacity ?? 1} stroke={selected ? CANVAS_NEUTRAL[800] : style.stroke} strokeWidth={selected ? 4 : 2} dash={element.type === 'RACK_ROW' ? [6, 4] : undefined} cornerRadius={2} />
       <Text text={label} width={Math.max(18, rect.width - 4)} x={2} y={Math.max(2, rect.height / 2 - 7)} align="center" fontSize={Math.max(9, Math.min(14, rect.width / 6))} fill={style.text} listening={false} />
     </Group>
     {selected && !element.locked && <Transformer ref={transformerRef} keepRatio={false} rotateEnabled rotationSnaps={orthogonalSnap ? [0, 90, 180, 270] : []} rotationSnapTolerance={6} enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']} boundBoxFunc={(oldBox, newBox) => newBox.width < 12 || newBox.height < 12 ? oldBox : newBox} />}

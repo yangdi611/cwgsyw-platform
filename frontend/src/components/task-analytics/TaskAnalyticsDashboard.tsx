@@ -106,7 +106,7 @@ export function TaskAnalyticsDashboard({ dashboardId }: Props) {
     return (
       <div className="space-y-6">
         <PageHeader eyebrow="统一任务平台 / 任务统计" title="统计看板" subtitle="正在读取看板配置…" />
-        <LoadingState label="正在加载统计看板…" minHeight={320} />
+        <div className="min-h-80"><LoadingState label="正在加载统计看板…" /></div>
       </div>
     )
   }
@@ -210,7 +210,7 @@ function AnalyticsWidgetCard({ widget, query, canExport, canManage, busy, onDele
     </header>
     <div className="min-h-48 overflow-x-auto p-4">
       {result.isError && <ErrorState title="组件查询失败" description="请检查模板版本、统计口径或权限。" retry={<Button type="button" variant="secondary" onClick={() => void result.refetch()}>重试</Button>} />}
-      {result.isLoading && <LoadingState label="正在计算组件…" minHeight={180} />}
+      {result.isLoading && <div className="min-h-48"><LoadingState label="正在计算组件…" /></div>}
       {!result.isLoading && !result.isError && <WidgetResult type={widget.widgetType} rows={rows} columns={columns} columnLabels={columnLabels} query={query} onDrilldown={onDrilldown} />}
     </div>
   </article>
@@ -255,7 +255,7 @@ function DrilldownPanel({ state, onClose }: { state: DrilldownState; onClose: ()
   const records = result.data?.records ?? []
   return <section className="border border-[var(--cwgsyw-border-default)] ">
     <header className="flex items-center justify-between border-b border-[var(--cwgsyw-border-default)] px-4 py-3"><div><h2 className="font-semibold">{state.widget.title} · 来源明细</h2><p className="text-xs cwgsyw-type-label-xs">{dimensionSummary(state.dimensions, result.data?.columnLabels)}{result.data ? ` · 共 ${result.data.total} 条` : ''}</p></div><IconButton size="sm" variant="ghost" icon="close" aria-label="关闭下钻" onClick={onClose} /></header>
-    {result.isLoading && <LoadingState label="正在加载来源任务…" minHeight={180} />}
+    {result.isLoading && <div className="min-h-48"><LoadingState label="正在加载来源任务…" /></div>}
     {result.isError && <ErrorState title="来源任务加载失败" description="请检查权限或查询口径。" retry={<Button type="button" variant="secondary" onClick={() => void result.refetch()}>重试</Button>} />}
     <div className="divide-y divide-[var(--cwgsyw-border-subtle)] ">{records.map((record) => <div key={`${record.taskId}:${record.submissionId}`} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"><div><Link className="font-medium " href={`/tasks/${record.taskId}`}>{formatValue(record.taskTitle)}</Link><p className="mt-1 text-xs cwgsyw-type-label-xs">任务 #{formatValue(record.taskId)} · 提交 #{formatValue(record.submissionId)} v{formatValue(record.submissionVersion)} · 业务日期 {formatValue(record.businessDate)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">{Object.entries(record).filter(([key]) => !TRACE_COLUMNS.has(key)).map(([key, value]) => <span key={key}><strong className="mr-1 text-xs cwgsyw-type-label-xs">{result.data?.columnLabels?.[key] ?? key}</strong>{formatValue(value)}</span>)}</div></div><Link href={`/tasks/${record.taskId}`} className="cwgsyw-btn cwgsyw-btn--sm cwgsyw-btn--outline">查看提交<Icon name="chevron-right" size="sm" /></Link></div>)}</div>
     {!result.isLoading && records.length === 0 && <p className="p-8 text-center text-sm cwgsyw-type-label-xs">该数据点没有当前用户可查看的来源任务。</p>}

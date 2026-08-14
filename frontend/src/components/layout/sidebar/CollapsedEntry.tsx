@@ -102,7 +102,7 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
           >
             <div
               className={cn(
-                'w-56 origin-left overflow-hidden rounded-xl border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] shadow-[var(--cwgsyw-elevation-lg)]',
+                'cwgsyw-popover w-56 origin-left overflow-hidden',
                 'transition-all duration-200 ease-out motion-reduce:transition-none',
                 entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
               )}
@@ -170,7 +170,7 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
         <div className="fixed z-50 pl-2" style={{ top: coords.top + 8, left: coords.left }}>
           <div
             className={cn(
-              'origin-left whitespace-nowrap rounded-lg border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] px-3 py-1.5 text-sm text-[var(--cwgsyw-text-primary)] shadow-[var(--cwgsyw-elevation-lg)]',
+              'cwgsyw-popover cwgsyw-popover--compact origin-left whitespace-nowrap',
               'transition-all duration-200 ease-out motion-reduce:transition-none',
               entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
             )}

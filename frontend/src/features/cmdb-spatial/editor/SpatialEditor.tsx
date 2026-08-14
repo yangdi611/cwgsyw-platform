@@ -1010,13 +1010,13 @@ function RackRowForm({
       <p className="text-xs font-medium text-[var(--cwgsyw-text-secondary)]">机柜列生成</p>
       <div className="flex gap-2">
         <Input
-          className="h-8"
+          size="sm"
           value={code}
           onChange={(event) => setCode(event.target.value)}
           aria-label="机柜列代码"
         />
         <Input
-          className="h-8"
+          size="sm"
           type="number"
           min={1}
           max={200}
@@ -1029,7 +1029,7 @@ function RackRowForm({
         <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           宽度 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0.5}
             max={50}
@@ -1042,7 +1042,7 @@ function RackRowForm({
         <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           高度 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0.5}
             max={50}
@@ -1055,7 +1055,7 @@ function RackRowForm({
         <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           间距 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0}
             max={20}
@@ -1241,7 +1241,7 @@ function PropertiesPanel({
             <p className="font-semibold text-[var(--cwgsyw-text-primary)]">{elementLabel(element)}</p>
           </div>
           <div className="space-y-2">
-            <span className="cwgsyw-type-label-sm" htmlFor="spatial-element-name">名称</span>
+            <label className="cwgsyw-type-label-sm" htmlFor="spatial-element-name">名称</label>
             <Input
               id="spatial-element-name"
               value={element.name || ""}
@@ -1305,7 +1305,7 @@ function PropertiesPanel({
           )}
           {element.type === "FACILITY" && (
             <div className="space-y-2">
-              <span className="cwgsyw-type-label-sm" htmlFor="spatial-facility-type">设施类型</span>
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-facility-type">设施类型</label>
               <Select
                 id="spatial-facility-type"
                 size="sm"
@@ -1337,7 +1337,7 @@ function PropertiesPanel({
           )}
           {element.type === "TEXT" && (
             <div className="space-y-2">
-              <span className="cwgsyw-type-label-sm" htmlFor="spatial-element-text">文字</span>
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-element-text">文字</label>
               <Textarea
                 id="spatial-element-text"
                 value={element.text || ""}
@@ -1360,7 +1360,7 @@ function PropertiesPanel({
           )}
           {(element.type === "RACK_SLOT" || element.type === "FACILITY") && (
             <div className="space-y-2">
-              <span className="cwgsyw-type-label-sm" htmlFor="spatial-ci-binding">CI 绑定</span>
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-ci-binding">CI 绑定</label>
               <Select
                 id="spatial-ci-binding"
                 size="sm"
@@ -1440,7 +1440,7 @@ function RackDimensionControls({
           宽度 %
           <Input
             aria-label="机柜宽度"
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min="0.5"
             max="50"
@@ -1460,7 +1460,7 @@ function RackDimensionControls({
           高度 %
           <Input
             aria-label="机柜高度"
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min="0.5"
             max="50"
@@ -1591,7 +1591,7 @@ function BatchRackDimensionControls({
             宽度 %
             <Input
               aria-label="批量机柜宽度调整"
-              className="mt-1 h-8"
+              size="sm" className="mt-1"
               type="number"
               min="0.5"
               max="50"
@@ -1609,7 +1609,7 @@ function BatchRackDimensionControls({
             高度 %
             <Input
               aria-label="批量机柜高度调整"
-              className="mt-1 h-8"
+              size="sm" className="mt-1"
               type="number"
               min="0.5"
               max="50"

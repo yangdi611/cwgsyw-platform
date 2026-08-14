@@ -192,7 +192,7 @@ CMDB 23 个 `page.tsx` 已在本树落地或批准为 redirect。空间编辑器
 
 ### 4.5 M8 leftover
 
-M8 已在本树落地：旧 `@/components/design-system` / `v2` / `ui` 已删，shared 只留 PermissionGuard。原生 select / 旧 accent / 动作按钮 / Wiki 灯箱 / 空间发布框 / CMDB 搜索下拉外壳 / Breadcrumb 与 NavGroup chevron 已收口。侧栏 76/280 和 10/11px 角标没有对应 Figma token，未发明变量。未再授权不要 commit。
+M8 已在本树落地：旧 `@/components/design-system` / `v2` / `ui` 已删，shared 只留 PermissionGuard。原生 select / 旧 accent / 动作按钮 / Wiki 灯箱 / 空间发布框 / CMDB 搜索下拉外壳 / Breadcrumb 与 NavGroup chevron / 拓扑机柜 hover 卡 / 资源授权删除钮 已收口。侧栏 76/280 和 10/11px 角标没有对应 Figma token，未发明变量。本地已提交 `36d1ceac6` 和 `da81510cd`。未再授权不要 push / PR / 部署。
 
 ---
 

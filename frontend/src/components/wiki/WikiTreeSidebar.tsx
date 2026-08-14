@@ -404,7 +404,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
               取消
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >

@@ -20,6 +20,16 @@ import {
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
 
+interface ModelGroupVO {
+  id: number
+  code: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  isBuiltIn: boolean
+  modelCount: number
+}
+
 function ModelCatalogTab() {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
@@ -116,10 +126,11 @@ function ModelCatalogTab() {
       const fromCode = model.group || ''
       const toName = modelGroups.find(g => g.code === toCode)?.name ?? toCode
       toast.success(`已移到「${toName}」`, {
-        action: fromCode === toCode ? undefined : {
-          label: '撤销',
-          onClick: () => moveModelMutation.mutate({ model: { ...model, group: toCode }, toCode: fromCode }),
-        },
+        action: fromCode === toCode ? undefined : (
+          <Button type="button" size="sm" variant="ghost" onClick={() => moveModelMutation.mutate({ model: { ...model, group: toCode }, toCode: fromCode })}>
+            撤销
+          </Button>
+        ),
       })
     },
     onSettled: () => {

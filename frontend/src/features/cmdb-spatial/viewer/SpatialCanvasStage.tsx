@@ -70,7 +70,7 @@ function SpatialShape({ element, logicalWidth, logicalHeight, runtime, layer, se
   if (element.geometry.kind === 'RECT') {
     const rect = rectToPixels(element.geometry, logicalWidth, logicalHeight)
     return <Group {...common} x={rect.x} y={rect.y} rotation={rect.rotation}>
-      <Rect width={rect.width} height={rect.height} fill={palette.fill} opacity={palette.fillOpacity} stroke={emphasisStroke} strokeWidth={strokeWidth} cornerRadius={element.type === 'RACK_SLOT' ? 2 : 4} />
+      <Rect width={rect.width} height={rect.height} fill={palette.fill} opacity={'fillOpacity' in palette ? palette.fillOpacity ?? 1 : 1} stroke={emphasisStroke} strokeWidth={strokeWidth} cornerRadius={element.type === 'RACK_SLOT' ? 2 : 4} />
       {label && <Text text={label} width={Math.max(18, rect.width - 6)} x={3} y={Math.max(2, rect.height / 2 - 7)} fontSize={labelFontSize(element, rect.width)} align="center" fill={palette.text} ellipsis listening={false} />}
       {runtime && layer === 'alert' && runtime.activeAlertCount > 0 && <Text text={String(runtime.activeAlertCount)} x={Math.max(0, rect.width - 15)} y={-8} fontSize={11} fontStyle="bold" fill={CANVAS_STATUS.danger} listening={false} />}
     </Group>

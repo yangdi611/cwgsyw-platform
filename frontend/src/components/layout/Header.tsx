@@ -33,7 +33,7 @@ export function Header() {
             <Button type="button" variant="ghost" className="cwgsyw-inline-controls" aria-label="打开用户菜单">
               <Avatar
                 type={user?.avatarUrl ? 'image' : 'initials'}
-                src={user?.avatarUrl}
+                src={user?.avatarUrl ?? undefined}
                 alt={user?.realName || user?.username}
                 initials={fallbackChar}
               />
