@@ -15,3 +15,13 @@ test('resource access dialog uses Neutral Select instead of native select', () =
   assert.match(source, /\bSelect\b/)
   assert.match(source, /from '@\/design-system\/figma-neutral\/components'/)
 })
+
+test('resource access delete control uses Neutral IconButton and imports Select', () => {
+  assert.match(source, /<IconButton/)
+  assert.match(source, /icon="trash"/)
+  assert.match(source, /aria-label="删除授权"/)
+  assert.match(source, /IconButton, Input, NeutralDialog, Select/)
+  assert.doesNotMatch(source, /h-9 w-9/)
+  assert.match(source, /queryKey = \['resource-access', resourceType, resourceId\]/)
+})
+

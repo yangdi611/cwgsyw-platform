@@ -32,9 +32,9 @@ test('frontend chrome has no leftover popover tokens or stripped Tailwind utilit
 
 test('analytics and topology leftover chrome use Neutral surface tokens', () => {
   const topology = fs.readFileSync(path.join(frontendRoot, 'src/components/cmdb/CiTopologyGraph.tsx'), 'utf8')
-  assert.match(topology, /bg-\[var\(--cwgsyw-bg-surface\)\]/)
-  assert.match(topology, /text-\[var\(--cwgsyw-text-primary\)\]/)
+  assert.match(topology, /cwgsyw-popover cwgsyw-popover--hover/)
   assert.doesNotMatch(topology, /bg-popover/)
+  assert.doesNotMatch(topology, /shadow-xl/)
 
   const dashboard = fs.readFileSync(path.join(frontendRoot, 'src/components/task-analytics/TaskAnalyticsDashboard.tsx'), 'utf8')
   assert.match(dashboard, /border-\[var\(--cwgsyw-border-default\)\]/)

@@ -307,7 +307,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
           {/* __TOOLTIP__ */}
           {hover && (
             <div
-              className="pointer-events-none absolute z-50 w-60 rounded-lg border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] p-3 text-xs shadow-[var(--cwgsyw-elevation-lg)]"
+              className="cwgsyw-popover cwgsyw-popover--hover w-60 text-xs"
               style={{
                 left: Math.min(hover.x + 16, wrapWidth - 248),
                 top: hover.y + 12,

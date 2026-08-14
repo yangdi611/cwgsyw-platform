@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Button, Checkbox, Input, NeutralDialog } from '@/design-system/figma-neutral/components'
+import { Button, Checkbox, IconButton, Input, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
 
 type SubjectType = 'user' | 'group' | 'role'
 type PermissionBit = 'r' | 'w' | 'x'
@@ -125,7 +125,7 @@ export function ResourceAccessDialog({ resourceType, resourceId, title, containe
       <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)_36px] items-center gap-2">
         <Select size="sm" aria-label="授权主体类型" value={entry.subjectType} options={[{ value: 'user', label: '用户' }, { value: 'group', label: '组' }, { value: 'role', label: '角色' }]} onChange={(value) => updateEntry(kind, index, { subjectType: value as SubjectType, subjectId: 0 })} />
         <Select size="sm" aria-label="授权主体" placeholder="请选择主体" value={entry.subjectId ? String(entry.subjectId) : '0'} options={[{ value: '0', label: '请选择主体' }, ...subjects[entry.subjectType].map((option) => ({ value: String(option.id), label: String(option.name ?? option.realName ?? option.username ?? option.id) }))]} onChange={(value) => updateEntry(kind, index, { subjectId: Number(value) })} />
-        <Button type="button" variant="ghost" size="sm" className="h-9 w-9 px-0 text-[var(--cwgsyw-status-danger-fg)]" title="删除授权" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => current.filter((_, entryIndex) => entryIndex !== index))}>删除</Button>
+        <IconButton type="button" variant="ghost" size="sm" icon="trash" aria-label="删除授权" title="删除授权" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => current.filter((_, entryIndex) => entryIndex !== index))} />
       </div>
       <div className="grid grid-cols-3 rounded-[var(--cwgsyw-radius-lg)] bg-[var(--cwgsyw-bg-surface-subtle)] px-3 py-2">
         {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => <label key={bit} className="flex items-center justify-center gap-2 text-xs text-[var(--cwgsyw-text-secondary)]"><Checkbox label={bitLabels[bit]} showLabel={false} checked={Boolean(permissionValue(entry.permissions) & bitValues[bit])} disabled={!container && bit === 'x'} onChange={() => updateEntry(kind, index, { permissions: permissionString(permissionValue(entry.permissions) ^ bitValues[bit]) })} /><span>{bitLabels[bit]}</span></label>)}
