@@ -120,12 +120,13 @@ export default function CmdbChangesPage() {
   const expanded = changes.find((item) => item.id === expandedId)
 
   return (
-    <DataManagementPage
+    <DataManagementPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title="变更历史"
-          subtitle="CI 实例变更审计与字段级 diff 追溯，点击行展开查看变更前后对比。"
+          subtitle="点击行查看字段变更"
           breadcrumb={
             <Breadcrumb
               items={[
@@ -141,11 +142,12 @@ export default function CmdbChangesPage() {
             </Button>
           }
         />
+        </div>
       }
       toolbar={
         <FilterBar
           search={
-            <SearchInput
+            <SearchInput size="sm"
               placeholder="搜索实例、模型或变更内容"
               value={keyword}
               onChange={(e) => { setKeyword(e.target.value); resetPage() }}
@@ -153,7 +155,7 @@ export default function CmdbChangesPage() {
           }
           filterItems={
             <div className="cwgsyw-inline-controls">
-              <Select
+              <Select size="sm" overlay
                 value={model || '__all__'}
                 options={[
                   { value: '__all__', label: '全部模型' },
@@ -161,22 +163,22 @@ export default function CmdbChangesPage() {
                 ]}
                 onChange={(value) => { setModel(value === '__all__' ? '' : value); resetPage() }}
               />
-              <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage() }} />
+              <Input size="sm" type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage() }} />
               <span className="cwgsyw-type-label-sm">至</span>
-              <Input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage() }} />
-              <Input
+              <Input size="sm" type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage() }} />
+              <Input size="sm"
                 type="number"
                 inputMode="numeric"
                 placeholder="操作人 ID"
                 value={operatorId}
                 onChange={(e) => { setOperatorId(e.target.value); resetPage() }}
               />
-              <Select
+              <Select size="sm" overlay
                 value={action || '__all__'}
                 options={ACTION_OPTIONS}
                 onChange={(value) => { setAction(value === '__all__' ? '' : value); resetPage() }}
               />
-              <Select
+              <Select size="sm" overlay
                 value={String(size)}
                 options={[20, 50, 100].map((item) => ({ value: String(item), label: `每页 ${item}` }))}
                 onChange={(value) => { setSize(Number(value)); resetPage() }}
@@ -194,6 +196,7 @@ export default function CmdbChangesPage() {
         ) : (
           <div className="cwgsyw-stack-list">
             <Table
+              className="cwgsyw-cmdb-table"
               showSearch={false}
               columns={[
                 { key: 'action', label: '操作类型' },

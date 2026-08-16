@@ -117,6 +117,7 @@
   background: var(--cwgsyw-bg-surface);
 }
 .cwgsyw-listbox button {
+  box-sizing: border-box;
   display: block;
   width: 100%;
   text-align: left;
@@ -124,15 +125,21 @@
   background: transparent;
   color: var(--cwgsyw-text-primary);
   padding: var(--cwgsyw-space-2) var(--cwgsyw-space-3);
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .cwgsyw-listbox button[aria-selected="true"],
 .cwgsyw-listbox button:hover { background: var(--cwgsyw-bg-surface-hover); }
+.cwgsyw-select { position: relative; }
 .cwgsyw-listbox--overlay {
   position: absolute;
   z-index: 50;
+  top: calc(100% + var(--cwgsyw-space-1));
   left: 0;
   right: 0;
   width: 100%;
+  margin: 0;
   max-height: calc(var(--cwgsyw-control-height-md) * 5);
   overflow: auto;
+  box-shadow: var(--cwgsyw-elevation-lg);
 }

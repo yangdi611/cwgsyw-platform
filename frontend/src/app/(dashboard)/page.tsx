@@ -210,11 +210,13 @@ export default function DashboardPage() {
       }
       feedback={
         <Card title="常用业务入口" description="企业用户日常最高频的任务入口。">
-          <div className="cwgsyw-stack-list">
+          <div className="cwgsyw-dashboard-link-list">
             {quickLinks.map((link) => (
-              <Link key={link.title} href={link.href} className="cwgsyw-stack-list">
-                <strong className="cwgsyw-type-title-sm">{link.title}</strong>
-                <p className="cwgsyw-type-body-sm">{link.description}</p>
+              <Link key={link.title} href={link.href} className="cwgsyw-dashboard-tile">
+                <span className="cwgsyw-dashboard-tile__copy">
+                  <strong className="cwgsyw-type-title-sm">{link.title}</strong>
+                  <span className="cwgsyw-type-body-sm">{link.description}</span>
+                </span>
                 <span className="cwgsyw-type-label-sm">进入模块</span>
               </Link>
             ))}

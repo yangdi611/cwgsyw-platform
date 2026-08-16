@@ -103,12 +103,13 @@ export default function CmdbChangesStatsPage() {
   })
 
   return (
-    <DashboardFeedbackPage
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title="变更统计"
-          subtitle="CI 实例变更历史统计与趋势分析，按时间维度与活跃实例查看。"
+          subtitle="按时间查看变更趋势"
           breadcrumb={
             <Breadcrumb
               items={[
@@ -119,12 +120,13 @@ export default function CmdbChangesStatsPage() {
             />
           }
         />
+        </div>
       }
       supporting={
         <div className="cwgsyw-inline-controls">
-          <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+          <Input size="sm" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
           <span className="cwgsyw-type-label-sm">至</span>
-          <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+          <Input size="sm" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
           {hasExplicitRange ? <Button type="button" variant="ghost" onClick={() => { setStartDate(''); setEndDate('') }}>清除范围</Button> : null}
           <span className="cwgsyw-type-label-sm">
             {hasExplicitRange ? '统计卡、趋势与 Top 10 均按所选范围汇总' : '未选择范围时显示当前今日、本周和本月汇总，趋势与 Top 10 默认最近 30 天'}
@@ -157,6 +159,7 @@ export default function CmdbChangesStatsPage() {
             <Card title="变更最频繁的实例 (Top 10)">
               {stats?.top10Instances && stats.top10Instances.length > 0 ? (
                 <Table
+              className="cwgsyw-cmdb-table"
                   showSearch={false}
                   columns={[
                     { key: 'rank', label: '#' },

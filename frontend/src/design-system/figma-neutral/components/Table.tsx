@@ -25,6 +25,7 @@ export interface TableProps {
   showSearch?: boolean
   filters?: ReactNode
   actions?: ReactNode
+  className?: string
   onSort?: (key: string) => void
   onRowClick?: (id: string) => void
 }
@@ -64,16 +65,20 @@ export function Table({
   showSearch = true,
   filters,
   actions,
+  className,
   onSort,
   onRowClick,
 }: TableProps) {
+  const showToolbar = showSearch || Boolean(filters) || Boolean(actions)
   return (
-    <div>
-      <TableToolbar>
-        {showSearch ? <SearchInput placeholder="搜索" /> : null}
-        {filters}
-        {actions}
-      </TableToolbar>
+    <div className={className}>
+      {showToolbar ? (
+        <TableToolbar>
+          {showSearch ? <SearchInput placeholder="搜索" /> : null}
+          {filters}
+          {actions}
+        </TableToolbar>
+      ) : null}
       {state === 'loading' ? <div role="status">{loading}</div> : null}
       {state === 'empty' ? <div>{empty}</div> : null}
       {state === 'data' ? (

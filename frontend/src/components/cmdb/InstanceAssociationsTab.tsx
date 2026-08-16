@@ -9,9 +9,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
 import {
   Alert,
-  Badge,
   Button,
-  Card,
   Checkbox,
   Chip,
   EmptyState,
@@ -200,21 +198,21 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
   })
 
   return (
-    <Card
-      title={`关联关系（${relations.length}）`}
-      headerAction={
-        <Button type="button" size="sm" variant="ghost" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)}>
+    <section className="cwgsyw-cmdb-instance-associations cwgsyw-cmdb-instance-tab__section">
+      <div className="cwgsyw-cmdb-instance-associations__head cwgsyw-cmdb-instance-tab__head">
+        <h2>关联关系 <span>{relations.length}</span></h2>
+        <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations`)}>
           管理全部关联
         </Button>
-      }
-    >
-      {isLoading ? (
-        <LoadingState label="加载关联" />
-      ) : groups.length === 0 ? (
-        <EmptyState title="暂无关联" />
-      ) : (
-        <div className="cwgsyw-stack-list">
-          {groups.map((group) => {
+      </div>
+      <div className="cwgsyw-cmdb-instance-tab__body">
+        {isLoading ? (
+          <LoadingState label="加载关联" />
+        ) : groups.length === 0 ? (
+          <EmptyState title="暂无关联" />
+        ) : (
+          <div className="cwgsyw-cmdb-instance-associations__groups">
+            {groups.map((group) => {
             const isHostPool = group.kind === 'host_belong_resource_pool'
             const sortedRels = isHostPool
               ? [...group.rels].sort((a, b) => {
@@ -224,8 +222,10 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                 })
               : group.rels
             return (
-              <Card key={group.kind} title={`${kindMap.get(group.kind) ?? group.kind}（${group.rels.length}）`}>
+              <div key={group.kind} className="cwgsyw-cmdb-table-block">
+                <div className="cwgsyw-cmdb-table-block__title">{kindMap.get(group.kind) ?? group.kind} {group.rels.length}</div>
                 <Table
+                  className="cwgsyw-cmdb-table"
                   showSearch={false}
                   density="compact"
                   columns={[
@@ -260,17 +260,18 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
                     setDrawerInstId(rel.srcInstanceId === currentId ? rel.dstInstanceId : rel.srcInstanceId)
                   }}
                 />
-              </Card>
+              </div>
             )
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
 
-      {hasPermission('cmdb_instance', 'create') ? (
-        <Button type="button" size="sm" variant="secondary" onClick={() => { setAddDialogOpen(true); setAddError('') }}>
-          添加关联
-        </Button>
-      ) : null}
+        {hasPermission('cmdb_instance', 'create') ? (
+          <Button className="cwgsyw-cmdb-instance-associations__add" type="button" size="sm" variant="primary" onClick={() => { setAddDialogOpen(true); setAddError('') }}>
+            添加关联
+          </Button>
+        ) : null}
+      </div>
 
       <CiInstanceDrawer instanceId={drawerInstId} onClose={() => setDrawerInstId(null)} />
       <NeutralAlertDialog
@@ -300,7 +301,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         }
       >
         <Field label="关联定义">
-          <Select
+          <Select size="sm" overlay
             value={selectedDefId}
             placeholder="选择关联定义..."
             options={applicableDefs.map((d) => ({ value: d.defId, label: `${d.name} (${d.mapping})` }))}
@@ -309,7 +310,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         </Field>
         {selectedDef ? (
           <Field label={`目标实例（${searchResult?.records?.[0]?.modelName ?? targetModelId}）`}>
-            <SearchInput
+            <SearchInput size="sm"
               placeholder="搜索实例名称..."
               value={peerSearch}
               onChange={(e) => { setPeerSearch(e.target.value); setSelectedPeerId(null) }}
@@ -349,7 +350,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         ) : null}
         {addError ? <Alert tone="danger" title="创建失败" description={addError} showDismiss={false} /> : null}
       </NeutralDialog>
-    </Card>
+    </section>
   )
 }
 
@@ -372,7 +373,7 @@ function RelationAttrField({ attr, value, onChange }: {
     const current = (value ?? attr.defaultValue ?? '') as string
     return (
       <Field label={`${attr.name}${attr.isRequired ? ' *' : ''}`}>
-        <Select
+        <Select size="sm" overlay
           value={current || '__none__'}
           options={[{ value: '__none__', label: '（未设置）' }, ...options.map((o) => ({ value: o, label: o }))]}
           onChange={(v) => onChange(v === '__none__' ? undefined : v)}
@@ -382,7 +383,7 @@ function RelationAttrField({ attr, value, onChange }: {
   }
   return (
     <Field label={`${attr.name}${attr.isRequired ? ' *' : ''}`}>
-      <Input
+      <Input size="sm"
         type={attr.fieldType === 'int' ? 'number' : attr.fieldType === 'date' ? 'date' : 'text'}
         value={(value as string | number | undefined) ?? ''}
         placeholder={attr.defaultValue ?? ''}

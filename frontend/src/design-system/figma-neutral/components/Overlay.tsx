@@ -1,13 +1,25 @@
 'use client'
 
-import { Dialog } from '@base-ui/react/dialog'
 import { Menu } from '@base-ui/react/menu'
 import { Popover } from '@base-ui/react/popover'
 import { Tooltip } from '@base-ui/react/tooltip'
-import type { ReactNode } from 'react'
-import { useMemo, useState } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from './Button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+} from './AlertDialog'
 import { DateInput } from './DateInput'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } from './Dialog'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerTitle } from './Drawer'
+import { IconButton } from './IconButton'
 import { Input } from './Input'
 
 export function MenuItem({
@@ -33,10 +45,33 @@ export function MenuItem({
   )
 }
 
-export function DropdownMenu({ trigger, children }: { trigger: ReactNode; children: ReactNode }) {
+export const MenuTriggerButton = forwardRef<
+  HTMLButtonElement,
+  ButtonHTMLAttributes<HTMLButtonElement> & { size?: 'sm' | 'md' | 'lg'; variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' }
+>(function MenuTriggerButton({
+  size = 'md',
+  variant = 'ghost',
+  className,
+  type,
+  children,
+  ...props
+}, ref) {
+  return (
+    <button
+      {...props}
+      ref={ref}
+      type={type ?? 'button'}
+      className={['cwgsyw-btn', `cwgsyw-btn--${size}`, `cwgsyw-btn--${variant}`, className].filter(Boolean).join(' ')}
+    >
+      {children}
+    </button>
+  )
+})
+
+export function DropdownMenu({ trigger, children }: { trigger: ReactElement; children: ReactNode }) {
   return (
     <Menu.Root>
-      <Menu.Trigger render={<span />}>{trigger}</Menu.Trigger>
+      <Menu.Trigger render={trigger} />
       <Menu.Portal>
         <Menu.Positioner>
           <Menu.Popup className="cwgsyw-menu">{children}</Menu.Popup>
@@ -85,6 +120,7 @@ export function NeutralDialog({
   showDescription = true,
   showClose = true,
   size = 'md',
+  intent = 'default',
   children,
   footer,
 }: {
@@ -94,29 +130,46 @@ export function NeutralDialog({
   description?: string
   showDescription?: boolean
   showClose?: boolean
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'alert'
+  intent?: 'default' | 'destructive'
   children?: ReactNode
   footer?: ReactNode
 }) {
+  const focusReturnRef = useRef<HTMLElement | null>(null)
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="cwgsyw-overlay-scrim" />
-        <Dialog.Popup className={['cwgsyw-dialog', `cwgsyw-dialog--${size}`].join(' ')}>
-          <div>
-            <Dialog.Title className="cwgsyw-type-title-sm">{title}</Dialog.Title>
-            {showDescription && description ? <Dialog.Description className="cwgsyw-type-body-sm">{description}</Dialog.Description> : null}
-          </div>
-          {children}
-          {footer}
-          {showClose ? (
-            <Dialog.Close render={<Button variant="ghost" size="sm" />}>
-              关闭
-            </Dialog.Close>
-          ) : null}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogPortal>
+          <DialogOverlay />
+          <DialogContent
+            {...(showDescription && description ? {} : { 'aria-describedby': undefined })}
+            className={[`cwgsyw-dialog--${size}`, intent === 'destructive' ? 'cwgsyw-dialog--destructive' : ''].filter(Boolean).join(' ')}
+            onOpenAutoFocus={() => {
+              focusReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+            }}
+            onCloseAutoFocus={(event) => {
+              if (!focusReturnRef.current?.isConnected) return
+              event.preventDefault()
+              focusReturnRef.current.focus()
+              focusReturnRef.current = null
+            }}
+          >
+            <div className="cwgsyw-dialog__header">
+              <div className="cwgsyw-dialog__title-group">
+                <DialogTitle className="cwgsyw-type-title-sm">{title}</DialogTitle>
+                {showDescription && description ? <DialogDescription className="cwgsyw-type-body-sm">{description}</DialogDescription> : null}
+              </div>
+              {showClose ? (
+                <DialogClose asChild>
+                  <IconButton type="button" variant="ghost" size="sm" icon="close" aria-label="关闭对话框" />
+                </DialogClose>
+              ) : null}
+            </div>
+            {children ? <div className="cwgsyw-dialog__body">{children}</div> : null}
+            {footer ? <div className="cwgsyw-dialog__footer">{footer}</div> : null}
+          </DialogContent>
+        </DialogPortal>
+    </Dialog>
   )
 }
 
@@ -139,24 +192,53 @@ export function NeutralAlertDialog({
   cancelLabel?: string
   onConfirm?: () => void
 }) {
+  const focusReturnRef = useRef<HTMLElement | null>(null)
+
   return (
-    <NeutralDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={title}
-      description={description}
-      showClose={false}
-      footer={
-        <div className="cwgsyw-form__actions">
-          <Button type="button" variant="secondary" onClick={() => onOpenChange?.(false)}>
-            {cancelLabel}
-          </Button>
-          <Button type="button" variant={intent === 'destructive' ? 'destructive' : 'primary'} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </div>
-      }
-    />
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogPortal>
+        <AlertDialogOverlay />
+        <AlertDialogContent
+          {...(description ? {} : { 'aria-describedby': undefined })}
+          className={['cwgsyw-dialog--alert', intent === 'destructive' ? 'cwgsyw-dialog--destructive' : ''].filter(Boolean).join(' ')}
+          onOpenAutoFocus={() => {
+            focusReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          }}
+          onCloseAutoFocus={(event) => {
+            if (!focusReturnRef.current?.isConnected) return
+            event.preventDefault()
+            focusReturnRef.current.focus()
+            focusReturnRef.current = null
+          }}
+        >
+          <div className="cwgsyw-dialog__header">
+            <div className="cwgsyw-dialog__title-group">
+              <AlertDialogTitle className="cwgsyw-type-title-sm">{title}</AlertDialogTitle>
+              {description ? <AlertDialogDescription className="cwgsyw-type-body-sm">{description}</AlertDialogDescription> : null}
+            </div>
+          </div>
+          <div className="cwgsyw-dialog__footer">
+            <div className="cwgsyw-dialog__action-group">
+              <AlertDialogCancel asChild>
+                <Button type="button" variant="secondary">{cancelLabel}</Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  type="button"
+                  variant={intent === 'destructive' ? 'destructive' : 'primary'}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    onConfirm?.()
+                  }}
+                >
+                  {confirmLabel}
+                </Button>
+              </AlertDialogAction>
+            </div>
+          </div>
+        </AlertDialogContent>
+      </AlertDialogPortal>
+    </AlertDialog>
   )
 }
 
@@ -166,6 +248,8 @@ export function NeutralDrawer({
   title,
   description,
   side = 'right',
+  className,
+  showClose = false,
   children,
 }: {
   open?: boolean
@@ -173,19 +257,27 @@ export function NeutralDrawer({
   title: string
   description?: string
   side?: 'left' | 'right'
+  className?: string
+  showClose?: boolean
   children?: ReactNode
 }) {
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="cwgsyw-overlay-scrim" />
-        <Dialog.Popup className={['cwgsyw-drawer', `cwgsyw-drawer--${side}`].join(' ')}>
-          <Dialog.Title className="cwgsyw-type-title-sm">{title}</Dialog.Title>
-          {description ? <Dialog.Description className="cwgsyw-type-body-sm">{description}</Dialog.Description> : null}
-          {children}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Drawer open={open} onOpenChange={onOpenChange} direction={side}>
+      <DrawerContent className={['cwgsyw-drawer', `cwgsyw-drawer--${side}`, className].filter(Boolean).join(' ')}>
+        <div className="cwgsyw-drawer__header">
+          <div className="cwgsyw-drawer__title-group">
+            <DrawerTitle className="cwgsyw-type-title-sm">{title}</DrawerTitle>
+            {description ? <DrawerDescription className="cwgsyw-type-body-sm">{description}</DrawerDescription> : null}
+          </div>
+          {showClose ? (
+            <DrawerClose asChild>
+              <IconButton type="button" variant="ghost" size="sm" icon="close" aria-label="关闭" />
+            </DrawerClose>
+          ) : null}
+        </div>
+        {children ? <div className="cwgsyw-drawer__body">{children}</div> : null}
+      </DrawerContent>
+    </Drawer>
   )
 }
 

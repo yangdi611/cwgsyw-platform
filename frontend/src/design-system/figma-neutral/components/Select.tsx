@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Icon } from './Icon'
 import { Spinner } from './Spinner'
 import type { ControlSize } from './Input'
@@ -11,42 +11,62 @@ export interface SelectOption {
 
 export interface SelectProps {
   id?: string
+  className?: string
   size?: ControlSize
   error?: boolean
   disabled?: boolean
   loading?: boolean
+  overlay?: boolean
   open?: boolean
   defaultOpen?: boolean
   placeholder?: string
   value?: string
   options?: SelectOption[]
   'aria-describedby'?: string
+  'aria-label'?: string
   'aria-invalid'?: boolean | 'true' | 'false'
   'aria-required'?: boolean | 'true' | 'false'
   onChange?: (value: string) => void
+  onOpenChange?: (open: boolean) => void
 }
 
 export function Select({
   id,
+  className,
   size = 'md',
   error = false,
   disabled = false,
   loading = false,
+  overlay = false,
   open,
   defaultOpen = false,
   placeholder = '请选择',
   value,
   options = [],
   onChange,
+  onOpenChange,
   ...aria
 }: SelectProps) {
   const listId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
   const isOpen = open ?? uncontrolledOpen
   const selected = options.find((option) => option.value === value)
-  const setOpen = (next: boolean) => {
+  const setOpen = useCallback((next: boolean) => {
     if (open == null) setUncontrolledOpen(next)
-  }
+    onOpenChange?.(next)
+  }, [onOpenChange, open])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
+  }, [isOpen, setOpen])
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === 'Escape') setOpen(false)
@@ -57,7 +77,7 @@ export function Select({
   }
 
   return (
-    <div>
+    <div ref={rootRef} className={[overlay ? 'cwgsyw-select' : '', className].filter(Boolean).join(' ') || undefined}>
       <button
         {...aria}
         id={id}
@@ -76,7 +96,7 @@ export function Select({
         {loading ? <Spinner size="sm" showLabel={false} /> : <Icon name="chevron-down" size="sm" />}
       </button>
       {isOpen ? (
-        <ul id={listId} className="cwgsyw-listbox" role="listbox">
+        <ul id={listId} className={`cwgsyw-listbox${overlay ? ' cwgsyw-listbox--overlay' : ''}`} role="listbox">
           {options.map((option) => (
             <li key={option.value}>
               <button

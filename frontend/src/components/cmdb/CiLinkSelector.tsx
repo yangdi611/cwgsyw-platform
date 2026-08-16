@@ -84,7 +84,7 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
     <div className="space-y-3">
       {/* Search input + dropdown */}
       <div ref={containerRef} className="relative">
-        <Input
+        <Input size="sm"
           placeholder="输入关键词搜索 CI 实例..."
           value={keyword}
           onChange={e => { setKeyword(e.target.value); setOpen(true) }}
@@ -130,7 +130,7 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
             >
               <span>{item.instanceName}</span>
               <Badge label={item.modelName} />
-              <Select
+              <Select size="sm" overlay
                 value={item.impactLevel ?? ''}
                 disabled={disabled}
                 options={IMPACT_OPTIONS}

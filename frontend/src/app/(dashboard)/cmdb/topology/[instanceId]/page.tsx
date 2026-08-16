@@ -135,10 +135,11 @@ export default function TopologyPage() {
   }
 
   return (
-    <DetailDrawerPage
+    <DetailDrawerPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑图`}
           subtitle={`${nodes.length} 个节点，${edges.length} 条关联`}
           breadcrumb={
@@ -169,6 +170,7 @@ export default function TopologyPage() {
             </div>
           }
         />
+        </div>
       }
       workspaceToolbar={
         <div className="cwgsyw-inline-controls">

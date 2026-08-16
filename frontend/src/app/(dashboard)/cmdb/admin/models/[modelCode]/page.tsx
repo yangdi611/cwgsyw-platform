@@ -21,11 +21,10 @@ import type {
 import { toAttributeAdminItem } from './components/types'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DetailDrawerPage,
   EmptyState,
-  PageHeader,
+  Icon,
 } from '@/design-system/figma-neutral/components'
 
 export default function ModelDetailPage() {
@@ -96,29 +95,23 @@ export default function ModelDetailPage() {
   return (
     <>
       <DetailDrawerPage
+        className="cwgsyw-cmdb-page cwgsyw-cmdb-admin cwgsyw-cmdb-model-detail"
         header={
-          <PageHeader
-            eyebrow="CMDB"
-            title={model?.displayName ?? modelCode}
-            subtitle={modelCode}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/cmdb', label: 'CMDB' },
-                  { href: '/cmdb/admin', label: '模型管理' },
-                  { label: model?.displayName ?? modelCode },
-                ]}
-              />
-            }
-            actions={
-              canCreateAttributes ? (
-                <Button type="button" onClick={() => setAddDialogOpen(true)}>
-                  新建属性
-                </Button>
-              ) : undefined
-            }
-          />
+          <header className="cwgsyw-cmdb-model-detail__header">
+            <div className="cwgsyw-cmdb-overview__catalog-title">
+              <h1>{model?.displayName ?? modelCode}</h1>
+              <span className="cwgsyw-cmdb-overview__catalog-note">
+                <Icon name="chevron-next" size="sm" aria-hidden="true" />
+                <span>{modelCode}</span>
+                <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+              </span>
+            </div>
+            {canCreateAttributes ? (
+              <Button type="button" size="sm" onClick={() => setAddDialogOpen(true)}>
+                新建属性
+              </Button>
+            ) : null}
+          </header>
         }
         content={
           !canReadAttributes ? (

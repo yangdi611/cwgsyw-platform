@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { Badge, Card, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
+import { Badge, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
 
 interface DeviceVO {
   id: number
@@ -39,31 +39,31 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
   }
 
   return (
-    <div className="cwgsyw-stack-list">
+    <div className="cwgsyw-cmdb-instance-tab cwgsyw-cmdb-instance-tab__resources">
       <Section title="关联设备凭证" emptyMsg="暂无关联设备凭证">
         {devices.data?.map((d) => (
-          <div key={d.id} className="cwgsyw-inline-controls">
-            <div>
-              <p className="cwgsyw-type-body-sm">{d.name}</p>
-              <p className="cwgsyw-type-label-sm">{d.ip || '-'}</p>
+          <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
+            <div className="cwgsyw-cmdb-instance-tab__row-main">
+              <p className="cwgsyw-cmdb-instance-tab__row-title">{d.name}</p>
+              <p className="cwgsyw-cmdb-instance-tab__muted">{d.ip || '-'}</p>
             </div>
             <Badge label={d.deviceType} />
-            <Link href={`/devices/${d.id}`} className="cwgsyw-type-label-sm">查看</Link>
+            <Link href={`/devices/${d.id}`}>查看</Link>
           </div>
         ))}
       </Section>
 
       <Section title="关联变更文档" emptyMsg="暂无关联变更文档">
         {changeDocs.data?.map((d) => (
-          <div key={d.id} className="cwgsyw-inline-controls">
-            <div>
-              <p className="cwgsyw-type-body-sm">{d.title}</p>
-              <p className="cwgsyw-type-label-sm">
+          <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
+            <div className="cwgsyw-cmdb-instance-tab__row-main">
+              <p className="cwgsyw-cmdb-instance-tab__row-title">{d.title}</p>
+              <p className="cwgsyw-cmdb-instance-tab__muted">
                 {d.changeNo}{d.linkCreatedAt ? ` · ${new Date(d.linkCreatedAt).toLocaleString('zh-CN')}` : ''}
               </p>
             </div>
             <Badge label={d.status} />
-            <Link href={`/change-docs/${d.id}`} className="cwgsyw-type-label-sm">查看</Link>
+            <Link href={`/change-docs/${d.id}`}>查看</Link>
           </div>
         ))}
       </Section>
@@ -82,8 +82,11 @@ function Section({
   const hasContent = items.some(Boolean)
 
   return (
-    <Card title={title}>
-      {hasContent ? <div className="cwgsyw-stack-list">{children}</div> : <EmptyState title={emptyMsg} />}
-    </Card>
+    <section className="cwgsyw-cmdb-instance-tab__section">
+      <div className="cwgsyw-cmdb-instance-tab__head"><h2>{title}</h2></div>
+      <div className="cwgsyw-cmdb-instance-tab__body">
+        {hasContent ? <div className="cwgsyw-cmdb-instance-tab__rows">{children}</div> : <EmptyState title={emptyMsg} />}
+      </div>
+    </section>
   )
 }

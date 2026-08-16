@@ -11,6 +11,7 @@ import {
   Button,
   EmptyState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
@@ -18,6 +19,7 @@ import {
   StatusBadge,
   Table,
 } from '@/design-system/figma-neutral/components'
+import { CmdbAdminActionIcon } from './CmdbAdminActionIcon'
 
 function AttributeGroupsTab() {
   const { hasPermission } = usePermission()
@@ -87,28 +89,30 @@ function AttributeGroupsTab() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
 
   return (
-    <div className="cwgsyw-form">
-      <div className="cwgsyw-inline-controls">
-        <Field label="模型" htmlFor="attr-group-model">
-          <Select
-            id="attr-group-model"
-            value={selectedModel}
-            placeholder="请选择模型"
-            options={models.map((item) => ({ value: item.modelId, label: `${item.name} (${item.modelId})` }))}
-            onChange={(value) => {
-              setSelectedModel(value)
-              setEditingId(null)
-              setCreating(false)
-            }}
-          />
-        </Field>
+    <div className="cwgsyw-cmdb-admin__panel-section">
+      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__toolbar">
+        <Select
+          className="cwgsyw-cmdb-admin__model-select"
+          size="sm"
+          overlay
+          id="attr-group-model"
+          aria-label="选择模型"
+          value={selectedModel}
+          placeholder="请选择模型"
+          options={models.map((item) => ({ value: item.modelId, label: `${item.name} (${item.modelId})` }))}
+          onChange={(value) => {
+            setSelectedModel(value)
+            setEditingId(null)
+            setCreating(false)
+          }}
+        />
         {selectedModel && canWrite ? (
           <Button type="button" variant="primary" size="sm" onClick={() => setCreating((current) => !current)}>
             新建分组
           </Button>
         ) : null}
       </div>
-      <p className="cwgsyw-type-body-sm">为选定模型管理属性分组（如 基本信息 / 硬件信息）。新建模型属性时从这里选择所属分组。</p>
+      <p className="cwgsyw-cmdb-admin__section-note">为选定模型管理属性分组（如基本信息、硬件信息）。新建模型属性时从这里选择所属分组。</p>
 
       {!selectedModel ? (
         <EmptyState title="请先选择模型" description="选择一个 CI 模型后即可管理它的属性分组。" />
@@ -118,13 +122,13 @@ function AttributeGroupsTab() {
             <div className="cwgsyw-form">
               <div className="cwgsyw-filter-grid">
                 <Field label="分组ID" htmlFor="group-id" required helperText="英文/下划线">
-                  <Input id="group-id" value={form.groupId} onChange={(event) => setForm((current) => ({ ...current, groupId: event.target.value }))} placeholder="如: hardware" />
+                  <Input size="sm" id="group-id" value={form.groupId} onChange={(event) => setForm((current) => ({ ...current, groupId: event.target.value }))} placeholder="如: hardware" />
                 </Field>
                 <Field label="名称" htmlFor="group-name" required>
-                  <Input id="group-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: 硬件信息" />
+                  <Input size="sm" id="group-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: 硬件信息" />
                 </Field>
                 <Field label="排序" htmlFor="group-sort">
-                  <Input id="group-sort" type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number(event.target.value || 0) }))} />
+                  <Input size="sm" id="group-sort" type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number(event.target.value || 0) }))} />
                 </Field>
               </div>
               <div className="cwgsyw-inline-controls">
@@ -144,39 +148,32 @@ function AttributeGroupsTab() {
             <EmptyState title="暂无分组" description="这个模型还没有属性分组。" />
           ) : (
             <Table
+              className={`cwgsyw-cmdb-table${canWrite ? ' cwgsyw-cmdb-admin__action-table' : ''}`}
               showSearch={false}
               columns={[
                 { key: 'name', label: '名称' },
                 { key: 'groupId', label: '分组ID' },
                 { key: 'count', label: '属性' },
-                { key: 'actions', label: '操作', align: 'right' },
+                { key: 'actions', label: '', align: 'right' },
               ]}
               rows={groups.map((group) => ({
                 id: String(group.id),
                 cells: {
                   name: editingId === group.id ? (
-                    <Input value={editForm.name} onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))} />
+                    <Input size="sm" value={editForm.name} onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))} />
                   ) : group.name,
                   groupId: group.groupId,
                   count: <StatusBadge label={`${group.attributeCount} 属性`} status="neutral" />,
                   actions: canWrite ? (
                     editingId === group.id ? (
-                      <div className="cwgsyw-inline-controls">
-                        <Button type="button" size="sm" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate({ id: group.id, body: editForm })}>
-                          保存
-                        </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                          取消
-                        </Button>
+                      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                        <IconButton type="button" size="sm" variant="ghost" icon="check" aria-label="保存分组" title="保存" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate({ id: group.id, body: editForm })} />
+                        <IconButton type="button" size="sm" variant="ghost" icon="close" aria-label="取消编辑分组" title="取消" onClick={() => setEditingId(null)} />
                       </div>
                     ) : (
-                      <div className="cwgsyw-inline-controls">
-                        <Button type="button" size="sm" variant="ghost" onClick={() => { setEditingId(group.id); setEditForm({ name: group.name, sortOrder: group.sortOrder ?? 0 }) }}>
-                          编辑
-                        </Button>
-                        <Button type="button" size="sm" variant="ghost" disabled={(group.attributeCount ?? 0) > 0} onClick={() => setDeleteId(group.id)}>
-                          删除
-                        </Button>
+                      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                        <IconButton type="button" size="sm" variant="ghost" icon={<CmdbAdminActionIcon name="edit" />} aria-label={`编辑分组 ${group.name}`} title="编辑" onClick={() => { setEditingId(group.id); setEditForm({ name: group.name, sortOrder: group.sortOrder ?? 0 }) }} />
+                        <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-cmdb-admin__delete-action" icon={<CmdbAdminActionIcon name="trash" />} aria-label={`删除分组 ${group.name}`} title={(group.attributeCount ?? 0) > 0 ? '分组下有属性，无法删除' : '删除'} disabled={(group.attributeCount ?? 0) > 0} onClick={() => setDeleteId(group.id)} />
                       </div>
                     )
                   ) : null,

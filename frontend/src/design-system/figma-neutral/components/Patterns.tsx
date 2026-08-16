@@ -125,16 +125,18 @@ function PageShell({
   children,
   embedded = false,
   centered = false,
+  className,
 }: {
   layout?: PatternLayout
   header?: ReactNode
   children: ReactNode
   embedded?: boolean
   centered?: boolean
+  className?: string
 }) {
   return (
     <div
-      className={['cwgsyw-page', `cwgsyw-page--${layout}`, embedded ? 'cwgsyw-page--embedded' : '', centered ? 'cwgsyw-page--centered' : ''].filter(Boolean).join(' ')}
+      className={['cwgsyw-page', `cwgsyw-page--${layout}`, embedded ? 'cwgsyw-page--embedded' : '', centered ? 'cwgsyw-page--centered' : '', className].filter(Boolean).join(' ')}
       data-cwgsyw-layout={layout}
     >
       {header}
@@ -150,6 +152,7 @@ export function FormSettingsPage({
   supporting,
   embedded = false,
   centered = false,
+  className,
 }: {
   layout?: PatternLayout
   header?: ReactNode
@@ -157,10 +160,11 @@ export function FormSettingsPage({
   supporting?: ReactNode
   embedded?: boolean
   centered?: boolean
+  className?: string
 }) {
   return (
-    <PageShell layout={layout} header={header} embedded={embedded} centered={centered}>
-      <div className="cwgsyw-page__grid">
+    <PageShell layout={layout} header={header} embedded={embedded} centered={centered} className={className}>
+      <div className={`cwgsyw-page__grid${supporting ? '' : ' cwgsyw-page__grid--single'}`}>
         <section>{form}</section>
         {supporting ? <aside>{supporting}</aside> : null}
       </div>
@@ -175,6 +179,7 @@ export function DataManagementPage({
   filter,
   content,
   embedded = false,
+  className,
 }: {
   layout?: PatternLayout
   header?: ReactNode
@@ -182,9 +187,10 @@ export function DataManagementPage({
   filter?: ReactNode
   content?: ReactNode
   embedded?: boolean
+  className?: string
 }) {
   return (
-    <PageShell layout={layout} header={header} embedded={embedded}>
+    <PageShell layout={layout} header={header} embedded={embedded} className={className}>
       {toolbar}
       {filter}
       <section>{content}</section>
@@ -199,6 +205,7 @@ export function DetailDrawerPage({
   content,
   drawer,
   embedded = false,
+  className,
 }: {
   layout?: PatternLayout
   header?: ReactNode
@@ -206,13 +213,14 @@ export function DetailDrawerPage({
   content?: ReactNode
   drawer?: ReactNode
   embedded?: boolean
+  className?: string
 }) {
   return (
-    <PageShell layout={layout} header={header} embedded={embedded}>
+    <PageShell layout={layout} header={header} embedded={embedded} className={className}>
       {workspaceToolbar}
-      <div className="cwgsyw-page__grid">
+      <div className={`cwgsyw-page__grid${drawer ? '' : ' cwgsyw-page__grid--single'}`}>
         <section>{content}</section>
-        {drawer}
+        {drawer ? <aside>{drawer}</aside> : null}
       </div>
     </PageShell>
   )
@@ -224,15 +232,17 @@ export function DashboardFeedbackPage({
   metrics,
   feedback,
   supporting,
+  className,
 }: {
   layout?: PatternLayout
   header?: ReactNode
   metrics?: ReactNode
   feedback?: ReactNode
   supporting?: ReactNode
+  className?: string
 }) {
   return (
-    <PageShell layout={layout} header={header}>
+    <PageShell layout={layout} header={header} className={className}>
       <section className="cwgsyw-page__metrics">{metrics}</section>
       {feedback}
       {supporting}

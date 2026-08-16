@@ -84,7 +84,7 @@ export function BatchEditDialog({
       }
     >
       <Field label="选择字段">
-        <Select
+        <Select size="sm" overlay
           value={fieldKey}
           placeholder="选择要修改的公共字段"
           options={editable.map((a) => ({ value: a.fieldKey, label: a.name }))}
@@ -94,25 +94,25 @@ export function BatchEditDialog({
       {fieldKey ? (
         <Field label="新值" helperText={`将覆盖所选 ${selectedIds.length} 个实例的该字段。`}>
           {current?.fieldType === 'enum' && Array.isArray(current.option) ? (
-            <Select
+            <Select size="sm" overlay
               value={value}
               placeholder="请选择"
               options={current.option.map((o) => ({ value: o.id, label: o.name }))}
               onChange={setValue}
             />
           ) : current?.fieldType === 'bool' ? (
-            <Select
+            <Select size="sm" overlay
               value={value}
               placeholder="请选择"
               options={[{ value: 'true', label: '是' }, { value: 'false', label: '否' }]}
               onChange={setValue}
             />
           ) : current?.fieldType === 'date' ? (
-            <Input type="date" value={value} onChange={(e) => setValue(e.target.value)} />
+            <Input size="sm" type="date" value={value} onChange={(e) => setValue(e.target.value)} />
           ) : current?.fieldType === 'int' || current?.fieldType === 'float' ? (
-            <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} />
+            <Input size="sm" type="number" value={value} onChange={(e) => setValue(e.target.value)} />
           ) : (
-            <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="输入新值" />
+            <Input size="sm" value={value} onChange={(e) => setValue(e.target.value)} placeholder="输入新值" />
           )}
         </Field>
       ) : null}

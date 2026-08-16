@@ -23,9 +23,10 @@ export function SpatialCanvasSpike() {
   })), [])
 
   return (
-    <div className="cwgsyw-stack-list">
+    <div className="cwgsyw-cmdb-page cwgsyw-stack-list">
+      <div className="cwgsyw-cmdb-instance-page">
       <PageHeader
-        eyebrow="CMDB"
+            showEyebrow={false}
         title="空间画布技术验证"
         subtitle="500 个机柜位，支持平移、缩放和不规则机房轮廓。"
         actions={
@@ -37,6 +38,7 @@ export function SpatialCanvasSpike() {
           </div>
         }
       />
+      </div>
       <div ref={stageRef} className="cwgsyw-card">
         <SpatialCanvasStage slots={slots} scale={scale} position={position} onPositionChange={setPosition} />
       </div>

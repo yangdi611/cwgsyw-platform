@@ -123,6 +123,7 @@ test('wiki spaces leaves old visual entries and keeps APIs', () => {
   assert.match(page, /wikiApi\.deleteSpace/)
   assert.match(page, /hasPermission\('wiki', 'read'\)/)
   assert.match(page, /hasPermission\('wiki', 'create'\)/)
+  assert.doesNotMatch(page, /label="(?:官方手册|系统维护)" tone="info"/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)

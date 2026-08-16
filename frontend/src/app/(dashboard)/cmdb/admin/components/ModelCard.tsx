@@ -8,10 +8,14 @@ import '@/design-system/figma-neutral/index.css'
 import {
   Button,
   DropdownMenu,
+  IconButton,
+  MenuItem,
   NeutralAlertDialog,
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
 import { useState } from 'react'
+import { CmdbAdminModelMenuIcon } from './CmdbAdminModelMenuIcon'
+import { CmdbAdminModelMenuItemIcon } from './CmdbAdminModelMenuItemIcon'
 
 interface ModelCardProps {
   model: CiModelAdminItem
@@ -48,61 +52,71 @@ export function ModelCard({
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <div className={justMoved ? 'cwgsyw-card cwgsyw-card--md cwgsyw-card--selected' : 'cwgsyw-card cwgsyw-card--md'}>
+    <div className={justMoved ? 'cwgsyw-card cwgsyw-card--md cwgsyw-card--selected cwgsyw-cmdb-admin__model-card' : 'cwgsyw-card cwgsyw-card--md cwgsyw-cmdb-admin__model-card'}>
       <div className="cwgsyw-inline-controls">
-        <Link href={`/cmdb/admin/models/${model.modelId}`} className="cwgsyw-form" style={{ flex: 1, minWidth: 0 }}>
+        <Link href={`/cmdb/admin/models/${model.modelId}`} className="cwgsyw-cmdb-admin__model-link">
           <div className="cwgsyw-inline-controls">
-            <strong className="cwgsyw-type-title-sm">{displayName}</strong>
+            <span className="cwgsyw-cmdb-admin__model-title">{displayName}</span>
             {model.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
           </div>
-          <div className="cwgsyw-type-label-xs">{model.modelId}</div>
+          <span className="cwgsyw-cmdb-admin__model-meta">{model.modelId}</span>
         </Link>
         {canShowMenu ? (
           <DropdownMenu
             trigger={
-              <Button type="button" variant="ghost" size="sm" aria-label={`${displayName} 操作`}>
-                操作
-              </Button>
+              <IconButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="cwgsyw-cmdb-admin__model-menu-trigger"
+                icon={<CmdbAdminModelMenuIcon />}
+                aria-label={`${displayName} 操作`}
+                title="操作"
+              />
             }
           >
-            {canWrite ? (
-              <Button type="button" variant="ghost" size="sm" onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}>
-                打开设置
-              </Button>
-            ) : null}
-            {canRename ? (
-              <Button type="button" variant="ghost" size="sm" onClick={onRename}>
-                重命名
-              </Button>
-            ) : null}
-            {canWrite ? (
-              <div className="cwgsyw-form">
-                <div className="cwgsyw-type-label-xs">移动到分类</div>
-                {groups.map((group) => (
-                  <Button
-                    key={group.code}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={group.code === model.group}
-                    onClick={() => onMove(group.code)}
-                  >
-                    {group.name}
-                    {group.code === model.group ? '（当前）' : ''}
-                  </Button>
-                ))}
-              </div>
-            ) : null}
-            {canCopy ? (
-              <Button type="button" variant="ghost" size="sm" onClick={onCopy}>
-                复制模型
-              </Button>
-            ) : null}
-            {canDelete && !model.isBuiltIn ? (
-              <Button type="button" variant="ghost" size="sm" disabled={deleting} onClick={() => setConfirmDelete(true)}>
-                删除模型
-              </Button>
-            ) : null}
+            <div className="cwgsyw-cmdb-admin__model-menu">
+              {canWrite ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  role="menuitem"
+                  className="cwgsyw-menu-item"
+                  onClick={() => router.push(`/cmdb/admin/models/${model.modelId}`)}
+                >
+                  <span className="cwgsyw-cmdb-admin__model-menu-item-content">
+                    <CmdbAdminModelMenuItemIcon name="settings" />
+                    <span>打开设置</span>
+                  </span>
+                </Button>
+              ) : null}
+              {canRename ? <MenuItem label="重命名" onClick={onRename} /> : null}
+              {canCopy ? <MenuItem label="复制模型" onClick={onCopy} /> : null}
+              {canWrite && groups.length > 0 ? (
+                <>
+                  <div className="cwgsyw-cmdb-admin__model-menu-separator" role="separator" />
+                  <div className="cwgsyw-cmdb-admin__model-menu-label">
+                    <CmdbAdminModelMenuItemIcon name="move" />
+                    <span>移动到分类</span>
+                  </div>
+                  {groups.map((group) => (
+                    <MenuItem
+                      key={group.code}
+                      label={group.name + (group.code === model.group ? '（当前）' : '')}
+                      disabled={group.code === model.group}
+                      onClick={() => onMove(group.code)}
+                    />
+                  ))}
+                </>
+              ) : null}
+              {canDelete && !model.isBuiltIn ? (
+                <>
+                  <div className="cwgsyw-cmdb-admin__model-menu-separator" role="separator" />
+                  <MenuItem label="删除模型" type="destructive" disabled={deleting} onClick={() => setConfirmDelete(true)} />
+                </>
+              ) : null}
+            </div>
           </DropdownMenu>
         ) : null}
       </div>

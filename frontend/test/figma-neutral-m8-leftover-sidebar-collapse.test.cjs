@@ -9,13 +9,16 @@ const source = fs.readFileSync(
   path.resolve(__dirname, '../src/components/layout/Sidebar.tsx'),
   'utf8',
 )
+const header = fs.readFileSync(
+  path.resolve(__dirname, '../src/components/layout/Header.tsx'),
+  'utf8',
+)
 
-test('sidebar collapse controls use Neutral IconButton', () => {
-  assert.match(source, /from '@\/design-system\/figma-neutral\/components'/)
-  assert.match(source, /<IconButton[\s\S]*aria-label="收起侧栏"/)
-  assert.match(source, /<IconButton[\s\S]*aria-label="展开侧栏"/)
-  assert.doesNotMatch(source, /<button[\s\S]*aria-label="收起侧栏"/)
-  assert.doesNotMatch(source, /<button[\s\S]*aria-label="展开侧栏"/)
+test('Figma inset sidebar moves collapse control to the app header', () => {
+  assert.match(header, /<IconButton[\s\S]*cwgsyw-app-header__sidebar-toggle/)
+  assert.match(header, /aria-label=\{sidebarCollapsed \? '展开侧栏' : '收起侧栏'\}/)
+  assert.match(source, /cwgsyw-sidebar__search/)
+  assert.match(source, /cwgsyw-sidebar__user-trigger/)
 })
 
 test('collapsed sidebar flyouts use Neutral popover recipes', () => {
@@ -25,6 +28,10 @@ test('collapsed sidebar flyouts use Neutral popover recipes', () => {
   )
   assert.match(flyout, /cwgsyw-popover w-56/)
   assert.match(flyout, /cwgsyw-popover cwgsyw-popover--compact/)
+  assert.match(flyout, /createPortal/)
+  assert.match(flyout, /document\.body/)
+  assert.match(flyout, /onClick=\{open\}/)
+  assert.match(flyout, /cwgsyw-sidebar__collapsed-group-trigger/)
   assert.doesNotMatch(flyout, /shadow-\[var\(--cwgsyw-elevation-lg\)\]/)
   assert.doesNotMatch(flyout, /cwgsyw-popover--hover/)
 })

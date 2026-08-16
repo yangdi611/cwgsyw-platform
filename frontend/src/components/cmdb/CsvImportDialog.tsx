@@ -152,7 +152,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
       {step === 0 ? (
         <div className="cwgsyw-form">
           <Field label="导入格式">
-            <Select
+            <Select size="sm" overlay
               value={format}
               options={[
                 { value: 'csv', label: 'CSV（标量字段）' },
@@ -163,12 +163,12 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
           </Field>
           {format === 'csv' ? <Button type="button" size="sm" variant="secondary" onClick={() => void downloadTemplate()}>下载 CSV 模板</Button> : null}
           <Field label={`选择${format === 'json' ? ' JSON / NDJSON ' : ' CSV '}文件`} required>
-            <Input type="file" accept={format === 'json' ? '.json,.ndjson,.jsonl,.txt' : '.csv'} ref={fileInputRef} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Input size="sm" type="file" accept={format === 'json' ? '.json,.ndjson,.jsonl,.txt' : '.csv'} ref={fileInputRef} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </Field>
           {format === 'csv' ? (
             <>
               <Field label="冲突策略">
-                <Select
+                <Select size="sm" overlay
                   value={conflictStrategy}
                   options={[
                     { value: 'override', label: '覆盖更新' },
@@ -179,7 +179,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 />
               </Field>
               <Field label="文件编码">
-                <Select
+                <Select size="sm" overlay
                   value={encoding}
                   options={[
                     { value: 'UTF-8', label: 'UTF-8' },
@@ -193,7 +193,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
           ) : (
             <>
               <Field label="导入模式">
-                <Select
+                <Select size="sm" overlay
                   value={importMode}
                   options={[
                     { value: 'merge', label: '合并（只更新出现的字段）' },
@@ -204,7 +204,7 @@ export function CsvImportDialog({ open, onOpenChange, model }: CsvImportDialogPr
                 />
               </Field>
               <Field label="唯一键字段（可选）">
-                <Input value={uniqueKeyFields} onChange={(e) => setUniqueKeyFields(e.target.value)} placeholder="如 asset_no（留空按 name 匹配）" />
+                <Input size="sm" value={uniqueKeyFields} onChange={(e) => setUniqueKeyFields(e.target.value)} placeholder="如 asset_no（留空按 name 匹配）" />
               </Field>
             </>
           )}

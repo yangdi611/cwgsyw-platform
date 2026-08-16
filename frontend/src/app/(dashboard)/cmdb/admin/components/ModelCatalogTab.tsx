@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AnimatePresence, motion } from 'motion/react'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
@@ -8,11 +9,14 @@ import { ModelCard } from './ModelCard'
 import type { CiModelAdminItem } from '@/types/cmdb-model'
 import { getModelDisplayName, nextCopyModelId } from './utils'
 import { getApiErrorMessage } from '@/lib/api-error'
+import { CmdbAdminActionIcon } from './CmdbAdminActionIcon'
+import { CmdbAdminDisclosureIcon } from './CmdbAdminDisclosureIcon'
 import '@/design-system/figma-neutral/index.css'
 import {
   Button,
   EmptyState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
@@ -43,13 +47,34 @@ function ModelCatalogTab() {
   const [modelForm, setModelForm] = useState({ modelId: '', name: '', icon: 'box', groupCode: '', description: '' })
   const [groupForm, setGroupForm] = useState({ code: '', name: '', icon: 'folder', sortOrder: 100 })
   const [movedModelId, setMovedModelId] = useState<string | null>(null)
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [expandedGroupCode, setExpandedGroupCode] = useState<string | null>(null)
+  const [pendingGroupCode, setPendingGroupCode] = useState<string | null>(null)
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null)
   const [editGroupForm, setEditGroupForm] = useState({ name: '', sortOrder: 0 })
   const [editingModel, setEditingModel] = useState<CiModelAdminItem | null>(null)
   const [renameForm, setRenameForm] = useState({ displayName: '' })
   const [copyingModel, setCopyingModel] = useState<CiModelAdminItem | null>(null)
   const [copyForm, setCopyForm] = useState({ modelId: '', name: '', groupCode: '' })
+
+  const requestGroupOpen = (code: string) => {
+    if (expandedGroupCode === code && !pendingGroupCode) return
+    if (expandedGroupCode) {
+      setPendingGroupCode(code)
+      setExpandedGroupCode(null)
+      return
+    }
+    if (pendingGroupCode) {
+      setPendingGroupCode(code)
+      return
+    }
+    setExpandedGroupCode(code)
+  }
+
+  const completeGroupExit = () => {
+    if (!pendingGroupCode) return
+    setExpandedGroupCode(pendingGroupCode)
+    setPendingGroupCode(null)
+  }
 
   const { data: models = [], isLoading: modelsLoading } = useQuery<CiModelAdminItem[]>({
     queryKey: ['cmdb-models'],
@@ -85,7 +110,7 @@ function ModelCatalogTab() {
       queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
       // 自动展开目标分类
-      if (modelForm.groupCode) setExpandedGroups(s => new Set([...s, modelForm.groupCode]))
+      if (modelForm.groupCode) requestGroupOpen(modelForm.groupCode)
     },
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
@@ -98,7 +123,7 @@ function ModelCatalogTab() {
       setGroupForm({ code: '', name: '', icon: 'folder', sortOrder: 100 })
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
       // 自动展开新分类
-      setExpandedGroups(s => new Set([...s, groupForm.code]))
+      requestGroupOpen(groupForm.code)
     },
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '创建失败')),
   })
@@ -114,7 +139,7 @@ function ModelCatalogTab() {
         old.map(m => m.modelId === model.modelId ? { ...m, group: toCode, groupName: toName } : m))
       setMovedModelId(model.modelId)
       // 展开目标分类以显示刚移入的模型
-      setExpandedGroups(s => new Set([...s, toCode]))
+      requestGroupOpen(toCode)
       return { prev }
     },
     onError: (error: unknown, _vars, ctx) => {
@@ -172,7 +197,7 @@ function ModelCatalogTab() {
       setCopyForm({ modelId: '', name: '', groupCode: '' })
       queryClient.invalidateQueries({ queryKey: ['cmdb-models'] })
       queryClient.invalidateQueries({ queryKey: ['cmdb-model-groups'] })
-      setExpandedGroups(s => new Set([...s, body.groupCode]))
+      requestGroupOpen(body.groupCode)
     },
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '复制失败')),
   })
@@ -205,12 +230,15 @@ function ModelCatalogTab() {
   }, {} as Record<string, CiModelAdminItem[]>)
 
   const toggleGroup = (code: string) => {
-    setExpandedGroups(s => {
-      const next = new Set(s)
-      if (next.has(code)) next.delete(code)
-      else next.add(code)
-      return next
-    })
+    if (pendingGroupCode) {
+      setPendingGroupCode(code)
+      return
+    }
+    if (expandedGroupCode === code) {
+      setExpandedGroupCode(null)
+      return
+    }
+    requestGroupOpen(code)
   }
 
   const openRenameModel = (model: CiModelAdminItem) => {
@@ -233,9 +261,9 @@ function ModelCatalogTab() {
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<{ id: number; name: string } | null>(null)
 
   return (
-    <div className="cwgsyw-form">
-      <div className="cwgsyw-inline-controls">
-        <p className="cwgsyw-type-body-sm">按分类组织的 CI 模型目录</p>
+    <div className="cwgsyw-cmdb-admin__panel-section cwgsyw-cmdb-admin__catalog">
+      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__toolbar">
+        <p className="cwgsyw-cmdb-admin__section-note">按分类组织的 CI 模型目录</p>
         {canManageGroups ? (
           <Button type="button" size="sm" onClick={() => setCreatingGroup((value) => !value)}>新建分类</Button>
         ) : null}
@@ -245,16 +273,16 @@ function ModelCatalogTab() {
       </div>
 
       {creatingGroup ? (
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-cmdb-choice-list">
           <div className="cwgsyw-filter-grid">
             <Field label="分类代码" htmlFor="group-code" required helperText="英文/下划线">
-              <Input id="group-code" value={groupForm.code} onChange={(event) => setGroupForm((current) => ({ ...current, code: event.target.value }))} placeholder="如: middleware" />
+              <Input size="sm" id="group-code" value={groupForm.code} onChange={(event) => setGroupForm((current) => ({ ...current, code: event.target.value }))} placeholder="如: middleware" />
             </Field>
             <Field label="分类名称" htmlFor="group-name" required>
-              <Input id="group-name" value={groupForm.name} onChange={(event) => setGroupForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: 中间件" />
+              <Input size="sm" id="group-name" value={groupForm.name} onChange={(event) => setGroupForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: 中间件" />
             </Field>
             <Field label="排序" htmlFor="group-sort">
-              <Input id="group-sort" type="number" value={groupForm.sortOrder} onChange={(event) => setGroupForm((current) => ({ ...current, sortOrder: +event.target.value }))} />
+              <Input size="sm" id="group-sort" type="number" value={groupForm.sortOrder} onChange={(event) => setGroupForm((current) => ({ ...current, sortOrder: +event.target.value }))} />
             </Field>
           </div>
           <div className="cwgsyw-inline-controls">
@@ -268,13 +296,13 @@ function ModelCatalogTab() {
         <div className="cwgsyw-form">
           <div className="cwgsyw-filter-grid">
             <Field label="模型ID" htmlFor="model-id" required helperText="英文/下划线">
-              <Input id="model-id" value={modelForm.modelId} onChange={(event) => setModelForm((current) => ({ ...current, modelId: event.target.value }))} placeholder="如: mysql_instance" />
+              <Input size="sm" id="model-id" value={modelForm.modelId} onChange={(event) => setModelForm((current) => ({ ...current, modelId: event.target.value }))} placeholder="如: mysql_instance" />
             </Field>
             <Field label="模型名称" htmlFor="model-name" required>
-              <Input id="model-name" value={modelForm.name} onChange={(event) => setModelForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: MySQL实例" />
+              <Input size="sm" id="model-name" value={modelForm.name} onChange={(event) => setModelForm((current) => ({ ...current, name: event.target.value }))} placeholder="如: MySQL实例" />
             </Field>
             <Field label="所属分类" htmlFor="model-group">
-              <Select
+              <Select size="sm" overlay
                 id="model-group"
                 value={modelForm.groupCode}
                 placeholder="请选择分类"
@@ -283,7 +311,7 @@ function ModelCatalogTab() {
               />
             </Field>
             <Field label="描述" htmlFor="model-desc">
-              <Input id="model-desc" value={modelForm.description} onChange={(event) => setModelForm((current) => ({ ...current, description: event.target.value }))} />
+              <Input size="sm" id="model-desc" value={modelForm.description} onChange={(event) => setModelForm((current) => ({ ...current, description: event.target.value }))} />
             </Field>
           </div>
           <div className="cwgsyw-inline-controls">
@@ -298,7 +326,7 @@ function ModelCatalogTab() {
           <div className="cwgsyw-type-label-sm">重命名模型</div>
           <div className="cwgsyw-type-label-xs">{editingModel.modelId}</div>
           <Field label="模型名称" htmlFor="rename-model" required>
-            <Input id="rename-model" value={renameForm.displayName} onChange={(event) => setRenameForm({ displayName: event.target.value })} />
+            <Input size="sm" id="rename-model" value={renameForm.displayName} onChange={(event) => setRenameForm({ displayName: event.target.value })} />
           </Field>
           <div className="cwgsyw-inline-controls">
             <Button type="button" disabled={!renameForm.displayName.trim() || renameModelMutation.isPending} onClick={() => renameModelMutation.mutate({ model: editingModel, displayName: renameForm.displayName.trim() })}>保存</Button>
@@ -313,13 +341,13 @@ function ModelCatalogTab() {
           <p className="cwgsyw-type-body-sm">复制「{getModelDisplayName(copyingModel)}」的属性分组和属性定义，不复制实例数据</p>
           <div className="cwgsyw-filter-grid">
             <Field label="新模型ID" htmlFor="copy-id" required>
-              <Input id="copy-id" value={copyForm.modelId} onChange={(event) => setCopyForm((current) => ({ ...current, modelId: event.target.value }))} />
+              <Input size="sm" id="copy-id" value={copyForm.modelId} onChange={(event) => setCopyForm((current) => ({ ...current, modelId: event.target.value }))} />
             </Field>
             <Field label="新模型名称" htmlFor="copy-name" required>
-              <Input id="copy-name" value={copyForm.name} onChange={(event) => setCopyForm((current) => ({ ...current, name: event.target.value }))} />
+              <Input size="sm" id="copy-name" value={copyForm.name} onChange={(event) => setCopyForm((current) => ({ ...current, name: event.target.value }))} />
             </Field>
             <Field label="所属分类" htmlFor="copy-group">
-              <Select
+              <Select size="sm" overlay
                 id="copy-group"
                 value={copyForm.groupCode}
                 placeholder="请选择分类"
@@ -350,59 +378,82 @@ function ModelCatalogTab() {
         <div className="cwgsyw-form">
           {modelGroups.map((group) => {
             const groupModels = grouped[group.code] ?? []
-            const isExpanded = expandedGroups.has(group.code)
+            const isExpanded = expandedGroupCode === group.code
             const isEditing = editingGroupId === group.id
             return (
-              <div key={group.code} className="cwgsyw-card cwgsyw-card--sm">
-                <div className="cwgsyw-inline-controls">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => !isEditing && toggleGroup(group.code)}>
-                    {isExpanded ? '收起' : '展开'}
-                  </Button>
+              <div key={group.code} className="cwgsyw-card cwgsyw-card--sm cwgsyw-cmdb-admin__group-card">
+                <div className="cwgsyw-cmdb-admin__group-row">
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="cwgsyw-cmdb-admin__disclosure-trigger"
+                    icon={<CmdbAdminDisclosureIcon expanded={isExpanded} />}
+                    aria-label={(isExpanded ? '收起分类 ' : '展开分类 ') + group.name}
+                    aria-expanded={isExpanded}
+                    disabled={isEditing}
+                    onClick={() => toggleGroup(group.code)}
+                  />
                   {isEditing ? (
                     <>
-                      <Input value={editGroupForm.name} onChange={(event) => setEditGroupForm((current) => ({ ...current, name: event.target.value }))} />
-                      <Input type="number" value={editGroupForm.sortOrder} onChange={(event) => setEditGroupForm((current) => ({ ...current, sortOrder: +event.target.value }))} />
+                      <Input size="sm" value={editGroupForm.name} onChange={(event) => setEditGroupForm((current) => ({ ...current, name: event.target.value }))} />
+                      <Input size="sm" type="number" value={editGroupForm.sortOrder} onChange={(event) => setEditGroupForm((current) => ({ ...current, sortOrder: +event.target.value }))} />
                       <Button type="button" size="sm" onClick={() => updateGroupMutation.mutate({ id: group.id, body: editGroupForm })}>保存</Button>
                       <Button type="button" size="sm" variant="ghost" onClick={() => setEditingGroupId(null)}>取消</Button>
                     </>
                   ) : (
                     <>
-                      <strong className="cwgsyw-type-title-sm">{group.name}</strong>
-                      <span className="cwgsyw-type-label-xs">{groupModels.length} 个模型</span>
-                      {group.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
+                      <div className="cwgsyw-cmdb-admin__group-info">
+                        <span className="cwgsyw-cmdb-admin__group-title" title={group.name}>{group.name}</span>
+                        <span className="cwgsyw-cmdb-admin__group-meta">{groupModels.length} 个模型</span>
+                        {group.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
+                      </div>
                       {canManageGroups ? (
-                        <>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => { setEditingGroupId(group.id); setEditGroupForm({ name: group.name, sortOrder: group.sortOrder }) }}>编辑</Button>
-                          <Button type="button" size="sm" variant="ghost" disabled={groupModels.length > 0} onClick={() => setDeleteGroupTarget({ id: group.id, name: group.name })}>删除</Button>
-                        </>
+                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__group-actions cwgsyw-cmdb-admin__row-actions">
+                          <IconButton type="button" size="sm" variant="ghost" icon={<CmdbAdminActionIcon name="edit" />} aria-label={'编辑分类 ' + group.name} title="编辑" onClick={() => { setEditingGroupId(group.id); setEditGroupForm({ name: group.name, sortOrder: group.sortOrder }) }} />
+                          <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-cmdb-admin__delete-action" icon={<CmdbAdminActionIcon name="trash" />} aria-label={'删除分类 ' + group.name} title={groupModels.length > 0 ? '分类下有模型，无法删除' : '删除'} disabled={groupModels.length > 0} onClick={() => setDeleteGroupTarget({ id: group.id, name: group.name })} />
+                        </div>
                       ) : null}
                     </>
                   )}
                 </div>
-                {isExpanded ? (
-                  groupModels.length === 0 ? (
-                    <EmptyState title="该分类暂无模型" description="新建模型时选择此分类，或把现有模型移动进来。" />
-                  ) : (
-                    <div className="cwgsyw-filter-grid">
-                      {groupModels.map((model) => (
-                        <ModelCard
-                          key={model.modelId}
-                          model={model}
-                          groups={modelGroups.map((item) => ({ code: item.code, name: item.name }))}
-                          canWrite={canWrite}
-                          canCreate={canCreateModel}
-                          canDelete={canDeleteModel}
-                          deleting={deleteModelMutation.isPending}
-                          justMoved={movedModelId === model.modelId}
-                          onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
-                          onRename={() => openRenameModel(model)}
-                          onCopy={() => openCopyModel(model)}
-                          onDelete={() => deleteModelMutation.mutate(model)}
-                        />
-                      ))}
-                    </div>
-                  )
-                ) : null}
+                <AnimatePresence initial={false} onExitComplete={completeGroupExit}>
+                  {isExpanded ? (
+                    <motion.div
+                      key="group-panel"
+                      className="cwgsyw-cmdb-admin__group-panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                      <div className="cwgsyw-cmdb-admin__group-panel-inner">
+                        {groupModels.length === 0 ? (
+                          <EmptyState title="该分类暂无模型" description="新建模型时选择此分类，或把现有模型移动进来。" />
+                        ) : (
+                          <div className="cwgsyw-cmdb-admin__model-grid">
+                            {groupModels.map((model) => (
+                              <ModelCard
+                                key={model.modelId}
+                                model={model}
+                                groups={modelGroups.map((item) => ({ code: item.code, name: item.name }))}
+                                canWrite={canWrite}
+                                canCreate={canCreateModel}
+                                canDelete={canDeleteModel}
+                                deleting={deleteModelMutation.isPending}
+                                justMoved={movedModelId === model.modelId}
+                                onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                                onRename={() => openRenameModel(model)}
+                                onCopy={() => openCopyModel(model)}
+                                onDelete={() => deleteModelMutation.mutate(model)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </div>
             )
           })}
@@ -410,36 +461,58 @@ function ModelCatalogTab() {
           {Object.entries(grouped)
             .filter(([code]) => !modelGroups.some((group) => group.code === code))
             .map(([code, groupModels]) => {
-              const isExpanded = expandedGroups.has(code)
+              const isExpanded = expandedGroupCode === code
               return (
-                <div key={code} className="cwgsyw-card cwgsyw-card--sm">
-                  <div className="cwgsyw-inline-controls">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroup(code)}>
-                      {isExpanded ? '收起' : '展开'}
-                    </Button>
-                    <strong className="cwgsyw-type-title-sm">{groupModels[0]?.groupName || '未分类'}</strong>
-                    <span className="cwgsyw-type-label-xs">{groupModels.length} 个模型</span>
-                  </div>
-                  {isExpanded ? (
-                    <div className="cwgsyw-filter-grid">
-                      {groupModels.map((model) => (
-                        <ModelCard
-                          key={model.modelId}
-                          model={model}
-                          groups={modelGroups.map((item) => ({ code: item.code, name: item.name }))}
-                          canWrite={canWrite}
-                          canCreate={canCreateModel}
-                          canDelete={canDeleteModel}
-                          deleting={deleteModelMutation.isPending}
-                          justMoved={movedModelId === model.modelId}
-                          onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
-                          onRename={() => openRenameModel(model)}
-                          onCopy={() => openCopyModel(model)}
-                          onDelete={() => deleteModelMutation.mutate(model)}
-                        />
-                      ))}
+                <div key={code} className="cwgsyw-card cwgsyw-card--sm cwgsyw-cmdb-admin__group-card">
+                  <div className="cwgsyw-cmdb-admin__group-row">
+                    <IconButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="cwgsyw-cmdb-admin__disclosure-trigger"
+                      icon={<CmdbAdminDisclosureIcon expanded={isExpanded} />}
+                      aria-label={(isExpanded ? '收起分类 ' : '展开分类 ') + (groupModels[0]?.groupName || '未分类')}
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleGroup(code)}
+                    />
+                    <div className="cwgsyw-cmdb-admin__group-info">
+                      <span className="cwgsyw-cmdb-admin__group-title">{groupModels[0]?.groupName || '未分类'}</span>
+                      <span className="cwgsyw-cmdb-admin__group-meta">{groupModels.length} 个模型</span>
                     </div>
-                  ) : null}
+                  </div>
+                  <AnimatePresence initial={false} onExitComplete={completeGroupExit}>
+                    {isExpanded ? (
+                      <motion.div
+                        key="group-panel"
+                        className="cwgsyw-cmdb-admin__group-panel"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                      >
+                        <div className="cwgsyw-cmdb-admin__group-panel-inner">
+                          <div className="cwgsyw-cmdb-admin__model-grid">
+                            {groupModels.map((model) => (
+                              <ModelCard
+                                key={model.modelId}
+                                model={model}
+                                groups={modelGroups.map((item) => ({ code: item.code, name: item.name }))}
+                                canWrite={canWrite}
+                                canCreate={canCreateModel}
+                                canDelete={canDeleteModel}
+                                deleting={deleteModelMutation.isPending}
+                                justMoved={movedModelId === model.modelId}
+                                onMove={(toCode) => moveModelMutation.mutate({ model, toCode })}
+                                onRename={() => openRenameModel(model)}
+                                onCopy={() => openCopyModel(model)}
+                                onDelete={() => deleteModelMutation.mutate(model)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               )
             })}

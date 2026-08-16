@@ -50,6 +50,13 @@ function loadCompiled(filePath) {
         },
       }
     }
+    if (request === 'motion/react') {
+      const motion = new Proxy({}, {
+        get: (_target, tag) => ({ children, layoutId, transition, initial, animate, exit, ...props }) => React.createElement(tag, props, children),
+      })
+      const passthrough = ({ children }) => React.createElement(React.Fragment, null, children)
+      return { AnimatePresence: passthrough, MotionConfig: passthrough, motion }
+    }
     if (request.startsWith('@base-ui/react/')) {
       const passthrough = ({ children }) => React.createElement(React.Fragment, null, children)
       const node = ({ children, className, ...props }) => React.createElement('div', { className, ...props }, children)
@@ -85,6 +92,22 @@ test('cmdb overview leaves colored catalog and old visual entries', () => {
   assert.match(page, /queryKey: \['cmdb-models-overview'\]/)
   assert.match(page, /queryKey: \['cmdb-model-groups-overview'\]/)
   assert.match(page, /InstanceBrowserSection/)
+  assert.match(page, /<h1 className="sr-only">CMDB<\/h1>/)
+  assert.match(page, /cwgsyw-cmdb-overview__catalog-note/)
+  assert.match(page, /name="chevron-next"[\s\S]*按模型组分类浏览资产目录。[\s\S]*name="chevron-previous"/)
+  assert.match(page, /cwgsyw-cmdb-overview__model-tile/)
+  assert.match(page, /cwgsyw-cmdb-overview__group-tab/)
+  assert.match(page, /MotionConfig reducedMotion="user"/)
+  assert.match(page, /motion\.span/)
+  assert.match(page, /cwgsyw-cmdb-overview__model-track/)
+  assert.match(page, /activeGroupIndex \* -100/)
+  assert.match(page, /stiffness: 180, damping: 26/)
+  assert.doesNotMatch(page, /AnimatePresence/)
+  assert.match(page, /layoutId="cmdb-model-group-indicator"/)
+  assert.match(page, /role="tab"/)
+  assert.doesNotMatch(page, /DashboardFeedbackPage/)
+  assert.doesNotMatch(page, /MetricCard/)
+  assert.doesNotMatch(page, /title="概览"/)
   assert.doesNotMatch(page, /GROUP_PALETTES/)
   assert.doesNotMatch(page, /#2563eb/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
@@ -92,9 +115,77 @@ test('cmdb overview leaves colored catalog and old visual entries', () => {
   assert.doesNotMatch(page, /text-v2-/)
 })
 
+test('CMDB model-group tabs match the Figma compact rail', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const rail = css.slice(css.indexOf('.cwgsyw-cmdb-overview__groups {'), css.indexOf('.cwgsyw-cmdb-overview__model-grid {'))
+  assert.match(rail, /min-height: 40px/)
+  assert.match(rail, /width: fit-content/)
+  assert.match(rail, /justify-self: start/)
+  assert.match(rail, /padding: 6px/)
+  assert.match(rail, /background: var\(--cwgsyw-bg-surface-subtle\)/)
+  assert.match(rail, /width: auto/)
+  assert.match(rail, /min-width: 64px/)
+  assert.match(rail, /min-height: 28px/)
+  assert.match(rail, /padding: 4px 10px/)
+  assert.match(rail, /color: var\(--cwgsyw-text-secondary\)/)
+  assert.match(rail, /font-size: var\(--cwgsyw-font-size-body-xs\)/)
+  assert.match(rail, /font-weight: var\(--cwgsyw-font-weight-regular\)/)
+  assert.match(rail, /box-shadow: 0 1px 2px rgb\(0 0 0 \/ 0\.05\)/)
+  assert.match(rail, /transition: background-color 160ms ease, color 160ms ease, transform 160ms ease/)
+  assert.match(rail, /transform: translateY\(-1px\)/)
+  assert.match(rail, /group-motion-indicator/)
+  assert.match(rail, /group-tab-label/)
+})
+
+test('CMDB overview keeps card and table hierarchy calm', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const catalog = css.slice(css.indexOf('.cwgsyw-cmdb-overview__model-panels {'), css.indexOf('@media (max-width: 860px)'))
+  assert.match(catalog, /overflow: hidden/)
+  assert.match(catalog, /display: flex/)
+  assert.match(catalog, /min-width: 100%/)
+  assert.match(catalog, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/)
+  assert.match(catalog, /min-height: 76px/)
+  assert.match(catalog, /justify-items: start/)
+  assert.match(catalog, /font-size: 13px/)
+  assert.match(catalog, /font-weight: var\(--cwgsyw-font-weight-medium\)/)
+  assert.match(catalog, /color: var\(--cwgsyw-text-tertiary\)/)
+  assert.match(catalog, /font-weight: var\(--cwgsyw-font-weight-regular\)/)
+  assert.match(catalog, /border: var\(--cwgsyw-border-width-default\) solid var\(--cwgsyw-border-subtle\)/)
+  assert.match(catalog, /border-color: var\(--cwgsyw-border-default\)/)
+  assert.match(catalog, /background: var\(--cwgsyw-bg-surface-subtle\)/)
+  assert.doesNotMatch(catalog, /font-weight: var\(--cwgsyw-font-weight-bold\)/)
+})
+
+test('CMDB catalog description stays inline and low emphasis', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const note = css.slice(css.indexOf('.cwgsyw-cmdb-overview__catalog-note {'), css.indexOf('.cwgsyw-cmdb-overview__section-heading p,'))
+  assert.match(note, /display: inline-flex/)
+  assert.match(note, /color: var\(--cwgsyw-text-secondary\)/)
+  assert.match(note, /font-size: var\(--cwgsyw-font-size-label-sm\)/)
+  assert.match(note, /font-weight: var\(--cwgsyw-font-weight-regular\)/)
+})
+
+test('CMDB overview separates the model catalog and instance browser', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(css, /\.cwgsyw-cmdb-overview \{ gap: var\(--cwgsyw-space-10\); \}/)
+  assert.doesNotMatch(css, /\.cwgsyw-instance-browser \{\n  padding-top:/)
+  assert.doesNotMatch(css, /padding-top: var\(--cwgsyw-space-4\);\n  border-top: var\(--cwgsyw-border-width-default\) solid var\(--cwgsyw-border-subtle\);/)
+})
+
+test('CMDB instance filters use compact type in their Select controls and menus', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const filters = css.slice(css.indexOf('.cwgsyw-instance-browser__filters {'), css.indexOf('.cwgsyw-instance-browser__table'))
+  assert.match(filters, /\.cwgsyw-select \.cwgsyw-control/)
+  assert.match(filters, /\.cwgsyw-instance-browser__search \.cwgsyw-control/)
+  assert.match(filters, /\.cwgsyw-listbox button/)
+  assert.match(filters, /font-size: var\(--cwgsyw-font-size-label-sm\)/)
+  assert.match(filters, /line-height: var\(--cwgsyw-type-label-sm-line-height\)/)
+})
+
 test('cmdb overview renders Neutral catalog', () => {
   const page = loadCompiled(pagePath)
   const html = renderToStaticMarkup(React.createElement(page.default))
-  assert.match(html, /概览/)
+  assert.match(html, /CMDB/)
+  assert.doesNotMatch(html, /概览/)
   assert.match(html, /各类模型/)
 })

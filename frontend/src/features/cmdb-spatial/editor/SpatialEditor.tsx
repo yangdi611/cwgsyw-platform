@@ -568,7 +568,7 @@ function SpatialEditorSession({
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, [clipboard, document, selectedIds]);
   return (
-    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col md:-m-6">
+    <div className="cwgsyw-cmdb-page -m-4 flex h-[calc(100vh-4rem)] flex-col md:-m-6">
       <header className="flex min-h-14 flex-wrap items-center gap-2 border-b border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] px-4 py-2">
         <Link
           href={`/cmdb/spatial/rooms/${roomId}`}
@@ -1069,7 +1069,7 @@ function RackRowForm({
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           排列方向
-          <Select
+          <Select overlay
             size="sm"
             aria-label="机柜排列方向"
             value={orientation}
@@ -1082,7 +1082,7 @@ function RackRowForm({
         </label>
         <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           编号顺序
-          <Select
+          <Select overlay
             size="sm"
             aria-label="机柜编号顺序"
             value={numbering}
@@ -1307,7 +1307,7 @@ function PropertiesPanel({
           {element.type === "FACILITY" && (
             <div className="space-y-2">
               <label className="cwgsyw-type-label-sm" htmlFor="spatial-facility-type">设施类型</label>
-              <Select
+              <Select overlay
                 id="spatial-facility-type"
                 size="sm"
                 value={element.facility?.facilityType || "GENERAL"}
@@ -1362,7 +1362,7 @@ function PropertiesPanel({
           {(element.type === "RACK_SLOT" || element.type === "FACILITY") && (
             <div className="space-y-2">
               <label className="cwgsyw-type-label-sm" htmlFor="spatial-ci-binding">CI 绑定</label>
-              <Select
+              <Select overlay
                 id="spatial-ci-binding"
                 size="sm"
                 placeholder="不绑定"
@@ -1629,7 +1629,7 @@ function BatchRackDimensionControls({
       <div className="space-y-2 border-t border-[var(--cwgsyw-border-default)] pt-3">
         <span className="cwgsyw-type-label-sm">统一机柜间距</span>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-          <Select
+          <Select overlay
             size="sm"
             aria-label="批量机柜间距方向"
             value={axis}

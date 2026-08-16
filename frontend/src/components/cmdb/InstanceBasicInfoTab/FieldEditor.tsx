@@ -10,7 +10,7 @@ export function renderEditField(attr: CiAttributeVO, value: string, onChange: (v
   if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     return (
-      <Select
+      <Select size="sm" overlay
         value={value}
         placeholder="请选择"
         options={opts.map((o) => ({ value: o.id, label: o.name }))}
@@ -40,7 +40,7 @@ export function renderEditField(attr: CiAttributeVO, value: string, onChange: (v
   }
   if (fieldType === 'bool') {
     return (
-      <Select
+      <Select size="sm" overlay
         value={value}
         placeholder="请选择"
         options={[
@@ -51,9 +51,9 @@ export function renderEditField(attr: CiAttributeVO, value: string, onChange: (v
       />
     )
   }
-  if (fieldType === 'date') return <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+  if (fieldType === 'date') return <Input size="sm" type="date" value={value} onChange={(e) => onChange(e.target.value)} />
   if (fieldType === 'int' || fieldType === 'float') {
-    return <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
+    return <Input size="sm" type="number" value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
   }
-  return <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
+  return <Input size="sm" value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} />
 }

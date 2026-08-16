@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Button } from '@/design-system/figma-neutral/components'
@@ -48,17 +49,6 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
     }, CLOSE_DELAY)
   }
 
-  const toggleOpen = () => {
-    if (mounted) {
-      if (closeTimer.current) clearTimeout(closeTimer.current)
-      if (unmountTimer.current) clearTimeout(unmountTimer.current)
-      setEntered(false)
-      setMounted(false)
-      return
-    }
-    open()
-  }
-
   useEffect(() => {
     return () => {
       if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -80,22 +70,22 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
         <Button
           type="button"
           variant="ghost"
-          onClick={toggleOpen}
+          onClick={open}
           aria-expanded={mounted}
           aria-label={entry.label}
           className={cn(
-            'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
+            'cwgsyw-sidebar__collapsed-group-trigger flex h-11 w-full items-center justify-center rounded-lg transition-colors',
             isActive || mounted
-              ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+              ? 'is-active text-[var(--cwgsyw-text-primary)]'
               : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]',
           )}
         >
           <Icon className="h-[22px] w-[22px]" />
         </Button>
 
-        {mounted && (
+        {mounted && typeof document !== 'undefined' ? createPortal(
           <div
-            className="fixed z-50 pl-2"
+            className="fixed z-[70] pl-2"
             style={{ top: coords.top, left: coords.left }}
             onMouseEnter={open}
             onMouseLeave={scheduleClose}
@@ -141,8 +131,9 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
                 })}
               </div>
             </div>
-          </div>
-        )}
+          </div>,
+          document.body,
+        ) : null}
       </div>
     )
   }
@@ -166,8 +157,8 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
         <Icon className="h-[22px] w-[22px]" />
         {badge !== undefined && badge > 0 && <span className="absolute right-1 top-1 min-w-4 rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1 text-center font-[family-name:var(--cwgsyw-font-family-mono)] text-[9px] leading-4 text-[var(--cwgsyw-status-danger-fg)]">{badge > 99 ? '99+' : badge}</span>}
       </Link>
-      {mounted && (
-        <div className="fixed z-50 pl-2" style={{ top: coords.top + 8, left: coords.left }}>
+      {mounted && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed z-[70] pl-2" style={{ top: coords.top + 8, left: coords.left }}>
           <div
             className={cn(
               'cwgsyw-popover cwgsyw-popover--compact origin-left whitespace-nowrap',
@@ -177,8 +168,9 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
           >
             {label}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </div>
   )
 }

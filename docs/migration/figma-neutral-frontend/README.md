@@ -4,10 +4,10 @@
 
 本目录是 `cwgsyw-platform` 的 Figma Neutral 设计与前端迁移统一资料包。`design-source/` 保存设计事实，其余文档负责迁移顺序、页面覆盖、验证闭环、进度与回滚。
 
-- Linear Issue: [YAN-11](https://linear.app/yangdi/issue/YAN-11/实施-figma-neutral-m0token-pipeline-与视觉验证基线)
+- Linear Issue: [YAN-91](https://linear.app/yangdi/issue/YAN-91/授权提交-figma-neutral-本地实现)
 - Planning baseline: [YAN-10](https://linear.app/yangdi/issue/YAN-10/建立-figma-neutral-前端迁移计划与验证基线)
 - Figma file: [CWGSYW UI - Variables](https://www.figma.com/design/Z8EC6psFOj7KMfXapAFk24/CWGSYW-UI---Variables)
-- 当前阶段：M7 真实页面迁移。活刀是 YAN-71 `/workflow/design`。现场指针见 [HANDOFF.md](./HANDOFF.md) 和 [STATUS.md](./STATUS.md)。
+- 当前阶段：M8 本地已完成，等人授权 push / PR。活树是 `/Users/byron/AI/worktrees/YAN-71`。现场指针见 [HANDOFF.md](./HANDOFF.md) 和 [STATUS.md](./STATUS.md)。
 
 ## 2. 同一资料包内的职责边界
 
@@ -54,12 +54,12 @@
 
 ## 6. 开始后续实现
 
-YAN-11 已具备独立 Issue、分支和 worktree。要用 Goal 一镜实施时：
+要用 Goal 一镜收口时：
 
-1. 把 [goal-prompts/SHORT-GOAL-PROMPT.md](./goal-prompts/SHORT-GOAL-PROMPT.md) 的「短 Goal」贴进 Codex Goal。
+1. 把 [goal-prompts/SHORT-GOAL-PROMPT.md](./goal-prompts/SHORT-GOAL-PROMPT.md) 的「短 Goal」贴进**新的** Codex Goal。不要续跑 YAN-11 / M0 旧 Goal。
 2. AI 必须先读 [goal-prompts/LONG-GOAL-PROMPT.md](./goal-prompts/LONG-GOAL-PROMPT.md) 和本目录合同。
-3. 从 `STATUS.md` 的 `currentPointer` 恢复；当前先做 M0，不要跳去改页面。
+3. 从 `STATUS.md` 的 `currentPointer` 恢复。M0-M8 已落地，不要重做页面。
 4. 回读实时 Figma，按 Node ID、完整名称和 API 指纹验证目标资产。
-5. 未再授权不 commit、不 push、不建 PR、不部署。
+5. 本地 commit 已授权；未再授权不 push、不建 PR、不部署。
 
 本资料包受仓库 `docs/*` 忽略规则影响，提交时必须精确强制加入本目录，禁止顺带加入其他被忽略资料。设计源与迁移执行文档必须在同一评审和版本边界内保持一致。

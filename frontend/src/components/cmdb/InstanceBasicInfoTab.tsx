@@ -10,7 +10,7 @@ import { renderDisplayValue } from './InstanceBasicInfoTab/FieldDisplay'
 import { renderEditField } from './InstanceBasicInfoTab/FieldEditor'
 import { MaintStatusBadge, BaselineBadge } from './InstanceBasicInfoTab/StatusBadges'
 import { TableFieldDisplay, TableFieldEditor } from './InstanceBasicInfoTab/TableField'
-import { Button, Card } from '@/design-system/figma-neutral/components'
+import { Button } from '@/design-system/figma-neutral/components'
 
 interface Props {
   modelCode: string
@@ -87,18 +87,19 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
   const canEdit = hasPermission('cmdb_instance', 'update')
 
   return (
-    <div className="cwgsyw-stack-list">
+    <div className="cwgsyw-cmdb-instance-detail__info">
       {(maintStatus || typeof baselineVal === 'number') && (
-        <div className="cwgsyw-inline-controls">
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-instance-detail__status">
           <MaintStatusBadge value={maintStatus} expire={maintExpire} />
           <BaselineBadge value={baselineVal} />
         </div>
       )}
 
-      <div className="cwgsyw-inline-controls">
-        <h3 className="cwgsyw-type-title-sm">基本信息</h3>
+      <div className="cwgsyw-cmdb-instance-detail__section-head">
+        <h2>属性信息</h2>
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-instance-detail__section-actions">
         {canEdit && !editing && (
-          <Button type="button" size="sm" variant="secondary" onClick={() => setEditing(true)}>
+          <Button type="button" size="sm" variant="primary" onClick={() => setEditing(true)}>
             编辑
           </Button>
         )}
@@ -112,25 +113,32 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
             </Button>
           </>
         )}
+        </div>
       </div>
 
-      {sortedGroupIds.map((grp) => {
-        const attrs = attrsByGroup.get(grp.id) ?? []
-        return (
-          <Card key={grp.id} title={grp.name}>
-            <div className="cwgsyw-form">
+      <div className="cwgsyw-cmdb-instance-detail__groups">
+        {sortedGroupIds.map((grp) => {
+          const attrs = attrsByGroup.get(grp.id) ?? []
+          return (
+            <section key={grp.id} className="cwgsyw-cmdb-instance-detail__group">
+              <h3>{grp.name}</h3>
+              <dl className="cwgsyw-cmdb-instance-detail__fields">
               {attrs.map((a) => {
                 const rawVal = inst.fieldsData[a.fieldKey]
                 const editVal = a.fieldKey in editAttrs ? editAttrs[a.fieldKey] : rawVal
                 const isTableField = a.fieldType === 'table'
                 const isEditing = editing && a.isEditable
                 return (
-                  <div key={a.id} className="cwgsyw-stack-list">
-                    <div className="cwgsyw-type-label-sm">
+                  <div
+                    key={a.id}
+                    className={`cwgsyw-cmdb-instance-detail__field${isTableField || a.fieldType === 'longchar' ? ' cwgsyw-cmdb-instance-detail__field--wide' : ''}`}
+                  >
+                    <dt>
                       {a.name}
                       {a.unit ? ` (${a.unit})` : ''}
-                      {a.isRequired ? ' *' : ''}
-                    </div>
+                      {a.isRequired ? <span aria-hidden="true"> *</span> : null}
+                    </dt>
+                    <dd>
                     {isEditing ? (
                       isTableField ? (
                         <TableFieldEditor
@@ -149,13 +157,15 @@ export function InstanceBasicInfoTab({ modelCode, inst }: Props) {
                     ) : (
                       renderDisplayValue(a, rawVal)
                     )}
+                    </dd>
                   </div>
                 )
               })}
-            </div>
-          </Card>
-        )
-      })}
+              </dl>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }

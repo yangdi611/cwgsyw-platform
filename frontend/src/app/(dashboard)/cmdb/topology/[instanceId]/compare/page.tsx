@@ -104,10 +104,11 @@ export default function TopologyComparePage() {
   const rootNode = graphInput.nodes.find((n) => n.isRoot)
 
   return (
-    <DetailDrawerPage
+    <DetailDrawerPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑对比`}
           subtitle="选择起止日期后开始对比"
           breadcrumb={
@@ -125,15 +126,16 @@ export default function TopologyComparePage() {
             </Button>
           }
         />
+        </div>
       }
       workspaceToolbar={
         <div className="cwgsyw-inline-controls">
           <span className="cwgsyw-type-label-sm">起始时间</span>
-          <Input type="datetime-local" step="1" value={fromTime} onChange={(e) => setFromTime(e.target.value)} />
+          <Input size="sm" type="datetime-local" step="1" value={fromTime} onChange={(e) => setFromTime(e.target.value)} />
           <span className="cwgsyw-type-label-sm">截止时间</span>
-          <Input type="datetime-local" step="1" value={toTime} onChange={(e) => setToTime(e.target.value)} />
+          <Input size="sm" type="datetime-local" step="1" value={toTime} onChange={(e) => setToTime(e.target.value)} />
           <span className="cwgsyw-type-label-sm">深度</span>
-          <Input
+          <Input size="sm"
             type="number"
             min={1}
             max={5}

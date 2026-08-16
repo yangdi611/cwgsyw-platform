@@ -8,9 +8,8 @@ import { AssociationsTab } from './components/AssociationsTab'
 import { AttributeGroupsTab } from './components/AttributeGroupsTab'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   DataManagementPage,
-  PageHeader,
+  Icon,
   Tabs,
 } from '@/design-system/figma-neutral/components'
 
@@ -26,30 +25,29 @@ export default function AdminPage() {
 
   return (
     <DataManagementPage
+      className="cwgsyw-cmdb-page cwgsyw-cmdb-admin"
       header={
-        <PageHeader
-          eyebrow="CMDB"
-          title="模型管理"
-          subtitle="管理 CI 模型、属性、关联定义与分类配置。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { label: '模型管理' },
-              ]}
-            />
-          }
-        />
+        <header className="cwgsyw-cmdb-admin__header">
+          <div className="cwgsyw-cmdb-overview__catalog-title">
+            <h1>模型管理</h1>
+            <span className="cwgsyw-cmdb-overview__catalog-note">
+              <Icon name="chevron-next" size="sm" aria-hidden="true" />
+              <span>管理模型、属性分组与关联定义。</span>
+              <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+            </span>
+          </div>
+        </header>
       }
       content={
         <Tabs
+          style="cmdb"
+          size="sm"
           value={tab}
           onChange={(id) => setTab(id as typeof tab)}
           items={[
-            { id: 'catalog', label: '模型目录', panel: <ModelCatalogTab /> },
-            { id: 'attribute-groups', label: '属性分组', panel: <AttributeGroupsTab /> },
-            { id: 'associations', label: '关联定义', panel: <AssociationsTab /> },
+            { id: 'catalog', label: '模型目录', panel: <div className="cwgsyw-cmdb-admin__panel"><ModelCatalogTab /></div> },
+            { id: 'attribute-groups', label: '属性分组', panel: <div className="cwgsyw-cmdb-admin__panel"><AttributeGroupsTab /></div> },
+            { id: 'associations', label: '关联定义', panel: <div className="cwgsyw-cmdb-admin__panel"><AssociationsTab /></div> },
           ]}
         />
       }

@@ -110,27 +110,24 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
   if (rackDefs.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface-subtle)]">
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--cwgsyw-text-secondary)]">
-          
-          所在机柜
-        </span>
+    <section className="cwgsyw-cmdb-instance-detail__utility">
+      <header className="cwgsyw-cmdb-instance-detail__utility-head">
+        <h3>所在机柜</h3>
         {canWrite && (
-          <Button size="sm" variant="outline" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
+          <Button size="sm" variant="primary" onClick={() => { setDefId(rackDefs[0]?.defId ?? ''); setOpen(true) }}>
             装入机柜
           </Button>
         )}
-      </div>
-      <div className="px-4 py-3">
+      </header>
+      <div className="cwgsyw-cmdb-instance-detail__utility-body">
         {rackMemberships.length === 0 ? (
-          <span className="text-sm text-[var(--cwgsyw-text-tertiary)]">未装入任何机柜</span>
+          <span className="cwgsyw-cmdb-instance-detail__utility-empty">未装入任何机柜</span>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="cwgsyw-cmdb-instance-detail__utility-list">
             {rackMemberships.map((rel) => {
               return (
-                <li key={rel.id} className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--cwgsyw-text-primary)]">
+                <li key={rel.id}>
+                  <span>
                     {rel.srcInstanceName ?? `机柜 #${rel.srcInstanceId}`}
                   </span>
                   {canWrite && (
@@ -152,11 +149,11 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
       </div>
 
       <NeutralDialog open={open} onOpenChange={setOpen} title="装入机柜">
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-form cwgsyw-cmdb-instance-detail__dialog-form">
           {rackDefs.length > 1 ? (
             <div className="cwgsyw-stack-list">
               <span className="cwgsyw-type-label-sm">关联类型</span>
-              <Select
+              <Select size="sm" overlay
                 value={defId}
                 placeholder="选择关联类型"
                 options={rackDefs.map((d) => ({ value: d.defId, label: d.name }))}
@@ -166,8 +163,8 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
           ) : null}
           <div className="cwgsyw-stack-list">
             <span className="cwgsyw-type-label-sm">机柜</span>
-            <Input placeholder="搜索机柜名称…" value={rackKeyword} onChange={(e) => setRackKeyword(e.target.value)} />
-            <Select
+            <Input size="sm" placeholder="搜索机柜名称…" value={rackKeyword} onChange={(e) => setRackKeyword(e.target.value)} />
+            <Select size="sm" overlay
               value={rackId}
               placeholder="选择机柜"
               options={(rackList ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
@@ -175,17 +172,17 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
             />
           </div>
           <div className="cwgsyw-inline-controls">
-            <Input type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="起始 U 位" />
-            <Input type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="结束 U 位" />
+            <Input size="sm" type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="起始 U 位" />
+            <Input size="sm" type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="结束 U 位" />
           </div>
           <div className="cwgsyw-inline-controls">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-            <Button type="button" disabled={!defId || !rackId || assignMutation.isPending} onClick={() => assignMutation.mutate()}>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+            <Button type="button" size="sm" disabled={!defId || !rackId || assignMutation.isPending} onClick={() => assignMutation.mutate()}>
               确认装入
             </Button>
           </div>
         </div>
       </NeutralDialog>
-    </div>
+    </section>
   )
 }

@@ -124,12 +124,13 @@ export default function CmdbAlertsPage() {
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <DataManagementPage
+    <DataManagementPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title="告警中心"
-          subtitle="查看 Prometheus 告警，按级别与状态筛选，及时确认并关联到 CI 实例。"
+          subtitle="按级别和状态筛选 Prometheus 告警"
           breadcrumb={
             <Breadcrumb
               items={[
@@ -140,12 +141,13 @@ export default function CmdbAlertsPage() {
             />
           }
         />
+        </div>
       }
       filter={
         <FilterBar
           filterItems={
             <div className="cwgsyw-inline-controls">
-              <Select
+              <Select size="sm" overlay
                 value={severity || '__all__'}
                 options={SEVERITY_OPTIONS}
                 onChange={(value) => {
@@ -153,7 +155,7 @@ export default function CmdbAlertsPage() {
                   setPage(1)
                 }}
               />
-              <Select
+              <Select size="sm" overlay
                 value={status || '__all__'}
                 options={STATUS_OPTIONS}
                 onChange={(value) => {
@@ -181,6 +183,7 @@ export default function CmdbAlertsPage() {
         ) : (
           <>
             <Table
+              className="cwgsyw-cmdb-table"
               showSearch={false}
               state={isLoading ? 'loading' : 'data'}
               columns={[

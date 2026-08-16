@@ -76,6 +76,7 @@ test('cmdb 2d view leaves old visual entries', () => {
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
   assert.doesNotMatch(page, /lucide-react/)
+  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page"/)
 })
 
 test('cmdb 2d view renders Neutral empty prompt', () => {

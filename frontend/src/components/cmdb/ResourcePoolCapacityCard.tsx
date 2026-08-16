@@ -74,38 +74,29 @@ export function ResourcePoolCapacityCard({ fieldsData }: { fieldsData: Record<st
     },
   ]
 
-  const accentCls: Record<typeof tiles[number]['accent'], string> = {
-    primary: 'border-[var(--cwgsyw-border-strong)] bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-action-primary)]',
-    success: 'border-[var(--cwgsyw-status-success-border)] bg-[var(--cwgsyw-status-success-bg)] text-[var(--cwgsyw-status-success-fg)]',
-    neutral: 'border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface-subtle)] text-[var(--cwgsyw-text-secondary)]',
-  }
-
   return (
-    <div className="rounded-xl border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] p-5">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-[var(--cwgsyw-text-primary)]">容量摘要</h3>
-        <span className="text-xs text-[var(--cwgsyw-text-secondary)]">实时聚合（仅统计 worker 节点）</span>
+    <section className="cwgsyw-cmdb-instance-tab__section cwgsyw-cmdb-capacity">
+      <div className="cwgsyw-cmdb-instance-tab__head">
+        <h2>容量摘要</h2>
+        <span>实时聚合（仅统计 worker 节点）</span>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="cwgsyw-cmdb-capacity__grid">
         {tiles.map((t) => {
           const Icon = t.icon
           return (
-            <div
-              key={t.label}
-              className="rounded-lg border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface-subtle)] px-4 py-3"
-            >
-              <div className="flex items-center gap-2">
-                <div className={`inline-flex h-7 w-7 items-center justify-center rounded-md border ${accentCls[t.accent]}`}>
-                  <Icon className="h-3.5 w-3.5" />
+            <div key={t.label} className="cwgsyw-cmdb-capacity__tile">
+              <div className="cwgsyw-cmdb-capacity__label">
+                <div className={`cwgsyw-cmdb-capacity__icon cwgsyw-cmdb-capacity__icon--${t.accent}`}>
+                  <Icon aria-hidden="true" />
                 </div>
-                <span className="text-xs font-medium text-[var(--cwgsyw-text-secondary)]">{t.label}</span>
+                <span>{t.label}</span>
               </div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--cwgsyw-text-primary)]">{t.value}</div>
-              {t.sub && <div className="mt-0.5 text-[11px] text-[var(--cwgsyw-text-secondary)]">{t.sub}</div>}
+              <div className="cwgsyw-cmdb-capacity__value">{t.value}</div>
+              {t.sub && <div className="cwgsyw-cmdb-capacity__sub">{t.sub}</div>}
             </div>
           )
         })}
       </div>
-    </div>
+    </section>
   )
 }

@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 import pkg from "./package.json";
 
+const allowedDevOrigins = (process.env.NEXT_ALLOWED_DEV_ORIGINS ?? 'localhost,127.0.0.1')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
 const nextConfig: NextConfig = {
   output: 'standalone',
+  ...(process.env.NODE_ENV === 'development' ? { allowedDevOrigins } : {}),
   // 构建期注入版本信息：APP_VERSION 取自 package.json，GIT_COMMIT 由 CI 传入构建参数
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,

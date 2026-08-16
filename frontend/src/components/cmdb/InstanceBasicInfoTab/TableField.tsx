@@ -7,6 +7,7 @@ export function TableFieldDisplay({ schema, rows }: { schema: unknown; rows: Rec
   if (cols.length === 0) return <span className="cwgsyw-type-body-sm">{rows.length} 项</span>
   return (
     <Table
+      className="cwgsyw-cmdb-table"
       showSearch={false}
       density="compact"
       columns={cols.map((c) => ({ key: c.key, label: c.name }))}
@@ -46,8 +47,9 @@ export function TableFieldEditor({
   }
 
   return (
-    <div className="cwgsyw-stack-list">
+    <div className="cwgsyw-cmdb-instance-detail__table-field-editor">
       <Table
+        className="cwgsyw-cmdb-table"
         showSearch={false}
         density="compact"
         state={rows.length === 0 ? 'empty' : 'data'}
@@ -59,7 +61,7 @@ export function TableFieldEditor({
             ...Object.fromEntries(visibleCols.map((c) => [
               c.key,
               c.type === 'enum' && Array.isArray(c.options) ? (
-                <Select
+                <Select overlay
                   size="sm"
                   value={String(row[c.key] ?? '')}
                   placeholder="选择"
@@ -67,7 +69,7 @@ export function TableFieldEditor({
                   onChange={(v) => updateCell(i, c.key, v)}
                 />
               ) : c.type === 'bool' ? (
-                <Select
+                <Select overlay
                   size="sm"
                   value={String(row[c.key] ?? '')}
                   placeholder="—"

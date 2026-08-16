@@ -3,19 +3,16 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import { MotionConfig, motion } from 'motion/react'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import InstanceBrowserSection from '@/components/cmdb/InstanceBrowserSection'
 import type { CiModelSummary } from '@/types/cmdb-model'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
-  Card,
-  Chip,
-  DashboardFeedbackPage,
+  Button,
   EmptyState,
-  MetricCard,
-  PageHeader,
+  Icon,
 } from '@/design-system/figma-neutral/components'
 
 async function safe<T>(p: Promise<{ data: { data: T } }>): Promise<T | undefined> {
@@ -123,72 +120,100 @@ export default function CmdbOverviewPage() {
     if (groupSections.length === 0) return null
     return groupSections.find((g) => g.code === activeGroupCode) ?? groupSections[0]
   }, [groupSections, activeGroupCode])
+  const activeGroupIndex = Math.max(0, groupSections.findIndex((group) => group.code === activeGroup?.code))
 
-  const totalModels = groupSections.reduce((sum, g) => sum + g.modelCount, 0)
-  const totalInstances = groupSections.reduce((sum, g) => sum + g.instanceCount, 0)
+  const totalModels = groupSections.reduce((sum, group) => sum + group.modelCount, 0)
+  const totalInstances = groupSections.reduce((sum, group) => sum + group.instanceCount, 0)
 
   return (
-    <DashboardFeedbackPage
-      header={
-        <PageHeader
-          eyebrow="CMDB"
-          title="概览"
-          subtitle="统一查看 CMDB 模型分类、实例浏览与近期 CI 动态。"
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: 'CMDB' }]} />}
-        />
-      }
-      metrics={
-        <div className="cwgsyw-filter-grid">
-          <MetricCard label="分类" value={String(groupSections.length)} />
-          <MetricCard label="模型" value={String(totalModels)} />
-          <MetricCard label="实例" value={String(totalInstances)} />
+    <div className="cwgsyw-page cwgsyw-cmdb-overview cwgsyw-cmdb-page">
+      <h1 className="sr-only">CMDB</h1>
+      <section className="cwgsyw-cmdb-overview__catalog" aria-labelledby="cmdb-model-catalog-title">
+        <div className="cwgsyw-cmdb-overview__section-heading">
+          <div className="cwgsyw-cmdb-overview__catalog-title">
+            <h2 id="cmdb-model-catalog-title" className="cwgsyw-type-title-sm">各类模型</h2>
+            <span className="cwgsyw-cmdb-overview__catalog-note">
+              <Icon name="chevron-next" size="sm" aria-hidden="true" />
+              <span>按模型组分类浏览资产目录。</span>
+              <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+            </span>
+          </div>
+          <span className="cwgsyw-cmdb-overview__summary" aria-label={`${groupSections.length} 个分类，${totalModels} 个模型，${totalInstances} 个实例`}>
+            {groupSections.length} 分类 · {totalModels} 模型 · {totalInstances} 实例
+          </span>
         </div>
-      }
-      feedback={
-        <Card title="各类模型" description="按模型组浏览资产目录。分类用结构区分，不再用彩色色块表达归属。">
-          {groupSections.length === 0 ? (
-            <EmptyState title="暂无模型" description="还没有可浏览的 CI 模型组。" />
-          ) : (
-            <div className="cwgsyw-form">
-              <div className="cwgsyw-inline-controls" role="tablist" aria-label="CMDB 模型组">
-                {groupSections.map((group) => (
-                  <Chip
-                    key={group.code}
-                    label={group.name}
-                    selected={activeGroup?.code === group.code}
-                    onClick={() => setActiveGroupCode(group.code)}
-                  />
-                ))}
-              </div>
-              {activeGroup ? (
-                <div role="tabpanel" aria-label={activeGroup.name} className="cwgsyw-form">
-                  <p className="cwgsyw-type-body-sm">{activeGroup.description}</p>
-                  <div className="cwgsyw-filter-grid">
-                    <MetricCard label="模型" value={String(activeGroup.modelCount)} />
-                    <MetricCard label="实例" value={String(activeGroup.instanceCount)} />
-                    <MetricCard label="字段" value={String(activeGroup.attributeCount)} />
-                  </div>
-                  <div className="cwgsyw-filter-grid">
-                    {activeGroup.models.map((model) => (
-                      <Link
-                        key={model.modelId}
-                        href={`/cmdb/instances/by-model/${model.modelId}`}
-                        className="cwgsyw-card cwgsyw-card--md"
-                      >
-                        <strong className="cwgsyw-type-title-sm">{model.displayName || model.name}</strong>
-                        <span className="cwgsyw-type-body-sm">
-                          {model.instanceCount ?? 0} 实例 · {getAttributeCount(model)} 字段
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+
+        {groupSections.length === 0 ? (
+          <EmptyState title="暂无模型" description="还没有可浏览的 CI 模型组。" />
+        ) : (
+          <MotionConfig reducedMotion="user">
+            <div
+              className="cwgsyw-cmdb-overview__groups"
+              role="tablist"
+              aria-label="CMDB 模型组"
+            >
+              {groupSections.map((group) => (
+                <Button
+                  key={group.code}
+                  id={`cmdb-model-group-tab-${group.code}`}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  role="tab"
+                  className={`cwgsyw-cmdb-overview__group-tab${activeGroup?.code === group.code ? ' is-active' : ''}`}
+                  aria-selected={activeGroup?.code === group.code}
+                  aria-controls={`cmdb-model-group-panel-${group.code}`}
+                  onClick={() => setActiveGroupCode(group.code)}
+                >
+                  {activeGroup?.code === group.code ? (
+                    <motion.span
+                      layoutId="cmdb-model-group-indicator"
+                      aria-hidden="true"
+                      className="cwgsyw-cmdb-overview__group-motion-indicator"
+                      transition={{ type: 'spring', stiffness: 360, damping: 32, mass: 0.6 }}
+                    />
+                  ) : null}
+                  <span className="cwgsyw-cmdb-overview__group-tab-label">{group.name}</span>
+                </Button>
+              ))}
             </div>
-          )}
-        </Card>
-      }
-      supporting={<InstanceBrowserSection />}
-    />
+
+            {activeGroup ? (
+              <div className="cwgsyw-cmdb-overview__model-panels">
+                <motion.div
+                  className="cwgsyw-cmdb-overview__model-track"
+                  animate={{ x: `${activeGroupIndex * -100}%` }}
+                  transition={{ type: 'spring', stiffness: 180, damping: 26, bounce: 0, restDelta: 0.01 }}
+                >
+                  {groupSections.map((group) => (
+                    <div
+                      key={group.code}
+                      id={`cmdb-model-group-panel-${group.code}`}
+                      role="tabpanel"
+                      aria-labelledby={`cmdb-model-group-tab-${group.code}`}
+                      className="cwgsyw-cmdb-overview__model-grid"
+                    >
+                      {group.models.map((model) => (
+                        <Link
+                          key={model.modelId}
+                          href={`/cmdb/instances/by-model/${model.modelId}`}
+                          className="cwgsyw-cmdb-overview__model-tile"
+                        >
+                          <h3 className="cwgsyw-type-title-sm">{model.displayName || model.name}</h3>
+                          <span className="cwgsyw-type-label-sm">
+                            {model.instanceCount ?? 0} 实例 · {getAttributeCount(model)} 字段
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+            ) : null}
+          </MotionConfig>
+        )}
+      </section>
+      <InstanceBrowserSection />
+    </div>
   )
 }

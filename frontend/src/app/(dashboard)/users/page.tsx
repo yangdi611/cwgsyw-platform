@@ -56,7 +56,7 @@ export default function UsersPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['users', page, keyword],
     queryFn: () =>
-      api.get('/users', { params: { page, size: pageSize } }).then((r) => ({
+      api.get('/users', { params: { page, size: pageSize, keyword: keyword || undefined } }).then((r) => ({
         records: (r.data.data?.records ?? r.data.data) as User[],
         total: r.data.data?.total ?? 0,
       })),

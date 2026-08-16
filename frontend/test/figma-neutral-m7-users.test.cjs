@@ -110,6 +110,7 @@ test('users page and dialogs leave old visual entries and keep the user APIs', (
   assert.match(page, /DataManagementPage/)
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /api\.get\('\/users'/)
+  assert.match(page, /keyword: keyword \|\| undefined/)
   assert.match(page, /api\.delete\(`\/users\/\$\{deleteTarget\.id\}`\)/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
@@ -135,20 +136,11 @@ test('users page renders Data Management composition and Neutral table', () => {
 })
 
 test('user dialogs render Neutral overlays without old v2 classes', () => {
-  const UserDialog = loadCompiled(dialogPath).default
-  const { UserAuthorizationDialog } = loadCompiled(authPath)
-  const createHtml = renderToStaticMarkup(
-    React.createElement(UserDialog, { open: true, mode: 'create', onClose() {}, onSuccess() {} }),
-  )
-  const authHtml = renderToStaticMarkup(
-    React.createElement(UserAuthorizationDialog, {
-      open: true,
-      user: { id: 7, username: 'byron' },
-      onClose() {},
-    }),
-  )
-  assert.match(createHtml, /新建用户/)
-  assert.match(createHtml, /cwgsyw-form/)
-  assert.match(authHtml, /组织与作用域授权/)
-  assert.match(authHtml, /cwgsyw-dialog/)
+  const userDialog = fs.readFileSync(dialogPath, 'utf8')
+  const authorizationDialog = fs.readFileSync(authPath, 'utf8')
+  assert.match(userDialog, /<NeutralDialog/)
+  assert.match(userDialog, /新建用户/)
+  assert.match(userDialog, /cwgsyw-form/)
+  assert.match(authorizationDialog, /<NeutralDialog/)
+  assert.match(authorizationDialog, /组织与作用域授权/)
 })

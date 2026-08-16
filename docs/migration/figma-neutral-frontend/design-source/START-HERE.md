@@ -48,11 +48,11 @@
 
 React 实施是独立交付流程，使用 Goal Prompt，不使用上面的 Figma 设计 Prompt。
 
-1. 当前任务是 YAN-11，worktree 在 `/Users/byron/AI/worktrees/YAN-11`。
-2. 把 `docs/migration/figma-neutral-frontend/goal-prompts/SHORT-GOAL-PROMPT.md` 贴进 Codex Goal。
+1. 当前任务是 YAN-91，活树在 `/Users/byron/AI/worktrees/YAN-71`。不要退回 YAN-11。
+2. 把 `docs/migration/figma-neutral-frontend/goal-prompts/SHORT-GOAL-PROMPT.md` 的「短 Goal」贴进**新的** Codex Goal。
 3. AI 必须先读同目录 `LONG-GOAL-PROMPT.md`，以及 `FORMAL-ASSET-API-MANIFEST.md` 和 `FIGMA-TO-REACT-IMPLEMENTATION-CONTRACT.md`。
-4. 从迁移 `STATUS.md` 的 `currentPointer` 恢复；每个切片开始前按 Node ID + 完整名称 + API 指纹回读实时 Figma。
-5. 一次只做一个垂直切片，跑完 Light / Dark × 1440 / 1024 / 390、交互、A11y 和消费者回归后再进入下一张 Issue。
+4. 从迁移 `STATUS.md` 的 `currentPointer` 恢复。M0-M8 已落地，不要重做页面。
+5. 视觉审计保持 WAIVED，除非用户撤回。布局明显坏掉仍按 Token -> Component -> Composition -> Page 回修。
 6. 当前代码只提供功能、数据、权限和业务状态清单；不得作为新视觉参考。
 7. `FRONTEND-REFACTOR-EXECUTION-PROMPT.md` 仍可作补充规则，但启动和续跑以 `goal-prompts/` 为准。
 

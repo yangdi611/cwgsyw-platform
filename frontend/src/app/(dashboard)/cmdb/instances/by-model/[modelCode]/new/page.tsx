@@ -69,12 +69,13 @@ export default function NewInstancePage() {
   if (isLoading) return <LoadingState label="加载模型" />
 
   return (
-    <FormSettingsPage
+    <FormSettingsPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title={`新建 ${model?.name ?? modelCode} 实例`}
-          subtitle="填写实例名称和模型属性后创建。"
+          subtitle="填写名称和属性"
           breadcrumb={
             <Breadcrumb
               items={[
@@ -86,11 +87,12 @@ export default function NewInstancePage() {
             />
           }
         />
+        </div>
       }
       form={
         <div className="cwgsyw-form">
           <Field label="实例名称" htmlFor="instance-name" required>
-            <Input id="instance-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入实例名称" />
+            <Input size="sm" id="instance-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入实例名称" />
           </Field>
           {groups
             .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -137,7 +139,7 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
   if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
     return (
-      <Select
+      <Select size="sm" overlay
         value={value}
         placeholder="请选择"
         options={opts.map((item) => ({ value: item.id, label: item.name }))}
@@ -172,7 +174,7 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
   }
   if (fieldType === 'bool') {
     return (
-      <Select
+      <Select size="sm" overlay
         value={value}
         placeholder="请选择"
         options={[
@@ -183,9 +185,9 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
       />
     )
   }
-  if (fieldType === 'date') return <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
+  if (fieldType === 'date') return <Input size="sm" type="date" value={value} onChange={(event) => onChange(event.target.value)} />
   if (fieldType === 'int' || fieldType === 'float') {
-    return <Input type="number" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
+    return <Input size="sm" type="number" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
   }
-  return <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
+  return <Input size="sm" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
 }

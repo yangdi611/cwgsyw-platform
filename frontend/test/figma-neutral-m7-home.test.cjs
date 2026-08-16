@@ -87,3 +87,13 @@ test('home renders Neutral dashboard', () => {
   assert.match(html, /企业运维工作台/)
   assert.match(html, /常用业务入口/)
 })
+
+test('home composes quick links as Dashboard Tiles instead of nested list containers', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /cwgsyw-dashboard-link-list/)
+  assert.match(page, /cwgsyw-dashboard-tile__copy/)
+  assert.doesNotMatch(page, /<Link key=\{link\.title\} href=\{link\.href\} className="cwgsyw-stack-list">/)
+  assert.match(css, /\.cwgsyw-dashboard-link-list \{ display: grid/)
+  assert.match(css, /\.cwgsyw-dashboard-tile__copy \{ display: grid/)
+})

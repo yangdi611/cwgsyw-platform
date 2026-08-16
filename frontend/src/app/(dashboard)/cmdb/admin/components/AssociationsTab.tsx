@@ -14,6 +14,7 @@ import {
   Chip,
   EmptyState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
@@ -21,6 +22,7 @@ import {
   StatusBadge,
   Table,
 } from '@/design-system/figma-neutral/components'
+import { CmdbAdminActionIcon } from './CmdbAdminActionIcon'
 
 interface AssociationAttrVO {
   id: number
@@ -168,9 +170,9 @@ function AssociationsTab() {
   const [deleteAttr, setDeleteAttr] = useState<AssociationAttrVO | null>(null)
 
   return (
-    <div className="cwgsyw-form">
-      <section className="cwgsyw-form">
-        <div className="cwgsyw-type-label-sm">关联种类</div>
+    <div className="cwgsyw-cmdb-admin__panel-section cwgsyw-cmdb-admin__associations">
+      <section className="cwgsyw-cmdb-admin__subsection">
+        <div className="cwgsyw-cmdb-admin__section-title">关联种类</div>
         {kinds.length === 0 ? (
           <EmptyState title="暂无关联种类" description="还没有可选择的关联类型。" />
         ) : (
@@ -184,15 +186,15 @@ function AssociationsTab() {
 
       <AssociationDefsSection models={models} kinds={kinds} canWrite={canWrite} />
 
-      <section className="cwgsyw-form">
-        <div className="cwgsyw-inline-controls">
-          <div className="cwgsyw-type-label-sm">关联扩展属性管理</div>
+      <section className="cwgsyw-cmdb-admin__subsection">
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__toolbar">
+          <div className="cwgsyw-cmdb-admin__section-title">关联扩展属性管理</div>
           {activeKind && !showForm && canWrite ? (
             <Button type="button" size="sm" onClick={() => { resetForm(); setShowForm(true) }}>新增属性</Button>
           ) : null}
         </div>
         <Field label="选择关联类型" htmlFor="assoc-kind">
-          <Select
+          <Select size="sm" overlay
             id="assoc-kind"
             value={selectedKind}
             placeholder="请选择关联类型"
@@ -205,13 +207,13 @@ function AssociationsTab() {
           <div className="cwgsyw-form">
             <div className="cwgsyw-filter-grid">
               <Field label="字段标识" htmlFor="attr-key" required helperText="英文/下划线">
-                <Input id="attr-key" value={form.fieldKey} disabled={!!editingAttr} onChange={(event) => setForm((current) => ({ ...current, fieldKey: event.target.value }))} />
+                <Input size="sm" id="attr-key" value={form.fieldKey} disabled={!!editingAttr} onChange={(event) => setForm((current) => ({ ...current, fieldKey: event.target.value }))} />
               </Field>
               <Field label="显示名称" htmlFor="attr-name" required>
-                <Input id="attr-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+                <Input size="sm" id="attr-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
               </Field>
               <Field label="字段类型" htmlFor="attr-type">
-                <Select
+                <Select size="sm" overlay
                   id="attr-type"
                   value={form.fieldType}
                   options={FIELD_TYPE_OPTIONS}
@@ -219,10 +221,10 @@ function AssociationsTab() {
                 />
               </Field>
               <Field label="默认值" htmlFor="attr-default">
-                <Input id="attr-default" value={form.defaultValue} onChange={(event) => setForm((current) => ({ ...current, defaultValue: event.target.value }))} />
+                <Input size="sm" id="attr-default" value={form.defaultValue} onChange={(event) => setForm((current) => ({ ...current, defaultValue: event.target.value }))} />
               </Field>
               <Field label="排序" htmlFor="attr-sort">
-                <Input id="attr-sort" type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: parseInt(event.target.value) || 0 }))} />
+                <Input size="sm" id="attr-sort" type="number" value={form.sortOrder} onChange={(event) => setForm((current) => ({ ...current, sortOrder: parseInt(event.target.value) || 0 }))} />
               </Field>
               <Checkbox
                 id="is-required"
@@ -233,7 +235,7 @@ function AssociationsTab() {
             </div>
             {form.fieldType === 'enum' ? (
               <Field label="枚举选项" htmlFor="attr-enum" helperText="逗号分隔">
-                <Input id="attr-enum" value={form.enumOptions} onChange={(event) => setForm((current) => ({ ...current, enumOptions: event.target.value }))} />
+                <Input size="sm" id="attr-enum" value={form.enumOptions} onChange={(event) => setForm((current) => ({ ...current, enumOptions: event.target.value }))} />
               </Field>
             ) : null}
             <div className="cwgsyw-inline-controls">
@@ -255,6 +257,7 @@ function AssociationsTab() {
             />
           ) : (
             <Table
+              className={`cwgsyw-cmdb-table${canWrite ? ' cwgsyw-cmdb-admin__action-table' : ''}`}
               showSearch={false}
               columns={[
                 { key: 'fieldKey', label: '标识' },
@@ -263,7 +266,7 @@ function AssociationsTab() {
                 { key: 'required', label: '必填' },
                 { key: 'default', label: '默认值' },
                 { key: 'sort', label: '排序' },
-                ...(canWrite ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+                ...(canWrite ? [{ key: 'actions', label: '', align: 'right' as const }] : []),
               ]}
               rows={attrs.map((attr) => ({
                 id: String(attr.id),
@@ -275,9 +278,9 @@ function AssociationsTab() {
                   default: attr.defaultValue || '-',
                   sort: attr.sortOrder,
                   actions: canWrite ? (
-                    <div className="cwgsyw-inline-controls">
-                      <Button type="button" size="sm" variant="ghost" onClick={() => startEdit(attr)}>编辑</Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteAttr(attr)}>删除</Button>
+                    <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                      <IconButton type="button" size="sm" variant="ghost" icon={<CmdbAdminActionIcon name="edit" />} aria-label={`编辑扩展属性 ${attr.name}`} title="编辑" onClick={() => startEdit(attr)} />
+                      <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-cmdb-admin__delete-action" icon={<CmdbAdminActionIcon name="trash" />} aria-label={`删除扩展属性 ${attr.name}`} title="删除" onClick={() => setDeleteAttr(attr)} />
                     </div>
                   ) : null,
                 },

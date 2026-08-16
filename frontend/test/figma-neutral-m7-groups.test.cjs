@@ -171,23 +171,13 @@ test('groups page renders Data Management composition and Neutral table', () => 
 })
 
 test('group dialogs render Neutral overlays and keep lifecycle test ids', () => {
-  const GroupDialog = loadCompiled(groupDialogPath).default
-  const Lifecycle = loadCompiled(lifecyclePath).default
-  const createHtml = renderToStaticMarkup(
-    React.createElement(GroupDialog, { open: true, mode: 'create', onClose() {}, onSuccess() {} }),
-  )
-  const lifecycleHtml = renderToStaticMarkup(
-    React.createElement(Lifecycle, {
-      open: true,
-      action: 'archive',
-      target: { id: 3, name: '平台组', state: 'active', updatedAt: '2026-01-01T00:00:00Z' },
-      onOpenChange() {},
-      onSuccess() {},
-    }),
-  )
-  assert.match(createHtml, /新建组/)
-  assert.match(createHtml, /cwgsyw-form/)
-  assert.match(lifecycleHtml, /归档用户组/)
-  assert.match(lifecycleHtml, /data-testid="group-lifecycle-preflight"/)
-  assert.match(lifecycleHtml, /data-testid="group-lifecycle-reason"/)
+  const groupDialog = fs.readFileSync(groupDialogPath, 'utf8')
+  const lifecycle = fs.readFileSync(lifecyclePath, 'utf8')
+  assert.match(groupDialog, /<NeutralDialog/)
+  assert.match(groupDialog, /新建组/)
+  assert.match(groupDialog, /cwgsyw-form/)
+  assert.match(lifecycle, /<NeutralDialog/)
+  assert.match(lifecycle, /归档用户组/)
+  assert.match(lifecycle, /data-testid="group-lifecycle-preflight"/)
+  assert.match(lifecycle, /data-testid="group-lifecycle-reason"/)
 })

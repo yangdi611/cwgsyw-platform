@@ -12,6 +12,7 @@ const ts = require('typescript')
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/spatial/page.tsx')
 const indexPath = path.join(frontendRoot, 'src/features/cmdb-spatial/components/SpatialLayoutIndex.tsx')
+const spikePath = path.join(frontendRoot, 'src/features/cmdb-spatial/spike/SpatialCanvasSpike.tsx')
 
 function compile(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -81,11 +82,13 @@ function loadCompiled(filePath) {
 test('cmdb spatial index leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   const index = fs.readFileSync(indexPath, 'utf8')
+  const spike = fs.readFileSync(spikePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.doesNotMatch(index, /@\/components\/design-system/)
   assert.doesNotMatch(index, /@\/components\/shared/)
   assert.doesNotMatch(index, /text-v2-|bg-v2-primary/)
   assert.doesNotMatch(index, /lucide-react/)
+  assert.match(spike, /cwgsyw-cmdb-page/)
 })
 
 test('cmdb spatial index renders Neutral list', () => {

@@ -10,6 +10,8 @@ const { renderToStaticMarkup } = require('react-dom/server')
 const ts = require('typescript')
 
 const root = path.resolve(__dirname, '../src/design-system/figma-neutral/components')
+const selectSource = fs.readFileSync(path.join(root, 'Select.tsx'), 'utf8')
+const fieldsCss = fs.readFileSync(path.join(root, 'fields.css'), 'utf8')
 
 function loadTsx(rel) {
   const filePath = path.join(root, rel)
@@ -84,12 +86,22 @@ test('Search and Date inputs use official icon names', () => {
 test('Select and Combobox expose listbox semantics', () => {
   const options = [{ value: 'a', label: '核心交换机' }]
   const select = renderToStaticMarkup(
-    React.createElement(Select, { options, defaultOpen: true, placeholder: '请选择' }),
+    React.createElement(Select, { options, defaultOpen: true, overlay: true, className: 'wide-select', 'aria-label': '选择设备', placeholder: '请选择' }),
   )
   const combo = renderToStaticMarkup(React.createElement(Combobox, { options, placeholder: '搜索并选择' }))
   assert.match(select, /aria-haspopup="listbox"/)
   assert.match(select, /role="listbox"/)
+  assert.match(select, /cwgsyw-listbox--overlay/)
+  assert.match(select, /wide-select/)
+  assert.match(select, /aria-label="选择设备"/)
   assert.match(combo, /role="combobox"/)
+})
+
+test('Select closes on outside pointer and list items do not overflow their overlay', () => {
+  assert.match(selectSource, /document\.addEventListener\('pointerdown', closeOnOutsidePointer\)/)
+  assert.match(selectSource, /rootRef\.current\?\.contains\(event\.target as Node\)/)
+  assert.match(fieldsCss, /\.cwgsyw-listbox button \{[\s\S]*box-sizing: border-box;/)
+  assert.match(fieldsCss, /overflow-wrap: anywhere;/)
 })
 
 test('Checkbox Radio Switch keep selection semantics', () => {

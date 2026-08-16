@@ -42,10 +42,11 @@ export function SpatialVersionHistory({ roomId, canPublish }: { roomId: number; 
 
   return (
     <>
-      <DataManagementPage
+      <DataManagementPage className="cwgsyw-cmdb-page"
         header={
+          <div className="cwgsyw-cmdb-instance-page">
           <PageHeader
-            eyebrow="CMDB"
+            showEyebrow={false}
             title="布局版本历史"
             subtitle={layout.name}
             breadcrumb={
@@ -59,10 +60,12 @@ export function SpatialVersionHistory({ roomId, canPublish }: { roomId: number; 
             }
             actions={<Button type="button" variant="secondary" onClick={() => { window.location.href = `/cmdb/spatial/rooms/${roomId}` }}>返回查看器</Button>}
           />
+          </div>
         }
         content={
           versions.length ? (
             <Table
+              className="cwgsyw-cmdb-table"
               showSearch={false}
               columns={[
                 { key: 'version', label: '版本' },

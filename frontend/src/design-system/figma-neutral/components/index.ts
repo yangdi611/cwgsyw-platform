@@ -21,6 +21,6 @@ export { Pagination, PaginationPageItem, type PaginationProps } from './Paginati
 
 export { Skeleton, EmptyState, ErrorState, LoadingState, Alert, Toast, Progress } from './Feedback'
 
-export { MenuItem, DropdownMenu, NeutralTooltip, NeutralPopover, NeutralDialog, NeutralAlertDialog, NeutralDrawer, Calendar, CalendarDay, DatePicker, DateRangePicker, CommandPalette, CommandItem, CommandGroup } from './Overlay'
+export { MenuItem, MenuTriggerButton, DropdownMenu, NeutralTooltip, NeutralPopover, NeutralDialog, NeutralAlertDialog, NeutralDrawer, Calendar, CalendarDay, DatePicker, DateRangePicker, CommandPalette, CommandItem, CommandGroup } from './Overlay'
 
 export { Breadcrumb, PageHeader, DetailHeader, Toolbar, WorkspaceToolbar, FilterBar, FormSettingsPage, DataManagementPage, DetailDrawerPage, DashboardFeedbackPage, OverlayDestructivePage } from './Patterns'

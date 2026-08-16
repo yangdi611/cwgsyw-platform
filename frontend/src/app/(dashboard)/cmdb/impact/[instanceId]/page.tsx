@@ -145,10 +145,11 @@ export default function ImpactAnalysisPage() {
       : `加载影响分析失败${status ? `（${status}）` : ''}：${getApiErrorMessage(error, '请稍后重试')}`
 
   return (
-    <DashboardFeedbackPage
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title={`影响分析 · ${data?.rootName ?? `#${instanceId}`}`}
           subtitle={`共 ${totalNodes} 个节点，${data?.edges.length ?? 0} 条关联`}
           breadcrumb={
@@ -170,7 +171,7 @@ export default function ImpactAnalysisPage() {
               >
                 返回实例
               </Button>
-              <Select
+              <Select size="sm" overlay
                 value={direction}
                 options={[
                   { value: 'bidirectional', label: '双向' },
@@ -179,7 +180,7 @@ export default function ImpactAnalysisPage() {
                 ]}
                 onChange={(value) => setDirection((value as Direction) || 'bidirectional')}
               />
-              <Select
+              <Select size="sm" overlay
                 value={String(maxDepth)}
                 options={[1, 2, 3, 4, 5].map((d) => ({ value: String(d), label: `深度 ${d}` }))}
                 onChange={(value) => setMaxDepth(Number(value) || 3)}
@@ -187,6 +188,7 @@ export default function ImpactAnalysisPage() {
             </div>
           }
         />
+        </div>
       }
       feedback={
         isLoading ? (

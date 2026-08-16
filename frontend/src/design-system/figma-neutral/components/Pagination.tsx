@@ -49,7 +49,7 @@ export function Pagination({
   page,
   pageCount,
   totalCount,
-  showTotal = true,
+  showTotal = false,
   showPageSize = false,
   showJump = false,
   density = 'default',

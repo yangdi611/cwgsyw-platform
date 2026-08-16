@@ -200,7 +200,7 @@ export default function WikiSpacesPage() {
         <div className="cwgsyw-form">
           <div className="cwgsyw-designer__actions">
             <strong>{space.name}</strong>
-            {space.system ? <Badge label="官方手册" tone="info" /> : null}
+            {space.system ? <Badge label="官方手册" /> : null}
             {sortable ? (
               <>
                 <IconButton
@@ -338,7 +338,7 @@ export default function WikiSpacesPage() {
                 <section className="cwgsyw-form">
                   <div className="cwgsyw-designer__actions">
                     <strong>官方手册</strong>
-                    <Badge label="系统维护" tone="info" />
+                    <Badge label="系统维护" />
                   </div>
                   <div className="cwgsyw-form">{manualSpaces.map((space) => renderSpaceCard(space))}</div>
                 </section>

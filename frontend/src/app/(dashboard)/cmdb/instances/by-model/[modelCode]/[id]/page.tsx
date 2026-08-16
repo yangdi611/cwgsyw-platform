@@ -20,12 +20,11 @@ import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import type { CiAttributeResponse, CmdbFieldsData } from '@/types/cmdb-model'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DetailDrawerPage,
   ErrorState,
+  Icon,
   LoadingState,
-  PageHeader,
   Tabs,
 } from '@/design-system/figma-neutral/components'
 
@@ -102,7 +101,7 @@ export default function InstanceDetailPage() {
     if (tab !== key) return null
     if (key === 'basic') {
       return (
-        <div className="cwgsyw-stack-list">
+        <div className="cwgsyw-cmdb-instance-detail__basic">
           {inst.modelId === 'resource_pool' && <ResourcePoolCapacityCard fieldsData={inst.fieldsData ?? {}} />}
           {!isRack && <RackAssignmentCard instanceId={id} />}
           {!isRack && <EndpointLinksCard instanceId={id} />}
@@ -121,47 +120,48 @@ export default function InstanceDetailPage() {
 
   return (
     <DetailDrawerPage
+      className="cwgsyw-cmdb-page cwgsyw-cmdb-instance-detail"
       embedded
       header={
-        <PageHeader
-          eyebrow={inst.modelId}
-          title={inst.name ?? `#${inst.id}`}
-          subtitle={`创建于 ${new Date(inst.createdAt).toLocaleString('zh-CN')}${inst.createdByName ? ` · ${inst.createdByName}` : ''}`}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { href: `/cmdb/instances/by-model/${modelCode}`, label: inst.modelId },
-                { label: inst.name ?? `#${inst.id}` },
-              ]}
-            />
-          }
-          actions={
-            <div className="cwgsyw-inline-controls">
+        <header className="cwgsyw-cmdb-instance-detail__header">
+          <div className="cwgsyw-cmdb-instance-detail__identity">
+            <div className="cwgsyw-cmdb-overview__catalog-title">
+              <h1>{inst.name ?? `#${inst.id}`}</h1>
+              <span className="cwgsyw-cmdb-overview__catalog-note">
+                <Icon name="chevron-next" size="sm" aria-hidden="true" />
+                <span>{modelCode} · #{inst.id}</span>
+                <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+              </span>
+            </div>
+            <p>
+              创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}
+              {inst.createdByName ? ` · ${inst.createdByName}` : ''}
+            </p>
+          </div>
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-instance-detail__actions">
               {hasPermission('cmdb_impact', 'read') && (
-                <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/impact/${id}`)}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/impact/${id}`)}>
                   影响分析
                 </Button>
               )}
               {hasPermission('cmdb_topology', 'read') && (
-                <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/topology/${id}/compare`)}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/topology/${id}/compare`)}>
                   拓扑对比
                 </Button>
               )}
-            </div>
-          }
-        />
+          </div>
+        </header>
       }
       content={
         <Tabs
-          style="underline"
+          style="cmdb"
+          size="sm"
           value={tab}
           onChange={(next) => setTab(next as TabKey)}
           items={tabs.map((item) => ({
             id: item.key,
             label: item.label,
-            panel: renderPanel(item.key),
+            panel: <div className="cwgsyw-cmdb-instance-detail__panel">{renderPanel(item.key)}</div>,
           }))}
         />
       }

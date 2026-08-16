@@ -131,12 +131,13 @@ export default function AssociationsPage() {
 
   return (
     <>
-      <DataManagementPage
+      <DataManagementPage className="cwgsyw-cmdb-page"
         header={
+          <div className="cwgsyw-cmdb-instance-page">
           <PageHeader
-            eyebrow="CMDB"
-            title={`${inst?.name ?? `#${id}`} — 关联管理`}
-            subtitle={`共 ${allRelations.length} 条关联`}
+            showEyebrow={false}
+            title="关联管理"
+            subtitle={`${inst?.name ?? `#${id}`} · ${allRelations.length} 条`}
             breadcrumb={
               <Breadcrumb
                 items={[
@@ -152,6 +153,7 @@ export default function AssociationsPage() {
               hasPermission('cmdb_relation', 'create') ? (
                 <Button
                   type="button"
+                  size="sm"
                   onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`)}
                 >
                   新建关联
@@ -159,9 +161,12 @@ export default function AssociationsPage() {
               ) : undefined
             }
           />
+          </div>
         }
         toolbar={
           <Select
+            overlay
+            size="sm"
             value={filterKind}
             options={kindOptions}
             onChange={(value) => setFilterKind(value || 'all')}
@@ -174,6 +179,7 @@ export default function AssociationsPage() {
             <EmptyState title="暂无关联" description="该实例还没有匹配当前筛选的关联。" />
           ) : (
             <Table
+              className="cwgsyw-cmdb-table"
               showSearch={false}
               columns={[
                 { key: 'kind', label: '种类' },

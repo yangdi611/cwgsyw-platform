@@ -5,12 +5,12 @@ import type { AttributeAdminItem } from './types'
 import { FIELD_TYPES } from './types'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Button,
-  Card,
-  Chip,
+  IconButton,
   NeutralAlertDialog,
   StatusBadge,
+  Table,
 } from '@/design-system/figma-neutral/components'
+import { CmdbAdminActionIcon } from '../../../components/CmdbAdminActionIcon'
 
 interface AttributeListProps {
   attributes: AttributeAdminItem[]
@@ -22,6 +22,7 @@ interface AttributeListProps {
 
 export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDelete }: AttributeListProps) {
   const [deleteTarget, setDeleteTarget] = useState<AttributeAdminItem | null>(null)
+  const hasActions = canUpdate || canDelete
   const grouped = attributes.reduce(
     (acc, attr) => {
       const key = attr.groupName ?? '__ungrouped__'
@@ -33,7 +34,7 @@ export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDele
   )
 
   return (
-    <div className="cwgsyw-form">
+    <div className="cwgsyw-cmdb-model-detail__groups">
       {Object.entries(grouped)
         .sort(([a], [b]) => {
           if (a === '__ungrouped__') return 1
@@ -41,41 +42,75 @@ export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDele
           return a.localeCompare(b)
         })
         .map(([groupName, attrs]) => (
-          <section key={groupName} className="cwgsyw-form">
-            <div className="cwgsyw-type-label-sm">{groupName === '__ungrouped__' ? '未分组' : groupName}</div>
-            {attrs
-              .sort((a, b) => a.sortOrder - b.sortOrder)
-              .map((attr) => (
-                <Card key={attr.id} showHeader={false} padding="sm">
-                  <div className="cwgsyw-inline-controls">
-                    <strong className="cwgsyw-type-title-sm">{attr.name}</strong>
-                    <span className="cwgsyw-type-label-xs">{attr.fieldKey}</span>
-                    {attr.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
-                  </div>
-                  <div className="cwgsyw-type-label-xs">类型：{FIELD_TYPES[attr.fieldType] ?? attr.fieldType}</div>
-                  <div className="cwgsyw-inline-controls">
-                    <Chip label="必填" selected={attr.isRequired} />
-                    <Chip label="实例可编辑" selected={attr.isEditable} />
-                    <Chip label="唯一" selected={attr.isUnique} />
-                    <Chip label="列表显示" selected={attr.isListShow} />
-                    <Chip label="详情表单显示" selected={attr.isDrawerShow} />
-                  </div>
-                  {(canUpdate || canDelete) ? (
-                    <div className="cwgsyw-inline-controls">
-                      {canUpdate ? (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(attr)}>
-                          编辑
-                        </Button>
-                      ) : null}
-                      {canDelete && !attr.isBuiltIn ? (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteTarget(attr)}>
-                          删除
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </Card>
-              ))}
+          <section key={groupName} className="cwgsyw-cmdb-model-detail__group">
+            <h2 className="cwgsyw-cmdb-model-detail__group-title">
+              {groupName === '__ungrouped__' ? '未分组' : groupName}
+            </h2>
+            <Table
+              className={`cwgsyw-cmdb-table cwgsyw-cmdb-model-detail__attribute-table${hasActions ? ' cwgsyw-cmdb-admin__action-table' : ''}`}
+              showSearch={false}
+              columns={[
+                { key: 'name', label: '属性名称' },
+                { key: 'fieldKey', label: '字段标识' },
+                { key: 'fieldType', label: '类型' },
+                { key: 'flags', label: '配置' },
+                ...(hasActions ? [{ key: 'actions', label: '', align: 'right' as const }] : []),
+              ]}
+              rows={[...attrs]
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((attr) => {
+                  const flags = [
+                    attr.isRequired ? '必填' : null,
+                    attr.isEditable ? '实例可编辑' : null,
+                    attr.isUnique ? '唯一' : null,
+                    attr.isListShow ? '列表显示' : null,
+                    attr.isDrawerShow ? '详情显示' : null,
+                  ].filter(Boolean).join(' · ')
+
+                  return {
+                    id: String(attr.id),
+                    cells: {
+                      name: (
+                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-model-detail__attribute-name">
+                          <span>{attr.name}</span>
+                          {attr.isBuiltIn ? <StatusBadge label="内置" status="neutral" /> : null}
+                        </div>
+                      ),
+                      fieldKey: <span className="cwgsyw-cmdb-model-detail__field-key">{attr.fieldKey}</span>,
+                      fieldType: FIELD_TYPES[attr.fieldType] ?? attr.fieldType,
+                      flags: <span className="cwgsyw-cmdb-model-detail__flags-text">{flags || '—'}</span>,
+                      actions: hasActions ? (
+                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                          {canUpdate ? (
+                            <IconButton
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              icon={<CmdbAdminActionIcon name="edit" />}
+                              aria-label={`编辑属性 ${attr.name}`}
+                              title="编辑"
+                              onClick={() => onEdit(attr)}
+                            />
+                          ) : null}
+                          {canDelete ? (
+                            <IconButton
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="cwgsyw-cmdb-admin__delete-action"
+                              icon={<CmdbAdminActionIcon name="trash" />}
+                              aria-label={`删除属性 ${attr.name}`}
+                              title={attr.isBuiltIn ? '内置属性不可删除' : '删除'}
+                              disabled={attr.isBuiltIn}
+                              onClick={() => setDeleteTarget(attr)}
+                            />
+                          ) : null}
+                        </div>
+                      ) : null,
+                    },
+                  }
+                })}
+            />
           </section>
         ))}
 

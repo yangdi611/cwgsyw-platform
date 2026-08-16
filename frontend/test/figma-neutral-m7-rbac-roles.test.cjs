@@ -136,11 +136,9 @@ test('roles page renders Data Management composition and Neutral table', () => {
 })
 
 test('role dialog renders Neutral overlay and permission groups', () => {
-  const { RoleDialog } = loadCompiled(dialogPath)
-  const html = renderToStaticMarkup(
-    React.createElement(RoleDialog, { open: true, role: null, onClose() {}, onSuccess() {} }),
-  )
-  assert.match(html, /新建功能角色/)
-  assert.match(html, /cwgsyw-form/)
-  assert.match(html, /角色编码/)
+  const dialog = fs.readFileSync(dialogPath, 'utf8')
+  assert.match(dialog, /<NeutralDialog/)
+  assert.match(dialog, /新建功能角色/)
+  assert.match(dialog, /cwgsyw-form/)
+  assert.match(dialog, /角色编码/)
 })

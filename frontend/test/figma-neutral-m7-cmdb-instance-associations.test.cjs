@@ -105,6 +105,9 @@ function loadCompiled(filePath) {
 test('cmdb instance associations leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /cwgsyw-cmdb-instance-page/)
+  assert.match(page, /cwgsyw-cmdb-table/)
+  assert.match(page, /size="sm"/)
   assert.match(page, /queryKey: \['cmdb-rel', id\]/)
   assert.match(page, /\/cmdb\/instances\/\$\{id\}\/relations/)
   assert.doesNotMatch(page, /@\/components\/design-system/)

@@ -77,6 +77,7 @@ test('cmdb changes stats leaves old visual entries', () => {
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-|bg-v2-primary/)
+  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page"/)
 })
 
 test('cmdb changes stats renders Neutral metrics', () => {

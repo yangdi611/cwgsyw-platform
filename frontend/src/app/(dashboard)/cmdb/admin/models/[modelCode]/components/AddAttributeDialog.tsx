@@ -72,9 +72,10 @@ export function AddAttributeDialog({
       size="lg"
       footer={
         <>
-          <Button type="button" variant="ghost" onClick={onClose}>取消</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>取消</Button>
           <Button
             type="button"
+            size="sm"
             disabled={!fieldKey.trim() || !name.trim() || !effectiveGroupId || optionsMissing || isPending}
             onClick={handleCreate}
           >
@@ -83,16 +84,16 @@ export function AddAttributeDialog({
         </>
       }
     >
-      <div className="cwgsyw-form">
+      <div className="cwgsyw-form cwgsyw-cmdb-model-detail__dialog-form">
         <div className="cwgsyw-filter-grid">
           <Field label="字段标识" htmlFor="attr-key" required helperText="最多 64 个字符；使用小写字母、数字和下划线，创建后不可修改">
-            <Input id="attr-key" maxLength={64} placeholder="例如：cpu_cores" value={fieldKey} onChange={(event) => setFieldKey(event.target.value)} />
+            <Input size="sm" id="attr-key" maxLength={64} placeholder="例如：cpu_cores" value={fieldKey} onChange={(event) => setFieldKey(event.target.value)} />
           </Field>
           <Field label="显示名称" htmlFor="attr-name" required>
-            <Input id="attr-name" placeholder="例如：CPU 核数" value={name} onChange={(event) => setName(event.target.value)} />
+            <Input size="sm" id="attr-name" placeholder="例如：CPU 核数" value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
           <Field label="类型" htmlFor="attr-type">
-            <Select
+            <Select size="sm" overlay
               id="attr-type"
               value={fieldType}
               options={Object.entries(FIELD_TYPES).map(([value, label]) => ({ value, label }))}
@@ -100,7 +101,7 @@ export function AddAttributeDialog({
             />
           </Field>
           <Field label="所属分组" htmlFor="attr-group" required>
-            <Select
+            <Select size="sm" overlay
               id="attr-group"
               value={effectiveGroupId}
               placeholder="请选择分组"
@@ -111,22 +112,24 @@ export function AddAttributeDialog({
         </div>
         {isEnum ? (
           <Field label="选项" htmlFor="attr-options" required helperText="使用逗号分隔；选项值与显示名称保持一致">
-            <Input id="attr-options" placeholder="生产,测试,开发" value={optionsText} onChange={(event) => setOptionsText(event.target.value)} />
+            <Input size="sm" id="attr-options" placeholder="生产,测试,开发" value={optionsText} onChange={(event) => setOptionsText(event.target.value)} />
           </Field>
         ) : null}
         <div className="cwgsyw-filter-grid">
           <Field label="默认值" htmlFor="attr-default">
-            <Input id="attr-default" placeholder="可选" value={defaultValue} onChange={(event) => setDefaultValue(event.target.value)} />
+            <Input size="sm" id="attr-default" placeholder="可选" value={defaultValue} onChange={(event) => setDefaultValue(event.target.value)} />
           </Field>
           <Field label="排序" htmlFor="attr-sort">
-            <Input id="attr-sort" type="number" min={0} value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} />
+            <Input size="sm" id="attr-sort" type="number" min={0} value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} />
           </Field>
         </div>
-        <Checkbox label="必填" checked={isRequired} onChange={(event) => setIsRequired(event.currentTarget.checked)} />
-        <Checkbox label="实例可编辑" checked={isEditable} onChange={(event) => setIsEditable(event.currentTarget.checked)} />
-        <Checkbox label="唯一" checked={isUnique} onChange={(event) => setIsUnique(event.currentTarget.checked)} />
-        <Checkbox label="列表显示" checked={isListShow} onChange={(event) => setIsListShow(event.currentTarget.checked)} />
-        <Checkbox label="详情表单显示" checked={isDrawerShow} onChange={(event) => setIsDrawerShow(event.currentTarget.checked)} />
+        <div className="cwgsyw-cmdb-model-detail__dialog-flags">
+          <Checkbox label="必填" checked={isRequired} onChange={(event) => setIsRequired(event.currentTarget.checked)} />
+          <Checkbox label="实例可编辑" checked={isEditable} onChange={(event) => setIsEditable(event.currentTarget.checked)} />
+          <Checkbox label="唯一" checked={isUnique} onChange={(event) => setIsUnique(event.currentTarget.checked)} />
+          <Checkbox label="列表显示" checked={isListShow} onChange={(event) => setIsListShow(event.currentTarget.checked)} />
+          <Checkbox label="详情表单显示" checked={isDrawerShow} onChange={(event) => setIsDrawerShow(event.currentTarget.checked)} />
+        </div>
       </div>
     </NeutralDialog>
   )

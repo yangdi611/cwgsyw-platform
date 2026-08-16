@@ -11,7 +11,6 @@ import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import '@/design-system/figma-neutral/index.css'
 import {
   Alert,
-  Badge,
   Breadcrumb,
   Button,
   Card,
@@ -122,12 +121,13 @@ export default function NewAssociationPage() {
   const resetPeer = () => { setSelectedPeer(null); setKeyword(''); setError('') }
 
   return (
-    <FormSettingsPage
+    <FormSettingsPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+          showEyebrow={false}
           title="新建关联"
-          subtitle={`为 ${inst?.name ?? `#${id}`} 创建新的关联关系`}
+          subtitle={`为 ${inst?.name ?? `#${id}`} 建立关联`}
           breadcrumb={
             <Breadcrumb
               items={[
@@ -140,16 +140,16 @@ export default function NewAssociationPage() {
             />
           }
         />
+        </div>
       }
       form={
         <div className="cwgsyw-form">
-          <div className="cwgsyw-inline-controls" role="list">
+          <div className="cwgsyw-cmdb-wizard-steps" role="list">
             {STEPS.map((label, i) => (
-              <Chip key={label} label={`${i + 1}. ${label}`} selected={i === step} />
+              <Chip key={label} label={`${i + 1} ${label}`} selected={i === step} />
             ))}
           </div>
 
-          <Card title={STEPS[step]}>
             {step === 0 && (
               applicableDefs.length === 0 ? (
                 <EmptyState
@@ -157,14 +157,13 @@ export default function NewAssociationPage() {
                   description={`当前模型暂无可作为源端的关联定义。请先在配置管理中定义关联（src 端 = ${modelCode}）。`}
                 />
               ) : (
-                <div className="cwgsyw-stack-list">
+                <div className="cwgsyw-cmdb-choice-list">
                   {applicableDefs.map((d) => (
                     <Card
                       key={d.defId}
                       title={d.name ?? d.defId}
-                      description={`${d.srcModelId} → ${d.dstModelId}`}
+                      description={`${d.srcModelId} → ${d.dstModelId} · ${d.kindId} ${d.mapping}`}
                       variant={selectedDefId === d.defId ? 'selected' : 'interactive'}
-                      headerAction={<Badge label={`${d.kindId} · ${d.mapping}`} />}
                       onClick={() => { setSelectedDefId(d.defId); resetPeer() }}
                     />
                   ))}
@@ -174,8 +173,9 @@ export default function NewAssociationPage() {
 
             {step === 1 && (
               <div className="cwgsyw-form">
-                <Field label={`选择目标实例${targetModelId ? `（模型：${targetModelId}）` : ''}`}>
+                <Field label={`目标实例${targetModelId ? ` · ${targetModelId}` : ''}`}>
                   <SearchInput
+                    size="sm"
                     value={keyword}
                     placeholder="搜索实例名称..."
                     onChange={(event) => { setKeyword(event.target.value); setSelectedPeer(null) }}
@@ -186,7 +186,7 @@ export default function NewAssociationPage() {
                 ) : (searchResult?.records ?? []).length === 0 ? (
                   <EmptyState title={keyword ? '无匹配实例' : '请输入关键词搜索'} />
                 ) : (
-                  <div className="cwgsyw-stack-list">
+                  <div className="cwgsyw-cmdb-choice-list">
                     {(searchResult?.records ?? []).map((rec) => (
                       <Card
                         key={rec.id}
@@ -203,18 +203,28 @@ export default function NewAssociationPage() {
 
             {step === 2 && (
               <div className="cwgsyw-form">
-                <p className="cwgsyw-type-body-sm">当前实例：{inst?.name ?? `#${id}`}</p>
-                <p className="cwgsyw-type-body-sm">
-                  关联定义：{selectedDef?.name ?? selectedDef?.defId}（{selectedDef?.kindId} · {selectedDef?.mapping}）
-                </p>
-                <p className="cwgsyw-type-body-sm">
-                  目标实例：{selectedPeer?.name}（{selectedPeer?.modelName}）
-                </p>
-                <p className="cwgsyw-type-label-sm">{inst?.name ?? `#${id}`} → {selectedPeer?.name}</p>
+                <dl className="cwgsyw-cmdb-confirm">
+                  <div>
+                    <dt>当前实例</dt>
+                    <dd>{inst?.name ?? `#${id}`}</dd>
+                  </div>
+                  <div>
+                    <dt>关联定义</dt>
+                    <dd>{selectedDef?.name ?? selectedDef?.defId} · {selectedDef?.kindId} {selectedDef?.mapping}</dd>
+                  </div>
+                  <div>
+                    <dt>目标实例</dt>
+                    <dd>{selectedPeer?.name} · {selectedPeer?.modelName}</dd>
+                  </div>
+                  <div>
+                    <dt>方向</dt>
+                    <dd>{inst?.name ?? `#${id}`} → {selectedPeer?.name}</dd>
+                  </div>
+                </dl>
                 <Field label="关联属性">
                   <div className="cwgsyw-inline-controls">
-                    <Input placeholder="属性名" value={attrKey} onChange={(e) => setAttrKey(e.target.value)} />
-                    <Input placeholder="属性值" value={attrValue} onChange={(e) => setAttrValue(e.target.value)} />
+                    <Input size="sm" placeholder="属性名" value={attrKey} onChange={(e) => setAttrKey(e.target.value)} />
+                    <Input size="sm" placeholder="属性值" value={attrValue} onChange={(e) => setAttrValue(e.target.value)} />
                     <Button
                       type="button"
                       size="sm"
@@ -247,12 +257,8 @@ export default function NewAssociationPage() {
                   </div>
                 ) : null}
                 {error ? <Alert tone="danger" title="创建失败" description={error} showDismiss={false} /> : null}
-                <p className="cwgsyw-type-label-sm">
-                  关联方向：当前实例 → 目标实例（与关联定义 src→dst 一致）。非法组合将被后端拒绝。
-                </p>
               </div>
             )}
-          </Card>
 
           <div className="cwgsyw-inline-controls">
             <Button

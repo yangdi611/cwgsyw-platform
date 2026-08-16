@@ -1,4 +1,5 @@
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { motion } from 'motion/react'
 
 export interface TabItem {
   id: string
@@ -13,7 +14,7 @@ export interface TabsProps {
   value?: string
   defaultValue?: string
   onChange?: (id: string) => void
-  style?: 'underline' | 'segmented'
+  style?: 'underline' | 'segmented' | 'cmdb'
   size?: 'sm' | 'md'
 }
 
@@ -52,10 +53,17 @@ export function Tabs({ items, value, defaultValue, onChange, style = 'underline'
             aria-selected={item.id === selected}
             disabled={item.disabled}
             tabIndex={item.id === selected ? 0 : -1}
-            className="cwgsyw-tab"
+            className={style === 'cmdb' ? 'cwgsyw-tab cwgsyw-cmdb-tab' : 'cwgsyw-tab'}
             onClick={() => select(item.id)}
           >
-            {item.label}
+            {style === 'cmdb' && item.id === selected ? (
+              <motion.span
+                className="cwgsyw-cmdb-tab-indicator"
+                layoutId={`${baseId}-cmdb-tab-indicator`}
+                transition={{ type: 'spring', stiffness: 180, damping: 26, bounce: 0 }}
+              />
+            ) : null}
+            <span className="cwgsyw-cmdb-tab-label">{item.label}</span>
             {item.badge}
           </button>
         ))}

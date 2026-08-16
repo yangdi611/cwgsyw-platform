@@ -111,12 +111,13 @@ export default function TwoDViewPage() {
   }
 
   return (
-    <DashboardFeedbackPage
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page"
       header={
+        <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-          eyebrow="CMDB"
+            showEyebrow={false}
           title="2D 视图"
-          subtitle="按模型字段分组查看实例分布。"
+          subtitle="按字段分组查看实例"
           breadcrumb={
             <Breadcrumb
               items={[
@@ -132,16 +133,17 @@ export default function TwoDViewPage() {
             </Button>
           }
         />
+        </div>
       }
       supporting={
         <div className="cwgsyw-inline-controls">
-          <Select
+          <Select size="sm" overlay
             value={model}
             placeholder="选择模型"
             options={models.map((item) => ({ value: item.modelId, label: item.displayName ?? item.modelId }))}
             onChange={(value) => { setModel(value); setGroupBy('') }}
           />
-          <Select
+          <Select size="sm" overlay
             value={groupBy}
             placeholder="选择分组字段"
             disabled={displayGroupableAttrs.length === 0}

@@ -82,7 +82,7 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
           )}
         </div>
       ) : (
-        <Input
+        <Input size="sm"
           placeholder="输入关键词搜索 CMDB 实例..."
           value={keyword}
           onChange={e => { setKeyword(e.target.value); setOpen(true) }}

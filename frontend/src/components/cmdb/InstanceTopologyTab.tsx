@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { CiTopologyGraph, TopologyNode, TopologyEdge } from '@/components/cmdb/CiTopologyGraph'
 import { usePermission } from '@/hooks/usePermission'
-import { Button, Card, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
+import { Button, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
 
 interface Props {
   id: string
@@ -21,33 +21,34 @@ export function InstanceTopologyTab({ id }: Props) {
   })
 
   return (
-    <Card
-      title="拓扑图"
-      headerAction={
+    <section className="cwgsyw-cmdb-instance-tab__section cwgsyw-cmdb-instance-tab__topology">
+      <div className="cwgsyw-cmdb-instance-tab__head">
+        <h2>拓扑图</h2>
         <div className="cwgsyw-inline-controls">
-          <Button type="button" size="sm" variant="ghost" onClick={() => router.push(`/cmdb/topology/${id}/compare`)}>
+          <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/topology/${id}/compare`)}>
             对比模式
           </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => router.push(`/cmdb/topology/${id}`)}>
+          <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/topology/${id}`)}>
             全屏展开
           </Button>
         </div>
-      }
-    >
-      {isLoading ? (
-        <LoadingState label="加载拓扑" />
-      ) : !topoData || topoData.nodes.length === 0 ? (
-        <EmptyState title="暂无关联数据" />
-      ) : (
-        <div style={{ height: 'calc(100vh - 420px)', minHeight: 480 }}>
-          <CiTopologyGraph
-            nodes={topoData.nodes}
-            edges={topoData.edges}
-            rootId={Number(id)}
-            preview
-          />
-        </div>
-      )}
-    </Card>
+      </div>
+      <div className="cwgsyw-cmdb-instance-tab__body cwgsyw-cmdb-instance-tab__topology-body">
+        {isLoading ? (
+          <LoadingState label="加载拓扑" />
+        ) : !topoData || topoData.nodes.length === 0 ? (
+          <EmptyState title="暂无关联数据" />
+        ) : (
+          <div className="cwgsyw-cmdb-instance-tab__topology-canvas">
+            <CiTopologyGraph
+              nodes={topoData.nodes}
+              edges={topoData.edges}
+              rootId={Number(id)}
+              preview
+            />
+          </div>
+        )}
+      </div>
+    </section>
   )
 }

@@ -64,14 +64,14 @@ export function SpatialRoomViewer({ roomId, canUpdate }: SpatialRoomViewerProps)
   if (!version) return <EmptyState title="未找到已发布布局" />
 
   return (
-    <div className="cwgsyw-stack-list">
+    <div className="cwgsyw-cmdb-page cwgsyw-stack-list">
       <div className="cwgsyw-inline-controls">
         <Button type="button" size="sm" variant="ghost" onClick={() => router.push('/cmdb/spatial')}>返回布局列表</Button>
         <div>
           <p className="cwgsyw-type-title-sm">机房空间布局</p>
           <p className="cwgsyw-type-label-sm">已发布版本 {version.versionNo}</p>
         </div>
-        <SearchInput
+        <SearchInput size="sm"
           value={keyword}
           placeholder="搜索机柜或设备"
           onChange={(event) => setKeyword(event.target.value)}

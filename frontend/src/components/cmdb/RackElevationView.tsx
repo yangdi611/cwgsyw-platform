@@ -137,8 +137,8 @@ export function RackElevationView({ rackId }: { rackId: string }) {
     enabled: typeof window !== 'undefined',
   })
 
-  if (isLoading) return <p className="text-[var(--cwgsyw-text-secondary)]">加载机柜布局…</p>
-  if (isError || !data) return <p className="text-[var(--cwgsyw-status-danger-fg)]">机柜布局加载失败</p>
+  if (isLoading) return <p className="cwgsyw-cmdb-instance-tab__muted">加载机柜布局…</p>
+  if (isError || !data) return <p className="cwgsyw-cmdb-instance-tab__error">机柜布局加载失败</p>
 
   const height = data.rackHeightU && data.rackHeightU > 0 ? data.rackHeightU : 42
   const placed = data.devices.filter((d) => d.uStart != null && d.uEnd != null && d.uEnd >= d.uStart)
@@ -163,14 +163,14 @@ export function RackElevationView({ rackId }: { rackId: string }) {
 
   // __RENDER__
   return (
-    <div className="space-y-4">
+    <div className="cwgsyw-cmdb-rack-view">
       {data.warnings.length > 0 && (
-        <div className="rounded-lg border border-[var(--cwgsyw-status-danger-border)] bg-[var(--cwgsyw-status-danger-bg)] px-4 py-3">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--cwgsyw-status-danger-fg)]">
-            <AlertTriangle className="h-4 w-4" />
+        <div className="cwgsyw-cmdb-rack-view__warning">
+          <div className="cwgsyw-cmdb-rack-view__warning-title">
+            <AlertTriangle aria-hidden="true" />
             布局告警（{data.warnings.length}）
           </div>
-          <ul className="space-y-0.5 text-xs text-[var(--cwgsyw-status-danger-fg)]">
+          <ul>
             {data.warnings.map((w, i) => (
               <li key={i}>· {w.message}</li>
             ))}
@@ -178,10 +178,10 @@ export function RackElevationView({ rackId }: { rackId: string }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-[var(--cwgsyw-text-primary)]">{data.rackName} · 机柜视图</h3>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--cwgsyw-text-secondary)]">
+      <div className="cwgsyw-cmdb-rack-view__head">
+        <h2>{data.rackName} · 机柜视图</h2>
+        <div className="cwgsyw-cmdb-rack-view__actions">
+          <span className="cwgsyw-cmdb-rack-view__summary">
             共 {height}U · 已装 {placed.length} 台 · 空 {freeU}U
             {unplaced.length > 0 && ` · 未定位 ${unplaced.length} 台`}
           </span>
@@ -197,9 +197,9 @@ export function RackElevationView({ rackId }: { rackId: string }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-5">
+      <div className="cwgsyw-cmdb-rack-view__body">
         {/* __RACKSVG__ */}
-        <div ref={wrapRef} className="relative shrink-0">
+        <div ref={wrapRef} className="cwgsyw-cmdb-rack-view__canvas">
           <svg
             viewBox={`0 0 ${TOTAL_W} ${svgH}`}
             style={{ height: 'min(70vh, 920px)', width: 'auto', maxWidth: '100%' }}
@@ -285,7 +285,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   {/* 型号色条 */}
                   <rect x={BAY_X + 2} y={top + 1.5} width={5} height={h - 3} rx={2} fill={stripe} />
                   {/* 名称 */}
-                  <text x={BAY_X + 16} y={cy - (span > 1 ? 4 : -3.5)} fontSize={span > 1 ? 12 : 11} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fontWeight={600} fill="var(--cwgsyw-text-inverse)">{d.name}</text>
+                  <text x={BAY_X + 16} y={cy - (span > 1 ? 4 : -3.5)} fontSize={span > 1 ? 12 : 11} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fontWeight={500} fill="var(--cwgsyw-text-inverse)">{d.name}</text>
                   {span > 1 && (
                     <text x={BAY_X + 16} y={cy + 11} fontSize={9} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fill="var(--cwgsyw-neutral-400)">
                       {d.modelName}{d.assetNo ? ` · ${d.assetNo}` : ''}
@@ -307,54 +307,53 @@ export function RackElevationView({ rackId }: { rackId: string }) {
           {/* __TOOLTIP__ */}
           {hover && (
             <div
-              className="cwgsyw-popover cwgsyw-popover--hover w-60 text-xs"
+              className="cwgsyw-popover cwgsyw-popover--hover cwgsyw-cmdb-rack-view__popover"
               style={{
                 left: Math.min(hover.x + 16, wrapWidth - 248),
                 top: hover.y + 12,
               }}
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="truncate font-semibold text-[var(--cwgsyw-text-primary)]">{hover.d.name}</span>
-                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--cwgsyw-text-secondary)]">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta(hover.d.status).color }} />
+              <div className="cwgsyw-cmdb-rack-view__popover-head">
+                <span className="cwgsyw-cmdb-rack-view__popover-title">{hover.d.name}</span>
+                <span className="cwgsyw-cmdb-rack-view__popover-status">
+                  <span className="cwgsyw-cmdb-rack-view__status-dot" style={{ backgroundColor: statusMeta(hover.d.status).color }} />
                   {statusMeta(hover.d.status).label}
                 </span>
               </div>
-              <dl className="space-y-1 font-mono text-[var(--cwgsyw-text-secondary)]">
-                <div className="flex justify-between gap-3"><dt className="text-[var(--cwgsyw-text-tertiary)]">型号</dt><dd className="truncate text-[var(--cwgsyw-text-primary)]">{hover.d.modelName}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[var(--cwgsyw-text-tertiary)]">U 位</dt><dd className="text-[var(--cwgsyw-text-primary)]">U{hover.d.uStart}–{hover.d.uEnd}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[var(--cwgsyw-text-tertiary)]">IP</dt><dd className="truncate text-[var(--cwgsyw-text-primary)]">{hover.d.innerIp || '—'}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[var(--cwgsyw-text-tertiary)]">资产号</dt><dd className="truncate text-[var(--cwgsyw-text-primary)]">{hover.d.assetNo || '—'}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[var(--cwgsyw-text-tertiary)]">SN</dt><dd className="truncate text-[var(--cwgsyw-text-primary)]">{hover.d.sn || '—'}</dd></div>
+              <dl className="cwgsyw-cmdb-rack-view__popover-list">
+                <div><dt>型号</dt><dd>{hover.d.modelName}</dd></div>
+                <div><dt>U 位</dt><dd>U{hover.d.uStart}–{hover.d.uEnd}</dd></div>
+                <div><dt>IP</dt><dd>{hover.d.innerIp || '—'}</dd></div>
+                <div><dt>资产号</dt><dd>{hover.d.assetNo || '—'}</dd></div>
+                <div><dt>SN</dt><dd>{hover.d.sn || '—'}</dd></div>
               </dl>
-              <div className="mt-2 border-t border-[var(--cwgsyw-border-subtle)] pt-1.5 text-[10px] text-[var(--cwgsyw-text-tertiary)]">点击查看详情</div>
+              <div className="cwgsyw-cmdb-rack-view__popover-hint">点击查看详情</div>
             </div>
           )}
         </div>
 
         {/* 未定位设备 */}
         {unplaced.length > 0 && (
-          <div className="min-w-[220px] flex-1">
-            <div className="mb-2 text-xs font-semibold text-[var(--cwgsyw-text-secondary)]">未定位设备（缺 U 位）</div>
-            <div className="space-y-1.5">
+          <section className="cwgsyw-cmdb-rack-view__unplaced">
+            <h3>未定位设备（缺 U 位）</h3>
+            <div className="cwgsyw-cmdb-rack-view__unplaced-list">
               {unplaced.map((d) => (
                 <Link
                   key={d.id}
                   href={`/cmdb/instances/by-model/${d.modelId}/${d.id}`}
-                  className="flex items-center gap-2 rounded-md border border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] px-3 py-1.5 text-sm text-[var(--cwgsyw-text-primary)] hover:bg-[var(--cwgsyw-bg-surface-hover)]"
+                  className="cwgsyw-cmdb-rack-view__unplaced-row"
                 >
-                  <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.modelColor || 'var(--cwgsyw-neutral-400)' }} />
-                  <Server className="h-3.5 w-3.5 text-[var(--cwgsyw-text-secondary)]" />
-                  <span className="truncate">{d.name}</span>
-                  <span className="ml-auto shrink-0 text-xs text-[var(--cwgsyw-text-secondary)]">{d.modelName}</span>
+                  <span className="cwgsyw-cmdb-rack-view__model-dot" style={{ backgroundColor: d.modelColor || 'var(--cwgsyw-neutral-400)' }} />
+                  <Server aria-hidden="true" />
+                  <span className="cwgsyw-cmdb-rack-view__device-name">{d.name}</span>
+                  <span className="cwgsyw-cmdb-rack-view__model-name">{d.modelName}</span>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>
   )
 }
-
 

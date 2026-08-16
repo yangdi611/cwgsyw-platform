@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
+import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
 import { getApiErrorMessage } from '@/lib/api-error'
@@ -15,7 +16,6 @@ import '@/design-system/figma-neutral/index.css'
 import {
   Breadcrumb,
   Button,
-  Card,
   DataManagementPage,
   EmptyState,
   ErrorState,
@@ -125,12 +125,13 @@ export default function InstanceListPage() {
 
   return (
     <>
-      <DataManagementPage
+      <DataManagementPage className="cwgsyw-cmdb-page"
         header={
+          <div className="cwgsyw-cmdb-instance-page">
           <PageHeader
-            eyebrow="CMDB"
+            showEyebrow={false}
             title={`${model?.name ?? canonicalModelCode} 实例列表`}
-            subtitle={`共 ${result?.total ?? 0} 条实例，按模型属性展示列表字段。`}
+            subtitle={`${result?.total ?? 0} 条`}
             breadcrumb={
               <Breadcrumb
                 items={[
@@ -160,6 +161,7 @@ export default function InstanceListPage() {
               </div>
             }
           />
+          </div>
         }
         content={
           isError ? (
@@ -172,6 +174,7 @@ export default function InstanceListPage() {
             <EmptyState title="暂无实例" description="点击右上角新建实例或导入 CSV。" />
           ) : (
             <Table
+              className="cwgsyw-cmdb-table"
               showSearch={false}
               state={isLoading ? 'loading' : 'data'}
               columns={columns}
@@ -231,36 +234,21 @@ export default function InstanceListPage() {
       <NeutralDrawer
         open={!!selected}
         onOpenChange={(open) => !open && setSelected(null)}
+        className="cwgsyw-cmdb-preview-drawer"
+        showClose
         title={selected?.name ?? (selected ? `#${selected.id}` : '实例详情')}
         description={selected?.modelId}
       >
         {selected ? (
-          <div className="cwgsyw-form">
-            {selected.description ? (
-              <Card showHeader={false} padding="sm">
-                <div className="cwgsyw-type-label-xs">描述</div>
-                <p className="cwgsyw-type-body-sm">{selected.description}</p>
-              </Card>
-            ) : null}
-            <div className="cwgsyw-filter-grid">
-              <div>
-                <div className="cwgsyw-type-label-xs">实例 ID</div>
-                <div className="cwgsyw-type-body-sm">{selected.id}</div>
-              </div>
-              <div>
-                <div className="cwgsyw-type-label-xs">状态</div>
-                <div className="cwgsyw-type-body-sm">{selected.status ?? '-'}</div>
-              </div>
-              <div>
-                <div className="cwgsyw-type-label-xs">负责人</div>
-                <div className="cwgsyw-type-body-sm">{selected.owner || '-'}</div>
-              </div>
-              <div>
-                <div className="cwgsyw-type-label-xs">创建时间</div>
-                <div className="cwgsyw-type-body-sm">{new Date(selected.createdAt).toLocaleString('zh-CN')}</div>
-              </div>
-            </div>
-            {drawerColumns.map((col) => {
+          <CmdbInstancePreview
+            description={selected.description}
+            fields={[
+              { label: '实例 ID', value: selected.id },
+              { label: '状态', value: selected.status ?? '-' },
+              { label: '负责人', value: selected.owner || '-' },
+              { label: '创建时间', value: new Date(selected.createdAt).toLocaleString('zh-CN') },
+            ]}
+            extraFields={drawerColumns.map((col) => {
               const value = selected.fieldsData?.[col.fieldKey]
               const display =
                 value === null || value === undefined || value === ''
@@ -270,27 +258,24 @@ export default function InstanceListPage() {
                     : typeof value === 'object'
                       ? JSON.stringify(value)
                       : String(value)
-              return (
-                <div key={col.fieldKey}>
-                  <div className="cwgsyw-type-label-xs">{col.name}</div>
-                  <div className="cwgsyw-type-body-sm">{display}</div>
-                </div>
-              )
+              return { label: col.name, value: display }
             })}
-            <div className="cwgsyw-inline-controls">
-              {hasPermission('cmdb_instance', 'create') ? (
-                <Button type="button" variant="secondary" size="sm" disabled={cloneMutation.isPending} onClick={() => cloneMutation.mutate(selected.id)}>
-                  克隆
+            actions={
+              <>
+                {hasPermission('cmdb_instance', 'create') ? (
+                  <Button type="button" variant="secondary" size="sm" disabled={cloneMutation.isPending} onClick={() => cloneMutation.mutate(selected.id)}>
+                    克隆
+                  </Button>
+                ) : null}
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/cmdb/topology/${selected.id}`)}>
+                  查看拓扑
                 </Button>
-              ) : null}
-              <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/cmdb/topology/${selected.id}`)}>
-                查看拓扑
-              </Button>
-              <Button type="button" size="sm" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${selected.id}`)}>
-                完整详情
-              </Button>
-            </div>
-          </div>
+                <Button type="button" size="sm" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${selected.id}`)}>
+                  完整详情
+                </Button>
+              </>
+            }
+          />
         ) : null}
       </NeutralDrawer>
 

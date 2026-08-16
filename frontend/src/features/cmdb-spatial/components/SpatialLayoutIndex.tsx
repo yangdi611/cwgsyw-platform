@@ -97,12 +97,13 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
 
   return (
     <>
-      <DataManagementPage
+      <DataManagementPage className="cwgsyw-cmdb-page"
         header={
+          <div className="cwgsyw-cmdb-instance-page">
           <PageHeader
-            eyebrow="CMDB"
+            showEyebrow={false}
             title="空间布局"
-            subtitle="机房、机柜与 CI 的二维位置视图。"
+            subtitle="机房与机柜位置"
             breadcrumb={
               <Breadcrumb
                 items={[
@@ -116,12 +117,13 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
               <Button type="button" onClick={() => setShowCreate(true)}>新建布局</Button>
             ) : undefined}
           />
+          </div>
         }
         toolbar={
           <div className="cwgsyw-inline-controls">
             <Chip label="活动" selected={!includeArchived} onClick={() => setIncludeArchived(false)} />
             <Chip label="已归档" selected={includeArchived} onClick={() => setIncludeArchived(true)} />
-            <SearchInput aria-label="搜索布局名称" placeholder="搜索布局名称" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+            <SearchInput size="sm" aria-label="搜索布局名称" placeholder="搜索布局名称" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
           </div>
         }
         content={
@@ -130,7 +132,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
           ) : isError ? (
             <ErrorState title="空间布局加载失败" description={getApiErrorMessage(error, '空间布局加载失败')} showRetry={false} />
           ) : visible.length ? (
-            <div className="cwgsyw-stack-list">
+            <div className="cwgsyw-stack-list cwgsyw-cmdb-choice-list">
               {visible.map((layout) => (
                 <Card
                   key={layout.layoutId}
@@ -181,7 +183,7 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
         }
       >
         <Field label="机房">
-          <Select
+          <Select size="sm" overlay
             value={roomId}
             placeholder={availableRooms.length ? '选择机房' : '暂无可配置机房'}
             disabled={!availableRooms.length}

@@ -82,7 +82,7 @@ test('Avatar and Card keep structure roles', () => {
   assert.match(metric, /data-cwgsyw-metric="neutral"/)
 })
 
-test('Table header uses Neutral action tokens and mobile alternative exists', () => {
+test('Table header uses the Neutral low-emphasis recipe and mobile alternative exists', () => {
   const html = renderToStaticMarkup(
     React.createElement(Table, {
       columns: [{ key: 'name', label: '名称' }],
@@ -95,9 +95,37 @@ test('Table header uses Neutral action tokens and mobile alternative exists', ()
   assert.match(html, /核心交换机/)
 })
 
+test('Table header recipe matches the Figma Neutral density', () => {
+  const css = fs.readFileSync(path.join(root, 'display.css'), 'utf8')
+  const headerRule = css.slice(css.indexOf('.cwgsyw-th {'), css.indexOf('.cwgsyw-td {'))
+  const cellRule = css.slice(css.indexOf('.cwgsyw-td {'), css.indexOf('.cwgsyw-table--compact'))
+  const tableRule = css.slice(css.indexOf('.cwgsyw-table {'), css.indexOf('.cwgsyw-th {'))
+  assert.match(tableRule, /min-width: max-content/)
+  assert.match(headerRule, /height: 34px/)
+  assert.match(headerRule, /background: var\(--cwgsyw-border-subtle\)/)
+  assert.match(headerRule, /color: var\(--cwgsyw-text-tertiary\)/)
+  assert.match(headerRule, /white-space: nowrap/)
+  assert.match(cellRule, /white-space: nowrap/)
+  assert.doesNotMatch(headerRule, /action-primary/)
+})
+
 test('Pagination disables edges and marks current page', () => {
   const html = renderToStaticMarkup(React.createElement(Pagination, { page: 1, pageCount: 3, totalCount: 30 }))
+  const css = fs.readFileSync(path.join(root, 'display.css'), 'utf8')
+  const paginationRule = css.slice(css.indexOf('.cwgsyw-pagination {'), css.indexOf('.cwgsyw-pagination .cwgsyw-type-label-sm'))
+  const pageItemRule = css.slice(css.indexOf('.cwgsyw-page-item {'), css.indexOf('.cwgsyw-page-item[aria-current="page"]'))
   assert.match(html, /aria-label="上一页"/)
   assert.match(html, /disabled=""/)
   assert.match(html, /aria-current="page"/)
+  assert.doesNotMatch(html, /共 30 条/)
+  assert.match(paginationRule, /width: 100%/)
+  assert.match(paginationRule, /justify-content: flex-end/)
+  assert.match(paginationRule, /gap: var\(--cwgsyw-space-1\)/)
+  assert.match(pageItemRule, /display: inline-flex/)
+  assert.match(pageItemRule, /align-items: center/)
+  assert.match(pageItemRule, /justify-content: center/)
+  assert.match(pageItemRule, /padding: 0/)
+  assert.match(pageItemRule, /width: 22px/)
+  assert.match(pageItemRule, /height: 22px/)
+  assert.match(pageItemRule, /\.cwgsyw-page-item \.cwgsyw-icon \{ width: 12px; height: 12px; \}/)
 })

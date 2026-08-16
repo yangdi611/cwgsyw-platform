@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { ChangeRecordItem, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
-import { Card, EmptyState, LoadingState, Pagination } from '@/design-system/figma-neutral/components'
+import { EmptyState, LoadingState, Pagination } from '@/design-system/figma-neutral/components'
 
 interface PageData {
   records: ChangeHistoryV2VO[]
@@ -35,25 +35,31 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <Card title="变更历史">
-      {isLoading ? (
-        <LoadingState label="加载变更历史" />
-      ) : records.length === 0 ? (
-        <EmptyState title="暂无变更记录" description="该实例还没有变更历史。" />
-      ) : (
-        <div className="cwgsyw-stack-list">
-          {records.map((record) => (
-            <ChangeRecordItem key={record.id} record={record} compact />
-          ))}
-        </div>
-      )}
-      <Pagination
-        page={page}
-        pageCount={totalPages}
-        totalCount={total}
-        density="compact"
-        onPageChange={setPage}
-      />
-    </Card>
+    <section className="cwgsyw-cmdb-instance-tab__section cwgsyw-cmdb-instance-tab__history">
+      <div className="cwgsyw-cmdb-instance-tab__head">
+        <h2>变更历史</h2>
+        <span>{total} 条记录</span>
+      </div>
+      <div className="cwgsyw-cmdb-instance-tab__body">
+        {isLoading ? (
+          <LoadingState label="加载变更历史" />
+        ) : records.length === 0 ? (
+          <EmptyState title="暂无变更记录" description="该实例还没有变更历史。" />
+        ) : (
+          <div className="cwgsyw-cmdb-instance-tab__history-list">
+            {records.map((record) => (
+              <ChangeRecordItem key={record.id} record={record} compact />
+            ))}
+          </div>
+        )}
+        <Pagination
+          page={page}
+          pageCount={totalPages}
+          totalCount={total}
+          density="compact"
+          onPageChange={setPage}
+        />
+      </div>
+    </section>
   )
 }
