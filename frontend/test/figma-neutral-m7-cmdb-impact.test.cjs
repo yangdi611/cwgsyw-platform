@@ -11,6 +11,7 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/impact/[instanceId]/page.tsx')
+const patternsPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
 
 function compile(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -34,8 +35,14 @@ function loadCompiled(filePath) {
         useQuery: () => ({
           data: {
             rootId: 11, rootName: 'web-01', rootModelId: 'server', direction: 'bidirectional', maxDepth: 3, truncated: false,
-            layers: [{ depth: 0, nodes: [{ id: 11, name: 'web-01', modelId: 'server' }] }],
-            edges: [],
+            layers: [
+              { depth: 0, nodes: [{ id: 11, name: 'web-01', modelId: 'server', modelName: '主机' }] },
+              { depth: 1, nodes: [
+                { id: 12, name: '数据库-01', modelId: 'database', modelName: '数据库', status: 'running', businessLevel: 'core' },
+                { id: 13, name: '交换机-01', modelId: 'switch', modelName: '交换机', status: 'maintenance' },
+              ] },
+            ],
+            edges: [{ src: 11, dst: 12, kind: 'depends_on', label: '依赖' }, { src: 11, dst: 13, kind: 'connects' }],
           },
           isLoading: false, isError: false, refetch() {},
         }),
@@ -70,16 +77,32 @@ function loadCompiled(filePath) {
   return mod.exports
 }
 
-test('cmdb impact leaves old visual entries', () => {
+test('cmdb impact keeps contracts and uses the compact hierarchy composition', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const patterns = fs.readFileSync(patternsPath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /\['cmdb-impact', instanceId, direction, maxDepth\]/)
   assert.match(page, /api.post\(`\/cmdb\/instances\/\$\{instanceId\}\/impact`/)
+  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page cwgsyw-cmdb-impact"/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /aria-label="影响方向"/)
+  assert.match(page, /aria-label="影响深度"/)
+  assert.match(page, /size="sm"[\s\S]*variant="secondary"[\s\S]*返回实例/)
+  assert.match(page, /!isHydrated[\s\S]*!canAnalyze[\s\S]*无权查看影响分析/)
+  assert.match(page, /affectedNodeCount === 0/)
+  assert.match(page, /title="暂无受影响节点"/)
+  assert.match(page, /aria-expanded=\{!isCollapsed\}/)
+  assert.match(page, /aria-controls=\{panelId\}/)
+  assert.match(page, /onClick=\{\(\) => toggleCollapse\(layer\.depth\)\}/)
+  assert.match(page, /<MotionConfig reducedMotion="user">/)
+  assert.match(page, /<AnimatePresence initial=\{false\}>/)
+  assert.match(patterns, /\.cwgsyw-cmdb-impact__layer-panel \{[\s\S]*overflow: hidden/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
   assert.doesNotMatch(page, /border-primary|bg-primary|lucide-react/)
-  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page"/)
+  assert.doesNotMatch(page, /\bBreadcrumb\b/)
+  assert.doesNotMatch(page, /cwgsyw-stack-list/)
 })
 
 test('cmdb impact renders Neutral analysis', () => {
@@ -87,4 +110,52 @@ test('cmdb impact renders Neutral analysis', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /影响分析/)
   assert.match(html, /web-01/)
+  assert.match(html, /主机/)
+  assert.doesNotMatch(html, />server</)
+  assert.match(html, /影响节点 2 个 · 关联 2 条/)
+  assert.match(html, /第 1 层 · 关联 · 2 个节点/)
+  assert.match(html, /aria-expanded="true"/)
+})
+
+test('cmdb impact layers expand downward with reduced-motion-aware height animation', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  assert.match(page, /initial=\{\{ height: 0, opacity: 0 \}\}/)
+  assert.match(page, /animate=\{\{ height: 'auto', opacity: 1 \}\}/)
+  assert.match(page, /exit=\{\{ height: 0, opacity: 0 \}\}/)
+  assert.match(page, /transition=\{\{ duration: 0\.22, ease: \[0\.4, 0, 0\.2, 1\] \}\}/)
+  assert.doesNotMatch(page, /NeutralDrawer|selectedDepth/)
+})
+
+test('cmdb impact uses the enriched root model name and the shared model badge typography', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const patterns = fs.readFileSync(patternsPath, 'utf8')
+  assert.match(page, /const rootModelName = rootNode\?\.modelName\?\.trim\(\) \|\| data\?\.rootModelId/)
+  assert.match(page, /headerAction=\{rootModelName \? <Badge label=\{rootModelName\} \/> : null\}/)
+  assert.match(patterns, /\.cwgsyw-cmdb-impact__root :where\(\.cwgsyw-type-body-sm, \.cwgsyw-badge\),/)
+})
+
+test('cmdb impact keeps status, model and relation badges in one metadata row', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const patterns = fs.readFileSync(patternsPath, 'utf8')
+  assert.match(page, /headerAction=\{[\s\S]*cwgsyw-cmdb-impact__meta[\s\S]*edgeSummaries\.map/)
+  assert.match(patterns, /\.cwgsyw-cmdb-impact__meta \{[\s\S]*flex-wrap: wrap/)
+  assert.doesNotMatch(page, /cwgsyw-cmdb-impact__relations/)
+})
+
+test('cmdb impact only assigns immediate-layer edges and groups repeated relation labels', () => {
+  const page = loadCompiled(pagePath)
+  const layers = [
+    { depth: 0, nodes: [{ id: 1 }] },
+    { depth: 1, nodes: [{ id: 2 }, { id: 3 }, { id: 4 }] },
+    { depth: 2, nodes: [{ id: 5 }] },
+  ]
+  const edges = [
+    { src: 2, dst: 5, kind: 'rack-host', label: '主线拓扑' },
+    { src: 3, dst: 5, kind: 'room-host', label: '主线拓扑' },
+    { src: 4, dst: 5, kind: 'pool-host', label: '主线拓扑' },
+    { src: 1, dst: 5, kind: 'cross-layer', label: '跨层关系' },
+  ]
+  const incoming = page.buildImmediateIncomingEdges(layers, edges)
+  assert.equal(incoming.get(5).length, 3)
+  assert.deepEqual(page.summarizeImpactEdges(incoming.get(5)), [{ label: '主线拓扑', count: 3 }])
 })

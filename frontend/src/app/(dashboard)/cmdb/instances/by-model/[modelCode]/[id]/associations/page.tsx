@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
@@ -11,11 +12,12 @@ import { CiInstanceDrawer } from '@/components/cmdb/CiInstanceDrawer'
 import '@/design-system/figma-neutral/index.css'
 import {
   Badge,
-  Breadcrumb,
   Button,
   Chip,
   DataManagementPage,
   EmptyState,
+  ErrorState,
+  FilterBar,
   LoadingState,
   NeutralAlertDialog,
   PageHeader,
@@ -56,32 +58,23 @@ export default function AssociationsPage() {
     if (!hasPermission('cmdb_instance', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: inst } = useQuery<CiInstanceSummary>({
+  const { data: inst, isLoading: isInstanceLoading, isError: isInstanceError, refetch: refetchInstance } = useQuery<CiInstanceSummary>({
     queryKey: ['cmdb-instance', modelCode, id],
-    queryFn: async () => {
-      try {
-        const r = await api.get(`/cmdb/instances/${id}`)
-        return {
-          name: r.data.data.name,
-          modelId: r.data.data.modelId,
-        }
-      } catch {
-        return {} as CiInstanceSummary
-      }
-    },
+    queryFn: () => api.get(`/cmdb/instances/${id}`).then((r) => ({
+      name: r.data.data.name,
+      modelId: r.data.data.modelId,
+    })),
     enabled: typeof window !== 'undefined',
   })
 
-  const { data: relations = [], isLoading } = useQuery<CiRelationVO[]>({
+  const {
+    data: relations = [],
+    isLoading: isRelationsLoading,
+    isError: isRelationsError,
+    refetch: refetchRelations,
+  } = useQuery<CiRelationVO[]>({
     queryKey: ['cmdb-rel', id],
-    queryFn: async () => {
-      try {
-        const r = await api.get(`/cmdb/instances/${id}/relations`)
-        return r.data.data ?? []
-      } catch {
-        return []
-      }
-    },
+    queryFn: () => api.get(`/cmdb/instances/${id}/relations`).then((r) => r.data.data ?? []),
     enabled: typeof window !== 'undefined',
   })
 
@@ -110,7 +103,7 @@ export default function AssociationsPage() {
     return {
       id: rel.id,
       kindId: rel.associationKind,
-      directionLabel: isSrc ? '→' : '←',
+      directionLabel: isSrc ? '出向' : '入向',
       peerName: isSrc ? rel.dstInstanceName : rel.srcInstanceName,
       peerId: isSrc ? rel.dstInstanceId : rel.srcInstanceId,
       metadata: rel.metadata,
@@ -131,63 +124,95 @@ export default function AssociationsPage() {
 
   return (
     <>
-      <DataManagementPage className="cwgsyw-cmdb-page"
+      <DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-association-list"
         header={
           <div className="cwgsyw-cmdb-instance-page">
-          <PageHeader
-            showEyebrow={false}
-            title="关联管理"
-            subtitle={`${inst?.name ?? `#${id}`} · ${allRelations.length} 条`}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/cmdb', label: 'CMDB' },
-                  { href: `/cmdb/instances/by-model/${modelCode}`, label: inst?.modelId ?? modelCode },
-                  { href: `/cmdb/instances/by-model/${modelCode}/${id}`, label: inst?.name ?? `#${id}` },
-                  { label: '关联管理' },
-                ]}
-              />
-            }
-            actions={
-              hasPermission('cmdb_relation', 'create') ? (
+            <PageHeader
+              showEyebrow={false}
+              showBreadcrumb={false}
+              title="关联管理"
+              subtitle={`${inst?.name ?? `#${id}`} · ${allRelations.length} 条`}
+              actions={
+                hasPermission('cmdb_relation', 'create') ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`)}
+                  >
+                    新建关联
+                  </Button>
+                ) : undefined
+              }
+            />
+          </div>
+        }
+        filter={
+          allRelations.length > 0 ? (
+            <FilterBar
+              filterItems={
+                <Select
+                  aria-label="按关联种类筛选"
+                  overlay
+                  size="sm"
+                  value={filterKind}
+                  options={kindOptions}
+                  onChange={(value) => setFilterKind(value || 'all')}
+                />
+              }
+            />
+          ) : undefined
+        }
+        content={
+          isInstanceLoading || isRelationsLoading ? (
+            <LoadingState label="加载关联" />
+          ) : isInstanceError || isRelationsError ? (
+            <ErrorState
+              title="关联加载失败"
+              description="无法读取当前实例或关联数据，请稍后重试。"
+              retry={
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}/${id}/associations/new`)}
+                  variant="secondary"
+                  onClick={() => {
+                    void refetchInstance()
+                    void refetchRelations()
+                  }}
                 >
-                  新建关联
+                  重试
                 </Button>
-              ) : undefined
-            }
-          />
-          </div>
-        }
-        toolbar={
-          <Select
-            overlay
-            size="sm"
-            value={filterKind}
-            options={kindOptions}
-            onChange={(value) => setFilterKind(value || 'all')}
-          />
-        }
-        content={
-          isLoading ? (
-            <LoadingState label="加载关联" />
+              }
+            />
           ) : filtered.length === 0 ? (
-            <EmptyState title="暂无关联" description="该实例还没有匹配当前筛选的关联。" />
+            <div className="cwgsyw-cmdb-association-list__empty">
+              <Image
+                src="/figma-icons/cmdb-association-link-2.svg"
+                alt=""
+                aria-hidden="true"
+                width={24}
+                height={24}
+                className="cwgsyw-cmdb-association-list__empty-icon"
+                data-figma-node-id="6:27582"
+              />
+              <EmptyState
+                showIcon={false}
+                title={allRelations.length === 0 ? '暂无关联' : '没有匹配的关联'}
+                description={allRelations.length === 0 ? '该实例还没有关联其他 CI。' : '请尝试选择其他关联种类。'}
+              />
+            </div>
           ) : (
             <Table
               className="cwgsyw-cmdb-table"
               showSearch={false}
+              density="compact"
               columns={[
                 { key: 'kind', label: '种类' },
                 { key: 'direction', label: '方向' },
                 { key: 'peer', label: '对端 CI' },
                 { key: 'createdAt', label: '创建时间' },
                 { key: 'attrs', label: '关联属性' },
-                { key: 'actions', label: '' },
+                { key: 'actions', label: '', align: 'right' },
               ]}
               rows={filtered.map((rel) => ({
                 id: String(rel.id),

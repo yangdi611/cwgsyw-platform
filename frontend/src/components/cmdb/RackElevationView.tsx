@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -107,25 +108,18 @@ function Texture({ form, cx, cy }: { form: Form; cx: number; cy: number }) {
 
 // __MAIN__
 
-interface HoverState { d: RackDevice; x: number; y: number }
+interface HoverState { d: RackDevice; x: number; y: number; side: 'left' | 'right' }
 
 export function RackElevationView({ rackId }: { rackId: string }) {
   const { hasPermission } = usePermission()
   const router = useRouter()
   const wrapRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
-  const [wrapWidth, setWrapWidth] = useState<number>(300)
 
-  // 监听容器宽度变化，避免在渲染时访问 ref
-  useEffect(() => {
-    const updateWidth = () => {
-      if (wrapRef.current) {
-        setWrapWidth(wrapRef.current.clientWidth)
-      }
-    }
-    updateWidth()
-    window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
+  useEffect(() => () => {
+    if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current)
   }, [])
 
   const { data, isLoading, isError } = useQuery<RackLayout>({
@@ -156,9 +150,37 @@ export function RackElevationView({ rackId }: { rackId: string }) {
   const rows = Array.from({ length: height }, (_, i) => height - i) // [height..1] 顶→底
 
   function onMove(e: React.MouseEvent, d: RackDevice) {
-    const box = wrapRef.current?.getBoundingClientRect()
-    if (!box) return
-    setHover({ d, x: e.clientX - box.left, y: e.clientY - box.top })
+    cancelHoverClose()
+    const svgBox = svgRef.current?.getBoundingClientRect()
+    if (!svgBox) return
+    const popoverWidth = 240
+    const estimatedPopoverHeight = 190
+    const gap = 12
+    const viewportPadding = 8
+    const canFitRight = svgBox.right + gap + popoverWidth <= window.innerWidth - viewportPadding
+    const side = canFitRight ? 'right' : 'left'
+    const x = side === 'right'
+      ? svgBox.right + gap
+      : Math.max(viewportPadding, svgBox.left - gap - popoverWidth)
+    const y = Math.min(
+      Math.max(viewportPadding, e.clientY - 16),
+      window.innerHeight - estimatedPopoverHeight - viewportPadding,
+    )
+    setHover({ d, x, y, side })
+  }
+
+  function cancelHoverClose() {
+    if (!hoverCloseTimerRef.current) return
+    clearTimeout(hoverCloseTimerRef.current)
+    hoverCloseTimerRef.current = null
+  }
+
+  function scheduleHoverClose() {
+    cancelHoverClose()
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setHover(null)
+      hoverCloseTimerRef.current = null
+    }, 180)
   }
 
   // __RENDER__
@@ -201,6 +223,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
         {/* __RACKSVG__ */}
         <div ref={wrapRef} className="cwgsyw-cmdb-rack-view__canvas">
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${TOTAL_W} ${svgH}`}
             style={{ height: 'min(70vh, 920px)', width: 'auto', maxWidth: '100%' }}
             role="img"
@@ -276,7 +299,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/cmdb/instances/by-model/${d.modelId}/${d.id}`) } }}
                   onMouseEnter={(e) => onMove(e, d)}
                   onMouseMove={(e) => onMove(e, d)}
-                  onMouseLeave={() => setHover(null)}
+                  onMouseLeave={scheduleHoverClose}
                 >
                   {/* 面板 */}
                   <rect x={BAY_X + 2} y={top + 1.5} width={BAY_W - 4} height={h - 3} rx={3} fill="url(#rk-face)" stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
@@ -305,12 +328,17 @@ export function RackElevationView({ rackId }: { rackId: string }) {
             })}
           </svg>
           {/* __TOOLTIP__ */}
-          {hover && (
+          {hover && createPortal(
             <div
+              role="tooltip"
+              data-side={hover.side}
               className="cwgsyw-popover cwgsyw-popover--hover cwgsyw-cmdb-rack-view__popover"
+              onMouseEnter={cancelHoverClose}
+              onMouseLeave={scheduleHoverClose}
               style={{
-                left: Math.min(hover.x + 16, wrapWidth - 248),
-                top: hover.y + 12,
+                position: 'fixed',
+                left: hover.x,
+                top: hover.y,
               }}
             >
               <div className="cwgsyw-cmdb-rack-view__popover-head">
@@ -327,8 +355,15 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                 <div><dt>资产号</dt><dd>{hover.d.assetNo || '—'}</dd></div>
                 <div><dt>SN</dt><dd>{hover.d.sn || '—'}</dd></div>
               </dl>
-              <div className="cwgsyw-cmdb-rack-view__popover-hint">点击查看详情</div>
-            </div>
+              <Link
+                href={`/cmdb/instances/by-model/${hover.d.modelId}/${hover.d.id}`}
+                className="cwgsyw-cmdb-rack-view__popover-hint"
+                onClick={() => setHover(null)}
+              >
+                查看详情
+              </Link>
+            </div>,
+            document.body,
           )}
         </div>
 
@@ -356,4 +391,3 @@ export function RackElevationView({ rackId }: { rackId: string }) {
     </div>
   )
 }
-

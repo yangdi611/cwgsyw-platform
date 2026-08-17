@@ -3,7 +3,7 @@ import { SearchInput } from './SearchInput'
 
 export interface TableColumn {
   key: string
-  label: string
+  label: ReactNode
   align?: 'left' | 'center' | 'right'
   sort?: 'none' | 'asc' | 'desc'
 }

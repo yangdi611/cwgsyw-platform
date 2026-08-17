@@ -11,11 +11,10 @@ import type { CiModelBase } from '@/types/cmdb-model'
 import '@/design-system/figma-neutral/index.css'
 import {
   Badge,
-  Breadcrumb,
   Button,
-  Card,
   DataManagementPage,
   EmptyState,
+  ErrorState,
   FilterBar,
   Input,
   LoadingState,
@@ -77,22 +76,27 @@ export default function CmdbChangesPage() {
     }
   }, [isHydrated, hasPermission, router])
 
-  const { data: models } = useQuery<CiModelBase[]>({
-    queryKey: ['cmdb-models-all'],
-    queryFn: async () => {
-      try {
-        const r = await api.get('/cmdb/models', { params: { size: 100 } })
-        return r.data.data.records
-      } catch {
-        return []
-      }
-    },
-    enabled: typeof window !== 'undefined',
-  })
-
   const canRead = hasPermission('cmdb_change', 'read') || hasPermission('cmdb_instance', 'read')
 
-  const { data, isLoading, isFetching } = useQuery<PageData>({
+  const {
+    data: models,
+    isError: isModelsError,
+    refetch: refetchModels,
+  } = useQuery<CiModelBase[]>({
+    queryKey: ['cmdb-models-all'],
+    queryFn: () => api.get('/cmdb/models', { params: { size: 100 } }).then((r) => r.data.data.records),
+    enabled: isHydrated && canRead,
+  })
+
+  const invalidDateRange = Boolean(startDate && endDate && startDate > endDate)
+
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery<PageData>({
     queryKey: ['cmdb-changes-v2', model, startDate, endDate, operatorId, keyword, action, page, size],
     queryFn: () =>
       api
@@ -110,52 +114,50 @@ export default function CmdbChangesPage() {
           },
         })
         .then((r) => r.data.data),
-    enabled: canRead,
+    enabled: isHydrated && canRead && !invalidDateRange,
   })
 
   const changes = data?.records ?? []
   const total = data?.total ?? 0
-  const resetPage = () => setPage(1)
+  const resetPage = () => {
+    setPage(1)
+    setExpandedId(null)
+  }
   const hasFilters = !!(model || startDate || endDate || operatorId || keyword || action)
   const expanded = changes.find((item) => item.id === expandedId)
+  const pageCount = Math.max(1, Math.ceil(total / size))
 
   return (
-    <DataManagementPage className="cwgsyw-cmdb-page"
+    <DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-changes"
       header={
         <div className="cwgsyw-cmdb-instance-page">
-        <PageHeader
+          <PageHeader
             showEyebrow={false}
-          title="变更历史"
-          subtitle="点击行查看字段变更"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { label: '变更历史' },
-              ]}
-            />
-          }
-          actions={
-            <Button type="button" variant="secondary" onClick={() => router.push('/cmdb/changes/stats')}>
-              变更统计
-            </Button>
-          }
-        />
+            showBreadcrumb={false}
+            title="变更历史"
+            subtitle="点击记录查看字段变更"
+            actions={
+              <Button type="button" size="sm" variant="secondary" onClick={() => router.push('/cmdb/changes/stats')}>
+                变更统计
+              </Button>
+            }
+          />
         </div>
       }
       toolbar={
         <FilterBar
           search={
             <SearchInput size="sm"
+              aria-label="搜索变更记录"
               placeholder="搜索实例、模型或变更内容"
               value={keyword}
               onChange={(e) => { setKeyword(e.target.value); resetPage() }}
             />
           }
           filterItems={
-            <div className="cwgsyw-inline-controls">
+            <div className="cwgsyw-cmdb-changes__filters">
               <Select size="sm" overlay
+                aria-label="按模型筛选"
                 value={model || '__all__'}
                 options={[
                   { value: '__all__', label: '全部模型' },
@@ -163,10 +165,13 @@ export default function CmdbChangesPage() {
                 ]}
                 onChange={(value) => { setModel(value === '__all__' ? '' : value); resetPage() }}
               />
-              <Input size="sm" type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage() }} />
-              <span className="cwgsyw-type-label-sm">至</span>
-              <Input size="sm" type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage() }} />
+              <div className="cwgsyw-cmdb-changes__date-range">
+                <Input size="sm" aria-label="开始日期" type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage() }} />
+                <span className="cwgsyw-type-label-sm" aria-hidden="true">至</span>
+                <Input size="sm" aria-label="结束日期" type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage() }} />
+              </div>
               <Input size="sm"
+                aria-label="按操作人 ID 筛选"
                 type="number"
                 inputMode="numeric"
                 placeholder="操作人 ID"
@@ -174,27 +179,51 @@ export default function CmdbChangesPage() {
                 onChange={(e) => { setOperatorId(e.target.value); resetPage() }}
               />
               <Select size="sm" overlay
+                aria-label="按动作筛选"
                 value={action || '__all__'}
                 options={ACTION_OPTIONS}
                 onChange={(value) => { setAction(value === '__all__' ? '' : value); resetPage() }}
               />
               <Select size="sm" overlay
+                aria-label="每页条数"
                 value={String(size)}
                 options={[20, 50, 100].map((item) => ({ value: String(item), label: `每页 ${item}` }))}
                 onChange={(value) => { setSize(Number(value)); resetPage() }}
               />
             </div>
           }
-          reset={hasFilters ? <Button type="button" variant="ghost" onClick={() => { setModel(''); setStartDate(''); setEndDate(''); setOperatorId(''); setKeyword(''); setAction(''); resetPage() }}>清除</Button> : null}
+          reset={hasFilters ? <Button type="button" size="sm" variant="ghost" onClick={() => { setModel(''); setStartDate(''); setEndDate(''); setOperatorId(''); setKeyword(''); setAction(''); resetPage() }}>清除筛选</Button> : null}
         />
       }
       content={
-        isLoading ? (
+        !isHydrated ? (
+          <LoadingState label="正在检查访问权限" />
+        ) : !canRead ? (
+          <ErrorState title="无权查看变更历史" description="需要 CMDB 变更或实例读取权限。" />
+        ) : invalidDateRange ? (
+          <ErrorState title="日期范围无效" description="结束日期不能早于开始日期，请调整后重试。" />
+        ) : isModelsError ? (
+          <ErrorState
+            title="模型筛选项加载失败"
+            description="无法读取模型列表，请稍后重试。"
+            retry={<Button type="button" size="sm" variant="secondary" onClick={() => refetchModels()}>重试</Button>}
+          />
+        ) : isError ? (
+          <ErrorState
+            title="变更历史加载失败"
+            description="无法读取变更记录，请稍后重试。"
+            retry={<Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>重试</Button>}
+          />
+        ) : isLoading ? (
           <LoadingState label="加载变更历史" />
         ) : changes.length === 0 ? (
-          <EmptyState title="暂无变更记录" />
+          <EmptyState
+            title={hasFilters ? '没有符合筛选条件的记录' : '暂无变更记录'}
+            description={hasFilters ? '调整筛选条件后重试。' : '实例发生创建、更新或删除后会显示在这里。'}
+            action={hasFilters ? <Button type="button" size="sm" variant="secondary" onClick={() => { setModel(''); setStartDate(''); setEndDate(''); setOperatorId(''); setKeyword(''); setAction(''); resetPage() }}>清除筛选</Button> : undefined}
+          />
         ) : (
-          <div className="cwgsyw-stack-list">
+          <div className="cwgsyw-cmdb-changes__content">
             <Table
               className="cwgsyw-cmdb-table"
               showSearch={false}
@@ -221,22 +250,46 @@ export default function CmdbChangesPage() {
                 if (hasDiff) setExpandedId((current) => (current === hit.id ? null : hit.id))
               }}
             />
-            <Pagination
-              page={page}
-              pageCount={Math.max(1, Math.ceil(total / size))}
-              totalCount={total}
-              onPageChange={setPage}
-            />
-            {isFetching && !isLoading ? <p className="cwgsyw-type-label-sm">刷新中…</p> : null}
+            <div className="cwgsyw-cmdb-changes__mobile-list" aria-label="变更记录">
+              {changes.map((change) => {
+                const hasDiff = change.beforeJson != null || change.afterJson != null
+                return (
+                  <Button
+                    key={change.id}
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="cwgsyw-cmdb-changes__mobile-item"
+                    aria-expanded={hasDiff ? expandedId === change.id : undefined}
+                    disabled={!hasDiff}
+                    onClick={() => setExpandedId((current) => (current === change.id ? null : change.id))}
+                  >
+                    <span><span>操作类型</span><StatusBadge label={actionMeta(change.action).label} status={actionTone(change.action)} /></span>
+                    <span><span>操作人</span>{change.operatorName ?? '系统'}</span>
+                    <span className="cwgsyw-cmdb-changes__mobile-summary"><span>变更摘要</span>{change.summary ?? (change.afterJson ? JSON.stringify(change.afterJson).slice(0, 80) : '-')}</span>
+                    <span className="cwgsyw-cmdb-changes__mobile-time"><span>时间</span>{new Date(change.createdAt).toLocaleString('zh-CN')}</span>
+                  </Button>
+                )
+              })}
+            </div>
+            {pageCount > 1 ? (
+              <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={(nextPage) => { setPage(nextPage); setExpandedId(null) }} />
+            ) : null}
+            {isFetching && !isLoading ? <p className="cwgsyw-cmdb-changes__refresh" role="status">正在刷新变更记录…</p> : null}
             {expanded ? (
-              <Card title="变更对比">
-                {(expanded.changedFields ?? []).length > 0 ? (
-                  <div className="cwgsyw-inline-controls">
-                    {(expanded.changedFields ?? []).map((field) => <Badge key={field} label={field} />)}
-                  </div>
-                ) : null}
-                <JsonDiffView before={expanded.beforeJson} after={expanded.afterJson} />
-              </Card>
+              <section className="cwgsyw-cmdb-changes__diff" aria-labelledby="cmdb-change-diff-title">
+                <header>
+                  <h2 id="cmdb-change-diff-title">变更对比</h2>
+                  {(expanded.changedFields ?? []).length > 0 ? (
+                    <div className="cwgsyw-inline-controls" aria-label="变更字段">
+                      {(expanded.changedFields ?? []).map((field) => <Badge key={field} label={field} />)}
+                    </div>
+                  ) : null}
+                </header>
+                <div className="cwgsyw-cmdb-changes__diff-body">
+                  <JsonDiffView before={expanded.beforeJson} after={expanded.afterJson} />
+                </div>
+              </section>
             ) : null}
           </div>
         )

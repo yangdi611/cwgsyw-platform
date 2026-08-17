@@ -70,14 +70,32 @@ function loadCompiled(filePath) {
   return mod.exports
 }
 
-test('cmdb changes stats leaves old visual entries', () => {
+test('cmdb changes stats uses a scoped Dashboard Feedback composition', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /cmdb-changes-stats/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-|bg-v2-primary/)
-  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page"/)
+  assert.match(page, /DashboardFeedbackPage className="cwgsyw-cmdb-page cwgsyw-cmdb-change-stats"/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.doesNotMatch(page, /cwgsyw-stack-list/)
+  assert.doesNotMatch(page, /style=\{\{/)
+  assert.match(page, /cwgsyw-cmdb-change-stats__feedback/)
+  assert.match(page, /cwgsyw-cmdb-change-stats__chart/)
+})
+
+test('cmdb changes stats exposes range, permission and query states', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  assert.match(page, /aria-label="统计日期范围"/)
+  assert.match(page, /aria-label="开始日期"/)
+  assert.match(page, /aria-label="结束日期"/)
+  assert.match(page, /无权查看变更统计/)
+  assert.match(page, /日期范围无效/)
+  assert.match(page, /变更统计加载失败/)
+  assert.match(page, /所选范围内还没有可汇总的每日记录/)
+  assert.match(page, /所选范围内没有可排名的实例记录/)
 })
 
 test('cmdb changes stats renders Neutral metrics', () => {
@@ -85,4 +103,7 @@ test('cmdb changes stats renders Neutral metrics', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /变更统计/)
   assert.match(html, /web-01/)
+  assert.match(html, /每日新增、修改和删除变更趋势/)
+  assert.match(html, /返回变更历史/)
+  assert.equal((html.match(/aria-label="面包屑"/g) ?? []).length, 0)
 })

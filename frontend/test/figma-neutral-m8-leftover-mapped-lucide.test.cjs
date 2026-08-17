@@ -13,15 +13,13 @@ test('wiki tree move actions use Neutral chevron IconButtons', () => {
   assert.match(source, /icon="trash"/)
 })
 
-test('spatial editor delete chrome uses Neutral trash and close icons', () => {
+test('spatial editor chrome uses verified Figma icon assets', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../src/features/cmdb-spatial/editor/SpatialEditor.tsx'), 'utf8')
-  assert.doesNotMatch(source, /Trash2/)
-  assert.doesNotMatch(source, /<X /)
-  assert.match(source, /name="trash"/)
-  assert.match(source, /leadingIcon="close"/)
-  assert.doesNotMatch(source, /ChevronRight|ArrowLeft/)
-  assert.match(source, /name="chevron-right"/)
-  assert.match(source, /name="chevron-previous"/)
+  assert.doesNotMatch(source, /lucide-react|Trash2|ChevronRight|ArrowLeft/)
+  assert.match(source, /SpatialFigmaIcon name="trash"/)
+  assert.match(source, /SpatialFigmaIcon name="chevron-previous"/)
+  assert.match(source, /SpatialFigmaIcon name="lock"/)
+  assert.match(source, /SpatialFigmaIcon name="unlock"/)
 })
 
 test('wiki mermaid copied state uses Neutral check icon', () => {

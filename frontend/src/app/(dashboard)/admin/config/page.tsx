@@ -34,7 +34,6 @@ const WATERMARK_POSITION_LABELS: Record<WatermarkPosition, string> = {
 export default function AdminConfigPage() {
   const { hasPermission, isHydrated } = usePermission()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<TabId>('smtp')
 
   useEffect(() => {
@@ -42,50 +41,47 @@ export default function AdminConfigPage() {
     if (!hasPermission('notification', 'manage')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data: config = {} } = useQuery<Record<string, string>>({
+  const { data: config } = useQuery<Record<string, string>>({
     queryKey: ['admin-config'],
     queryFn: () => api.get('/admin/config').then((r) => r.data.data),
     enabled: hasPermission('notification', 'manage'),
   })
 
-  const [smtpEnabled, setSmtpEnabled] = useState(false)
-  const [host, setHost] = useState('')
-  const [port, setPort] = useState('465')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [from, setFrom] = useState('')
-  const [fromName, setFromName] = useState('IT运维平台')
-  const [ssl, setSsl] = useState(true)
-  const [watermarkEnabled, setWatermarkEnabled] = useState(false)
-  const [watermarkText, setWatermarkText] = useState('')
-  const [watermarkOpacity, setWatermarkOpacity] = useState('0.3')
-  const [watermarkAngle, setWatermarkAngle] = useState('45')
-  const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>('bottom-right')
-  const [prometheusEnabled, setPrometheusEnabled] = useState(false)
-  const [prometheusUrl, setPrometheusUrl] = useState('')
-  const [prometheusInterval, setPrometheusInterval] = useState('60')
-  const [initialized, setInitialized] = useState(false)
+  return (
+    <AdminConfigForm
+      key={config ? 'loaded' : 'loading'}
+      config={config ?? {}}
+      activeTab={activeTab}
+      onActiveTabChange={setActiveTab}
+    />
+  )
+}
 
-  useEffect(() => {
-    if (!config || Object.keys(config).length === 0 || initialized) return
-    setSmtpEnabled(config['smtp.enabled'] === 'true')
-    setHost(config['smtp.host'] ?? '')
-    setPort(config['smtp.port'] ?? '465')
-    setUsername(config['smtp.username'] ?? '')
-    setPassword(config['smtp.password'] ?? '')
-    setFrom(config['smtp.from'] ?? '')
-    setFromName(config['smtp.from_name'] ?? 'IT运维平台')
-    setSsl(config['smtp.ssl'] !== 'false')
-    setWatermarkEnabled(config['watermark.enabled'] === 'true')
-    setWatermarkText(config['watermark.text'] ?? '')
-    setWatermarkOpacity(config['watermark.opacity'] ?? '0.3')
-    setWatermarkAngle(config['watermark.angle'] ?? '45')
-    setWatermarkPosition((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
-    setPrometheusEnabled(config['prometheus.enabled'] === 'true')
-    setPrometheusUrl(config['prometheus.url'] ?? '')
-    setPrometheusInterval(config['prometheus.scrape_interval'] ?? '60')
-    setInitialized(true)
-  }, [config, initialized])
+interface AdminConfigFormProps {
+  config: Record<string, string>
+  activeTab: TabId
+  onActiveTabChange: (tab: TabId) => void
+}
+
+function AdminConfigForm({ config, activeTab, onActiveTabChange }: AdminConfigFormProps) {
+  const queryClient = useQueryClient()
+
+  const [smtpEnabled, setSmtpEnabled] = useState(config['smtp.enabled'] === 'true')
+  const [host, setHost] = useState(config['smtp.host'] ?? '')
+  const [port, setPort] = useState(config['smtp.port'] ?? '465')
+  const [username, setUsername] = useState(config['smtp.username'] ?? '')
+  const [password, setPassword] = useState(config['smtp.password'] ?? '')
+  const [from, setFrom] = useState(config['smtp.from'] ?? '')
+  const [fromName, setFromName] = useState(config['smtp.from_name'] ?? 'IT运维平台')
+  const [ssl, setSsl] = useState(config['smtp.ssl'] !== 'false')
+  const [watermarkEnabled, setWatermarkEnabled] = useState(config['watermark.enabled'] === 'true')
+  const [watermarkText, setWatermarkText] = useState(config['watermark.text'] ?? '')
+  const [watermarkOpacity, setWatermarkOpacity] = useState(config['watermark.opacity'] ?? '0.3')
+  const [watermarkAngle, setWatermarkAngle] = useState(config['watermark.angle'] ?? '45')
+  const [watermarkPosition, setWatermarkPosition] = useState<WatermarkPosition>((config['watermark.position'] as WatermarkPosition) ?? 'bottom-right')
+  const [prometheusEnabled, setPrometheusEnabled] = useState(config['prometheus.enabled'] === 'true')
+  const [prometheusUrl, setPrometheusUrl] = useState(config['prometheus.url'] ?? '')
+  const [prometheusInterval, setPrometheusInterval] = useState(config['prometheus.scrape_interval'] ?? '60')
 
   const smtpMutation = useMutation({
     mutationFn: () => api.put('/admin/config/smtp', { enabled: smtpEnabled, host, port: Number(port), username, password, from, fromName, ssl }),
@@ -137,7 +133,7 @@ export default function AdminConfigPage() {
       form={
         <Tabs
           value={activeTab}
-          onChange={(value) => setActiveTab(value as TabId)}
+          onChange={(value) => onActiveTabChange(value as TabId)}
           items={[
             {
               id: 'smtp',

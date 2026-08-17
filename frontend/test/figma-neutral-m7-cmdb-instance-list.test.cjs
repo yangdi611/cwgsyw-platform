@@ -11,6 +11,7 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/instances/by-model/[modelCode]/page.tsx')
+const patternsPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
 
 function compile(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -48,7 +49,7 @@ function loadCompiled(filePath) {
         useMutation: () => ({ mutate() {}, isPending: false }),
         useQuery: ({ queryKey } = {}) => {
           const key = String(queryKey || '')
-          if (key.includes('cmdb-instances')) return { data: { records: [{ id: 11, modelId: 'server', name: 'web-01', status: 'running', owner: 'ops', description: '', fieldsData: { cpu_cores: 8 }, createdAt: '2026-08-14T00:00:00Z' }], total: 1 }, isLoading: false, isError: false, refetch() {} }
+          if (key.includes('cmdb-instances')) return { data: { records: [{ id: 11, modelId: 'server', name: 'web-01', status: 'running', owner: 'ops', description: '', fieldsData: { cpu_cores: 8 }, createdAt: '2026-08-14T00:00:00Z' }], total: 45 }, isLoading: false, isError: false, refetch() {} }
           if (key.includes('cmdb-model')) return { data: { name: '服务器', attributes: [{ fieldKey: 'cpu_cores', name: 'CPU 核数', isListShow: true, isDrawerShow: true, isEditable: true, fieldType: 'int', option: null }] } }
           return { data: undefined, isLoading: false }
         },
@@ -85,13 +86,39 @@ function loadCompiled(filePath) {
 
 test('cmdb instance list leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const patterns = fs.readFileSync(patternsPath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
-  assert.match(page, /queryKey: \['cmdb-instances', canonicalModelCode\]/)
+  assert.match(page, /queryKey: \['cmdb-instances', canonicalModelCode, page\]/)
+  assert.match(page, /params: \{ model: canonicalModelCode, page, size: PAGE_SIZE \}/)
+  assert.match(page, /<Pagination page=\{page\} pageCount=\{pageCount\} totalCount=\{total\} onPageChange=\{changePage\}/)
+  assert.match(page, /const changePage = \(nextPage: number\)[\s\S]*setSelectedIds\(\[\]\)[\s\S]*setPage\(nextPage\)/)
   assert.match(page, /CsvImportDialog/)
   assert.match(page, /BatchEditDialog/)
+  assert.match(page, /label="全选当前页实例"/)
+  assert.match(page, /indeterminate=\{somePageSelected\}/)
+  assert.match(page, /event\.target\.checked \? currentPageIds : \[\]/)
+  assert.match(page, /label=\{`选择实例 \$\{item\.name/)
+  assert.doesNotMatch(page, /取消选择|'选择'\}/)
+  assert.match(page, /cmdb-admin__figma-action-icon--trash/)
+  assert.match(page, /aria-label=\{`删除实例 \$\{item\.name/)
+  assert.match(page, /className="cwgsyw-cmdb-model-detail__delete-dialog"/)
+  assert.match(page, /cwgsyw-cmdb-model-detail__delete-alert-icon/)
   assert.match(page, /CmdbInstancePreview/)
   assert.match(page, /cwgsyw-cmdb-preview-drawer/)
   assert.match(page, /cwgsyw-cmdb-table/)
+  assert.match(page, /cwgsyw-cmdb-instance-list__table--selectable/)
+  assert.match(page, /cwgsyw-cmdb-instance-list/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb|\bBreadcrumb,/)
+  assert.equal((page.match(/<Button[^>]*size="sm"/g) ?? []).length >= 6, true)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list :where\(\.cwgsyw-btn, \.cwgsyw-btn > span\)[\s\S]*font-weight: var\(--cwgsyw-font-weight-regular\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list \.cwgsyw-table[\s\S]*min-width: 100%[\s\S]*table-layout: fixed/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list__table--selectable :where\(\.cwgsyw-th, \.cwgsyw-td\):first-child[\s\S]*width: 44px/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list :where\(\.cwgsyw-th, \.cwgsyw-td\):last-child[\s\S]*width: 56px/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list__selection \.cwgsyw-choice input[\s\S]*width: 16px[\s\S]*height: 16px/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list \.cwgsyw-td:last-child \.cwgsyw-cmdb-admin__delete-action[\s\S]*color: var\(--cwgsyw-status-danger-fg\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-list \.cwgsyw-td:last-child \.cwgsyw-inline-controls[\s\S]*flex-wrap: nowrap[\s\S]*justify-content: flex-end/)
+  assert.match(patterns, /@media \(max-width: 430px\)[\s\S]*\.cwgsyw-cmdb-instance-list \.cwgsyw-table-mobile \.cwgsyw-card[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
@@ -102,4 +129,6 @@ test('cmdb instance list renders Neutral table', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /实例列表/)
   assert.match(html, /web-01/)
+  assert.match(html, /aria-label="分页"/)
+  assert.match(html, /aria-label="下一页"/)
 })

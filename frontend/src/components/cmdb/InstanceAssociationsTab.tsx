@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
+import { motion, MotionConfig } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
@@ -78,6 +80,7 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
   const { hasPermission } = usePermission()
   const queryClient = useQueryClient()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [definitionOpen, setDefinitionOpen] = useState(false)
   const [selectedDefId, setSelectedDefId] = useState('')
   const [peerSearch, setPeerSearch] = useState('')
   const [selectedPeerId, setSelectedPeerId] = useState<number | null>(null)
@@ -209,7 +212,19 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         {isLoading ? (
           <LoadingState label="加载关联" />
         ) : groups.length === 0 ? (
-          <EmptyState title="暂无关联" />
+          <div className="cwgsyw-cmdb-instance-tab__empty">
+            <span className="cwgsyw-cmdb-instance-tab__empty-icon" aria-hidden="true">
+              <Image
+                src="/figma-icons/cmdb-association-link-2.svg"
+                alt=""
+                width={22}
+                height={12}
+                data-figma-node="6:27582"
+                className="cwgsyw-cmdb-instance-tab__empty-icon-image"
+              />
+            </span>
+            <EmptyState title="暂无关联" showIcon={false} />
+          </div>
         ) : (
           <div className="cwgsyw-cmdb-instance-associations__groups">
             {groups.map((group) => {
@@ -288,67 +303,83 @@ export function InstanceAssociationsTab({ modelCode, id }: Props) {
         open={addDialogOpen}
         onOpenChange={(open) => {
           setAddDialogOpen(open)
-          if (!open) { setAddError(''); setSelectedDefId(''); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}) }
+          if (!open) { setDefinitionOpen(false); setAddError(''); setSelectedDefId(''); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}) }
         }}
         title="添加关联"
+        description="选择关联定义和目标实例；如有需要，再补充关联属性。"
         footer={
-          <div className="cwgsyw-inline-controls">
-            <Button type="button" variant="secondary" onClick={() => setAddDialogOpen(false)}>取消</Button>
-            <Button type="button" disabled={!selectedDefId || !selectedPeerId || createRelMutation.isPending} onClick={() => createRelMutation.mutate()}>
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-dialog__actions">
+            <Button type="button" size="sm" variant="secondary" onClick={() => setAddDialogOpen(false)}>取消</Button>
+            <Button type="button" size="sm" variant="primary" disabled={!selectedDefId || !selectedPeerId || createRelMutation.isPending} onClick={() => createRelMutation.mutate()}>
               {createRelMutation.isPending ? '创建中...' : '建立关联'}
             </Button>
           </div>
         }
       >
-        <Field label="关联定义">
-          <Select size="sm" overlay
-            value={selectedDefId}
-            placeholder="选择关联定义..."
-            options={applicableDefs.map((d) => ({ value: d.defId, label: `${d.name} (${d.mapping})` }))}
-            onChange={(v) => { setSelectedDefId(v); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}); setAddError('') }}
-          />
-        </Field>
-        {selectedDef ? (
-          <Field label={`目标实例（${searchResult?.records?.[0]?.modelName ?? targetModelId}）`}>
-            <SearchInput size="sm"
-              placeholder="搜索实例名称..."
-              value={peerSearch}
-              onChange={(e) => { setPeerSearch(e.target.value); setSelectedPeerId(null) }}
-            />
-            <div className="cwgsyw-stack-list">
-              {(searchResult?.records ?? []).map((searchInst) => (
-                <Button
-                  key={searchInst.id}
-                  type="button"
-                  size="sm"
-                  variant={selectedPeerId === searchInst.id ? 'primary' : 'ghost'}
-                  onClick={() => setSelectedPeerId(searchInst.id)}
-                >
-                  {searchInst.name}
-                </Button>
-              ))}
-              {(searchResult?.records ?? []).length === 0 ? <p className="cwgsyw-type-label-sm">无匹配实例</p> : null}
-            </div>
-          </Field>
-        ) : null}
-        {selectedDef && kindAttrs.length > 0 ? (
-          <div className="cwgsyw-stack-list">
-            {[...kindAttrs].sort((a, b) => a.sortOrder - b.sortOrder).map((attr) => (
-              <RelationAttrField
-                key={attr.id}
-                attr={attr}
-                value={metadata[attr.fieldKey]}
-                onChange={(v) => setMetadata((m) => {
-                  const next = { ...m }
-                  if (v === undefined || v === '' || v === null) delete next[attr.fieldKey]
-                  else next[attr.fieldKey] = v
-                  return next
-                })}
+        <MotionConfig reducedMotion="user">
+          <motion.div
+            layout="size"
+            className="cwgsyw-cmdb-association-dialog"
+            data-definition-open={definitionOpen || undefined}
+            transition={{ type: 'spring', stiffness: 220, damping: 28, mass: 0.8 }}
+          >
+          <motion.div layout="position" className="cwgsyw-cmdb-dialog__flow-select cwgsyw-cmdb-association-dialog__definition">
+            <Field label="关联定义">
+              <Select size="sm"
+                open={definitionOpen}
+                value={selectedDefId}
+                placeholder="选择关联定义..."
+                options={applicableDefs.map((d) => ({ value: d.defId, label: `${d.name} (${d.mapping})` }))}
+                onOpenChange={setDefinitionOpen}
+                onChange={(v) => { setSelectedDefId(v); setSelectedPeerId(null); setPeerSearch(''); setMetadata({}); setAddError('') }}
               />
-            ))}
-          </div>
-        ) : null}
-        {addError ? <Alert tone="danger" title="创建失败" description={addError} showDismiss={false} /> : null}
+            </Field>
+          </motion.div>
+          {selectedDef ? (
+            <Field label={`目标实例（${searchResult?.records?.[0]?.modelName ?? targetModelId}）`}>
+              <SearchInput size="sm"
+                placeholder="搜索实例名称..."
+                value={peerSearch}
+                onChange={(e) => { setPeerSearch(e.target.value); setSelectedPeerId(null) }}
+              />
+              <div className="cwgsyw-cmdb-association-dialog__candidates" aria-label="目标实例候选">
+                {(searchResult?.records ?? []).map((searchInst) => (
+                  <Button
+                    key={searchInst.id}
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-pressed={selectedPeerId === searchInst.id}
+                    onClick={() => setSelectedPeerId(searchInst.id)}
+                  >
+                    <span>{searchInst.name}</span>
+                    <span className="cwgsyw-cmdb-association-dialog__candidate-meta">#{searchInst.id}</span>
+                  </Button>
+                ))}
+                {(searchResult?.records ?? []).length === 0 ? <p className="cwgsyw-cmdb-association-dialog__empty">无匹配实例</p> : null}
+              </div>
+            </Field>
+          ) : null}
+          {selectedDef && kindAttrs.length > 0 ? (
+            <div className="cwgsyw-cmdb-association-dialog__attributes" aria-label="关联属性">
+              {[...kindAttrs].sort((a, b) => a.sortOrder - b.sortOrder).map((attr) => (
+                <RelationAttrField
+                  key={attr.id}
+                  attr={attr}
+                  value={metadata[attr.fieldKey]}
+                  onChange={(v) => setMetadata((m) => {
+                    const next = { ...m }
+                    if (v === undefined || v === '' || v === null) delete next[attr.fieldKey]
+                    else next[attr.fieldKey] = v
+                    return next
+                  })}
+                />
+              ))}
+            </div>
+          ) : null}
+          {addError ? <Alert tone="danger" title="创建失败" description={addError} showDismiss={false} /> : null}
+          </motion.div>
+        </MotionConfig>
       </NeutralDialog>
     </section>
   )

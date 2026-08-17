@@ -10,10 +10,9 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import type { CiAttributeResponse, CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
   Checkbox,
+  ErrorState,
   Field,
   FormSettingsPage,
   Input,
@@ -29,22 +28,16 @@ export default function NewInstancePage() {
   const router = useRouter()
   const [attrs, setAttrs] = useState<CmdbFieldsData>({})
   const [name, setName] = useState('')
+  const [showValidation, setShowValidation] = useState(false)
 
   useEffect(() => {
     if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'create')) router.replace(`/cmdb/instances/by-model/${modelCode}`)
   }, [isHydrated, hasPermission, router, modelCode])
 
-  const { data: model, isLoading } = useQuery<CiModelWithAttributes>({
+  const { data: model, isLoading, isError, refetch } = useQuery<CiModelWithAttributes>({
     queryKey: ['cmdb-model', modelCode],
-    queryFn: async () => {
-      try {
-        const r = await api.get(`/cmdb/models/${modelCode}`)
-        return r.data.data
-      } catch {
-        return undefined
-      }
-    },
+    queryFn: () => api.get(`/cmdb/models/${modelCode}`).then((r) => r.data.data),
     enabled: typeof window !== 'undefined',
   })
 
@@ -59,72 +52,122 @@ export default function NewInstancePage() {
 
   const set = (key: string, val: string) => setAttrs((current) => ({ ...current, [key]: val }))
   const groups = model?.attributeGroups ?? []
-  const attrsByGroup = (model?.attributes ?? []).reduce((acc, attr) => {
+  const modelAttributes = model?.attributes ?? []
+  const attrsByGroup = modelAttributes.reduce((acc, attr) => {
     const groupId = attr.groupId || 'default'
     if (!acc[groupId]) acc[groupId] = []
     acc[groupId].push(attr)
     return acc
   }, {} as Record<string, CiAttributeResponse[]>)
+  const missingRequiredKeys = new Set(
+    modelAttributes
+      .filter((attr) => attr.isRequired && isMissingValue(attr.fieldType, attrs[attr.fieldKey]))
+      .map((attr) => attr.fieldKey),
+  )
+
+  const handleSubmit = () => {
+    const firstMissingId = !name.trim() ? 'instance-name' : modelAttributes.find((attr) => missingRequiredKeys.has(attr.fieldKey))?.fieldKey
+    if (firstMissingId) {
+      setShowValidation(true)
+      requestAnimationFrame(() => document.getElementById(firstMissingId)?.focus())
+      return
+    }
+    createMutation.mutate()
+  }
 
   if (isLoading) return <LoadingState label="加载模型" />
 
   return (
-    <FormSettingsPage className="cwgsyw-cmdb-page"
+    <FormSettingsPage className="cwgsyw-cmdb-page cwgsyw-cmdb-instance-create"
       header={
         <div className="cwgsyw-cmdb-instance-page">
-        <PageHeader
+          <PageHeader
             showEyebrow={false}
-          title={`新建 ${model?.name ?? modelCode} 实例`}
-          subtitle="填写名称和属性"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { href: `/cmdb/instances/by-model/${modelCode}`, label: model?.name ?? modelCode },
-                { label: '新建实例' },
-              ]}
-            />
-          }
-        />
+            showBreadcrumb={false}
+            title={`新建 ${model?.name ?? modelCode} 实例`}
+            subtitle="填写名称和属性"
+          />
         </div>
       }
       form={
-        <div className="cwgsyw-form">
-          <Field label="实例名称" htmlFor="instance-name" required>
-            <Input size="sm" id="instance-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入实例名称" />
-          </Field>
+        isError ? (
+          <ErrorState
+            title="模型加载失败"
+            description="无法读取当前模型的字段配置，请稍后重试。"
+            retry={<Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>重试</Button>}
+          />
+        ) : (
+          <form
+          className="cwgsyw-cmdb-instance-create__form"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault()
+            handleSubmit()
+          }}
+        >
+          <section className="cwgsyw-cmdb-instance-create__section" aria-labelledby="instance-create-core-title">
+            <h2 id="instance-create-core-title" className="cwgsyw-cmdb-instance-create__section-title">实例信息</h2>
+            <div className="cwgsyw-cmdb-instance-create__section-body">
+              <div className="cwgsyw-cmdb-instance-create__field-grid">
+                <div className="cwgsyw-cmdb-instance-create__field cwgsyw-cmdb-instance-create__field--wide">
+                  <Field
+                    label="实例名称"
+                    htmlFor="instance-name"
+                    required
+                    state={showValidation && !name.trim() ? 'error' : 'default'}
+                    errorText={showValidation && !name.trim() ? '请输入实例名称' : undefined}
+                  >
+                    <Input size="sm" id="instance-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入实例名称" />
+                  </Field>
+                </div>
+              </div>
+            </div>
+          </section>
           {groups
+            .slice()
             .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
             .map((group) => {
-              const groupAttrs = (attrsByGroup[group.groupId] ?? []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+              const groupAttrs = (attrsByGroup[group.groupId] ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
               if (groupAttrs.length === 0) return null
               return (
-                <Card key={group.groupId} title={group.name}>
-                  <div className="cwgsyw-form">
-                    {groupAttrs.map((attr) => (
-                      <Field
-                        key={attr.fieldKey}
-                        label={attr.unit ? `${attr.name} (${attr.unit})` : attr.name}
-                        htmlFor={attr.fieldKey}
-                        required={attr.isRequired}
-                      >
-                        {renderField(attr, String(attrs[attr.fieldKey] ?? ''), (value) => set(attr.fieldKey, value))}
-                      </Field>
-                    ))}
+                <section key={group.groupId} className="cwgsyw-cmdb-instance-create__section" aria-labelledby={`instance-create-group-${group.groupId}`}>
+                  <h2 id={`instance-create-group-${group.groupId}`} className="cwgsyw-cmdb-instance-create__section-title">{group.name}</h2>
+                  <div className="cwgsyw-cmdb-instance-create__section-body">
+                    <div className="cwgsyw-cmdb-instance-create__field-grid">
+                      {groupAttrs.map((attr) => {
+                        const showRequiredError = showValidation && missingRequiredKeys.has(attr.fieldKey)
+                        return (
+                          <div
+                            key={attr.fieldKey}
+                            className={`cwgsyw-cmdb-instance-create__field${attr.fieldType === 'longchar' ? ' cwgsyw-cmdb-instance-create__field--wide' : ''}`}
+                          >
+                            <Field
+                              label={attr.unit ? `${attr.name} (${attr.unit})` : attr.name}
+                              htmlFor={attr.fieldKey}
+                              required={attr.isRequired}
+                              state={showRequiredError ? 'error' : 'default'}
+                              errorText={showRequiredError ? `请填写${attr.name}` : undefined}
+                            >
+                              {renderField(attr, String(attrs[attr.fieldKey] ?? ''), (value) => set(attr.fieldKey, value))}
+                            </Field>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </Card>
+                </section>
               )
             })}
-          <div className="cwgsyw-inline-controls">
-            <Button type="button" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-instance-create__actions">
+            <Button type="submit" size="sm" loading={createMutation.isPending} disabled={createMutation.isPending}>
               {createMutation.isPending ? '创建中…' : '创建实例'}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}`)}>
+            <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${modelCode}`)}>
               取消
             </Button>
           </div>
-        </div>
+          </form>
+        )
       }
     />
   )
@@ -134,7 +177,7 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
   const { fieldType, option, placeholder } = attr
   const ph = placeholder ?? ''
   if (fieldType === 'longchar') {
-    return <Textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} rows={3} />
+    return <Textarea size="sm" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} rows={3} />
   }
   if (fieldType === 'enum' && Array.isArray(option)) {
     const opts = option as { id: string; name: string }[]
@@ -157,7 +200,7 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
       }
     })()
     return (
-      <div className="cwgsyw-inline-controls">
+      <div className="cwgsyw-cmdb-instance-create__multi-options">
         {opts.map((item) => (
           <Checkbox
             key={item.id}
@@ -190,4 +233,15 @@ function renderField(attr: CiAttributeResponse, value: string, onChange: (value:
     return <Input size="sm" type="number" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
   }
   return <Input size="sm" value={value} onChange={(event) => onChange(event.target.value)} placeholder={ph} />
+}
+
+function isMissingValue(fieldType: string, value: CmdbFieldsData[string]) {
+  if (value === null || value === undefined || value === '') return true
+  if (fieldType !== 'enummulti') return false
+  try {
+    const selected = typeof value === 'string' ? JSON.parse(value) : value
+    return !Array.isArray(selected) || selected.length === 0
+  } catch {
+    return true
+  }
 }

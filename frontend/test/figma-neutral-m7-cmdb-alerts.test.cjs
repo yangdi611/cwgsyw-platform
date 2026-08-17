@@ -11,6 +11,8 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/alerts/page.tsx')
+const alertIconPath = path.join(frontendRoot, 'public/figma-icons/cmdb-alert-circle.svg')
+const patternsPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
 
 function compile(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -45,6 +47,7 @@ function loadCompiled(filePath) {
         useQuery: () => ({
           data: { records: [{ id: 9, ciInstanceId: 1, ciInstanceName: 'web-01', alertName: 'CPU 过高', severity: 'critical', status: 'firing', summary: 'cpu', description: '', startsAt: '2026-08-14T00:00:00Z', endsAt: null, acknowledged: false, createdAt: '2026-08-14T00:00:00Z' }], total: 1 },
           isLoading: false,
+          isFetching: false,
           isError: false,
           refetch() {},
         }),
@@ -79,7 +82,7 @@ function loadCompiled(filePath) {
   return mod.exports
 }
 
-test('cmdb alerts leaves old visual entries', () => {
+test('cmdb alerts uses the scoped accessible data-management composition', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /queryKey: \['cmdb-alerts', severity, status, page\]/)
@@ -88,6 +91,34 @@ test('cmdb alerts leaves old visual entries', () => {
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
+  assert.match(page, /DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-alerts"/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.doesNotMatch(page, /if \(!canRead\) return null/)
+  assert.match(page, /aria-label="按告警级别筛选"/)
+  assert.match(page, /aria-label="按告警状态筛选"/)
+  assert.match(page, /cwgsyw-cmdb-alerts__mobile-list/)
+  assert.match(page, /无权查看告警中心/)
+  assert.match(page, /加载告警记录/)
+  assert.match(page, /告警加载失败/)
+  assert.match(page, /没有符合筛选条件的告警/)
+  assert.match(page, /tone: 'info', label: '提示'/)
+})
+
+test('cmdb alerts uses the official Figma alert-circle asset', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const asset = fs.readFileSync(alertIconPath, 'utf8')
+  assert.match(page, /Figma CWGSYW \/ Icons: alert-circle, node 6:22984/)
+  assert.match(page, /\/figma-icons\/cmdb-alert-circle\.svg/)
+  assert.match(asset, /viewBox="0 0 22 22"/)
+  assert.match(asset, /id="Union"/)
+})
+
+test('cmdb alerts keeps the desktop table and a native compact mobile card layout', () => {
+  const css = fs.readFileSync(patternsPath, 'utf8')
+  assert.match(css, /\.cwgsyw-cmdb-alerts__table \.cwgsyw-table \{[\s\S]*?min-width: 920px;[\s\S]*?table-layout: fixed;/)
+  assert.match(css, /\.cwgsyw-cmdb-alerts__mobile-list \{[\s\S]*?display: grid;/)
+  assert.match(css, /\.cwgsyw-cmdb-alerts__mobile-item dl \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
 })
 
 test('cmdb alerts renders Neutral table', () => {
@@ -95,4 +126,7 @@ test('cmdb alerts renders Neutral table', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /告警中心/)
   assert.match(html, /CPU 过高/)
+  assert.match(html, /确认告警 CPU 过高/)
+  assert.match(html, /告警记录/)
+  assert.equal((html.match(/aria-label="面包屑"/g) ?? []).length, 0)
 })

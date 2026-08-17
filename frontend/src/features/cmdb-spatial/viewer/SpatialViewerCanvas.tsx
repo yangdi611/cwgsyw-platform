@@ -9,7 +9,7 @@ import type { SpatialLayer } from './SpatialCanvasStage'
 
 const SpatialCanvasStage = dynamic(() => import('./SpatialCanvasStage').then((module) => module.SpatialCanvasStage), {
   ssr: false,
-  loading: () => <div className="h-full animate-pulse " />,
+  loading: () => <div className="cwgsyw-cmdb-spatial-room__canvas-loading" aria-label="正在准备空间画布" />,
 })
 
 interface SpatialViewerCanvasProps { document: SpatialDocument; runtime?: SpatialRuntime; layer: SpatialLayer; selectedElementId?: string; highlightedElementId?: string; focusElementId?: string; onSelect: (element: SpatialElement) => void }
@@ -42,12 +42,12 @@ export function SpatialViewerCanvas({ document, runtime, layer, selectedElementI
     const frame = requestAnimationFrame(() => setViewport({ scale, x: size.width / 2 - (bounds.x + bounds.width / 2) * scale, y: size.height / 2 - (bounds.y + bounds.height / 2) * scale }))
     return () => cancelAnimationFrame(frame)
   }, [document, focusElementId, size.height, size.width])
-  return <div ref={container} role="region" aria-label="机房空间布局画布" className="relative h-full min-h-[460px] overflow-hidden">
+  return <div ref={container} role="region" aria-label="机房空间布局画布" className="cwgsyw-cmdb-spatial-room__canvas">
     <SpatialCanvasStage document={document} runtime={runtime} layer={layer} width={size.width} height={size.height}
       referenceImageUrl={document.reference?.assetId && document.reference.visibleInPublishedView ? `/api/cmdb/spatial/assets/${document.reference.assetId}/content` : undefined}
       scale={viewport.scale} position={{ x: viewport.x, y: viewport.y }} onPositionChange={(position) => setViewport((current) => ({ ...current, ...position }))}
       selectedElementId={selectedElementId} highlightedElementId={highlightedElementId} onSelect={onSelect} />
-    <div className="cwgsyw-inline-controls" style={{ position: 'absolute', right: 12, top: 12 }}>
+    <div className="cwgsyw-inline-controls cwgsyw-cmdb-spatial-room__zoom" role="group" aria-label="画布缩放">
       <Button type="button" size="sm" variant="ghost" onClick={() => setViewport((current) => ({ ...current, scale: Math.max(0.1, current.scale - 0.1) }))}>缩小</Button>
       <span className="cwgsyw-type-label-sm">{Math.round(viewport.scale * 100)}%</span>
       <Button type="button" size="sm" variant="ghost" onClick={() => setViewport((current) => ({ ...current, scale: Math.min(4, current.scale + 0.1) }))}>放大</Button>

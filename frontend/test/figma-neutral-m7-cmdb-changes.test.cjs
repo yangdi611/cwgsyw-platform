@@ -71,7 +71,7 @@ function loadCompiled(filePath) {
   return mod.exports
 }
 
-test('cmdb changes leaves old visual entries', () => {
+test('cmdb changes uses the scoped Neutral data-management composition', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /cmdb-changes-v2/)
@@ -80,6 +80,28 @@ test('cmdb changes leaves old visual entries', () => {
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
   assert.doesNotMatch(page, /lucide-react/)
+  assert.match(page, /cwgsyw-cmdb-page cwgsyw-cmdb-changes/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.doesNotMatch(page, /cwgsyw-stack-list/)
+  assert.match(page, /cwgsyw-cmdb-changes__mobile-list/)
+  assert.match(page, /cwgsyw-cmdb-changes__diff/)
+})
+
+test('cmdb changes exposes filters and query states accessibly', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  assert.match(page, /aria-label="搜索变更记录"/)
+  assert.match(page, /aria-label="按模型筛选"/)
+  assert.match(page, /aria-label="开始日期"/)
+  assert.match(page, /aria-label="结束日期"/)
+  assert.match(page, /aria-label="按操作人 ID 筛选"/)
+  assert.match(page, /aria-label="按动作筛选"/)
+  assert.match(page, /aria-label="每页条数"/)
+  assert.match(page, /无权查看变更历史/)
+  assert.match(page, /模型筛选项加载失败/)
+  assert.match(page, /变更历史加载失败/)
+  assert.match(page, /日期范围无效/)
+  assert.match(page, /没有符合筛选条件的记录/)
 })
 
 test('cmdb changes renders Neutral table', () => {
@@ -87,4 +109,6 @@ test('cmdb changes renders Neutral table', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /变更历史/)
   assert.match(html, /改了名称/)
+  assert.match(html, /搜索变更记录/)
+  assert.equal((html.match(/aria-label="面包屑"/g) ?? []).length, 0)
 })

@@ -1,48 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlignCenterHorizontal,
-  AlignCenterVertical,
-  AlignEndVertical,
-  AlignLeft,
-  AlignRight,
-  AlignStartVertical,
-  AlertTriangle,
-  BetweenHorizontalEnd,
-  BetweenVerticalEnd,
-  Box,
-  CheckCircle2,
-  Copy,
-  ClipboardPaste,
-  DoorOpen,
-  Download,
-  Grid3X3,
-  ImageUp,
-  Layers,
-  Lock,
-  Minus,
-  Plus,
-  Redo2,
-  RotateCcw,
-  Save,
-  Send,
-  SquareDashedMousePointer,
-  Undo2,
-  Unlock,
-  Upload,
-  Warehouse,
-  Wrench,
-} from "lucide-react";
-import { Button, Checkbox, Field, Icon, IconButton, Input, NeutralAlertDialog, NeutralDialog, Select, Switch, Textarea } from "@/design-system/figma-neutral/components";
+import { Button, Checkbox, EmptyState, ErrorState, Field, IconButton, Input, LoadingState, NeutralAlertDialog, NeutralDialog, Select, Switch, Textarea } from "@/design-system/figma-neutral/components";
 import { toast } from "@/design-system/figma-neutral/toast";
 
-function AisleIcon({ className }: { className?: string }) {
-  return <Icon name="chevron-right" size="sm" className={className} />;
+type SpatialFigmaIconName =
+  | "undo" | "redo" | "minus" | "plus" | "rotate" | "upload" | "download"
+  | "align-left" | "align-center" | "align-right" | "align-top" | "align-bottom"
+  | "distribute-horizontal" | "distribute-vertical" | "copy" | "trash"
+  | "check-circle" | "save" | "send" | "layers" | "grid" | "wrench" | "box"
+  | "move" | "lock" | "unlock" | "close" | "chevron-previous";
+
+function SpatialFigmaIcon({ name, className }: { name: SpatialFigmaIconName; className?: string }) {
+  return <span aria-hidden="true" className={["cwgsyw-cmdb-spatial-editor__figma-icon", `cwgsyw-cmdb-spatial-editor__figma-icon--${name}`, className].filter(Boolean).join(" ")} />;
+}
+
+function SpatialActionIcon({ name }: { name: "check-circle" | "save" | "send" }) {
+  return <SpatialFigmaIcon name={name} />;
 }
 import { getApiErrorCode, getApiErrorMessage } from "@/lib/api-error";
 import {
@@ -94,12 +72,13 @@ const SpatialEditorStage = dynamic(
     import("./SpatialEditorStage").then((module) => module.SpatialEditorStage),
   {
     ssr: false,
-    loading: () => <div className="h-full animate-pulse bg-[var(--cwgsyw-bg-surface-subtle)]" />,
+    loading: () => <div className="cwgsyw-cmdb-spatial-editor__canvas-loading" role="status" aria-label="正在准备空间编辑画布" />,
   },
 );
 
 interface SpatialEditorProps {
   roomId: number;
+  roomName: string;
   layoutId: number;
   canPublish: boolean;
 }
@@ -107,19 +86,20 @@ type History = { undo: SpatialDocument[]; redo: SpatialDocument[] };
 const PALETTE: Array<{
   type: SpatialElementType;
   label: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: SpatialFigmaIconName;
 }> = [
-  { type: "ROOM_OUTLINE", label: "外轮廓", icon: SquareDashedMousePointer },
-  { type: "WALL", label: "墙体", icon: Layers },
-  { type: "DOOR", label: "门", icon: DoorOpen },
-  { type: "AISLE", label: "通道", icon: AisleIcon },
-  { type: "ZONE", label: "区域", icon: Grid3X3 },
-  { type: "FACILITY", label: "设施", icon: Wrench },
-  { type: "TEXT", label: "文字", icon: Box },
+  { type: "ROOM_OUTLINE", label: "外轮廓", icon: "move" },
+  { type: "WALL", label: "墙体", icon: "layers" },
+  { type: "DOOR", label: "门", icon: "box" },
+  { type: "AISLE", label: "通道", icon: "move" },
+  { type: "ZONE", label: "区域", icon: "grid" },
+  { type: "FACILITY", label: "设施", icon: "wrench" },
+  { type: "TEXT", label: "文字", icon: "box" },
 ];
 
 export function SpatialEditor({
   roomId,
+  roomName,
   layoutId,
   canPublish,
 }: SpatialEditorProps) {
@@ -128,28 +108,39 @@ export function SpatialEditor({
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery({
     queryKey: spatialQueryKeys.draft(layoutId),
     queryFn: () => getSpatialDraft(layoutId),
   });
   if (isLoading)
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center text-sm text-[var(--cwgsyw-text-secondary)]">
-        正在加载编辑草稿...
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <LoadingState label="正在加载编辑草稿" />
       </div>
     );
   if (isError)
     return (
-      <div className="flex flex-col items-center gap-3 py-24 text-sm text-[var(--cwgsyw-status-danger-fg)]">
-        <AlertTriangle className="h-8 w-8" />
-        {getApiErrorMessage(error, "草稿加载失败")}
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <ErrorState
+          title="编辑草稿加载失败"
+          description={getApiErrorMessage(error, "草稿加载失败")}
+          retry={<Button type="button" size="sm" variant="secondary" onClick={() => void refetch()}>重试</Button>}
+        />
       </div>
     );
-  if (!draft) return null;
+  if (!draft) {
+    return (
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <EmptyState title="未找到编辑草稿" description="请返回空间布局列表后重试。" />
+      </div>
+    );
+  }
   return (
     <SpatialEditorSession
       key={draft.versionId}
       roomId={roomId}
+      roomName={roomName}
       layoutId={layoutId}
       canPublish={canPublish}
       draft={draft}
@@ -159,6 +150,7 @@ export function SpatialEditor({
 
 function SpatialEditorSession({
   roomId,
+  roomName,
   layoutId,
   canPublish,
   draft,
@@ -568,8 +560,8 @@ function SpatialEditorSession({
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, [clipboard, document, selectedIds]);
   return (
-    <div className="cwgsyw-cmdb-page -m-4 flex h-[calc(100vh-4rem)] flex-col md:-m-6">
-      <header className="flex min-h-14 flex-wrap items-center gap-2 border-b border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] px-4 py-2">
+    <div className="cwgsyw-cmdb-page cwgsyw-cmdb-spatial-editor">
+      <header className="cwgsyw-cmdb-spatial-editor__header">
         <Link
           href={`/cmdb/spatial/rooms/${roomId}`}
           onClick={confirmLeave}
@@ -577,11 +569,11 @@ function SpatialEditorSession({
           aria-label="返回查看器"
           title="返回查看器"
         >
-          <Icon name="chevron-previous" size="sm" />
+          <SpatialFigmaIcon name="chevron-previous" />
         </Link>
-        <div className="min-w-28 flex-1">
-          <p className="text-sm font-semibold text-[var(--cwgsyw-text-primary)]">编辑空间布局</p>
-          <p className="text-xs text-[var(--cwgsyw-text-secondary)]">{status}</p>
+        <div className="cwgsyw-cmdb-spatial-editor__heading">
+          <p className="cwgsyw-cmdb-spatial-editor__title">编辑空间布局</p>
+          <p className="cwgsyw-cmdb-spatial-editor__status">{status}</p>
         </div>
         {hasConflict && (
           <>
@@ -598,10 +590,10 @@ function SpatialEditorSession({
           </>
         )}
         <ToolButton label="撤销" disabled={!history.undo.length} onClick={undo}>
-          <Undo2 className="h-4 w-4" />
+          <SpatialFigmaIcon name="undo" />
         </ToolButton>
         <ToolButton label="重做" disabled={!history.redo.length} onClick={redo}>
-          <Redo2 className="h-4 w-4" />
+          <SpatialFigmaIcon name="redo" />
         </ToolButton>
         <ToolButton
           label="缩小"
@@ -609,9 +601,9 @@ function SpatialEditorSession({
             setViewport((v) => ({ ...v, scale: Math.max(0.1, v.scale - 0.1) }))
           }
         >
-          <Minus className="h-4 w-4" />
+          <SpatialFigmaIcon name="minus" />
         </ToolButton>
-        <span className="w-10 text-center text-xs text-[var(--cwgsyw-text-secondary)]">
+        <span className="cwgsyw-cmdb-spatial-editor__scale">
           {Math.round(viewport.scale * 100)}%
         </span>
         <ToolButton
@@ -620,10 +612,10 @@ function SpatialEditorSession({
             setViewport((v) => ({ ...v, scale: Math.min(4, v.scale + 0.1) }))
           }
         >
-          <Plus className="h-4 w-4" />
+          <SpatialFigmaIcon name="plus" />
         </ToolButton>
         <ToolButton label="适配画布" onClick={fit}>
-          <RotateCcw className="h-4 w-4" />
+          <SpatialFigmaIcon name="rotate" />
         </ToolButton>
         <input
           ref={blueprintInputRef}
@@ -636,42 +628,42 @@ function SpatialEditorSession({
         <Button
           variant="outline"
           size="sm"
-          leadingIcon={<Upload />}
+          leadingIcon={<SpatialFigmaIcon name="upload" />}
           onClick={() => blueprintInputRef.current?.click()}
         >
           导入图纸
         </Button>
-        <Button variant="outline" size="sm" leadingIcon={<Download />} onClick={exportBlueprint}>
+        <Button variant="outline" size="sm" leadingIcon={<SpatialFigmaIcon name="download" />} onClick={exportBlueprint}>
           导出图纸
         </Button>
         {selectedIds.length > 1 && (
           <>
             <ToolButton label="左对齐" onClick={() => align("left")}>
-              <AlignLeft className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-left" />
             </ToolButton>
             <ToolButton label="水平居中" onClick={() => align("center")}>
-              <AlignCenterHorizontal className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-center" />
             </ToolButton>
             <ToolButton label="右对齐" onClick={() => align("right")}>
-              <AlignRight className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-right" />
             </ToolButton>
             <ToolButton label="顶部对齐" onClick={() => align("top")}>
-              <AlignStartVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-top" />
             </ToolButton>
             <ToolButton label="垂直居中" onClick={() => align("middle")}>
-              <AlignCenterVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-center" />
             </ToolButton>
             <ToolButton label="底部对齐" onClick={() => align("bottom")}>
-              <AlignEndVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-bottom" />
             </ToolButton>
             <ToolButton
               label="水平等距"
               onClick={() => distribute("horizontal")}
             >
-              <BetweenHorizontalEnd className="h-4 w-4" />
+              <SpatialFigmaIcon name="distribute-horizontal" />
             </ToolButton>
             <ToolButton label="垂直等距" onClick={() => distribute("vertical")}>
-              <BetweenVerticalEnd className="h-4 w-4" />
+              <SpatialFigmaIcon name="distribute-vertical" />
             </ToolButton>
           </>
         )}
@@ -685,14 +677,14 @@ function SpatialEditorSession({
           }
           onClick={copySelected}
         >
-          <Copy className="h-4 w-4" />
+          <SpatialFigmaIcon name="copy" />
         </ToolButton>
         <ToolButton
           label="粘贴元素"
           disabled={!clipboard.length}
           onClick={paste}
         >
-          <ClipboardPaste className="h-4 w-4" />
+          <SpatialFigmaIcon name="copy" />
         </ToolButton>
         <ToolButton
           label="删除所选元素"
@@ -706,53 +698,55 @@ function SpatialEditorSession({
           }
           onClick={removeSelected}
         >
-          <Icon name="trash" size="sm" />
+          <SpatialFigmaIcon name="trash" />
         </ToolButton>
-        <Button
-          variant="outline"
-          size="sm"
-          leadingIcon={<CheckCircle2 />}
-          onClick={() => validate.mutate()}
-          disabled={validate.isPending}
-        >
-          校验
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          leadingIcon={<Save />}
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-        >
-          保存
-        </Button>
-        {canPublish && (
-          <Button variant="primary" size="sm" leadingIcon={<Send />} onClick={() => setPublishOpen(true)}>
-            发布
+        <div className="cwgsyw-cmdb-spatial-editor__primary-actions" aria-label="草稿操作">
+          <Button
+            variant="outline"
+            size="sm"
+            leadingIcon={<SpatialActionIcon name="check-circle" />}
+            onClick={() => validate.mutate()}
+            disabled={validate.isPending}
+          >
+            校验
           </Button>
-        )}
+          <Button
+            variant="outline"
+            size="sm"
+            leadingIcon={<SpatialActionIcon name="save" />}
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+          >
+            保存
+          </Button>
+          {canPublish && (
+            <Button variant="primary" size="sm" leadingIcon={<SpatialActionIcon name="send" />} onClick={() => setPublishOpen(true)}>
+              发布
+            </Button>
+          )}
+        </div>
       </header>
       {validationText && (
-        <div className="flex items-center justify-between border-b border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface-subtle)] px-4 py-2 text-sm">
+        <div className="cwgsyw-cmdb-spatial-editor__validation" role="status">
           <span>{validationText}</span>
-          <IconButton variant="ghost" size="sm" icon="close" aria-label="关闭校验结果" onClick={() => setValidationText(null)} />
+          <IconButton variant="ghost" size="sm" icon={<SpatialFigmaIcon name="close" />} aria-label="关闭校验结果" onClick={() => setValidationText(null)} />
         </div>
       )}
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="hidden w-52 shrink-0 border-r border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] p-3 lg:block">
-          <p className="mb-2 text-xs font-medium text-[var(--cwgsyw-text-secondary)]">组件库</p>
-          <div className="grid grid-cols-2 gap-2">
-            {PALETTE.map(({ type, label, icon: Icon }) => (
+      <main className="cwgsyw-cmdb-spatial-editor__workspace">
+        <aside className="cwgsyw-cmdb-spatial-editor__library">
+          <p className="cwgsyw-cmdb-spatial-editor__panel-title">组件库</p>
+          <div className="cwgsyw-cmdb-spatial-editor__palette">
+            {PALETTE.map(({ type, label, icon }) => (
               <Button
                 key={type}
                 type="button"
                 variant="outline"
                 size="sm"
                 aria-label={`添加${label}`}
-                className="flex min-h-16 flex-col items-center justify-center gap-1"
+                className="cwgsyw-cmdb-spatial-editor__palette-item"
                 onClick={() => add(type)}
               >
-                <Icon className="h-4 w-4" />
+                <SpatialFigmaIcon name={icon} />
                 {label}
               </Button>
             ))}
@@ -788,7 +782,7 @@ function SpatialEditorSession({
             }
           />
           <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-[var(--cwgsyw-text-secondary)]">
-            <ImageUp className="h-4 w-4" />
+            <SpatialFigmaIcon name="upload" />
             上传参考图
             <input
               type="file"
@@ -807,8 +801,11 @@ function SpatialEditorSession({
           ref={viewportRef}
           role="region"
           aria-label="机房空间布局编辑画布"
-          className="min-w-0 flex-1 overflow-hidden bg-[var(--cwgsyw-bg-surface)]"
+          className="cwgsyw-cmdb-spatial-editor__canvas"
         >
+          <div className="cwgsyw-cmdb-spatial-editor__canvas-room-name" title={roomName}>
+            {roomName}
+          </div>
           <SpatialEditorStage
             document={document}
             referenceImageUrl={
@@ -885,7 +882,7 @@ function SpatialEditorSession({
             }
           />
         </section>
-        <aside className="hidden w-80 shrink-0 border-l border-[var(--cwgsyw-border-default)] bg-[var(--cwgsyw-bg-surface)] lg:block">
+        <aside className="cwgsyw-cmdb-spatial-editor__inspector" aria-label="空间元素属性">
           <PropertiesPanel
             element={selected}
             selectedElements={document.elements.filter((element) =>
@@ -1094,7 +1091,7 @@ function RackRowForm({
           />
         </label>
       </div>
-      <Button className="w-full" variant="outline" size="sm" leadingIcon={<Warehouse />} onClick={generate}>
+      <Button className="w-full" variant="outline" size="sm" leadingIcon={<SpatialFigmaIcon name="grid" />} onClick={generate}>
         生成机柜位
       </Button>
     </div>
@@ -1133,7 +1130,7 @@ function ReferenceControls({
         <input
           id="spatial-reference-opacity"
           aria-label="参考图透明度"
-          className="mt-1 w-full"
+          className="cwgsyw-cmdb-spatial-editor__range mt-1 w-full"
           type="range"
           min="0.05"
           max="1"
@@ -1146,7 +1143,7 @@ function ReferenceControls({
         variant="outline"
         size="sm"
         className="w-full"
-        leadingIcon={reference.locked ? <Unlock /> : <Lock />}
+        leadingIcon={reference.locked ? <SpatialFigmaIcon name="unlock" /> : <SpatialFigmaIcon name="lock" />}
         onClick={() => update({ locked: !reference.locked })}
       >
         {reference.locked ? "解除参考图锁定" : "锁定参考图"}
@@ -1284,7 +1281,7 @@ function PropertiesPanel({
                 透明度 {Math.round((element.zone?.opacity ?? 0.18) * 100)}%
                 <input
                   aria-label="区域透明度"
-                  className="mt-1 w-full"
+                  className="cwgsyw-cmdb-spatial-editor__range mt-1 w-full"
                   type="range"
                   min="0.05"
                   max="0.6"
@@ -1324,7 +1321,7 @@ function PropertiesPanel({
               variant="outline"
               size="sm"
               className="w-full"
-              leadingIcon={element.locked ? <Unlock /> : <Lock />}
+              leadingIcon={element.locked ? <SpatialFigmaIcon name="unlock" /> : <SpatialFigmaIcon name="lock" />}
               onClick={() =>
                 onChange(
                   updateElement(document, element.id, {
@@ -1378,13 +1375,13 @@ function PropertiesPanel({
               />
             </div>
           )}
-          <Button
-            variant="destructive"
-            size="sm"
-            leadingIcon="close"
-            onClick={onDelete}
-            disabled={element.type === "ROOM_OUTLINE"}
-          >
+            <Button
+              variant="destructive"
+              size="sm"
+              leadingIcon={<SpatialFigmaIcon name="trash" />}
+              onClick={onDelete}
+              disabled={element.type === "ROOM_OUTLINE"}
+            >
             删除元素
           </Button>
         </>

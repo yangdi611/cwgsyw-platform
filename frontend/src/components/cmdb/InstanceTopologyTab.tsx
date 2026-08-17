@@ -11,12 +11,49 @@ interface Props {
   id: string
 }
 
+interface TopologyPayload {
+  nodes?: Array<{
+    id: number
+    name: string
+    modelId?: string | null
+    model_id?: string | null
+    modelName?: string | null
+    model_name?: string | null
+    modelColor?: string | null
+    model_color?: string | null
+    status?: string | null
+    owner?: string | null
+    isRoot?: boolean
+    is_root?: boolean
+    keyAttrs?: Record<string, unknown> | null
+    key_attrs?: Record<string, unknown> | null
+  }>
+  edges?: TopologyEdge[]
+}
+
 export function InstanceTopologyTab({ id }: Props) {
   const router = useRouter()
   const { hasPermission, isHydrated } = usePermission()
   const { data: topoData, isLoading } = useQuery<{ nodes: TopologyNode[]; edges: TopologyEdge[] }>({
     queryKey: ['cmdb-topology', id],
-    queryFn: () => api.get(`/cmdb/topology/${id}`, { params: { depth: 2 } }).then((r) => r.data.data),
+    queryFn: async () => {
+      const response = await api.get(`/cmdb/topology/${id}`, { params: { depth: 2 } })
+      const payload = response.data.data as TopologyPayload
+      return {
+        nodes: (payload.nodes ?? []).map((node) => ({
+          id: node.id,
+          name: node.name,
+          modelId: node.modelId ?? node.model_id ?? null,
+          modelName: node.modelName ?? node.model_name ?? null,
+          modelColor: node.modelColor ?? node.model_color ?? null,
+          status: node.status ?? null,
+          owner: node.owner ?? null,
+          isRoot: node.isRoot ?? node.is_root ?? false,
+          keyAttrs: node.keyAttrs ?? node.key_attrs ?? null,
+        })),
+        edges: payload.edges ?? [],
+      }
+    },
     enabled: isHydrated && hasPermission('cmdb_topology', 'read'),
   })
 
@@ -44,7 +81,6 @@ export function InstanceTopologyTab({ id }: Props) {
               nodes={topoData.nodes}
               edges={topoData.edges}
               rootId={Number(id)}
-              preview
             />
           </div>
         )}

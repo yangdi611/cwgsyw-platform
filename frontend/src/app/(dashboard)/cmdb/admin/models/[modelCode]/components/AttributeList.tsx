@@ -117,6 +117,8 @@ export function AttributeList({ attributes, canUpdate, canDelete, onEdit, onDele
       <NeutralAlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
+        className="cwgsyw-cmdb-model-detail__delete-dialog"
+        icon={<span aria-hidden="true" className="cwgsyw-cmdb-model-detail__delete-alert-icon" />}
         title="确认删除属性"
         description={`确认删除属性「${deleteTarget?.name ?? ''}」？此操作不可恢复。`}
         intent="destructive"

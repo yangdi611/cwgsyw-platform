@@ -81,14 +81,36 @@ export function DropdownMenu({ trigger, children }: { trigger: ReactElement; chi
   )
 }
 
-export function NeutralTooltip({ content, children }: { content: string; children: ReactNode }) {
+export function NeutralTooltip({
+  content,
+  children,
+  className,
+  followCursor = false,
+}: {
+  content: string
+  children: ReactNode
+  className?: string
+  followCursor?: boolean
+}) {
   return (
     <Tooltip.Provider>
-      <Tooltip.Root>
-        <Tooltip.Trigger render={<span />}>{children}</Tooltip.Trigger>
+      <Tooltip.Root trackCursorAxis={followCursor ? 'both' : 'none'}>
+        <Tooltip.Trigger
+          render={<span className="cwgsyw-tooltip-trigger" />}
+          delay={followCursor ? 80 : undefined}
+          closeDelay={followCursor ? 40 : undefined}
+        >
+          {children}
+        </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Positioner>
-            <Tooltip.Popup className="cwgsyw-tooltip">{content}</Tooltip.Popup>
+          <Tooltip.Positioner
+            side={followCursor ? 'bottom' : 'top'}
+            sideOffset={followCursor ? 18 : 6}
+            positionMethod={followCursor ? 'fixed' : 'absolute'}
+            collisionPadding={8}
+            collisionAvoidance={{ side: 'flip', align: 'shift', fallbackAxisSide: 'none' }}
+          >
+            <Tooltip.Popup className={['cwgsyw-tooltip', className].filter(Boolean).join(' ')}>{content}</Tooltip.Popup>
           </Tooltip.Positioner>
         </Tooltip.Portal>
       </Tooltip.Root>
@@ -178,6 +200,8 @@ export function NeutralAlertDialog({
   onOpenChange,
   title,
   description,
+  className,
+  icon,
   intent = 'default',
   confirmLabel = '确认',
   cancelLabel = '取消',
@@ -187,6 +211,8 @@ export function NeutralAlertDialog({
   onOpenChange?: (open: boolean) => void
   title: string
   description?: string
+  className?: string
+  icon?: ReactNode
   intent?: 'default' | 'destructive'
   confirmLabel?: string
   cancelLabel?: string
@@ -200,7 +226,7 @@ export function NeutralAlertDialog({
         <AlertDialogOverlay />
         <AlertDialogContent
           {...(description ? {} : { 'aria-describedby': undefined })}
-          className={['cwgsyw-dialog--alert', intent === 'destructive' ? 'cwgsyw-dialog--destructive' : ''].filter(Boolean).join(' ')}
+          className={['cwgsyw-dialog--alert', intent === 'destructive' ? 'cwgsyw-dialog--destructive' : '', className].filter(Boolean).join(' ')}
           onOpenAutoFocus={() => {
             focusReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
           }}
@@ -212,6 +238,7 @@ export function NeutralAlertDialog({
           }}
         >
           <div className="cwgsyw-dialog__header">
+            {icon ? <div className="cwgsyw-dialog__alert-icon">{icon}</div> : null}
             <div className="cwgsyw-dialog__title-group">
               <AlertDialogTitle className="cwgsyw-type-title-sm">{title}</AlertDialogTitle>
               {description ? <AlertDialogDescription className="cwgsyw-type-body-sm">{description}</AlertDialogDescription> : null}

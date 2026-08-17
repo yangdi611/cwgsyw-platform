@@ -12,21 +12,39 @@ import '@/design-system/figma-neutral/index.css'
 import { CANVAS_NEUTRAL } from '@/design-system/figma-neutral/canvas-tokens'
 import {
   Badge,
-  Breadcrumb,
   Button,
-  Card,
   Checkbox,
-  Chip,
   DetailDrawerPage,
   EmptyState,
   ErrorState,
   LoadingState,
   PageHeader,
+  PaginationPageItem,
 } from '@/design-system/figma-neutral/components'
 
 interface CiTopologyResult {
   nodes: TopologyNode[]
   edges: TopologyEdge[]
+}
+
+interface CiTopologyPayload {
+  nodes?: Array<{
+    id: number
+    name: string
+    modelId?: string | null
+    model_id?: string | null
+    modelName?: string | null
+    model_name?: string | null
+    modelColor?: string | null
+    model_color?: string | null
+    status?: string | null
+    owner?: string | null
+    isRoot?: boolean
+    is_root?: boolean
+    keyAttrs?: Record<string, unknown> | null
+    key_attrs?: Record<string, unknown> | null
+  }>
+  edges?: TopologyEdge[]
 }
 
 const STATUS_OPTIONS = [
@@ -45,28 +63,56 @@ export default function TopologyPage() {
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null)
   const [selectedModels, setSelectedModels] = useState<Set<string> | null>(null)
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string> | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const canReadTopology = isHydrated
+    && hasPermission('cmdb_instance', 'read')
+    && hasPermission('cmdb_topology', 'read')
 
   useEffect(() => {
     if (!isHydrated) return
     if (!hasPermission('cmdb_instance', 'read') || !hasPermission('cmdb_topology', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const { data, isLoading, isError } = useQuery<CiTopologyResult>({
+  useEffect(() => {
+    if (!isFullscreen) return
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFullscreen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isFullscreen])
+
+  const { data, isLoading, isError, refetch } = useQuery<CiTopologyResult>({
     queryKey: ['cmdb-topology', instanceId, depth],
     queryFn: async () => {
-      try {
-        const r = await api.get(`/cmdb/topology/${instanceId}`, { params: { depth } })
-        return r.data.data
-      } catch {
-        return { nodes: [], edges: [] }
+      const r = await api.get(`/cmdb/topology/${instanceId}`, { params: { depth } })
+      const payload = r.data.data as CiTopologyPayload
+      return {
+        nodes: (payload.nodes ?? []).map((node) => ({
+          id: node.id,
+          name: node.name,
+          modelId: node.modelId ?? node.model_id ?? null,
+          modelName: node.modelName ?? node.model_name ?? null,
+          modelColor: node.modelColor ?? node.model_color ?? null,
+          status: node.status ?? null,
+          owner: node.owner ?? null,
+          isRoot: node.isRoot ?? node.is_root ?? false,
+          keyAttrs: node.keyAttrs ?? node.key_attrs ?? null,
+        })),
+        edges: payload.edges ?? [],
       }
     },
-    enabled: typeof window !== 'undefined' && isHydrated
-      && hasPermission('cmdb_instance', 'read') && hasPermission('cmdb_topology', 'read'),
+    enabled: typeof window !== 'undefined' && canReadTopology,
   })
 
-  const nodes = data?.nodes ?? []
-  const edges = data?.edges ?? []
+  const nodes = useMemo(() => data?.nodes ?? [], [data?.nodes])
+  const edges = useMemo(() => data?.edges ?? [], [data?.edges])
 
   const modelOptions = useMemo(() => {
     const map = new Map<string, string>()
@@ -135,127 +181,157 @@ export default function TopologyPage() {
   }
 
   return (
-    <DetailDrawerPage className="cwgsyw-cmdb-page"
+    <DetailDrawerPage className="cwgsyw-cmdb-page cwgsyw-cmdb-topology"
       header={
         <div className="cwgsyw-cmdb-instance-page">
-        <PageHeader
+          <PageHeader
             showEyebrow={false}
-          title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑图`}
-          subtitle={`${nodes.length} 个节点，${edges.length} 条关联`}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { label: '拓扑图' },
-              ]}
-            />
-          }
-          actions={
-            <div className="cwgsyw-inline-controls">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={!rootNode}
-                onClick={() => rootNode && router.push(`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`)}
-              >
-                返回实例
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => router.push(`/cmdb/topology/${instanceId}/compare`)}>
-                拓扑对比
-              </Button>
-              <Button type="button" variant="secondary" disabled={!nodes.length} onClick={() => void handleExport()}>
-                导出 PNG
-              </Button>
-            </div>
-          }
-        />
+            showBreadcrumb={false}
+            title={`${rootNode?.name ?? `#${instanceId}`} 的拓扑图`}
+            subtitle={`拓扑节点 ${nodes.length} 个 · 关联 ${edges.length} 条`}
+            actions={
+              <div className="cwgsyw-inline-controls cwgsyw-cmdb-topology__header-actions">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={!rootNode}
+                  onClick={() => rootNode && router.push(`/cmdb/instances/by-model/${rootNode.modelId}/${instanceId}`)}
+                >
+                  返回实例
+                </Button>
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/topology/${instanceId}/compare`)}>
+                  拓扑对比
+                </Button>
+                <Button type="button" size="sm" variant="secondary" disabled={!nodes.length} onClick={() => void handleExport()}>
+                  导出 PNG
+                </Button>
+              </div>
+            }
+          />
         </div>
       }
       workspaceToolbar={
-        <div className="cwgsyw-inline-controls">
-          <span className="cwgsyw-type-label-sm">深度</span>
-          {[1, 2, 3].map((d) => (
-            <Chip key={d} label={String(d)} selected={depth === d} onClick={() => setDepth(d)} />
-          ))}
+        <div className="cwgsyw-cmdb-topology__toolbar" role="group" aria-label="拓扑深度">
+          <span className="cwgsyw-type-label-sm">查看深度</span>
+          <div className="cwgsyw-cmdb-topology__depth-pages">
+            {[1, 2, 3].map((d) => (
+              <PaginationPageItem
+                key={d}
+                current={depth === d}
+                label={`查看 ${d} 层拓扑`}
+                onClick={() => setDepth(d)}
+              >
+                {d}
+              </PaginationPageItem>
+            ))}
+          </div>
         </div>
       }
       content={
-        isLoading ? (
-          <LoadingState label="加载拓扑" />
+        !isHydrated ? (
+          <div className="cwgsyw-cmdb-topology__state"><LoadingState label="正在准备拓扑" /></div>
+        ) : !canReadTopology ? (
+          <div className="cwgsyw-cmdb-topology__state">
+            <ErrorState title="没有查看拓扑的权限" description="正在返回工作台。" showRetry={false} />
+          </div>
+        ) : isLoading ? (
+          <div className="cwgsyw-cmdb-topology__state"><LoadingState label="加载拓扑" /></div>
         ) : isError ? (
-          <ErrorState title="拓扑加载失败" description="请刷新重试。" showRetry={false} />
+          <div className="cwgsyw-cmdb-topology__state">
+            <ErrorState
+              title="拓扑加载失败"
+              description="请检查网络后重试。"
+              retry={<Button type="button" size="sm" variant="secondary" onClick={() => void refetch()}>重新加载</Button>}
+            />
+          </div>
         ) : !nodes.length ? (
-          <EmptyState title="暂无关联数据" />
+          <div className="cwgsyw-cmdb-topology__state">
+            <EmptyState title="暂无关联数据" description="当前实例没有可展示的拓扑节点。" />
+          </div>
         ) : (
-          <CiTopologyGraph
-            ref={graphRef}
-            nodes={nodes}
-            edges={edges}
-            rootId={Number(instanceId)}
-            preview={false}
-            onNodeClick={setSelectedNode}
-            filterNodeIds={filterNodeIds}
-          />
+          <div className={`cwgsyw-cmdb-topology__workspace${isFullscreen ? ' is-fullscreen' : ''}`}>
+            <div className="cwgsyw-cmdb-topology__canvas-header">
+              <div>
+                <h2>拓扑画布</h2>
+                <p>选择节点查看详情；点击有关联的节点可折叠或展开。</p>
+              </div>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setIsFullscreen((value) => !value)}>
+                {isFullscreen ? '退出全屏' : '全屏查看'}
+              </Button>
+            </div>
+            <div className="cwgsyw-cmdb-topology__canvas">
+              <CiTopologyGraph
+                ref={graphRef}
+                nodes={nodes}
+                edges={edges}
+                rootId={Number(instanceId)}
+                preview={false}
+                onNodeClick={setSelectedNode}
+                filterNodeIds={filterNodeIds}
+              />
+            </div>
+          </div>
         )
       }
       drawer={
-        <Card
-          title="过滤"
-          headerAction={(selectedModels || selectedStatuses) ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedModels(null); setSelectedStatuses(null) }}>
-              重置
-            </Button>
-          ) : null}
-        >
-          {selectedNode ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`)}>
-              访问实例
-            </Button>
-          ) : null}
+        <div className="cwgsyw-cmdb-topology__side-panel">
+          <div className="cwgsyw-cmdb-topology__side-header">
+            <h2>筛选与详情</h2>
+            {(selectedModels || selectedStatuses) ? (
+              <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedModels(null); setSelectedStatuses(null) }}>
+                重置筛选
+              </Button>
+            ) : null}
+          </div>
           {modelOptions.length > 0 ? (
-            <div className="cwgsyw-stack-list">
-              <p className="cwgsyw-type-label-sm">模型类型</p>
+            <section className="cwgsyw-cmdb-topology__filter-group" aria-labelledby="topology-model-filter-title">
+              <h3 id="topology-model-filter-title">模型类型</h3>
               {modelOptions.map((m) => {
                 const checked = (selectedModels ?? new Set(modelOptions.map((x) => x.id))).has(m.id)
                 return <Checkbox key={m.id} label={m.name} checked={checked} onChange={() => toggleModel(m.id)} />
               })}
-            </div>
+            </section>
           ) : null}
           {statusOptions.length > 0 ? (
-            <div className="cwgsyw-stack-list">
-              <p className="cwgsyw-type-label-sm">状态</p>
+            <section className="cwgsyw-cmdb-topology__filter-group" aria-labelledby="topology-status-filter-title">
+              <h3 id="topology-status-filter-title">状态</h3>
               {statusOptions.map((s) => {
                 const checked = (selectedStatuses ?? new Set(statusOptions.map((x) => x.value))).has(s.value)
                 return <Checkbox key={s.value} label={s.label} checked={checked} onChange={() => toggleStatus(s.value)} />
               })}
-            </div>
+            </section>
           ) : null}
-          <p className="cwgsyw-type-label-sm">未选中的节点将半透明显示，保持拓扑连通性。</p>
+          <p className="cwgsyw-cmdb-topology__filter-note">未选中的节点保持在画布中并降低透明度，以保留拓扑连通性。</p>
           {selectedNode ? (
-            <div className="cwgsyw-stack-list">
-              <div className="cwgsyw-inline-controls">
-                <h3 className="cwgsyw-type-title-sm">节点详情</h3>
+            <section className="cwgsyw-cmdb-topology__node-detail" aria-labelledby="topology-node-detail-title">
+              <div className="cwgsyw-cmdb-topology__node-detail-header">
+                <h3 id="topology-node-detail-title">节点详情</h3>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedNode(null)}>关闭</Button>
               </div>
-              <p className="cwgsyw-type-body-sm">{selectedNode.name}</p>
-              <p className="cwgsyw-type-label-sm">{selectedNode.modelName ?? selectedNode.modelId ?? '—'}</p>
-              {selectedNode.status ? <p className="cwgsyw-type-label-sm">状态 {selectedNode.status}</p> : null}
-              {selectedNode.owner ? <p className="cwgsyw-type-label-sm">负责人 {selectedNode.owner}</p> : null}
+              <dl className="cwgsyw-cmdb-topology__definition-list">
+                <div><dt>实例</dt><dd>{selectedNode.name}</dd></div>
+                <div><dt>模型</dt><dd>{selectedNode.modelName ?? selectedNode.modelId ?? '—'}</dd></div>
+                {selectedNode.status ? <div><dt>状态</dt><dd>{STATUS_OPTIONS.find((item) => item.value === selectedNode.status)?.label ?? selectedNode.status}</dd></div> : null}
+                {selectedNode.owner ? <div><dt>负责人</dt><dd>{selectedNode.owner}</dd></div> : null}
+              </dl>
               {selectedNode.keyAttrs && Object.keys(selectedNode.keyAttrs).length > 0 ? (
-                <dl className="cwgsyw-stack-list">
+                <dl className="cwgsyw-cmdb-topology__definition-list">
                   {Object.entries(selectedNode.keyAttrs).map(([k, v]) => (
-                    <div key={k} className="cwgsyw-inline-controls">
-                      <dt className="cwgsyw-type-label-sm">{k}</dt>
-                      <dd className="cwgsyw-type-body-sm">{String(v ?? '—')}</dd>
+                    <div key={k}>
+                      <dt>{k}</dt>
+                      <dd>{String(v ?? '—')}</dd>
                     </div>
                   ))}
                 </dl>
               ) : null}
               {selectedNode.isRoot ? <Badge label="当前根节点" /> : null}
-            </div>
+              <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${selectedNode.modelId}/${selectedNode.id}`)}>
+                访问实例
+              </Button>
+            </section>
           ) : null}
-        </Card>
+        </div>
       }
     />
   )

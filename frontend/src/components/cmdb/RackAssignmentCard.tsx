@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, MotionConfig } from 'motion/react'
 import api from '@/lib/api'
-import { Button, Input, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
+import { Button, Field, Input, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 
@@ -43,6 +44,8 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
   const [uStart, setUStart] = useState('')
   const [uEnd, setUEnd] = useState('')
   const [rackKeyword, setRackKeyword] = useState('')
+  const [defSelectOpen, setDefSelectOpen] = useState(false)
+  const [rackSelectOpen, setRackSelectOpen] = useState(false)
 
   // 反向 def：当前实例作为 dst 的关联定义，过滤出 src 是机柜（rack）的
   const { data: reverseDefs } = useQuery<AssociationDef[]>({
@@ -92,7 +95,7 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
       queryClient.invalidateQueries({ queryKey: ['cmdb-instance'] })
       queryClient.invalidateQueries({ queryKey: ['rack-layout'] })
       setOpen(false)
-      setDefId(''); setRackId(''); setUStart(''); setUEnd('')
+      setDefId(''); setRackId(''); setUStart(''); setUEnd(''); setRackKeyword('')
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '装机失败')),
   })
@@ -148,40 +151,74 @@ export function RackAssignmentCard({ instanceId }: { instanceId: string }) {
         )}
       </div>
 
-      <NeutralDialog open={open} onOpenChange={setOpen} title="装入机柜">
-        <div className="cwgsyw-form cwgsyw-cmdb-instance-detail__dialog-form">
-          {rackDefs.length > 1 ? (
-            <div className="cwgsyw-stack-list">
-              <span className="cwgsyw-type-label-sm">关联类型</span>
-              <Select size="sm" overlay
-                value={defId}
-                placeholder="选择关联类型"
-                options={rackDefs.map((d) => ({ value: d.defId, label: d.name }))}
-                onChange={setDefId}
-              />
-            </div>
-          ) : null}
-          <div className="cwgsyw-stack-list">
-            <span className="cwgsyw-type-label-sm">机柜</span>
-            <Input size="sm" placeholder="搜索机柜名称…" value={rackKeyword} onChange={(e) => setRackKeyword(e.target.value)} />
-            <Select size="sm" overlay
-              value={rackId}
-              placeholder="选择机柜"
-              options={(rackList ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
-              onChange={setRackId}
-            />
-          </div>
-          <div className="cwgsyw-inline-controls">
-            <Input size="sm" type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="起始 U 位" />
-            <Input size="sm" type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="结束 U 位" />
-          </div>
-          <div className="cwgsyw-inline-controls">
-            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-            <Button type="button" size="sm" disabled={!defId || !rackId || assignMutation.isPending} onClick={() => assignMutation.mutate()}>
-              确认装入
+      <NeutralDialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen)
+          if (!nextOpen) {
+            setDefSelectOpen(false); setRackSelectOpen(false); setDefId(''); setRackId(''); setUStart(''); setUEnd(''); setRackKeyword('')
+          }
+        }}
+        title="装入机柜"
+        description="选择目标机柜，并填写设备占用的 U 位。"
+        size="sm"
+        footer={
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-dialog__actions">
+            <Button type="button" size="sm" variant="secondary" onClick={() => {
+              setOpen(false); setDefSelectOpen(false); setRackSelectOpen(false); setDefId(''); setRackId(''); setUStart(''); setUEnd(''); setRackKeyword('')
+            }}>取消</Button>
+            <Button type="button" size="sm" variant="primary" disabled={!defId || !rackId || assignMutation.isPending} onClick={() => assignMutation.mutate()}>
+              {assignMutation.isPending ? '装入中...' : '确认装入'}
             </Button>
           </div>
-        </div>
+        }
+      >
+        <MotionConfig reducedMotion="user">
+          <motion.div
+            layout="size"
+            className="cwgsyw-form cwgsyw-cmdb-instance-detail__dialog-form cwgsyw-cmdb-rack-dialog"
+            data-select-open={defSelectOpen || rackSelectOpen || undefined}
+            transition={{ type: 'spring', stiffness: 220, damping: 28, mass: 0.8 }}
+          >
+          {rackDefs.length > 1 ? (
+            <motion.div layout="position" className="cwgsyw-cmdb-dialog__flow-select">
+              <Field label="关联类型">
+                <Select size="sm"
+                  open={defSelectOpen}
+                  value={defId}
+                  placeholder="选择关联类型"
+                  options={rackDefs.map((d) => ({ value: d.defId, label: d.name }))}
+                  onOpenChange={setDefSelectOpen}
+                  onChange={setDefId}
+                />
+              </Field>
+            </motion.div>
+          ) : null}
+          <motion.div layout="position" className="cwgsyw-cmdb-dialog__flow-select">
+            <Field label="机柜">
+              <div className="cwgsyw-cmdb-rack-dialog__rack-picker">
+                <Input size="sm" placeholder="搜索机柜名称…" value={rackKeyword} onChange={(e) => setRackKeyword(e.target.value)} />
+                <Select size="sm"
+                  open={rackSelectOpen}
+                  value={rackId}
+                  placeholder="选择机柜"
+                  options={(rackList ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
+                  onOpenChange={setRackSelectOpen}
+                  onChange={setRackId}
+                />
+              </div>
+            </Field>
+          </motion.div>
+          <div className="cwgsyw-cmdb-rack-dialog__u-grid">
+            <Field label="起始 U 位">
+              <Input size="sm" type="number" value={uStart} onChange={(e) => setUStart(e.target.value)} placeholder="例如 12" />
+            </Field>
+            <Field label="结束 U 位">
+              <Input size="sm" type="number" value={uEnd} onChange={(e) => setUEnd(e.target.value)} placeholder="例如 14" />
+            </Field>
+          </div>
+          </motion.div>
+        </MotionConfig>
       </NeutralDialog>
     </section>
   )

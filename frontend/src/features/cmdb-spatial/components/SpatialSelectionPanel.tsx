@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/design-system/figma-neutral/components'
+import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
 import { FACILITY_TYPE_LABELS, type SpatialElement, type SpatialLocateResult, type SpatialRuntimeElement } from '../model/types'
 import { elementLabel } from '../model/geometry'
 
@@ -9,45 +10,49 @@ interface SpatialSelectionPanelProps {
   element: SpatialElement | null
   runtime?: SpatialRuntimeElement
   locatedCi?: SpatialLocateResult
-  onClose: () => void
   onOpenRackElevation?: (rackId: number) => void
 }
 
-export function SpatialSelectionPanel({ element, runtime, locatedCi, onClose, onOpenRackElevation }: SpatialSelectionPanelProps) {
+export function SpatialSelectionPanel({ element, runtime, locatedCi, onOpenRackElevation }: SpatialSelectionPanelProps) {
   const router = useRouter()
   if (!element) return <p className="cwgsyw-type-body-sm">选择机柜、设施或区域查看详情。</p>
   const ciId = runtime?.ciInstanceId ?? element.binding?.ciInstanceId
   const isRack = element.type === 'RACK_SLOT' && runtime?.ciModelId === 'rack'
   const targetIsDifferentCi = locatedCi && locatedCi.targetCiInstanceId !== ciId
+  const fields = [
+    { label: '类型', value: typeLabel(element) },
+    ...(element.type === 'RACK_SLOT' ? [
+      { label: '位置', value: `${element.rack?.rowCode || '-'}列 / ${element.rack?.positionNo || elementLabel(element)}` },
+      { label: '占用状态', value: slotStateLabel(element.rack?.slotState) },
+    ] : []),
+    { label: '绑定 CI', value: runtime?.ciName || (ciId ? '正在加载 CI 运行数据' : '未绑定 CI') },
+    ...(runtime ? [
+      { label: '模型编码', value: runtime.ciModelId || '-' },
+      { label: '状态', value: statusLabel(runtime.ciStatus) },
+      ...(runtime.rack ? [
+        { label: '机柜容量', value: `${runtime.rack.heightU}U · 已用 ${runtime.rack.usedU}U · 空闲 ${runtime.rack.freeU}U` },
+        { label: '设备数量', value: `${runtime.rack.deviceCount} 台` },
+      ] : []),
+      { label: '活动告警', value: runtime.activeAlertCount ? `${runtime.activeAlertCount} 条` : '无' },
+      { label: '数据质量', value: runtime.qualityIssues.length > 0 ? '存在异常' : '正常' },
+    ] : []),
+    ...(targetIsDifferentCi ? [{ label: '定位目标', value: `${locatedCi.targetCiName} · 位于当前机柜` }] : []),
+  ]
   return (
-    <div className="cwgsyw-stack-list">
-      <div className="cwgsyw-inline-controls">
-        <div>
-          <p className="cwgsyw-type-title-sm">{elementLabel(element)}</p>
-          <p className="cwgsyw-type-label-sm">{typeLabel(element)}</p>
-        </div>
-        <Button type="button" size="sm" variant="ghost" onClick={onClose}>关闭</Button>
-      </div>
-      {element.type === 'RACK_SLOT' ? (
-        <p className="cwgsyw-type-body-sm">{element.rack?.rowCode || '-'}列 / {element.rack?.positionNo || elementLabel(element)} / {slotStateLabel(element.rack?.slotState)}</p>
-      ) : null}
-      {runtime ? (
+    <CmdbInstancePreview
+      fields={fields}
+      actions={(
         <>
-          <p className="cwgsyw-type-body-sm">{runtime.ciName || 'CI 已删除或无权读取'}</p>
-          <p className="cwgsyw-type-label-sm">{runtime.ciModelId || '-'} / {statusLabel(runtime.ciStatus)}</p>
-          {runtime.rack ? <p className="cwgsyw-type-label-sm">{runtime.rack.heightU}U / 已用 {runtime.rack.usedU}U / 空闲 {runtime.rack.freeU}U · {runtime.rack.deviceCount} 台设备</p> : null}
-          <p className="cwgsyw-type-label-sm">{runtime.activeAlertCount ? `${runtime.activeAlertCount} 条活动告警` : '无活动告警'}</p>
-          {runtime.qualityIssues.length > 0 ? <p className="cwgsyw-type-label-sm">CI 数据存在异常</p> : null}
-        </>
-      ) : (
-        <p className="cwgsyw-type-body-sm">{ciId ? '正在加载 CI 运行数据' : '未绑定 CI'}</p>
-      )}
-      {targetIsDifferentCi ? (
-        <p className="cwgsyw-type-body-sm">搜索目标设备 {locatedCi.targetCiName}，位于当前机柜</p>
-      ) : null}
-      <div className="cwgsyw-inline-controls">
         {isRack && typeof ciId === 'number' ? (
-          <Button type="button" size="sm" variant="secondary" onClick={() => onOpenRackElevation?.(ciId)}>机柜视图</Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="cwgsyw-cmdb-spatial-room__rack-view-cta"
+            onClick={() => onOpenRackElevation?.(ciId)}
+          >
+            机柜视图
+          </Button>
         ) : null}
         {ciId ? (
           <>
@@ -58,8 +63,9 @@ export function SpatialSelectionPanel({ element, runtime, locatedCi, onClose, on
         {targetIsDifferentCi ? (
           <Button type="button" size="sm" onClick={() => router.push(`/cmdb/instances/by-model/${locatedCi.targetModelId}/${locatedCi.targetCiInstanceId}`)}>查看目标设备</Button>
         ) : null}
-      </div>
-    </div>
+        </>
+      )}
+    />
   )
 }
 

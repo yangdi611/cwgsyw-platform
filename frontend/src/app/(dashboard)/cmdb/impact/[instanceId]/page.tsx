@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
@@ -11,7 +12,6 @@ import '@/design-system/figma-neutral/index.css'
 import {
   Alert,
   Badge,
-  Breadcrumb,
   Button,
   Card,
   DashboardFeedbackPage,
@@ -69,6 +69,33 @@ function pushEdge(m: Map<number, ImpactEdge[]>, nodeId: number, e: ImpactEdge) {
   }
 }
 
+export function buildImmediateIncomingEdges(layers: ImpactLayer[], edges: ImpactEdge[]) {
+  const depthByNode = new Map<number, number>()
+  layers.forEach((layer) => layer.nodes.forEach((node) => depthByNode.set(node.id, layer.depth)))
+
+  const incoming = new Map<number, ImpactEdge[]>()
+  edges.forEach((edge) => {
+    const sourceDepth = depthByNode.get(edge.src)
+    const targetDepth = depthByNode.get(edge.dst)
+    if (sourceDepth == null || targetDepth == null) return
+
+    if (targetDepth === sourceDepth + 1) pushEdge(incoming, edge.dst, edge)
+    if (sourceDepth === targetDepth + 1) pushEdge(incoming, edge.src, edge)
+  })
+  return incoming
+}
+
+export function summarizeImpactEdges(edges: ImpactEdge[]) {
+  const summaries = new Map<string, { label: string; count: number }>()
+  edges.forEach((edge) => {
+    const label = edge.label?.trim() || edge.kind
+    const current = summaries.get(label)
+    if (current) current.count += 1
+    else summaries.set(label, { label, count: 1 })
+  })
+  return Array.from(summaries.values())
+}
+
 export default function ImpactAnalysisPage() {
   const { instanceId } = useParams<{ instanceId: string }>()
   const { hasPermission, isHydrated } = usePermission()
@@ -98,40 +125,24 @@ export default function ImpactAnalysisPage() {
     },
   })
 
-  const depthMap = useMemo(() => {
-    const m = new Map<number, number>()
-    data?.layers.forEach((l) => l.nodes.forEach((n) => m.set(n.id, l.depth)))
-    return m
-  }, [data])
-
-  const incomingByNode = useMemo(() => {
-    const m = new Map<number, ImpactEdge[]>()
-    const rootId = data?.rootId
-    data?.edges.forEach((e) => {
-      if (e.src === rootId || e.dst === rootId) {
-        const otherId = e.src === rootId ? e.dst : e.src
-        if (otherId != null && otherId !== rootId) pushEdge(m, otherId, e)
-        return
-      }
-      const sd = depthMap.get(e.src)
-      const dd = depthMap.get(e.dst)
-      if (sd != null && dd != null) {
-        if (dd > sd) pushEdge(m, e.dst, e)
-        if (sd > dd) pushEdge(m, e.src, e)
-      }
-    })
-    return m
-  }, [data, depthMap])
+  const incomingByNode = useMemo(
+    () => buildImmediateIncomingEdges(data?.layers ?? [], data?.edges ?? []),
+    [data],
+  )
 
   const totalNodes = useMemo(() => {
     const ids = new Set<number>()
     data?.layers.forEach((l) => l.nodes.forEach((n) => { if (n.id != null) ids.add(n.id) }))
     return ids.size
   }, [data])
-
+  const affectedNodeCount = data ? Math.max(totalNodes - 1, 0) : 0
+  const rootNode = data?.layers
+    .flatMap((layer) => layer.nodes)
+    .find((node) => node.id === data.rootId)
+  const rootModelName = rootNode?.modelName?.trim() || data?.rootModelId
   const toggleCollapse = (depth: number) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev)
+    setCollapsed((current) => {
+      const next = new Set(current)
       if (next.has(depth)) next.delete(depth)
       else next.add(depth)
       return next
@@ -145,33 +156,26 @@ export default function ImpactAnalysisPage() {
       : `加载影响分析失败${status ? `（${status}）` : ''}：${getApiErrorMessage(error, '请稍后重试')}`
 
   return (
-    <DashboardFeedbackPage className="cwgsyw-cmdb-page"
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page cwgsyw-cmdb-impact"
       header={
         <div className="cwgsyw-cmdb-instance-page">
         <PageHeader
-            showEyebrow={false}
+          showEyebrow={false}
+          showBreadcrumb={false}
           title={`影响分析 · ${data?.rootName ?? `#${instanceId}`}`}
-          subtitle={`共 ${totalNodes} 个节点，${data?.edges.length ?? 0} 条关联`}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { label: '影响分析' },
-              ]}
-            />
-          }
+          subtitle={`影响节点 ${affectedNodeCount} 个 · 关联 ${data?.edges.length ?? 0} 条`}
           actions={
-            <div className="cwgsyw-inline-controls">
+            <div className="cwgsyw-inline-controls cwgsyw-cmdb-impact__controls">
               <Button
                 type="button"
+                size="sm"
                 variant="secondary"
                 disabled={!data?.rootModelId}
                 onClick={() => data?.rootModelId && router.push(`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`)}
               >
                 返回实例
               </Button>
-              <Select size="sm" overlay
+              <Select aria-label="影响方向" size="sm" overlay
                 value={direction}
                 options={[
                   { value: 'bidirectional', label: '双向' },
@@ -180,7 +184,7 @@ export default function ImpactAnalysisPage() {
                 ]}
                 onChange={(value) => setDirection((value as Direction) || 'bidirectional')}
               />
-              <Select size="sm" overlay
+              <Select aria-label="影响深度" size="sm" overlay
                 value={String(maxDepth)}
                 options={[1, 2, 3, 4, 5].map((d) => ({ value: String(d), label: `深度 ${d}` }))}
                 onChange={(value) => setMaxDepth(Number(value) || 3)}
@@ -191,7 +195,15 @@ export default function ImpactAnalysisPage() {
         </div>
       }
       feedback={
-        isLoading ? (
+        !isHydrated ? (
+          <LoadingState label="准备影响分析" />
+        ) : !canAnalyze ? (
+          <ErrorState
+            title="无权查看影响分析"
+            description="当前账号缺少实例或影响分析读取权限。"
+            showRetry={false}
+          />
+        ) : isLoading ? (
           <LoadingState label="分析中" />
         ) : isError ? (
           <ErrorState
@@ -202,58 +214,95 @@ export default function ImpactAnalysisPage() {
         ) : !data || data.layers.length === 0 ? (
           <EmptyState title="暂无影响数据" />
         ) : (
-          <div className="cwgsyw-stack-list">
+          <div className="cwgsyw-cmdb-impact__content">
             {data.truncated ? (
-              <Alert tone="warning" title="结果已被截断" description="仅展示部分影响范围。如需查看更多节点，请减小分析深度。" showDismiss={false} />
+              <Alert tone="warning" title="结果已被截断" description="当前仅展示部分影响范围，可缩小分析深度以聚焦近端节点。" showDismiss={false} />
             ) : null}
-            <Card title={data.rootName} description="根节点" headerAction={data.rootModelId ? <Badge label={data.rootModelId} /> : null}>
-              <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`)}>
-                查看详情
-              </Button>
-            </Card>
-            {data.layers.map((layer) => {
-              const nodes = layer.nodes.filter((n) => n.id !== data.rootId)
-              if (nodes.length === 0) return null
-              const isCollapsed = collapsed.has(layer.depth)
-              const dirLabel = direction === 'upstream' ? '上游' : direction === 'downstream' ? '下游' : '关联'
-              return (
-                <div key={layer.depth} className="cwgsyw-stack-list">
-                  <Button type="button" variant="ghost" onClick={() => toggleCollapse(layer.depth)}>
-                    第 {layer.depth} 层 · {dirLabel} · {nodes.length} 个节点
-                  </Button>
-                  {!isCollapsed ? (
-                    <div className="cwgsyw-stack-list">
-                      {nodes.map((node) => {
-                        const statusKey = node.status?.toLowerCase() ?? ''
-                        const statusMeta = STATUS_META[statusKey]
-                        const biz = node.businessLevel ? BIZ_LEVEL_META[node.businessLevel] : null
-                        const edges = incomingByNode.get(node.id) ?? []
-                        return (
-                          <Card
-                            key={node.id}
-                            title={node.name}
-                            headerAction={
-                              <div className="cwgsyw-inline-controls">
-                                {statusMeta ? <StatusBadge label={statusMeta.label} status={statusMeta.tone} /> : node.status ? <Badge label={node.status} /> : null}
-                                {node.modelName ? <Badge label={node.modelName} /> : null}
-                                {biz ? <StatusBadge label={biz.label} status={biz.tone} /> : null}
+            <section className="cwgsyw-cmdb-impact__root" aria-labelledby="impact-root-title">
+              <h2 id="impact-root-title">分析起点</h2>
+              <Card title={data.rootName} headerAction={rootModelName ? <Badge label={rootModelName} /> : null}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`)}>
+                  查看详情
+                </Button>
+              </Card>
+            </section>
+            {affectedNodeCount === 0 ? (
+              <div className="cwgsyw-cmdb-impact__empty">
+                <EmptyState
+                  showIcon={false}
+                  title="暂无受影响节点"
+                  description="当前方向和深度下没有发现其他关联实例。"
+                />
+              </div>
+            ) : (
+              <MotionConfig reducedMotion="user">
+                <div className="cwgsyw-cmdb-impact__layers">
+                  {data.layers.map((layer) => {
+                    const nodes = layer.nodes.filter((n) => n.id !== data.rootId)
+                    if (nodes.length === 0) return null
+                    const isCollapsed = collapsed.has(layer.depth)
+                    const panelId = `impact-layer-${layer.depth}`
+                    const dirLabel = direction === 'upstream' ? '上游' : direction === 'downstream' ? '下游' : '关联'
+                    return (
+                      <section key={layer.depth} className="cwgsyw-cmdb-impact__layer">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          aria-expanded={!isCollapsed}
+                          aria-controls={panelId}
+                          onClick={() => toggleCollapse(layer.depth)}
+                        >
+                          第 {layer.depth} 层 · {dirLabel} · {nodes.length} 个节点
+                        </Button>
+                        <AnimatePresence initial={false}>
+                          {!isCollapsed ? (
+                            <motion.div
+                              id={panelId}
+                              className="cwgsyw-cmdb-impact__layer-panel"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                            >
+                              <div className="cwgsyw-cmdb-impact__layer-panel-inner">
+                                {nodes.map((node) => {
+                                  const statusKey = node.status?.toLowerCase() ?? ''
+                                  const statusMeta = STATUS_META[statusKey]
+                                  const biz = node.businessLevel ? BIZ_LEVEL_META[node.businessLevel] : null
+                                  const edgeSummaries = summarizeImpactEdges(incomingByNode.get(node.id) ?? [])
+                                  return (
+                                    <Card
+                                      key={node.id}
+                                      title={node.name}
+                                      headerAction={
+                                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-impact__meta">
+                                          {statusMeta ? <StatusBadge label={statusMeta.label} status={statusMeta.tone} /> : node.status ? <Badge label={node.status} /> : null}
+                                          {node.modelName ? <Badge label={node.modelName} /> : null}
+                                          {biz ? <StatusBadge label={biz.label} status={biz.tone} /> : null}
+                                          {edgeSummaries.map((summary) => (
+                                            <Badge
+                                              key={summary.label}
+                                              label={summary.count > 1 ? `${summary.label} ×${summary.count}` : summary.label}
+                                            />
+                                          ))}
+                                        </div>
+                                      }
+                                    >
+                                      <Link href={`/cmdb/instances/by-model/${node.modelId}/${node.id}`} className="cwgsyw-type-label-sm">查看详情</Link>
+                                    </Card>
+                                  )
+                                })}
                               </div>
-                            }
-                          >
-                            {edges.length > 0 ? (
-                              <div className="cwgsyw-inline-controls">
-                                {edges.map((e, i) => <Badge key={i} label={e.label ?? e.kind} />)}
-                              </div>
-                            ) : null}
-                            <Link href={`/cmdb/instances/by-model/${node.modelId}/${node.id}`} className="cwgsyw-type-label-sm">查看详情</Link>
-                          </Card>
-                        )
-                      })}
-                    </div>
-                  ) : null}
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </section>
+                    )
+                  })}
                 </div>
-              )
-            })}
+              </MotionConfig>
+            )}
           </div>
         )
       }

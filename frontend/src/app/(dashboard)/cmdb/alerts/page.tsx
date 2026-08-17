@@ -9,12 +9,12 @@ import { useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
   EmptyState,
   ErrorState,
   FilterBar,
+  LoadingState,
   PageHeader,
   Pagination,
   Select,
@@ -44,12 +44,12 @@ interface PageData {
   size: number
 }
 
-type StatusTone = 'success' | 'warning' | 'danger' | 'neutral'
+type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral'
 
 function severityMeta(s: string): { tone: StatusTone; label: string } {
   if (s === 'critical') return { tone: 'danger', label: '严重' }
   if (s === 'warning') return { tone: 'warning', label: '警告' }
-  if (s === 'info') return { tone: 'neutral', label: '提示' }
+  if (s === 'info') return { tone: 'info', label: '提示' }
   return { tone: 'neutral', label: s || '未知' }
 }
 
@@ -73,6 +73,8 @@ const STATUS_OPTIONS = [
 ]
 
 const PAGE_SIZE = 20
+// Figma CWGSYW / Icons: alert-circle, node 6:22984.
+const EMPTY_ALERT_ICON = '/figma-icons/cmdb-alert-circle.svg'
 
 export default function CmdbAlertsPage() {
   const router = useRouter()
@@ -86,10 +88,10 @@ export default function CmdbAlertsPage() {
     if (!hasPermission('cmdb_alert', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  const canRead = isHydrated && hasPermission('cmdb_alert', 'read')
+  const canRead = hasPermission('cmdb_alert', 'read')
   const canAck = hasPermission('cmdb_alert', 'acknowledge')
 
-  const { data, isLoading, isError, refetch } = useQuery<PageData>({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery<PageData>({
     queryKey: ['cmdb-alerts', severity, status, page],
     queryFn: () =>
       api
@@ -102,12 +104,10 @@ export default function CmdbAlertsPage() {
           },
         })
         .then((r) => r.data.data),
-    enabled: canRead,
+    enabled: isHydrated && canRead,
   })
 
   const ack = useAcknowledgeAlert()
-
-  if (!canRead) return null
 
   const onAck = (alertId: number) => {
     ack.mutate(alertId, {
@@ -122,32 +122,26 @@ export default function CmdbAlertsPage() {
   const alerts = data?.records ?? []
   const total = data?.total ?? 0
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const hasFilters = Boolean(severity || status)
 
   return (
-    <DataManagementPage className="cwgsyw-cmdb-page"
+    <DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-alerts"
       header={
         <div className="cwgsyw-cmdb-instance-page">
-        <PageHeader
+          <PageHeader
             showEyebrow={false}
-          title="告警中心"
-          subtitle="按级别和状态筛选 Prometheus 告警"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/cmdb', label: 'CMDB' },
-                { label: '告警中心' },
-              ]}
-            />
-          }
-        />
+            showBreadcrumb={false}
+            title="告警中心"
+            subtitle="按级别和状态筛选 Prometheus 告警"
+          />
         </div>
       }
       filter={
         <FilterBar
           filterItems={
-            <div className="cwgsyw-inline-controls">
+            <div className="cwgsyw-cmdb-alerts__filters">
               <Select size="sm" overlay
+                aria-label="按告警级别筛选"
                 value={severity || '__all__'}
                 options={SEVERITY_OPTIONS}
                 onChange={(value) => {
@@ -156,6 +150,7 @@ export default function CmdbAlertsPage() {
                 }}
               />
               <Select size="sm" overlay
+                aria-label="按告警状态筛选"
                 value={status || '__all__'}
                 options={STATUS_OPTIONS}
                 onChange={(value) => {
@@ -165,27 +160,47 @@ export default function CmdbAlertsPage() {
               />
             </div>
           }
+          reset={hasFilters ? (
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setSeverity(''); setStatus(''); setPage(1) }}>
+              清除筛选
+            </Button>
+          ) : null}
         />
       }
       content={
-        isError ? (
+        !isHydrated ? (
+          <LoadingState label="正在检查访问权限" />
+        ) : !canRead ? (
+          <ErrorState title="无权查看告警中心" description="需要 CMDB 告警读取权限。" />
+        ) : isError ? (
           <ErrorState
             title="告警加载失败"
             description="无法读取告警记录，请稍后重试。"
             retry={
-              <Button type="button" variant="secondary" onClick={() => refetch()}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>
                 重试
               </Button>
             }
           />
-        ) : alerts.length === 0 && !isLoading ? (
-          <EmptyState title="暂无告警" description="当前筛选条件下没有告警记录。" />
+        ) : isLoading ? (
+          <LoadingState label="加载告警记录" />
+        ) : alerts.length === 0 ? (
+          <div className="cwgsyw-cmdb-alerts__empty">
+            {/* The exact 22px Figma SVG should be served directly; image optimization adds no value here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EMPTY_ALERT_ICON} width={22} height={22} alt="" />
+            <EmptyState
+              showIcon={false}
+              title={hasFilters ? '没有符合筛选条件的告警' : '暂无告警'}
+              description={hasFilters ? '调整告警级别或状态后重试。' : 'Prometheus 告警同步后会显示在这里。'}
+              action={hasFilters ? <Button type="button" size="sm" variant="secondary" onClick={() => { setSeverity(''); setStatus(''); setPage(1) }}>清除筛选</Button> : undefined}
+            />
+          </div>
         ) : (
-          <>
+          <div className="cwgsyw-cmdb-alerts__content">
             <Table
-              className="cwgsyw-cmdb-table"
+              className="cwgsyw-cmdb-table cwgsyw-cmdb-alerts__table"
               showSearch={false}
-              state={isLoading ? 'loading' : 'data'}
               columns={[
                 { key: 'severity', label: '级别' },
                 { key: 'status', label: '状态' },
@@ -205,9 +220,9 @@ export default function CmdbAlertsPage() {
                   summary: item.summary ?? '-',
                   starts_at: item.startsAt ? new Date(item.startsAt).toLocaleString('zh-CN') : '-',
                   actions: item.acknowledged ? (
-                    '已确认'
+                    <StatusBadge label="已确认" status="neutral" />
                   ) : canAck ? (
-                    <Button type="button" size="sm" variant="secondary" disabled={ack.isPending} onClick={() => onAck(item.id)}>
+                    <Button type="button" size="sm" variant="secondary" aria-label={`确认告警 ${item.alertName}`} disabled={ack.isPending} onClick={() => onAck(item.id)}>
                       确认
                     </Button>
                   ) : (
@@ -216,8 +231,35 @@ export default function CmdbAlertsPage() {
                 },
               }))}
             />
-            <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
-          </>
+            <div className="cwgsyw-cmdb-alerts__mobile-list" aria-label="告警记录">
+              {alerts.map((item) => (
+                <article key={item.id} className="cwgsyw-cmdb-alerts__mobile-item">
+                  <header>
+                    <div className="cwgsyw-inline-controls">
+                      <StatusBadge label={severityMeta(item.severity).label} status={severityMeta(item.severity).tone} />
+                      <StatusBadge label={statusMeta(item.status).label} status={statusMeta(item.status).tone} />
+                    </div>
+                    {item.acknowledged ? <StatusBadge label="已确认" status="neutral" /> : null}
+                  </header>
+                  <h2>{item.alertName}</h2>
+                  <p>{item.summary ?? '暂无摘要'}</p>
+                  <dl>
+                    <div><dt>关联实例</dt><dd>{item.ciInstanceId ? item.ciInstanceName ?? `#${item.ciInstanceId}` : '—'}</dd></div>
+                    <div><dt>触发时间</dt><dd>{item.startsAt ? new Date(item.startsAt).toLocaleString('zh-CN') : '—'}</dd></div>
+                  </dl>
+                  {!item.acknowledged && canAck ? (
+                    <div className="cwgsyw-cmdb-alerts__mobile-actions">
+                      <Button type="button" size="sm" variant="secondary" aria-label={`确认告警 ${item.alertName}`} disabled={ack.isPending} onClick={() => onAck(item.id)}>
+                        确认
+                      </Button>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+            {pageCount > 1 ? <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} /> : null}
+            {isFetching && !isLoading ? <p className="cwgsyw-cmdb-alerts__refresh" role="status">正在刷新告警记录…</p> : null}
+          </div>
         )
       }
     />

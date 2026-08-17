@@ -8,6 +8,30 @@ import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/can
 
 export type SpatialLayer = 'layout' | 'status' | 'alert' | 'rackUtilization' | 'dataQuality'
 
+const RACK_LAYOUT_PALETTES = {
+  normal: { fill: CANVAS_STATUS.successBg, stroke: CANVAS_STATUS.success, text: CANVAS_STATUS.successFg, strokeWidth: 2 },
+  alert: { fill: CANVAS_STATUS.danger100, stroke: CANVAS_STATUS.danger, text: CANVAS_STATUS.dangerFg, strokeWidth: 2 },
+  abnormal: { fill: CANVAS_STATUS.warningBg, stroke: CANVAS_STATUS.warning, text: CANVAS_STATUS.warningFg, strokeWidth: 2 },
+  maintenance: { fill: CANVAS_STATUS.infoBg, stroke: CANVAS_STATUS.info, text: CANVAS_STATUS.infoFg, strokeWidth: 2 },
+  offline: { fill: CANVAS_NEUTRAL[200], stroke: CANVAS_NEUTRAL[500], text: CANVAS_NEUTRAL[700], strokeWidth: 2 },
+  unknown: { fill: CANVAS_STATUS.warning100, stroke: CANVAS_STATUS.warning, text: CANVAS_STATUS.warningFg, strokeWidth: 2 },
+  empty: { fill: CANVAS_NEUTRAL[0], stroke: CANVAS_NEUTRAL[400], text: CANVAS_NEUTRAL[700], strokeWidth: 1 },
+  reserved: { fill: CANVAS_NEUTRAL[100], stroke: CANVAS_STATUS.warning, text: CANVAS_NEUTRAL[700], strokeWidth: 1 },
+  disabled: { fill: CANVAS_NEUTRAL[200], stroke: CANVAS_NEUTRAL[400], text: CANVAS_NEUTRAL[600], strokeWidth: 1 },
+} as const
+
+export const RACK_STATE_LEGEND = [
+  { key: 'normal', label: '正常', color: RACK_LAYOUT_PALETTES.normal.stroke },
+  { key: 'alert', label: '告警', color: RACK_LAYOUT_PALETTES.alert.stroke },
+  { key: 'abnormal', label: '异常', color: RACK_LAYOUT_PALETTES.abnormal.stroke },
+  { key: 'maintenance', label: '维护', color: RACK_LAYOUT_PALETTES.maintenance.stroke },
+  { key: 'offline', label: '离线', color: RACK_LAYOUT_PALETTES.offline.stroke },
+  { key: 'unknown', label: '未知', color: RACK_LAYOUT_PALETTES.unknown.stroke },
+  { key: 'empty', label: '空位', color: RACK_LAYOUT_PALETTES.empty.stroke },
+  { key: 'reserved', label: '预留', color: RACK_LAYOUT_PALETTES.reserved.stroke },
+  { key: 'disabled', label: '不可用', color: RACK_LAYOUT_PALETTES.disabled.stroke },
+] as const
+
 interface SpatialCanvasStageProps {
   document: SpatialDocument
   referenceImageUrl?: string
@@ -108,20 +132,19 @@ function resolvePalette(element: SpatialElement, runtime: SpatialRuntimeElement 
 }
 
 function rackLayoutPalette(element: SpatialElement, runtime: SpatialRuntimeElement | undefined) {
-  const empty = { fill: CANVAS_NEUTRAL[0], stroke: CANVAS_NEUTRAL[400], text: CANVAS_NEUTRAL[700], strokeWidth: 1 }
-  if (element.rack?.slotState === 'DISABLED') return { fill: CANVAS_NEUTRAL[200], stroke: CANVAS_NEUTRAL[400], text: CANVAS_NEUTRAL[600], strokeWidth: 1 }
+  if (element.rack?.slotState === 'DISABLED') return RACK_LAYOUT_PALETTES.disabled
   if (!element.binding?.ciInstanceId) return element.rack?.slotState === 'RESERVED'
-    ? { fill: CANVAS_NEUTRAL[100], stroke: CANVAS_STATUS.warning, text: CANVAS_NEUTRAL[700], strokeWidth: 1 }
-    : empty
-  if (!runtime || runtime.ciInstanceId === null) return { fill: CANVAS_STATUS.warning100, stroke: CANVAS_STATUS.warning, text: CANVAS_STATUS.warningFg, strokeWidth: 2 }
-  if (runtime.activeAlertCount > 0) return { fill: CANVAS_STATUS.danger100, stroke: CANVAS_STATUS.danger, text: CANVAS_STATUS.dangerFg, strokeWidth: 2 }
-  if (runtime.qualityIssues.length > 0) return { fill: CANVAS_STATUS.warningBg, stroke: CANVAS_STATUS.warning, text: CANVAS_STATUS.warningFg, strokeWidth: 2 }
+    ? RACK_LAYOUT_PALETTES.reserved
+    : RACK_LAYOUT_PALETTES.empty
+  if (!runtime || runtime.ciInstanceId === null) return RACK_LAYOUT_PALETTES.unknown
+  if (runtime.activeAlertCount > 0) return RACK_LAYOUT_PALETTES.alert
+  if (runtime.qualityIssues.length > 0) return RACK_LAYOUT_PALETTES.abnormal
   const status = runtime.ciStatus?.toLowerCase()
-  if (['online', 'running', 'active', 'normal', 'up'].includes(status || '')) return { fill: CANVAS_STATUS.successBg, stroke: CANVAS_STATUS.success, text: CANVAS_STATUS.successFg, strokeWidth: 2 }
-  if (['maintenance', 'maintaining'].includes(status || '')) return { fill: CANVAS_STATUS.infoBg, stroke: CANVAS_STATUS.info, text: CANVAS_STATUS.infoFg, strokeWidth: 2 }
-  if (['offline', 'stopped', 'down', 'error', 'fault'].includes(status || '')) return { fill: CANVAS_NEUTRAL[200], stroke: CANVAS_NEUTRAL[500], text: CANVAS_NEUTRAL[700], strokeWidth: 2 }
-  if (status) return { fill: CANVAS_NEUTRAL[100], stroke: CANVAS_STATUS.warning, text: CANVAS_NEUTRAL[700], strokeWidth: 2 }
-  return { fill: CANVAS_STATUS.successBg, stroke: CANVAS_STATUS.success, text: CANVAS_STATUS.successFg, strokeWidth: 2 }
+  if (['online', 'running', 'active', 'normal', 'up'].includes(status || '')) return RACK_LAYOUT_PALETTES.normal
+  if (['maintenance', 'maintaining'].includes(status || '')) return RACK_LAYOUT_PALETTES.maintenance
+  if (['offline', 'stopped', 'down', 'error', 'fault'].includes(status || '')) return RACK_LAYOUT_PALETTES.offline
+  if (status) return RACK_LAYOUT_PALETTES.unknown
+  return RACK_LAYOUT_PALETTES.normal
 }
 
 function labelFontSize(element: SpatialElement, width: number) {

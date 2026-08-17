@@ -11,6 +11,7 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/instances/by-model/[modelCode]/new/page.tsx')
+const patternsPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
 
 function compile(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -49,7 +50,7 @@ function loadCompiled(filePath) {
         useQuery: ({ queryKey } = {}) => {
           const key = String(queryKey || '')
           if (key.includes('cmdb-instances')) return { data: { records: [{ id: 11, modelId: 'server', name: 'web-01', status: 'running', owner: 'ops', description: '', fieldsData: { cpu_cores: 8 }, createdAt: '2026-08-14T00:00:00Z' }], total: 1 }, isLoading: false, isError: false, refetch() {} }
-          if (key.includes('cmdb-model')) return { data: { name: '服务器', attributes: [{ fieldKey: 'cpu_cores', name: 'CPU 核数', isListShow: true, isDrawerShow: true, isEditable: true, fieldType: 'int', option: null }] } }
+          if (key.includes('cmdb-model')) return { data: { name: '服务器', attributeGroups: [{ groupId: 'hardware', name: '硬件信息', sortOrder: 1 }], attributes: [{ fieldKey: 'cpu_cores', name: 'CPU 核数', groupId: 'hardware', isRequired: true, isListShow: true, isDrawerShow: true, isEditable: true, fieldType: 'int', option: null }, { fieldKey: 'environment', name: '环境', groupId: 'hardware', isRequired: false, fieldType: 'enum', option: [{ id: 'prod', name: '生产' }] }] } }
           return { data: undefined, isLoading: false }
         },
       }
@@ -85,8 +86,30 @@ function loadCompiled(filePath) {
 
 test('cmdb new instance leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const patterns = fs.readFileSync(patternsPath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /api.post\('\/cmdb\/instances'/)
+  assert.match(page, /cwgsyw-cmdb-instance-create/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb|\bBreadcrumb,/)
+  assert.doesNotMatch(page, /<Card|\bCard,/)
+  assert.match(page, /state=\{showValidation && !name\.trim\(\) \? 'error' : 'default'\}/)
+  assert.match(page, /missingRequiredKeys/)
+  assert.match(page, /isError \? \(/)
+  assert.match(page, /<ErrorState/)
+  assert.match(page, /<Select size="sm" overlay/)
+  assert.match(page, /<Textarea size="sm"/)
+  assert.equal((page.match(/<Button[^>]*size="sm"/g) ?? []).length, 3)
+  assert.equal((page.match(/cwgsyw-cmdb-instance-create__section-body/g) ?? []).length, 2)
+  assert.match(page, /cwgsyw-cmdb-instance-create__multi-options/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-create__section \{[\s\S]*overflow: hidden;[\s\S]*border: var\(--cwgsyw-border-width-default\) solid var\(--cwgsyw-border-default\);[\s\S]*border-radius: var\(--cwgsyw-radius-md\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-create__section-title \{[\s\S]*min-height: 34px;[\s\S]*background: var\(--cwgsyw-bg-surface-subtle\);[\s\S]*font-weight: var\(--cwgsyw-font-weight-regular\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-create__section-body \{[\s\S]*container: cwgsyw-instance-create-fields \/ inline-size;[\s\S]*padding: var\(--cwgsyw-space-3\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-create__field-grid \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/)
+  assert.match(patterns, /@container cwgsyw-instance-create-fields \(min-width: 560px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/)
+  assert.match(patterns, /@container cwgsyw-instance-create-fields \(min-width: 900px\)[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/)
+  assert.match(patterns, /@container cwgsyw-instance-create-fields \(min-width: 1200px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/)
+  assert.match(patterns, /\.cwgsyw-cmdb-instance-create__multi-options \.cwgsyw-choice input \{[\s\S]*width: 16px;[\s\S]*height: 16px/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
@@ -97,4 +120,7 @@ test('cmdb new instance renders Neutral form', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /新建/)
   assert.match(html, /实例名称/)
+  assert.match(html, /硬件信息/)
+  assert.match(html, /CPU 核数/)
+  assert.match(html, /aria-haspopup="listbox"/)
 })

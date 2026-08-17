@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { Badge, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
@@ -40,7 +41,11 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
 
   return (
     <div className="cwgsyw-cmdb-instance-tab cwgsyw-cmdb-instance-tab__resources">
-      <Section title="关联设备凭证" emptyMsg="暂无关联设备凭证">
+      <Section
+        title="关联设备凭证"
+        emptyMsg="暂无关联设备凭证"
+        emptyIcon={{ src: '/figma-icons/cmdb-resource-key.svg', figmaNode: '6:27336', width: 22, height: 21 }}
+      >
         {devices.data?.map((d) => (
           <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
             <div className="cwgsyw-cmdb-instance-tab__row-main">
@@ -53,7 +58,11 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
         ))}
       </Section>
 
-      <Section title="关联变更文档" emptyMsg="暂无关联变更文档">
+      <Section
+        title="关联变更文档"
+        emptyMsg="暂无关联变更文档"
+        emptyIcon={{ src: '/figma-icons/cmdb-resource-file-diff.svg', figmaNode: '6:25779', width: 18, height: 22 }}
+      >
         {changeDocs.data?.map((d) => (
           <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
             <div className="cwgsyw-cmdb-instance-tab__row-main">
@@ -72,10 +81,11 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
 }
 
 function Section({
-  title, emptyMsg, children,
+  title, emptyMsg, emptyIcon, children,
 }: {
   title: string
   emptyMsg: string
+  emptyIcon?: { src: string; figmaNode: string; width: number; height: number }
   children: ReactNode
 }) {
   const items = Array.isArray(children) ? children : []
@@ -85,7 +95,21 @@ function Section({
     <section className="cwgsyw-cmdb-instance-tab__section">
       <div className="cwgsyw-cmdb-instance-tab__head"><h2>{title}</h2></div>
       <div className="cwgsyw-cmdb-instance-tab__body">
-        {hasContent ? <div className="cwgsyw-cmdb-instance-tab__rows">{children}</div> : <EmptyState title={emptyMsg} />}
+        {hasContent ? <div className="cwgsyw-cmdb-instance-tab__rows">{children}</div> : emptyIcon ? (
+          <div className="cwgsyw-cmdb-instance-tab__empty">
+            <span className="cwgsyw-cmdb-instance-tab__empty-icon" aria-hidden="true">
+              <Image
+                src={emptyIcon.src}
+                alt=""
+                width={emptyIcon.width}
+                height={emptyIcon.height}
+                data-figma-node={emptyIcon.figmaNode}
+                className="cwgsyw-cmdb-instance-tab__empty-icon-image"
+              />
+            </span>
+            <EmptyState title={emptyMsg} showIcon={false} />
+          </div>
+        ) : <EmptyState title={emptyMsg} />}
       </div>
     </section>
   )

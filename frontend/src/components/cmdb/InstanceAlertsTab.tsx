@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { useInstanceAlerts, useAcknowledgeAlert } from '@/hooks/usePrometheusAlerts'
@@ -64,7 +65,23 @@ export function InstanceAlertsTab({ instanceId }: Props) {
         {isLoading ? (
           <LoadingState label="加载告警" />
         ) : alerts.length === 0 ? (
-          <EmptyState title="该实例暂无告警" description="当前没有需要处理的告警。" />
+          <div className="cwgsyw-cmdb-instance-tab__empty">
+            <span className="cwgsyw-cmdb-instance-tab__empty-icon" aria-hidden="true">
+              <Image
+                src="/figma-icons/cmdb-alert-circle.svg"
+                alt=""
+                width={22}
+                height={22}
+                data-figma-node="6:22984"
+                className="cwgsyw-cmdb-instance-tab__empty-icon-image"
+              />
+            </span>
+            <EmptyState
+              showIcon={false}
+              title="该实例暂无告警"
+              description="当前没有需要处理的告警。"
+            />
+          </div>
         ) : (
           <div className="cwgsyw-cmdb-instance-tab__rows">
             {alerts.map((a) => {

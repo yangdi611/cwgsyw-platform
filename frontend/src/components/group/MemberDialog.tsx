@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
@@ -34,20 +35,28 @@ interface MemberDialogProps {
 }
 
 export default function MemberDialog({ groupId, groupName, open, onOpenChange }: MemberDialogProps) {
-  const [members, setMembers] = useState<GroupMember[]>([])
+  return <MemberDialogContent key={groupId} groupId={groupId} groupName={groupName} open={open} onOpenChange={onOpenChange} />
+}
+
+function MemberDialogContent({ groupId, groupName, open, onOpenChange }: MemberDialogProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<SearchUser[]>([])
   const [loading, setLoading] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<GroupMember | null>(null)
 
-  const loadMembers = useCallback(async () => {
-    try {
-      const res = await api.get(`/groups/${groupId}/members`)
-      setMembers(res.data.data as GroupMember[])
-    } catch {
-      toast.error('加载成员列表失败')
-    }
-  }, [groupId])
+  const { data: members = [], refetch: loadMembers } = useQuery({
+    queryKey: ['group-members', groupId],
+    queryFn: async () => {
+      try {
+        const res = await api.get(`/groups/${groupId}/members`)
+        return res.data.data as GroupMember[]
+      } catch {
+        toast.error('加载成员列表失败')
+        return []
+      }
+    },
+    enabled: open && groupId > 0,
+  })
 
   const searchUsers = useCallback(async (keyword: string) => {
     if (!keyword.trim()) {
@@ -64,14 +73,6 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
       console.warn('搜索用户失败', err)
     }
   }, [members])
-
-  useEffect(() => {
-    if (open) {
-      setSearchKeyword('')
-      setSearchResults([])
-      void loadMembers()
-    }
-  }, [open, loadMembers])
 
   useEffect(() => {
     const timer = setTimeout(() => void searchUsers(searchKeyword), 250)
@@ -110,7 +111,13 @@ export default function MemberDialog({ groupId, groupName, open, onOpenChange }:
     <>
       <NeutralDialog
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setSearchKeyword('')
+            setSearchResults([])
+          }
+          onOpenChange(nextOpen)
+        }}
         title={`${groupName} — 成员管理`}
         size="lg"
       >
