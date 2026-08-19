@@ -4,8 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
-  Card,
   DashboardFeedbackPage,
   EmptyState,
   LoadingState,
@@ -48,43 +46,43 @@ export default function WorkflowStatsPage() {
 
   return (
     <DashboardFeedbackPage
+      className="cwgsyw-workflow cwgsyw-workflow-stats"
       header={
         <PageHeader
-          eyebrow="流程中心"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="流程统计"
           subtitle="按流程定义查看启动量、运行/完成数、通过率与平均审批时长。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/workflow/design', label: '流程中心' },
-                { label: '流程统计' },
-              ]}
-            />
-          }
         />
       }
       metrics={
         isLoading ? (
           <LoadingState label="加载流程统计" />
         ) : stats.length === 0 ? (
-          <EmptyState title="暂无流程统计数据" description="启动流程实例后即可在此查看统计。" />
+          <div className="cwgsyw-workflow-empty">
+            {/* Official Figma git-branch glyph; image optimization adds no value here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/figma-icons/workflow-git-branch.svg" width={22} height={22} alt="" data-figma-node="6:26741" />
+            <EmptyState showIcon={false} title="暂无流程统计数据" description="启动流程实例后即可在此查看统计。" />
+          </div>
         ) : (
-          <div className="cwgsyw-form">
+          <div className="cwgsyw-workflow-stats__list">
             {stats.map((s) => (
-              <Card
-                key={s.processDefinitionKey}
-                title={s.name}
-                description={`${s.processDefinitionKey}${s.version != null ? ` · v${s.version}` : ''}`}
-                headerAction={<StatusBadge label={`${s.successRate}% 通过率`} status={rateTone(s.successRate)} />}
-              >
-                <div className="cwgsyw-filter-grid">
+              <article key={s.processDefinitionKey} className="cwgsyw-workflow-stats__panel">
+                <header>
+                  <div className="cwgsyw-workflow-stats__identity">
+                    <h2>{s.name}</h2>
+                    <p>{`${s.processDefinitionKey}${s.version != null ? ` · v${s.version}` : ''}`}</p>
+                  </div>
+                  <StatusBadge size="sm" label={`${s.successRate}% 通过率`} status={rateTone(s.successRate)} />
+                </header>
+                <div className="cwgsyw-workflow-stats__metrics">
                   <MetricCard label="总实例数" value={String(s.totalStarted)} />
                   <MetricCard label="运行中" value={String(s.runningCount)} tone="info" />
                   <MetricCard label="已完成" value={String(s.finishedCount)} tone="success" />
                   <MetricCard label="平均审批时长" value={formatDuration(s.avgDurationSeconds)} />
                 </div>
-              </Card>
+              </article>
             ))}
           </div>
         )

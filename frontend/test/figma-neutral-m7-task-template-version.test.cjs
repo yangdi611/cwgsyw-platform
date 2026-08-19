@@ -150,6 +150,8 @@ test('task template version designer leaves old visual entries and keeps APIs', 
   assert.match(designer, /validateTaskTemplateVersion/)
   assert.match(designer, /publishTaskTemplateVersion/)
   assert.match(designer, /previewTaskTemplateVersion/)
+  assert.doesNotMatch(designer, /<Card/)
+  assert.match(designer, /showSubtitle=\{false\}/)
   for (const source of [designer, library, canvas, panel]) {
     assert.doesNotMatch(source, /@\/components\/design-system/)
     assert.doesNotMatch(source, /@\/components\/shared/)
@@ -176,6 +178,7 @@ test('published template version stays read-only', () => {
   const designer = loadCompiled(designerPath, 'published')
   const html = renderToStaticMarkup(React.createElement(designer.TaskTemplateDesigner, { templateId: 7, versionId: 21 }))
   assert.match(html, /此版本已发布或废弃，只读展示不可变快照/)
+  assert.match(html, /cwgsyw-tasks-panel/)
   assert.match(html, /已发布/)
   assert.doesNotMatch(html, />保存</)
   assert.doesNotMatch(html, />校验</)

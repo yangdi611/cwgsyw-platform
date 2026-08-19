@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
@@ -26,7 +26,7 @@ import { CollapsedEntry } from './sidebar/CollapsedEntry'
 import { getWorkItemCounts } from '@/lib/work-item-api'
 import type { NavItem } from './sidebar/types'
 
-const FIGMA_LOGOMARK_URL = '/figma-sidebar-logomark.svg'
+const SIDEBAR_LOGO_URL = '/sidebar-logo.png'
 
 export function Sidebar({
   collapsed,
@@ -40,7 +40,6 @@ export function Sidebar({
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
-  const { setTheme, theme } = useTheme()
   const openPalette = useCommandPalette((state) => state.setOpen)
   const { hasPermission } = usePermission()
   const groupScope = useAuthStore((state) => state.groupScope)
@@ -98,8 +97,11 @@ export function Sidebar({
 
   const [openKey, toggleGroup] = useOpenGroup(initialOpenKey)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRegionRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
   const isCollapsed = mobileOpen ? false : collapsed
-  const fallbackChar = user?.realName?.[0] ?? user?.username?.[0] ?? 'U'
+  const fallbackName = user?.realName?.trim() || user?.username?.trim() || 'U'
+  const fallbackChar = Array.from(fallbackName)[0]?.toUpperCase() ?? 'U'
 
   const [schemaVersion, setSchemaVersion] = useState<string | null>(null)
   useEffect(() => {
@@ -107,6 +109,26 @@ export function Sidebar({
       .then((response) => setSchemaVersion(response.data?.data?.schema_version ?? null))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !userMenuRegionRef.current?.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setUserMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [userMenuOpen])
 
   useEffect(() => {
     navItems.forEach((entry) => {
@@ -137,8 +159,8 @@ export function Sidebar({
       >
         <div className="cwgsyw-sidebar__brand">
           <div className="cwgsyw-sidebar__logomark" aria-hidden="true">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Figma logomark asset */}
-            <img src={FIGMA_LOGOMARK_URL} alt="" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- static product logo asset */}
+            <img src={SIDEBAR_LOGO_URL} alt="" />
           </div>
           {!isCollapsed ? (
             <div className="cwgsyw-sidebar__brand-copy">
@@ -219,24 +241,58 @@ export function Sidebar({
           </nav>
         )}
 
-        <div className="cwgsyw-sidebar__footer">
+        <div ref={userMenuRegionRef} className="cwgsyw-sidebar__footer" data-figma-node="2:7746">
           <IconButton
             type="button"
             variant="ghost"
             className="cwgsyw-sidebar__user-trigger"
             aria-label="打开用户菜单"
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
             icon={
-              <Avatar
-                type={user?.avatarUrl ? 'image' : 'initials'}
-                src={user?.avatarUrl ?? undefined}
-                alt={user?.realName || user?.username}
-                initials={fallbackChar}
-              />
+              <span className={cn('cwgsyw-sidebar__user-avatar', !user?.avatarUrl && 'is-fallback')}>
+                <Avatar
+                  type={user?.avatarUrl ? 'image' : 'initials'}
+                  size="md"
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.realName || user?.username}
+                  initials={fallbackChar}
+                />
+              </span>
             }
             onClick={() => setUserMenuOpen((open) => !open)}
-          />
-          {userMenuOpen ? (
-            <div className="cwgsyw-sidebar-user-menu" role="menu" aria-label="用户菜单">
+          >
+            {!isCollapsed ? (
+              <>
+                <span className="cwgsyw-sidebar__user-copy">
+                  <span className="cwgsyw-sidebar__user-name" title={user?.realName || user?.username || undefined}>
+                    {user?.realName || user?.username || '-'}
+                  </span>
+                  <span className="cwgsyw-sidebar__user-username" title={user?.username || undefined}>
+                    {user?.username || '-'}
+                  </span>
+                </span>
+                <span className="cwgsyw-sidebar__user-chevron" aria-hidden="true">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- exact Figma chevrons-up-down asset */}
+                  <img src="/figma-icons/sidebar-chevrons-up-down.svg" alt="" />
+                </span>
+              </>
+            ) : null}
+          </IconButton>
+          <AnimatePresence initial={false}>
+            {userMenuOpen ? (
+              <motion.div
+                key="sidebar-user-menu"
+                className="cwgsyw-sidebar-user-menu"
+                role="menu"
+                aria-label="用户菜单"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
+                transition={reduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              >
               <div className="cwgsyw-sidebar-user-menu__identity">
                 <Avatar
                   type={user?.avatarUrl ? 'image' : 'initials'}
@@ -249,16 +305,13 @@ export function Sidebar({
                   <p className="cwgsyw-type-label-sm">@{user?.username}</p>
                 </div>
               </div>
-              <MenuItem label="通知中心" onClick={() => { router.push('/notifications'); setUserMenuOpen(false) }} />
               <MenuItem label="个人资料" onClick={() => { router.push('/account/profile'); setUserMenuOpen(false) }} />
               <MenuItem label="修改密码" onClick={() => { router.push('/account/password'); setUserMenuOpen(false) }} />
-              <MenuItem label={theme === 'light' ? '浅色（当前）' : '浅色'} selected={theme === 'light'} onClick={() => { setTheme('light'); setUserMenuOpen(false) }} />
-              <MenuItem label={theme === 'dark' ? '深色（当前）' : '深色'} selected={theme === 'dark'} onClick={() => { setTheme('dark'); setUserMenuOpen(false) }} />
-              <MenuItem label={theme === 'system' ? '跟随系统（当前）' : '跟随系统'} selected={theme === 'system'} onClick={() => { setTheme('system'); setUserMenuOpen(false) }} />
               <MenuItem label={schemaVersion ? `Schema V${schemaVersion}` : 'Schema —'} disabled />
               <MenuItem label="退出登录" type="destructive" onClick={() => logout()} />
-            </div>
-          ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </aside>
     </>

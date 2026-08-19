@@ -8,14 +8,12 @@ import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Card,
-  Chip,
+  Tabs,
   DataManagementPage,
   EmptyState,
   ErrorState,
-  FilterBar,
   LoadingState,
   NeutralAlertDialog,
   NeutralDrawer,
@@ -144,7 +142,7 @@ export default function InstancesPage() {
     { key: 'start_time', label: '开始时间' },
     ...(tab === 'finished' ? [{ key: 'end_time', label: '结束时间' }] : []),
     { key: 'status', label: '状态' },
-    { key: 'actions', label: '操作', align: 'right' as const },
+    { key: 'actions', label: '操作' },
   ]
 
   const rows = instances.map((r) => {
@@ -157,9 +155,9 @@ export default function InstancesPage() {
         business_key: r.businessKey || '-',
         start_time: formatDate(r.startTime),
         end_time: r.endTime ? formatDate(r.endTime) : '-',
-        status: <StatusBadge label={status.label} status={status.tone} />,
+        status: <StatusBadge size="sm" label={status.label} status={status.tone} />,
         actions: (
-          <div className="cwgsyw-inline-controls" onClick={(event) => event.stopPropagation()}>
+          <div className="cwgsyw-workflow-instances__actions" onClick={(event) => event.stopPropagation()}>
             <Button type="button" variant="ghost" size="sm" onClick={() => handleView(r)}>
               查看
             </Button>
@@ -191,45 +189,31 @@ export default function InstancesPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-workflow cwgsyw-workflow-instances"
         header={
           <PageHeader
-            eyebrow="流程中心"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="流程实例"
             subtitle="查看和管理运行中的流程实例与已完成的历史记录，支持挂起、激活与终止。"
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/workflow/design', label: '流程中心' },
-                  { label: '流程实例' },
-                ]}
-              />
-            }
           />
         }
-        filter={
-          <FilterBar
-            filterItems={
-              <div className="cwgsyw-inline-controls">
-                <Chip
-                  label="运行中"
-                  selected={tab === 'running'}
-                  onClick={() => {
-                    setTab('running')
-                    setPage(1)
-                  }}
-                />
-                <Chip
-                  label="已完成"
-                  selected={tab === 'finished'}
-                  onClick={() => {
-                    setTab('finished')
-                    setPage(1)
-                  }}
-                />
-              </div>
-            }
-          />
+        toolbar={
+          <div className="cwgsyw-workflow-instances__toolbar" aria-label="实例状态">
+            <Tabs
+              style="cmdb"
+              size="sm"
+              value={tab}
+              onChange={(id) => {
+                setTab(id as 'running' | 'finished')
+                setPage(1)
+              }}
+              items={[
+                { id: 'running', label: '运行中', panel: null },
+                { id: 'finished', label: '已完成', panel: null },
+              ]}
+            />
+          </div>
         }
         content={
           isError ? (
@@ -237,7 +221,7 @@ export default function InstancesPage() {
               title="流程实例加载失败"
               description="无法读取流程实例，请稍后重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
                   重试
                 </Button>
               }
@@ -245,15 +229,29 @@ export default function InstancesPage() {
           ) : (
             <>
               <Table
+                className={`cwgsyw-cmdb-table cwgsyw-workflow-instances__table cwgsyw-workflow-instances__table--${tab}`}
                 columns={columns}
                 rows={rows}
+                density="compact"
                 showSearch={false}
                 state={tableState}
                 empty={
-                  <EmptyState
-                    title={tab === 'running' ? '暂无运行中的流程实例' : '暂无已完成的流程实例'}
-                    description="切换标签查看其他状态的流程实例。"
-                  />
+                  <div className="cwgsyw-workflow-empty">
+                    {/* Official 20px Figma git-branch glyph; image optimization adds no value here. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/figma-icons/workflow-git-branch.svg"
+                      width={22}
+                      height={22}
+                      alt=""
+                      data-figma-node="6:26741"
+                    />
+                    <EmptyState
+                      showIcon={false}
+                      title={tab === 'running' ? '暂无运行中的流程实例' : '暂无已完成的流程实例'}
+                      description="切换标签查看其他状态的流程实例。"
+                    />
+                  </div>
                 }
               />
               <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
@@ -279,8 +277,8 @@ export default function InstancesPage() {
             <div className="cwgsyw-type-label-sm">流程进度</div>
             <BpmnViewer xml={viewerXml} completedActivities={completedIds} currentActivities={currentIds} />
             <div className="cwgsyw-inline-controls">
-              <StatusBadge label="已完成" status="success" />
-              <StatusBadge label="当前" status="info" />
+              <StatusBadge size="sm" label="已完成" status="success" />
+              <StatusBadge size="sm" label="当前" status="info" />
             </div>
           </div>
         ) : (
@@ -291,7 +289,7 @@ export default function InstancesPage() {
             <div className="cwgsyw-type-label-sm">活动历史</div>
             {activities.map((a, i) => (
               <Card key={`${a.activityId}-${i}`} showHeader={false} padding="sm">
-                <StatusBadge label={a.endTime ? '已完成' : '进行中'} status={a.endTime ? 'success' : 'neutral'} />
+                <StatusBadge size="sm" label={a.endTime ? '已完成' : '进行中'} status={a.endTime ? 'success' : 'neutral'} />
                 <div className="cwgsyw-type-body-sm">{a.activityName}</div>
                 {a.assignee ? <div className="cwgsyw-type-label-xs">负责人: {a.assignee}</div> : null}
               </Card>
@@ -303,6 +301,8 @@ export default function InstancesPage() {
       <NeutralAlertDialog
         open={!!terminateId}
         onOpenChange={(open) => !open && setTerminateId(null)}
+        className="cwgsyw-cmdb-model-detail__delete-dialog"
+        icon={<img src="/figma-icons/cmdb-model-alert.svg" alt="" width={56} height={56} />}
         title="确认终止"
         description="确定要终止此流程实例吗？"
         intent="destructive"

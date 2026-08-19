@@ -12,19 +12,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
-  Chip,
   DetailDrawerPage,
   EmptyState,
   ErrorState,
   Field,
+  IconButton,
   Input,
   LoadingState,
-  MetricCard,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Progress,
   StatusBadge,
@@ -167,7 +165,7 @@ export default function IpamDetailPage() {
       { key: 'allocatedByName', label: '分配人' },
       { key: 'allocatedAt', label: '分配时间' },
       { key: 'description', label: '描述' },
-      { key: 'actions', label: '操作', align: 'right' as const },
+      { key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' as const },
     ],
     [],
   )
@@ -214,9 +212,19 @@ export default function IpamDetailPage() {
         actions:
           allocation.status === 'allocated' ? (
             <PermissionGuard resource="ip_pool" action="update">
-              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => setReleaseTarget(allocation)}>
-                释放
-              </Button>
+              <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                <NeutralTooltip content="释放" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="cwgsyw-cmdb-admin__delete-action"
+                    icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                    aria-label={`释放 ${allocation.ipAddress}`}
+                    onClick={() => setReleaseTarget(allocation)}
+                  />
+                </NeutralTooltip>
+              </div>
             </PermissionGuard>
           ) : (
             '-'
@@ -229,31 +237,30 @@ export default function IpamDetailPage() {
     <>
       <DetailDrawerPage
         embedded
+        className="cwgsyw-ipam cwgsyw-ipam-detail"
         header={
           <PageHeader
-            eyebrow="资源管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title={pool.name}
-            subtitle={pool.description || '地址池详情、使用率与分配记录'}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/ipam', label: 'IP 地址池' },
-                  { label: pool.name },
-                ]}
-              />
-            }
-            status={<StatusBadge label={meta.label} status={meta.tone} />}
+            subtitle={`${pool.cidr}${pool.description ? ` · ${pool.description}` : ''}`}
+            status={<StatusBadge size="sm" label={meta.label} status={meta.tone} />}
             actions={
               <div className="cwgsyw-inline-controls">
-                <Chip label={pool.cidr} />
                 <PermissionGuard resource="ip_pool" action="update">
-                  <Button type="button" variant="secondary" size="sm" onClick={startEdit}>
-                    编辑
-                  </Button>
+                  <NeutralTooltip content="编辑" className="cwgsyw-tooltip--pill" followCursor>
+                    <IconButton
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                      aria-label={`编辑 ${pool.name}`}
+                      onClick={startEdit}
+                    />
+                  </NeutralTooltip>
                 </PermissionGuard>
                 <PermissionGuard resource="ip_pool" action="update">
-                  <Button type="button" variant="primary" size="sm" onClick={() => setAllocateOpen(true)}>
+                  <Button type="button" size="sm" onClick={() => setAllocateOpen(true)}>
                     分配 IP
                   </Button>
                 </PermissionGuard>
@@ -264,11 +271,14 @@ export default function IpamDetailPage() {
         content={
           <div className="cwgsyw-form">
             {editing ? (
-              <Card title="编辑地址池信息" description="CIDR 与容量由地址池定义决定，这里只改名称、网关、DNS 和描述。">
-                <div className="cwgsyw-form">
+              <section className="cwgsyw-devices-panel">
+                <header className="cwgsyw-devices-panel__head">编辑地址池信息</header>
+                <div className="cwgsyw-devices-panel__body cwgsyw-form">
+                  <p className="cwgsyw-devices-panel__hint">CIDR 与容量由地址池定义决定，这里只改名称、网关、DNS 和描述。</p>
                   <Field htmlFor="pool-name" label="名称" required>
                     <Input
                       id="pool-name"
+                      size="sm"
                       value={editForm.name}
                       onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
                     />
@@ -276,6 +286,7 @@ export default function IpamDetailPage() {
                   <Field htmlFor="pool-gateway" label="网关">
                     <Input
                       id="pool-gateway"
+                      size="sm"
                       value={editForm.gateway}
                       onChange={(event) => setEditForm((current) => ({ ...current, gateway: event.target.value }))}
                     />
@@ -283,6 +294,7 @@ export default function IpamDetailPage() {
                   <Field htmlFor="pool-dns" label="DNS">
                     <Input
                       id="pool-dns"
+                      size="sm"
                       value={editForm.dns}
                       onChange={(event) => setEditForm((current) => ({ ...current, dns: event.target.value }))}
                     />
@@ -290,6 +302,7 @@ export default function IpamDetailPage() {
                   <Field htmlFor="pool-description" label="描述">
                     <Input
                       id="pool-description"
+                      size="sm"
                       value={editForm.description}
                       onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))}
                     />
@@ -303,39 +316,69 @@ export default function IpamDetailPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </section>
             ) : null}
 
             {!editing ? (
-              <div className="cwgsyw-page__metrics">
-                <MetricCard label="CIDR" value={pool.cidr} />
-                <MetricCard label="网关" value={pool.gateway || '-'} />
-                <MetricCard label="DNS" value={pool.dns || '-'} />
-                {pool.description ? <MetricCard label="描述" value={pool.description} /> : null}
-              </div>
+              <section className="cwgsyw-devices-panel">
+                <header className="cwgsyw-devices-panel__head">地址池摘要</header>
+                <div className="cwgsyw-devices-panel__body">
+                  <dl className="cwgsyw-devices-defs">
+                    <div>
+                      <dt>CIDR</dt>
+                      <dd>{pool.cidr}</dd>
+                    </div>
+                    <div>
+                      <dt>网关</dt>
+                      <dd>{pool.gateway || '-'}</dd>
+                    </div>
+                    <div>
+                      <dt>DNS</dt>
+                      <dd>{pool.dns || '-'}</dd>
+                    </div>
+                    {pool.description ? (
+                      <div>
+                        <dt>描述</dt>
+                        <dd>{pool.description}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  <div className="cwgsyw-ipam-detail__usage">
+                    <span className="cwgsyw-ipam-detail__usage-label">使用率</span>
+                    <Progress
+                      value={pct}
+                      label={`${pool.allocatedCount} / ${pool.totalCount}`}
+                      showLabel
+                      showPercentage
+                      size="sm"
+                      tone={utilizationTone(pct)}
+                    />
+                  </div>
+                </div>
+              </section>
             ) : null}
 
-            <Card title="使用率">
-              <Progress
-                value={pct}
-                label={`${pool.allocatedCount} / ${pool.totalCount}`}
-                showLabel
-                showPercentage
-                size="md"
-                tone={utilizationTone(pct)}
-              />
-            </Card>
-
-            <div>
-              <h2 className="cwgsyw-type-title-sm">IP 分配记录</h2>
+            <section className="cwgsyw-devices-panel">
+              <header className="cwgsyw-devices-panel__head">IP 分配记录</header>
+              <div className="cwgsyw-devices-panel__body">
               <Table
+                className="cwgsyw-cmdb-table cwgsyw-ipam__table"
                 columns={columns}
                 rows={rows}
+                density="compact"
                 showSearch={false}
                 state={allocations.length === 0 ? 'empty' : 'data'}
-                empty={<EmptyState title="暂无分配记录" description="点击右上角「分配 IP」分配第一个地址。" showAction={false} />}
+                empty={
+                  <div className="cwgsyw-neutral-empty">
+                    {/* Official 22px Figma network glyph; image optimization adds no value here. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/figma-icons/ipam-network.svg" width={22} height={22} alt="" data-figma-node="6:28340" />
+                    <EmptyState showIcon={false} title="暂无分配记录" description="点击右上角「分配 IP」分配第一个地址。" />
+                  </div>
+                }
               />
-            </div>
+              </div>
+            </section>
           </div>
         }
       />
@@ -346,16 +389,18 @@ export default function IpamDetailPage() {
           if (!open) setAllocateOpen(false)
         }}
         title="分配 IP"
+        size="sm"
         description="填写指定地址，或留空后由系统分配下一个可用 IP。"
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={() => setAllocateOpen(false)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setAllocateOpen(false)}>
               取消
             </Button>
             <Button
               type="button"
               variant="primary"
+              size="sm"
               loading={allocateMutation.isPending}
               onClick={() => allocateMutation.mutate(allocateForm)}
             >
@@ -368,6 +413,7 @@ export default function IpamDetailPage() {
           <Field htmlFor="allocate-ip" label="IP 地址" helperText="留空则自动分配下一个可用 IP">
             <Input
               id="allocate-ip"
+              size="sm"
               value={allocateForm.ipAddress}
               placeholder="留空则自动分配"
               onChange={(event) => setAllocateForm((current) => ({ ...current, ipAddress: event.target.value }))}
@@ -376,6 +422,7 @@ export default function IpamDetailPage() {
           <Field htmlFor="allocate-description" label="描述">
             <Input
               id="allocate-description"
+              size="sm"
               value={allocateForm.description}
               placeholder="备注用途"
               onChange={(event) => setAllocateForm((current) => ({ ...current, description: event.target.value }))}

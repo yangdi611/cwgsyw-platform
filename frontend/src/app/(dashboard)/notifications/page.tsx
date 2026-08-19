@@ -3,13 +3,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
+import { NotificationEmpty, NOTIFICATION_BELL_ICON, NOTIFICATION_BELL_NODE } from '@/components/notification/NotificationEmpty'
 import { NotificationItem } from '@/components/notification/NotificationItem'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/notification/notifications.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
-  EmptyState,
   ErrorState,
   LoadingState,
   PageHeader,
@@ -63,15 +63,16 @@ export default function NotificationsPage() {
   return (
     <DataManagementPage
       embedded
+      className="cwgsyw-notifications-page"
       header={
         <PageHeader
-          eyebrow="系统管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="通知中心"
           subtitle={unreadCount > 0 ? `${unreadCount} 条未读通知` : '查看系统与业务通知，点击标记已读。'}
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '通知中心' }]} />}
           actions={
             unreadCount > 0 ? (
-              <Button type="button" variant="secondary" loading={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
+              <Button type="button" size="sm" variant="secondary" loading={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
                 全部已读
               </Button>
             ) : null
@@ -86,19 +87,29 @@ export default function NotificationsPage() {
             title="通知加载失败"
             description="无法读取通知中心，请重试。"
             retry={
-              <Button type="button" variant="secondary" onClick={() => void refetch()}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => void refetch()}>
                 重试
               </Button>
             }
           />
         ) : records.length === 0 ? (
-          <EmptyState title="暂无通知" description="系统与业务通知将在这里汇总。" showAction={false} />
+          <NotificationEmpty
+            iconSrc={NOTIFICATION_BELL_ICON}
+            figmaNode={NOTIFICATION_BELL_NODE}
+            title="暂无通知"
+            description="系统与业务通知将在这里汇总。"
+          />
         ) : (
-          <div className="cwgsyw-form">
-            {records.map((item) => (
-              <NotificationItem key={item.id} notification={item} onMarkRead={(id) => readMutation.mutate(id)} />
-            ))}
-          </div>
+          <section className="cwgsyw-notifications-panel">
+            <header>通知</header>
+            <ul className="cwgsyw-notifications-list">
+              {records.map((item) => (
+                <li key={item.id}>
+                  <NotificationItem notification={item} onMarkRead={(id) => readMutation.mutate(id)} />
+                </li>
+              ))}
+            </ul>
+          </section>
         )
       }
     />

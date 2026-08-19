@@ -131,6 +131,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
+  margin-top: 0;
+  padding-top: var(--cwgsyw-space-6);
   gap: var(--cwgsyw-space-1);
   font-size: var(--cwgsyw-font-size-label-sm);
   line-height: var(--cwgsyw-type-label-sm-line-height);

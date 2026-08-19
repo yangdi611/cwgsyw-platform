@@ -7,20 +7,25 @@ import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { deleteTaskTemplate, listTaskTemplates, type TaskTemplateStatus, type TaskTemplateSummary } from '@/lib/task-template-api'
 import { usePermission } from '@/hooks/usePermission'
-import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
+  TaskEmpty,
+  TASK_LAYOUT_TEMPLATE_ICON,
+  TASK_LAYOUT_TEMPLATE_NODE,
+} from '@/components/task-runtime/TaskEmpty'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import {
   Button,
-  Chip,
   DataManagementPage,
-  EmptyState,
   ErrorState,
-  FilterBar,
+  IconButton,
   NeutralAlertDialog,
+  NeutralTooltip,
   PageHeader,
   SearchInput,
   StatusBadge,
   Table,
+  Tabs,
 } from '@/design-system/figma-neutral/components'
 
 const STATUS_LABELS: Record<TaskTemplateStatus, string> = {
@@ -35,6 +40,12 @@ const STATUS_TONES: Record<TaskTemplateStatus, 'success' | 'warning' | 'neutral'
   published: 'success',
   deprecated: 'neutral',
   archived: 'neutral',
+}
+
+const SCOPE_LABELS: Record<TaskTemplateSummary['scopeType'], string> = {
+  tenant: '租户',
+  group: '组',
+  private: '个人',
 }
 
 const FILTERS: Array<'all' | TaskTemplateStatus> = ['all', 'draft', 'published', 'deprecated', 'archived']
@@ -66,23 +77,16 @@ export function TaskTemplateList() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-tasks-page"
         header={
           <PageHeader
-            eyebrow="统一任务平台"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="任务模板"
             subtitle="设计任务说明、动态表单、统计语义和默认策略；发布后的版本保持不可变。"
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/tasks', label: '我的任务' },
-                  { label: '任务模板' },
-                ]}
-              />
-            }
             actions={
               hasPermission('task_template', 'create') ? (
-                <Button type="button" variant="primary" onClick={() => router.push('/tasks/templates/new')}>
+                <Button type="button" size="sm" variant="primary" onClick={() => router.push('/tasks/templates/new')}>
                   新建模板
                 </Button>
               ) : null
@@ -90,83 +94,90 @@ export function TaskTemplateList() {
           />
         }
         filter={
-          <FilterBar
-            search={
-              <SearchInput
-                value={keyword}
-                placeholder="搜索模板名称或编码"
-                onChange={(event) => setKeyword(event.target.value)}
-              />
-            }
-            filterItems={
-              <div className="cwgsyw-inline-controls">
-                {FILTERS.map((item) => (
-                  <Chip
-                    key={item}
-                    label={item === 'all' ? '全部' : STATUS_LABELS[item]}
-                    selected={status === item}
-                    onClick={() => setStatus(item)}
-                  />
-                ))}
-              </div>
-            }
-          />
+          <div className="cwgsyw-tasks-toolbar cwgsyw-tasks-toolbar--split">
+            <SearchInput
+              size="sm"
+              value={keyword}
+              placeholder="搜索模板名称..."
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <Tabs
+              style="cmdb"
+              size="sm"
+              value={status}
+              onChange={(id) => setStatus(id as 'all' | TaskTemplateStatus)}
+              items={FILTERS.map((item) => ({
+                id: item,
+                label: item === 'all' ? '全部' : STATUS_LABELS[item],
+                panel: null,
+              }))}
+            />
+          </div>
         }
         content={
           templates.isError ? (
             <ErrorState
               title="模板加载失败"
               description="无法读取任务模板，请重试。"
-              retry={<Button type="button" variant="secondary" onClick={() => void templates.refetch()}>重试</Button>}
+              retry={<Button type="button" size="sm" variant="secondary" onClick={() => void templates.refetch()}>重试</Button>}
             />
           ) : (
+            <div className="cwgsyw-cmdb-table cwgsyw-tasks-templates-table">
             <Table
               showSearch={false}
+              density="compact"
               columns={[
                 { key: 'name', label: '模板' },
+                { key: 'code', label: '编码' },
                 { key: 'status', label: '状态' },
                 { key: 'scope', label: '范围' },
                 { key: 'updatedAt', label: '更新时间' },
-                { key: 'actions', label: '操作' },
+                { key: 'actions', label: '', align: 'right' },
               ]}
               rows={records.map((template) => ({
                 id: String(template.id),
                 cells: {
-                  name: (
-                    <div>
-                      <strong>{template.name}</strong>
-                      <p className="cwgsyw-type-label-xs">{template.code}</p>
-                      <p className="cwgsyw-type-body-sm">{template.description || '暂无描述'}</p>
-                    </div>
-                  ),
+                  name: <p className="cwgsyw-tasks-cell-title">{template.name}</p>,
+                  code: template.code,
                   status: (
                     <div className="cwgsyw-inline-controls">
                       <StatusBadge label={STATUS_LABELS[template.status]} status={STATUS_TONES[template.status]} />
                       {template.builtin ? <StatusBadge label="系统内置" status="neutral" /> : null}
-                      {template.category ? <Chip label={template.category} /> : <Chip label="未分类" />}
+                      {template.category ? <StatusBadge label={template.category} status="neutral" /> : null}
                     </div>
                   ),
-                  scope: template.scopeType,
+                  scope: SCOPE_LABELS[template.scopeType] ?? template.scopeType,
                   updatedAt: new Date(template.updatedAt).toLocaleString('zh-CN'),
                   actions: canDelete ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setDeleteTarget(template)
-                      }}
-                    >
-                      删除
-                    </Button>
+                    <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                      <IconButton
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`删除模板 ${template.name}`}
+                        className="cwgsyw-tasks-icon-action"
+                        icon={<span aria-hidden="true" className="cwgsyw-tasks-figma-icon cwgsyw-tasks-figma-icon--trash" />}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setDeleteTarget(template)
+                        }}
+                      />
+                    </NeutralTooltip>
                   ) : null,
                 },
               }))}
               state={templates.isLoading ? 'loading' : records.length === 0 ? 'empty' : 'data'}
-              empty={<EmptyState title="暂无任务模板" description="创建一个高度定制的任务模板，或直接使用系统内置模板。" showAction={false} />}
+              empty={
+                <TaskEmpty
+                  iconSrc={TASK_LAYOUT_TEMPLATE_ICON}
+                  figmaNode={TASK_LAYOUT_TEMPLATE_NODE}
+                  title="暂无任务模板"
+                  description="创建一个高度定制的任务模板，或直接使用系统内置模板。"
+                />
+              }
               onRowClick={(id) => router.push(`/tasks/templates/${id}`)}
             />
+            </div>
           )
         }
       />

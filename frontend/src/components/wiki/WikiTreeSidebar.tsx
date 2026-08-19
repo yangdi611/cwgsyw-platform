@@ -7,14 +7,14 @@ import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
-import { cn } from '@/lib/utils'
 import {
   Button,
   IconButton,
   Input,
+  NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
 } from '@/design-system/figma-neutral/components'
-import { FileText, Pencil, Plus } from 'lucide-react'
 import type { WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
 import { canDeleteInSpace } from '@/types/wiki'
 
@@ -73,22 +73,16 @@ function TreeNode({
   return (
     <div>
       <div
-        className={cn(
-          'group flex w-full items-center gap-1 rounded-md pr-1 text-sm transition-colors',
-          activeId === node.id
-            ? 'bg-[var(--cwgsyw-bg-surface-selected)] font-semibold text-[var(--cwgsyw-action-primary)]'
-            : 'text-[var(--cwgsyw-text-primary)] hover:bg-[var(--cwgsyw-bg-surface-hover)]',
-        )}
+        className={`cwgsyw-wiki-tree__row${activeId === node.id ? ' is-active' : ''}`}
       >
         {hasChildren ? (
           <IconButton
             type="button"
             variant="ghost"
             size="sm"
-            icon="chevron-right"
+            icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-files-tree__chevron${expanded ? ' is-open' : ''}`} />}
             aria-label={expanded ? '折叠子页面' : '展开子页面'}
             aria-expanded={expanded}
-            className={cn('shrink-0', expanded && 'rotate-90')}
             onClick={() => setExpanded((value) => !value)}
           />
         ) : (
@@ -98,29 +92,39 @@ function TreeNode({
           type="button"
           variant="ghost"
           size="sm"
-          className="min-w-0 flex-1 justify-start gap-1 px-1"
+          className="cwgsyw-wiki-tree__title"
           style={{ paddingLeft: `${4 + depth * 14}px` }}
           onClick={() => router.push(`/wiki/${spaceId}/${node.id}`)}
         >
-          <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          <span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--file" />
           <span
-            className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])}
-            title={STATUS_LABEL[node.status]}
+            className={`cwgsyw-wiki-tree__dot ${STATUS_DOT[node.status]}`}
+            aria-label={STATUS_LABEL[node.status]}
           />
           <span className="truncate">{node.title || '无标题'}</span>
         </Button>
 
-        <div className="hidden shrink-0 items-center group-hover:flex">
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions cwgsyw-wiki-tree__row-actions">
           {canWrite && (
             <>
-              <IconButton type="button" variant="ghost" size="sm" icon={<Plus />} aria-label="新建子页面" onClick={() => handlers.onAddChild(node)} />
-              <IconButton type="button" variant="ghost" size="sm" icon={<Pencil />} aria-label="重命名" onClick={() => handlers.onRename(node)} />
-              <IconButton type="button" variant="ghost" size="sm" icon="chevron-up" aria-label="上移" onClick={() => handlers.onMove(node, siblings, parentId, -1)} />
-              <IconButton type="button" variant="ghost" size="sm" icon="chevron-down" aria-label="下移" onClick={() => handlers.onMove(node, siblings, parentId, 1)} />
+              <NeutralTooltip content="新建" className="cwgsyw-tooltip--pill" side="right">
+                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--plus" />} aria-label={`新建 ${node.title || '页面'} 的子页面`} onClick={() => handlers.onAddChild(node)} />
+              </NeutralTooltip>
+              <NeutralTooltip content="重命名" className="cwgsyw-tooltip--pill" side="right">
+                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />} aria-label={`重命名 ${node.title || '页面'}`} onClick={() => handlers.onRename(node)} />
+              </NeutralTooltip>
+              <NeutralTooltip content="上移" className="cwgsyw-tooltip--pill" side="right">
+                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron cwgsyw-wiki-space-card__chevron--up" />} aria-label={`上移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, -1)} />
+              </NeutralTooltip>
+              <NeutralTooltip content="下移" className="cwgsyw-tooltip--pill" side="right">
+                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron" />} aria-label={`下移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, 1)} />
+              </NeutralTooltip>
             </>
           )}
           {canDelete && (
-            <IconButton type="button" variant="ghost" size="sm" icon="trash" aria-label="删除页面" onClick={() => handlers.onDelete(node)} />
+            <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" side="right">
+              <IconButton type="button" variant="ghost" size="sm" className="cwgsyw-cmdb-admin__delete-action" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />} aria-label={`删除 ${node.title || '页面'}`} onClick={() => handlers.onDelete(node)} />
+            </NeutralTooltip>
           )}
         </div>
       </div>
@@ -269,13 +273,12 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
   const roots = tree ?? []
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 py-3">
+    <div className="cwgsyw-wiki-tree">
+      <div className="cwgsyw-wiki-tree__head">
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="font-bold"
           onClick={() => router.push(`/wiki/${spaceId}`)}
         >
           空间首页
@@ -285,7 +288,7 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
             type="button"
             variant="ghost"
             size="sm"
-            icon={<Plus />}
+            icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--plus" />}
             aria-label="新建页面"
             onClick={() => {
               setNewParent(null)
@@ -296,9 +299,9 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
+      <div className="cwgsyw-wiki-tree__list">
         {roots.length === 0 ? (
-          <p className="px-3 py-6 text-center text-xs text-[var(--cwgsyw-text-secondary)]">
+          <p className="cwgsyw-wiki-tree__empty">
             暂无页面{canWrite ? '，点击右上角 + 新建' : ''}
           </p>
         ) : (
@@ -320,13 +323,14 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
       </div>
 
       {/* Create page dialog */}
-      <NeutralDialog open={createOpen} onOpenChange={setCreateOpen} title="新建页面">
+      <NeutralDialog open={createOpen} onOpenChange={setCreateOpen} title="新建页面" size="sm">
         <div>
           <div>
             <h2 className="cwgsyw-type-title-sm">{newParent ? '新建子页面' : '新建页面'}</h2>
           </div>
           <div className="py-2">
             <Input
+              size="sm"
               placeholder="页面标题"
               value={newTitle}
               maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
@@ -338,11 +342,12 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
           </div>
           <p className="text-right text-xs text-[var(--cwgsyw-text-secondary)]">{newTitle.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</p>
           <div className="cwgsyw-inline-controls">
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
             <Button
-              variant="primary"
+              type="button"
+              size="sm"
               disabled={!newTitle.trim() || createMutation.isPending}
               onClick={() => createMutation.mutate()}
             >
@@ -353,13 +358,14 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
       </NeutralDialog>
 
       {/* Rename dialog */}
-      <NeutralDialog open={!!renameTarget} onOpenChange={(v) => !v && setRenameTarget(null)} title="重命名页面">
+      <NeutralDialog open={!!renameTarget} onOpenChange={(v) => !v && setRenameTarget(null)} title="重命名页面" size="sm">
         <div>
           <div>
             <h2 className="cwgsyw-type-title-sm">重命名页面</h2>
           </div>
           <div className="py-2">
             <Input
+              size="sm"
               value={renameValue}
               maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
               onChange={(e) => setRenameValue(e.target.value)}
@@ -371,11 +377,12 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
           </div>
           <p className="text-right text-xs text-[var(--cwgsyw-text-secondary)]">{renameValue.length}/{WIKI_PAGE_TITLE_MAX_LENGTH}</p>
           <div className="cwgsyw-inline-controls">
-            <Button variant="secondary" onClick={() => setRenameTarget(null)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setRenameTarget(null)}>
               取消
             </Button>
             <Button
-              variant="primary"
+              type="button"
+              size="sm"
               disabled={!renameValue.trim() || renameMutation.isPending}
               onClick={() => renameTarget && renameMutation.mutate(renameTarget)}
             >
@@ -385,34 +392,21 @@ export function WikiTreeSidebar({ spaceId }: { spaceId: number }) {
         </div>
       </NeutralDialog>
 
-      {/* Delete confirmation dialog */}
-      <NeutralDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)} title="删除页面">
-        <div>
-          <div>
-            <h2 className="cwgsyw-type-title-sm">确认删除</h2>
-          </div>
-          <div className="py-2 text-sm text-[var(--cwgsyw-text-primary)]">
-            确定要删除页面「{deleteTarget?.title}」吗？
-            {deleteTarget && countDescendants(deleteTarget) > 0 && (
-              <span className="mt-1 block text-[var(--cwgsyw-text-secondary)]">
-                包含 {countDescendants(deleteTarget)} 个子页面，将一并删除。
-              </span>
-            )}
-          </div>
-          <div className="cwgsyw-inline-controls">
-            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteMutation.isPending}
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-            >
-              {deleteMutation.isPending ? '删除中…' : '确认删除'}
-            </Button>
-          </div>
-        </div>
-      </NeutralDialog>
+      <NeutralAlertDialog
+        open={!!deleteTarget}
+        title="确认删除"
+        description={
+          deleteTarget && countDescendants(deleteTarget) > 0
+            ? `确定要删除页面「${deleteTarget.title}」吗？包含 ${countDescendants(deleteTarget)} 个子页面，将一并删除。`
+            : `确定要删除页面「${deleteTarget?.title ?? ''}」吗？`
+        }
+        intent="destructive"
+        confirmLabel={deleteMutation.isPending ? '删除中…' : '确认删除'}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }

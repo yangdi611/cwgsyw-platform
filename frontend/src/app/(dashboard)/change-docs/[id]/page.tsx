@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
@@ -16,9 +16,7 @@ import { DOC_TYPE_LABEL, DOC_TYPE_TONE, statusMeta } from './components/types'
 import type { ChangeDocVO, LinkedCiInstanceVO, TemplateVO } from './components/types'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
   EmptyState,
   Field,
   FormSettingsPage,
@@ -27,6 +25,26 @@ import {
   PageHeader,
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
+
+function DetailSection({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section className="cwgsyw-change-doc-detail__section">
+      <header className="cwgsyw-change-doc-detail__head">
+        <h2>{title}</h2>
+        {action}
+      </header>
+      <div className="cwgsyw-change-doc-detail__body">{children}</div>
+    </section>
+  )
+}
 
 const STATUS_TONE = {
   ok: 'success',
@@ -295,81 +313,81 @@ export default function ChangeDocDetailPage() {
     <>
       <FormSettingsPage
         embedded
+        className="cwgsyw-change-doc-detail"
         header={
           <PageHeader
-            eyebrow="变更文档"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title={doc.title || doc.changeNo}
             subtitle={doc.changeNo}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/change-docs', label: '变更文档' },
-                  { label: doc.title || doc.changeNo },
-                ]}
-              />
+            status={<StatusBadge size="sm" label={status.label} status={STATUS_TONE[status.variant]} />}
+            actions={
+              <div className="cwgsyw-change-doc-detail__header-actions">
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/change-docs')}>
+                  返回列表
+                </Button>
+              </div>
             }
-            status={<StatusBadge label={status.label} status={STATUS_TONE[status.variant]} />}
           />
         }
         form={
-          <div className="cwgsyw-form">
-            <Card title="基本信息">
-              <div className="cwgsyw-form">
-                {(isDraft || canReedit || isPlanPending) && hasPermission('change_doc', 'update') ? (
-                  <Field htmlFor="change-title" label="变更标题" required>
-                    <Input
-                      value={displayedTitle}
-                      placeholder="例如：核心交易系统数据库版本升级"
-                      onChange={(event) => {
-                        setTitle(event.target.value)
-                        setTitleTouched(true)
-                      }}
-                    />
-                  </Field>
-                ) : (
-                  <Field htmlFor="change-title-readonly" label="变更标题">
-                    <p>{doc.title || '—'}</p>
-                  </Field>
-                )}
-                <dl className="cwgsyw-permission-grid">
-                  <div>
-                    <dt>申请人</dt>
-                    <dd>{doc.applicantName}</dd>
-                  </div>
-                  <div>
-                    <dt>申请时间</dt>
-                    <dd>{doc.applyTime}</dd>
-                  </div>
-                </dl>
-                <div className="cwgsyw-designer__actions">
-                  <span>模板：</span>
-                  {doc.applicationTemplateId ? (
-                    <>
-                      <StatusBadge label={DOC_TYPE_LABEL.application} status={DOC_TONE[DOC_TYPE_TONE.application]} />
-                      <span>{doc.applicationTemplateName}</span>
-                    </>
-                  ) : null}
-                  {doc.planTemplateId ? (
-                    <>
-                      <StatusBadge label={DOC_TYPE_LABEL.plan} status={DOC_TONE[DOC_TYPE_TONE.plan]} />
-                      <span>{doc.planTemplateName}</span>
-                    </>
-                  ) : isPlanPending && hasPermission('change_doc', 'update') ? (
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setPlanTemplatePickerOpen(true)}>
-                      选择方案模板
-                    </Button>
-                  ) : (
-                    <span>未选择方案模板</span>
-                  )}
+          <div className="cwgsyw-form cwgsyw-change-doc-detail__form">
+            <DetailSection title="基本信息">
+              {(isDraft || canReedit || isPlanPending) && hasPermission('change_doc', 'update') ? (
+                <Field htmlFor="change-title" label="变更标题" required>
+                  <Input
+                    id="change-title"
+                    size="sm"
+                    value={displayedTitle}
+                    placeholder="例如：核心交易系统数据库版本升级"
+                    onChange={(event) => {
+                      setTitle(event.target.value)
+                      setTitleTouched(true)
+                    }}
+                  />
+                </Field>
+              ) : (
+                <Field htmlFor="change-title-readonly" label="变更标题">
+                  <p>{doc.title || '—'}</p>
+                </Field>
+              )}
+              <dl className="cwgsyw-change-doc-detail__metadata">
+                <div>
+                  <dt>申请人</dt>
+                  <dd>{doc.applicantName}</dd>
                 </div>
+                <div>
+                  <dt>申请时间</dt>
+                  <dd>{doc.applyTime}</dd>
+                </div>
+              </dl>
+              <div className="cwgsyw-change-doc-detail__templates">
+                <span className="cwgsyw-change-doc-detail__templates-label">模板</span>
+                {doc.applicationTemplateId ? (
+                  <>
+                    <StatusBadge size="sm" label={DOC_TYPE_LABEL.application} status={DOC_TONE[DOC_TYPE_TONE.application]} />
+                    <span>{doc.applicationTemplateName}</span>
+                  </>
+                ) : null}
+                {doc.planTemplateId ? (
+                  <>
+                    <StatusBadge size="sm" label={DOC_TYPE_LABEL.plan} status={DOC_TONE[DOC_TYPE_TONE.plan]} />
+                    <span>{doc.planTemplateName}</span>
+                  </>
+                ) : isPlanPending && hasPermission('change_doc', 'update') ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setPlanTemplatePickerOpen(true)}>
+                    选择方案模板
+                  </Button>
+                ) : (
+                  <span className="cwgsyw-change-doc-detail__empty-value">未选择方案模板</span>
+                )}
               </div>
-            </Card>
+            </DetailSection>
 
             {doc.applicationTemplateId ? (
-              <Card
+              <DetailSection
                 title="变更申请单"
-                headerAction={<StatusBadge label={DOC_TYPE_LABEL.application} status={DOC_TONE[DOC_TYPE_TONE.application]} />}
+                action={<StatusBadge size="sm" label={DOC_TYPE_LABEL.application} status={DOC_TONE[DOC_TYPE_TONE.application]} />}
               >
                 {visibleAppFields.length === 0 ? (
                   <p>该模板未配置表单字段</p>
@@ -384,13 +402,13 @@ export default function ChangeDocDetailPage() {
                     onAiGenerate={handleAiGenerate}
                   />
                 )}
-              </Card>
+              </DetailSection>
             ) : null}
 
             {doc.planTemplateId ? (
-              <Card
+              <DetailSection
                 title="变更方案"
-                headerAction={<StatusBadge label={DOC_TYPE_LABEL.plan} status={DOC_TONE[DOC_TYPE_TONE.plan]} />}
+                action={<StatusBadge size="sm" label={DOC_TYPE_LABEL.plan} status={DOC_TONE[DOC_TYPE_TONE.plan]} />}
               >
                 {visiblePlanFields.length === 0 ? (
                   <p>该模板未配置表单字段</p>
@@ -405,20 +423,20 @@ export default function ChangeDocDetailPage() {
                     onAiGenerate={handleAiGenerate}
                   />
                 )}
-              </Card>
+              </DetailSection>
             ) : null}
 
-            <Card title="关联 CI 实例">
+            <DetailSection title="关联 CI 实例">
               <CiLinkSelector
                 value={linkedCiItems}
                 onChange={handleCiLinksChange}
                 disabled={!hasPermission('change_doc', 'update')}
               />
-            </Card>
+            </DetailSection>
 
             {(doc.status === 'approved' || doc.status === 'rejected') ? (
-              <Card title="审批结果">
-                <dl className="cwgsyw-permission-grid">
+              <DetailSection title="审批结果">
+                <dl className="cwgsyw-change-doc-detail__metadata">
                   <div>
                     <dt>审批人</dt>
                     <dd>{doc.approverName}</dd>
@@ -429,10 +447,10 @@ export default function ChangeDocDetailPage() {
                   </div>
                 </dl>
                 {doc.approverComment ? <p>意见：{doc.approverComment}</p> : null}
-              </Card>
+              </DetailSection>
             ) : null}
 
-            <Card title="操作">
+            <DetailSection title="操作">
               <DocActionBar
                 doc={doc}
                 isDraft={isDraft}
@@ -450,7 +468,7 @@ export default function ChangeDocDetailPage() {
                 exporting={exporting}
                 onExport={handleExport}
               />
-            </Card>
+            </DetailSection>
           </div>
         }
       />

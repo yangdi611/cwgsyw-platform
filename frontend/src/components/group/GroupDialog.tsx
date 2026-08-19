@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
+import '@/components/task-runtime/tasks.css'
 import {
   Button,
   Checkbox,
@@ -116,6 +118,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
 
   return (
     <NeutralDialog
+        className="cwgsyw-identity-dialog"
       open={open}
       onOpenChange={(next) => {
         if (!next) onClose()
@@ -124,16 +127,16 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
       showClose={false}
       footer={
         <div className="cwgsyw-form__actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" size="sm" variant="secondary" onClick={onClose}>
             取消
           </Button>
-          <Button type="submit" form="group-dialog-form" variant="primary" loading={isSubmitting}>
+          <Button type="submit" form="group-dialog-form" size="sm" variant="primary" loading={isSubmitting}>
             {isSubmitting ? '保存中…' : '保存'}
           </Button>
         </div>
       }
     >
-      <form id="group-dialog-form" className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <form id="group-dialog-form" className="cwgsyw-form cwgsyw-identity-form" noValidate onSubmit={handleSubmit(onSubmit)}>
         <Field
           htmlFor="name"
           label="组名称"
@@ -141,7 +144,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           state={errors.name ? 'error' : 'default'}
           errorText={errors.name?.message}
         >
-          <Input
+          <Input size="sm"
             maxLength={64}
             placeholder="请输入组名称"
             {...register('name', {
@@ -156,7 +159,7 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           state={errors.description ? 'error' : 'default'}
           errorText={errors.description?.message}
         >
-          <Textarea
+          <Textarea size="sm"
             rows={2}
             maxLength={255}
             placeholder="请输入组描述"
@@ -166,6 +169,8 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
         <Field htmlFor="leaderId" label="组长">
           <Select
             id="leaderId"
+            size="sm"
+            overlay
             placeholder="不指定组长"
             value={leaderId == null ? '' : String(leaderId)}
             options={[
@@ -179,26 +184,28 @@ export default function GroupDialog({ open, mode, group, onClose, onSuccess }: G
           />
         </Field>
         {mode === 'create' ? (
-          <div>
-            <div className="cwgsyw-type-label-sm">组员</div>
-            <div className="cwgsyw-stack-list">
+          <TaskPanel
+            title="组员"
+            action={<span className="cwgsyw-tasks-cell-meta">已选 {selectedMemberIds.length} / {sortedUsers.length}</span>}
+          >
+            <div className="cwgsyw-identity-check-list">
               {sortedUsers.map((user) => (
-                <div key={user.id} className="cwgsyw-stack-list__item">
-                  <Checkbox
-                    label={`${user.realName || user.username}${user.groupName ? `（${user.groupName}）` : ''}`}
-                    checked={selectedMemberIds.includes(user.id)}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        setValue('memberIds', [...selectedMemberIds, user.id])
-                      } else {
-                        setValue('memberIds', selectedMemberIds.filter((id) => id !== user.id))
-                      }
-                    }}
-                  />
-                </div>
+                <Checkbox
+                  key={user.id}
+                  className="cwgsyw-tasks-choice"
+                  label={`${user.realName || user.username}${user.groupName ? `（${user.groupName}）` : ''}`}
+                  checked={selectedMemberIds.includes(user.id)}
+                  onChange={(event) => {
+                    if (event.target.checked) {
+                      setValue('memberIds', [...selectedMemberIds, user.id])
+                    } else {
+                      setValue('memberIds', selectedMemberIds.filter((id) => id !== user.id))
+                    }
+                  }}
+                />
               ))}
             </div>
-          </div>
+          </TaskPanel>
         ) : null}
       </form>
     </NeutralDialog>

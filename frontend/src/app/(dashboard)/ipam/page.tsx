@@ -11,17 +11,18 @@ import { useAuthStore } from '@/store/authStore'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
   EmptyState,
   ErrorState,
   Field,
   FilterBar,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Pagination,
   Progress,
@@ -151,7 +152,7 @@ export default function IpamPage() {
       { key: 'gateway', label: '网关' },
       { key: 'utilization', label: '使用率' },
       { key: 'status', label: '状态' },
-      { key: 'actions', label: '操作', align: 'right' as const },
+      { key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' as const },
     ],
     [],
   )
@@ -163,9 +164,9 @@ export default function IpamPage() {
       id: String(pool.id),
       cells: {
         name: (
-          <span>
-            <strong>{pool.name}</strong>
-            {pool.description ? <span className="cwgsyw-type-label-xs"> {pool.description}</span> : null}
+          <span className="cwgsyw-ipam__name-cell">
+            <span className="cwgsyw-ipam__name">{pool.name}</span>
+            {pool.description ? <span className="cwgsyw-ipam__desc">{pool.description}</span> : null}
           </span>
         ),
         cidr: pool.cidr,
@@ -184,14 +185,29 @@ export default function IpamPage() {
         ),
         status: <StatusBadge label={meta.label} status={meta.tone} />,
         actions: (
-          <div className="cwgsyw-inline-controls">
-            <Button type="button" variant="ghost" size="sm" onClick={() => router.push(`/ipam/${pool.id}`)}>
-              详情
-            </Button>
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions" onClick={(event) => event.stopPropagation()}>
+            <NeutralTooltip content="详情" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--eye" />}
+                aria-label={`查看 ${pool.name}`}
+                onClick={() => router.push(`/ipam/${pool.id}`)}
+              />
+            </NeutralTooltip>
             <PermissionGuard resource="ip_pool" action="delete">
-              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => setDeleteTarget(pool)}>
-                删除
-              </Button>
+              <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="cwgsyw-cmdb-admin__delete-action"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                  aria-label={`删除 ${pool.name}`}
+                  onClick={() => setDeleteTarget(pool)}
+                />
+              </NeutralTooltip>
             </PermissionGuard>
           </div>
         ),
@@ -205,18 +221,20 @@ export default function IpamPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-ipam"
         layout="default"
         header={
           <PageHeader
-            eyebrow="资源管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="IP 地址池"
             subtitle="管理网络地址段、网关与 DNS，监控地址分配率与冲突状态。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: 'IP 地址池' }]} />}
             actions={
               <PermissionGuard resource="ip_pool" action="create">
                 <Button
+                  className="cwgsyw-ipam__create"
                   type="button"
-                  variant="primary"
+                  size="sm"
                   onClick={() => {
                     setCreateOpen(true)
                     setCreateForm({ name: '', cidr: '', gateway: '', dns: '', description: '', groupId: '' })
@@ -232,8 +250,10 @@ export default function IpamPage() {
           <FilterBar
             search={
               <SearchInput
+                size="sm"
                 value={keyword}
                 placeholder="搜索名称、CIDR、描述…"
+                aria-label="搜索地址池名称、CIDR 或描述"
                 onChange={(event) => {
                   setKeyword(event.target.value)
                   setPage(1)
@@ -246,6 +266,9 @@ export default function IpamPage() {
             }
             filterItems={
               <Select
+                overlay
+                size="sm"
+                aria-label="地址池状态"
                 value={status || '__all__'}
                 placeholder="全部状态"
                 options={[
@@ -268,7 +291,7 @@ export default function IpamPage() {
               title="地址池加载失败"
               description="无法读取 IP 地址池，请稍后重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
                   重试
                 </Button>
               }
@@ -276,12 +299,22 @@ export default function IpamPage() {
           ) : (
             <>
               <Table
+                className="cwgsyw-cmdb-table cwgsyw-ipam__table"
                 columns={columns}
                 rows={rows}
+                density="compact"
                 showSearch={false}
                 state={tableState}
+                onRowClick={(id) => router.push(`/ipam/${id}`)}
                 loading={<LoadingState label="正在加载地址池…" />}
-                empty={<EmptyState title="暂无地址池" description="点击右上角“新建地址池”添加第一个网段。" />}
+                empty={
+                  <div className="cwgsyw-neutral-empty">
+                    {/* Official 22px Figma network glyph; image optimization adds no value here. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/figma-icons/ipam-network.svg" width={22} height={22} alt="" data-figma-node="6:28340" />
+                    <EmptyState showIcon={false} title="暂无地址池" description="点击右上角“新建地址池”添加第一个网段。" />
+                  </div>
+                }
               />
               <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
             </>
@@ -295,15 +328,17 @@ export default function IpamPage() {
           if (!open) setCreateOpen(false)
         }}
         title="新建地址池"
+        size="sm"
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
             <Button
               type="button"
               variant="primary"
+              size="sm"
               loading={createMutation.isPending}
               disabled={!createForm.name.trim() || !createForm.cidr.trim() || (needsGroupSelect && !createForm.groupId)}
               onClick={handleCreate}
@@ -317,6 +352,7 @@ export default function IpamPage() {
           <Field htmlFor="pool-name" label="名称" required>
             <Input
               id="pool-name"
+              size="sm"
               value={createForm.name}
               placeholder="例：生产网段 A"
               onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
@@ -325,6 +361,7 @@ export default function IpamPage() {
           <Field htmlFor="pool-cidr" label="CIDR" required>
             <Input
               id="pool-cidr"
+              size="sm"
               value={createForm.cidr}
               placeholder="例：192.168.1.0/24"
               onChange={(event) => setCreateForm((current) => ({ ...current, cidr: event.target.value }))}
@@ -333,6 +370,8 @@ export default function IpamPage() {
           {needsGroupSelect ? (
             <Field label="归属组" required>
               <Select
+                size="sm"
+                overlay
                 value={createForm.groupId}
                 placeholder="请选择归属组"
                 options={groups.map((group) => ({ value: String(group.id), label: group.name }))}
@@ -343,6 +382,7 @@ export default function IpamPage() {
           <Field htmlFor="pool-gateway" label="网关">
             <Input
               id="pool-gateway"
+              size="sm"
               value={createForm.gateway}
               placeholder="192.168.1.1"
               onChange={(event) => setCreateForm((current) => ({ ...current, gateway: event.target.value }))}
@@ -351,6 +391,7 @@ export default function IpamPage() {
           <Field htmlFor="pool-dns" label="DNS">
             <Input
               id="pool-dns"
+              size="sm"
               value={createForm.dns}
               placeholder="8.8.8.8"
               onChange={(event) => setCreateForm((current) => ({ ...current, dns: event.target.value }))}
@@ -359,6 +400,7 @@ export default function IpamPage() {
           <Field htmlFor="pool-description" label="描述">
             <Input
               id="pool-description"
+              size="sm"
               value={createForm.description}
               onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))}
             />

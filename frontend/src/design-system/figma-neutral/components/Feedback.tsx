@@ -137,6 +137,14 @@ export function Alert({
   )
 }
 
+const TOAST_ICON: Record<FeedbackTone, 'check-circle' | 'alert-triangle' | 'x-circle' | 'alert-circle'> = {
+  success: 'check-circle',
+  warning: 'alert-triangle',
+  danger: 'x-circle',
+  info: 'alert-circle',
+  neutral: 'alert-circle',
+}
+
 export function Toast({
   tone = 'neutral',
   layout = 'default',
@@ -157,16 +165,16 @@ export function Toast({
   onDismiss?: () => void
 }) {
   return (
-    <div className={['cwgsyw-toast', `cwgsyw-toast--${layout}`].join(' ')} data-cwgsyw-feedback={tone} data-feedback-context={tone === 'danger' ? 'danger' : tone === 'neutral' ? undefined : tone} role="status" aria-live="polite">
-      <Icon name="check" size="sm" />
+    <div className={['cwgsyw-toast', `cwgsyw-toast--${layout}`].join(' ')} data-cwgsyw-feedback={tone} role="status" aria-live="polite">
+      <span className={['cwgsyw-toast__icon', `cwgsyw-toast__icon--${TOAST_ICON[tone]}`].join(' ')} aria-hidden="true" />
       <div className="cwgsyw-toast__body">
-        <div className="cwgsyw-type-label-md">{title}</div>
-        {showDescription ? <div className="cwgsyw-type-body-sm">{description}</div> : null}
+        <div className="cwgsyw-toast__title">{title}</div>
+        {showDescription ? <div className="cwgsyw-toast__desc">{description}</div> : null}
         {action}
       </div>
       {showDismiss ? (
         <button type="button" className="cwgsyw-toast__dismiss" aria-label="关闭通知" onClick={onDismiss}>
-          <Icon name="close" size="sm" />
+          <span className="cwgsyw-toast__close" aria-hidden="true" />
         </button>
       ) : null}
     </div>

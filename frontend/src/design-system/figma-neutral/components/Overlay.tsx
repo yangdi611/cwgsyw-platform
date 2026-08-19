@@ -86,11 +86,13 @@ export function NeutralTooltip({
   children,
   className,
   followCursor = false,
+  side,
 }: {
   content: string
   children: ReactNode
   className?: string
   followCursor?: boolean
+  side?: 'top' | 'bottom' | 'left' | 'right'
 }) {
   return (
     <Tooltip.Provider>
@@ -104,7 +106,8 @@ export function NeutralTooltip({
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Positioner
-            side={followCursor ? 'bottom' : 'top'}
+            className="cwgsyw-tooltip-positioner"
+            side={side ?? (followCursor ? 'bottom' : 'top')}
             sideOffset={followCursor ? 18 : 6}
             positionMethod={followCursor ? 'fixed' : 'absolute'}
             collisionPadding={8}
@@ -121,7 +124,7 @@ export function NeutralTooltip({
 export function NeutralPopover({ title, children, trigger }: { title?: string; children: ReactNode; trigger: ReactNode }) {
   return (
     <Popover.Root>
-      <Popover.Trigger render={<span />}>{trigger}</Popover.Trigger>
+      <Popover.Trigger nativeButton={false} render={<span className="cwgsyw-popover-trigger" />}>{trigger}</Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner>
           <Popover.Popup className="cwgsyw-popover">
@@ -143,6 +146,7 @@ export function NeutralDialog({
   showClose = true,
   size = 'md',
   intent = 'default',
+  className,
   children,
   footer,
 }: {
@@ -154,6 +158,7 @@ export function NeutralDialog({
   showClose?: boolean
   size?: 'sm' | 'md' | 'lg' | 'alert'
   intent?: 'default' | 'destructive'
+  className?: string
   children?: ReactNode
   footer?: ReactNode
 }) {
@@ -165,7 +170,7 @@ export function NeutralDialog({
           <DialogOverlay />
           <DialogContent
             {...(showDescription && description ? {} : { 'aria-describedby': undefined })}
-            className={[`cwgsyw-dialog--${size}`, intent === 'destructive' ? 'cwgsyw-dialog--destructive' : ''].filter(Boolean).join(' ')}
+            className={[`cwgsyw-dialog--${size}`, intent === 'destructive' ? 'cwgsyw-dialog--destructive' : '', className].filter(Boolean).join(' ')}
             onOpenAutoFocus={() => {
               focusReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
             }}

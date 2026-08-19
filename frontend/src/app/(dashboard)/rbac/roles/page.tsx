@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
@@ -9,13 +9,13 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { RoleDialog } from '@/components/rbac/RoleDialog'
+import { IdentityIconAction } from '@/components/identity/IdentityActions'
+import { TaskEmpty, IDENTITY_LOCK_ICON, IDENTITY_LOCK_NODE } from '@/components/task-runtime/TaskEmpty'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
 import {
-  Badge,
-  Breadcrumb,
   Button,
   DataManagementPage,
-  EmptyState,
   ErrorState,
   LoadingState,
   NeutralAlertDialog,
@@ -42,6 +42,7 @@ const scopeLabel: Record<string, string> = {
 }
 
 export default function RolesPage() {
+  const router = useRouter()
   const { hasPermission } = usePermission()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editRole, setEditRole] = useState<Role | null>(null)
@@ -75,7 +76,7 @@ export default function RolesPage() {
       { key: 'scope', label: '作用域' },
       { key: 'flags', label: '标记' },
       { key: 'description', label: '描述' },
-      { key: 'actions', label: '操作', align: 'right' as const },
+      { key: 'actions', label: '', align: 'right' as const },
     ],
     [],
   )
@@ -84,12 +85,12 @@ export default function RolesPage() {
     id: String(role.id),
     disabled: role.isBuiltin,
     cells: {
-      name: role.name,
+      name: <p className="cwgsyw-tasks-cell-title">{role.name}</p>,
       code: role.code,
-      scope: <Badge label={scopeLabel[role.scope] ?? role.scope} tone="neutral" />,
+      scope: <StatusBadge label={scopeLabel[role.scope] ?? role.scope} status="neutral" />,
       flags: (
         <div className="cwgsyw-inline-controls">
-          {role.isBuiltin ? <Badge label="内置" tone="neutral" /> : null}
+          {role.isBuiltin ? <StatusBadge label="内置" status="neutral" /> : null}
           {role.isLegacy ? <StatusBadge label="兼容角色" status="warning" /> : null}
         </div>
       ),
@@ -97,30 +98,23 @@ export default function RolesPage() {
       actions: (
         <div className="cwgsyw-inline-controls">
           {!role.isBuiltin && canUpdate ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            <IdentityIconAction
+              label={`编辑 ${role.name}`}
+              icon="edit"
               onClick={() => {
                 setEditRole(role)
                 setDialogOpen(true)
               }}
-            >
-              编辑
-            </Button>
+            />
           ) : null}
           {!role.isBuiltin && canDelete ? (
-            <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => setDeleteTarget(role)}>
-              删除
-            </Button>
+            <IdentityIconAction label={`删除 ${role.name}`} icon="trash" danger onClick={() => setDeleteTarget(role)} />
           ) : null}
           {!role.isBuiltin ? (
             <PermissionGuard resource="resource" action="assign">
-              <Link href={`/rbac/permissions?roleId=${role.id}`}>
-                <Button type="button" variant="outline" size="sm">
-                  配置权限
-                </Button>
-              </Link>
+              <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/rbac/permissions?roleId=${role.id}`)}>
+                配置权限
+              </Button>
             </PermissionGuard>
           ) : null}
         </div>
@@ -134,17 +128,19 @@ export default function RolesPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-tasks-page"
         layout="default"
         header={
           <PageHeader
-            eyebrow="身份与权限"
+            showEyebrow={false}
+            showBreadcrumb={false}
+            showSubtitle={false}
             title="角色管理"
-            subtitle="查看系统角色与权限作用域，点击「配置权限」为角色分配资源操作。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '角色管理' }]} />}
             actions={
               canCreate ? (
                 <Button
                   type="button"
+                  size="sm"
                   variant="primary"
                   onClick={() => {
                     setEditRole(null)
@@ -163,20 +159,30 @@ export default function RolesPage() {
               title="角色加载失败"
               description="无法读取角色列表，请稍后重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>
                   重试
                 </Button>
               }
             />
           ) : (
-            <Table
-              columns={columns}
-              rows={rows}
-              showSearch={false}
-              state={tableState}
-              loading={<LoadingState label="正在加载角色…" />}
-              empty={<EmptyState title="暂无角色" description="系统角色由平台预置，将在初始化后显示。" />}
-            />
+            <div className="cwgsyw-cmdb-table">
+              <Table
+                columns={columns}
+                rows={rows}
+                showSearch={false}
+                density="compact"
+                state={tableState}
+                loading={<LoadingState label="正在加载角色…" />}
+                empty={
+                  <TaskEmpty
+                    iconSrc={IDENTITY_LOCK_ICON}
+                    figmaNode={IDENTITY_LOCK_NODE}
+                    title="暂无角色"
+                    description="系统角色由平台预置，将在初始化后显示。"
+                  />
+                }
+              />
+            </div>
           )
         }
       />

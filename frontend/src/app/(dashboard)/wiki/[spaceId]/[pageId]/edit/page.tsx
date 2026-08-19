@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
@@ -13,7 +14,6 @@ import '@uiw/react-md-editor/markdown-editor.css'
 import '@/components/wiki/WikiEditor.css'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   EmptyState,
   Input,
@@ -272,24 +272,15 @@ export default function WikiEditorPage() {
   }
 
   return (
-    <div className="cwgsyw-page cwgsyw-page--embedded">
+    <div className="cwgsyw-page cwgsyw-page--embedded cwgsyw-wiki cwgsyw-wiki-edit">
+      <WikiShellHeader>
       <PageHeader
-        eyebrow="知识空间"
+        showEyebrow={false}
+        showBreadcrumb={false}
         title={displayedTitle || '编辑页面'}
         subtitle={`${displayedTitle.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { href: '/', label: '工作台' },
-              { href: '/wiki', label: '知识空间' },
-              { href: `/wiki/${sid}`, label: currentSpace?.name ?? '空间' },
-              { href: `/wiki/${sid}/${pid}`, label: displayedTitle || '页面' },
-              { label: '编辑' },
-            ]}
-          />
-        }
         actions={
-          <div className="cwgsyw-designer__actions">
+          <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
             <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}`)}>
               返回
             </Button>
@@ -299,7 +290,9 @@ export default function WikiEditorPage() {
           </div>
         }
       />
+      </WikiShellHeader>
       <Input
+        size="sm"
         value={displayedTitle}
         maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
         placeholder="页面标题"
@@ -327,13 +320,18 @@ export default function WikiEditorPage() {
           }}
         />
         {acQuery !== null && acResults.length > 0 && acPos ? (
-          <div className="cwgsyw-card cwgsyw-card--sm wiki-editor__ac" style={{ top: acPos.top, left: acPos.left }}>
-            <strong>插入 Wiki 链接</strong>
+          <div className="cwgsyw-wiki-edit__ac" style={{ top: acPos.top, left: acPos.left }}>
+            <div className="cwgsyw-wiki-edit__ac-head">插入 Wiki 链接</div>
             {acResults.map((result) => (
-              <Button key={result.pageId} type="button" variant="ghost" onClick={() => insertWikiLink(result)}>
-                {result.title}
-                {result.highlight ? ` ${result.highlight}` : ''}
-              </Button>
+              <button
+                key={result.pageId}
+                type="button"
+                className="cwgsyw-wiki-edit__ac-item"
+                onClick={() => insertWikiLink(result)}
+              >
+                <span>{result.title}</span>
+                {result.highlight ? <span className="cwgsyw-wiki-search__hit">{result.highlight}</span> : null}
+              </button>
             ))}
           </div>
         ) : null}

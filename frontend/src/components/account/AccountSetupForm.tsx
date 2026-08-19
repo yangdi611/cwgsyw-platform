@@ -80,10 +80,10 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
   }
 
   return (
-    <form className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+    <form className="cwgsyw-form cwgsyw-account-form" noValidate onSubmit={handleSubmit(onSubmit)}>
       {mustChangePassword ? (
-        <>
-          <h3 className="cwgsyw-type-title-sm">第一步：修改初始密码</h3>
+        <section className="cwgsyw-account-form__section" aria-labelledby="account-setup-password-title">
+          <h3 id="account-setup-password-title" className="cwgsyw-account-form__section-title">第一步：修改初始密码</h3>
           <Field
             htmlFor="currentPassword"
             label="当前密码"
@@ -92,6 +92,7 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
             errorText={errors.currentPassword?.message}
           >
             <Input
+              size="sm"
               type="password"
               autoComplete="current-password"
               {...register('currentPassword', { required: '请输入当前密码' })}
@@ -105,6 +106,7 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
             errorText={errors.newPassword?.message}
           >
             <Input
+              size="sm"
               type="password"
               autoComplete="new-password"
               {...register('newPassword', { required: '请输入新密码' })}
@@ -119,38 +121,41 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
             errorText={confirmMismatch ? '两次输入的密码不一致' : errors.confirmPassword?.message}
           >
             <Input
+              size="sm"
               type="password"
               autoComplete="new-password"
               {...register('confirmPassword', { required: '请再次输入新密码' })}
             />
           </Field>
-        </>
+        </section>
       ) : null}
 
-      <h3 className="cwgsyw-type-title-sm">{mustChangePassword ? '第二步：补全个人资料' : '补全个人资料'}</h3>
-      <Field
-        htmlFor="email"
-        label="邮箱"
-        required
-        state={errors.email ? 'error' : 'default'}
-        errorText={errors.email?.message}
-      >
-        <Input type="email" autoComplete="email" {...register('email', { required: '请输入邮箱' })} />
-      </Field>
-      <Field
-        htmlFor="phone"
-        label="手机号"
-        required
-        state={errors.phone ? 'error' : 'default'}
-        errorText={errors.phone?.message}
-      >
-        <Input autoComplete="tel" {...register('phone', { required: '请输入手机号' })} />
-      </Field>
-      <Field htmlFor="avatarUrl" label="头像 URL">
-        <Input placeholder="可选" {...register('avatarUrl')} />
-      </Field>
+      <section className="cwgsyw-account-form__section" aria-labelledby="account-setup-profile-title">
+        <h3 id="account-setup-profile-title" className="cwgsyw-account-form__section-title">{mustChangePassword ? '第二步：补全个人资料' : '补全个人资料'}</h3>
+        <Field
+          htmlFor="email"
+          label="邮箱"
+          required
+          state={errors.email ? 'error' : 'default'}
+          errorText={errors.email?.message}
+        >
+          <Input size="sm" type="email" autoComplete="email" {...register('email', { required: '请输入邮箱' })} />
+        </Field>
+        <Field
+          htmlFor="phone"
+          label="手机号"
+          required
+          state={errors.phone ? 'error' : 'default'}
+          errorText={errors.phone?.message}
+        >
+          <Input size="sm" autoComplete="tel" {...register('phone', { required: '请输入手机号' })} />
+        </Field>
+        <Field htmlFor="avatarUrl" label="头像 URL">
+          <Input size="sm" placeholder="可选" {...register('avatarUrl')} />
+        </Field>
+      </section>
       <div className="cwgsyw-form__actions">
-        <Button type="submit" variant="primary" loading={submitting}>
+        <Button type="submit" size="sm" variant="primary" loading={submitting}>
           {submitting ? '提交中…' : '完成设置'}
         </Button>
       </div>

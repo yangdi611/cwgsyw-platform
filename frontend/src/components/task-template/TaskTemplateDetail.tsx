@@ -8,15 +8,13 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, TASK_LAYOUT_TEMPLATE_ICON, TASK_LAYOUT_TEMPLATE_NODE } from '@/components/task-runtime/TaskEmpty'
 import {
   Alert,
-  Breadcrumb,
   Button,
-  Card,
-  DetailDrawerPage,
   ErrorState,
   LoadingState,
-  MetricCard,
   PageHeader,
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
@@ -48,14 +46,24 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
     onError: (error) => toast.error(getApiErrorMessage(error, '创建草稿版本失败')),
   })
 
-  if (template.isLoading) return <LoadingState label="正在加载模板…" />
+  if (template.isLoading) {
+    return (
+      <div className="cwgsyw-tasks-page">
+        <PageHeader showEyebrow={false} showBreadcrumb={false} showSubtitle={false} title="模板详情" />
+        <LoadingState label="正在加载模板…" />
+      </div>
+    )
+  }
   if (template.isError || !template.data) {
     return (
-      <ErrorState
-        title="模板加载失败"
-        description="无法读取任务模板，请重试。"
-        retry={<Button type="button" variant="secondary" onClick={() => void template.refetch()}>重试</Button>}
-      />
+      <div className="cwgsyw-tasks-page">
+        <PageHeader showEyebrow={false} showBreadcrumb={false} showSubtitle={false} title="模板详情" />
+        <ErrorState
+          title="模板加载失败"
+          description="无法读取任务模板，请重试。"
+          retry={<Button type="button" size="sm" variant="secondary" onClick={() => void template.refetch()}>重试</Button>}
+        />
+      </div>
     )
   }
 
@@ -64,80 +72,63 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
   const status = TEMPLATE_STATUS[data.status] ?? { label: data.status, tone: 'neutral' as const }
 
   return (
-    <DetailDrawerPage
-      embedded
-      header={
-        <PageHeader
-          eyebrow={`统一任务平台 · ${data.code}`}
-          title={data.name}
-          subtitle={data.description || '暂无描述'}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/tasks', label: '我的任务' },
-                { href: '/tasks/templates', label: '任务模板' },
-                { label: data.name },
-              ]}
-            />
-          }
-          status={<StatusBadge label={status.label} status={status.tone} />}
-          actions={
-            draft ? (
-              <Button type="button" variant="primary" onClick={() => router.push(`/tasks/templates/${templateId}/versions/${draft.id}`)}>
-                继续设计 v{draft.version}
-              </Button>
-            ) : hasPermission('task_template', 'update') && !data.builtin ? (
-              <Button type="button" variant="primary" disabled={createDraft.isPending} onClick={() => createDraft.mutate()}>
-                {createDraft.isPending ? '创建中' : '创建下一草稿版本'}
-              </Button>
-            ) : null
-          }
+    <div className="cwgsyw-tasks-page">
+      <PageHeader
+        showEyebrow={false}
+        showBreadcrumb={false}
+        showSubtitle={false}
+        title={data.name}
+        status={<StatusBadge label={status.label} status={status.tone} />}
+        actions={
+          draft ? (
+            <Button type="button" size="sm" variant="primary" onClick={() => router.push(`/tasks/templates/${templateId}/versions/${draft.id}`)}>
+              继续设计 v{draft.version}
+            </Button>
+          ) : hasPermission('task_template', 'update') && !data.builtin ? (
+            <Button type="button" size="sm" variant="primary" disabled={createDraft.isPending} onClick={() => createDraft.mutate()}>
+              {createDraft.isPending ? '创建中' : '创建下一草稿版本'}
+            </Button>
+          ) : null
+        }
+      />
+      {data.builtin ? (
+        <Alert
+          tone="info"
+          title="内置模板保持只读"
+          description="计划可直接引用此模板；需要定制时应复制为新的租户模板。"
+          showDismiss={false}
         />
-      }
-      content={
-        <div className="cwgsyw-form">
-          {data.builtin ? (
-            <Alert
-              tone="info"
-              title="内置模板保持只读"
-              description="计划可直接引用此模板；需要定制时应复制为新的租户模板。"
-              showDismiss={false}
-            />
-          ) : null}
-          <Card title="版本历史" description="发布版本不可修改，历史任务始终绑定当时的具体版本。">
-            <div className="cwgsyw-stack-list">
-              {data.versions.length === 0 ? (
-                <p className="cwgsyw-stack-list__empty">暂无版本</p>
-              ) : data.versions.map((version) => {
-                const versionStatus = TEMPLATE_STATUS[version.status] ?? { label: version.status, tone: 'neutral' as const }
-                return (
-                  <Button
-                    key={version.id}
-                    type="button"
-                    variant="ghost"
-                    className="cwgsyw-stack-list__item"
-                    onClick={() => router.push(`/tasks/templates/${templateId}/versions/${version.id}`)}
-                  >
-                    <div>
-                      <strong>v{version.version} · {version.name}</strong>
-                      <p className="cwgsyw-type-label-xs">更新于 {new Date(version.updatedAt).toLocaleString('zh-CN')}</p>
-                    </div>
-                    <StatusBadge label={versionStatus.label} status={versionStatus.tone} />
-                  </Button>
-                )
-              })}
-            </div>
-          </Card>
-        </div>
-      }
-      drawer={
-        <div className="cwgsyw-form">
-          <MetricCard label="版本数量" value={String(data.versions.length)} />
-          <MetricCard label="模板范围" value={data.scopeType} />
-          <MetricCard label="模板来源" value={data.builtin ? '系统内置' : '租户自定义'} />
-        </div>
-      }
-    />
+      ) : null}
+      <TaskPanel title="版本历史">
+        {data.versions.length === 0 ? (
+          <TaskEmpty iconSrc={TASK_LAYOUT_TEMPLATE_ICON} figmaNode={TASK_LAYOUT_TEMPLATE_NODE} title="暂无版本" description="发布版本不可修改，历史任务始终绑定当时的具体版本。" />
+        ) : (
+          <div className="cwgsyw-tasks-pick-list">
+            {data.versions.map((version) => {
+              const versionStatus = TEMPLATE_STATUS[version.status] ?? { label: version.status, tone: 'neutral' as const }
+              return (
+                <button
+                  key={version.id}
+                  type="button"
+                  className="cwgsyw-tasks-pick"
+                  onClick={() => router.push(`/tasks/templates/${templateId}/versions/${version.id}`)}
+                >
+                  <span className="cwgsyw-tasks-cell-title">v{version.version} · {version.name}</span>
+                  <span className="cwgsyw-tasks-cell-meta">更新于 {new Date(version.updatedAt).toLocaleString('zh-CN')}</span>
+                  <StatusBadge label={versionStatus.label} status={versionStatus.tone} />
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </TaskPanel>
+      <TaskPanel title="模板信息">
+        <dl className="cwgsyw-tasks-meta">
+          <div><dt>版本数量</dt><dd>{data.versions.length}</dd></div>
+          <div><dt>模板范围</dt><dd>{data.scopeType}</dd></div>
+          <div><dt>模板来源</dt><dd>{data.builtin ? '系统内置' : '租户自定义'}</dd></div>
+        </dl>
+      </TaskPanel>
+    </div>
   )
 }

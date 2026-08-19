@@ -129,12 +129,15 @@ function loadCompiled(filePath) {
 test('wiki page reader leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.doesNotMatch(page, /> \$\{currentSpace/)
   assert.match(page, /queryKey: \['wiki-page', pid\]/)
   assert.match(page, /wikiApi\.getPage/)
   assert.match(page, /wikiApi\.submitPage/)
   assert.match(page, /wikiApi\.publishPage/)
   assert.match(page, /wikiApi\.exportPage/)
   assert.match(page, /wikiApi\.listComments/)
+  assert.match(page, /cwgsyw-wiki__header-actions/)
+  assert.match(page, /WikiShellHeader/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /text-v2-/)
   assert.doesNotMatch(page, /border-v2-/)
@@ -142,6 +145,17 @@ test('wiki page reader leaves old visual entries and keeps APIs', () => {
     const source = fs.readFileSync(path.join(frontendRoot, 'src', rel), 'utf8')
     assert.doesNotMatch(source, /@\/components\/design-system/)
     assert.doesNotMatch(source, /text-v2-/)
+    if (rel.endsWith('WikiVersionsPanel.tsx')) {
+      assert.match(source, /queryKey: \['wiki-versions', pageId\]/)
+      assert.match(source, /wikiApi\.exportPageVersion/)
+      assert.match(source, /wikiApi\.revertPage/)
+      assert.match(source, /NeutralTooltip content="导出"/)
+      assert.match(source, /NeutralTooltip content="回滚"/)
+      assert.match(source, /figma-action-icon--download/)
+      assert.match(source, /figma-action-icon--undo/)
+      assert.doesNotMatch(source, />\s*导出\s*<\/Button>/)
+      assert.doesNotMatch(source, />\s*回滚\s*<\/Button>/)
+    }
   }
 })
 
@@ -150,6 +164,7 @@ test('wiki page reader renders Neutral reader chrome', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /入门指南/)
   assert.match(html, /页面信息/)
+  assert.match(html, /cwgsyw-wiki__header-actions/)
   assert.match(html, /编辑/)
   assert.match(html, /发布/)
   assert.match(html, /评论 3/)

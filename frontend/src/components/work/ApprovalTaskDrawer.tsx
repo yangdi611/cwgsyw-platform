@@ -65,6 +65,7 @@ export function ApprovalTaskDrawer({ approvalTaskId, onClose }: { approvalTaskId
       }}
       title={detail.data?.task.title ?? '审批详情'}
       description={detail.data ? `${detail.data.task.nodeName} · 提交 V${detail.data.submissionVersion}` : undefined}
+      className="cwgsyw-work-drawer"
     >
       {detail.isLoading ? (
         <LoadingState label="正在加载审批内容…" />
@@ -105,6 +106,7 @@ export function ApprovalTaskDrawer({ approvalTaskId, onClose }: { approvalTaskId
               <Button
                 key={name}
                 type="button"
+                size="sm"
                 variant={name === 'approve' ? 'primary' : name === 'terminate' ? 'destructive' : 'secondary'}
                 loading={action.isPending && action.variables === name}
                 disabled={action.isPending}
@@ -156,8 +158,9 @@ function ApprovalContent({
   return (
     <>
       <div className="cwgsyw-inline-controls">
-        <StatusBadge label={detail.task.overdue ? '已逾期' : '待审批'} status={detail.task.overdue ? 'danger' : 'warning'} />
+        <StatusBadge size="sm" label={detail.task.overdue ? '已逾期' : '待审批'} status={detail.task.overdue ? 'danger' : 'warning'} />
         <StatusBadge
+          size="sm"
           label={priorityLabel(detail.task.priority)}
           status={detail.task.priority === 'critical' ? 'danger' : detail.task.priority === 'high' ? 'warning' : 'neutral'}
         />
@@ -172,11 +175,11 @@ function ApprovalContent({
         {detail.fields.map((field) => {
           const draft = fieldComments[field.key] ?? { severity: 'error' as const, comment: '' }
           return (
-            <article key={field.key} className="cwgsyw-card cwgsyw-card--md">
+            <article key={field.key} className="cwgsyw-work-drawer__field">
               <div className="cwgsyw-inline-controls">
-                <span className="cwgsyw-type-label-md">{field.label}</span>
-                <StatusBadge label={field.type} status="neutral" />
-                {field.sensitive ? <StatusBadge label="敏感" status="warning" /> : null}
+                <span className="cwgsyw-work-drawer__label">{field.label}</span>
+                <StatusBadge size="sm" label={field.type} status="neutral" />
+                {field.sensitive ? <StatusBadge size="sm" label="敏感" status="warning" /> : null}
               </div>
               <div className="cwgsyw-type-body-sm">{renderValue(field, detail.formData[field.key], detail.computedValues[field.key])}</div>
               {(attachmentsByField.get(field.key) ?? []).map((attachment) => (
@@ -209,6 +212,9 @@ function ApprovalContent({
               {!['section', 'help_text'].includes(field.type) ? (
                 <div className="cwgsyw-form">
                   <Select
+                    overlay
+                    size="sm"
+                    aria-label={`${field.label} 意见级别`}
                     value={draft.severity}
                     options={[
                       { value: 'info', label: '提示' },

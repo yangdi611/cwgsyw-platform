@@ -7,6 +7,7 @@ export interface TabItem {
   disabled?: boolean
   panel: ReactNode
   badge?: ReactNode
+  testId?: string
 }
 
 export interface TabsProps {
@@ -54,6 +55,7 @@ export function Tabs({ items, value, defaultValue, onChange, style = 'underline'
             disabled={item.disabled}
             tabIndex={item.id === selected ? 0 : -1}
             className={style === 'cmdb' ? 'cwgsyw-tab cwgsyw-cmdb-tab' : 'cwgsyw-tab'}
+            data-testid={item.testId}
             onClick={() => select(item.id)}
           >
             {style === 'cmdb' && item.id === selected ? (

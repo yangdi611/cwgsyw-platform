@@ -20,6 +20,7 @@ interface CiInstanceSelectProps {
 export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelectProps) {
   const [keyword, setKeyword] = useState('')
   const [open, setOpen] = useState(false)
+  const [picked, setPicked] = useState<CiInstanceOption | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: searchResults = [] } = useQuery<CiInstanceOption[]>({
@@ -33,13 +34,18 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
   // Fetch selected instance name when value is set but we don't have label yet
   const { data: selectedInstance } = useQuery<CiInstanceOption | null>({
     queryKey: ['cmdb-instance-selected', value],
-    queryFn: () => value
-      ? api.get(`/cmdb/instances/search`, { params: { keyword: String(value), size: 1 } })
-          .then(r => {
-            const records = r.data.data?.records ?? []
-            return records.find((i: CiInstanceOption) => i.id === value) ?? null
+    queryFn: () =>
+      value
+        ? api.get(`/cmdb/instances/${value}`).then((response) => {
+            const data = response.data.data
+            return {
+              id: data.id,
+              name: data.name,
+              modelId: data.modelId ?? data.model_id,
+              modelName: data.modelName ?? data.model_name,
+            } as CiInstanceOption
           })
-      : Promise.resolve(null),
+        : Promise.resolve(null),
     enabled: !!value && !keyword,
   })
 
@@ -55,26 +61,29 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
   }, [])
 
   const handleSelect = (inst: CiInstanceOption) => {
+    setPicked(inst)
     onChange(inst.id)
     setKeyword('')
     setOpen(false)
   }
 
   const handleClear = () => {
+    setPicked(null)
     onChange(null)
     setKeyword('')
   }
 
   // Display label for selected value
-  const label = selectedInstance
-    ? `${selectedInstance.name} (${selectedInstance.modelName})`
+  const resolved = picked?.id === value ? picked : selectedInstance
+  const label = resolved
+    ? `${resolved.name}${resolved.modelName ? ` (${resolved.modelName})` : ''}`
     : value ? `实例 #${value}` : null
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="cwgsyw-select" data-cwgsyw-ci-select="sm">
       {value && !open ? (
-        <div className="cwgsyw-control cwgsyw-control--md">
-          <span className="flex-1 truncate">{label}</span>
+        <div className="cwgsyw-control cwgsyw-control--sm">
+          <span className="cwgsyw-ci-select__value">{label}</span>
           {!disabled && (
             <Button type="button" size="sm" variant="ghost" onClick={handleClear}>
               清除
@@ -104,7 +113,7 @@ export function CiInstanceSelect({ value, onChange, disabled }: CiInstanceSelect
                 onClick={() => handleSelect(inst)}
               >
                 <span>{inst.name}</span>
-                <Badge label={inst.modelName} />
+                <Badge label={inst.modelName} size="sm" />
               </Button>
             ))
           )}

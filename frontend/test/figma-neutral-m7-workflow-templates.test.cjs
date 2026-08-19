@@ -56,7 +56,7 @@ function loadCompiled(filePath) {
             return { data: [{ id: 'd1', name: '变更审批流', key: 'changeDocApproval', version: 2 }] }
           }
           if (key.includes('workflow-template-instances')) {
-            return { data: [], isLoading: false, refetch() {} }
+            return { data: [{ id: 38, name: 'Wiki publish approval', processKey: 'remp1038wiki', businessType: 'wiki_page', latestVersion: 1, status: 'active', createdAt: '2026-07-18T12:30:00Z' }], isLoading: false, refetch() {} }
           }
           if (key.includes('workflow-templates')) {
             return { data: [{ code: 'two_level', name: '两级审批', description: '两级', version: 1, supportedBusinessTypes: ['change_doc'], configSchema: [], enabled: true }], isLoading: false }
@@ -96,9 +96,19 @@ function loadCompiled(filePath) {
 
 test('workflow templates leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /cwgsyw-workflow/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
   assert.match(page, /queryKey: \['workflow-templates'\]/)
   assert.match(page, /\/workflow\/templates\/instances/)
+  assert.match(page, /cwgsyw-workflow-templates__table/)
+  assert.match(page, /density="compact"/)
+  assert.match(page, /cmdb-admin__figma-action-icon--trash/)
+  assert.match(page, /cmdb-admin__row-actions/)
+  assert.match(page, /task-layout-template\.svg/)
+  assert.match(css, /\.cwgsyw-workflow-templates__table \.cwgsyw-table \{[\s\S]*min-width: 860px;/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
@@ -110,4 +120,9 @@ test('workflow templates renders Neutral shell', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /流程模板/)
   assert.match(html, /两级审批/)
+  assert.match(html, /已创建的流程实例/)
+  assert.match(html, /Wiki publish approval/)
+  assert.match(html, /启用/)
+  assert.doesNotMatch(html, />active</)
+  assert.match(html, /删除 Wiki publish approval/)
 })

@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { DynamicTaskForm } from '@/components/task-runtime/DynamicTaskForm'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
+import '@/components/task-runtime/tasks.css'
 import { getApiErrorMessage } from '@/lib/api-error'
 import {
   downloadTaskSubmissionAttachment,
@@ -16,7 +18,6 @@ import type { TaskFieldDefinition } from '@/lib/task-template-api'
 import {
   Alert,
   Button,
-  Card,
   Select,
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
@@ -48,26 +49,29 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
   const attachmentChanges = useMemo(() => compareAttachments(previous, selected), [previous, selected])
 
   if (submissions.isLoading) {
-    return <Card title="历史提交与差异"><p className="cwgsyw-type-body-sm">正在加载提交历史...</p></Card>
+    return <TaskPanel title="历史提交与差异"><p className="cwgsyw-tasks-cell-meta">正在加载提交历史…</p></TaskPanel>
   }
   if (submissions.isError) {
     return (
-      <Card
+      <TaskPanel
         title="历史提交与差异"
-        headerAction={<Button type="button" size="sm" variant="secondary" onClick={() => void submissions.refetch()}>重试</Button>}
+        action={<Button type="button" size="sm" variant="secondary" onClick={() => void submissions.refetch()}>重试</Button>}
       >
         <Alert tone="danger" title="提交历史加载失败" description="无法读取历史提交，请重试。" showDismiss={false} />
-      </Card>
+      </TaskPanel>
     )
   }
   if (!selected || !submissions.data?.length) return null
 
   return (
-    <Card
+    <TaskPanel
       title="历史提交与差异"
       description="正式提交不可修改，每次重提都会保留上一版本。"
-      headerAction={
+      action={
         <Select
+          size="sm"
+          overlay
+          aria-label="选择提交版本"
           value={String(selected.id)}
           options={submissions.data.map((submission) => ({
             value: String(submission.id),
@@ -79,14 +83,14 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
     >
       <div className="cwgsyw-form">
         <div className="cwgsyw-inline-controls">
-          <strong>提交 V{selected.version}</strong>
+          <p className="cwgsyw-tasks-event__title">提交 V{selected.version}</p>
           <StatusBadge label={submissionStatusLabel(selected.status)} status={submissionStatusTone(selected.status)} />
           {selected.effective ? <StatusBadge label="统计生效" status="success" /> : null}
           <span className="cwgsyw-type-label-xs">{formatDateTime(selected.submittedAt)}</span>
         </div>
 
         <section className="cwgsyw-form">
-          <h4 className="cwgsyw-type-title-sm">提交内容</h4>
+          <p className="cwgsyw-tasks-event__title">提交内容</p>
           <DynamicTaskForm
             taskId={taskId}
             fields={fields}
@@ -101,7 +105,7 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
         </section>
 
         <section className="cwgsyw-form">
-          <h4 className="cwgsyw-type-title-sm">附件</h4>
+          <p className="cwgsyw-tasks-event__title">附件</p>
           {selected.attachments.length === 0 ? (
             <p className="cwgsyw-type-body-sm">无附件</p>
           ) : (
@@ -152,7 +156,7 @@ export function SubmissionHistoryCard({ taskId, currentSubmissionId, attachmentF
           </section>
         ) : null}
       </div>
-    </Card>
+    </TaskPanel>
   )
 }
 

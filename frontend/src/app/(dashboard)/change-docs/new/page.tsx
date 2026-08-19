@@ -13,7 +13,6 @@ import { CiSelectorModal } from './components/CiSelectorModal'
 import type { CiSnapshot, TemplateVO } from './components/types'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Card,
   Field,
@@ -155,29 +154,32 @@ export default function NewChangeDocPage() {
     <>
       <FormSettingsPage
         embedded
+        className="cwgsyw-change-doc-create"
         header={
           <PageHeader
-            eyebrow="变更文档"
             title="新建变更文档"
-            subtitle={step === 1 ? '第 1 步：选择模板' : '第 2 步：填写内容'}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/change-docs', label: '变更文档' },
-                  { label: '新建变更文档' },
-                ]}
-              />
-            }
+            subtitle={step === 1 ? '选择申请单或方案模板，建立变更文档结构。' : '填写变更内容，并按需关联受影响的 CI。'}
             actions={
-              <Button type="button" variant="secondary" size="sm" onClick={() => (step === 1 ? router.back() : setStep(1))}>
-                {step === 1 ? '返回' : '上一步'}
-              </Button>
+              <div className="cwgsyw-change-doc-create__header-actions">
+                <Button type="button" variant="secondary" size="sm" onClick={() => (step === 1 ? router.back() : setStep(1))}>
+                  {step === 1 ? '返回列表' : '上一步'}
+                </Button>
+              </div>
             }
           />
         }
         form={
           <div className="cwgsyw-form">
+            <ol className="cwgsyw-change-doc-create__steps" aria-label="新建变更文档进度">
+              <li className={step === 1 ? 'is-active' : 'is-complete'} aria-current={step === 1 ? 'step' : undefined}>
+                <span>1</span>
+                选择模板
+              </li>
+              <li className={step === 2 ? 'is-active' : ''} aria-current={step === 2 ? 'step' : undefined}>
+                <span>2</span>
+                填写内容
+              </li>
+            </ol>
             {step === 1 ? (
               <>
                 <TemplateSelector
@@ -187,81 +189,85 @@ export default function NewChangeDocPage() {
                   onSelectAppTemplate={setSelectedAppTemplateId}
                   onSelectPlanTemplate={setSelectedPlanTemplateId}
                 />
-                <div className="cwgsyw-designer__actions">
+                <div className="cwgsyw-designer__actions cwgsyw-change-doc-create__actions">
                   <Button type="button" onClick={handleProceed}>下一步：填写内容</Button>
                 </div>
               </>
             ) : (
               <>
-                <Card title="变更标题">
-                  <Field htmlFor="change-title" label="变更标题">
-                    <Input
-                      value={title}
-                      placeholder="例如：核心交易系统数据库版本升级"
-                      onChange={(event) => setTitle(event.target.value)}
-                    />
-                  </Field>
-                </Card>
-                {selectedAppTemplate ? (
-                  <Card title="申请单">
-                    {appFields.length === 0 ? (
-                      <p>该模板未配置表单字段</p>
-                    ) : (
-                      <FieldList
-                        fields={appFields}
-                        editable
-                        fieldsData={fieldsData}
-                        aiLoadingField={aiLoadingField}
-                        onFieldChange={setField}
-                        onTableFieldChange={setTableField}
-                        onAiGenerate={handleAiGenerate}
+                <div className="cwgsyw-change-doc-create__content-step">
+                  <Card title="变更标题">
+                    <Field htmlFor="change-title" label="变更标题">
+                      <Input
+                        value={title}
+                        placeholder="例如：核心交易系统数据库版本升级"
+                        onChange={(event) => setTitle(event.target.value)}
                       />
-                    )}
+                    </Field>
                   </Card>
-                ) : null}
-                {selectedPlanTemplate ? (
-                  <Card title="方案">
-                    {planFields.length === 0 ? (
-                      <p>该模板未配置表单字段</p>
-                    ) : (
-                      <FieldList
-                        fields={planFields}
-                        editable
-                        fieldsData={fieldsData}
-                        aiLoadingField={aiLoadingField}
-                        onFieldChange={setField}
-                        onTableFieldChange={setTableField}
-                        onAiGenerate={handleAiGenerate}
-                      />
-                    )}
-                  </Card>
-                ) : null}
-                <Card
-                  title="关联 CI（可选）"
-                  headerAction={
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setCiSelectorOpen(true)}>
-                      选择 CI
-                    </Button>
-                  }
-                >
-                  {selectedCis.length === 0 ? (
-                    <p>暂未关联 CI</p>
-                  ) : (
-                    <div className="cwgsyw-form">
-                      {selectedCis.map((ci) => (
-                        <div key={ci.instanceId} className="cwgsyw-designer__actions">
-                          <span>
-                            {ci.instanceName} {ci.modelName}
-                          </span>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => toggleCiSelection(ci)}>
-                            移除
-                          </Button>
+                  {selectedAppTemplate ? (
+                    <Card title="申请单">
+                      {appFields.length === 0 ? (
+                        <p>该模板未配置表单字段</p>
+                      ) : (
+                        <FieldList
+                          fields={appFields}
+                          editable
+                          fieldsData={fieldsData}
+                          aiLoadingField={aiLoadingField}
+                          onFieldChange={setField}
+                          onTableFieldChange={setTableField}
+                          onAiGenerate={handleAiGenerate}
+                        />
+                      )}
+                    </Card>
+                  ) : null}
+                  {selectedPlanTemplate ? (
+                    <Card title="方案">
+                      {planFields.length === 0 ? (
+                        <p>该模板未配置表单字段</p>
+                      ) : (
+                        <FieldList
+                          fields={planFields}
+                          editable
+                          fieldsData={fieldsData}
+                          aiLoadingField={aiLoadingField}
+                          onFieldChange={setField}
+                          onTableFieldChange={setTableField}
+                          onAiGenerate={handleAiGenerate}
+                        />
+                      )}
+                    </Card>
+                  ) : null}
+                  <Card
+                    title="关联 CI（可选）"
+                    headerAction={
+                      <Button type="button" variant="secondary" size="sm" onClick={() => setCiSelectorOpen(true)}>
+                        选择 CI
+                      </Button>
+                    }
+                  >
+                    <div className="cwgsyw-change-doc-create__ci">
+                      {selectedCis.length === 0 ? (
+                        <p>暂未关联 CI</p>
+                      ) : (
+                        <div className="cwgsyw-form">
+                          {selectedCis.map((ci) => (
+                            <div key={ci.instanceId} className="cwgsyw-designer__actions">
+                              <span>
+                                {ci.instanceName} {ci.modelName}
+                              </span>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => toggleCiSelection(ci)}>
+                                移除
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </Card>
-                <div className="cwgsyw-designer__actions">
+                  </Card>
+                </div>
+                <div className="cwgsyw-designer__actions cwgsyw-change-doc-create__actions">
                   <Button type="button" variant="secondary" onClick={() => setStep(1)}>上一步</Button>
                   <Button type="button" disabled={submitting} onClick={() => void handleSubmit()}>
                     {submitting ? '创建中…' : '创建变更文档'}

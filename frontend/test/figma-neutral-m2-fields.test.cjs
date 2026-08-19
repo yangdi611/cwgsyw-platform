@@ -104,6 +104,18 @@ test('Select closes on outside pointer and list items do not overflow their over
   assert.match(fieldsCss, /overflow-wrap: anywhere;/)
 })
 
+test('overlay Select flips upward when the list would collide below', () => {
+  assert.match(selectSource, /function resolveSelectPlacement/)
+  assert.match(selectSource, /spaceBelow/)
+  assert.match(selectSource, /data-placement=\{overlay \? placement : undefined\}/)
+  assert.match(fieldsCss, /\.cwgsyw-listbox--overlay\[data-placement="top"\]/)
+  assert.match(fieldsCss, /bottom: calc\(100% \+ var\(--cwgsyw-space-1\)\)/)
+  assert.match(fieldsCss, /::-webkit-datetime-edit-year-field/)
+  assert.match(fieldsCss, /\.cwgsyw-control--sm[\s\S]*font-size: var\(--cwgsyw-font-size-label-sm\)/)
+  assert.match(fieldsCss, /\.cwgsyw-control \{[\s\S]*font-size: var\(--cwgsyw-font-size-label-sm\)/)
+  assert.match(fieldsCss, /button\.cwgsyw-control\.cwgsyw-control--sm/)
+})
+
 test('Checkbox Radio Switch keep selection semantics', () => {
   const checkbox = renderToStaticMarkup(React.createElement(Checkbox, { label: '同意', defaultChecked: true }))
   const radio = renderToStaticMarkup(React.createElement(Radio, { label: '选项', name: 'g' }))

@@ -109,6 +109,9 @@ function loadCompiled(filePath) {
       const node = ({ children, className, ...props }) => React.createElement('div', { className, ...props }, children)
       return {
         Dialog: { Root: passthrough, Portal: passthrough, Backdrop: node, Popup: node, Title: node, Description: node, Close: node },
+        Menu: { Root: passthrough, Trigger: node, Portal: passthrough, Positioner: passthrough, Popup: node },
+        Popover: { Root: passthrough, Trigger: node, Portal: passthrough, Positioner: passthrough, Popup: node },
+        Tooltip: { Provider: passthrough, Root: passthrough, Trigger: node, Portal: passthrough, Positioner: passthrough, Popup: node },
       }
     }
     if (request.startsWith('@/')) {
@@ -146,8 +149,9 @@ test('groups page and dialogs leave old visual entries and keep group APIs', () 
   assert.match(page, /DataManagementPage/)
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /queryKey: \['groups', listState\]/)
-  assert.match(page, /data-testid="group-state-active"/)
-  assert.match(page, /data-testid=\{`group-archive-\$\{group\.id\}`\}/)
+  assert.match(page, /testId: 'group-state-active'/)
+  assert.match(page, /style="cmdb"/)
+  assert.match(page, /testId=\{`group-archive-\$\{group\.id\}`\}/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(groupDialog, /@\/components\/design-system/)
@@ -163,7 +167,7 @@ test('groups page renders Data Management composition and Neutral table', () => 
   const page = loadCompiled(pagePath)
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /cwgsyw-page--embedded/)
-  assert.match(html, /用户组管理/)
+  assert.match(html, /用户组/)
   assert.match(html, /cwgsyw-table/)
   assert.match(html, /平台组/)
   assert.match(html, /data-testid="group-state-archived"/)

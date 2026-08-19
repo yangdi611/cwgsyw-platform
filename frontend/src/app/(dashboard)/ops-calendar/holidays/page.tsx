@@ -9,9 +9,9 @@ import { usePermission } from '@/hooks/usePermission'
 import { type HolidayVO, errMsg } from '@/lib/opsCalendar'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
+  DateInput,
   EmptyState,
   Field,
   Input,
@@ -127,33 +127,26 @@ export default function HolidaysPage() {
   return (
     <>
       <DataManagementPage
+        className="cwgsyw-ops"
         embedded
         header={
           <PageHeader
-            eyebrow="运维日历"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="节假日历"
-            subtitle="维护节假日、调休补班日，支撑工作日判断与节前/节后相对日期任务（Phase 4）。"
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/ops-calendar', label: '运维日历' },
-                  { label: '节假日历' },
-                ]}
-              />
-            }
+            subtitle="维护节假日、调休补班日，支撑工作日判断。"
             actions={
-              <div className="cwgsyw-inline-controls">
-                <Button type="button" variant="secondary" onClick={() => router.push('/ops-calendar')}>
-                  返回
+              <div className="cwgsyw-ops__actions">
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push('/ops-calendar')}>
+                  返回日历
                 </Button>
                 {canManage ? (
-                  <Button type="button" variant="secondary" loading={importMutation.isPending} onClick={() => setImportOpen(true)}>
-                    导入2026法定节假日
+                  <Button type="button" size="sm" variant="secondary" loading={importMutation.isPending} onClick={() => setImportOpen(true)}>
+                    导入法定节假日
                   </Button>
                 ) : null}
                 {canManage ? (
-                  <Button type="button" variant="primary" onClick={openCreate}>
+                  <Button type="button" size="sm" variant="primary" onClick={openCreate}>
                     新建节假日
                   </Button>
                 ) : null}
@@ -163,6 +156,8 @@ export default function HolidaysPage() {
         }
         content={
           <Table
+            className="cwgsyw-cmdb-table cwgsyw-ops__table"
+            density="compact"
             showSearch={false}
             columns={[
               { key: 'name', label: '名称' },
@@ -181,23 +176,29 @@ export default function HolidaysPage() {
                 range: `${holiday.startDate} ~ ${holiday.endDate}`,
                 type: TYPE_LABEL[holiday.holidayType] ?? holiday.holidayType,
                 overrides: holiday.workdayOverrides && holiday.workdayOverrides !== '[]' ? holiday.workdayOverrides : '-',
-                enabled: <StatusBadge label={holiday.enabled ? '启用' : '停用'} status={holiday.enabled ? 'success' : 'neutral'} />,
+                enabled: <StatusBadge size="sm" label={holiday.enabled ? '启用' : '停用'} status={holiday.enabled ? 'success' : 'neutral'} />,
                 remark: holiday.remark ?? '-',
                 updatedAt: `${holiday.updatedBy ? `用户 #${holiday.updatedBy}` : '-'} ${holiday.updatedAt?.slice(0, 16).replace('T', ' ') ?? ''}`,
                 ops: canManage ? (
-                  <div className="cwgsyw-inline-controls">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(holiday)}>
-                      编辑
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setDeleteTarget(holiday)}>
-                      删除
-                    </Button>
+                  <div className="cwgsyw-ops__row-actions">
+                    <button type="button" className="cwgsyw-ops__icon-btn" aria-label={`编辑 ${holiday.name}`} onClick={() => openEdit(holiday)}>
+                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--edit" aria-hidden="true" />
+                    </button>
+                    <button type="button" className="cwgsyw-ops__icon-btn is-danger" aria-label={`删除 ${holiday.name}`} onClick={() => setDeleteTarget(holiday)}>
+                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--trash" aria-hidden="true" />
+                    </button>
                   </div>
                 ) : null,
               },
             }))}
             state={isLoading ? 'loading' : holidays.length === 0 ? 'empty' : 'data'}
-            empty={<EmptyState title="暂无节假日" description="点击右上角新建节假日。" showAction={false} />}
+            empty={
+              <div className="cwgsyw-ops__empty">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/figma-icons/home-calendar.svg" width={22} height={22} alt="" data-figma-node="6:24162" />
+                <EmptyState showIcon={false} title="暂无节假日" description="点击右上角新建节假日。" showAction={false} />
+              </div>
+            }
           />
         }
       />
@@ -206,14 +207,16 @@ export default function HolidaysPage() {
         open={open}
         onOpenChange={setOpen}
         title={editing ? '编辑节假日' : '新建节假日'}
-        showClose={false}
+        size="sm"
+        showClose
         footer={
-          <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          <div className="cwgsyw-ops-dialog__footer">
+            <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
               取消
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="primary"
               loading={saveMutation.isPending}
               disabled={!form.name || !form.startDate || !form.endDate}
@@ -224,18 +227,20 @@ export default function HolidaysPage() {
           </div>
         }
       >
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-ops-dialog">
           <Field htmlFor="holiday-name" label="名称" required>
-            <Input id="holiday-name" value={form.name} placeholder="如 国庆节" onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <Input size="sm" id="holiday-name" value={form.name} placeholder="如 国庆节" onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </Field>
           <Field htmlFor="holiday-start" label="开始日期" required>
-            <Input id="holiday-start" type="date" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+            <DateInput size="sm" id="holiday-start" type="date" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
           </Field>
           <Field htmlFor="holiday-end" label="结束日期" required>
-            <Input id="holiday-end" type="date" value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
+            <DateInput size="sm" id="holiday-end" type="date" value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
           </Field>
           <Field htmlFor="holiday-type" label="类型">
             <Select
+              overlay
+              size="sm"
               id="holiday-type"
               value={form.holidayType}
               options={[
@@ -248,6 +253,7 @@ export default function HolidaysPage() {
           </Field>
           <Field htmlFor="holiday-overrides" label="调休补班日" helperText="逗号分隔，如 2026-10-11,2026-10-12">
             <Input
+              size="sm"
               id="holiday-overrides"
               value={form.workdayOverrides}
               placeholder="可留空"
@@ -255,7 +261,7 @@ export default function HolidaysPage() {
             />
           </Field>
           <Field htmlFor="holiday-remark" label="备注">
-            <Input id="holiday-remark" value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} />
+            <Input size="sm" id="holiday-remark" value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} />
           </Field>
           <Switch
             label="启用"

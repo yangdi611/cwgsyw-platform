@@ -13,6 +13,7 @@ const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/account/setup/page.tsx')
 const formPath = path.join(frontendRoot, 'src/components/account/AccountSetupForm.tsx')
 const accountApiPath = path.join(frontendRoot, 'src/lib/account-api.ts')
+const accountCssPath = path.join(frontendRoot, 'src/components/account/account.css')
 
 const profile = {
   id: 1,
@@ -95,11 +96,19 @@ test('setup page and form leave old visual entries and keep the setup API contra
   const api = fs.readFileSync(accountApiPath, 'utf8')
   assert.match(page, /FormSettingsPage/)
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /components\/account\/account\.css/)
+  assert.match(page, /cwgsyw-account-page/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
   assert.doesNotMatch(page, /bg-v2-bg/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(form, /text-v2-/)
   assert.match(form, /submitAccountSetup/)
   assert.match(form, /PASSWORD_REUSED/)
+  assert.match(form, /cwgsyw-account-form__section/)
+  assert.match(form, /cwgsyw-account-form__section-title/)
+  assert.match(form, /size="sm"/)
+  assert.equal(fs.existsSync(accountCssPath), true)
   assert.match(api, /export function submitAccountSetup/)
 })
 
@@ -120,6 +129,7 @@ test('setup form shows password step only when required', () => {
     }),
   )
   assert.match(withPassword, /第一步：修改初始密码/)
+  assert.match(withPassword, /cwgsyw-account-form__section-title/)
   assert.match(withPassword, /cwgsyw-password-hints/)
   assert.doesNotMatch(profileOnly, /第一步：修改初始密码/)
   assert.match(profileOnly, /补全个人资料/)

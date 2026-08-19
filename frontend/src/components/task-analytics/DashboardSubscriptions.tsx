@@ -12,7 +12,9 @@ import {
   type AnalyticsSubscriptionPayload,
 } from '@/lib/task-analytics-api'
 import '@/design-system/figma-neutral/index.css'
-import { Button, Card, EmptyState, Field, Input, Select } from '@/design-system/figma-neutral/components'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, TASK_BAR_CHART_ICON, TASK_BAR_CHART_NODE } from '@/components/task-runtime/TaskEmpty'
+import { Button, Field, Input, Select } from '@/design-system/figma-neutral/components'
 
 interface Props { dashboardId: number; canManage: boolean }
 
@@ -29,14 +31,16 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
   if (!canManage) return null
   const targets = draft.recipientType === 'user' ? users.data ?? [] : groups.data ?? []
   return (
-    <Card title="定时订阅" description="每位接收人按自身数据权限接收可见范围内的看板内容。">
-      <div className="cwgsyw-form">
-        <div className="cwgsyw-filter-grid">
+    <TaskPanel title="定时订阅">
+      <div className="cwgsyw-form cwgsyw-tasks-subscription-form">
+        <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--wide">
           <Field label="订阅名称">
-            <Input value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} />
+            <Input size="sm" value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} />
           </Field>
           <Field label="接收对象">
             <Select
+              size="sm"
+              overlay
               value={draft.recipientType}
               onChange={(value) => setDraft((current) => ({ ...current, recipientType: value as SubscriptionDraft['recipientType'], recipientId: undefined }))}
               options={[{ value: 'user', label: '用户' }, { value: 'group', label: '用户组' }]}
@@ -44,6 +48,8 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
           </Field>
           <Field label={draft.recipientType === 'user' ? '接收用户' : '接收用户组'}>
             <Select
+              size="sm"
+              overlay
               value={draft.recipientId ? String(draft.recipientId) : ''}
               onChange={(value) => setDraft((current) => ({ ...current, recipientId: value ? Number(value) : undefined }))}
               options={targets.map((target) => ({ value: String(target.id), label: targetName(target) }))}
@@ -52,6 +58,8 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
           </Field>
           <Field label="渠道">
             <Select
+              size="sm"
+              overlay
               value={draft.channel}
               onChange={(value) => setDraft((current) => ({ ...current, channel: value as SubscriptionDraft['channel'] }))}
               options={[{ value: 'notification', label: '站内通知' }, { value: 'email', label: '邮件' }]}
@@ -59,17 +67,21 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
           </Field>
           <Field label="周期">
             <Select
+              size="sm"
+              overlay
               value={draft.scheduleType}
               onChange={(value) => setDraft((current) => ({ ...current, scheduleType: value as SubscriptionDraft['scheduleType'] }))}
               options={[{ value: 'daily', label: '每天' }, { value: 'weekly', label: '每周' }, { value: 'monthly', label: '每月' }]}
             />
           </Field>
           <Field label="时间">
-            <Input type="time" value={draft.time} onChange={(event) => setDraft((value) => ({ ...value, time: event.target.value }))} />
+            <Input size="sm" type="time" value={draft.time} onChange={(event) => setDraft((value) => ({ ...value, time: event.target.value }))} />
           </Field>
           {draft.scheduleType === 'weekly' ? (
             <Field label="周几">
               <Select
+                size="sm"
+                overlay
                 value={String(draft.dayOfWeek)}
                 onChange={(value) => setDraft((current) => ({ ...current, dayOfWeek: Number(value) }))}
                 options={[1, 2, 3, 4, 5, 6, 7].map((day) => ({ value: String(day), label: `周${['一', '二', '三', '四', '五', '六', '日'][day - 1]}` }))}
@@ -78,11 +90,11 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
           ) : null}
           {draft.scheduleType === 'monthly' ? (
             <Field label="日期">
-              <Input type="number" min={1} max={28} value={draft.dayOfMonth} onChange={(event) => setDraft((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} />
+              <Input size="sm" type="number" min={1} max={28} value={draft.dayOfMonth} onChange={(event) => setDraft((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} />
             </Field>
           ) : null}
           <div>
-            <Button type="button" onClick={() => create.mutate()} disabled={create.isPending || !draft.name.trim() || !draft.recipientId}>新增订阅</Button>
+            <Button type="button" size="sm" onClick={() => create.mutate()} disabled={create.isPending || !draft.name.trim() || !draft.recipientId}>新增订阅</Button>
           </div>
         </div>
         {subscriptions.isLoading ? <p className="cwgsyw-type-body-sm">正在加载订阅...</p> : null}
@@ -99,10 +111,10 @@ export function DashboardSubscriptions({ dashboardId, canManage }: Props) {
           </div>
         ))}
         {!subscriptions.isLoading && subscriptions.data?.length === 0 ? (
-          <EmptyState title="尚未配置定时发送" description="添加接收人和周期后即可订阅。" />
+          <TaskEmpty iconSrc={TASK_BAR_CHART_ICON} figmaNode={TASK_BAR_CHART_NODE} title="尚未配置定时发送" description="添加接收人和周期后即可订阅。" />
         ) : null}
       </div>
-    </Card>
+    </TaskPanel>
   )
 }
 

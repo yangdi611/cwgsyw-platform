@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Badge, Button, Input, Select } from '@/design-system/figma-neutral/components'
@@ -43,16 +44,23 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
     enabled: debouncedKeyword.length >= 1 && open,
   })
 
-  // Close dropdown on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    if (!open) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
 
   const handleSelect = useCallback((inst: { id: number; name: string; modelName: string }) => {
     // Avoid duplicates
@@ -81,48 +89,67 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
   const selectedIds = new Set(value.map(v => v.instanceId))
 
   return (
-    <div className="space-y-3">
-      {/* Search input + dropdown */}
-      <div ref={containerRef} className="relative">
+    <div className="cwgsyw-change-doc-ci-flow">
+      <MotionConfig reducedMotion="user">
+      <motion.div
+        ref={containerRef}
+        layout="size"
+        className="cwgsyw-change-doc-ci-flow__search"
+        data-open={open && debouncedKeyword.length >= 1 ? 'true' : undefined}
+        transition={{ type: 'spring', stiffness: 220, damping: 28, mass: 0.8 }}
+      >
         <Input size="sm"
+          aria-label="搜索 CI 实例"
           placeholder="输入关键词搜索 CI 实例..."
           value={keyword}
           onChange={e => { setKeyword(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           disabled={disabled}
         />
-        {open && debouncedKeyword.length >= 1 && (
-          <div className="cwgsyw-listbox cwgsyw-listbox--overlay" role="listbox">
-            {searchResults.length === 0 ? (
-              <p className="cwgsyw-type-label-sm">无匹配结果</p>
-            ) : (
-              (searchResults as { id: number; name: string; modelName: string }[]).map(inst => {
-                const alreadySelected = selectedIds.has(inst.id)
-                return (
-                  <Button
-                    key={inst.id}
-                    type="button"
-                    variant="ghost"
-                    className="cwgsyw-picker-option"
-                    disabled={alreadySelected || disabled}
-                    onClick={() => !alreadySelected && handleSelect(inst)}
-                  >
-                    <span>{inst.name}</span>
-                    <span className="cwgsyw-inline-controls">
-                      <Badge label={inst.modelName} />
-                      {alreadySelected ? <span className="cwgsyw-type-label-xs">已选</span> : null}
-                    </span>
-                  </Button>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
+        <AnimatePresence initial={false}>
+          {open && debouncedKeyword.length >= 1 ? (
+            <motion.div
+              key="ci-results"
+              role="listbox"
+              aria-label="CI 实例搜索结果"
+              className="cwgsyw-listbox cwgsyw-change-doc-ci-flow__list"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            >
+              {searchResults.length === 0 ? (
+                <p className="cwgsyw-type-label-sm">无匹配结果</p>
+              ) : (
+                (searchResults as { id: number; name: string; modelName: string }[]).map(inst => {
+                  const alreadySelected = selectedIds.has(inst.id)
+                  return (
+                    <Button
+                      key={inst.id}
+                      type="button"
+                      variant="ghost"
+                      className="cwgsyw-picker-option"
+                      disabled={alreadySelected || disabled}
+                      onClick={() => !alreadySelected && handleSelect(inst)}
+                    >
+                      <span>{inst.name}</span>
+                      <span className="cwgsyw-inline-controls">
+                        <Badge label={inst.modelName} size="sm" />
+                        {alreadySelected ? <span className="cwgsyw-type-label-xs">已选</span> : null}
+                      </span>
+                    </Button>
+                  )
+                })
+              )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+      </MotionConfig>
 
       {/* Selected chips */}
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="cwgsyw-change-doc-ci-flow__selected">
           {value.map(item => (
             <div
               key={item.instanceId}

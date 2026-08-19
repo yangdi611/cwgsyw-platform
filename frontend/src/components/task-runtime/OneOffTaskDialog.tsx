@@ -7,6 +7,7 @@ import { toast } from '@/design-system/figma-neutral/toast'
 import { createOneOffTask } from '@/lib/task-runtime-api'
 import { listDirectoryUsers, listPublishedTemplates } from '@/lib/task-plan-api'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
 import {
   Button,
   Field,
@@ -66,14 +67,14 @@ export function OneOffTaskDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="快速创建一次性任务"
-      size="lg"
+      size="md"
       showClose={false}
       footer={
         <div className="cwgsyw-form__actions">
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button type="button" size="sm" variant="secondary" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button type="button" variant="primary" disabled={!canSubmit} loading={create.isPending} onClick={() => create.mutate()}>
+          <Button type="button" size="sm" variant="primary" disabled={!canSubmit} loading={create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? '创建中' : '创建任务'}
           </Button>
         </div>
@@ -81,11 +82,13 @@ export function OneOffTaskDialog({
     >
       <div className="cwgsyw-form">
         <Field htmlFor="one-off-title" label="任务标题" required>
-          <Input id="one-off-title" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <Input id="one-off-title" size="sm" value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
         <Field htmlFor="one-off-template" label="任务模板" required>
           <Select
             id="one-off-template"
+            size="sm"
+            overlay
             value={templateVersionId ? String(templateVersionId) : ''}
             placeholder="选择已发布模板"
             options={(templates.data ?? [])
@@ -97,6 +100,8 @@ export function OneOffTaskDialog({
         <Field htmlFor="one-off-assignee" label="执行人" required>
           <Select
             id="one-off-assignee"
+            size="sm"
+            overlay
             value={assigneeId ? String(assigneeId) : ''}
             placeholder="选择执行人"
             options={(users.data ?? []).map((user) => ({
@@ -107,10 +112,10 @@ export function OneOffTaskDialog({
           />
         </Field>
         <Field htmlFor="one-off-start" label="开始时间">
-          <Input id="one-off-start" type="datetime-local" value={plannedStartAt} onChange={(event) => setPlannedStartAt(event.target.value)} />
+          <Input id="one-off-start" size="sm" type="datetime-local" value={plannedStartAt} onChange={(event) => setPlannedStartAt(event.target.value)} />
         </Field>
         <Field htmlFor="one-off-due" label="截止时间">
-          <Input id="one-off-due" type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
+          <Input id="one-off-due" size="sm" type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
         </Field>
         <Field htmlFor="one-off-description" label="任务说明">
           <Textarea id="one-off-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />

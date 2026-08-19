@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
@@ -16,15 +15,16 @@ import type { FolderNode, SharedFile } from './components/types'
 import { formatBytes, fileTypeLabel } from './components/utils'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
   EmptyState,
   Field,
   FilterBar,
+  IconButton,
   Input,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Pagination,
   Progress,
@@ -253,26 +253,27 @@ export default function FilesPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-files"
         header={
           <PageHeader
-            eyebrow="资源管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="共享文档"
             subtitle="集中管理运维文档与归档文件，支持文件夹分类、上传下载与在线预览。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '共享文档' }]} />}
             actions={
-              <div className="cwgsyw-inline-controls">
+              <div className="cwgsyw-inline-controls cwgsyw-files__header-actions">
                 {canManage ? (
-                  <Button type="button" variant="secondary" onClick={() => setNewFolderOpen(true)}>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setNewFolderOpen(true)}>
                     新建文件夹
                   </Button>
                 ) : null}
                 {canUpload ? (
                   <>
-                    <Button type="button" variant="primary" loading={uploading} onClick={() => fileInputRef.current?.click()}>
+                    <Button type="button" size="sm" loading={uploading} onClick={() => fileInputRef.current?.click()}>
                       {uploading ? `上传中${uploadProgress == null ? '…' : ` ${uploadProgress}%`}` : '上传文件'}
                     </Button>
                     {uploading ? (
-                      <Button type="button" variant="secondary" onClick={() => uploadAbortRef.current?.abort()}>
+                      <Button type="button" variant="secondary" size="sm" onClick={() => uploadAbortRef.current?.abort()}>
                         取消上传
                       </Button>
                     ) : null}
@@ -286,7 +287,9 @@ export default function FilesPage() {
           <FilterBar
             search={
               <SearchInput
+                size="sm"
                 placeholder="搜索文件名…"
+                aria-label="搜索文件名"
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value)
@@ -312,7 +315,7 @@ export default function FilesPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="cwgsyw-tree-item"
+                      className="cwgsyw-tree-item cwgsyw-files-tree__root"
                       data-selected={selectedFolderId === null}
                       onClick={() => selectFolder(null)}
                     >
@@ -345,6 +348,8 @@ export default function FilesPage() {
                 </div>
                 <div className="cwgsyw-split__pane-body">
                   <Table
+                    className="cwgsyw-cmdb-table cwgsyw-files__table"
+                    density="compact"
                     showSearch={false}
                     columns={[
                       { key: 'name', label: '名称' },
@@ -352,70 +357,116 @@ export default function FilesPage() {
                       { key: 'size', label: '大小' },
                       { key: 'createdByName', label: '上传者' },
                       { key: 'createdAt', label: '上传时间' },
-                      { key: 'actions', label: '操作', align: 'right' },
+                      { key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' },
                     ]}
                     rows={files.map((file) => ({
                       id: String(file.id),
                       cells: {
-                        name: file.name,
-                        fileType: fileTypeLabel(file.fileType),
-                        size: formatBytes(file.sizeBytes),
-                        createdByName: file.createdByName,
-                        createdAt: new Date(file.createdAt).toLocaleString('zh-CN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        }),
+                        name: <TruncatedHint value={file.name} />,
+                        fileType: <TruncatedHint value={fileTypeLabel(file.fileType)} />,
+                        size: <TruncatedHint value={formatBytes(file.sizeBytes)} />,
+                        createdByName: <TruncatedHint value={file.createdByName || '—'} />,
+                        createdAt: (
+                          <TruncatedHint
+                            value={new Date(file.createdAt).toLocaleString('zh-CN', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          />
+                        ),
                         actions: (
-                          <div className="cwgsyw-inline-controls">
-                            <Link href={`/files/preview/${file.id}`}>预览</Link>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => handleDownload(file.id, file.originalName)}>
-                              下载
-                            </Button>
+                          <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions" onClick={(event) => event.stopPropagation()}>
+                            <NeutralTooltip content="预览" className="cwgsyw-tooltip--pill" followCursor>
+                              <IconButton
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--eye" />}
+                                aria-label={`预览 ${file.name}`}
+                                onClick={() => router.push(`/files/preview/${file.id}`)}
+                              />
+                            </NeutralTooltip>
+                            <NeutralTooltip content="下载" className="cwgsyw-tooltip--pill" followCursor>
+                              <IconButton
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--download" />}
+                                aria-label={`下载 ${file.name}`}
+                                onClick={() => handleDownload(file.id, file.originalName)}
+                              />
+                            </NeutralTooltip>
                             {canManageAcl && file.canManageAcl ? (
-                              <Button type="button" size="sm" variant="ghost" onClick={() => setFileAclTarget(file)}>
-                                权限
-                              </Button>
+                              <NeutralTooltip content="权限" className="cwgsyw-tooltip--pill" followCursor>
+                                <IconButton
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--settings" />}
+                                  aria-label={`设置 ${file.name} 权限`}
+                                  onClick={() => setFileAclTarget(file)}
+                                />
+                              </NeutralTooltip>
                             ) : null}
                             {canUpdate ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setRenaming(file)
-                                  setRenameValue(file.name)
-                                }}
-                              >
-                                重命名
-                              </Button>
+                              <NeutralTooltip content="重命名" className="cwgsyw-tooltip--pill" followCursor>
+                                <IconButton
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                                  aria-label={`重命名 ${file.name}`}
+                                  onClick={() => {
+                                    setRenaming(file)
+                                    setRenameValue(file.name)
+                                  }}
+                                />
+                              </NeutralTooltip>
                             ) : null}
                             {canManage ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setMoving(file)
-                                  setMoveFolderId(file.folderId === null ? '' : String(file.folderId))
-                                }}
-                              >
-                                移动
-                              </Button>
+                              <NeutralTooltip content="移动" className="cwgsyw-tooltip--pill" followCursor>
+                                <IconButton
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--move" />}
+                                  aria-label={`移动 ${file.name}`}
+                                  onClick={() => {
+                                    setMoving(file)
+                                    setMoveFolderId(file.folderId === null ? '' : String(file.folderId))
+                                  }}
+                                />
+                              </NeutralTooltip>
                             ) : null}
                             {canDelete && file.canDelete ? (
-                              <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteFile(file)}>
-                                删除
-                              </Button>
+                              <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                                <IconButton
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="cwgsyw-cmdb-admin__delete-action"
+                                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                                  aria-label={`删除 ${file.name}`}
+                                  onClick={() => setDeleteFile(file)}
+                                />
+                              </NeutralTooltip>
                             ) : null}
                           </div>
                         ),
                       },
                     }))}
                     state={filesLoading ? 'loading' : files.length === 0 ? 'empty' : 'data'}
-                    empty={<EmptyState title="暂无文件" description="当前文件夹为空，点击右上角上传文件或新建文件夹。" showAction={false} />}
+                    empty={
+                      <div className="cwgsyw-neutral-empty">
+                        {/* Official Figma folder glyph; image optimization adds no value here. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/figma-icons/files-folder.svg" width={22} height={22} alt="" data-figma-node="6:26599" />
+                        <EmptyState showIcon={false} title="暂无文件" description="当前文件夹为空，点击右上角上传文件或新建文件夹。" />
+                      </div>
+                    }
                   />
                   <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
                 </div>
@@ -432,15 +483,17 @@ export default function FilesPage() {
           if (!open) setRenaming(null)
         }}
         title="重命名文件"
+        size="sm"
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={() => setRenaming(null)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setRenaming(null)}>
               取消
             </Button>
             <Button
               type="button"
               variant="primary"
+              size="sm"
               loading={renameMutation.isPending}
               disabled={!renameValue.trim()}
               onClick={() => {
@@ -463,15 +516,17 @@ export default function FilesPage() {
           if (!open) setMoving(null)
         }}
         title="移动文件"
+        size="sm"
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={() => setMoving(null)}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setMoving(null)}>
               取消
             </Button>
             <Button
               type="button"
               variant="primary"
+              size="sm"
               loading={moveMutation.isPending}
               onClick={() => {
                 if (moving) moveMutation.mutate({ id: moving.id, parentId: moveFolderId })
@@ -483,7 +538,7 @@ export default function FilesPage() {
         }
       >
         <Field htmlFor="file-move" label="移动到">
-          <Select id="file-move" value={moveFolderId} options={folderOptions} onChange={setMoveFolderId} />
+          <Select id="file-move" overlay size="sm" value={moveFolderId} options={folderOptions} onChange={setMoveFolderId} />
         </Field>
       </NeutralDialog>
 
@@ -494,15 +549,17 @@ export default function FilesPage() {
           else closeNewFolderDialog()
         }}
         title="新建文件夹"
+        size="sm"
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={closeNewFolderDialog}>
+            <Button type="button" variant="secondary" size="sm" onClick={closeNewFolderDialog}>
               取消
             </Button>
             <Button
               type="button"
               variant="primary"
+              size="sm"
               loading={createFolderMutation.isPending}
               disabled={!newFolderName.trim()}
               onClick={() => createFolderMutation.mutate(newFolderName.trim())}
@@ -530,6 +587,8 @@ export default function FilesPage() {
             <Field htmlFor="folder-owner-group" label="归属组">
               <Select
                 id="folder-owner-group"
+                overlay
+                size="sm"
                 value={ownerGroupId}
                 options={[{ value: '', label: '使用主组' }, ...groups.map((group) => ({ value: String(group.id), label: group.name }))]}
                 onChange={setOwnerGroupId}
@@ -580,6 +639,8 @@ export default function FilesPage() {
           <Field htmlFor="folder-edit-parent" label="移动到">
             <Select
               id="folder-edit-parent"
+              overlay
+              size="sm"
               value={folderParentId}
               options={folderOptions.filter((option) => option.value !== String(editingFolder?.id ?? ''))}
               onChange={setFolderParentId}
@@ -637,5 +698,13 @@ export default function FilesPage() {
         />
       ) : null}
     </>
+  )
+}
+
+function TruncatedHint({ value }: { value: string }) {
+  return (
+    <NeutralTooltip content={value} className="cwgsyw-tooltip--pill" followCursor>
+      <span className="cwgsyw-files__name">{value}</span>
+    </NeutralTooltip>
   )
 }

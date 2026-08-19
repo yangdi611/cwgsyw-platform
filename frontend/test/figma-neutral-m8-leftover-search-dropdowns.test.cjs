@@ -19,8 +19,9 @@ const css = fs.readFileSync(
 )
 
 test('CMDB search dropdowns use Neutral listbox overlay instead of handwritten menus', () => {
+  assert.match(instance, /cwgsyw-listbox cwgsyw-listbox--overlay/)
+  assert.match(link, /cwgsyw-listbox cwgsyw-change-doc-ci-flow__list/)
   for (const [rel, source] of [['CiInstanceSelect', instance], ['CiLinkSelector', link]]) {
-    assert.match(source, /cwgsyw-listbox cwgsyw-listbox--overlay/, rel)
     assert.match(source, /role="listbox"/, rel)
     assert.doesNotMatch(source, /absolute z-50/, rel)
     assert.doesNotMatch(source, /shadow-lg/, rel)

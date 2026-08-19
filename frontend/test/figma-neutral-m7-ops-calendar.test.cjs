@@ -47,6 +47,8 @@ function loadCompiled(filePath) {
     }
     if (request === '@tanstack/react-query') {
       return {
+        keepPreviousData: (value) => value,
+        useQueryClient: () => ({ prefetchQuery() { return Promise.resolve() } }),
         useQuery: ({ queryKey }) => {
           if (Array.isArray(queryKey) && queryKey[0] === 'calendar-work-items') {
             return {
@@ -158,6 +160,31 @@ test('ops calendar page and views leave old visual entries and keep calendar API
   assert.doesNotMatch(month, /calendarItemColor/)
   assert.doesNotMatch(week, /calendarItemColor/)
   assert.doesNotMatch(home, /@\/components\/design-system/)
+  assert.match(page, /style="cmdb"/)
+  assert.match(page, /className="cwgsyw-ops"/)
+  assert.match(page, /cwgsyw-ops__period-nav/)
+  assert.match(page, /PeriodMonthReel/)
+  assert.match(page, /prefetchQuery/)
+  assert.match(page, /keepPreviousData/)
+  assert.match(page, /回到本月/)
+  assert.match(page, /data-figma-node="6:23381"/)
+  assert.match(page, /data-figma-node="6:23403"/)
+  assert.match(page, /NeutralTooltip/)
+  assert.doesNotMatch(page, />\s*上一期\s*</)
+  assert.doesNotMatch(page, />\s*下一期\s*</)
+  assert.match(page, /cwgsyw-ops__period-digit-reel/)
+  const patterns = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /actions=\{\s*<div className="cwgsyw-ops__tabs">/)
+  assert.ok(page.indexOf('className="cwgsyw-ops__filters"') < page.indexOf('className="cwgsyw-ops__tabs"'))
+  assert.match(patterns, /\.cwgsyw-ops__toolbar > \.cwgsyw-filter-bar > \.cwgsyw-ops__tabs\s*\{[\s\S]*?margin-left:\s*auto/)
+  assert.match(patterns, /min-width: 220px/)
+  assert.match(patterns, /inset 0 0 0 2px var\(--cwgsyw-border-strong\)/)
+  assert.match(patterns, /text-overflow: ellipsis/)
+  assert.match(patterns, /ops-arrow-left-circle/)
+  assert.match(patterns, /ops-arrow-right-circle/)
+  assert.match(week, /cwgsyw-ops-week__head/)
+  assert.doesNotMatch(week, /cwgsyw-type-label-xs/)
+  assert.doesNotMatch(week, /cwgsyw-type-body-sm/)
 })
 
 test('ops calendar renders Neutral month workspace and work item', () => {

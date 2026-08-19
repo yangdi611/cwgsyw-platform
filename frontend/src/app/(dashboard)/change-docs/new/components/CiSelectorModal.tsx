@@ -44,6 +44,7 @@ export function CiSelectorModal({ open, selectedCis, onClose, onToggle }: CiSele
     >
       <div className="cwgsyw-form">
         <SearchInput
+          aria-label="搜索 CI 名称"
           value={ciSearchKeyword}
           placeholder="搜索 CI 名称…（至少2个字符）"
           onChange={(event) => setCiSearchKeyword(event.target.value)}
@@ -51,7 +52,7 @@ export function CiSelectorModal({ open, selectedCis, onClose, onToggle }: CiSele
         />
         {!ciSearchKeyword ? <p>请输入关键词搜索 CI</p> : null}
         {ciSearchKeyword.length > 0 && ciSearchKeyword.length < 2 ? <p>请至少输入 2 个字符开始搜索</p> : null}
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-change-doc-ci-selector__results">
           {ciSearchResult?.records?.map((ci) => {
             const selected = selectedCis.some((item) => item.instanceId === ci.id)
             return (
@@ -59,6 +60,7 @@ export function CiSelectorModal({ open, selectedCis, onClose, onToggle }: CiSele
                 key={ci.id}
                 type="button"
                 variant={selected ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() =>
                   onToggle({
                     instanceId: ci.id,

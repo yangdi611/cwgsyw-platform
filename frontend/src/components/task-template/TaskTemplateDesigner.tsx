@@ -20,11 +20,11 @@ import {
   type TemplateValidationIssue,
 } from '@/lib/task-template-api'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
 import {
   Alert,
-  Breadcrumb,
   Button,
-  Card,
   ErrorState,
   Field,
   FormSettingsPage,
@@ -63,7 +63,7 @@ export function TaskTemplateDesigner({ templateId, versionId }: { templateId: nu
       <ErrorState
         title="模板设计器加载失败"
         retry={
-          <Button type="button" variant="secondary" onClick={() => { void versionQuery.refetch(); void fieldTypesQuery.refetch() }}>
+          <Button type="button" size="sm" variant="secondary" onClick={() => { void versionQuery.refetch(); void fieldTypesQuery.refetch() }}>
             重试
           </Button>
         }
@@ -212,50 +212,46 @@ function TaskTemplateDesignerWorkspace({
   return (
     <FormSettingsPage
       embedded
+      className="cwgsyw-tasks-page"
       header={
         <PageHeader
-          eyebrow={`统一任务平台 · v${draft.version}`}
+          showEyebrow={false}
+          showBreadcrumb={false}
+          showSubtitle={false}
           title={draft.name}
-          subtitle={readOnly ? '此版本已发布或废弃，只读展示不可变快照。' : '配置字段、校验、条件、公式、可见性和统计语义。'}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/tasks', label: '我的任务' },
-                { href: '/tasks/templates', label: '任务模板' },
-                { href: `/tasks/templates/${templateId}`, label: '模板详情' },
-                { label: `v${draft.version}` },
-              ]}
-            />
-          }
           status={<StatusBadge label={status.label} status={status.tone} />}
           actions={
             <div className="cwgsyw-designer__actions">
-              <Button type="button" variant="ghost" onClick={() => router.push(`/tasks/templates/${templateId}`)}>版本历史</Button>
-              <Button type="button" variant="secondary" onClick={() => void handlePreview('executor')}>执行人预览</Button>
-              <Button type="button" variant="secondary" onClick={() => void handlePreview('approver')}>审批人预览</Button>
-              {!readOnly && <Button type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleSave()}>{busy === 'save' ? '保存中' : '保存'}</Button>}
-              {!readOnly && <Button type="button" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleValidate()}>{busy === 'validate' ? '校验中' : '校验'}</Button>}
-              {!readOnly && <Button type="button" variant="primary" disabled={Boolean(busy)} onClick={() => void handlePublish()}>{busy === 'publish' ? '发布中' : '发布并锁定'}</Button>}
+              <Button type="button" size="sm" variant="ghost" onClick={() => router.push(`/tasks/templates/${templateId}`)}>版本历史</Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => void handlePreview('executor')}>执行人预览</Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => void handlePreview('approver')}>审批人预览</Button>
+              {!readOnly && <Button type="button" size="sm" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleSave()}>{busy === 'save' ? '保存中' : '保存'}</Button>}
+              {!readOnly && <Button type="button" size="sm" variant="secondary" disabled={Boolean(busy)} onClick={() => void handleValidate()}>{busy === 'validate' ? '校验中' : '校验'}</Button>}
+              {!readOnly && <Button type="button" size="sm" variant="primary" disabled={Boolean(busy)} onClick={() => void handlePublish()}>{busy === 'publish' ? '发布中' : '发布并锁定'}</Button>}
             </div>
           }
         />
       }
       form={
         <div className="cwgsyw-form">
-          <Card title="版本信息" description="名称和说明会随草稿一起保存。">
-            <div className="cwgsyw-form">
+          {readOnly ? (
+            <Alert tone="info" title="此版本已发布或废弃，只读展示不可变快照" showDescription={false} showDismiss={false} />
+          ) : null}
+          <TaskPanel title="版本信息">
+            <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--wide">
               <Field label="版本名称">
-                <Input disabled={readOnly} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
+                <Input size="sm" disabled={readOnly} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
               </Field>
               <Field label="描述">
-                <Input disabled={readOnly} value={draft.description ?? ''} onChange={(event) => updateDraft({ description: event.target.value })} />
+                <Input size="sm" disabled={readOnly} value={draft.description ?? ''} onChange={(event) => updateDraft({ description: event.target.value })} />
               </Field>
-              <Field label="执行说明">
-                <Textarea disabled={readOnly} value={draft.instructions ?? ''} onChange={(event) => updateDraft({ instructions: event.target.value })} rows={3} />
-              </Field>
+              <div className="cwgsyw-tasks-form-grid__full">
+                <Field label="执行说明">
+                  <Textarea disabled={readOnly} value={draft.instructions ?? ''} onChange={(event) => updateDraft({ instructions: event.target.value })} rows={3} />
+                </Field>
+              </div>
             </div>
-          </Card>
+          </TaskPanel>
           {issues.length > 0 ? (
             <Alert
               tone="warning"

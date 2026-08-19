@@ -30,8 +30,11 @@ function loadCompiled(filePath, roleId = '2') {
   Module._load = function load(request, parent, isMain) {
     if (request.endsWith('.css')) return {}
     if (request === 'sonner' || request === '@/design-system/figma-neutral/toast') return { toast: { success() {}, error() {}, warning() {}, info() {}, message() {} }, NeutralToaster() { return null } }
-    if (request === 'next/navigation') {
-      return { useSearchParams: () => ({ get: (key) => (key === 'roleId' ? roleId : null) }) }
+    if (request === 'next/navigation' || request.includes('next/navigation')) {
+      return {
+        useSearchParams: () => ({ get: (key) => (key === 'roleId' ? roleId : null) }),
+        useRouter: () => ({ push() {}, replace() {} }),
+      }
     }
     if (request === '@tanstack/react-query') {
       return {

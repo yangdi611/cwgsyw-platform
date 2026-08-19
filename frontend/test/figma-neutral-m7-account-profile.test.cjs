@@ -14,6 +14,8 @@ const componentsRoot = path.join(frontendRoot, 'src/design-system/figma-neutral/
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/account/profile/page.tsx')
 const formPath = path.join(frontendRoot, 'src/components/account/ProfileForm.tsx')
 const accountApiPath = path.join(frontendRoot, 'src/lib/account-api.ts')
+const accountCssPath = path.join(frontendRoot, 'src/components/account/account.css')
+const breadcrumbConfigPath = path.join(frontendRoot, 'src/lib/breadcrumb-config.ts')
 const inputPath = path.join(componentsRoot, 'Input.tsx')
 
 const profile = {
@@ -91,12 +93,22 @@ test('profile page and form leave old visual entries and keep the account API co
 
   assert.match(page, /FormSettingsPage/)
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /components\/account\/account\.css/)
+  assert.match(page, /cwgsyw-account-page/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.match(form, /@\/design-system\/figma-neutral\/components/)
   assert.doesNotMatch(form, /text-v2-muted/)
   assert.doesNotMatch(form, /@\/components\/design-system/)
   assert.match(form, /updateAccountProfile/)
+  assert.match(form, /cwgsyw-account-form__fields--profile/)
+  assert.match(form, /size="sm"/)
+  assert.doesNotMatch(form, /helperText="真实姓名由管理员维护/)
+  assert.match(page, /真实姓名由管理员维护，如需修改请联系管理员。/)
+  assert.equal(fs.existsSync(accountCssPath), true)
   assert.match(api, /export function getAccountProfile/)
   assert.match(api, /export function updateAccountProfile/)
 })
@@ -105,9 +117,11 @@ test('profile form renders Neutral fields and keeps realName read-only', () => {
   const { ProfileForm } = loadCompiled(formPath)
   const html = renderToStaticMarkup(React.createElement(ProfileForm, { profile }))
   assert.match(html, /cwgsyw-form/)
+  assert.match(html, /cwgsyw-account-form--profile/)
+  assert.match(html, /cwgsyw-account-form__fields--profile/)
   assert.match(html, /用户名/)
   assert.match(html, /真实姓名/)
-  assert.match(html, /管理员维护/)
+  assert.doesNotMatch(html, /管理员维护/)
   assert.match(html, /value="杨迪"/)
   assert.match(html, /保存资料/)
   assert.match(html, /type="submit"/)
@@ -120,6 +134,13 @@ test('profile page uses Form Settings composition instead of a nested main landm
   assert.match(html, /cwgsyw-page__grid/)
   assert.match(html, /个人资料/)
   assert.doesNotMatch(html, /<main/)
+})
+
+test('account routes resolve to Chinese header breadcrumbs', () => {
+  const { resolveBreadcrumb } = loadCompiled(breadcrumbConfigPath)
+  assert.deepEqual(resolveBreadcrumb('/account/profile').map(({ label }) => label), ['账号', '个人资料'])
+  assert.deepEqual(resolveBreadcrumb('/account/password').map(({ label }) => label), ['账号', '修改密码'])
+  assert.deepEqual(resolveBreadcrumb('/account/setup').map(({ label }) => label), ['账号', '首次设置'])
 })
 
 test('Input forwards the native ref to the inner control', () => {

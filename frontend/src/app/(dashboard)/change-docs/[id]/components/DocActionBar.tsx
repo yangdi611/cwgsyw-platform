@@ -41,13 +41,13 @@ export function DocActionBar({
   onExport,
 }: DocActionBarProps) {
   return (
-    <div className="cwgsyw-designer__actions">
+    <div className="cwgsyw-designer__actions cwgsyw-change-doc-detail__action-bar">
       {canReedit && hasPermission('change_doc', 'update') ? (
         <>
-          <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             {isApproved ? '修改并重新审批' : '修改并重新提交'}
           </Button>
-          <span>
+          <span className="cwgsyw-change-doc-detail__action-note">
             {isApproved
               ? '保存后将退回草稿状态，需重新提交审批。'
               : '保存后将退回草稿状态，可重新提交审批。'}
@@ -58,11 +58,11 @@ export function DocActionBar({
       {isDraft ? (
         <>
           {hasPermission('change_doc', 'update') ? (
-            <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               保存
             </Button>
           ) : null}
-          <Button type="button" variant="secondary" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+          <Button type="button" variant="secondary" size="sm" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
             {doc.applicationTemplateId && !doc.planTemplateId ? '提交申请单（稍后补填方案）' : '提交审批'}
           </Button>
         </>
@@ -70,10 +70,10 @@ export function DocActionBar({
 
       {isPlanPending && hasPermission('change_doc', 'update') ? (
         <>
-          <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             保存方案
           </Button>
-          <Button type="button" variant="secondary" onClick={() => submitPlanMutation.mutate()} disabled={submitPlanMutation.isPending || !doc.planTemplateId}>
+          <Button type="button" variant="secondary" size="sm" onClick={() => submitPlanMutation.mutate()} disabled={submitPlanMutation.isPending || !doc.planTemplateId}>
             提交方案
           </Button>
         </>
@@ -82,14 +82,16 @@ export function DocActionBar({
       {isPending && hasPermission('change_doc', 'approve') ? (
         <>
           <Input
+            size="sm"
+            aria-label="审批意见"
             placeholder="审批意见（可选）"
             value={approveComment}
             onChange={(event) => onApproveCommentChange(event.target.value)}
           />
-          <Button type="button" onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending}>
+          <Button type="button" size="sm" onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending}>
             审批通过
           </Button>
-          <Button type="button" variant="destructive" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending}>
+          <Button type="button" variant="destructive" size="sm" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending}>
             拒绝
           </Button>
         </>

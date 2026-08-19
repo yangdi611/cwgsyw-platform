@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/account/account.css'
 import {
   Button,
   Card,
@@ -54,10 +55,11 @@ export default function AccountSetupPage() {
     <FormSettingsPage
       embedded
       layout="default"
+      className="cwgsyw-account-page"
       header={
         <PageHeader
           showBreadcrumb={false}
-          eyebrow="账号安全"
+          showEyebrow={false}
           title="完善账号安全"
           subtitle="首次登录需要修改初始密码并补全个人资料才能继续使用系统。"
         />
@@ -65,7 +67,7 @@ export default function AccountSetupPage() {
       form={
         <Card
           title="首次设置"
-          description={profile ? `@${profile.username} · ${profile.realName}` : '账号安全设置加载状态'}
+          description={profile ? `@${profile.username} · ${profile.realName}。完成后将进入工作台。` : '账号安全设置加载状态'}
         >
           {loading ? (
             <LoadingState label="正在加载账号安全设置…" />
@@ -74,7 +76,7 @@ export default function AccountSetupPage() {
               title="账号安全设置加载失败"
               description="无法读取当前账号状态，请重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={loadProfile}>
+                <Button type="button" size="sm" variant="secondary" onClick={loadProfile}>
                   重试
                 </Button>
               }
@@ -87,9 +89,6 @@ export default function AccountSetupPage() {
             />
           )}
         </Card>
-      }
-      supporting={
-        <Card title="说明" description="完成设置后会清除强制动作并进入工作台。真实姓名仍由管理员维护。" />
       }
     />
   )

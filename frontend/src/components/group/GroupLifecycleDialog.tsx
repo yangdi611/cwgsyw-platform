@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import { toast } from '@/design-system/figma-neutral/toast'
+import '@/components/task-runtime/tasks.css'
 import {
   Alert,
   Button,
@@ -177,6 +178,7 @@ export default function GroupLifecycleDialog({
 
   return (
     <NeutralDialog
+        className="cwgsyw-identity-dialog"
       open={open}
       onOpenChange={handleOpenChange}
       title={copy.title}
@@ -201,7 +203,7 @@ export default function GroupLifecycleDialog({
         </div>
       }
     >
-      <div className="cwgsyw-form" data-testid="group-lifecycle-preflight">
+      <div className="cwgsyw-form cwgsyw-identity-form" data-testid="group-lifecycle-preflight">
         {preflightQuery.isLoading ? <LoadingState label="正在检查用户组引用…" /> : null}
 
         {preflightQuery.isError && !preflight ? (
@@ -261,7 +263,7 @@ export default function GroupLifecycleDialog({
               helperText={reasonLength > 0 && !reasonValid ? '原因长度必须为 10–500 个字符' : '原因会写入审计记录'}
               state={reasonLength > 0 && !reasonValid ? 'error' : 'default'}
             >
-              <Textarea
+              <Textarea size="sm"
                 id="group-lifecycle-reason"
                 data-testid="group-lifecycle-reason"
                 value={reason}
@@ -282,7 +284,7 @@ export default function GroupLifecycleDialog({
               state={confirmationName.length > 0 && !confirmationValid ? 'error' : 'default'}
               errorText={confirmationName.length > 0 && !confirmationValid ? `必须与“${preflight.group.name}”完全一致。` : undefined}
             >
-              <Input
+              <Input size="sm"
                 id="group-lifecycle-confirmation"
                 data-testid="group-lifecycle-confirmation"
                 value={confirmationName}

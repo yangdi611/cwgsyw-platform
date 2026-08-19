@@ -20,8 +20,8 @@
 
 | 路由域 | 页面数 | 主要 Page Pattern | 必查能力 | 当前状态 |
 |---|---:|---|---|---|
-| `/login` | 1 | Form / Settings | 登录错误、提交中、密码可见性、键盘、匿名态 | VERIFYING |
-| `/account/*` | 3 | Form / Settings | profile/setup/password、校验、dirty、成功/失败 | VERIFYING |
+| `/login` | 1 | Form / Settings | 登录错误、提交中、密码可见性、键盘、匿名态 | VERIFYING（用户已确认当前 Neutral 视觉） |
+| `/account/*` | 3 | Form / Settings | profile/setup/password、校验、dirty、成功/失败 | VERIFYING（用户已确认当前 Neutral 视觉） |
 | `/admin/*` | 6 | Form / Settings; Data / Management; Overlay / Destructive | AI/config/backup/audit/templates、管理员权限、危险操作 | VERIFYING |
 | `/change-docs/*` | 3 | Data / Management; Form / Settings; Detail / Drawer | 列表、新建、详情、动态字段、审批状态 | VERIFYING |
 | `/cmdb/*` | 23 | 全五类 Pattern | 模型、实例、关联、空间、拓扑、变更、告警、复杂 Drawer/Dialog | VERIFYING |
@@ -105,7 +105,7 @@
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-19/`。视觉审计 WAIVED |
 | Legacy consumers | 本页不再引用 `@/components/design-system` 或 `@/components/shared`。Header / 其他 80 页仍走旧入口。 |
 | Rollback | 丢弃 YAN-19 worktree/branch；API 与权限未改 |
-| Status | `VERIFYING`（实现与行为单测完成；视觉审计 WAIVED，故不能写视觉 PASS） |
+| Status | `VERIFYING`（实现与行为单测完成；用户已确认当前 Neutral 视觉；视觉审计 WAIVED，故不能写视觉 PASS） |
 
 ### `/account/password`
 
@@ -124,7 +124,7 @@
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-20/`。视觉审计 WAIVED |
 | Legacy consumers | 本页不再引用旧 design-system / shared。`PasswordStrengthHints` 仍给 `/account/setup` 使用。 |
 | Rollback | 丢弃 YAN-20 worktree/branch；API 未改 |
-| Status | `VERIFYING` |
+| Status | `VERIFYING`（用户已确认当前 Neutral 视觉；视觉审计 WAIVED） |
 
 ### `/account/setup`
 
@@ -143,7 +143,7 @@
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-21/`。视觉审计 WAIVED |
 | Legacy consumers | 本页不再使用 `bg-v2-bg` / 旧 Card。旧 `PasswordStrengthHints` 现已无 Neutral 消费者，留给 M8。 |
 | Rollback | 丢弃 YAN-21 worktree/branch；API 未改 |
-| Status | `VERIFYING` |
+| Status | `VERIFYING`（用户已确认当前 Neutral 视觉；视觉审计 WAIVED） |
 
 ### `/users`
 
@@ -153,8 +153,8 @@
 | Route | `/users` · `frontend/src/app/(dashboard)/users/page.tsx` |
 | Owner / role | `user:read` 可见；create/update/delete 控制新建、编辑/授权、删除。无读权限返回 null。 |
 | Primary Pattern | Data / Management。Figma `980:4171` |
-| Supporting components | Page Header、Filter Bar、Table、Pagination、Status Badge、Dialog、AlertDialog、Field、Input、Checkbox、Switch |
-| Data / API | `GET /users?page&size`；`POST/PUT/DELETE /users`；`POST /users/:id/reset-password`；memberships / role-assignments。queryKey `['users', page, keyword]` 未改。keyword 仍不进请求参数。 |
+| Supporting components | Page Header、SearchInput、Table、Pagination、Status Badge、Dialog、AlertDialog、Field、Input、Checkbox、Switch、IdentityIconAction |
+| Data / API | `GET /users?page&size`；`POST/PUT/DELETE /users`；`POST /users/:id/reset-password`；memberships / role-assignments。queryKey `['users', page, keyword]` 未改。keyword 通过 `params.keyword` 传给 `GET /users`。 |
 | Required states | 无权限隐藏、Loading、Empty、Error+Retry、启用/禁用、创建/编辑/删除/授权、提交中、成功/失败 toast |
 | Responsive | 430px 隐藏桌面 Table，改用卡片列表 |
 | Figma baseline | File `Z8EC6psFOj7KMfXapAFk24` |
@@ -172,7 +172,7 @@
 | Route | `/groups` · `frontend/src/app/(dashboard)/groups/page.tsx` |
 | Owner / role | `group:create/update/delete`；`group:purge` 仅 platform；归档列表 tenant/platform |
 | Primary Pattern | Data / Management + Overlay / Destructive |
-| Supporting components | Page Header、Filter Bar、Table、Dialog、AlertDialog、Alert、Field、Input、Textarea、Checkbox |
+| Supporting components | Page Header、Tabs style=cmdb、Table、Dialog、Alert、Field、Input、Textarea、Checkbox、IdentityIconAction |
 | Data / API | `GET /groups?state=`；create/update；members；lifecycle-preflight 与 archive/restore/purge。queryKey `['groups', listState]` 未改。 |
 | Required states | Loading、Empty、Error、builtin 禁用、归档/恢复/清除预检、409 冲突刷新、提交锁 |
 | Responsive | 430px Table 卡片替代；成员 Dialog 单列 |
@@ -218,7 +218,7 @@
 | Data / API | `useAuth().login` → POST `/auth/login`。成功后 setup 或首页。 |
 | Required states | 错误文案、提交中、密码可见切换 |
 | Test fixture | `frontend/test/figma-neutral-m7-login.test.cjs` |
-| Status | `VERIFYING` |
+| Status | `VERIFYING`（用户已确认当前 Neutral 视觉；视觉审计 WAIVED） |
 
 ### `/devices`
 
@@ -304,7 +304,7 @@
 | Figma baseline | File `Z8EC6psFOj7KMfXapAFk24`。本切片未重做设计文件。 |
 | Test fixture | `frontend/test/figma-neutral-m7-files.test.cjs` |
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-32/`。视觉审计 WAIVED |
-| Legacy consumers | 本页与 FolderTreeNode / AuditPanel 不再引用旧 design-system。`ResourceAccessDialog` 仍旧。 |
+| Legacy consumers | 本页与 FolderTreeNode / AuditPanel 不再引用旧 design-system。共享 `ResourceAccessDialog` 已按 Neutral Dialog 白色内容面、small overlay 与 16px 勾选收口。 |
 | Rollback | 丢弃 YAN-32 worktree/branch；API 与权限未改 |
 | Status | `VERIFYING` |
 
@@ -340,7 +340,7 @@
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-34/`。视觉审计 WAIVED |
 | Legacy consumers | 本页与 NotificationItem 不再引用旧 design-system。NotificationBell 仍旧。 |
 | Rollback | 丢弃 YAN-34 worktree/branch |
-| Status | `VERIFYING` |
+| Status | `VERIFYING`（已按账号/CMDB 基线收敛当前 Neutral 视觉；待用户确认） |
 
 ### `/notifications/targets/*`
 
@@ -353,7 +353,7 @@
 | Required states | 验证中、跳转中、目标不可用 |
 | Test fixture | `frontend/test/figma-neutral-m7-notification-targets.test.cjs` |
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-35/`。视觉审计 WAIVED |
-| Status | `VERIFYING` |
+| Status | `VERIFYING`（已按账号/CMDB 基线收敛当前 Neutral 视觉；待用户确认） |
 
 ### `/ops-calendar`
 
@@ -363,8 +363,8 @@
 | Route | `/ops-calendar` · `frontend/src/app/(dashboard)/ops-calendar/page.tsx` |
 | Owner / role | `task:read` 可见；create 控制新建；`calendar_settings:read` 看到设置入口 |
 | Primary Pattern | Data / Management + Dashboard / Feedback |
-| Supporting components | Page Header、Filter Bar、Chip、Select、Dropdown、Table、Dialog、Status Badge、Month/Week/List |
-| Data / API | `listCalendarWorkItems` GET `/calendar/work-items`；`getCalendarDay` GET `/calendar/day`。queryKey 未改。 |
+| Supporting components | Page Header、Filter Bar、cmdb Tabs、Select overlay、Figma circle-arrow 期次按钮、月份滚轮、白色跟随 Tooltip、Month/Week/List |
+| Data / API | `listCalendarWorkItems` GET `/calendar/work-items`；`getCalendarDay` GET `/calendar/day`。queryKey 前缀未改；相邻期预取同一 key，并用 `keepPreviousData`。 |
 | Required states | 无权限回首页、月/周/列表、筛选、日 Dialog、新建任务 Dialog |
 | Test fixture | `frontend/test/figma-neutral-m7-ops-calendar.test.cjs` |
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-36/`。视觉审计 WAIVED |
@@ -461,9 +461,9 @@
 |---|---|
 | Linear Issue | [YAN-44](https://linear.app/yangdi/issue/YAN-44/实施-figma-neutral-m7迁移-tasksplansnew) |
 | Route | `/tasks/plans/new` · `TaskPlanEditor` + `CiScopeSelector` |
-| Primary Pattern | Form / Settings |
+| Primary Pattern | Form / Settings · Neutral 四步向导 + TaskPanel，无页头副标题 |
 | Data / API | `createTaskPlan`；queryKey `['task-plan-template-options']`、`['task-plan-approval-options']`、`['task-plan-user-options']`、`['task-plan-group-options']`、CI preview keys 未改。 |
-| Required states | Loading、Error、四步向导、只读/可编辑、预览警告 |
+| Required states | Loading、Error、四步向导、只读/可编辑、预览警告；预览成功使用全站 Neutral Toast（白底细框，仅图标染色），文案仍为 `预览已刷新` |
 | Test fixture | `frontend/test/figma-neutral-m7-task-plans-new.test.cjs` |
 | Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-44/`。视觉审计 WAIVED |
 | Legacy consumers | 本页与共享编辑器不再引用旧 design-system / shared。 |
@@ -477,9 +477,9 @@
 | Route | `/tasks/plans/[planId]` · 同一 `TaskPlanEditor` |
 | Primary Pattern | Form / Settings |
 | Data / API | `getTaskPlan` `['task-plan', planId]`；`updateTaskPlan`。未改。 |
-| Required states | Loading、Error、草稿/暂停可编辑、生效只读 |
+| Required states | Loading、Error、草稿/暂停可编辑、生效只读；与新建页共用编辑器，页头无副标题 |
 | Test fixture | 与新建页共享编辑器测试 |
-| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-44/`。视觉审计 WAIVED |
+| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-44/`。本轮已按 Neutral 基线再收敛，待用户确认 |
 | Status | `VERIFYING` |
 
 ### `/tasks/templates`
@@ -502,11 +502,11 @@
 |---|---|
 | Linear Issue | [YAN-48](https://linear.app/yangdi/issue/YAN-48/实施-figma-neutral-m7迁移-taskstemplatestemplateid) |
 | Route | `/tasks/templates/[templateId]` · `TaskTemplateDetail` |
-| Primary Pattern | Detail / Drawer |
+| Primary Pattern | TaskPanel 详情（无 Drawer / Card / MetricCard，无页头副标题） |
 | Data / API | `getTaskTemplate` queryKey `['task-template', templateId]`；`createTaskTemplateDraft`。未改。 |
 | Required states | Loading、Error、内置只读 Alert、已有草稿继续设计、创建下一草稿 |
 | Test fixture | `frontend/test/figma-neutral-m7-task-template-detail.test.cjs` |
-| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-48/`。视觉审计 WAIVED |
+| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-48/`。本轮已按 Neutral 基线再收敛，待用户确认 |
 | Legacy consumers | 本页不再引用旧 design-system / shared。版本设计器已迁。 |
 | Status | `VERIFYING` |
 
@@ -516,11 +516,11 @@
 |---|---|
 | Linear Issue | [YAN-49](https://linear.app/yangdi/issue/YAN-49/实施-figma-neutral-m7迁移-taskstemplatestemplateidversionsversionid) |
 | Route | `/tasks/templates/[templateId]/versions/[versionId]` · `TaskTemplateDesigner` |
-| Primary Pattern | Form / Settings + 三栏 Workspace |
+| Primary Pattern | Form / Settings + 三栏 Workspace；版本信息为 TaskPanel，无页头副标题 |
 | Data / API | `getTaskTemplateVersion` `['task-template-version', versionId]`；`listTaskFieldTypes` `['task-field-types']`；`updateTaskTemplateVersion` / `validateTaskTemplateVersion` / `publishTaskTemplateVersion` / `previewTaskTemplateVersion`。未改。 |
 | Required states | Loading、Error、草稿可编辑、已发布只读、校验问题、预览 Dialog |
 | Test fixture | `frontend/test/figma-neutral-m7-task-template-version.test.cjs` |
-| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-49/`。视觉审计 WAIVED |
+| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-49/`。本轮已按 Neutral 基线再收敛，待用户确认 |
 | Legacy consumers | 设计器及 FieldLibrary / FormCanvas / FieldPropertyPanel / TemplatePreviewDialog 不再引用旧 design-system / shared。 |
 | Status | `VERIFYING` |
 
@@ -530,7 +530,7 @@
 |---|---|
 | Linear Issue | [YAN-50](https://linear.app/yangdi/issue/YAN-50/实施-figma-neutral-m7迁移-tasksanalytics) |
 | Route | `/tasks/analytics` · `TaskAnalyticsWorkbench` |
-| Primary Pattern | Data / Management |
+| Primary Pattern | Neutral 两步向导；统计字段为 Select 多选下拉，不是菜单浮层 |
 | Data / API | `['task-analytics-templates']` `listTaskTemplates`；`['task-analytics-fields', versionId]`；`['task-analytics-dimensions']`；`['task-analytics-query', request]`；`['task-analytics-dashboards']`；`createAnalyticsDashboard` / `addAnalyticsWidget` / `exportTaskAnalytics`。未改。 |
 | Required states | 配置 Loading/Error、未运行、查询中、空结果、导出、保存看板 |
 | Test fixture | `frontend/test/figma-neutral-m7-task-analytics.test.cjs` |
@@ -544,12 +544,12 @@
 |---|---|
 | Linear Issue | [YAN-51](https://linear.app/yangdi/issue/YAN-51/实施-figma-neutral-m7迁移-tasksanalyticsdashboardid) |
 | Route | `/tasks/analytics/[dashboardId]` · `TaskAnalyticsDashboard` + `DashboardSubscriptions` |
-| Primary Pattern | Dashboard / Feedback |
+| Primary Pattern | Dashboard / Feedback · TaskPanel，无 lucide / Card / 页头副标题 |
 | Data / API | `['task-analytics-dashboard', dashboardId]`；widget query；`shareAnalyticsDashboard` / `deleteAnalyticsDashboard` / `deleteAnalyticsWidget`；`['task-analytics-subscriptions', dashboardId]`。未改。 |
 | Required states | Loading、Error、空组件、图表/列表、下钻、订阅 CRUD |
 | Test fixture | `frontend/test/figma-neutral-m7-task-analytics-dashboard.test.cjs` |
-| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-51/`。视觉审计 WAIVED |
-| Legacy consumers | 本页不再引用旧 design-system / shared。automations 已迁，metrics 未改。 |
+| Evidence | `docs/migration/figma-neutral-frontend/evidence/YAN-51/`。本轮已按 Neutral 基线再收敛，待用户确认 |
+| Legacy consumers | 本页不再引用旧 design-system / shared。 |
 | Status | `VERIFYING` |
 
 ### `/tasks/automations`
@@ -899,7 +899,8 @@
 | Linear Issue | [YAN-83](https://linear.app/yangdi/issue/YAN-83) |
 | Route | `/` · `frontend/src/app/(dashboard)/page.tsx` |
 | Primary Pattern | Dashboard / Feedback |
-| Test fixture | `frontend/test/figma-neutral-m7-home.test.cjs` |
+| Test fixture | `frontend/test/figma-neutral-m7-home.test.cjs`、`frontend/test/figma-neutral-m7-home-cmdb-share.test.cjs` |
+| Notes | CI 构成图例芯片为 999px 药丸，橙色高亮 640ms `translateX` 滑入。 |
 | Status | `VERIFYING`（视觉审计 WAIVED） |
 
 ### `/cmdb`

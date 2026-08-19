@@ -8,6 +8,8 @@ import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { inspectPassword } from '@/lib/password-policy'
 import { NeutralPasswordHints } from '@/components/account/NeutralPasswordHints'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
+import '@/components/task-runtime/tasks.css'
 import {
   Button,
   Checkbox,
@@ -119,6 +121,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
   return (
     <>
       <NeutralDialog
+        className="cwgsyw-identity-dialog"
         open={open}
         onOpenChange={(next) => {
           if (!next) onClose()
@@ -127,16 +130,16 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
         showClose={false}
         footer={
           <div className="cwgsyw-form__actions">
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <Button type="button" size="sm" variant="secondary" onClick={onClose}>
               取消
             </Button>
-            <Button type="submit" form="user-dialog-form" variant="primary" loading={isSubmitting}>
+            <Button type="submit" form="user-dialog-form" size="sm" variant="primary" loading={isSubmitting}>
               {isSubmitting ? '保存中…' : '保存'}
             </Button>
           </div>
         }
       >
-        <form id="user-dialog-form" className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+        <form id="user-dialog-form" className="cwgsyw-form cwgsyw-identity-form" noValidate onSubmit={handleSubmit(onSubmit)}>
           <Field
             htmlFor="username"
             label="用户名"
@@ -144,7 +147,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
             state={mode === 'edit' ? 'disabled' : errors.username ? 'error' : 'default'}
             errorText={errors.username?.message}
           >
-            <Input
+            <Input size="sm"
               maxLength={64}
               placeholder="请输入用户名"
               {...register('username', {
@@ -154,13 +157,13 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
             />
           </Field>
           <Field htmlFor="real_name" label="真实姓名">
-            <Input placeholder="请输入真实姓名" {...register('realName')} />
+            <Input size="sm" placeholder="请输入真实姓名" {...register('realName')} />
           </Field>
           <Field htmlFor="email" label="邮箱">
-            <Input type="email" maxLength={128} placeholder="请输入邮箱（未填则用户首次登录补全）" {...register('email')} />
+            <Input size="sm" type="email" maxLength={128} placeholder="请输入邮箱（未填则用户首次登录补全）" {...register('email')} />
           </Field>
           <Field htmlFor="phone" label="手机号">
-            <Input placeholder="请输入手机号（未填则用户首次登录补全）" {...register('phone')} />
+            <Input size="sm" placeholder="请输入手机号（未填则用户首次登录补全）" {...register('phone')} />
           </Field>
           {mode === 'create' ? (
             <Field
@@ -171,7 +174,7 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
               state={errors.password ? 'error' : 'default'}
               errorText={errors.password?.message}
             >
-              <Input
+              <Input size="sm"
                 type="password"
                 placeholder="至少 10 位，含大小写字母/数字/特殊字符"
                 {...register('password', { required: '密码不能为空' })}
@@ -193,27 +196,29 @@ export default function UserDialog({ open, mode, user, onClose, onSuccess }: Use
               </div>
             </>
           ) : null}
-          <div>
-            <div className="cwgsyw-type-label-sm">角色分配</div>
-            <div className="cwgsyw-stack-list">
+          <TaskPanel
+            title="角色分配"
+            action={<span className="cwgsyw-tasks-cell-meta">已选 {selectedRoles.length} / {(rolesData || []).length}</span>}
+          >
+            <div className="cwgsyw-identity-check-list">
               {(rolesData || []).map((role) => (
-                <div key={role.id} className="cwgsyw-stack-list__item">
-                  <Checkbox
-                    label={role.name}
-                    checked={selectedRoles.includes(role.id)}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        setValue('roleIds', [...selectedRoles, role.id])
-                      } else {
-                        setValue('roleIds', selectedRoles.filter((id) => id !== role.id))
-                      }
-                    }}
-                  />
-                </div>
+                <Checkbox
+                  key={role.id}
+                  className="cwgsyw-tasks-choice"
+                  label={role.name}
+                  checked={selectedRoles.includes(role.id)}
+                  onChange={(event) => {
+                    if (event.target.checked) {
+                      setValue('roleIds', [...selectedRoles, role.id])
+                    } else {
+                      setValue('roleIds', selectedRoles.filter((id) => id !== role.id))
+                    }
+                  }}
+                />
               ))}
-              {(rolesData || []).length === 0 ? <div className="cwgsyw-stack-list__empty">暂无角色</div> : null}
+              {(rolesData || []).length === 0 ? <p className="cwgsyw-stack-list__empty">暂无角色</p> : null}
             </div>
-          </div>
+          </TaskPanel>
         </form>
       </NeutralDialog>
 
@@ -267,6 +272,7 @@ function ResetPasswordDialog({
 
   return (
     <NeutralDialog
+        className="cwgsyw-identity-dialog"
       open={open}
       onOpenChange={(next) => {
         if (!next) onClose()
@@ -276,16 +282,16 @@ function ResetPasswordDialog({
       showClose={false}
       footer={
         <div className="cwgsyw-form__actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" size="sm" variant="secondary" onClick={onClose}>
             取消
           </Button>
-          <Button type="submit" form="reset-password-form" variant="primary" loading={isSubmitting}>
+          <Button type="submit" form="reset-password-form" size="sm" variant="primary" loading={isSubmitting}>
             {isSubmitting ? '提交中…' : '确认重置'}
           </Button>
         </div>
       }
     >
-      <form id="reset-password-form" className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <form id="reset-password-form" className="cwgsyw-form cwgsyw-identity-form" noValidate onSubmit={handleSubmit(onSubmit)}>
         <Field
           htmlFor="newPassword"
           label="新密码"
@@ -293,7 +299,7 @@ function ResetPasswordDialog({
           state={errors.newPassword ? 'error' : 'default'}
           errorText={errors.newPassword?.message}
         >
-          <Input type="password" {...register('newPassword', { required: '新密码不能为空' })} />
+          <Input size="sm" type="password" {...register('newPassword', { required: '新密码不能为空' })} />
         </Field>
         <NeutralPasswordHints username={username} password={newPassword} />
         <Field
@@ -303,7 +309,7 @@ function ResetPasswordDialog({
           state={confirmMismatch || errors.confirmPassword ? 'error' : 'default'}
           errorText={confirmMismatch ? '两次输入的密码不一致' : errors.confirmPassword?.message}
         >
-          <Input type="password" {...register('confirmPassword', { required: '请再次输入新密码' })} />
+          <Input size="sm" type="password" {...register('confirmPassword', { required: '请再次输入新密码' })} />
         </Field>
       </form>
     </NeutralDialog>

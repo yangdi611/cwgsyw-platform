@@ -32,21 +32,22 @@ export function PlanTemplatePicker({
       onOpenChange={(next) => { if (!next) onClose() }}
       title="选择方案模板"
       description="为当前变更选择一个方案或通用模板。"
-      size="md"
-      footer={<Button type="button" variant="secondary" onClick={onClose}>关闭</Button>}
+      size="sm"
+      footer={<Button type="button" variant="secondary" size="sm" onClick={onClose}>关闭</Button>}
     >
-      <div className="cwgsyw-form">
+      <div className="cwgsyw-change-doc-plan-picker">
         {templates.length === 0 ? <p>暂无可用方案模板</p> : null}
         {templates.map((item) => (
           <Button
             key={item.id}
             type="button"
             variant="secondary"
+            size="sm"
             disabled={isPending}
             onClick={() => onSelect(item.id)}
           >
             {item.name}
-            <StatusBadge label={DOC_TYPE_LABEL[item.docType]} status={DOC_TONE[DOC_TYPE_TONE[item.docType]]} />
+            <StatusBadge size="sm" label={DOC_TYPE_LABEL[item.docType]} status={DOC_TONE[DOC_TYPE_TONE[item.docType]]} />
           </Button>
         ))}
       </div>

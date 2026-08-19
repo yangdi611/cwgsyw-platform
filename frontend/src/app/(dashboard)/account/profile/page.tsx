@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/account/account.css'
 import {
-  Breadcrumb,
   Button,
   Card,
   ErrorState,
@@ -62,25 +62,23 @@ export default function AccountProfilePage() {
     <FormSettingsPage
       embedded
       layout="default"
+      className="cwgsyw-account-page"
       header={
         <PageHeader
-          eyebrow="账号安全"
+          showBreadcrumb={false}
+          showEyebrow={false}
           title="个人资料"
           subtitle="维护手机号、邮箱和头像，真实姓名由管理员统一维护。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { label: '个人资料' },
-              ]}
-            />
-          }
         />
       }
       form={
         <Card
           title="基本资料"
-          description={profile ? `@${profile.username} · ${profile.realName}` : '账号资料加载状态'}
+          description={
+            profile
+              ? `@${profile.username} · ${profile.realName}。真实姓名由管理员维护，如需修改请联系管理员。保存后将返回来源页面。`
+              : '账号资料加载状态'
+          }
         >
           {loading ? (
             <LoadingState label="正在加载个人资料…" />
@@ -89,7 +87,7 @@ export default function AccountProfilePage() {
               title="个人资料加载失败"
               description="无法读取当前账号资料，请重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={loadProfile}>
+                <Button type="button" size="sm" variant="secondary" onClick={loadProfile}>
                   重试
                 </Button>
               }
@@ -98,9 +96,6 @@ export default function AccountProfilePage() {
             <ProfileForm profile={profile} onSuccess={handleSuccess} />
           )}
         </Card>
-      }
-      supporting={
-        <Card title="保存说明" description="保存成功后会返回进入本页前的来源页面。真实姓名由管理员统一维护，本页不能修改。" />
       }
     />
   )

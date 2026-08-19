@@ -9,7 +9,6 @@ import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
   Alert,
-  Breadcrumb,
   Button,
   Field,
   FormSettingsPage,
@@ -58,26 +57,19 @@ export default function NewWorkflowDesignPage() {
 
   return (
     <FormSettingsPage
+      className="cwgsyw-workflow cwgsyw-workflow-design"
       header={
         <PageHeader
-          eyebrow="流程中心"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="设计新流程"
           subtitle="拖拽左侧元素到画布中设计流程，选中节点后在右侧属性面板配置审批人和条件。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/workflow/design', label: '流程中心' },
-                { label: '设计新流程' },
-              ]}
-            />
-          }
           actions={
-            <div className="cwgsyw-designer__actions">
-              <Button type="button" variant="secondary" onClick={() => router.back()}>
+            <div className="cwgsyw-workflow__header-actions cwgsyw-designer__actions">
+              <Button type="button" variant="secondary" size="sm" onClick={() => router.back()}>
                 取消
               </Button>
-              <Button type="button" loading={saving} disabled={saving} onClick={handleSave}>
+              <Button type="button" size="sm" loading={saving} disabled={saving} onClick={handleSave}>
                 {saving ? '部署中...' : '保存并部署'}
               </Button>
             </div>
@@ -86,10 +78,11 @@ export default function NewWorkflowDesignPage() {
       }
       form={
         <div className="cwgsyw-form">
-          <div className="cwgsyw-filter-grid">
+          <div className="cwgsyw-workflow-design__fields">
             <Field label="流程名称" htmlFor="flowName" required>
               <Input
                 id="flowName"
+                size="sm"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="如: 变更审批流"
@@ -98,6 +91,7 @@ export default function NewWorkflowDesignPage() {
             <Field label="流程 Key" htmlFor="flowKey" required>
               <Input
                 id="flowKey"
+                size="sm"
                 value={key}
                 onChange={(event) => setKey(event.target.value)}
                 placeholder="如: changeDocApproval"
@@ -106,6 +100,7 @@ export default function NewWorkflowDesignPage() {
             <Field label="分类" htmlFor="category">
               <Input
                 id="category"
+                size="sm"
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
                 placeholder="审批流程"
@@ -114,6 +109,7 @@ export default function NewWorkflowDesignPage() {
             <Field label="描述" htmlFor="desc">
               <Input
                 id="desc"
+                size="sm"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="流程用途说明"

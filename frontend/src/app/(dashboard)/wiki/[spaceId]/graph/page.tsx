@@ -14,12 +14,12 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { wikiApi } from '@/lib/wiki-api'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import type { WikiGraph } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DashboardFeedbackPage,
   EmptyState,
@@ -63,7 +63,7 @@ export default function WikiGraphPage() {
         borderRadius: 8,
         padding: '6px 12px',
         fontSize: 12,
-        fontWeight: 600,
+        fontWeight: 400,
         width: 150,
         textAlign: 'center' as const,
       },
@@ -81,36 +81,34 @@ export default function WikiGraphPage() {
   }, [data])
 
   return (
-    <DashboardFeedbackPage
-      header={
+    <>
+    <WikiShellHeader>
         <PageHeader
-          eyebrow="知识空间"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="知识图谱"
           subtitle={`${nodes.length} 个页面，${edges.length} 条引用`}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/wiki', label: '知识空间' },
-                { href: `/wiki/${sid}`, label: spaceName ?? '空间' },
-                { label: '知识图谱' },
-              ]}
-            />
-          }
           actions={
-            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}`)}>
+            <Button className="cwgsyw-wiki__header-actions" type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}`)}>
               返回空间
             </Button>
           }
         />
-      }
+    </WikiShellHeader>
+    <DashboardFeedbackPage
+      className="cwgsyw-wiki cwgsyw-wiki-graph-page"
       feedback={
         isLoading ? (
           <LoadingState label="正在加载知识图谱…" />
         ) : nodes.length === 0 ? (
-          <EmptyState title="暂无页面引用关系" description="当前空间还没有可展示的引用关系。" />
+          <div className="cwgsyw-neutral-empty">
+            {/* Official Figma share-2 glyph; image optimization adds no value here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/figma-icons/wiki-share-2.svg" width={22} height={22} alt="" data-figma-node="6:29351" />
+            <EmptyState showIcon={false} title="暂无页面引用关系" description="当前空间还没有可展示的引用关系。" />
+          </div>
         ) : (
-          <div className="cwgsyw-card cwgsyw-card--md" style={{ height: 560 }}>
+          <div className="cwgsyw-wiki-graph" style={{ height: 560 }}>
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -125,5 +123,6 @@ export default function WikiGraphPage() {
         )
       }
     />
+    </>
   )
 }

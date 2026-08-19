@@ -98,6 +98,12 @@ function loadCompiled(filePath) {
 test('devices page leaves old visual entries and keeps the devices API', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /DataManagementPage/)
+  assert.match(page, /cmdb-resource-key\.svg/)
+  assert.match(page, /CmdbInstancePreview/)
+  assert.match(page, /cwgsyw-cmdb-preview-drawer/)
+  assert.match(page, /size=\"sm\"/)
+  assert.match(page, /6:27336/)
+  assert.ok(fs.existsSync(path.join(frontendRoot, 'public/figma-icons/cmdb-resource-key.svg')))
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /queryKey: \['devices'\]/)
   assert.match(page, /\/devices\/new/)

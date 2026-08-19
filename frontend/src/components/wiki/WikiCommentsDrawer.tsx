@@ -86,8 +86,9 @@ export function WikiCommentsDrawer({ pageId, open, onOpenChange }: WikiCommentsD
       description="查看并发表当前页面的评论。"
       side="right"
     >
-      <div className="cwgsyw-form">
+      <div className="cwgsyw-wiki-comments">
         <Textarea
+          size="sm"
           value={draft}
           rows={3}
           placeholder="写下你的评论…"
@@ -95,42 +96,43 @@ export function WikiCommentsDrawer({ pageId, open, onOpenChange }: WikiCommentsD
           error={overLimit}
           onChange={(event) => setDraft(event.target.value)}
         />
-        <div className="cwgsyw-designer__actions">
-          <span>
+        <div className="cwgsyw-wiki-comments__composer">
+          <span className="cwgsyw-wiki-comments__count">
             {draft.length}/{WIKI_COMMENT_MAX_LENGTH}
           </span>
           <Button type="button" size="sm" disabled={!canSend} onClick={() => createMutation.mutate()}>
             {submitting ? '发送中…' : '发送'}
           </Button>
         </div>
-        {records.length === 0 && !isFetching ? <p>暂无评论</p> : null}
+        {records.length === 0 && !isFetching ? <p className="cwgsyw-wiki-comments__empty">暂无评论</p> : null}
         {records.map((comment) => (
-          <div key={comment.id} className="cwgsyw-form">
-            <div className="cwgsyw-designer__actions">
-              <strong>{comment.createdByName || '—'}</strong>
-              <span>{new Date(comment.createdAt).toLocaleString('zh-CN')}</span>
+          <article key={comment.id} className="cwgsyw-wiki-comments__item">
+            <div className="cwgsyw-wiki-comments__meta">
+              <span className="cwgsyw-wiki-comments__author">{comment.createdByName || '—'}</span>
+              <span className="cwgsyw-wiki-comments__time">{new Date(comment.createdAt).toLocaleString('zh-CN')}</span>
               {comment.canDelete ? (
                 <IconButton
                   type="button"
                   variant="ghost"
                   size="sm"
-                  icon="trash"
+                  className="cwgsyw-cmdb-admin__delete-action"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
                   aria-label="删除评论"
                   disabled={deleteMutation.isPending}
                   onClick={() => setDeleteTarget(comment)}
                 />
               ) : null}
             </div>
-            <p>{comment.content}</p>
-          </div>
+            <p className="cwgsyw-wiki-comments__body">{comment.content}</p>
+          </article>
         ))}
-        {isFetching ? <p>加载中…</p> : null}
+        {isFetching ? <p className="cwgsyw-wiki-comments__empty">加载中…</p> : null}
         {hasMore && !isFetching ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => setPage((current) => current + 1)}>
             加载更多
           </Button>
         ) : null}
-        {!hasMore && records.length > 0 ? <p>没有更多评论了</p> : null}
+        {!hasMore && records.length > 0 ? <p className="cwgsyw-wiki-comments__empty">没有更多评论了</p> : null}
       </div>
       {deleteTarget ? (
         <NeutralAlertDialog

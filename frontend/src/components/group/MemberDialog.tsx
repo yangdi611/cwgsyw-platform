@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
+import '@/components/task-runtime/tasks.css'
+import { IdentityIconAction } from '@/components/identity/IdentityActions'
 import {
   Button,
   NeutralAlertDialog,
@@ -110,6 +112,7 @@ function MemberDialogContent({ groupId, groupName, open, onOpenChange }: MemberD
   return (
     <>
       <NeutralDialog
+        className="cwgsyw-identity-dialog"
         open={open}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
@@ -121,7 +124,7 @@ function MemberDialogContent({ groupId, groupName, open, onOpenChange }: MemberD
         title={`${groupName} — 成员管理`}
         size="lg"
       >
-        <div className="cwgsyw-split">
+        <div className="cwgsyw-split cwgsyw-identity-form">
           <section className="cwgsyw-split__pane">
             <div className="cwgsyw-split__pane-head cwgsyw-type-label-sm">当前成员 ({members.length})</div>
             <div className="cwgsyw-split__pane-body">
@@ -134,9 +137,7 @@ function MemberDialogContent({ groupId, groupName, open, onOpenChange }: MemberD
                       <strong>{member.realName || member.username}</strong>
                       <span className="cwgsyw-type-label-xs"> @{member.username}</span>
                     </span>
-                    <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setRemoveTarget(member)}>
-                      移除
-                    </Button>
+                    <IdentityIconAction label={`移除 ${member.realName || member.username}`} icon="trash" danger disabled={loading} onClick={() => setRemoveTarget(member)} />
                   </div>
                 ))
               )}
@@ -145,6 +146,7 @@ function MemberDialogContent({ groupId, groupName, open, onOpenChange }: MemberD
           <section className="cwgsyw-split__pane">
             <div className="cwgsyw-split__pane-head">
               <SearchInput
+                size="sm"
                 value={searchKeyword}
                 placeholder="搜索用户..."
                 onChange={(event) => setSearchKeyword(event.target.value)}

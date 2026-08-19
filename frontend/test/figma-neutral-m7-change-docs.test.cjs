@@ -11,6 +11,10 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/change-docs/page.tsx')
+const createPagePath = path.join(frontendRoot, 'src/app/(dashboard)/change-docs/new/page.tsx')
+const templateSelectorPath = path.join(frontendRoot, 'src/app/(dashboard)/change-docs/new/components/TemplateSelector.tsx')
+const detailPagePath = path.join(frontendRoot, 'src/app/(dashboard)/change-docs/[id]/page.tsx')
+const actionBarPath = path.join(frontendRoot, 'src/app/(dashboard)/change-docs/[id]/components/DocActionBar.tsx')
 
 function compileTs(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -89,6 +93,11 @@ test('change-docs leaves old visual entries and keeps APIs', () => {
   assert.match(page, /\/change-docs/)
   assert.match(page, /hasPermission\('change_doc', 'read'\)/)
   assert.match(page, /hasPermission\('change_doc', 'create'\)/)
+  assert.match(page, /className="cwgsyw-change-docs-list"/)
+  assert.match(page, /density="compact"/)
+  assert.match(page, /className="cwgsyw-change-docs-preview-drawer"/)
+  assert.match(page, /showClose/)
+  assert.doesNotMatch(page, /breadcrumb=\{<Breadcrumb/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
@@ -103,4 +112,31 @@ test('change-docs renders Neutral management table', () => {
   assert.match(html, /核心交换机变更/)
   assert.match(html, /CHG-2026-0007/)
   assert.match(html, /待审批/)
+  assert.match(html, /cwgsyw-change-docs-list/)
+  assert.match(html, /cwgsyw-change-docs-list__table/)
+})
+
+test('new change document uses the compact two-step Neutral composition', () => {
+  const page = fs.readFileSync(createPagePath, 'utf8')
+  const selector = fs.readFileSync(templateSelectorPath, 'utf8')
+
+  assert.match(page, /className="cwgsyw-change-doc-create"/)
+  assert.match(page, /cwgsyw-change-doc-create__steps/)
+  assert.match(page, /aria-label="新建变更文档进度"/)
+  assert.doesNotMatch(page, /\bBreadcrumb\b/)
+  assert.match(selector, /cwgsyw-change-doc-template-selector__grid/)
+  assert.match(selector, /padding="sm"/)
+  assert.doesNotMatch(selector, /<strong>/)
+})
+
+test('change document detail uses the compact Neutral detail composition', () => {
+  const page = fs.readFileSync(detailPagePath, 'utf8')
+  const actionBar = fs.readFileSync(actionBarPath, 'utf8')
+
+  assert.match(page, /className="cwgsyw-change-doc-detail"/)
+  assert.match(page, /cwgsyw-change-doc-detail__metadata/)
+  assert.match(page, /cwgsyw-change-doc-detail__templates/)
+  assert.match(page, /返回列表/)
+  assert.doesNotMatch(page, /\bBreadcrumb\b/)
+  assert.match(actionBar, /cwgsyw-change-doc-detail__action-bar/)
 })

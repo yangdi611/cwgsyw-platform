@@ -132,6 +132,8 @@ test('task analytics dashboard leaves old visual entries and keeps APIs', () => 
     assert.doesNotMatch(source, /text-v2-/)
     assert.doesNotMatch(source, /border-v2-/)
     assert.doesNotMatch(source, /bg-v2-/)
+    assert.doesNotMatch(source, /lucide-react/)
+    assert.doesNotMatch(source, /<Card/)
   }
 })
 
@@ -141,4 +143,5 @@ test('task analytics dashboard renders Neutral empty board and subscriptions', (
   assert.match(html, /巡检看板/)
   assert.match(html, /定时订阅/)
   assert.match(html, /看板暂无组件/)
+  assert.match(html, /cwgsyw-tasks-panel/)
 })

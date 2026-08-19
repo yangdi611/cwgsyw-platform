@@ -69,6 +69,9 @@ function loadCompiled(filePath) {
     if (request === '@/lib/api') {
       return { default: { get: async () => ({ data: { data: [] } }), post: async () => ({}), put: async () => ({}), delete: async () => ({}) } }
     }
+    if (request === 'next/navigation' || request.includes('next/navigation')) {
+      return { useRouter: () => ({ push() {}, replace() {} }), useSearchParams: () => ({ get: () => null }) }
+    }
     if (request === '@/lib/api-error') {
       return { getApiErrorMessage: () => 'error' }
     }

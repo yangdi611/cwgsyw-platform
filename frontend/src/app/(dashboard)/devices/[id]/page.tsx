@@ -15,16 +15,15 @@ import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
   Badge,
-  Breadcrumb,
   Button,
-  Card,
-  Chip,
   DetailDrawerPage,
   ErrorState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
+  NeutralTooltip,
   PageHeader,
 } from '@/design-system/figma-neutral/components'
 
@@ -81,28 +80,23 @@ function CredentialSection({
   const [expanded, setExpanded] = useState(true)
 
   return (
-    <section className="cwgsyw-permission-group">
-      <div className="cwgsyw-permission-group__head">
-        <Button type="button" variant="ghost" className="cwgsyw-inline-controls" onClick={() => setExpanded((current) => !current)}>
-          <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
-          <strong>{group.name}</strong>
-          <Chip label={String(credentials.length)} />
+    <section className="cwgsyw-devices-cred">
+      <div className="cwgsyw-devices-cred__head">
+        <Button type="button" variant="ghost" size="sm" className="cwgsyw-devices-cred__toggle" aria-expanded={expanded} onClick={() => setExpanded((current) => !current)}>
+          <span aria-hidden="true" className={`cwgsyw-cmdb-admin__figma-action-icon cwgsyw-devices-cred__chevron${expanded ? ' is-open' : ''}`} />
+          <span>{group.name}</span>
+          <span className="cwgsyw-devices-cred__count">{credentials.length}</span>
         </Button>
         {canAdd ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => onAdd(group.id)}
-          >
+          <Button type="button" size="sm" variant="ghost" onClick={() => onAdd(group.id)}>
             添加
           </Button>
         ) : null}
       </div>
       {expanded ? (
-        <div className="cwgsyw-stack-list">
+        <div className="cwgsyw-devices-cred__list">
           {credentials.length === 0 ? (
-            <p className="cwgsyw-stack-list__empty">暂无账号</p>
+            <p className="cwgsyw-devices-cred__empty">暂无账号</p>
           ) : (
             credentials.map((credential) => (
               <CredentialRow
@@ -207,6 +201,7 @@ export default function DeviceDetailPage() {
   if (!device) return <ErrorState title="设备不存在" description="无法找到该设备。" showRetry={false} />
 
   const typeLabels: Record<string, string> = Object.fromEntries(DEVICE_TYPES.map((item) => [item.value, item.label]))
+  const subtitle = [device.ip, device.groupName, device.category].filter(Boolean).join(' · ')
   const credentials = device.credentials ?? []
   const isAdmin = groupScope === 'tenant' || groupScope === 'platform'
   const visibleGroups = isAdmin ? ORG_GROUPS : ORG_GROUPS.filter((group) => group.id === userGroupId)
@@ -217,33 +212,42 @@ export default function DeviceDetailPage() {
     <>
       <DetailDrawerPage
         embedded
+        className="cwgsyw-devices cwgsyw-devices-detail"
         header={
           <PageHeader
-            eyebrow="资源管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title={device.name}
-            subtitle={device.groupName || '设备详情与访问凭证'}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/devices', label: '设备密码库' },
-                  { label: device.name },
-                ]}
-              />
-            }
-            status={<Badge label={typeLabels[device.deviceType] ?? device.deviceType} tone="neutral" />}
+            showSubtitle={Boolean(subtitle)}
+            subtitle={subtitle || undefined}
+            status={<Badge size="sm" label={typeLabels[device.deviceType] ?? device.deviceType} tone="neutral" />}
             actions={
-              <div className="cwgsyw-inline-controls">
-                {device.category ? <Chip label={device.category} /> : null}
+              <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
                 <PermissionGuard resource="device" action="update">
-                  <Button type="button" variant="secondary" size="sm" onClick={startEdit}>
-                    编辑
-                  </Button>
+                  <NeutralTooltip content="编辑" className="cwgsyw-tooltip--pill" followCursor>
+                    <IconButton
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                      aria-label={`编辑 ${device.name}`}
+                      onClick={startEdit}
+                    />
+                  </NeutralTooltip>
                 </PermissionGuard>
                 <PermissionGuard resource="device" action="delete">
-                  <Button type="button" variant="destructive" size="sm" disabled={deleteMutation.isPending} onClick={() => setConfirmDelete(true)}>
-                    删除
-                  </Button>
+                  <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                    <IconButton
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="cwgsyw-cmdb-admin__delete-action"
+                      icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                      aria-label={`删除 ${device.name}`}
+                      disabled={deleteMutation.isPending}
+                      onClick={() => setConfirmDelete(true)}
+                    />
+                  </NeutralTooltip>
                 </PermissionGuard>
               </div>
             }
@@ -252,9 +256,11 @@ export default function DeviceDetailPage() {
         content={
           <div className="cwgsyw-form">
             {editing ? (
-              <Card title="编辑设备信息" description="名称、IP 和类型来自 CMDB，如需修改请去对应实例。">
-                <div className="cwgsyw-form">
-                  <dl className="cwgsyw-permission-grid">
+              <section className="cwgsyw-devices-panel">
+                <header className="cwgsyw-devices-panel__head">编辑设备信息</header>
+                <div className="cwgsyw-devices-panel__body cwgsyw-form">
+                  <p className="cwgsyw-devices-panel__hint">名称、IP 和类型来自 CMDB，如需修改请去对应实例。</p>
+                  <dl className="cwgsyw-devices-defs">
                     <div>
                       <dt className="cwgsyw-type-label-xs">设备名称</dt>
                       <dd className="cwgsyw-type-body-sm">{device.name}</dd>
@@ -275,6 +281,7 @@ export default function DeviceDetailPage() {
                   <Field htmlFor="device-category" label="分类标签">
                     <Input
                       id="device-category"
+                      size="sm"
                       value={editForm.category ?? ''}
                       maxLength={64}
                       placeholder="生产/测试/开发"
@@ -284,6 +291,7 @@ export default function DeviceDetailPage() {
                   <Field htmlFor="device-description" label="备注">
                     <Input
                       id="device-description"
+                      size="sm"
                       value={editForm.description ?? ''}
                       maxLength={2000}
                       onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))}
@@ -298,31 +306,57 @@ export default function DeviceDetailPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </section>
             ) : null}
 
-            {!editing && (device.ip || device.description || device.ciInstanceId) ? (
-              <div className="cwgsyw-page__metrics">
-                {device.ip ? <Card title="IP 地址">{device.ip}</Card> : null}
-                {device.ciInstanceId && device.ciModelCode ? (
-                  <Card title="关联 CMDB 实例">
-                    <Link href={`/cmdb/instances/by-model/${device.ciModelCode}/${device.ciInstanceId}`}>
-                      {device.ciInstanceName ?? `实例 #${device.ciInstanceId}`}
-                    </Link>
-                  </Card>
-                ) : null}
-                {device.description ? <Card title="备注">{device.description}</Card> : null}
-              </div>
+            {!editing ? (
+              <section className="cwgsyw-devices-panel">
+                <header className="cwgsyw-devices-panel__head">基本信息</header>
+                <dl className="cwgsyw-devices-defs cwgsyw-devices-panel__body">
+                  <div>
+                    <dt>IP 地址</dt>
+                    <dd>{device.ip || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>设备类型</dt>
+                    <dd>{typeLabels[device.deviceType] ?? device.deviceType}</dd>
+                  </div>
+                  <div>
+                    <dt>分类</dt>
+                    <dd>{device.category || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>所属组</dt>
+                    <dd>{device.groupName || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>关联 CMDB 实例</dt>
+                    <dd>
+                      {device.ciInstanceId && device.ciModelCode ? (
+                        <Link href={`/cmdb/instances/by-model/${device.ciModelCode}/${device.ciInstanceId}`}>
+                          {device.ciInstanceName ?? `实例 #${device.ciInstanceId}`}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>备注</dt>
+                    <dd>{device.description || '-'}</dd>
+                  </div>
+                </dl>
+              </section>
             ) : null}
 
             {addingToGroup !== undefined ? (
-              <Card
-                title={`添加账号 — ${addingToGroup == null ? '通用' : ORG_GROUPS.find((group) => group.id === addingToGroup)?.name ?? '未知组'}`}
-              >
-                <div className="cwgsyw-form">
+              <section className="cwgsyw-devices-panel">
+                <header className="cwgsyw-devices-panel__head">{`添加账号 — ${addingToGroup == null ? '通用' : ORG_GROUPS.find((group) => group.id === addingToGroup)?.name ?? '未知组'}`}</header>
+                <div className="cwgsyw-devices-panel__body cwgsyw-form">
                   <Field htmlFor="cred-username" label="用户名" required>
                     <Input
                       id="cred-username"
+                      size="sm"
                       value={newCred.username}
                       maxLength={128}
                       placeholder="root"
@@ -332,6 +366,7 @@ export default function DeviceDetailPage() {
                   <Field htmlFor="cred-password" label="密码" required>
                     <Input
                       id="cred-password"
+                      size="sm"
                       type="password"
                       value={newCred.password}
                       maxLength={1024}
@@ -342,6 +377,7 @@ export default function DeviceDetailPage() {
                   <Field htmlFor="cred-description" label="备注">
                     <Input
                       id="cred-description"
+                      size="sm"
                       value={newCred.description}
                       maxLength={255}
                       placeholder="例：SSH 登录账号"
@@ -364,11 +400,12 @@ export default function DeviceDetailPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </section>
             ) : null}
 
-            <div>
-              <h2 className="cwgsyw-type-title-sm">账号密码</h2>
+            <section className="cwgsyw-devices-panel">
+              <header className="cwgsyw-devices-panel__head">账号密码</header>
+              <div className="cwgsyw-devices-panel__body">
               {visibleGroups.map((group) => {
                 const groupCreds = credentials.filter((credential) => credential.groupId === group.id)
                 const canAdd = hasPermission('device', 'create') && (isAdmin || userGroupId === group.id)
@@ -395,7 +432,8 @@ export default function DeviceDetailPage() {
                   onDeleted={invalidateDevice}
                 />
               ) : null}
-            </div>
+              </div>
+            </section>
           </div>
         }
       />

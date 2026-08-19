@@ -36,26 +36,24 @@ export function NotificationItem({ notification: n, onMarkRead }: NotificationIt
 
   const inner = (
     <article
-      className={['cwgsyw-card', 'cwgsyw-card--md', n.isRead ? '' : 'cwgsyw-card--selected'].filter(Boolean).join(' ')}
+      className={['cwgsyw-notifications-item', n.isRead ? '' : 'cwgsyw-notifications-item--unread'].filter(Boolean).join(' ')}
       onClick={() => {
         if (!n.isRead) onMarkRead(n.id)
       }}
     >
-      <div className="cwgsyw-inline-controls">
-        {n.isRead ? <StatusBadge label="已读" status="neutral" /> : <StatusBadge label="未读" status="info" />}
-        <div>
-          <p className="cwgsyw-type-label-md">{n.title}</p>
-          <p className="cwgsyw-type-body-sm">{n.content}</p>
-        </div>
-        <span className="cwgsyw-type-label-xs">
-          {new Date(n.createdAt).toLocaleString('zh-CN', {
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
+      {n.isRead ? <StatusBadge label="已读" status="neutral" /> : <StatusBadge label="未读" status="neutral" />}
+      <div className="cwgsyw-notifications-item__body">
+        <p className="cwgsyw-notifications-item__title">{n.title}</p>
+        <p className="cwgsyw-notifications-item__content">{n.content}</p>
       </div>
+      <time className="cwgsyw-notifications-item__time" dateTime={n.createdAt}>
+        {new Date(n.createdAt).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+      </time>
     </article>
   )
 

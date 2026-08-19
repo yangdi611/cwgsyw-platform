@@ -108,11 +108,23 @@ test('change-docs new leaves old visual entries and keeps APIs', () => {
   assertNoLegacy(fs.readFileSync(path.join(frontendRoot, 'src/components/change-doc/TableFieldEditor.tsx'), 'utf8'))
 })
 
+test('change-docs new uses the Figma sparkles icon for AI generation without a text button', () => {
+  const fieldList = fs.readFileSync(path.join(frontendRoot, 'src/components/change-doc/FieldList.tsx'), 'utf8')
+  const patterns = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+
+  assert.match(fieldList, /IconButton, Input, NeutralTooltip/)
+  assert.match(fieldList, /aria-label="AI 生成"/)
+  assert.match(fieldList, /src="\/figma-icons\/change-doc-ai-sparkles\.svg"/)
+  assert.doesNotMatch(fieldList, /'AI 生成中…' : 'AI 生成'/)
+  assert.match(patterns, /cwgsyw-change-doc-create \.cwgsyw-change-doc-field-list__ai-action/)
+  assert.ok(fs.existsSync(path.join(frontendRoot, 'public/figma-icons/change-doc-ai-sparkles.svg')))
+})
+
 test('change-docs new renders Neutral template step', () => {
   const page = loadCompiled(pagePath)
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /新建变更文档/)
-  assert.match(html, /选择申请单模板/)
+  assert.match(html, /申请单模板/)
   assert.match(html, /网络变更申请单/)
   assert.match(html, /下一步：填写内容/)
 })

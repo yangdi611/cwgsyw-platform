@@ -1,20 +1,22 @@
 'use client'
 
 import { type ReactNode, Suspense, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, IDENTITY_LOCK_ICON, IDENTITY_LOCK_NODE } from '@/components/task-runtime/TaskEmpty'
 import {
-  Breadcrumb,
   Button,
   Checkbox,
   DataManagementPage,
-  EmptyState,
   ErrorState,
+  Field,
   LoadingState,
   PageHeader,
+  Select,
 } from '@/design-system/figma-neutral/components'
 
 interface Resource {
@@ -32,21 +34,18 @@ interface Permission {
   action: string
 }
 
+interface Role {
+  id: number
+  name: string
+}
+
 function PermissionsHeader({ action }: { action?: ReactNode }) {
   return (
     <PageHeader
-      eyebrow="身份与权限"
+      showEyebrow={false}
+      showBreadcrumb={false}
+      showSubtitle={false}
       title="权限配置"
-      subtitle="为当前角色勾选资源操作权限，修改后点击保存生效。"
-      breadcrumb={
-        <Breadcrumb
-          items={[
-            { href: '/', label: '工作台' },
-            { href: '/rbac/roles', label: '角色管理' },
-            { label: '权限配置' },
-          ]}
-        />
-      }
       actions={action}
     />
   )
@@ -57,9 +56,10 @@ interface PermissionsEditorProps {
   resources: Resource[]
   permissions: Permission[]
   rolePermissions: Permission[]
+  rolePicker: ReactNode
 }
 
-function PermissionsEditor({ roleId, resources, permissions, rolePermissions }: PermissionsEditorProps) {
+function PermissionsEditor({ roleId, resources, permissions, rolePermissions, rolePicker }: PermissionsEditorProps) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(rolePermissions.map((permission) => permission.id)),
@@ -77,11 +77,8 @@ function PermissionsEditor({ roleId, resources, permissions, rolePermissions }: 
   const toggle = (permId: number) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(permId)) {
-        next.delete(permId)
-      } else {
-        next.add(permId)
-      }
+      if (next.has(permId)) next.delete(permId)
+      else next.add(permId)
       return next
     })
   }
@@ -89,35 +86,35 @@ function PermissionsEditor({ roleId, resources, permissions, rolePermissions }: 
   return (
     <DataManagementPage
       embedded
+      className="cwgsyw-tasks-page"
       header={
         <PermissionsHeader
           action={
-            <Button type="button" variant="primary" loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            <Button type="button" size="sm" variant="primary" loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
               {saveMutation.isPending ? '保存中…' : '保存权限'}
             </Button>
           }
         />
       }
+      filter={rolePicker}
       content={
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-tasks-permission-list">
           {resources.map((resource) => {
             const resourcePermissions = permissions.filter((permission) => permission.resourceId === resource.id)
             return (
-              <section key={resource.id} className="cwgsyw-permission-group">
-                <div className="cwgsyw-permission-group__head">
-                  <h3 className="cwgsyw-type-title-sm">{resource.name}</h3>
-                </div>
-                <div className="cwgsyw-permission-group__body cwgsyw-inline-controls">
+              <TaskPanel key={resource.id} title={resource.name}>
+                <div className="cwgsyw-tasks-option-grid__list">
                   {resourcePermissions.map((permission) => (
                     <Checkbox
                       key={permission.id}
+                      className="cwgsyw-tasks-choice"
                       checked={selected.has(permission.id)}
                       onChange={() => toggle(permission.id)}
                       label={permission.action}
                     />
                   ))}
                 </div>
-              </section>
+              </TaskPanel>
             )
           })}
         </div>
@@ -127,48 +124,80 @@ function PermissionsEditor({ roleId, resources, permissions, rolePermissions }: 
 }
 
 function PermissionsContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const roleId = searchParams.get('roleId')
 
+  const rolesQuery = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => api.get('/rbac/roles').then((r) => r.data.data.records as Role[]),
+  })
   const resourcesQuery = useQuery({
     queryKey: ['resources'],
     queryFn: () => api.get('/rbac/resources').then((r) => r.data.data as Resource[]),
     enabled: !!roleId,
   })
-
   const allPermsQuery = useQuery({
     queryKey: ['all-permissions'],
     queryFn: () => api.get('/rbac/permissions').then((r) => r.data.data as Permission[]),
     enabled: !!roleId,
   })
-
   const rolePermsQuery = useQuery({
     queryKey: ['role-permissions', roleId],
     queryFn: () => api.get(`/rbac/roles/${roleId}/permissions`).then((r) => r.data.data as Permission[]),
     enabled: !!roleId,
   })
 
-  const header = <PermissionsHeader />
+  const rolePicker = (
+    <div className="cwgsyw-tasks-toolbar">
+      <Field label="角色">
+        <Select
+          size="sm"
+          overlay
+          placeholder="选择角色"
+          value={roleId ?? ''}
+          options={(rolesQuery.data ?? []).map((role) => ({ value: String(role.id), label: role.name }))}
+          onChange={(value) => router.replace(value ? `/rbac/permissions?roleId=${value}` : '/rbac/permissions')}
+        />
+      </Field>
+    </div>
+  )
 
   if (!roleId) {
     return (
       <DataManagementPage
         embedded
-        header={header}
-        content={<EmptyState title="请先选择角色" description="从角色管理页点击「配置权限」进入此页面。" />}
+        className="cwgsyw-tasks-page"
+        header={<PermissionsHeader />}
+        filter={rolePicker}
+        content={
+          <TaskEmpty
+            iconSrc={IDENTITY_LOCK_ICON}
+            figmaNode={IDENTITY_LOCK_NODE}
+            title="请先选择角色"
+            description="从上方选择角色，或从角色管理进入配置权限。"
+            action={
+              <Button type="button" size="sm" variant="secondary" onClick={() => router.push('/rbac/roles')}>
+                返回角色管理
+              </Button>
+            }
+          />
+        }
       />
     )
   }
 
   if (resourcesQuery.isLoading || allPermsQuery.isLoading || rolePermsQuery.isLoading) {
-    return <DataManagementPage embedded header={header} content={<LoadingState label="正在加载权限…" />} />
+    return <DataManagementPage embedded className="cwgsyw-tasks-page" header={<PermissionsHeader />} filter={rolePicker} content={<LoadingState label="正在加载权限…" />} />
   }
 
   if (resourcesQuery.isError || allPermsQuery.isError || rolePermsQuery.isError) {
     return (
       <DataManagementPage
         embedded
-        header={header}
+        className="cwgsyw-tasks-page"
+        header={<PermissionsHeader />}
+        filter={rolePicker}
         content={
           <ErrorState
             title="权限加载失败"
@@ -176,6 +205,7 @@ function PermissionsContent() {
             retry={
               <Button
                 type="button"
+                size="sm"
                 variant="secondary"
                 onClick={() => {
                   resourcesQuery.refetch()
@@ -193,13 +223,16 @@ function PermissionsContent() {
   }
 
   return (
-    <PermissionsEditor
-      key={`${roleId}:${rolePermsQuery.dataUpdatedAt}`}
-      roleId={roleId}
-      resources={resourcesQuery.data ?? []}
-      permissions={allPermsQuery.data ?? []}
-      rolePermissions={rolePermsQuery.data ?? []}
-    />
+    <>
+      <PermissionsEditor
+        key={`${roleId}:${rolePermsQuery.dataUpdatedAt}`}
+        roleId={roleId}
+        resources={resourcesQuery.data ?? []}
+        permissions={allPermsQuery.data ?? []}
+        rolePermissions={rolePermsQuery.data ?? []}
+        rolePicker={rolePicker}
+      />
+    </>
   )
 }
 

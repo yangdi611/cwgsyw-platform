@@ -9,14 +9,12 @@ import { listDirectoryGroups, listPublishedTemplates } from '@/lib/task-plan-api
 import { getWorkItemCounts, listWorkItems, type WorkItem, type WorkItemTab } from '@/lib/work-item-api'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Chip,
   DataManagementPage,
+  DateInput,
   EmptyState,
   ErrorState,
   FilterBar,
-  Input,
   PageHeader,
   Pagination,
   SearchInput,
@@ -90,45 +88,35 @@ export function WorkItemList() {
 
   return (
     <DataManagementPage
+      className="cwgsyw-work"
       embedded
       header={
         <PageHeader
-          eyebrow="统一任务平台"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="我的工作"
           subtitle="待执行、待审批、我发起、抄送和已完成事项统一在这里处理。"
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '我的工作' }]} />}
         />
       }
       filter={
-        <div className="cwgsyw-form">
-          <Tabs
-            style="underline"
-            value={tab}
-            onChange={(id) => {
-              resetPage()
-              setQuery(id as WorkItemTab)
-            }}
-            items={TABS.map((item) => ({
-              id: item.key,
-              label: item.label,
-              badge: <Chip label={String(counts.data?.[item.key] ?? 0)} />,
-              panel: null,
-            }))}
-          />
+        <div className="cwgsyw-work__toolbar">
           <FilterBar
-            search={
-              <SearchInput
-                value={keyword}
-                placeholder="搜索任务、审批节点或说明"
-                onChange={(event) => {
-                  setKeyword(event.target.value)
-                  resetPage()
-                }}
-              />
-            }
             filterItems={
-              <div className="cwgsyw-inline-controls">
+              <div className="cwgsyw-work__filters">
+                <SearchInput
+                  size="sm"
+                  value={keyword}
+                  placeholder="搜索任务、审批节点或说明"
+                  aria-label="搜索工作项"
+                  onChange={(event) => {
+                    setKeyword(event.target.value)
+                    resetPage()
+                  }}
+                />
                 <Select
+                  overlay
+                  size="sm"
+                  aria-label="状态"
                   value={status}
                   options={[
                     { value: 'all', label: '全部状态' },
@@ -145,6 +133,9 @@ export function WorkItemList() {
                   }}
                 />
                 <Select
+                  overlay
+                  size="sm"
+                  aria-label="优先级"
                   value={priority}
                   options={[
                     { value: 'all', label: '全部优先级' },
@@ -159,6 +150,9 @@ export function WorkItemList() {
                   }}
                 />
                 <Select
+                  overlay
+                  size="sm"
+                  aria-label="时效"
                   value={overdue}
                   options={[
                     { value: 'all', label: '全部时效' },
@@ -171,6 +165,9 @@ export function WorkItemList() {
                   }}
                 />
                 <Select
+                  overlay
+                  size="sm"
+                  aria-label="模板"
                   value={templateId}
                   options={[{ value: 'all', label: '全部模板' }, ...(templates.data ?? []).map((template) => ({ value: String(template.id), label: template.name }))]}
                   onChange={(value) => {
@@ -180,6 +177,9 @@ export function WorkItemList() {
                 />
                 {hasPermission('group', 'read') ? (
                   <Select
+                    overlay
+                    size="sm"
+                    aria-label="组"
                     value={groupId}
                     options={[{ value: 'all', label: '全部组' }, ...(groups.data ?? []).map((group) => ({ value: String(group.id), label: group.name }))]}
                     onChange={(value) => {
@@ -188,7 +188,9 @@ export function WorkItemList() {
                     }}
                   />
                 ) : null}
-                <Input
+                <DateInput
+                  className="cwgsyw-work__date"
+                  size="sm"
                   type="date"
                   aria-label="开始日期"
                   value={from}
@@ -197,7 +199,9 @@ export function WorkItemList() {
                     resetPage()
                   }}
                 />
-                <Input
+                <DateInput
+                  className="cwgsyw-work__date"
+                  size="sm"
                   type="date"
                   aria-label="结束日期"
                   value={to}
@@ -206,6 +210,22 @@ export function WorkItemList() {
                     resetPage()
                   }}
                 />
+                <div className="cwgsyw-work__tabs">
+                  <Tabs
+                    style="cmdb"
+                    size="sm"
+                    value={tab}
+                    onChange={(id) => {
+                      resetPage()
+                      setQuery(id as WorkItemTab)
+                    }}
+                    items={TABS.map((item) => ({
+                      id: item.key,
+                      label: `${item.label} ${counts.data?.[item.key] ?? 0}`,
+                      panel: null,
+                    }))}
+                  />
+                </div>
               </div>
             }
           />
@@ -218,16 +238,19 @@ export function WorkItemList() {
               title="工作项加载失败"
               description="无法读取我的工作，请重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => void items.refetch()}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => void items.refetch()}>
                   重试
                 </Button>
               }
             />
           ) : (
             <Table
+              className="cwgsyw-cmdb-table cwgsyw-work__table"
               showSearch={false}
+              density="compact"
               columns={[
                 { key: 'title', label: '工作项' },
+                { key: 'type', label: '任务类型' },
                 { key: 'status', label: '状态' },
                 { key: 'date', label: '业务日期' },
                 { key: 'dueAt', label: '截止时间' },
@@ -237,27 +260,27 @@ export function WorkItemList() {
                 id: `${item.itemType}:${item.itemId}`,
                 cells: {
                   title: (
-                    <div>
-                      <div className="cwgsyw-inline-controls">
-                        <strong>{item.title}</strong>
-                        {item.actionRequired ? <StatusBadge label="需要处理" status="warning" /> : null}
-                      </div>
-                      <p className="cwgsyw-type-body-sm">{item.subtitle}</p>
+                    <div className="cwgsyw-inline-controls">
+                      <span className="cwgsyw-work__title">{item.title}</span>
+                      {item.actionRequired ? <StatusBadge size="sm" label="需要处理" status="warning" /> : null}
                     </div>
                   ),
+                  type: <span className="cwgsyw-work__type">{typeLabel(item)}</span>,
                   status: (
                     <div className="cwgsyw-inline-controls">
                       <StatusBadge
+                        size="sm"
                         label={statusLabel(item.status)}
                         status={item.overdue ? 'danger' : item.status === 'completed' ? 'success' : item.status === 'changes_requested' ? 'warning' : 'neutral'}
                       />
-                      {item.nodeName ? <StatusBadge label={item.nodeName} status="neutral" /> : null}
+                      {item.nodeName ? <StatusBadge size="sm" label={item.nodeName} status="neutral" /> : null}
                     </div>
                   ),
                   date: item.businessDate ?? '-',
                   dueAt: item.dueAt ? new Date(item.dueAt).toLocaleString('zh-CN') : '-',
                   priority: (
                     <StatusBadge
+                      size="sm"
                       label={priorityLabel(item.priority)}
                       status={item.priority === 'critical' ? 'danger' : item.priority === 'high' ? 'warning' : 'neutral'}
                     />
@@ -265,7 +288,13 @@ export function WorkItemList() {
                 },
               }))}
               state={items.isLoading ? 'loading' : records.length === 0 ? 'empty' : 'data'}
-              empty={<EmptyState title={emptyTitle(tab)} description={emptyDescription(tab)} showAction={false} />}
+              empty={
+                <div className="cwgsyw-work__empty">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/figma-icons/home-clipboard-check.svg" width={22} height={22} alt="" data-figma-node="6:24460" />
+                  <EmptyState showIcon={false} title={emptyTitle(tab)} description={emptyDescription(tab)} showAction={false} />
+                </div>
+              }
               onRowClick={(id) => {
                 const item = records.find((entry) => `${entry.itemType}:${entry.itemId}` === id)
                 if (!item) return
@@ -285,6 +314,11 @@ export function WorkItemList() {
 function parseTab(value: string | null): WorkItemTab {
   return TABS.some((item) => item.key === value) ? (value as WorkItemTab) : 'execute'
 }
+function typeLabel(item: WorkItem) {
+  if (item.itemType === 'approval') return '审批'
+  return item.subtitle?.trim() || '任务'
+}
+
 function statusLabel(status: string) {
   return {
     not_started: '未开始',

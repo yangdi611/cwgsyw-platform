@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
+import '@/components/task-runtime/tasks.css'
+import { IdentityIconAction } from '@/components/identity/IdentityActions'
 import { Button, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
 
 interface Group {
@@ -142,6 +144,7 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
 
   return (
     <NeutralDialog
+        className="cwgsyw-identity-dialog"
       open={open}
       onOpenChange={(next) => {
         if (!next) onClose()
@@ -150,7 +153,7 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
       size="lg"
       showClose
     >
-      <section className="cwgsyw-form">
+      <section className="cwgsyw-form cwgsyw-identity-form">
         <div>
           <h3 className="cwgsyw-type-title-sm">组织成员关系</h3>
           <p className="cwgsyw-type-body-sm">用户可以属于多个组，并在每个组中分别担任组长或组员。</p>
@@ -158,6 +161,8 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
         <div className="cwgsyw-inline-controls">
           <Select
             aria-label="选择用户组"
+            size="sm"
+            overlay
             placeholder="选择用户组"
             value={groupId}
             options={[{ value: '', label: '选择用户组' }, ...businessGroups.map((group) => ({ value: String(group.id), label: group.name }))]}
@@ -165,6 +170,8 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
           />
           <Select
             aria-label="成员角色"
+            size="sm"
+            overlay
             value={membershipRole}
             options={[{ value: 'member', label: '组员' }, { value: 'leader', label: '组长' }]}
             onChange={(value) => setMembershipRole(value as 'leader' | 'member')}
@@ -183,16 +190,14 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
                   {membership.primary ? ' · 主组' : ''}
                 </span>
               </span>
-              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => removeMembership(membership.id)}>
-                移除
-              </Button>
+              <IdentityIconAction label="移除成员关系" icon="trash" danger onClick={() => removeMembership(membership.id)} />
             </div>
           ))}
           {(membershipsQuery.data ?? []).length === 0 ? <p className="cwgsyw-stack-list__empty">暂无成员关系</p> : null}
         </div>
       </section>
 
-      <section className="cwgsyw-form">
+      <section className="cwgsyw-form cwgsyw-identity-form">
         <div>
           <h3 className="cwgsyw-type-title-sm">作用域功能角色</h3>
           <p className="cwgsyw-type-body-sm">功能角色必须绑定租户或具体用户组；新分配先进入影子数据，账户通过迁移对账并切换后生效。</p>
@@ -200,6 +205,8 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
         <div className="cwgsyw-inline-controls">
           <Select
             aria-label="选择功能角色"
+            size="sm"
+            overlay
             placeholder="选择功能角色"
             value={roleId}
             options={[{ value: '', label: '选择功能角色' }, ...assignableRoles.map((role) => ({ value: String(role.id), label: role.name }))]}
@@ -207,6 +214,8 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
           />
           <Select
             aria-label="作用域类型"
+            size="sm"
+            overlay
             value={scopeType}
             options={[{ value: 'group', label: '用户组范围' }, { value: 'tenant', label: '当前租户' }]}
             onChange={(value) => setScopeType(value as 'tenant' | 'group')}
@@ -214,6 +223,8 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
           {scopeType === 'group' ? (
             <Select
               aria-label="选择作用域组"
+              size="sm"
+              overlay
               placeholder="选择作用域组"
               value={scopeId}
               options={[{ value: '', label: '选择作用域组' }, ...businessGroups.map((group) => ({ value: String(group.id), label: group.name }))]}
@@ -239,9 +250,7 @@ export function UserAuthorizationDialog({ user, open, onClose }: UserAuthorizati
                   {assignment.scopeType === 'tenant' ? '当前租户' : assignment.scopeName ?? `组 #${assignment.scopeId}`}
                 </span>
               </span>
-              <Button type="button" variant="ghost" size="sm" leadingIcon="trash" onClick={() => removeAssignment(assignment.id)}>
-                撤销
-              </Button>
+              <IdentityIconAction label="撤销角色分配" icon="trash" danger onClick={() => removeAssignment(assignment.id)} />
             </div>
           ))}
           {(assignmentsQuery.data ?? []).length === 0 ? <p className="cwgsyw-stack-list__empty">暂无作用域角色</p> : null}

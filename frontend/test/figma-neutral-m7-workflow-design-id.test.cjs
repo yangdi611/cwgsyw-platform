@@ -75,6 +75,11 @@ function loadCompiled(filePath) {
 test('workflow design id leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /cwgsyw-workflow/)
+  assert.match(page, /cwgsyw-workflow-design__fields/)
+  assert.doesNotMatch(page, /cwgsyw-filter-grid/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
   assert.match(page, /\/workflow\/definitions\/key\/\$\{detail\.key\}\/update/)
   assert.match(page, /api\.get\('\/workflow\/definitions'/)
   assert.match(page, /initialXml=\{xml\}/)

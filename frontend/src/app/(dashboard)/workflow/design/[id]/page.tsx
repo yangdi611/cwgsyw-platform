@@ -8,7 +8,6 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Field,
   FormSettingsPage,
@@ -118,27 +117,19 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
 
   return (
     <FormSettingsPage
+      className="cwgsyw-workflow cwgsyw-workflow-design"
       header={
         <PageHeader
-          eyebrow="流程中心"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title={`编辑流程: ${name}`}
           subtitle={`当前版本: v${detail?.version} | 修改后将创建新版本`}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/workflow/design', label: '流程中心' },
-                { href: '/workflow/admin', label: '流程配置' },
-                { label: name || decodedKey },
-              ]}
-            />
-          }
           actions={
-            <div className="cwgsyw-designer__actions">
-              <Button type="button" variant="secondary" onClick={() => router.back()}>
+            <div className="cwgsyw-workflow__header-actions cwgsyw-designer__actions">
+              <Button type="button" variant="secondary" size="sm" onClick={() => router.back()}>
                 取消
               </Button>
-              <Button type="button" loading={saving} disabled={saving} onClick={handleSave}>
+              <Button type="button" size="sm" loading={saving} disabled={saving} onClick={handleSave}>
                 {saving ? '部署中...' : '保存新版本'}
               </Button>
             </div>
@@ -147,18 +138,18 @@ function EditForm({ processKey, versionId }: { processKey: string; versionId?: s
       }
       form={
         <div className="cwgsyw-form">
-          <div className="cwgsyw-filter-grid">
+          <div className="cwgsyw-workflow-design__fields">
             <Field label="流程名称" htmlFor="flowName" required>
-              <Input id="flowName" value={name} onChange={(event) => setName(event.target.value)} />
+              <Input id="flowName" size="sm" value={name} onChange={(event) => setName(event.target.value)} />
             </Field>
             <Field label="流程 Key" htmlFor="flowKey" helperText="Key 不可修改">
-              <Input id="flowKey" value={detail?.key} disabled />
+              <Input id="flowKey" size="sm" value={detail?.key} disabled />
             </Field>
             <Field label="分类" htmlFor="category">
-              <Input id="category" value={category} onChange={(event) => setCategory(event.target.value)} />
+              <Input id="category" size="sm" value={category} onChange={(event) => setCategory(event.target.value)} />
             </Field>
             <Field label="描述" htmlFor="desc">
-              <Input id="desc" value={description} onChange={(event) => setDescription(event.target.value)} />
+              <Input id="desc" size="sm" value={description} onChange={(event) => setDescription(event.target.value)} />
             </Field>
           </div>
           <div className="cwgsyw-designer__canvas cwgsyw-designer__pane">

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { DynamicTaskForm } from '@/components/task-runtime/DynamicTaskForm'
 import { SubmissionHistoryCard } from '@/components/task-runtime/SubmissionHistoryCard'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { approvalActionLabel, listTaskApprovalRounds, type ApprovalAction, type ApprovalRound } from '@/lib/approval-api'
 import {
@@ -21,11 +22,10 @@ import {
   type AggregateReferencePreview,
 } from '@/lib/task-runtime-api'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
 import {
   Alert,
-  Breadcrumb,
   Button,
-  Card,
   DetailDrawerPage,
   ErrorState,
   LoadingState,
@@ -48,7 +48,7 @@ export function TaskDetail({ taskId }: { taskId: number }) {
       <ErrorState
         title="任务加载失败"
         description="无法读取任务详情，请重试。"
-        retry={<Button type="button" variant="secondary" onClick={() => void task.refetch()}>重试</Button>}
+        retry={<Button type="button" size="sm" variant="secondary" onClick={() => void task.refetch()}>重试</Button>}
       />
     )
   }
@@ -58,7 +58,7 @@ export function TaskDetail({ taskId }: { taskId: number }) {
       <ErrorState
         title="汇总引用加载失败"
         description="无法读取任务汇总引用，请重试。"
-        retry={<Button type="button" variant="secondary" onClick={() => void aggregateReferences.refetch()}>重试</Button>}
+        retry={<Button type="button" size="sm" variant="secondary" onClick={() => void aggregateReferences.refetch()}>重试</Button>}
       />
     )
   }
@@ -193,20 +193,13 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
   return (
     <DetailDrawerPage
       embedded
+      className="cwgsyw-tasks-page"
       header={
         <PageHeader
-          eyebrow="统一任务平台"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title={data.task.title}
           subtitle={data.task.description || data.template.instructions || '按模板要求填写并提交任务。'}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/tasks', label: '我的任务' },
-                { label: data.task.title },
-              ]}
-            />
-          }
           status={
             <div className="cwgsyw-inline-controls">
               <StatusBadge label={executionLabel(data.task.executionStatus)} status={executionTone(data.task.executionStatus, data.task.overdue)} />
@@ -259,7 +252,7 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
               showDismiss={false}
             />
           ) : null}
-          <Card title={data.template.name} description={data.template.description}>
+          <TaskPanel title={data.template.name} description={data.template.description || undefined}>
             <DynamicTaskForm
               taskId={taskId}
               fields={data.template.fields}
@@ -273,7 +266,7 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
               onUpload={upload}
               onDeleteAttachment={removeAttachment}
             />
-          </Card>
+          </TaskPanel>
           <SubmissionHistoryCard
             taskId={taskId}
             currentSubmissionId={data.currentSubmission?.id}
@@ -285,27 +278,27 @@ function TaskDetailForm({ data, aggregateReferences }: { data: TaskDetailData; a
       }
       drawer={
         <div className="cwgsyw-form">
-          <Card title="任务信息" description="计划、截止和草稿版本。">
-            <dl className="cwgsyw-permission-grid">
+          <TaskPanel title="任务信息" description="计划、截止和草稿版本。">
+            <dl className="cwgsyw-tasks-dl">
               <Info label="计划开始" value={data.task.plannedStartAt ? new Date(data.task.plannedStartAt).toLocaleString('zh-CN') : '-'} />
               <Info label="截止时间" value={data.task.dueAt ? new Date(data.task.dueAt).toLocaleString('zh-CN') : '-'} />
-              <Info label="草稿版本" value={`revision ${revision}${dirty ? ' · 未保存' : ''}`} />
+              <Info label="草稿版本" value={`第 ${revision} 版${dirty ? ' · 未保存' : ''}`} />
             </dl>
-          </Card>
-          <Card title="时间线" description="任务执行事件。">
+          </TaskPanel>
+          <TaskPanel title="时间线" description="任务执行事件。">
             {data.timeline.length === 0 ? (
-              <p className="cwgsyw-type-body-sm">暂无事件</p>
+              <p className="cwgsyw-tasks-cell-meta">暂无事件</p>
             ) : (
-              <div className="cwgsyw-stack-list">
+              <div>
                 {data.timeline.map((event) => (
-                  <div key={event.id}>
-                    <p className="cwgsyw-type-label-md">{event.eventType}</p>
-                    <p className="cwgsyw-type-label-xs">{new Date(event.createdAt).toLocaleString('zh-CN')}</p>
+                  <div key={event.id} className="cwgsyw-tasks-event">
+                    <p className="cwgsyw-tasks-event__title">{timelineLabel(event.eventType)}</p>
+                    <p className="cwgsyw-tasks-cell-meta">{new Date(event.createdAt).toLocaleString('zh-CN')}</p>
                   </div>
                 ))}
               </div>
             )}
-          </Card>
+          </TaskPanel>
         </div>
       }
     />
@@ -324,27 +317,25 @@ function Info({ label, value }: { label: string; value: string }) {
 function ApprovalHistory({ rounds, loading }: { rounds: ApprovalRound[]; loading: boolean }) {
   if (loading || rounds.length === 0) return null
   return (
-    <Card title="审批历史" description="每次提交形成独立审批轮次，退回理由和字段/附件意见永久保留。">
-      <div className="cwgsyw-stack-list">
+    <TaskPanel title="审批历史" description="每次提交形成独立审批轮次，退回理由和字段/附件意见永久保留。">
+      <div>
         {rounds.map((round) => (
-          <article key={round.id} className="cwgsyw-card cwgsyw-card--sm">
+          <div key={round.id} className="cwgsyw-tasks-event">
             <div className="cwgsyw-inline-controls">
-              <strong>第 {round.roundNumber} 轮</strong>
+              <p className="cwgsyw-tasks-event__title">第 {round.roundNumber} 轮</p>
               <StatusBadge label={approvalLabel(round.status)} status={approvalTone(round.status)} />
             </div>
-            <p className="cwgsyw-type-label-xs">
+            <p className="cwgsyw-tasks-cell-meta">
               {new Date(round.startedAt).toLocaleString('zh-CN')}
               {round.endedAt ? ` 至 ${new Date(round.endedAt).toLocaleString('zh-CN')}` : ''}
             </p>
-            <div className="cwgsyw-stack-list">
-              {round.actions.map((action) => (
-                <ApprovalActionItem key={action.id} action={action} />
-              ))}
-            </div>
-          </article>
+            {round.actions.map((action) => (
+              <ApprovalActionItem key={action.id} action={action} />
+            ))}
+          </div>
         ))}
       </div>
-    </Card>
+    </TaskPanel>
   )
 }
 
@@ -388,6 +379,21 @@ function feedbackFromRounds(rounds: ApprovalRound[], data: TaskDetailData) {
     if (source && submissionAttachments[source.id]) attachments[draft.id] = submissionAttachments[source.id]
   }
   return { fields, attachments, submissionAttachments, returnReason: data.task.approvalStatus === 'changes_requested' ? returnReason : undefined }
+}
+
+function timelineLabel(eventType: string) {
+  return {
+    created: '已创建',
+    started: '已开始',
+    cancelled: '已取消',
+    exception_closed: '异常关闭',
+    reassigned: '已改派',
+    reminded: '已提醒',
+    draft_saved: '草稿已保存',
+    draft_attachment_uploaded: '已上传附件',
+    draft_attachment_deleted: '已删除附件',
+    submitted: '已提交',
+  }[eventType] ?? eventType
 }
 
 function executionLabel(status: string) {

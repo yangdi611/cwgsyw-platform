@@ -13,6 +13,8 @@ import {
   NeutralDialog,
   Textarea,
 } from '@/design-system/figma-neutral/components'
+import { TaskPanel } from '@/components/task-runtime/TaskEmpty'
+import '@/components/task-runtime/tasks.css'
 
 interface Permission {
   id: number
@@ -180,6 +182,7 @@ function RoleDialogForm({
 
   return (
     <NeutralDialog
+        className="cwgsyw-identity-dialog"
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) onClose()
@@ -189,18 +192,18 @@ function RoleDialogForm({
       showClose={false}
       footer={
         <div className="cwgsyw-form__actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" size="sm" variant="secondary" onClick={onClose}>
             取消
           </Button>
-          <Button type="button" variant="primary" loading={saving} onClick={save}>
+          <Button type="button" size="sm" variant="primary" loading={saving} onClick={save}>
             {saving ? '保存中…' : '保存'}
           </Button>
         </div>
       }
     >
-      <div className="cwgsyw-form">
+      <div className="cwgsyw-form cwgsyw-identity-form">
         <Field htmlFor="role-name" label="角色名称" required>
-          <Input id="role-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：Wiki 只读测试员" />
+          <Input size="sm" id="role-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：Wiki 只读测试员" />
         </Field>
         <Field
           htmlFor="role-code"
@@ -208,7 +211,7 @@ function RoleDialogForm({
           helperText="小写字母开头，只能包含小写字母、数字和下划线。"
           state={role ? 'disabled' : 'default'}
         >
-          <Input
+          <Input size="sm"
             id="role-code"
             value={code}
             disabled={!!role}
@@ -217,34 +220,34 @@ function RoleDialogForm({
           />
         </Field>
         <Field htmlFor="role-description" label="描述">
-          <Textarea id="role-description" value={description} onChange={(event) => setDescription(event.target.value)} />
+          <Textarea size="sm" id="role-description" value={description} onChange={(event) => setDescription(event.target.value)} />
         </Field>
-        <div>
-          <div className="cwgsyw-inline-controls">
-            <div className="cwgsyw-type-label-sm">功能权限</div>
-            <span className="cwgsyw-type-label-xs">已选 {permissionIds.length} / {permissions.length} 项</span>
-          </div>
-          <div className="cwgsyw-stack-list">
+        <div className="cwgsyw-identity-perm">
+          <p className="cwgsyw-tasks-cell-meta">功能权限 · 已选 {permissionIds.length} / {permissions.length} 项</p>
+          <div className="cwgsyw-tasks-permission-list">
             {permissionGroups.map((group) => {
               const selectedCount = group.permissions.filter((permission) => permissionIds.includes(permission.id)).length
               const isFullySelected = selectedCount === group.permissions.length
               return (
-                <section key={group.key} className="cwgsyw-permission-group">
-                  <div className="cwgsyw-permission-group__head">
-                    <div>
-                      <h3 className="cwgsyw-type-title-sm">{group.label}</h3>
-                      <p className="cwgsyw-type-label-xs">已选 {selectedCount} / {group.permissions.length} 项</p>
-                    </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroup(group)}>
-                      {isFullySelected ? '取消全选' : '全选本组'}
-                    </Button>
-                  </div>
-                  <div className="cwgsyw-permission-group__body cwgsyw-permission-grid">
+                <TaskPanel
+                  key={group.key}
+                  title={group.label}
+                  action={(
+                    <span className="cwgsyw-inline-controls">
+                      <span className="cwgsyw-tasks-cell-meta">已选 {selectedCount} / {group.permissions.length} 项</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroup(group)}>
+                        {isFullySelected ? '取消全选' : '全选本组'}
+                      </Button>
+                    </span>
+                  )}
+                >
+                  <div className="cwgsyw-permission-grid">
                     {group.permissions.map((permission) => {
                       const action = getPermissionAction(permission)
                       return (
                         <Checkbox
                           key={permission.id}
+                          className="cwgsyw-tasks-choice"
                           checked={permissionIds.includes(permission.id)}
                           onChange={() => togglePermission(permission.id)}
                           label={`${getPermissionName(permission)} · ${actionLabels[action] ?? action}（${permission.code}）`}
@@ -252,7 +255,7 @@ function RoleDialogForm({
                       )
                     })}
                   </div>
-                </section>
+                </TaskPanel>
               )
             })}
           </div>

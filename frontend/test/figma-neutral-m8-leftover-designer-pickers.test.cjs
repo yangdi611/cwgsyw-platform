@@ -30,6 +30,6 @@ test('CMDB pickers keep Neutral option rows and existing remove actions', () => 
   assert.doesNotMatch(instance, /absolute z-50/)
   assert.match(link, /className="cwgsyw-picker-option"/)
   assert.match(link, /handleRemove/)
-  assert.match(link, /cwgsyw-listbox cwgsyw-listbox--overlay/)
+  assert.match(link, /cwgsyw-listbox cwgsyw-change-doc-ci-flow__list/)
   assert.doesNotMatch(link, /absolute z-50/)
 })

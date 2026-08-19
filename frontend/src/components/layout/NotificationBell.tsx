@@ -1,6 +1,5 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
 import Link from 'next/link'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
@@ -24,9 +23,9 @@ export function NotificationBell() {
       aria-label={count > 0 ? `通知，${count} 条未读` : '通知'}
       className="cwgsyw-icon-btn cwgsyw-icon-btn--md cwgsyw-icon-btn--ghost cwgsyw-notification-bell"
     >
-      <Bell aria-hidden="true" />
+      <span className="cwgsyw-notification-bell__icon" aria-hidden="true" />
       {count > 0 ? (
-        <span className="cwgsyw-notification-count">{count > 99 ? '99+' : count}</span>
+        <span className="cwgsyw-notification-dot" aria-hidden="true" />
       ) : null}
     </Link>
   )

@@ -54,7 +54,7 @@ export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
   }
 
   return (
-    <form className="cwgsyw-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+    <form className="cwgsyw-form cwgsyw-account-form" noValidate onSubmit={handleSubmit(onSubmit)}>
       <Field
         htmlFor="currentPassword"
         label="当前密码"
@@ -63,13 +63,14 @@ export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
         errorText={errors.currentPassword?.message}
       >
         <Input
+          size="sm"
           type="password"
           autoComplete="current-password"
           {...register('currentPassword', { required: '请输入当前密码' })}
         />
       </Field>
       <Field htmlFor="newPassword" label="新密码" required>
-        <Input type="password" autoComplete="new-password" {...register('newPassword', { required: true })} />
+        <Input size="sm" type="password" autoComplete="new-password" {...register('newPassword', { required: true })} />
       </Field>
       <NeutralPasswordHints username={username} password={newPassword} />
       <Field
@@ -79,10 +80,10 @@ export function PasswordForm({ username, onSuccess }: PasswordFormProps) {
         state={confirmMismatch ? 'error' : 'default'}
         errorText={confirmMismatch ? '两次输入的密码不一致' : undefined}
       >
-        <Input type="password" autoComplete="new-password" {...register('confirmPassword', { required: true })} />
+        <Input size="sm" type="password" autoComplete="new-password" {...register('confirmPassword', { required: true })} />
       </Field>
       <div className="cwgsyw-form__actions">
-        <Button type="submit" variant="primary" loading={submitting}>
+        <Button type="submit" size="sm" variant="primary" loading={submitting}>
           {submitting ? '提交中…' : '修改密码'}
         </Button>
       </div>

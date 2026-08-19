@@ -5,12 +5,11 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import type { WikiPageTree, WikiStatus } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
   DataManagementPage,
   EmptyState,
   PageHeader,
@@ -57,53 +56,56 @@ export default function WikiSpaceHomePage() {
   }
 
   return (
-    <DataManagementPage
-      embedded
-      header={
+    <>
+    <WikiShellHeader>
         <PageHeader
-          eyebrow="知识空间"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title={space?.name ?? '知识空间'}
           subtitle={space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/wiki', label: '知识空间' },
-                { label: space?.name ?? '知识空间' },
-              ]}
-            />
-          }
           actions={
-            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/graph`)}>
+            <Button className="cwgsyw-wiki__header-actions" type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/graph`)}>
               知识图谱
             </Button>
           }
         />
-      }
+    </WikiShellHeader>
+    <DataManagementPage
+      embedded
+      className="cwgsyw-wiki cwgsyw-wiki-space-home"
       content={
-        <Card title="最近更新">
+        <section className="cwgsyw-devices-panel">
+          <header className="cwgsyw-devices-panel__head">最近更新</header>
+          <div className="cwgsyw-devices-panel__body">
           {pages.length === 0 ? (
-            <EmptyState title="暂无页面" description="从左侧目录新建第一个页面开始记录。" />
+            <div className="cwgsyw-neutral-empty">
+              {/* Official Figma book glyph; image optimization adds no value here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/figma-icons/wiki-book.svg" width={22} height={22} alt="" data-figma-node="6:23850" />
+              <EmptyState showIcon={false} title="暂无页面" description="从左侧目录新建第一个页面开始记录。" />
+            </div>
           ) : (
-            <div className="cwgsyw-form">
+            <div className="cwgsyw-wiki-space__list">
               {pages.slice(0, 30).map((page) => {
                 const meta = STATUS_META[page.status]
                 return (
-                  <Button
+                  <button
                     key={page.id}
                     type="button"
-                    variant="ghost"
+                    className="cwgsyw-wiki-space__row"
                     onClick={() => router.push(`/wiki/${sid}/${page.id}`)}
                   >
-                    {page.title || '无标题'}
-                    <StatusBadge label={meta.label} status={meta.tone} />
-                  </Button>
+                    <span>{page.title || '无标题'}</span>
+                    <StatusBadge size="sm" label={meta.label} status={meta.tone} />
+                  </button>
                 )
               })}
             </div>
           )}
-        </Card>
+          </div>
+        </section>
       }
     />
+    </>
   )
 }

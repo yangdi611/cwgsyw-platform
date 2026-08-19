@@ -14,7 +14,6 @@ import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessD
 import '@/design-system/figma-neutral/index.css'
 import {
   Badge,
-  Breadcrumb,
   Button,
   DataManagementPage,
   EmptyState,
@@ -25,6 +24,7 @@ import {
   LoadingState,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Select,
   Textarea,
@@ -189,7 +189,7 @@ export default function WikiSpacesPage() {
     return (
       <article
         key={space.id}
-        className="cwgsyw-card cwgsyw-card--md"
+        className="cwgsyw-wiki-space-card"
         onClick={() => router.push(`/wiki/${space.id}`)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') router.push(`/wiki/${space.id}`)
@@ -197,96 +197,97 @@ export default function WikiSpacesPage() {
         role="link"
         tabIndex={0}
       >
-        <div className="cwgsyw-form">
-          <div className="cwgsyw-designer__actions">
-            <strong>{space.name}</strong>
+        <div className="cwgsyw-wiki-space-card__body">
+          <div className="cwgsyw-wiki-space-card__title-row">
+            <span className="cwgsyw-wiki-space-card__name">{space.name}</span>
             {space.system ? <Badge label="官方手册" /> : null}
             {sortable ? (
-              <>
-                <IconButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  icon="chevron-up"
-                  aria-label="上移"
-                  disabled={idx === 0}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    move(idx, -1)
-                  }}
-                />
-                <IconButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  icon="chevron-down"
-                  aria-label="下移"
-                  disabled={idx === teamSpaces.length - 1}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    move(idx, 1)
-                  }}
-                />
-              </>
+              <span className="cwgsyw-wiki-space-card__sort">
+                <NeutralTooltip content="上移" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron cwgsyw-wiki-space-card__chevron--up" />}
+                    aria-label={`上移 ${space.name}`}
+                    disabled={idx === 0}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      move(idx, -1)
+                    }}
+                  />
+                </NeutralTooltip>
+                <NeutralTooltip content="下移" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron" />}
+                    aria-label={`下移 ${space.name}`}
+                    disabled={idx === teamSpaces.length - 1}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      move(idx, 1)
+                    }}
+                  />
+                </NeutralTooltip>
+              </span>
             ) : null}
           </div>
-          <p>{space.pageCount} 篇文档</p>
-          <p>{space.description || '暂无描述'}</p>
-          <div className="cwgsyw-designer__actions">
-            <span>
+          <p className="cwgsyw-wiki-space-card__meta">{space.pageCount} 篇文档</p>
+          <p className="cwgsyw-wiki-space-card__desc">{space.description || '暂无描述'}</p>
+          <div className="cwgsyw-wiki-space-card__footer">
+            <span className="cwgsyw-wiki-space-card__stamp">
               {space.updatedAt ? new Date(space.updatedAt).toLocaleDateString('zh-CN') : '—'}
               {space.createdByName ? ` · ${space.createdByName}` : ''}
             </span>
+            <span className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions" onClick={(event) => event.stopPropagation()}>
             {(canUpdate && writable) || space.canManageAcl ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  openEdit(space)
-                }}
-              >
-                重命名
-              </Button>
+              <NeutralTooltip content="重命名" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                  aria-label={`重命名 ${space.name}`}
+                  onClick={() => openEdit(space)}
+                />
+              </NeutralTooltip>
             ) : null}
             {space.canManageAcl ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setAclTarget(space)
-                }}
-              >
-                授权
-              </Button>
+              <NeutralTooltip content="授权" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--settings" />}
+                  aria-label={`授权 ${space.name}`}
+                  onClick={() => setAclTarget(space)}
+                />
+              </NeutralTooltip>
             ) : null}
             {canDelete && writable ? (
-              <IconButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                icon="trash"
-                aria-label="删除"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setDeleting(space)
-                }}
-              />
+              <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="cwgsyw-cmdb-admin__delete-action"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                  aria-label={`删除 ${space.name}`}
+                  onClick={() => setDeleting(space)}
+                />
+              </NeutralTooltip>
             ) : null}
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={(event) => {
-                event.stopPropagation()
-                router.push(`/wiki/${space.id}`)
-              }}
+              onClick={() => router.push(`/wiki/${space.id}`)}
             >
               进入
             </Button>
+            </span>
           </div>
         </div>
       </article>
@@ -297,15 +298,16 @@ export default function WikiSpacesPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-wiki"
         header={
           <PageHeader
-            eyebrow="知识库"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="知识空间"
             subtitle="按团队或主题组织知识空间，集中沉淀运维文档、规范与排障经验。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '知识空间' }]} />}
             actions={
-              <div className="cwgsyw-designer__actions">
-                <Button type="button" variant="secondary" size="sm" leadingIcon="search" onClick={() => router.push('/wiki/search')}>
+              <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/wiki/search')}>
                   搜索知识库
                 </Button>
                 {canCreate ? (
@@ -327,26 +329,34 @@ export default function WikiSpacesPage() {
               retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
             />
           ) : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
-            <EmptyState
-              title="暂无知识空间"
-              description="还没有任何知识空间，点击右上角创建第一个空间开始沉淀文档。"
-              action={canCreate ? <Button type="button" onClick={openCreate}>新建空间</Button> : undefined}
-            />
+            <div className="cwgsyw-neutral-empty">
+              {/* Official Figma library glyph; image optimization adds no value here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/figma-icons/wiki-library.svg" width={22} height={22} alt="" data-figma-node="6:27530" />
+              <EmptyState
+                showIcon={false}
+                title="暂无知识空间"
+                description="还没有任何知识空间，点击右上角创建第一个空间开始沉淀文档。"
+                action={canCreate ? <Button type="button" size="sm" onClick={openCreate}>新建空间</Button> : undefined}
+              />
+            </div>
           ) : (
-            <div className="cwgsyw-form">
+            <div className="cwgsyw-wiki-spaces">
               {manualSpaces.length > 0 ? (
-                <section className="cwgsyw-form">
-                  <div className="cwgsyw-designer__actions">
-                    <strong>官方手册</strong>
+                <section className="cwgsyw-wiki-spaces__section">
+                  <header className="cwgsyw-wiki-spaces__head">
+                    <span>官方手册</span>
                     <Badge label="系统维护" />
-                  </div>
-                  <div className="cwgsyw-form">{manualSpaces.map((space) => renderSpaceCard(space))}</div>
+                  </header>
+                  <div className="cwgsyw-wiki-spaces__grid">{manualSpaces.map((space) => renderSpaceCard(space))}</div>
                 </section>
               ) : null}
               {teamSpaces.length > 0 ? (
-                <section className="cwgsyw-form">
-                  <strong>团队空间</strong>
-                  <div className="cwgsyw-form">{teamSpaces.map((space, index) => renderSpaceCard(space, index))}</div>
+                <section className="cwgsyw-wiki-spaces__section">
+                  <header className="cwgsyw-wiki-spaces__head">
+                    <span>团队空间</span>
+                  </header>
+                  <div className="cwgsyw-wiki-spaces__grid">{teamSpaces.map((space, index) => renderSpaceCard(space, index))}</div>
                 </section>
               ) : null}
             </div>
@@ -358,11 +368,13 @@ export default function WikiSpacesPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title={editing ? '编辑知识空间' : '新建知识空间'}
+        size="sm"
         footer={
           <>
-            <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>取消</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setCreateOpen(false)}>取消</Button>
             <Button
               type="button"
+              size="sm"
               disabled={!name.trim() || (!editing && !effectiveOwnerGroupId) || saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
             >
@@ -373,7 +385,7 @@ export default function WikiSpacesPage() {
       >
         <div className="cwgsyw-form">
           <Field htmlFor="wiki-space-name" label="空间名称" required>
-            <Input value={name} placeholder="空间名称（必填）" onChange={(event) => setName(event.target.value)} />
+            <Input size="sm" value={name} placeholder="空间名称（必填）" onChange={(event) => setName(event.target.value)} />
           </Field>
           <Field htmlFor="wiki-space-desc" label="空间描述">
             <Textarea value={description} rows={3} placeholder="空间描述（选填）" onChange={(event) => setDescription(event.target.value)} />
@@ -381,6 +393,8 @@ export default function WikiSpacesPage() {
           {!editing ? (
             <Field htmlFor="wiki-space-group" label="归属组" required helperText={groupScope === 'group' ? '组级用户固定为当前会话归属组。' : undefined}>
               <Select
+                overlay
+                size="sm"
                 value={effectiveOwnerGroupId}
                 disabled={groupScope === 'group'}
                 placeholder="请选择归属组"

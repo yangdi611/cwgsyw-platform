@@ -11,6 +11,7 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/ops-calendar/holidays/page.tsx')
+const breadcrumbConfigPath = path.join(frontendRoot, 'src/lib/breadcrumb-config.ts')
 
 function compileTs(filePath) {
   return ts.transpileModule(fs.readFileSync(filePath, 'utf8'), {
@@ -116,4 +117,11 @@ test('holidays page renders Neutral table and enabled status', () => {
   assert.match(html, /法定节假日/)
   assert.match(html, /启用/)
   assert.doesNotMatch(html, /<main/)
+})
+
+test('ops-calendar breadcrumbs stay Chinese and never expose the raw path', () => {
+  const { resolveBreadcrumb } = loadCompiled(breadcrumbConfigPath)
+  assert.deepEqual(resolveBreadcrumb('/ops-calendar').map(({ label }) => label), ['运维日历'])
+  assert.deepEqual(resolveBreadcrumb('/ops-calendar/holidays').map(({ label }) => label), ['运维日历', '节假日'])
+  assert.deepEqual(resolveBreadcrumb('/ops-calendar/rosters').map(({ label }) => label), ['运维日历', '排班管理'])
 })

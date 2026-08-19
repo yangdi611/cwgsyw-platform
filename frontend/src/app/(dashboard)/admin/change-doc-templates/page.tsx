@@ -8,19 +8,18 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Badge,
-  Breadcrumb,
   Button,
   Card,
-  Chip,
   DataManagementPage,
   EmptyState,
   Field,
   Input,
   LoadingState,
+  NeutralDialog,
   PageHeader,
   Select,
   StatusBadge,
+  Tabs,
 } from '@/design-system/figma-neutral/components'
 
 type DocType = 'application' | 'plan' | 'general'
@@ -83,10 +82,7 @@ export default function ChangeDocTemplatesPage() {
     onSuccess: (response) => {
       toast.success('模板已创建')
       queryClient.invalidateQueries({ queryKey: ['change-doc-templates'] })
-      setCreating(false)
-      setNewName('')
-      setNewDesc('')
-      setNewDocType('general')
+      handleCreateOpenChange(false)
       router.push(`/admin/change-doc-templates/${response.data.data.id}`)
     },
     onError: () => toast.error('创建失败'),
@@ -98,6 +94,15 @@ export default function ChangeDocTemplatesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['change-doc-templates'] }),
     onError: () => toast.error('操作失败'),
   })
+
+  const handleCreateOpenChange = (open: boolean) => {
+    setCreating(open)
+    if (!open) {
+      setNewName('')
+      setNewDesc('')
+      setNewDocType('general')
+    }
+  }
 
   const handleUpload = async (templateId: number, file: File) => {
     const form = new FormData()
@@ -115,97 +120,76 @@ export default function ChangeDocTemplatesPage() {
     }
   }
 
+  const canWrite = hasPermission('change_doc_template', 'write')
+
   return (
-    <DataManagementPage
-      embedded
-      header={
-        <PageHeader
-          eyebrow="变更文档"
-          title="模板管理"
-          subtitle="管理 Word 模板文件与字段配置，作为新建变更文档的基础。每个模板按类型（申请单 / 方案 / 通用）使用。"
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '模板管理' }]} />}
-          actions={
-            hasPermission('change_doc_template', 'write') ? (
-              <Button type="button" size="sm" onClick={() => setCreating((value) => !value)}>
-                新建模板
-              </Button>
-            ) : undefined
-          }
-        />
-      }
-      filter={
-        <div className="cwgsyw-designer__actions">
-          {(['all', 'application', 'plan', 'general'] as const).map((key) => (
-            <Chip
-              key={key}
-              label={
-                key === 'all'
-                  ? `全部 (${templates.length})`
-                  : `${DOC_TYPE_LABEL[key]} (${templates.filter((item) => item.docType === key).length})`
-              }
-              selected={filter === key}
-              onClick={() => setFilter(key)}
-            />
-          ))}
-        </div>
-      }
-      content={
-        <>
-          {creating ? (
-            <Card title="新建模板" padding="md">
-              <div className="cwgsyw-form">
-                <Field htmlFor="template-name" label="模板名称" required>
-                  <Input value={newName} placeholder="例：网络变更申请单" onChange={(event) => setNewName(event.target.value)} />
-                </Field>
-                <Field htmlFor="template-desc" label="描述">
-                  <Input value={newDesc} placeholder="适用场景说明" onChange={(event) => setNewDesc(event.target.value)} />
-                </Field>
-                <Field htmlFor="template-type" label="类型" required>
-                  <Select
-                    value={newDocType}
-                    options={[
-                      { value: 'general', label: '通用' },
-                      { value: 'application', label: '申请单' },
-                      { value: 'plan', label: '方案' },
-                    ]}
-                    onChange={(value) => setNewDocType(value as DocType)}
-                  />
-                </Field>
-                <div className="cwgsyw-designer__actions">
-                  <Button type="button" size="sm" onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending}>
-                    创建
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>
-                    取消
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-          {isLoading ? (
-            <LoadingState label="正在加载模板…" />
-          ) : filteredTemplates.length === 0 && !creating ? (
-            <EmptyState
-              title={filter === 'all' ? '暂无模板' : `暂无${DOC_TYPE_LABEL[filter as DocType]}模板`}
-              description="点击右上角新建模板，或上传 Word 文件开始配置字段。"
-            />
+    <>
+      <DataManagementPage
+        embedded
+        className="cwgsyw-change-doc-templates"
+        header={
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title="模板管理"
+            subtitle="管理 Word 模板文件与字段配置，作为新建变更文档的基础。"
+            actions={
+              canWrite ? (
+                <Button className="cwgsyw-change-doc-templates__create-trigger" type="button" size="sm" onClick={() => handleCreateOpenChange(true)}>
+                  新建模板
+                </Button>
+              ) : undefined
+            }
+          />
+        }
+        toolbar={
+          <div className="cwgsyw-change-doc-templates__toolbar">
+            <div className="cwgsyw-change-doc-templates__mode" aria-label="模板类型">
+              <Tabs
+                style="cmdb"
+                size="sm"
+                value={filter}
+                onChange={(id) => setFilter(id as 'all' | DocType)}
+                items={[
+                  { id: 'all', label: `全部 (${templates.length})`, panel: null },
+                  { id: 'application', label: `申请单 (${templates.filter((item) => item.docType === 'application').length})`, panel: null },
+                  { id: 'plan', label: `方案 (${templates.filter((item) => item.docType === 'plan').length})`, panel: null },
+                  { id: 'general', label: `通用 (${templates.filter((item) => item.docType === 'general').length})`, panel: null },
+                ]}
+              />
+            </div>
+          </div>
+        }
+        content={
+          isLoading ? (
+            <div className="cwgsyw-change-doc-templates__state">
+              <LoadingState label="正在加载模板…" />
+            </div>
+          ) : filteredTemplates.length === 0 ? (
+            <div className="cwgsyw-change-doc-templates__state">
+              <EmptyState
+                title={filter === 'all' ? '暂无模板' : `暂无${DOC_TYPE_LABEL[filter]}模板`}
+                description="点击右上角新建模板，或上传 Word 文件开始配置字段。"
+              />
+            </div>
           ) : (
-            <div className="cwgsyw-form">
+            <div className="cwgsyw-change-doc-templates__grid">
               {filteredTemplates.map((template) => (
-                <Card key={template.id} showHeader={false} padding="md">
-                  <div className="cwgsyw-form">
-                    <div className="cwgsyw-designer__actions">
-                      <strong>{template.name}</strong>
-                      <StatusBadge label={DOC_TYPE_LABEL[template.docType ?? 'general']} status={DOC_TYPE_TONE[template.docType ?? 'general']} />
-                      <StatusBadge label={template.active ? '启用中' : '已禁用'} status={template.active ? 'success' : 'neutral'} />
-                      {template.hasDocx ? <Badge label="已上传 .docx" tone="success" /> : null}
-                      <span>
-                        v{template.version} · {template.fields?.length ?? 0} 个字段
-                      </span>
-                    </div>
-                    {template.description ? <p>{template.description}</p> : null}
-                    {hasPermission('change_doc_template', 'write') ? (
-                      <div className="cwgsyw-designer__actions">
+                <Card
+                  key={template.id}
+                  title={template.name}
+                  description={template.description || `v${template.version} · ${template.fields?.length ?? 0} 个字段`}
+                  padding="sm"
+                  headerAction={
+                    <StatusBadge
+                      size="sm"
+                      label={DOC_TYPE_LABEL[template.docType ?? 'general']}
+                      status={DOC_TYPE_TONE[template.docType ?? 'general']}
+                    />
+                  }
+                  footer={
+                    canWrite ? (
+                      <div className="cwgsyw-change-doc-templates__actions">
                         <input
                           type="file"
                           accept=".docx"
@@ -221,30 +205,79 @@ export default function ChangeDocTemplatesPage() {
                             }
                           }}
                         />
-                        <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRefs.current.get(template.id)?.click()}>
-                          上传 .docx
-                        </Button>
                         <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/admin/change-doc-templates/${template.id}`)}>
                           配置字段
                         </Button>
-                        <Button
-                          type="button"
-                          variant={template.active ? 'secondary' : 'ghost'}
-                          size="sm"
-                          onClick={() => toggleMutation.mutate({ id: template.id, active: !template.active })}
-                          disabled={toggleMutation.isPending}
-                        >
-                          {template.active ? '禁用' : '启用'}
-                        </Button>
+                        <div className="cwgsyw-change-doc-templates__secondary-actions">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRefs.current.get(template.id)?.click()}>
+                            上传 .docx
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleMutation.mutate({ id: template.id, active: !template.active })}
+                            disabled={toggleMutation.isPending}
+                          >
+                            {template.active ? '禁用' : '启用'}
+                          </Button>
+                        </div>
                       </div>
-                    ) : null}
+                    ) : undefined
+                  }
+                >
+                  <div className="cwgsyw-change-doc-templates__meta">
+                    <StatusBadge size="sm" label={template.active ? '启用中' : '已禁用'} status={template.active ? 'success' : 'neutral'} />
+                    {template.hasDocx ? <StatusBadge size="sm" label="已上传 .docx" status="success" /> : null}
+                    <span>{`v${template.version} · ${template.fields?.length ?? 0} 个字段`}</span>
                   </div>
                 </Card>
               ))}
             </div>
-          )}
-        </>
-      }
-    />
+          )
+        }
+      />
+
+      <NeutralDialog
+        open={creating}
+        onOpenChange={handleCreateOpenChange}
+        title="新建模板"
+        description="填写名称和类型后创建，再配置 Word 字段。"
+        size="sm"
+        footer={
+          <div className="cwgsyw-inline-controls cwgsyw-change-doc-templates__create-dialog-actions">
+            <Button type="button" size="sm" variant="secondary" disabled={createMutation.isPending} onClick={() => handleCreateOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="button" size="sm" onClick={() => createMutation.mutate()} disabled={!newName || createMutation.isPending}>
+              {createMutation.isPending ? '创建中…' : '创建'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="cwgsyw-change-doc-templates__create-dialog-form">
+          <Field htmlFor="template-name" label="模板名称" required>
+            <Input id="template-name" size="sm" value={newName} placeholder="例：网络变更申请单" onChange={(event) => setNewName(event.target.value)} />
+          </Field>
+          <Field htmlFor="template-desc" label="描述">
+            <Input id="template-desc" size="sm" value={newDesc} placeholder="适用场景说明" onChange={(event) => setNewDesc(event.target.value)} />
+          </Field>
+          <Field htmlFor="template-type" label="类型" required>
+            <Select
+              size="sm"
+              overlay
+              value={newDocType}
+              aria-label="模板类型"
+              options={[
+                { value: 'general', label: '通用' },
+                { value: 'application', label: '申请单' },
+                { value: 'plan', label: '方案' },
+              ]}
+              onChange={(value) => setNewDocType(value as DocType)}
+            />
+          </Field>
+        </div>
+      </NeutralDialog>
+    </>
   )
 }

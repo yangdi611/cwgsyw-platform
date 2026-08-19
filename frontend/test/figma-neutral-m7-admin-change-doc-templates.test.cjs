@@ -81,6 +81,7 @@ function loadCompiled(filePath) {
 
 test('admin change-doc-templates leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /queryKey: \['change-doc-templates'\]/)
   assert.match(page, /\/admin\/change-doc-templates/)
@@ -88,9 +89,17 @@ test('admin change-doc-templates leaves old visual entries and keeps APIs', () =
   assert.match(page, /parse-bookmarks/)
   assert.match(page, /hasPermission\('change_doc_template', 'read'\)/)
   assert.match(page, /hasPermission\('change_doc_template', 'write'\)/)
+  assert.match(page, /NeutralDialog/)
+  assert.match(page, /style="cmdb"/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /size="sm"/)
+  assert.match(page, /overlay/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
+  assert.match(css, /\.cwgsyw-change-doc-templates__grid \{/)
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/)
 })
 
 test('admin change-doc-templates renders Neutral template cards', () => {

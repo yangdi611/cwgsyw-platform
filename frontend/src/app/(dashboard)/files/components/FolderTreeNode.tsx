@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Chip, IconButton } from '@/design-system/figma-neutral/components'
+import { Button, IconButton, NeutralTooltip } from '@/design-system/figma-neutral/components'
 import type { FolderNode } from './types'
 
 export function FolderTreeNode({
@@ -33,41 +33,64 @@ export function FolderTreeNode({
       <div
         className="cwgsyw-tree-item"
         data-selected={selectedId === node.id}
-        style={{ paddingLeft: `calc(var(--cwgsyw-space-2) + ${depth} * var(--cwgsyw-space-4))` }}
+        style={{ paddingLeft: `${8 + depth * 12}px` }}
       >
         {hasChildren ? (
           <IconButton
             type="button"
             variant="ghost"
             size="sm"
-            icon="chevron-right"
+            icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-files-tree__chevron${expanded ? ' is-open' : ''}`} />}
             aria-label={expanded ? '折叠文件夹' : '展开文件夹'}
             aria-expanded={expanded}
-            className={expanded ? 'rotate-90' : undefined}
             onClick={() => setExpanded((current) => !current)}
           />
         ) : (
-          <span className="cwgsyw-type-label-sm" aria-hidden="true">·</span>
+          <span className="cwgsyw-files-tree__leaf" aria-hidden="true" />
         )}
-        <Button type="button" variant="ghost" className="cwgsyw-inline-controls" onClick={() => onSelect(node.id)}>
-          <span>{node.name}</span>
-          {node.aclCustom ? <Chip label="自定义权限" /> : null}
-        </Button>
-        <div className="cwgsyw-tree-item__actions">
+        <NeutralTooltip content={node.name} className="cwgsyw-tooltip--pill" side="right">
+          <Button type="button" variant="ghost" size="sm" className="cwgsyw-files-tree__name" onClick={() => onSelect(node.id)}>
+            <span className="cwgsyw-files-tree__label">{node.name}</span>
+            {node.aclCustom ? <span className="cwgsyw-files-tree__acl">自定义</span> : null}
+          </Button>
+        </NeutralTooltip>
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions cwgsyw-tree-item__actions">
           {canManageAcl && node.canManageAcl ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => onEditAcl(node)}>
-              权限
-            </Button>
+            <NeutralTooltip content="权限" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--settings" />}
+                aria-label={`设置 ${node.name} 权限`}
+                onClick={() => onEditAcl(node)}
+              />
+            </NeutralTooltip>
           ) : null}
           {node.canUpdate ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => onEdit(node)}>
-              编辑
-            </Button>
+            <NeutralTooltip content="编辑" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                aria-label={`编辑 ${node.name}`}
+                onClick={() => onEdit(node)}
+              />
+            </NeutralTooltip>
           ) : null}
           {canManage && node.canDelete ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => onDelete(node)}>
-              删除
-            </Button>
+            <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="cwgsyw-cmdb-admin__delete-action"
+                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                aria-label={`删除 ${node.name}`}
+                onClick={() => onDelete(node)}
+              />
+            </NeutralTooltip>
           ) : null}
         </div>
       </div>

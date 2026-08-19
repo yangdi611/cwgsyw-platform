@@ -104,6 +104,8 @@ test('wiki space home leaves old visual entries and keeps APIs', () => {
   assert.match(page, /wikiApi\.listSpaces/)
   assert.match(page, /wikiApi\.getTree/)
   assert.match(layout, /wikiApi\.exportSpace/)
+  assert.match(layout, /cwgsyw-wiki-shell__header/)
+  assert.match(layout, /WikiShellHeaderProvider/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)

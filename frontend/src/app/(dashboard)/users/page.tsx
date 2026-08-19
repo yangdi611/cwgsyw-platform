@@ -6,13 +6,13 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { IdentityIconAction } from '@/components/identity/IdentityActions'
+import { TaskEmpty, IDENTITY_USER_ICON, IDENTITY_USER_NODE } from '@/components/task-runtime/TaskEmpty'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
-  EmptyState,
   ErrorState,
-  FilterBar,
   LoadingState,
   NeutralAlertDialog,
   PageHeader,
@@ -98,7 +98,7 @@ export default function UsersPage() {
       { key: 'email', label: '邮箱' },
       { key: 'groupName', label: '所属组' },
       { key: 'status', label: '状态' },
-      ...(canUpdate || canDelete ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+      ...(canUpdate || canDelete ? [{ key: 'actions', label: '', align: 'right' as const }] : []),
     ],
     [canDelete, canUpdate],
   )
@@ -106,7 +106,7 @@ export default function UsersPage() {
   const rows = users.map((user) => ({
     id: String(user.id),
     cells: {
-      username: `@${user.username}`,
+      username: <p className="cwgsyw-tasks-cell-title">@{user.username}</p>,
       realName: user.realName || '-',
       email: user.email || '-',
       groupName: user.groupName || '-',
@@ -124,14 +124,10 @@ export default function UsersPage() {
             </Button>
           ) : null}
           {canUpdate ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => handleEdit(user)}>
-              编辑
-            </Button>
+            <IdentityIconAction label={`编辑 ${user.realName || user.username}`} icon="edit" onClick={() => handleEdit(user)} />
           ) : null}
           {canDelete ? (
-            <Button type="button" size="sm" variant="ghost" leadingIcon="trash" onClick={() => setDeleteTarget(user)}>
-              删除
-            </Button>
+            <IdentityIconAction label={`删除 @${user.username}`} icon="trash" danger onClick={() => setDeleteTarget(user)} />
           ) : null}
         </div>
       ),
@@ -146,16 +142,17 @@ export default function UsersPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-tasks-page"
         layout="default"
         header={
           <PageHeader
-            eyebrow="身份与权限"
+            showEyebrow={false}
+            showBreadcrumb={false}
+            showSubtitle={false}
             title="用户管理"
-            subtitle="维护平台用户账号、所属组与启用状态，按需分配角色与权限。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '用户管理' }]} />}
             actions={
               canCreate ? (
-                <Button type="button" variant="primary" onClick={handleNew}>
+                <Button type="button" size="sm" variant="primary" onClick={handleNew}>
                   新建用户
                 </Button>
               ) : null
@@ -163,22 +160,21 @@ export default function UsersPage() {
           />
         }
         filter={
-          <FilterBar
-            search={
-              <SearchInput
-                value={keyword}
-                placeholder="搜索用户名…"
-                onChange={(event) => {
-                  setKeyword(event.target.value)
-                  setPage(1)
-                }}
-                onClear={() => {
-                  setKeyword('')
-                  setPage(1)
-                }}
-              />
-            }
-          />
+          <div className="cwgsyw-tasks-toolbar">
+            <SearchInput
+              size="sm"
+              value={keyword}
+              placeholder="搜索用户名..."
+              onChange={(event) => {
+                setKeyword(event.target.value)
+                setPage(1)
+              }}
+              onClear={() => {
+                setKeyword('')
+                setPage(1)
+              }}
+            />
+          </div>
         }
         content={
           isError ? (
@@ -186,33 +182,38 @@ export default function UsersPage() {
               title="用户加载失败"
               description="无法读取用户列表，请稍后重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>
                   重试
                 </Button>
               }
             />
           ) : (
             <>
-              <Table
-                columns={columns}
-                rows={rows}
-                showSearch={false}
-                state={tableState}
-                loading={<LoadingState label="正在加载用户…" />}
-                empty={
-                  <EmptyState
-                    title="暂无用户"
-                    description='点击右上角“新建用户”添加第一个账号。'
-                    action={
-                      canCreate ? (
-                        <Button type="button" variant="primary" onClick={handleNew}>
-                          新建用户
-                        </Button>
-                      ) : null
-                    }
-                  />
-                }
-              />
+              <div className="cwgsyw-cmdb-table">
+                <Table
+                  columns={columns}
+                  rows={rows}
+                  showSearch={false}
+                  density="compact"
+                  state={tableState}
+                  loading={<LoadingState label="正在加载用户…" />}
+                  empty={
+                    <TaskEmpty
+                      iconSrc={IDENTITY_USER_ICON}
+                      figmaNode={IDENTITY_USER_NODE}
+                      title="暂无用户"
+                      description="点击右上角“新建用户”添加第一个账号。"
+                      action={
+                        canCreate ? (
+                          <Button type="button" size="sm" variant="primary" onClick={handleNew}>
+                            新建用户
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  }
+                />
+              </div>
               <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
             </>
           )

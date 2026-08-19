@@ -78,6 +78,9 @@ function loadCompiled(filePath) {
 test('wiki search leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /cmdb-search\.svg/)
+  assert.match(page, /cmdb-package-search\.svg/)
+  assert.match(page, /6:28469/)
   assert.match(page, /queryKey: \['wiki-search', debouncedKw, page\]/)
   assert.match(page, /wikiApi\.search/)
   assert.doesNotMatch(page, /@\/components\/design-system/)

@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { createPortal } from 'react-dom'
-import { Code2, Copy, Maximize2 } from 'lucide-react'
 import { Alert, Button, Icon, IconButton, LoadingState, Skeleton } from '@/design-system/figma-neutral/components'
 import { CANVAS_NEUTRAL } from '@/design-system/figma-neutral/canvas-tokens'
 import './WikiMermaid.css'
@@ -204,15 +203,15 @@ export function WikiMermaid({
         {(status === 'success' || status === 'error') && (
           <div className="wiki-mermaid__toolbar">
             {enableSourceToggle && (
-              <Button type="button" variant="ghost" size="sm" leadingIcon={<Code2 />} onClick={() => setSourceOpen(!sourceOpen)}>
+              <Button type="button" variant="ghost" size="sm" leadingIcon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--code" />} onClick={() => setSourceOpen(!sourceOpen)}>
                 {sourceOpen ? '收起源码' : '查看源码'}
               </Button>
             )}
-            <Button type="button" variant="ghost" size="sm" leadingIcon={copied ? <Icon name="check" size="sm" /> : <Copy />} onClick={handleCopy}>
+            <Button type="button" variant="ghost" size="sm" leadingIcon={copied ? <Icon name="check" size="sm" /> : <span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--copy" />} onClick={handleCopy}>
               {copied ? '已复制' : '复制源码'}
             </Button>
             {enableFullscreen && status === 'success' && (
-              <Button type="button" variant="ghost" size="sm" leadingIcon={<Maximize2 />} onClick={openFullscreen}>
+              <Button type="button" variant="ghost" size="sm" leadingIcon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--maximize" />} onClick={openFullscreen}>
                 全屏查看
               </Button>
             )}

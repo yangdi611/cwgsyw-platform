@@ -55,7 +55,7 @@ export function DayWorkItemsDialog({ date, scope, include, filters, open, onOpen
       open={open}
       onOpenChange={onOpenChange}
       title={`${activeDate ?? ''} ${dayOfWeek}`.trim()}
-      size="lg"
+      size="sm"
       showClose
       footer={
         onCreate && activeDate ? (
@@ -78,21 +78,22 @@ export function DayWorkItemsDialog({ date, scope, include, filters, open, onOpen
         </div>
         {data?.summary ? (
           <div className="cwgsyw-inline-controls">
-            <StatusBadge label={`共 ${data.summary.total}`} status="neutral" />
-            <StatusBadge label={`待处理 ${data.summary.pending}`} status="warning" />
-            <StatusBadge label={`逾期 ${data.summary.overdue}`} status="danger" />
-            <StatusBadge label={`已完成 ${data.summary.completed}`} status="success" />
+            <StatusBadge size="sm" label={`共 ${data.summary.total}`} status="neutral" />
+            <StatusBadge size="sm" label={`待处理 ${data.summary.pending}`} status="warning" />
+            <StatusBadge size="sm" label={`逾期 ${data.summary.overdue}`} status="danger" />
+            <StatusBadge size="sm" label={`已完成 ${data.summary.completed}`} status="success" />
           </div>
         ) : null}
         {isLoading ? <p className="cwgsyw-type-body-sm">加载中...</p> : null}
         {!isLoading
           ? data?.items.map((item) => (
               <Button key={item.id} type="button" variant="ghost" className="cwgsyw-ops-cal-item" data-overdue={item.overdue} onClick={() => onItemClick(item)}>
-                <StatusBadge label={calendarItemTypeLabel(item.itemType)} status="neutral" />
-                <span className="cwgsyw-type-label-md">{item.title}</span>
+                <StatusBadge size="sm" label={calendarItemTypeLabel(item.itemType)} status="neutral" />
+                <span className="cwgsyw-ops-day__title">{item.title}</span>
                 {calendarMetaText(item, 'assigneeName') ? <span className="cwgsyw-type-label-xs">{calendarMetaText(item, 'assigneeName')}</span> : null}
                 <span className="cwgsyw-type-label-xs">{fmtTime(item.startAt).slice(11)}</span>
                 <StatusBadge
+                  size="sm"
                   label={item.overdue ? '已逾期' : calendarStatusLabel(item.status)}
                   status={item.overdue ? 'danger' : item.status === 'completed' ? 'success' : 'neutral'}
                 />

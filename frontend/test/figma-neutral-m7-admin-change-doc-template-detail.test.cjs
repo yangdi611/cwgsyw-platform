@@ -92,11 +92,18 @@ function loadCompiled(filePath) {
 
 test('admin change-doc-template detail leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /queryKey: \['change-doc-template', id\]/)
   assert.match(page, /\/admin\/change-doc-templates\/\$\{id\}/)
   assert.match(page, /\/admin\/change-doc-templates\/\$\{id\}\/fields/)
   assert.match(page, /\/admin\/change-doc-templates\/\$\{id\}\/fields\/\$\{fieldId\}/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /cwgsyw-change-doc-template-fields__section/)
+  assert.match(page, /size="sm"/)
+  assert.match(page, /overlay/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.doesNotMatch(page, /<Card/)
   const editor = fs.readFileSync(path.join(frontendRoot, 'src/components/change-doc/TableConfigEditor.tsx'), 'utf8')
   assert.doesNotMatch(editor, /@\/components\/design-system/)
   assert.doesNotMatch(editor, /text-v2-/)
@@ -104,6 +111,12 @@ test('admin change-doc-template detail leaves old visual entries and keeps APIs'
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
+  assert.match(css, /\.cwgsyw-change-doc-template-fields__head \{/)
+  assert.match(css, /min-height: 34px/)
+  assert.match(css, /\.cwgsyw-change-doc-template-fields \.cwgsyw-choice input \{/)
+  assert.match(css, /width: 16px/)
+  assert.match(css, /\.cwgsyw-change-doc-template-fields \.cwgsyw-choice \.cwgsyw-type-label-sm \{/)
+  assert.match(css, /font-weight: var\(--cwgsyw-font-weight-regular\)/)
 })
 
 test('admin change-doc-template detail renders Neutral field settings', () => {

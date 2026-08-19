@@ -120,6 +120,7 @@ test('Pagination disables edges and marks current page', () => {
   assert.doesNotMatch(html, /共 30 条/)
   assert.match(paginationRule, /width: 100%/)
   assert.match(paginationRule, /justify-content: flex-end/)
+  assert.match(paginationRule, /padding-top: var\(--cwgsyw-space-6\)/)
   assert.match(paginationRule, /gap: var\(--cwgsyw-space-1\)/)
   assert.match(pageItemRule, /display: inline-flex/)
   assert.match(pageItemRule, /align-items: center/)

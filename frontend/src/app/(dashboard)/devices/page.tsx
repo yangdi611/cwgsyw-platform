@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
+import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Chip,
   DataManagementPage,
   EmptyState,
   ErrorState,
@@ -19,6 +18,7 @@ import {
   PageHeader,
   SearchInput,
   Table,
+  Tabs,
 } from '@/design-system/figma-neutral/components'
 
 interface Device {
@@ -105,31 +105,35 @@ export default function DevicesPage() {
     id: String(device.id),
     selected: String(device.id) === selectedId,
     cells: {
-      name: device.name,
+      name: <span className="cwgsyw-devices__name">{device.name}</span>,
       ip: device.ip || '-',
       deviceType: typeLabel[device.deviceType] ?? typeLabel.other,
-      modelGroupName: device.modelGroupName ? <Chip label={device.modelGroupName} /> : '未分类',
-      category: device.category ? <Chip label={device.category} /> : '-',
+      modelGroupName: device.modelGroupName || '未分类',
+      category: device.category || '-',
       groupName: device.groupName || '-',
     },
   }))
 
   const tableState = isLoading ? 'loading' : filtered.length === 0 ? 'empty' : 'data'
+  const emptyTitle = search || groupFilter !== 'all' ? `未找到包含“${search || '当前筛选'}”的设备` : '暂无设备'
+  const emptyDescription =
+    search || groupFilter !== 'all' ? '请调整搜索关键词或类型筛选。' : '点击右上角“新增设备”添加第一条设备记录。'
 
   return (
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-devices"
         layout="default"
         header={
           <PageHeader
-            eyebrow="资源管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="设备密码库"
             subtitle="集中管理服务器、网络、安全设备和云资源的访问凭证，点击设备查看详情与密码。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '设备密码库' }]} />}
             actions={
               <PermissionGuard resource="device" action="create">
-                <Button type="button" variant="primary" onClick={() => router.push('/devices/new')}>
+                <Button className="cwgsyw-devices__create" type="button" size="sm" onClick={() => router.push('/devices/new')}>
                   新增设备
                 </Button>
               </PermissionGuard>
@@ -140,24 +144,25 @@ export default function DevicesPage() {
           <FilterBar
             search={
               <SearchInput
+                size="sm"
                 value={search}
                 placeholder="搜索名称、IP、分类、组…"
+                aria-label="搜索设备名称、IP、分类或组"
                 onChange={(event) => setSearch(event.target.value)}
                 onClear={() => setSearch('')}
               />
             }
             filterItems={
-              <div className="cwgsyw-inline-controls">
-                <Chip label="全部" selected={groupFilter === 'all'} onClick={() => setGroupFilter('all')} />
-                {groupOptions.map((group) => (
-                  <Chip
-                    key={group.code}
-                    label={group.name}
-                    selected={groupFilter === group.code}
-                    onClick={() => setGroupFilter(group.code)}
-                  />
-                ))}
-              </div>
+              <Tabs
+                style="cmdb"
+                size="sm"
+                value={groupFilter}
+                onChange={setGroupFilter}
+                items={[
+                  { id: 'all', label: '全部', panel: null },
+                  ...groupOptions.map((group) => ({ id: group.code, label: group.name, panel: null })),
+                ]}
+              />
             }
           />
         }
@@ -167,24 +172,28 @@ export default function DevicesPage() {
               title="设备加载失败"
               description="无法读取设备列表，请稍后重试。"
               retry={
-                <Button type="button" variant="secondary" onClick={() => refetch()}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
                   重试
                 </Button>
               }
             />
           ) : (
             <Table
+              className="cwgsyw-cmdb-table cwgsyw-devices__table"
               columns={columns}
               rows={rows}
+              density="compact"
               showSearch={false}
               state={tableState}
               onRowClick={setSelectedId}
               loading={<LoadingState label="正在加载设备…" />}
               empty={
-                <EmptyState
-                  title={search ? `未找到包含“${search}”的设备` : '暂无设备'}
-                  description={search ? '请调整搜索关键词或类型筛选。' : '点击右上角“新增设备”添加第一条设备记录。'}
-                />
+                <div className="cwgsyw-neutral-empty">
+                  {/* Official 22px Figma key glyph; image optimization adds no value here. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/figma-icons/cmdb-resource-key.svg" width={22} height={22} alt="" data-figma-node="6:27336" />
+                  <EmptyState showIcon={false} title={emptyTitle} description={emptyDescription} />
+                </div>
               }
             />
           )
@@ -196,43 +205,28 @@ export default function DevicesPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedId(null)
         }}
+        className="cwgsyw-cmdb-preview-drawer"
+        showClose
         title={selected?.name ?? '设备详情'}
         description={selected ? typeLabel[selected.deviceType] ?? typeLabel.other : undefined}
       >
         {selected ? (
-          <div className="cwgsyw-form">
-            {selected.description ? (
-              <div>
-                <div className="cwgsyw-type-label-xs">描述</div>
-                <p className="cwgsyw-type-body-sm">{selected.description}</p>
-              </div>
-            ) : null}
-            <dl className="cwgsyw-permission-grid">
-              <div>
-                <dt className="cwgsyw-type-label-xs">IP 地址</dt>
-                <dd className="cwgsyw-type-body-sm">{selected.ip || '-'}</dd>
-              </div>
-              <div>
-                <dt className="cwgsyw-type-label-xs">类型</dt>
-                <dd className="cwgsyw-type-body-sm">{typeLabel[selected.deviceType] ?? typeLabel.other}</dd>
-              </div>
-              <div>
-                <dt className="cwgsyw-type-label-xs">分类</dt>
-                <dd className="cwgsyw-type-body-sm">{selected.category || '-'}</dd>
-              </div>
-              <div>
-                <dt className="cwgsyw-type-label-xs">所属组</dt>
-                <dd className="cwgsyw-type-body-sm">{selected.groupName || '-'}</dd>
-              </div>
-              <div>
-                <dt className="cwgsyw-type-label-xs">设备 ID</dt>
-                <dd className="cwgsyw-type-body-sm">{selected.id}</dd>
-              </div>
-            </dl>
-            <Button type="button" variant="primary" onClick={() => router.push(`/devices/${selected.id}`)}>
-              查看凭证与详情
-            </Button>
-          </div>
+          <CmdbInstancePreview
+            description={selected.description}
+            fields={[
+              { label: 'IP 地址', value: selected.ip || '-' },
+              { label: '类型', value: typeLabel[selected.deviceType] ?? typeLabel.other },
+              { label: '分类', value: selected.category || '-' },
+              { label: '所属组', value: selected.groupName || '-' },
+              { label: '模型分组', value: selected.modelGroupName || '未分类' },
+              { label: '设备 ID', value: selected.id },
+            ]}
+            actions={
+              <Button type="button" size="sm" onClick={() => router.push(`/devices/${selected.id}`)}>
+                查看凭证与详情
+              </Button>
+            }
+          />
         ) : null}
       </NeutralDrawer>
     </>

@@ -81,15 +81,16 @@
 
 ### 5.0 图标资产来源（强制规则）
 
-- CMDB 页面凡出现可见的语义图标，包括操作按钮、菜单项、空状态、告警、提示、画布工具和状态说明，必须先到 Figma 正式图标库 `CWGSYW / Icons`（文件 `Z8EC6psFOj7KMfXapAFk24`，图标库节点 `6:22411`）按业务语义检索；不得等待人工 Review 再补做图标核对。
+- 所有 Neutral 页面凡出现可见的语义图标，包括操作按钮、菜单项、空状态、告警、提示、画布工具和状态说明，必须先到 Figma 正式图标库 `CWGSYW / Icons`（文件 `Z8EC6psFOj7KMfXapAFk24`，图标库节点 `6:22411`）按业务语义检索；不得等待人工 Review 再补做图标核对。登录、账号、工作台等非 CMDB 页面同样适用。
 - 检索图标时先把中文业务语义翻译为英文，再以主词及同义词逐组搜索（例如“归档”使用 `archive / store / box`），不得只凭第一组中文直译或外观猜测；候选必须进入具体实例节点核对名称、glyph 与业务语义后才能选定。
 - 选定图标后必须记录具体 Figma 节点 ID，通过设计上下文确认图形，并下载原始导出资产到 `frontend/public/figma-icons/`。禁止手写 SVG/path、AI 生成近似图形、用 CSS 几何拼图，或因共享组件有默认图标就直接沿用未经语义核对的 fallback。
 - 只有项目现有图标资产与 Figma 节点的实际 glyph 明确一致时才可复用；名称相似不算确认。通过 CSS mask 使用正式导出 SVG 是允许的，但 mask 源必须指向已保存的 Figma 原始资产。
 - 同一组件的不同业务状态应分别核对语义。例如“等待输入搜索”和“搜索无结果”不能因为都属于 EmptyState 就统一使用 inbox；页面应关闭不匹配的共享默认图标，再注入经过核对的 Figma `search`、`package-search` 等正式资产。
 - 每次新增或替换图标，测试必须至少断言页面引用、资产文件存在和 SVG 基本结构；基线或变更记录必须写明图标名称、节点 ID、落盘路径及适用状态。
 - 编辑器和画布工具栏同样遵守此规则：图标按钮的可见 glyph 统一收敛到 14–16px、按钮保持 32px 点击区、图标与文字垂直居中；不能因为画布类页面控件多就放宽 Lucide 或大图标作为最终资产。
-- 纯图标动作使用 `IconButton`，必须提供对象化 `aria-label`；仅需要鼠标解释的短文案放在 `title`。工具栏中的图标加文字动作继续使用 small `Button`，不得用图标尺寸制造主次层级。
+- 纯图标动作使用 `IconButton` 或同等 32px 透明图标按钮，必须提供对象化 `aria-label`；仅需要鼠标解释的短文案使用 Neutral Tooltip 白色跟随胶囊，不得回退原生 `title`。工具栏中的图标加文字动作继续使用 small `Button`，不得用图标尺寸制造主次层级。
 - 滑块和拖拽柄使用 4px 中性轨道与紧凑 Figma grip 资产，拖拽目标必须比 glyph 大且保持清晰 focus ring；不得沿用浏览器默认粗轨道或尺寸失控的原生 thumb。
+- 流程中心已登记的 Figma 图标：空态 `git-branch`（实例 `6:26740` / glyph `6:26741`，`workflow-git-branch.svg`）、模板空态 `layout-template`（`6:27507`，复用 `task-layout-template.svg`）、停用 `pause`（`6:28585`，`workflow-pause.svg`）、启用 `play`（`6:28749`，`workflow-play.svg`）、版本 `layers`（`6:27473`，复用 `cmdb-spatial-layers.svg`）。编辑与删除继续复用 `edit`（`6:25457`）与 `trash-2`（`6:30321`）。
 - 机房编辑器已登记的 Figma 工具图标节点：`undo2 6:30468`、`redo_2 6:28955`、`rotate_ccw 6:29077`、`minus 6:28104`、`plus 6:28801`、`upload 6:30518`、`download 6:25366`、`copy 6:24960`、`align-left 6:23136`、`align-center-horizontal 6:23011`、`align-right 6:23145`、`align-start-vertical 6:23163`、`align-end-vertical 6:23040`、`distribute-horizontal 6:23061`、`distribute-vertical 6:23184`、`lock 6:27761`、`unlock 6:30503`、`layers 6:27473`、`wrench 6:30896`、`box 6:23904`、`grid 6:26890`、`move 6:28257`、`close 6:30927`。原始导出统一保存为 `frontend/public/figma-icons/cmdb-spatial-*.svg`，编辑器组件不得重新引入 `lucide-react`。
 
 ### 5.1 标题与说明
@@ -152,10 +153,13 @@ Tabs 代表轻量筛选，不是主操作：
 - Select 打开后，选择选项、按 Escape 或点击组件外部都必须收起；切换到另一个 Select 时，前一个菜单也必须先关闭。
 - 外部点击行为应由共享 `Select.tsx` 处理：根节点持有 ref，仅在菜单打开时监听 `document.pointerdown`，点击目标不在根节点内时关闭，并在 effect 清理监听。禁止每个页面重复绑定 document 事件。
 - Listbox 选项必须使用 `box-sizing: border-box`。`width: 100%` 与左右 padding 同时存在时，如果沿用默认 content-box，会让选项实际宽度超过菜单并产生横向滚动，这是本次错位的根因。
-- 较长选项允许自然换行，并使用 `overflow-wrap: anywhere` 兜底；不要通过扩大内容宽度或横向滚动隐藏问题。
+- 触发器可以保持紧凑宽度，但 overlay 菜单不得继承这个窄宽去挤选项。菜单使用 `width: max-content; min-width: 100%; right: auto`，短筛选标签必须 `white-space: nowrap`，保证「全部状态」「未开始」一行一项。
+- 只有 Dialog 或明显超出菜单的长业务名才允许换行，并用 `overflow-wrap: anywhere` 兜底；不要用横向滚动掩盖宽度问题。
 - 实例浏览桌面筛选格：模型 144px、搜索 `180–260px`、状态 124px、剩余空间、重置按钮。控件间距 8px。
 - `/cmdb/admin` 的“属性分组”模型选择器不显示独立的“模型”标签，使用 `aria-label="选择模型"` 保留可访问名称；宽度为 280px，右侧紧邻“新建分组”按钮。
 - 响应式：≤860px 两列；≤520px 单列。不要用页面专属 font-size 覆盖共享控件。
+- 表单里的多选字段必须复用 Select 下拉：触发器与列表同宽、列表贴在输入框正下方、选项 12px/400、一行一项。禁止用 `DropdownMenu` / `NeutralPopover` 当表单下拉；菜单浮层只留给操作菜单。
+- 多选选项可带 16px 勾选框，点选项只切换选中、不关闭菜单；Escape 和外部点击才关闭。
 
 #### Select 浏览器验收
 
@@ -212,7 +216,20 @@ Tabs 代表轻量筛选，不是主操作：
 - 添加、建立、编辑、保存、装入、新建连接等内容主操作使用黑底 Primary，并保持自然内容宽度；取消、查看、管理全部、对比等辅助操作继续使用 Secondary 或 Ghost。不能把 Grid 中的主按钮拉伸为整行宽度。
 - 空状态下的居中主操作继续保持自然宽度，并与空状态内容水平居中；标题栏中的管理、对比和全屏等辅助按钮使用带 1px 边框的 Secondary，不能使用无边框 Ghost 混入标题文字。
 - 变更记录行和展开按钮不使用 mouse hover 底色，交互仅通过箭头状态、键盘焦点和展开内容表达。
-- 全站分页统一使用共享 `Pagination`：默认隐藏“共 N 条”，容器占满可用宽度并整体右对齐；页码与 previous / next 固定 22×22px、4px 间距、12px / 400，箭头 Icon 固定 12×12px。`.cwgsyw-page-item` 必须使用 `inline-flex` 双轴居中、零 padding 和 border-box，箭头中心 X/Y 偏差必须为 0。只有明确的产品例外才可显式启用 `showTotal`，禁止页面重新定义另一套分页尺寸或对齐方式。
+- 全站分页统一使用共享 `Pagination`：默认隐藏“共 N 条”，容器占满可用宽度并整体右对齐；与上方表格或列表保持 `space-6`（24px）间距，用 padding-top 避免和表格外边距折叠；页码与 previous / next 固定 22×22px、4px 间距、12px / 400，箭头 Icon 固定 12×12px。`.cwgsyw-page-item` 必须使用 `inline-flex` 双轴居中、零 padding 和 border-box，箭头中心 X/Y 偏差必须为 0。只有明确的产品例外才可显式启用 `showTotal`，禁止页面重新定义另一套分页尺寸或对齐方式。
+
+### 5.5a Neutral 数据表
+
+- 列表页必须使用共享 `Table density="compact"`，并套 `cwgsyw-cmdb-table`：1px 边框、6px 圆角、34px 浅灰表头、12px / 400 正文。禁止把表再放进带内边距的灰条卡片里，避免双层表头。
+- 表宽必须吃满内容区：`width: 100%`、`table-layout: fixed`、`min-width: 0`。禁止再写大于视口的 `min-width` 后再用 `overflow: hidden` 裁掉右侧操作列，也不要用默认 `min-width: max-content` 制造横向滚动条。
+- 名称、Key 等长文本省略；操作列表头用 `sr-only` 隐藏“操作”二字，列宽固定并右对齐。
+- 系统默认命名空间或 `http(s)://` URL 不得当作分类展示，统一显示为 —。
+- 行内纯图标动作必须包在 `cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions` 中：按钮透明、无白底方块；默认 72% 暗色，hover 点亮到 100%，按下 `scale(0.92)`。删除沿用 Figma `trash-2`，颜色为 Danger，同样是暗到亮，而不是白底浅图标。
+
+### 5.5b 表单多列网格
+
+- 多个短字段要并排时，使用普通 CSS Grid，并用视口 media query 在 4 / 2 / 1 列之间切换。桌面默认四列一行。
+- 禁止在同一元素上既声明 `container` 又用 `@container` 改自己的 `grid-template-columns`：容器查询只作用于子孙，写在自己身上列数永远不会变。
 
 #### 图标操作列浏览器验收
 
@@ -235,7 +252,7 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 - 右侧 Drawer 使用 `direction="right"`，由 Vaul 统一驱动右侧进入、反向退出、拖拽进度和遮罩过渡；默认 500ms、`cubic-bezier(.32, .72, 0, 1)`，不再叠加页面级 transform 动画。
 - `side="left"` 等价映射为 Vaul `direction="left"`；系统启用 reduced motion 时把 Drawer 与 Overlay 动画压缩到 1ms。
 - 需要在 Drawer 内继续展开详情时，使用 shadcn/ui 对应的 Vaul `NestedRoot`：母 Drawer 保持挂载并退到后方，子 Drawer 位于最前；点击子层遮罩或执行关闭时只收起子 Drawer，重新显示母 Drawer，关闭母 Drawer 才清空整组选择状态。不得用两个互不关联的普通 Drawer 模拟嵌套层级。
-- 仅图标操作需要补充悬浮说明时，优先使用 Neutral Tooltip 而非原生 `title`。短说明可使用白色胶囊配方：内容宽度、999px 圆角、6px × 10px 内距、12px/400、轻边框与柔和阴影；鼠标悬浮时可在 80ms 后跟随指针，默认显示在指针下方并与指针热点保持约 18px 间距，避免小手轮廓遮挡胶囊；通过碰撞检测在视口边缘自动翻转或位移，入场 motion 建议控制在 90ms。键盘聚焦时仍以触发按钮为锚点，并提供 reduced-motion 回退。图标按钮本身保持透明底，hover/active 仅调整图标颜色，focus ring 继续保留。`aria-label` 继续描述完整操作，Tooltip 可使用更短的可见文案。
+- 仅图标操作需要补充悬浮说明时，优先使用 Neutral Tooltip 而非原生 `title`。短说明可使用白色胶囊配方：内容宽度、999px 圆角、6px × 10px 内距、12px/400、轻边框与柔和阴影；鼠标悬浮时可在 80ms 后跟随指针，默认显示在指针下方并与指针热点保持约 18px 间距，避免小手轮廓遮挡胶囊；Positioner 必须高于页面 Tabs / 筛选条等局部叠层（z-index: 80），不能被同页控件盖住；通过碰撞检测在视口边缘自动翻转或位移，入场 motion 建议控制在 90ms。键盘聚焦时仍以触发按钮为锚点，并提供 reduced-motion 回退。图标按钮本身保持透明底，hover/active 仅调整图标颜色，focus ring 继续保留。`aria-label` 继续描述完整操作，Tooltip 可使用更短的可见文案。
 
 ### 5.7 全站遮罩与背景模糊
 
@@ -267,6 +284,52 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 - Dialog 关闭后不得保留上一次的错误、候选选择或动态属性；异步提交期间禁用确认按钮，成功后沿用既有 query invalidation 与关闭流程。
 - `/cmdb/instances/by-model/:modelCode/:id/associations` 继续采用 Data Management 配方：只保留 App Shell Breadcrumb，页头与筛选分区，compact Table，真实 Empty / Error 分离；方向使用“出向 / 入向”文本，不用裸箭头承担语义。
 
+### 5.9 账号与登录
+
+- `/login` 是独立匿名页，不使用 App Shell。整页使用 `--cwgsyw-bg-surface-subtle` 浅灰背景，白色登录卡片在视口居中，内容宽度 400px。
+- 页头主标题固定为“IT 基础设施运维管理平台”；卡片标题为“登录”；卡片说明为“登录成功后进入工作台。”。不得把产品名放在卡片标题，也不得把“登录”作为页头主标题。
+- 不使用点阵、互动背景或深色侧栏。已删除 `LoginDotPattern`，禁止再引入。
+- 输入框与密码切换按钮背景保持透明，包括浏览器 autofill 态；不得出现蓝色或浅色填充块。
+- 密码可见切换必须使用正式 Figma 图标：显示密码 `eye`（`6:25551`），隐藏密码 `eye-off`（`6:25543`）。原始资产保存为 `frontend/public/figma-icons/account-login-eye.svg` 与 `account-login-eye-off.svg`。按钮保持透明底，hover 只加深图标。
+- 登录输入框焦点环使用 `color-mix(in srgb, var(--cwgsyw-focus-ring) 5%, transparent)` 的 3px 外圈，不得使用实色黑框。
+- 表单动作区取消顶部分隔线。
+- 账号页样式只写在 `frontend/src/components/account/account.css`，不得把登录特例扩到共享 `patterns.css`。
+- `/account/profile`、`/account/password`、`/account/setup` 只保留 App Shell Breadcrumb；可见路径必须中文化为“账号 / 个人资料”“账号 / 修改密码”“账号 / 首次设置”，禁止露出英文 `account`。
+- 个人资料双列表单必须同行字段同高。只读说明不放在真实姓名 Field helper，避免把另一列撑高；该说明放在卡片描述。
+- 修改密码卡片最大宽度 560px。
+- 登录、资料、密码与首次设置的 API、跳转、密码策略和 `PASSWORD_REUSED` 分支不得改变。
+
+### 5.10 全站 Toast
+
+- Toast 是平台级轻提示，不是页内 Alert。所有业务页统一走共享 `Toast` / `NeutralToaster`，不得再为单页复制一套提示框。
+- 框体必须克制：`--cwgsyw-bg-surface` 白底、1px `--cwgsyw-border-subtle`、6px 圆角、`elevation-sm` 轻阴影、紧凑内距 10px × 12px。视口固定右下角，宽度 `min(22rem, calc(100vw - 2rem))`。
+- 不得用 success / warning / danger / info 给框体、边框、标题或说明染色。语义只通过左侧 16px Figma 图标表达；标题允许 13px / 18px / 500，说明为 12px / 16px / 400 三级文字色。
+- 关闭按钮保持透明底，hover 只加深图标，使用已登记的 Figma `close`（`6:30927` / `cmdb-spatial-close.svg`）。
+- 图标必须来自正式图标库 `CWGSYW / Icons`（`6:22411`），通过 CSS mask 继承状态色：
+  - success：`check-circle`（`6:24261`）→ `frontend/public/figma-icons/toast-check-circle.svg`，色为 `--cwgsyw-status-success-fg`
+  - warning：`alert-triangle`（`6:23002`）→ `frontend/public/figma-icons/toast-alert-triangle.svg`，色为 `--cwgsyw-status-warning-fg`
+  - danger / error：`x-circle`（`6:30907`）→ `frontend/public/figma-icons/toast-x-circle.svg`，色为 `--cwgsyw-status-danger-fg`
+  - info / neutral：`alert-circle`（`6:22984`）→ `frontend/public/figma-icons/toast-alert-circle.svg`；info 用 `--cwgsyw-status-info-fg`，neutral 用次级文字色。库中未找到独立 `info` / circle-i，故用同语义的 circle-alert。
+- Toast 可以保留 `data-cwgsyw-feedback` 给图标着色，但不得设置 `data-feedback-context`，以免复用 Alert 的彩色背景配方。Alert 本身暂不改。
+
+- 业务页继续通过 `toast.success()` / `toast.error()` / `toast.info()` / `toast.warning()` / `toast.message()` 传入文案。例如新建任务计划预览成功仍是 `toast.success('预览已刷新')`；没有说明时不渲染第二行。
+
+### 5.11 期次导航与图例药丸
+
+- 上一期 / 下一期不得再用文字按钮。检索英文 `previous` / `next` 及同义词 `circle arrow`、`arrow-left-circle` / `arrow-right-circle`，使用 Figma `Icons 24x24 / arrow-left-circle`（`6:23381`）与 `arrow-right-circle`（`6:23403`）。原始导出保存为 `frontend/public/figma-icons/ops-arrow-left-circle.svg`、`ops-arrow-right-circle.svg`；24px glyph 放入 32px 透明图标按钮，禁止手写箭头或给按钮加底。
+- 期次标题框显示「YYYY 年 M 月」。只有月份数字做上下滚轮；年与「月」字保持静止。滚轮始终预放「上一月 / 当前月 / 下一月」三格，静止时窗口对准中间格，不得停在上一月那一格。相邻月滚动 220ms，跨多月（例如点回本月）直接对齐，不连滚。
+- 点击期次标题框回到本月 / 本周，`aria-label` 与跟随胶囊为「回到本月」。不再单独放「今天」按钮。
+- 切换期次时预取上一期和下一期的 `['calendar-work-items', …]`，并用 `keepPreviousData` 避免网格闪空；query key 前缀与筛选字段不变。
+- 图例或分段上的滑动高亮做成两端半圆的药丸：芯片与填充均为 `border-radius: 999px`，用 `translateX(-100% → 0)` 整颗滑入，不用 `scaleX`。默认时长约 640ms，reduced-motion 关闭过渡。
+
+### 5.12 App Shell 面包屑
+
+- 内容区不再渲染第二套面包屑；只保留应用外壳轨迹。
+- 祖先级必须可点。末段是当前页，不可点。
+- 任务中心虽是侧栏分组、没有独立落地页，根节点仍指向 `/tasks`（任务列表）。禁止再把「任务中心」做成无 `href` 的纯文本，否则列表页整条轨迹都点不了。
+- 中文标签，禁止把 `account`、`ops-calendar` 等英文段露出来。
+- `NeutralPopover` 的 Trigger 若包一层 `span`，必须 `nativeButton={false}`，避免 Base UI 开发层报「expected a native button」。
+
 ## 6. 已形成的实现约束
 
 1. 任何 CMDB 内容页的外壳都传 `className="cwgsyw-cmdb-page"` 给 `DataManagementPage`、`FormSettingsPage`、`DetailDrawerPage` 或 `DashboardFeedbackPage`。
@@ -277,13 +340,15 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 6. 遇到“看起来没变”的页面，先检查该页面是否实际接入 `cwgsyw-cmdb-page`，再查共享 Pattern 是否透传 `className`；不要先堆页面级 CSS override。
 7. Select 的打开/关闭、键盘与外部点击属于共享组件行为；页面只负责宽度、排列和业务值。共享问题不得用页面级遮罩、全局 click handler 或强制失焦绕过。
 8. 当共享组件影响面较大时，先静态扫描消费者和受控状态用法，再修改兼容 API；至少完成组件测试、全套 Neutral 回归、TypeScript 检查与两个真实消费者的浏览器验证。
+9. 平台提示统一走共享 Toast：白底细框、标题可 500、框体不染色，只有左侧 Figma 语义图标带色；禁止业务页再写一套彩色 toast。
+10. 表单下拉一律用 Select overlay，不要用 DropdownMenu / NeutralPopover 冒充下拉。任务中心 App Shell 面包屑根节点必须带 `/tasks` 链接。
 
 ## 7. 后续逐页评审流程
 
 每一页按以下顺序处理：
 
 1. 先在浏览器打开路由，记录用户感受和可复现位置。
-2. 对照第 5 节只判断同类元素：标题、Tabs、筛选、表格、卡片、Drawer。
+2. 对照第 5 节只判断同类元素：标题、Tabs、筛选、表格、卡片、Drawer、Dialog、Toast。
 3. 定位到 `Token → 共享组件 → Pattern → 页面组合` 的最小正确层；优先修共享层，避免复制造成下一页不一致。
 4. 修改后至少核对：默认、hover、选中、弹层不顶开内容、点击外部收起、无横向滚动、窄屏折行。
 5. 在下面台账补充实际决策；若规则改变，同时修改本文相应章节，而不是只写日志。
@@ -315,6 +380,7 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 | 2026-08-17 | `/cmdb/instances/by-model/:modelCode/:id` 关联关系空态 | 修正先前图标替换遗漏：实例详情“暂无关联”不再使用共享 inbox，改为与独立关联页一致的 Figma `link-2` 节点 `6:27582`；原始 22×12 SVG 放入既有 24×24 空态图标槽，未重新绘制。 | `InstanceAssociationsTab.tsx`、`public/figma-icons/cmdb-association-link-2.svg`、`figma-neutral-m7-cmdb-instance-detail.test.cjs` | 用户已确认 |
 | 2026-08-17 | `/cmdb/instances/by-model/:modelCode/:id` 告警空态 | 修正同类遗漏：实例详情“该实例暂无告警”不再使用共享 inbox，改为与告警中心一致的 Figma `alert-circle` 节点 `6:22984`；原始 22×22 SVG 放入既有 24×24 空态图标槽。 | `InstanceAlertsTab.tsx`、`public/figma-icons/cmdb-alert-circle.svg`、`figma-neutral-m7-cmdb-instance-detail.test.cjs` | 用户已确认 |
 | 2026-08-16 | 全站共享 Pagination | 确认 14 个使用点复用同一 Pagination；统一隐藏总数、整体右对齐、22×22px 页码与按钮、12×12px 箭头、4px 间距和 12px/400；修复双轴居中并删除实例页重复覆盖。 | `Pagination.tsx`、`display.css`、`patterns.css`、`figma-neutral-m3-display.test.cjs`、实例详情定向测试 | 用户已确认 |
+| 2026-08-18 | 全站共享 Pagination 与表格间距 | Review 确认 12px 仍贴表。共享 `.cwgsyw-pagination` 改为 `padding-top: space-6`（24px），避免和表格外边距折叠；页码尺寸与右对齐不变。流程配置、实例列表、变更记录等所有 `Pagination` 消费者一并生效。 | `display.css`、`figma-neutral-m3-display.test.cjs` | 待用户确认 |
 | 2026-08-16 | 全站共享 Drawer、`/cmdb` 实例预览 Drawer | 共享 `NeutralDrawer` 的底层从 Base UI Dialog 全量替换为 shadcn/Vaul Drawer；保留原调用 API，全部消费者统一获得 direction、手势驱动进入/退出、遮罩 motion、焦点管理和 reduced-motion 兼容。Vaul 原语归入 Neutral 设计系统，CMDB 删除页面级 transform，避免覆盖拖拽。 | `figma-neutral/components/Drawer.tsx`、`Overlay.tsx`、`overlay.css`、`patterns.css`、Overlay 与 CMDB 定向测试 | 用户已确认 |
 | 2026-08-16 | 全站共享遮罩 | Dialog、Drawer、命令面板、Wiki 全屏预览和移动侧栏遮罩统一为浅化 scrim + 6px 背景模糊；支持 Safari 前缀，不支持时回退原 token。 | `overlay.css`、`figma-neutral-m5-overlay.test.cjs` | 用户已确认 |
 | 2026-08-16 | 全站共享 Dialog / AlertDialog | 保留 `NeutralDialog` / `NeutralAlertDialog` 兼容 API，底层从 Base UI Dialog 全量替换为独立的 Radix / shadcn Dialog 与 Alert Dialog；统一 Portal、焦点圈定与返回、正确确认语义、200ms 内容 motion、150ms 遮罩 motion 和 reduced-motion。39 个普通 Dialog 与 37 个 AlertDialog 无需逐页改写即可自动迁移。 | `figma-neutral/components/Dialog.tsx`、`AlertDialog.tsx`、`Overlay.tsx`、`overlay.css`、`figma-neutral-m5-overlay.test.cjs` | 用户已确认 |
@@ -341,18 +407,74 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 | 2026-08-17 | `/cmdb/changes` | 移除内容区重复 Breadcrumb；搜索、模型、日期、操作人、动作和页大小筛选全部具备可访问名称，日期倒置、权限、模型查询、主查询、真实空态和筛选无结果均有独立反馈。1440/1024/390 使用五/二/一列筛选重排；桌面为固定关键列的紧凑表格，390 为两列信息卡；分页、刷新提示和只读变更对比保持同一轻量页面配方。本页无新增图标。 | `cmdb/changes/page.tsx`、`patterns.css`、`figma-neutral-m7-cmdb-changes.test.cjs` | 用户已确认 |
 | 2026-08-17 | `/cmdb/changes/stats` | Dashboard / Feedback 页面只保留 App Shell Breadcrumb；日期范围位于指标之前并使用 small Date Input 与明确语义；指标值 18px/500、标签与说明 12px/400。每日趋势使用原生 `progress` 和 table 语义，新增/删除仅以真实 success/danger 表达，修改保持 Neutral；Top 10 桌面表格、390 双列紧凑卡片。hydration、permission、日期倒置、query error/retry 及两个空态均可辨识；本页无新增图标。 | `cmdb/changes/stats/page.tsx`、`patterns.css`、`figma-neutral-m7-cmdb-changes-stats.test.cjs` | 用户已确认 |
 | 2026-08-17 | `/cmdb/alerts` | Data Management 页面只保留 App Shell Breadcrumb；级别/状态筛选具备 small overlay、可访问名称及两列/单列响应式。真实空态与筛选无结果分离；桌面使用 920px 固定紧凑表格和局部滚动，390 使用双列告警卡；分页仅在多页显示，刷新与确认反馈保持原协议。severity/status 只使用真实 info/success/warning/danger，已确认状态保持 Neutral。空态使用 Figma 正式 `alert-circle` 节点 `6:22984` 的 22×22 原始资产；标题 13px/400、说明与正文 12px/400。 | `cmdb/alerts/page.tsx`、`patterns.css`、`figma-icons/cmdb-alert-circle.svg`、`figma-neutral-m7-cmdb-alerts.test.cjs` | 用户已确认 |
+| 2026-08-18 | `/tasks/templates` | 按已确认的任务列表密度收口：搜索在左、状态 Tabs 在右；表格用 34px 浅灰表头；范围显示「租户 / 组 / 个人」；删除沿用 Figma trash-2，并使用白色跟随鼠标胶囊 Tooltip。query key 与删除合同不变。 | `TaskTemplateList.tsx`、`tasks.css`、`figma-neutral-m7-task-templates.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/tasks/plans` | 按任务模板同款密度收口：搜索在左、状态 Tabs 在右；表格 34px 浅灰表头；激活/暂停改为 Figma `play`（`6:28749`）与 `pause`（`6:28585`）图标，并使用白色跟随鼠标胶囊 Tooltip；`cron` 显示为「自定义周期」。query key 与激活/暂停合同不变。 | `TaskPlanList.tsx`、`TaskEmpty.tsx`、`tasks.css`、`figma-neutral-m7-task-plans.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/tasks/templates/new` | 去掉 Card 套层，改为 34px 浅灰标题行的模板身份模块；表单宽度收敛到 720px，编码/名称两列，分类与描述整行；控件 small/12px/400，底部按钮自然宽度右对齐。创建 API、默认 layout 与跳转合同不变。 | `TaskTemplateCreate.tsx`、`tasks.css`、`figma-neutral-m7-task-templates-new.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/tasks/plans/new` 与 `/tasks/plans/:id` | 去掉 Card 与左侧 stack-list 步骤栏，改为 Neutral 横向向导 + 34px 浅灰模块；控件统一 small overlay；`cron` 显示「自定义周期」。创建/保存 API、query key 与只读规则不变。 | `TaskPlanEditor.tsx`、`tasks.css`、`figma-neutral-m7-task-plans-new.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/tasks` 及任务中心其余 12 个入口 | 全组移除内容区重复 Breadcrumb 与“统一任务平台” eyebrow。列表搜索在左，互斥状态改用共享 `Tabs style="cmdb" size="sm"`；表格改为 34px 浅灰表头与 12px/400 正文。空态关闭共享 inbox，分别使用 Figma `clipboard-list`（`6:24490`）、`layout-template`（`6:27507`）、`calendar-clock`（`6:24038`）、`target`（`6:30124`）、`zap`（`6:30954`）、`bar-chart-3`（`6:23539`）。一次性任务 Dialog 改为 md + small overlay 控件。状态筛选触发器保持紧凑，但 overlay 菜单按最长选项撑开且一行一项，避免「全部状态」被挤成竖排。query key、权限与写入合同不变。 | `task-runtime/*`、`task-plan/*`、`task-template/*`、`task-analytics/*`、`public/figma-icons/task-*.svg`、任务定向测试 | 待用户确认 |
+| 2026-08-18 | `/notifications` | 移除内容区重复 Breadcrumb 与 eyebrow；页头动作靠右。列表改为 34px 浅灰标题行 Neutral 模块，不再堆叠 Card。未读/已读 Badge 收敛为 18px/10px/400，未读仅保留 2px info 左边条；空态关闭共享 inbox，改用 Figma `bell`（`6:23747`）。query key、已读与全部已读合同不变。 | `notifications/page.tsx`、`NotificationItem.tsx`、`NotificationEmpty.tsx`、`notifications.css`、`public/figma-icons/notification-bell.svg`、`figma-neutral-m7-notifications.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/notifications` 未读态 | 未读左边条从 info 蓝改为 Neutral 900；“未读” Badge 改为黑底白字，已读保持浅灰 Neutral。不改共享 Badge。 | `NotificationItem.tsx`、`notifications.css`、`figma-neutral-m7-notifications.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/notifications/targets/resolve/:id`、`/notifications/targets/:refType/:refId` | 解析页与目标详情改为 Detail/Drawer 外壳，只保留 App Shell Breadcrumb（系统管理 / 通知中心 / 目标解析或目标详情）。加载与跳转文案保持原语义；目标不可用空态使用 Figma `unlink`（`6:30491`），返回按钮为 small/400。目标校验 API 与 replace 跳转不变。 | `notifications/targets/**/page.tsx`、`breadcrumb-config.ts`、`public/figma-icons/notification-unlink.svg`、`figma-neutral-m7-notification-targets.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/login` | 去掉点阵背景与深色侧栏，整页浅灰、白色 400px 卡片居中；页头改为“IT 基础设施运维管理平台”，卡片标题改为“登录”。输入与密码切换保持透明，autofill 不出现蓝底；密码开关使用 Figma `eye`（`6:25551`）与 `eye-off`（`6:25543`）；焦点环收敛为 5% 浅圈，并去掉表单顶部分隔线。登录 API 与跳转不变。 | `login/page.tsx`、`account.css`、`public/figma-icons/account-login-eye.svg`、`public/figma-icons/account-login-eye-off.svg`、`figma-neutral-m7-login.test.cjs` | 用户已确认 |
+| 2026-08-18 | `/account/profile` | 双列字段对齐，真实姓名说明改到卡片描述，避免 helper 把同行输入框撑高。App Shell Breadcrumb 改为“账号 / 个人资料”，不再露出英文 `account`。API 与只读姓名合同不变。 | `account/profile/page.tsx`、`ProfileForm.tsx`、`account.css`、`breadcrumb-config.ts`、`figma-neutral-m7-account-profile.test.cjs` | 用户已确认 |
+| 2026-08-18 | `/account/password` | 修改密码卡片收紧为 560px；密码策略提示与 small 控件密度对齐。Breadcrumb 为“账号 / 修改密码”。改密 API 与成功清空表单行为不变。 | `account/password/page.tsx`、`PasswordForm.tsx`、`account.css`、`breadcrumb-config.ts`、`figma-neutral-m7-account-password.test.cjs` | 用户已确认 |
+| 2026-08-18 | `/account/setup` | 首次设置沿用同一账号表单密度与中文 Breadcrumb“账号 / 首次设置”。密码策略、`PASSWORD_REUSED` 与完成后回首页的合同不变。 | `account/setup/page.tsx`、`AccountSetupForm.tsx`、`account.css`、`breadcrumb-config.ts`、`figma-neutral-m7-account-setup.test.cjs` | 用户已确认 |
+| 2026-08-18 | `/` | 移除内容区重复 Breadcrumb 与英文 eyebrow；页头标题改为“工作台”，动作组靠右并使用 small/400 按钮。指标卡按 Dashboard 配方收敛为 18px/500 数值与 12px/400 标签。待处理审批与运维日历改为 34px 浅灰标题行 Neutral 模块框体；空态关闭共享 inbox，分别使用 Figma `clipboard-check`（`6:24460`）和 `calendar`（`6:24162`）正式 SVG。补齐 hydration / loading / error / retry，保留既有 query key、权限和接口合同。 | `page.tsx`、`DashboardOpsCalendarCard.tsx`、`patterns.css`、`public/figma-icons/home-clipboard-check.svg`、`public/figma-icons/home-calendar.svg`、`figma-neutral-m7-home.test.cjs` | 待用户确认 |
+| 2026-08-18 | 全局搜索 Dialog | 侧栏搜索弹出的 NeutralDialog 取消 Dialog body 浅灰底和 `stack-list` 套层；标题 16px/500，说明与结果 12px/400；SearchInput 使用 small/32px。结果列表最多 280px 内滚动，行高 32px、浅灰 hover；空态复用 Figma `search`（`6:29270` / `cmdb-search.svg`）。快捷键、防抖和搜索 API 不变。 | `CommandPalette.tsx`、`patterns.css`、`figma-neutral-m7-global-search.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/work` `/ops-calendar*` | 工作与运维日历去掉内容区 Breadcrumb/eyebrow；App Shell 轨迹登记为「运维日历 / 节假日 / 排班管理」，禁止露出英文 `ops-calendar`。页头动作靠右 small/400。工作 Tabs 复用 `style="cmdb" size="sm"`，表格套基线边框配方，空态用 Figma `clipboard-check`（`6:24460`）。日历月/周/列表改 Tabs，筛选 Select 全部 overlay/small。节假日与排班操作改为 Figma edit/trash 图标；新建/编辑 Dialog 使用 400px 白底、12px/400 字段与 small 控件，排班开始/结束改为 time 并在保存时拼回当天 datetime。审批抽屉去掉卡片套卡片。API 与 query key 未改。 | `WorkItemList.tsx`、`ApprovalTaskDrawer.tsx`、`ops-calendar/**`、`breadcrumb-config.ts`、`patterns.css` | 待用户确认 |
+| 2026-08-18 | `/admin/change-doc-templates` | 移除内容区重复 Breadcrumb 与 eyebrow；“新建模板”作为 Page Header 右侧操作。类型筛选改用 `/cmdb/admin` 同款 `Tabs style="cmdb" size="sm"`。模板列表改为四/二/一列紧凑 Neutral 卡片：标题 13px/500，正文与操作 12px/400，状态 Badge 18px/10px。新建改为 400px NeutralDialog：白色内容面、small/32px 控件、overlay Select、16px/500 标题、12px/400 字段与按钮，关闭时清理表单。Overlay Select 碰到 Dialog 或视口下沿时改为上拉，默认仍向下展开。上传、启用和字段配置合同不变。 | `change-doc-templates/page.tsx`、`Select.tsx`、`fields.css`、`figma-neutral-m7-admin-change-doc-templates.test.cjs`、`figma-neutral-m2-fields.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/admin/change-doc-templates/:id` | 移除内容区重复 Breadcrumb 与 eyebrow；“返回列表”作为 Page Header 右侧操作。基本信息和每个字段改为 34px 浅灰标题行模块框体，桌面两列、390 单列；全部 Input/Select/Textarea 为 small/32px，Select 使用 overlay 并继承碰撞上拉。字段删除为透明 IconButton，白色跟随鼠标胶囊 Tooltip。Badge、标签、说明与 Checkbox 统一 12px/400、16px 勾选框。API、query key 与字段保存/删除合同不变。 | `change-doc-templates/[id]/page.tsx`、`patterns.css`、`figma-neutral-m7-admin-change-doc-template-detail.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/*` | 流程实例/模板/设计/设计详情/绑定/配置/统计七页按 Neutral 基线收口：移除内容区重复 Breadcrumb 与 eyebrow；页头操作靠右且 small/400；实例状态改用 cmdb Tabs；模板内置卡三/二/一列、实例表紧凑；绑定/配置 Dialog 为 small 白色表单、overlay Select、碰撞上拉；删除/终止 AlertDialog 复用 Featured Alert Icon；统计指标 18px/500。API、query key、RBAC 与 BPMN 保存合同不变。 | `workflow/*/page.tsx`、`patterns.css`、`figma-neutral-m7-workflow-*.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/instances` | 列表空态关闭共享 inbox，改用 Figma `git-branch` 实例 `6:26740` / glyph `6:26741` 的 20×20 原始 SVG，按 22px 放入空态图标槽；资产保存为 `frontend/public/figma-icons/workflow-git-branch.svg`，禁止手写 path。运行中/已完成 Tabs 放在工具栏左侧，复用共享 `Tabs style="cmdb" size="sm"`。query key、权限与挂起/激活/终止合同不变。 | `workflow/instances/page.tsx`、`patterns.css`、`public/figma-icons/workflow-git-branch.svg`、`figma-neutral-m7-workflow-instances.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/templates` | 已创建实例表不再套在带内边距的卡片里，避免双层灰条和列被挤出视口。表格使用 compact Neutral 模块、固定列宽（名称可省略、操作列 48px）、12px/400 正文；状态显示中文「启用/草稿/停用」而非 raw `active`。删除必须走 CMDB Admin 同一套 `row-actions`：Figma `trash-2`（`6:30321`）透明暗色图标，hover 点亮，无白底方块，并使用白色跟随鼠标胶囊 Tooltip。内置模板卡为 flex 列，底部「基于此模板创建」用 `margin-top: auto` + `padding-top: space-3` 与标签分开，并在等高卡片中齐底。空态关闭共享 inbox，复用 Figma `layout-template`（`6:27507`）。创建/删除合同不变。 | `workflow/templates/page.tsx`、`patterns.css`、`figma-neutral-m7-workflow-templates.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/design`、`/workflow/design/:id` | 流程名称、流程 Key、分类、描述桌面默认四列一行；1024 收成两列，560 单列。不用元素自身的 container query（无法改自己的列数）。保存部署合同不变。 | `workflow/design/page.tsx`、`workflow/design/[id]/page.tsx`、`patterns.css`、`figma-neutral-m7-workflow-design*.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/tasks/plans/new` 预览与范围选择 | 向导步骤文字在圆圈下方居中；执行对象勾选框收为 16px；配置项改为三列连续选择器；已选范围和预览改为 13/12px Neutral 正文，不再用粗体或彩色 Featured Alert。预览成功仍走 `toast.success('预览已刷新')`。创建/保存合同不变。 | `TaskPlanEditor.tsx`、`CiScopeSelector.tsx`、`tasks.css`、`figma-neutral-m7-task-plans-new.test.cjs` | 用户已确认 |
+| 2026-08-18 | 全站 Toast | 平台 Toast 改为克制 Neutral 白底细框；标题 13px/500，说明 12px/400；框体不染色，仅左侧 Figma 语义图标着色。success=`check-circle` 6:24261，warning=`alert-triangle` 6:23002，danger=`x-circle` 6:30907，info/neutral=`alert-circle` 6:22984。关闭复用 `close` 6:30927。`toast.*` API 与文案合同不变，Alert 配方暂不改。 | `Feedback.tsx`、`feedback.css`、`public/figma-icons/toast-*.svg`、`figma-neutral-m4-feedback.test.cjs` | 用户已确认 |
+| 2026-08-19 | `/tasks/metrics` | 整页改为 Neutral 四步向导：指标定义 → 来源字段 → 指标目标 → 期间预览。步骤条与新建任务计划同款，圆圈下居中文字。去掉 Card/lucide；模块 34px 浅灰标题，small overlay 表单。编辑/删除用 Figma edit `6:25457` 与 trash-2 `6:30321`。query key 与写入合同不变。 | `TaskMetricsManager.tsx`、`tasks.css`、`figma-neutral-m7-task-metrics.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/automations` | 任务自动化改为 Neutral 三步向导：规则定义 → 预演验证 → 执行记录。页头去掉说明小字；新建规则在上、已有规则在下。去掉 Card / DataManagementPage；表单 small overlay；激活/暂停/编辑/删除用 Figma play/pause/edit/trash 透明图标。预演结果改为 12px Neutral 正文，不再用彩色 Alert。query key 与创建/预演/生命周期/重试合同不变。 | `TaskAutomationsManager.tsx`、`tasks.css`、`figma-neutral-m7-task-automations.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/analytics` | 任务统计改为 Neutral 两步向导：查询条件 → 结果与看板。页头去掉说明小字，保存/导出作为右侧操作。去掉 Card / DataManagementPage；条件表单 small overlay、16px 勾选；结果用 cmdb 紧凑表；已有看板改为底部列表。query key 与查询/导出/保存看板合同不变。 | `TaskAnalyticsWorkbench.tsx`、`tasks.css`、`figma-neutral-m7-task-analytics.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/analytics` 统计字段 | 统计字段从 NeutralPopover / DropdownMenu 改为与「任务模板」同款 Select 下拉：触发器 `cwgsyw-control--sm`，列表 `cwgsyw-listbox--overlay` 与触发器同宽并贴在正下方。选项一行一项，16px 勾选，12px/400；多选不关菜单。query key 与查询合同不变。 | `TaskAnalyticsWorkbench.tsx`、`tasks.css`、`figma-neutral-m7-task-analytics.test.cjs` | 待用户确认 |
+| 2026-08-19 | NeutralPopover Trigger | 共享 Popover Trigger 包 `span` 时声明 `nativeButton={false}`，消除 Base UI「expected a native button」开发层报错。不改打开/关闭语义。 | `Overlay.tsx`、`overlay.css` | 待用户确认 |
+| 2026-08-19 | 任务中心 App Shell 面包屑 | 「任务中心」根节点补 `href: '/tasks'`。列表页至少可点回任务列表；新建/详情的中间级继续指向对应列表。当前页仍不可点。 | `breadcrumb-config.ts`、`figma-neutral-m7-tasks.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/templates/:id` | 去掉 DetailDrawerPage / Card / MetricCard 与页头副标题。版本历史与模板信息改为 34px 浅灰 TaskPanel；版本用 pick-list。创建草稿 / 继续设计合同不变。 | `TaskTemplateDetail.tsx`、`tasks.css`、`figma-neutral-m7-task-template-detail.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/templates/:id/versions/:versionId` | 版本信息 Card 改为 TaskPanel；去掉页头副标题。已发布/废弃只读提示改为 info Alert。三栏设计器、保存/校验/发布/预览合同不变。 | `TaskTemplateDesigner.tsx`、`figma-neutral-m7-task-template-version.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/plans/new` 与 `/tasks/plans/:id` | 页头去掉说明小字，与指标/自动化/统计同款。向导、TaskPanel、级联选择器和 Toast 保持已确认配方。创建/保存合同不变。 | `TaskPlanEditor.tsx`、`figma-neutral-m7-task-plans-new.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/tasks/analytics/:id` | 统计看板去掉 lucide、Card 和页头副标题。共享操作与组件改为 TaskPanel；空态复用 Figma `bar-chart-3`；订阅改为 TaskPanel。query key、共享/删除/下钻/订阅合同不变。 | `TaskAnalyticsDashboard.tsx`、`DashboardSubscriptions.tsx`、`tasks.css`、`figma-neutral-m7-task-analytics-dashboard.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/admin` | 流程定义表改用 Neutral compact 模块（`cwgsyw-cmdb-table`）：`width: 100%`、`min-width: 0`、`table-layout: fixed`，禁止再锁 920px 后裁切右侧列。名称/Key 省略；BPMN 默认命名空间 URL 不作为分类展示，显示为 —。行操作改为 Figma `edit`（`6:25457`）、`layers`（`6:27473`）、`trash-2`（`6:30321`）透明图标，白色跟随胶囊 Tooltip。空态复用 `git-branch`（`6:26741`）。启用/删除/重命名合同不变。 | `workflow/admin/page.tsx`、`patterns.css`、`figma-neutral-m7-workflow-admin.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/bindings` | 绑定表改用 Neutral compact 模块并固定列宽。行操作改为图标：编辑用 Figma `edit`（`6:25457`），停用/启用用 `pause`（`6:28585`）与 `play`（`6:28749`）原始 SVG，删除用 `trash-2`（`6:30321`）；hover 为白色跟随胶囊。空态复用 `git-branch`（`6:26741`）。启用/停用/删除合同不变。 | `workflow/bindings/page.tsx`、`patterns.css`、`public/figma-icons/workflow-pause.svg`、`public/figma-icons/workflow-play.svg`、`figma-neutral-m7-workflow-bindings.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/devices` `/devices/new` `/devices/[id]` `/ipam` `/ipam/[id]` `/files` `/files/preview/[id]` `/wiki*` | 设备、IPAM、文件、Wiki 按 Neutral 基线收口：去掉内容区 Breadcrumb/eyebrow；页头动作靠右 small/400；列表用 compact 表与 34px 浅灰模块；空态分别使用已核对 Figma `key`（`6:27336`）、`network`（`6:28340`）、`folder`（`6:26599`）、`library`（`6:27530`）、`book`（`6:23850`）、`search`（`6:29270`）、`package-search`（`6:28469`）、`share-2`（`6:29351`）。删除/编辑复用 trash-2 / edit 透明图标和白色跟随胶囊。详情页与预览页字幕去掉误加的 `>` `<`。IPAM 行内“详情”改用已登记 Figma `eye`（`6:25551`），不再误用编辑笔。Wiki 目录删除改为 AlertDialog，树操作复用 Figma plus/edit/chevron/trash。query key、权限与写入合同不变。 | `devices/**`、`ipam/**`、`files/**`、`wiki/**`、`public/figma-icons/{ipam-network,files-folder,wiki-book,wiki-library,wiki-share-2}.svg`、对应 m7 定向测试 | 待用户确认 |
+| 2026-08-19 | `/users` 及用户对话框 | 去掉内容区 Breadcrumb/eyebrow。列表用 compact cmdb 表 + 34px 浅灰表头；编辑/删除用 Figma edit/trash 透明图标和白色跟随胶囊。新建/编辑/重置密码 Dialog 改为 small 控件、12px/400、16px 勾选。授权 Dialog 的下拉改为 Select overlay，移除/撤销改用 Figma trash。query key 与用户 CRUD / reset-password / memberships / role-assignments 合同不变。 | `users/page.tsx`、`UserDialog.tsx`、`UserAuthorizationDialog.tsx`、`IdentityActions.tsx`、`figma-neutral-m7-users.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/groups` 及组对话框 | 标题改为侧栏同款「用户组」。活动组 / 已归档用 cmdb Tabs。归档/恢复/清除保持 `group-archive-*` / `group-restore-*` / `group-purge-*` 与 lifecycle testid。新建/编辑/成员/生命周期 Dialog 收成 small overlay 与 16px 勾选；成员移除改用 Figma trash。query key `['groups', listState]` 与 lifecycle API 不变。 | `groups/page.tsx`、`GroupDialog.tsx`、`MemberDialog.tsx`、`GroupLifecycleDialog.tsx`、`figma-neutral-m7-groups.test.cjs` | 待用户确认 |
+| 2026-08-19 | `/rbac/roles` `/rbac/permissions` | 角色列表去掉内容区 Breadcrumb/eyebrow，编辑/删除用 Figma 图标。角色 Dialog 改为 small 控件与 16px 勾选。权限配置在选中角色后仍保留角色切换下拉；资源权限用 TaskPanel + 16px checkbox。App Shell「身份与权限」根节点补 `href: '/users'`。query key 与权限保存合同不变。 | `rbac/roles/page.tsx`、`rbac/permissions/page.tsx`、`RoleDialog.tsx`、`breadcrumb-config.ts`、`figma-neutral-m7-rbac-*.test.cjs` | 待用户确认 |
+| 2026-08-19 | 资源授权 Dialog | `/files` 与 Wiki 共用的 `ResourceAccessDialog` 去掉 Dialog body 浅灰大容器，改为白色内容面；标题 16px/500，说明、字段、矩阵、按钮 12px/400；勾选固定 16px；高级模式改为无底文字切换。属主/属组与额外授权继续用 small overlay Select；保存 API、`queryKey` 与权限合同不变。 | `ResourceAccessDialog.tsx`、`patterns.css`、`figma-neutral-m8-leftover-access-selects.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/workflow/stats` | 流程统计改为 Neutral 模块卡：34px 浅灰标题行、名称 13px/400、Key 12px/400。四个指标在桌面排成一行、1024 两列、560 单列；数值 18px/500，标签 12px/400，去掉大卡片竖排。空态复用 `git-branch`（`6:26741`）。统计 API 与 query key 不变。 | `workflow/stats/page.tsx`、`patterns.css`、`figma-neutral-m7-workflow-stats.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/change-docs/:id` | 详情页改为 34px 浅灰标题行模块框体，去掉 Card 套层。页头状态与模板 Badge 收敛为 18px/10px/400。标题、字段、审批意见与操作按钮统一 small/32px；`FieldList` 的 Input/Select/Textarea 同步 `size="sm"`，Select 使用 overlay。AI 图标按钮沿用已确认的右上角透明配方。方案模板选择 Dialog 改为 small 密度。关联 CI 搜索结果改为流式展开：模块外套 `overflow: visible` 并随列表长高，结果最多五行，滚动条默认隐藏、悬停才出现细轨，180ms 淡入和 layout spring；不再用会被裁切的 overlay。API、query key、权限与审批/导出合同不变。 | `change-docs/[id]/page.tsx`、`CiLinkSelector.tsx`、`DocActionBar.tsx`、`PlanTemplatePicker.tsx`、`FieldList.tsx`、`patterns.css`、`figma-neutral-m7-change-docs-detail.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/ops-calendar` 期次导航 | 去掉「上一期 / 下一期 / 今天」文字按钮。左右翻期改用 Figma 圆圈箭头 `6:23381` / `6:23403`，32px 透明底，24px glyph，白色跟随胶囊显示中文。标题框为「YYYY 年 M 月」，仅月份数字做预加载三格滚轮，静止对准中间当前月；点击标题回到本月。相邻期预取同一 `calendar-work-items` query key，并用 `keepPreviousData`。周视图仍显示日期区间，点击同样回到今天。筛选在左、月/周/列表与范围 Tabs 在右。API 与 query key 前缀不变。 | `ops-calendar/page.tsx`、`patterns.css`、`overlay.css`、`Overlay.tsx`、`public/figma-icons/ops-arrow-*-circle.svg`、`figma-neutral-m7-ops-calendar.test.cjs` | 待用户确认 |
+| 2026-08-18 | `/` CI 实例构成图例 | 工作台 CI 构成图例芯片改为两端半圆药丸（`border-radius: 999px`）。橙色高亮从左侧整颗滑入，时长 640ms，使用 `translateX` 而不是 `scaleX`，避免滑动过程中两端被压扁。reduced-motion 关闭过渡。图例数据、热区和跳转合同不变。 | `cmdb-instance-share-chart.css`、`CmdbInstanceShareChart.tsx`、`figma-neutral-m7-home-cmdb-share.test.cjs` | 待用户确认 |
+| 2026-08-18 | Neutral Tooltip 叠层 | 跟随指针的白色胶囊必须挂在 `cwgsyw-tooltip-positioner` 上并设置 `z-index: 80`，避免被同页 `z-index: 1` 的 Tabs / 筛选条盖住。其余跟随胶囊配方不变。 | `Overlay.tsx`、`overlay.css`、`figma-neutral-m7-cmdb-spatial-rooms.test.cjs` | 待用户确认 |
 
 ## 8. 快速核对清单
 
+- [ ] 登录页是否为浅灰整页、白色 400px 居中卡片，且没有点阵背景？
+- [ ] 登录页头是否为“IT 基础设施运维管理平台”，卡片标题是否为“登录”？
+- [ ] 登录输入与密码切换是否透明，autofill 是否仍无蓝底，焦点环是否为 5% 浅圈？
+- [ ] 账号相关 Breadcrumb 是否全部中文，且不露出 `account`？
 - [ ] 常规文字是否为 12px / 400，而不是大量粗体？
+- [ ] 期次上一期 / 下一期是否为 Figma 圆圈箭头，标题框是否可点回本月，月份数字是否对准当前月？
+- [ ] 白色跟随胶囊是否盖在 Tabs / 筛选条之上，而不是钻到下面？
+- [ ] 图例滑动高亮是否为两端半圆的药丸，而不是直角拉伸条？
 - [ ] Tabs 是否为 40px 灰轨道、6px 内距、28px 白色指示器，而非大白按钮？
 - [ ] 所有 Select 是否 `size="sm"` 且 `overlay`？搜索文字是否同为 12px？
 - [ ] Select 是否可通过选择、Escape 和外部点击收起？从一个 Select 切到另一个时是否只保留一个菜单？
 - [ ] 菜单是否满足 `scrollWidth <= clientWidth`，没有由 `width: 100% + padding` 造成的横向滚动？
 - [ ] 无可见 Field 标签的 Select 是否仍提供 `aria-label`？页面专用宽度是否只写在页面作用域内？
 - [ ] 表头是否 34px、浅灰、12px / 500、1px 边线？行 hover 是否同款浅灰？
+- [ ] 列表表是否 `compact` + `cwgsyw-cmdb-table`，没有再套一层灰条卡片，也没有横向滚动条裁掉操作列？
+- [ ] 分页是否与表格隔开 24px，且没有贴住表底？
+- [ ] 流程设计名称/Key/分类/描述在桌面是否四列一行？
+- [ ] 流程统计是否为浅灰标题模块，四个指标是否并排而不是竖着四大卡？
 - [ ] 文字操作列是否统一左对齐？纯图标操作栏是否固定宽度、统一右对齐且不显示“操作”表头？
-- [ ] 编辑是否为 Figma 笔图标、删除是否为 Figma 红色垃圾桶？启用与禁用按钮背景是否都透明？
+- [ ] 编辑是否为 Figma 笔图标、删除是否为 Figma `trash-2`？图标按钮是否透明暗色、hover 点亮，而不是白底浅图标？
 - [ ] 禁用图标是否为明显更浅的 Neutral 400，并与可用编辑的 Neutral 600 肉眼可区分？
 - [ ] 两个操作按钮是否保持同排、4px 间距，且不会被通用 `cwgsyw-inline-controls` 的 wrap / gap 覆盖？
 - [ ] 所有图标操作是否有明确 `aria-label`，保存/取消是否不会撑宽操作栏？
@@ -367,6 +489,11 @@ Drawer 用于快速确认，不复制内容页的卡片布局：
 - [ ] 所有全屏遮罩是否统一使用 6px 背景模糊和软化 scrim，并在不支持 `backdrop-filter` 时保持可读回退？
 - [ ] 业务 Dialog 是否为白色内容面、small 控件、12px/400 字段与按钮，并将 Secondary 取消与 Primary 提交放在独立 footer？
 - [ ] Dialog 候选列表是否使用轻边框 Neutral 选中态而非 `stack-list` 大框或黑底 Primary？关闭后是否清理动态状态？
+- [ ] 平台 Toast 是否为白底细框、标题 13px/500、说明 12px/400，且框体不染色？
+- [ ] Toast 左侧是否只有对应语义的 Figma 图标带色，而不是整块绿/红/橙底？
+- [ ] Toast 是否走共享 `toast.*` API，没有页面私有提示框？
+- [ ] 表单多选是否用 Select 下拉（同宽、贴底），而不是菜单浮层？
+- [ ] 任务中心面包屑的「任务中心」是否可点回 `/tasks`，当前页是否仍不可点？
 - [ ] 这个页面的真实根节点是否接入 `cwgsyw-cmdb-page`？
 
 ## 9. 关联资料

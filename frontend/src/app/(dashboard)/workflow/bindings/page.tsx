@@ -8,16 +8,16 @@ import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Chip,
   DataManagementPage,
   EmptyState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Select,
   StatusBadge,
@@ -152,32 +152,44 @@ export default function WorkflowBindingsPage() {
     cells: {
       type: businessTypeLabel(b.businessType),
       process: `${b.processDefinitionKey} v${b.processDefinitionVersion}`,
-      template: b.templateInstanceId != null ? <Chip label={`模板实例 #${b.templateInstanceId}`} /> : '-',
-      status: <StatusBadge label={b.enabled ? '已启用' : '已停用'} status={b.enabled ? 'success' : 'neutral'} />,
+      template: b.templateInstanceId != null ? <StatusBadge size="sm" label={`模板实例 #${b.templateInstanceId}`} status="neutral" /> : '-',
+      status: <StatusBadge size="sm" label={b.enabled ? '已启用' : '已停用'} status={b.enabled ? 'success' : 'neutral'} />,
       updated: b.updatedAt ? new Date(b.updatedAt).toLocaleString('zh-CN') : '',
       actions: canConfigure ? (
-        <div className="cwgsyw-inline-controls">
-          <Button type="button" variant="ghost" size="sm" onClick={() => openEditDialog(b)}>
-            编辑
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={actionBindingId === b.id}
-            onClick={() => handleToggle(b)}
-          >
-            {b.enabled ? '停用' : '启用'}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={actionBindingId === b.id}
-            onClick={() => setDeleteTarget(b)}
-          >
-            删除
-          </Button>
+        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+          <NeutralTooltip content="编辑" className="cwgsyw-tooltip--pill" followCursor>
+            <IconButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+              aria-label={`编辑 ${businessTypeLabel(b.businessType)}`}
+              onClick={() => openEditDialog(b)}
+            />
+          </NeutralTooltip>
+          <NeutralTooltip content={b.enabled ? '停用' : '启用'} className="cwgsyw-tooltip--pill" followCursor>
+            <IconButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={actionBindingId === b.id}
+              icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon ${b.enabled ? 'cwgsyw-workflow-bindings__figma-action-icon--pause' : 'cwgsyw-workflow-bindings__figma-action-icon--play'}`} />}
+              aria-label={`${b.enabled ? '停用' : '启用'} ${businessTypeLabel(b.businessType)}`}
+              onClick={() => handleToggle(b)}
+            />
+          </NeutralTooltip>
+          <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+            <IconButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="cwgsyw-cmdb-admin__delete-action"
+              disabled={actionBindingId === b.id}
+              icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+              aria-label={`删除 ${businessTypeLabel(b.businessType)}`}
+              onClick={() => setDeleteTarget(b)}
+            />
+          </NeutralTooltip>
         </div>
       ) : null,
     },
@@ -187,23 +199,16 @@ export default function WorkflowBindingsPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-workflow cwgsyw-workflow-bindings"
         header={
           <PageHeader
-            eyebrow="流程中心"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="流程绑定"
             subtitle="将业务类型绑定到具体的流程定义版本，业务提交时按绑定的流程发起审批。"
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/workflow/design', label: '流程中心' },
-                  { label: '流程绑定' },
-                ]}
-              />
-            }
             actions={
               canConfigure ? (
-                <Button type="button" variant="primary" onClick={openCreateDialog}>
+                <Button className="cwgsyw-workflow__header-actions" type="button" size="sm" onClick={openCreateDialog}>
                   新增绑定
                 </Button>
               ) : undefined
@@ -214,12 +219,20 @@ export default function WorkflowBindingsPage() {
           isLoading ? (
             <LoadingState label="加载流程绑定" />
           ) : rows.length === 0 ? (
-            <EmptyState
-              title="暂无流程绑定"
-              description="尚未为任何业务类型绑定流程定义，业务提交将无法发起审批。"
-            />
+            <div className="cwgsyw-workflow-empty">
+              {/* Official Figma git-branch glyph; image optimization adds no value here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/figma-icons/workflow-git-branch.svg" width={22} height={22} alt="" data-figma-node="6:26741" />
+              <EmptyState
+                showIcon={false}
+                title="暂无流程绑定"
+                description="尚未为任何业务类型绑定流程定义，业务提交将无法发起审批。"
+              />
+            </div>
           ) : (
             <Table
+              className="cwgsyw-cmdb-table cwgsyw-workflow-bindings__table"
+              density="compact"
               showSearch={false}
               columns={[
                 { key: 'type', label: '业务类型' },
@@ -227,7 +240,7 @@ export default function WorkflowBindingsPage() {
                 { key: 'template', label: '模板' },
                 { key: 'status', label: '状态' },
                 { key: 'updated', label: '更新时间' },
-                ...(canConfigure ? [{ key: 'actions', label: '操作', align: 'right' as const }] : []),
+                ...(canConfigure ? [{ key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' as const }] : []),
               ]}
               rows={rows}
             />
@@ -240,21 +253,24 @@ export default function WorkflowBindingsPage() {
         onOpenChange={setDialogOpen}
         title={editing ? '编辑流程绑定' : '新增流程绑定'}
         showDescription={false}
+        size="sm"
         footer={
-          <>
-            <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)} disabled={submitting}>
+          <div className="cwgsyw-inline-controls cwgsyw-workflow-dialog-actions">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setDialogOpen(false)} disabled={submitting}>
               取消
             </Button>
-            <Button type="button" disabled={!canSubmit || submitting} loading={submitting} onClick={handleBind}>
+            <Button type="button" size="sm" disabled={!canSubmit || submitting} loading={submitting} onClick={handleBind}>
               {editing ? '保存' : '绑定'}
             </Button>
-          </>
+          </div>
         }
       >
-        <div className="cwgsyw-form">
+        <div className="cwgsyw-workflow-dialog-form">
           <Field label="业务类型" htmlFor="binding-type" required>
             <Select
               id="binding-type"
+              size="sm"
+              overlay
               value={businessType}
               disabled={editing !== null}
               placeholder="选择业务类型"
@@ -280,7 +296,7 @@ export default function WorkflowBindingsPage() {
             />
           </Field>
           <Field label="备注" htmlFor="binding-remark">
-            <Input id="binding-remark" value={remark} onChange={(event) => setRemark(event.target.value)} placeholder="可选" />
+            <Input id="binding-remark" size="sm" value={remark} onChange={(event) => setRemark(event.target.value)} placeholder="可选" />
           </Field>
         </div>
       </NeutralDialog>
@@ -288,6 +304,8 @@ export default function WorkflowBindingsPage() {
       <NeutralAlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
+        className="cwgsyw-cmdb-model-detail__delete-dialog"
+        icon={<img src="/figma-icons/cmdb-model-alert.svg" alt="" width={56} height={56} />}
         title="确认删除流程绑定"
         description={`删除「${deleteTarget ? businessTypeLabel(deleteTarget.businessType) : ''}」后，新业务将无法启动审批；已有流程实例不受影响。`}
         intent="destructive"

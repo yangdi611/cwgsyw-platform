@@ -57,9 +57,29 @@ test('Alert and Toast use live feedback tokens and dismiss names', () => {
   const alert = renderToStaticMarkup(React.createElement(Alert, { tone: 'danger', title: '校验失败' }))
   const toast = renderToStaticMarkup(React.createElement(Toast, { tone: 'success', title: '已保存' }))
   assert.match(alert, /data-cwgsyw-feedback="danger"/)
+  assert.match(alert, /data-feedback-context="danger"/)
   assert.match(alert, /aria-label="关闭提示"/)
   assert.match(toast, /aria-live="polite"/)
   assert.match(toast, /已保存/)
+  assert.match(toast, /data-cwgsyw-feedback="success"/)
+  assert.match(toast, /cwgsyw-toast__icon--check-circle/)
+  assert.doesNotMatch(toast, /data-feedback-context/)
+  assert.match(toast, /aria-label="关闭通知"/)
+})
+
+test('Toast icons are official Figma assets', () => {
+  const icons = [
+    'toast-check-circle.svg',
+    'toast-alert-triangle.svg',
+    'toast-x-circle.svg',
+    'toast-alert-circle.svg',
+    'cmdb-spatial-close.svg',
+  ]
+  for (const name of icons) {
+    const svg = fs.readFileSync(path.resolve(__dirname, '../public/figma-icons', name), 'utf8')
+    assert.match(svg, /<svg/)
+    assert.match(svg, /path/i)
+  }
 })
 
 test('Progress exposes a readable value', () => {

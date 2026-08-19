@@ -48,8 +48,8 @@ export function CalendarMonthView({ currentDate, items, holidayMap, onDateClick,
               data-today={isToday(date)}
               onClick={() => onDateClick(key)}
             >
-              <span className="cwgsyw-type-label-md">{date.getDate()}</span>
-              {holiday ? <StatusBadge label={`休 ${holiday}`} status="danger" /> : null}
+              <span className="cwgsyw-ops-cal__date">{date.getDate()}</span>
+              {holiday ? <StatusBadge size="sm" label={`休 ${holiday}`} status="danger" /> : null}
               {visible.map((item) => (
                 <Button
                   key={item.id}

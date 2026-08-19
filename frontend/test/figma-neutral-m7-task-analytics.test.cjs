@@ -70,7 +70,9 @@ function loadCompiled(filePath) {
     }
     if (request.startsWith('@base-ui/react/')) {
       const passthrough = ({ children }) => React.createElement(React.Fragment, null, children)
-      const node = ({ children, className, ...props }) => React.createElement('div', { className, ...props }, children)
+      const node = ({ children, className, render, ...props }) => (
+        render ? React.cloneElement(render, props, render.props.children ?? children) : React.createElement('div', { className, ...props }, children)
+      )
       return {
         Dialog: { Root: passthrough, Portal: passthrough, Backdrop: node, Popup: node, Title: node, Description: node, Close: node },
         Menu: { Root: passthrough, Trigger: node, Portal: passthrough, Positioner: passthrough, Popup: node },
@@ -109,7 +111,15 @@ test('task analytics workbench leaves old visual entries and keeps APIs', () => 
   const page = fs.readFileSync(pagePath, 'utf8')
   const workbench = fs.readFileSync(workbenchPath, 'utf8')
   assert.match(page, /TaskAnalyticsWorkbench/)
-  assert.match(workbench, /DataManagementPage/)
+  assert.doesNotMatch(workbench, /DataManagementPage/)
+  assert.doesNotMatch(workbench, /<Card/)
+  assert.match(workbench, /overlay/)
+  assert.match(workbench, /TasksFieldMultiSelect/)
+  assert.match(workbench, /cwgsyw-tasks-multiselect/)
+  assert.doesNotMatch(workbench, /DropdownMenu/)
+  assert.doesNotMatch(workbench, /选择一个或多个字段/)
+  assert.match(workbench, /ANALYTICS_STEPS/)
+  assert.match(workbench, /showSubtitle=\{false\}/)
   assert.match(workbench, /figma-neutral\/index\.css/)
   assert.match(workbench, /queryKey: \['task-analytics-templates'\]/)
   assert.match(workbench, /queryKey: \['task-analytics-fields', effectiveTemplateVersionId\]/)
@@ -123,12 +133,24 @@ test('task analytics workbench leaves old visual entries and keeps APIs', () => 
   assert.doesNotMatch(workbench, /text-v2-/)
 })
 
+test('task analytics field picker uses Neutral Select overlay instead of a menu popover', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/components/task-runtime/tasks.css'), 'utf8')
+  assert.match(css, /\.cwgsyw-tasks-multiselect \.cwgsyw-listbox--overlay/)
+  assert.match(css, /\.cwgsyw-tasks-multiselect__option/)
+  assert.match(css, /width: 16px/)
+})
+
 test('task analytics workbench renders Neutral query workspace and dashboards', () => {
   const workbench = loadCompiled(workbenchPath)
   const html = renderToStaticMarkup(React.createElement(workbench.TaskAnalyticsWorkbench))
   assert.match(html, /任务统计/)
   assert.match(html, /查询条件/)
-  assert.match(html, /巡检看板/)
+  assert.match(html, /结果与看板/)
   assert.match(html, /运行统计/)
+  assert.match(html, /cwgsyw-cmdb-wizard-steps/)
+  assert.match(html, /cwgsyw-tasks-panel/)
+  assert.match(html, /cwgsyw-tasks-multiselect/)
+  assert.match(html, /cwgsyw-select/)
+  assert.match(html, /统计字段/)
   assert.doesNotMatch(html, /<main/)
 })

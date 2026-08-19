@@ -3,7 +3,7 @@
 import { TableFieldEditor } from '@/components/change-doc/TableFieldEditor'
 import { isTableFieldConfig, type FieldConfigVO, type TableRow } from '@/components/change-doc/tableFieldTypes'
 import '@/design-system/figma-neutral/index.css'
-import { Button, Field, Input, Select, Textarea } from '@/design-system/figma-neutral/components'
+import { Field, IconButton, Input, NeutralTooltip, Select, Textarea } from '@/design-system/figma-neutral/components'
 
 interface FieldListProps {
   fields: FieldConfigVO[]
@@ -49,24 +49,30 @@ export function FieldList({
           : []
 
         return (
-          <div key={field.fieldKey} className="cwgsyw-form">
-            <div className="cwgsyw-designer__actions">
-              {editable && isTextarea ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onAiGenerate(field.fieldKey)}
-                  disabled={aiLoadingField === field.fieldKey}
-                >
-                  {aiLoadingField === field.fieldKey ? 'AI 生成中…' : 'AI 生成'}
-                </Button>
-              ) : null}
-            </div>
+          <div key={field.fieldKey} className={isTextarea ? 'cwgsyw-form cwgsyw-change-doc-field-list__textarea' : 'cwgsyw-form'}>
+            {editable && isTextarea ? (
+              <div className="cwgsyw-designer__actions cwgsyw-change-doc-field-list__ai-action">
+                <NeutralTooltip content="AI 生成" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="AI 生成"
+                    loading={aiLoadingField === field.fieldKey}
+                    onClick={() => onAiGenerate(field.fieldKey)}
+                    icon={
+                      <img className="cwgsyw-change-doc-field-list__ai-icon" src="/figma-icons/change-doc-ai-sparkles.svg" alt="" aria-hidden="true" />
+                    }
+                  />
+                </NeutralTooltip>
+              </div>
+            ) : null}
             {editable ? (
               field.fieldType === 'enum' ? (
                 <Field label={field.label} required={field.required}>
                   <Select
+                    size="sm"
+                    overlay
                     value={value}
                     placeholder="请选择"
                     options={[{ value: '', label: '请选择' }, ...enumOptions]}
@@ -78,6 +84,7 @@ export function FieldList({
               ) : isTextarea ? (
                 <Field label={field.label} required={field.required}>
                   <Textarea
+                    size="sm"
                     value={value}
                     rows={4}
                     placeholder={field.placeholder ?? undefined}
@@ -87,6 +94,7 @@ export function FieldList({
               ) : (
                 <Field label={field.label} required={field.required}>
                   <Input
+                    size="sm"
                     type={field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : field.fieldType === 'datetime' ? 'datetime-local' : 'text'}
                     value={value}
                     placeholder={field.placeholder ?? undefined}

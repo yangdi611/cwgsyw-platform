@@ -116,6 +116,14 @@ test('tasks page leaves old visual entries and keeps task list APIs', () => {
   const dialog = fs.readFileSync(dialogPath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(list, /DataManagementPage/)
+  assert.match(list, /showBreadcrumb=\{false\}/)
+  assert.match(list, /cwgsyw-tasks-status-select/)
+  assert.match(list, /cwgsyw-tasks-toolbar cwgsyw-tasks-toolbar--split/)
+  assert.match(list, /<SearchInput[\s\S]*<Tabs/)
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/components/task-runtime/tasks.css'), 'utf8')
+  assert.match(css, /\.cwgsyw-tasks-toolbar--split > :last-child \{[\s\S]*margin-left: auto/)
+  assert.match(css, /\.cwgsyw-tasks-status-select \.cwgsyw-listbox button \{[\s\S]*white-space: nowrap/)
+  assert.match(fs.readFileSync(path.join(frontendRoot, 'src/components/task-runtime/TaskEmpty.tsx'), 'utf8'), /task-clipboard-list\.svg/)
   assert.match(list, /queryKey: \['tasks', \{ page, keyword, scope, status \}\]/)
   assert.match(list, /listTasks/)
   assert.match(list, /OneOffTaskDialog/)
@@ -132,7 +140,7 @@ test('tasks page leaves old visual entries and keeps task list APIs', () => {
 test('tasks page renders Neutral table and scope chips', () => {
   const page = loadCompiled(pagePath)
   const html = renderToStaticMarkup(React.createElement(page.default))
-  assert.match(html, /我的任务/)
+  assert.match(html, /任务列表/)
   assert.match(html, /机房巡检/)
   assert.match(html, /进行中/)
   assert.match(html, /我的组/)
@@ -147,4 +155,24 @@ test('one-off dialog renders Neutral fields without old overlay entries', () => 
   assert.match(dialog, /选择已发布模板/)
   assert.match(dialog, /选择执行人/)
   assert.doesNotMatch(dialog, /rounded-v2/)
+})
+
+test('task center breadcrumbs link ancestors back to list pages', () => {
+  const config = fs.readFileSync(path.join(frontendRoot, 'src/lib/breadcrumb-config.ts'), 'utf8')
+  assert.match(config, /task: \{ label: '任务中心', href: '\/tasks'/)
+  const { resolveBreadcrumb } = loadCompiled(path.join(frontendRoot, 'src/lib/breadcrumb-config.ts'))
+  const templates = resolveBreadcrumb('/tasks/templates')
+  assert.equal(templates[0].label, '任务中心')
+  assert.equal(templates[0].href, '/tasks')
+  assert.equal(templates[1].label, '任务模板')
+  assert.equal(templates[1].href, undefined)
+  const create = resolveBreadcrumb('/tasks/templates/new')
+  assert.deepEqual(create.map((crumb) => [crumb.label, crumb.href]), [
+    ['任务中心', '/tasks'],
+    ['任务模板', '/tasks/templates'],
+    ['新建模板', undefined],
+  ])
+  const detail = resolveBreadcrumb('/tasks/42')
+  assert.equal(detail[0].href, '/tasks')
+  assert.equal(detail[1].href, '/tasks')
 })

@@ -34,11 +34,13 @@ function loadCompiled(filePath) {
       return {
         useQuery: ({ queryKey } = {}) => {
           const key = String(queryKey || '')
-          if (key.includes('work-items')) return { data: [] }
-          if (key.includes('cmdb-alerts')) return { data: { records: [], total: 0 } }
-          if (key.includes('change-docs')) return { data: [] }
-          if (key.includes('cmdb-changes')) return { data: { records: [], total: 0 } }
-          return { data: undefined }
+          const idle = { isLoading: false, isError: false, refetch() {} }
+          if (key.includes('work-items')) return { data: [], ...idle }
+          if (key.includes('cmdb-alerts')) return { data: { records: [], total: 0 }, ...idle }
+          if (key.includes('change-docs')) return { data: [], ...idle }
+          if (key.includes('cmdb-changes')) return { data: { records: [], total: 0 }, ...idle }
+          if (key.includes('cmdb-models-dashboard-share')) return { data: { records: [{ modelId: 'host', name: '主机', displayName: '主机', instanceCount: 8 }, { modelId: 'mysql', name: 'MySQL实例', displayName: 'MySQL实例', instanceCount: 2 }], total: 2 }, ...idle }
+          return { data: undefined, ...idle }
         },
       }
     }
@@ -75,6 +77,9 @@ test('home leaves old visual entries', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
   assert.match(page, /work-items-dashboard/)
+  assert.match(page, /CmdbInstanceShareChart/)
+  assert.doesNotMatch(page, /CmdbRelationNetworkChart/)
+  assert.doesNotMatch(page, /cwgsyw-home__chart-row/)
   assert.doesNotMatch(page, /@\/components\/design-system/)
   assert.doesNotMatch(page, /@\/components\/shared/)
   assert.doesNotMatch(page, /text-v2-/)
@@ -84,8 +89,13 @@ test('home leaves old visual entries', () => {
 test('home renders Neutral dashboard', () => {
   const page = loadCompiled(pagePath)
   const html = renderToStaticMarkup(React.createElement(page.default))
-  assert.match(html, /企业运维工作台/)
+  assert.match(html, /工作台/)
   assert.match(html, /常用业务入口/)
+  assert.match(html, /CI 实例构成/)
+  assert.doesNotMatch(html, /CI 关系网/)
+  assert.match(html, /cwgsyw-home/)
+  assert.match(html, /figma-icons\/home-clipboard-check\.svg/)
+  assert.doesNotMatch(html, /Operations Command Center/)
 })
 
 test('home composes quick links as Dashboard Tiles instead of nested list containers', () => {
@@ -96,4 +106,30 @@ test('home composes quick links as Dashboard Tiles instead of nested list contai
   assert.doesNotMatch(page, /<Link key=\{link\.title\} href=\{link\.href\} className="cwgsyw-stack-list">/)
   assert.match(css, /\.cwgsyw-dashboard-link-list \{ display: grid/)
   assert.match(css, /\.cwgsyw-dashboard-tile__copy \{ display: grid/)
+})
+
+test('home follows Neutral baseline density and Figma empty icons', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const calendar = fs.readFileSync(path.join(frontendRoot, 'src/components/ops-calendar/DashboardOpsCalendarCard.tsx'), 'utf8')
+  assert.match(page, /className="cwgsyw-home"/)
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.match(page, /size="sm"/)
+  assert.match(page, /figma-icons\/home-clipboard-check\.svg/)
+  assert.match(page, /6:24460/)
+  assert.match(calendar, /figma-icons\/home-calendar\.svg/)
+  assert.match(calendar, /6:24162/)
+  assert.match(calendar, /cwgsyw-cmdb-table/)
+  assert.match(calendar, /StatusBadge size="sm"/)
+  assert.match(css, /\.cwgsyw-home \.cwgsyw-page-header__row > h1/)
+  assert.match(css, /\.cwgsyw-home__actions/)
+  assert.ok(fs.existsSync(path.join(frontendRoot, 'public/figma-icons/home-clipboard-check.svg')))
+  assert.ok(fs.existsSync(path.join(frontendRoot, 'public/figma-icons/home-calendar.svg')))
+  const clipboard = fs.readFileSync(path.join(frontendRoot, 'public/figma-icons/home-clipboard-check.svg'), 'utf8')
+  const cal = fs.readFileSync(path.join(frontendRoot, 'public/figma-icons/home-calendar.svg'), 'utf8')
+  assert.match(clipboard, /<svg[\s\S]*<path id="Union"/)
+  assert.match(cal, /<svg[\s\S]*<path id="Union"/)
+  assert.doesNotMatch(clipboard, /#F5F5F5/)
+  assert.doesNotMatch(cal, /#F5F5F5/)
 })

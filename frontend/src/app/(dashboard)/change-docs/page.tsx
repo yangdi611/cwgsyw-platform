@@ -7,7 +7,6 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Chip,
   DataManagementPage,
@@ -118,21 +117,32 @@ export default function ChangeDocsPage() {
     setPage(1)
   }
 
-  if (!canRead) return null
+  if (!isHydrated) {
+    return (
+      <DataManagementPage
+        embedded
+        className="cwgsyw-change-docs-list"
+        content={<LoadingState label="正在准备变更文档…" />}
+      />
+    )
+  }
+
+  if (!hasPermission('change_doc', 'read')) return null
+
+  const hasActiveFilters = statusFilter !== 'all' || Boolean(keyword)
 
   return (
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-change-docs-list"
         header={
           <PageHeader
-            eyebrow="变更文档"
             title="变更文档"
             subtitle="管理 IT 变更申请单和变更方案，跟踪审批状态与执行结果。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '变更文档' }]} />}
             actions={
               hasPermission('change_doc', 'create') ? (
-                <Button type="button" size="sm" onClick={() => router.push('/change-docs/new')}>
+                <Button className="cwgsyw-change-docs-list__create" type="button" size="sm" onClick={() => router.push('/change-docs/new')}>
                   新建变更
                 </Button>
               ) : undefined
@@ -145,18 +155,21 @@ export default function ChangeDocsPage() {
               <SearchInput
                 value={keyword}
                 placeholder="搜索标题或变更单号"
+                aria-label="搜索变更标题或变更单号"
                 onChange={(event) => {
                   setKeyword(event.target.value)
                   setPage(1)
+                  setSelected(null)
                 }}
                 onClear={() => {
                   setKeyword('')
                   setPage(1)
+                  setSelected(null)
                 }}
               />
             }
             filterItems={
-              <div className="cwgsyw-designer__actions">
+              <div className="cwgsyw-change-docs-list__status-filters" role="group" aria-label="变更文档状态">
                 {STATUS_FILTERS.map((item) => (
                   <Chip
                     key={item.value}
@@ -181,9 +194,22 @@ export default function ChangeDocsPage() {
           ) : docs.length === 0 ? (
             <EmptyState
               title="暂无变更文档"
-              description="当前状态下没有变更文档，请调整筛选或新建变更。"
+              description={hasActiveFilters ? '没有符合当前筛选条件的变更文档。' : '当前还没有变更文档。'}
               action={
-                hasPermission('change_doc', 'create') ? (
+                hasActiveFilters ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setKeyword('')
+                      setStatusFilter('all')
+                      setPage(1)
+                    }}
+                  >
+                    清除筛选
+                  </Button>
+                ) : hasPermission('change_doc', 'create') ? (
                   <Button type="button" size="sm" onClick={() => router.push('/change-docs/new')}>
                     新建变更
                   </Button>
@@ -191,9 +217,11 @@ export default function ChangeDocsPage() {
               }
             />
           ) : (
-            <div className="cwgsyw-form">
+            <div className="cwgsyw-change-docs-list__content">
               <Table
                 showSearch={false}
+                density="compact"
+                className="cwgsyw-change-docs-list__table"
                 onRowClick={(id) => setSelected(docs.find((doc) => String(doc.id) === id) ?? null)}
                 columns={[
                   { key: 'title', label: '变更标题' },
@@ -218,7 +246,15 @@ export default function ChangeDocsPage() {
                   }
                 })}
               />
-              <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={setPage} />
+              <Pagination
+                page={page}
+                pageCount={pageCount}
+                totalCount={total}
+                onPageChange={(nextPage) => {
+                  setPage(nextPage)
+                  setSelected(null)
+                }}
+              />
             </div>
           )
         }
@@ -226,41 +262,48 @@ export default function ChangeDocsPage() {
       <NeutralDrawer
         open={!!selected}
         onOpenChange={(open) => { if (!open) setSelected(null) }}
-        title={selected?.title || selected?.changeNo || '变更详情'}
-        description={selected ? statusMeta(selected.status).label : undefined}
+        title="变更详情"
+        description={selected?.changeNo}
+        className="cwgsyw-change-docs-preview-drawer"
+        showClose
       >
         {selected ? (
-          <div className="cwgsyw-form">
-            <StatusBadge label={statusMeta(selected.status).label} status={statusMeta(selected.status).tone} />
-            <dl className="cwgsyw-permission-grid">
-              <div>
+          <div className="cwgsyw-change-docs-preview">
+            <header className="cwgsyw-change-docs-preview__header">
+              <h2>{selected.title || '未命名变更'}</h2>
+              <StatusBadge label={statusMeta(selected.status).label} status={statusMeta(selected.status).tone} />
+            </header>
+            <dl className="cwgsyw-change-docs-preview__list">
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>变更标题</dt>
                 <dd>{selected.title || '-'}</dd>
               </div>
-              <div>
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>变更单号</dt>
                 <dd>{selected.changeNo}</dd>
               </div>
-              <div>
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>申请单模板</dt>
                 <dd>{selected.applicationTemplateName || '-'}</dd>
               </div>
-              <div>
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>方案模板</dt>
                 <dd>{selected.planTemplateName || '-'}</dd>
               </div>
-              <div>
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>申请人</dt>
                 <dd>{selected.applicantName || '-'}</dd>
               </div>
-              <div>
+              <div className="cwgsyw-change-docs-preview__row">
                 <dt>创建时间</dt>
                 <dd>{formatDay(selected.createdAt)}</dd>
               </div>
             </dl>
-            <Button type="button" size="sm" onClick={() => router.push(`/change-docs/${selected.id}`)}>
-              查看完整详情
-            </Button>
+            <div className="cwgsyw-change-docs-preview__actions">
+              <Button type="button" size="sm" onClick={() => router.push(`/change-docs/${selected.id}`)}>
+                查看完整详情
+              </Button>
+            </div>
           </div>
         ) : null}
       </NeutralDrawer>

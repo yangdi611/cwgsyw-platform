@@ -10,9 +10,7 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import { CiInstanceSelect } from '@/components/cmdb/CiInstanceSelect'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
   Field,
   FormSettingsPage,
   Input,
@@ -64,26 +62,20 @@ export default function NewDevicePage() {
   return (
     <FormSettingsPage
       embedded
+      className="cwgsyw-devices cwgsyw-devices-new"
       layout="default"
       header={
         <PageHeader
-          eyebrow="资源管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="新增设备凭证"
           subtitle="把访问凭证绑定到已有 CMDB 资产。名称、IP 和类型从资产只读带出。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/devices', label: '设备密码库' },
-                { label: '新增设备' },
-              ]}
-            />
-          }
         />
       }
       form={
-        <Card title="创建设备">
-          <div className="cwgsyw-form">
+        <section className="cwgsyw-devices-panel">
+          <header className="cwgsyw-devices-panel__head">创建设备</header>
+          <div className="cwgsyw-devices-panel__body cwgsyw-form">
             <Field
               label="选择 CMDB 资产"
               required
@@ -93,14 +85,17 @@ export default function NewDevicePage() {
             </Field>
             {!ciId ? (
               <p className="cwgsyw-type-label-xs">
-                找不到资产？<Link href="/cmdb/instances">去 CMDB 创建</Link>
+                找不到资产？<Link href="/cmdb">去 CMDB 创建</Link>
               </p>
             ) : null}
 
             {ci ? (
               <>
-                <Card title="来自 CMDB（只读）" description="这些字段由所选资产带出，不能在本页修改。">
-                  <dl className="cwgsyw-permission-grid">
+                <section className="cwgsyw-devices-panel cwgsyw-devices-panel--nested">
+                  <header className="cwgsyw-devices-panel__head">来自 CMDB（只读）</header>
+                  <div className="cwgsyw-devices-panel__body">
+                  <p className="cwgsyw-devices-panel__hint">这些字段由所选资产带出，不能在本页修改。</p>
+                  <dl className="cwgsyw-devices-defs">
                     <div>
                       <dt className="cwgsyw-type-label-xs">设备名称</dt>
                       <dd className="cwgsyw-type-body-sm">{ci.name}</dd>
@@ -118,10 +113,12 @@ export default function NewDevicePage() {
                       <dd className="cwgsyw-type-body-sm">{ci.modelName}</dd>
                     </div>
                   </dl>
-                </Card>
+                  </div>
+                </section>
                 <Field htmlFor="device-category" label="分类标签" helperText="可选，用于进一步分类筛选">
                   <Input
                     id="device-category"
+                    size="sm"
                     value={form.category}
                     placeholder="例：生产环境、MySQL 主库"
                     onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
@@ -130,6 +127,7 @@ export default function NewDevicePage() {
                 <Field htmlFor="device-description" label="备注">
                   <Textarea
                     id="device-description"
+                    size="sm"
                     rows={3}
                     placeholder="用途、注意事项等补充说明"
                     value={form.description}
@@ -143,18 +141,19 @@ export default function NewDevicePage() {
               <Button
                 type="button"
                 variant="primary"
+                size="sm"
                 loading={createMutation.isPending}
                 disabled={!ciId}
                 onClick={() => createMutation.mutate()}
               >
                 {createMutation.isPending ? '创建中…' : '创建设备'}
               </Button>
-              <Button type="button" variant="secondary" onClick={() => router.push('/devices')}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/devices')}>
                 取消
               </Button>
             </div>
           </div>
-        </Card>
+        </section>
       }
     />
   )

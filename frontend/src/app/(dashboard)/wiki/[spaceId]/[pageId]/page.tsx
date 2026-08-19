@@ -14,12 +14,11 @@ import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import type { PageResult, WikiComment, WikiPage, WikiPageTree, WikiSpace, WikiStatus } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
-  Card,
   DetailDrawerPage,
   EmptyState,
   LoadingState,
@@ -153,26 +152,15 @@ export default function WikiPageReader() {
 
   return (
     <>
-      <DetailDrawerPage
-        embedded
-        header={
+      <WikiShellHeader>
           <PageHeader
-            eyebrow="知识空间"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title={page.title || currentSpace?.name || '知识页面'}
             subtitle={currentSpace?.name}
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/wiki', label: '知识空间' },
-                  { href: `/wiki/${sid}`, label: currentSpace?.name ?? '空间' },
-                  { label: page.title || '页面' },
-                ]}
-              />
-            }
-            status={<StatusBadge label={meta.label} status={meta.tone} />}
+            status={<StatusBadge size="sm" label={meta.label} status={meta.tone} />}
             actions={
-              <div className="cwgsyw-designer__actions">
+              <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
                 {canWrite ? (
                   <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}/edit`)}>
                     编辑
@@ -197,13 +185,21 @@ export default function WikiPageReader() {
                 >
                   导出
                 </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setCommentsOpen(true)}>
+                  评论 {commentsFirstPage?.total ?? 0}
+                </Button>
               </div>
             }
           />
-        }
+      </WikiShellHeader>
+      <DetailDrawerPage
+        embedded
+        className="cwgsyw-wiki cwgsyw-wiki-page"
         content={
-          <Card title="正文">
-            <div data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'} className="wmde-markdown max-w-none !bg-transparent">
+          <section className="cwgsyw-devices-panel">
+            <header className="cwgsyw-devices-panel__head">正文</header>
+            <div className="cwgsyw-devices-panel__body">
+            <div data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'} className="wmde-markdown cwgsyw-wiki-page__markdown max-w-none !bg-transparent">
               {page.content ? (
                 <WikiMarkdown
                   content={rendered}
@@ -213,15 +209,18 @@ export default function WikiPageReader() {
                   mermaidDebounceMs={180}
                 />
               ) : (
-                <p>本页暂无内容。</p>
+                <p className="cwgsyw-wiki-page__empty">本页暂无内容。</p>
               )}
             </div>
-          </Card>
+            </div>
+          </section>
         }
         drawer={
-          <div className="cwgsyw-form">
-            <Card title="页面信息">
-              <dl className="cwgsyw-permission-grid">
+          <div className="cwgsyw-wiki-page__aside">
+            <section className="cwgsyw-devices-panel">
+              <header className="cwgsyw-devices-panel__head">页面信息</header>
+              <div className="cwgsyw-devices-panel__body">
+              <dl className="cwgsyw-devices-defs">
                 <div>
                   <dt>状态</dt>
                   <dd><StatusBadge label={meta.label} status={meta.tone} /></dd>
@@ -244,7 +243,8 @@ export default function WikiPageReader() {
                   权限设置{page.aclCustom ? '（自定义）' : ''}
                 </Button>
               ) : null}
-            </Card>
+              </div>
+            </section>
             <WikiBacklinksPanel pageId={pid} />
             <WikiVersionsPanel pageId={pid} />
           </div>
@@ -261,10 +261,6 @@ export default function WikiPageReader() {
           onOpenChange={setAclOpen}
         />
       ) : null}
-
-      <Button type="button" variant="secondary" size="sm" onClick={() => setCommentsOpen(true)}>
-        评论 {commentsFirstPage?.total ?? 0}
-      </Button>
 
       <WikiCommentsDrawer key={pid} pageId={pid} open={commentsOpen} onOpenChange={setCommentsOpen} />
     </>

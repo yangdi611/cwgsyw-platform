@@ -97,6 +97,8 @@ function loadCompiled(filePath) {
 test('wiki graph leaves old visual entries and keeps APIs', () => {
   const page = fs.readFileSync(pagePath, 'utf8')
   assert.match(page, /figma-neutral\/index\.css/)
+  assert.match(page, /wiki-share-2\.svg/)
+  assert.match(page, /6:29351/)
   assert.match(page, /queryKey: \['wiki-graph', sid\]/)
   assert.match(page, /wikiApi\.getGraph/)
   assert.match(page, /hasPermission\('wiki', 'read'\)/)

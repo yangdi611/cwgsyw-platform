@@ -31,42 +31,56 @@ export function TemplateSelector({
 
   return (
     <Card title="选择模板">
-      <div className="cwgsyw-form">
-        <div className="cwgsyw-form">
-          <strong>1. 选择申请单模板（可选）</strong>
-          {appTemplates.length === 0 ? <p>暂无可用模板</p> : null}
-          {appTemplates.map((item) => {
-            const selected = selectedAppTemplateId === item.id
-            return (
-              <Card
-                key={item.id}
-                title={item.name}
-                variant={selected ? 'selected' : 'interactive'}
-                onClick={() => onSelectAppTemplate(selected ? null : item.id)}
-              >
-                <StatusBadge label={DOC_TYPE_LABEL[item.docType]} status={TONE_MAP[DOC_TYPE_TONE[item.docType]]} />
-              </Card>
-            )
-          })}
-        </div>
-        <div className="cwgsyw-form">
-          <strong>2. 选择方案模板（可选）</strong>
-          {planTemplates.length === 0 ? <p>暂无可用模板</p> : null}
-          {planTemplates.map((item) => {
-            const selected = selectedPlanTemplateId === item.id
-            return (
-              <Card
-                key={item.id}
-                title={item.name}
-                variant={selected ? 'selected' : 'interactive'}
-                onClick={() => onSelectPlanTemplate(selected ? null : item.id)}
-              >
-                <StatusBadge label={DOC_TYPE_LABEL[item.docType]} status={TONE_MAP[DOC_TYPE_TONE[item.docType]]} />
-              </Card>
-            )
-          })}
-        </div>
-        <p>提示：两个模板可以都选或只选其一。只选申请单时，提交后会进入「待补填方案」状态。</p>
+      <div className="cwgsyw-change-doc-template-selector">
+        <section className="cwgsyw-change-doc-template-selector__group" aria-labelledby="change-doc-application-template-label">
+          <div className="cwgsyw-change-doc-template-selector__heading">
+            <h3 id="change-doc-application-template-label">申请单模板</h3>
+            <span>可选</span>
+          </div>
+          <p>定义申请信息、影响范围与审批所需字段。</p>
+          {appTemplates.length === 0 ? <p className="cwgsyw-change-doc-template-selector__empty">暂无可用模板</p> : null}
+          <div className="cwgsyw-change-doc-template-selector__grid">
+            {appTemplates.map((item) => {
+              const selected = selectedAppTemplateId === item.id
+              return (
+                <Card
+                  key={item.id}
+                  title={item.name}
+                  variant={selected ? 'selected' : 'interactive'}
+                  padding="sm"
+                  onClick={() => onSelectAppTemplate(selected ? null : item.id)}
+                >
+                  <StatusBadge size="sm" label={DOC_TYPE_LABEL[item.docType]} status={TONE_MAP[DOC_TYPE_TONE[item.docType]]} />
+                </Card>
+              )
+            })}
+          </div>
+        </section>
+        <section className="cwgsyw-change-doc-template-selector__group" aria-labelledby="change-doc-plan-template-label">
+          <div className="cwgsyw-change-doc-template-selector__heading">
+            <h3 id="change-doc-plan-template-label">方案模板</h3>
+            <span>可选</span>
+          </div>
+          <p>定义实施步骤、回退方案与验证内容。</p>
+          {planTemplates.length === 0 ? <p className="cwgsyw-change-doc-template-selector__empty">暂无可用模板</p> : null}
+          <div className="cwgsyw-change-doc-template-selector__grid">
+            {planTemplates.map((item) => {
+              const selected = selectedPlanTemplateId === item.id
+              return (
+                <Card
+                  key={item.id}
+                  title={item.name}
+                  variant={selected ? 'selected' : 'interactive'}
+                  padding="sm"
+                  onClick={() => onSelectPlanTemplate(selected ? null : item.id)}
+                >
+                  <StatusBadge size="sm" label={DOC_TYPE_LABEL[item.docType]} status={TONE_MAP[DOC_TYPE_TONE[item.docType]]} />
+                </Card>
+              )
+            })}
+          </div>
+        </section>
+        <p className="cwgsyw-change-doc-template-selector__note">两个模板可以同时选择或只选其一；仅选择申请单时，提交后进入「待补填方案」状态。</p>
       </div>
     </Card>
   )

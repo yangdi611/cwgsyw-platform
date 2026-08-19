@@ -7,8 +7,6 @@ import { wikiApi } from '@/lib/wiki-api'
 import type { WikiSearchResult } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
-  Button,
   DataManagementPage,
   EmptyState,
   LoadingState,
@@ -74,24 +72,18 @@ function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: n
   return (
     <DataManagementPage
       embedded
+      className="cwgsyw-wiki cwgsyw-wiki-search"
       header={
         <PageHeader
-          eyebrow="知识库"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="全文搜索"
           subtitle="按标题和正文检索知识空间中的页面。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/wiki', label: '知识空间' },
-                { label: '全文搜索' },
-              ]}
-            />
-          }
         />
       }
       filter={
         <SearchInput
+          size="sm"
           autoFocus
           value={keyword}
           placeholder="搜索知识库…"
@@ -101,24 +93,34 @@ function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: n
       }
       content={
         !debouncedKw ? (
-          <EmptyState title="输入关键词开始搜索" description="支持按页面标题和正文检索。" />
+          <div className="cwgsyw-neutral-empty">
+            {/* Official Figma search glyph; image optimization adds no value here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/figma-icons/cmdb-search.svg" width={22} height={22} alt="" data-figma-node="6:29270" />
+            <EmptyState showIcon={false} title="输入关键词开始搜索" description="支持按页面标题和正文检索。" />
+          </div>
         ) : isLoading ? (
           <LoadingState label="搜索中…" />
         ) : records.length === 0 ? (
-          <EmptyState title="未找到相关页面" description={`没有找到与「${debouncedKw}」相关的内容。`} />
+          <div className="cwgsyw-neutral-empty">
+            {/* Official Figma package-search glyph; image optimization adds no value here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/figma-icons/cmdb-package-search.svg" width={22} height={22} alt="" data-figma-node="6:28469" />
+            <EmptyState showIcon={false} title="未找到相关页面" description={`没有找到与「${debouncedKw}」相关的内容。`} />
+          </div>
         ) : (
-          <div className="cwgsyw-form">
-            <p>找到 {total} 条结果</p>
+          <div className="cwgsyw-wiki-search__results">
+            <p className="cwgsyw-wiki-search__count">找到 {total} 条结果</p>
             {records.map((result) => (
-              <Button
+              <button
                 key={result.pageId}
                 type="button"
-                variant="ghost"
+                className="cwgsyw-wiki-search__row"
                 onClick={() => router.push(`/wiki/${result.spaceId}/${result.pageId}`)}
               >
-                {result.title}
-                {result.highlight ? ` ${result.highlight}` : ''}
-              </Button>
+                <span>{result.title}</span>
+                {result.highlight ? <span className="cwgsyw-wiki-search__hit">{result.highlight}</span> : null}
+              </button>
             ))}
             <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={handlePageChange} />
           </div>

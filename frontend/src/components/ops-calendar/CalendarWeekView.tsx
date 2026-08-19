@@ -29,14 +29,14 @@ export function CalendarWeekView({ currentDate, items, holidayMap, onDateClick, 
         const holiday = holidayMap?.get(key)
         return (
           <article key={key} className="cwgsyw-card cwgsyw-card--sm" data-today={isToday(date)}>
-            <Button type="button" variant="ghost" className="cwgsyw-inline-controls" onClick={() => onDateClick(key)}>
-              <span className="cwgsyw-type-label-xs">周{WEEK_LABELS[index]}</span>
-              <span className="cwgsyw-type-body-sm">
+            <Button type="button" variant="ghost" size="sm" className="cwgsyw-ops-week__head" onClick={() => onDateClick(key)}>
+              <span>周{WEEK_LABELS[index]}</span>
+              <span>
                 {date.getMonth() + 1}/{date.getDate()}
               </span>
             </Button>
-            {holiday ? <StatusBadge label={holiday} status="danger" /> : null}
-            {dayItems.length === 0 ? <p className="cwgsyw-type-label-xs">无事项</p> : null}
+            {holiday ? <StatusBadge size="sm" label={holiday} status="danger" /> : null}
+            {dayItems.length === 0 ? <p className="cwgsyw-ops-week__empty">无事项</p> : null}
             {dayItems.map((item) => (
               <Button
                 key={item.id}
@@ -46,12 +46,12 @@ export function CalendarWeekView({ currentDate, items, holidayMap, onDateClick, 
                 data-overdue={item.overdue}
                 onClick={() => onItemClick(item)}
               >
-                <div className="cwgsyw-type-label-md">{item.title}</div>
-                <div className="cwgsyw-type-label-xs">
+                <div className="cwgsyw-ops-cal__item-title">{item.title}</div>
+                <div className="cwgsyw-ops-cal__item-meta">
                   {fmtTime(item.startAt).slice(11)} · {item.overdue ? '已逾期' : calendarStatusLabel(item.status)}
                 </div>
                 {calendarMetaText(item, 'assigneeName') ? (
-                  <div className="cwgsyw-type-label-xs">{calendarMetaText(item, 'assigneeName')}</div>
+                  <div className="cwgsyw-ops-cal__item-meta">{calendarMetaText(item, 'assigneeName')}</div>
                 ) : null}
               </Button>
             ))}

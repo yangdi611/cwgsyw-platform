@@ -8,17 +8,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Card,
-  Chip,
   DataManagementPage,
   EmptyState,
   Field,
+  IconButton,
   Input,
   LoadingState,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   PageHeader,
   Select,
   StatusBadge,
@@ -76,6 +76,13 @@ const sourceOptionLabels: Record<string, string> = {
 
 function optionLabel(v: string): string {
   return sourceOptionLabels[v] ?? v
+}
+
+function instanceStatus(status: string): { label: string; tone: 'success' | 'warning' | 'neutral' } {
+  if (status === 'active') return { label: '启用', tone: 'success' }
+  if (status === 'draft') return { label: '草稿', tone: 'warning' }
+  if (status === 'deprecated') return { label: '停用', tone: 'neutral' }
+  return { label: status, tone: 'neutral' }
 }
 
 function initialValues(tpl: TemplateDefinition): Record<string, string> {
@@ -191,6 +198,8 @@ export default function WorkflowTemplatesPage() {
         <Field key={f.key} label={f.label} htmlFor={f.key} required={f.required}>
           <Select
             id={f.key}
+            size="sm"
+            overlay
             value={val}
             placeholder="请选择"
             options={f.options.map((o) => ({ value: o, label: optionLabel(o) }))}
@@ -203,7 +212,7 @@ export default function WorkflowTemplatesPage() {
       f.type === 'user' ? '填写用户 ID' : f.type === 'group' ? '填写组标识' : f.type === 'role' ? '填写角色 code' : undefined
     return (
       <Field key={f.key} label={f.label} htmlFor={f.key} required={f.required}>
-        <Input id={f.key} value={val} onChange={(event) => setValue(f.key, event.target.value)} placeholder={hint} />
+        <Input id={f.key} size="sm" value={val} onChange={(event) => setValue(f.key, event.target.value)} placeholder={hint} />
       </Field>
     )
   }
@@ -212,36 +221,31 @@ export default function WorkflowTemplatesPage() {
     <>
       <DataManagementPage
         embedded
+        className="cwgsyw-workflow cwgsyw-workflow-templates"
         header={
           <PageHeader
-            eyebrow="流程中心"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="流程模板"
             subtitle="基于内置模板快速生成审批流程，无需手绘 BPMN。创建后可直接绑定到业务类型。"
-            breadcrumb={
-              <Breadcrumb
-                items={[
-                  { href: '/', label: '工作台' },
-                  { href: '/workflow/design', label: '流程中心' },
-                  { label: '流程模板' },
-                ]}
-              />
-            }
           />
         }
         content={
           <div className="cwgsyw-form">
-            <section className="cwgsyw-form">
-              <div className="cwgsyw-type-label-sm">内置模板</div>
+            <section className="cwgsyw-workflow-section">
+              <header><h2>内置模板</h2></header>
+              <div className="cwgsyw-workflow-section__body">
               {loadingTemplates ? (
                 <LoadingState label="加载内置模板" />
               ) : (
-                <div className="cwgsyw-filter-grid">
+                <div className="cwgsyw-workflow-templates__catalog">
                   {(templates ?? []).map((tpl) => (
                     <Card
                       key={tpl.code}
                       title={tpl.name}
                       description={tpl.description}
-                      headerAction={<StatusBadge label={tpl.enabled ? '可用' : '停用'} status={tpl.enabled ? 'success' : 'neutral'} />}
+                      padding="sm"
+                      headerAction={<StatusBadge size="sm" label={tpl.enabled ? '可用' : '停用'} status={tpl.enabled ? 'success' : 'neutral'} />}
                       footer={
                         <Button
                           type="button"
@@ -256,56 +260,78 @@ export default function WorkflowTemplatesPage() {
                     >
                       <div className="cwgsyw-inline-controls">
                         {tpl.supportedBusinessTypes.map((bt) => (
-                          <Chip key={bt} label={businessTypeLabels[bt] ?? bt} />
+                          <StatusBadge key={bt} size="sm" label={businessTypeLabels[bt] ?? bt} status="neutral" />
                         ))}
                       </div>
                     </Card>
                   ))}
                 </div>
               )}
+              </div>
             </section>
 
-            <section className="cwgsyw-form">
-              <div className="cwgsyw-type-label-sm">已创建的流程实例</div>
+            <section className="cwgsyw-workflow-templates__list" aria-labelledby="workflow-template-instances-title">
+              <h2 id="workflow-template-instances-title">已创建的流程实例</h2>
               {loadingInstances ? (
                 <LoadingState label="加载模板实例" />
               ) : (instances ?? []).length === 0 ? (
-                <EmptyState
-                  title="尚未创建流程实例"
-                  description="从上方内置模板中选择一个，填写配置即可生成可部署的审批流程。"
-                />
+                <div className="cwgsyw-workflow-empty">
+                  {/* Official Figma layout-template glyph; image optimization adds no value here. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/figma-icons/task-layout-template.svg"
+                    width={22}
+                    height={22}
+                    alt=""
+                    data-figma-node="6:27507"
+                  />
+                  <EmptyState
+                    showIcon={false}
+                    title="尚未创建流程实例"
+                    description="从上方内置模板中选择一个，填写配置即可生成可部署的审批流程。"
+                  />
+                </div>
               ) : (
                 <Table
+                  className="cwgsyw-cmdb-table cwgsyw-workflow-templates__table"
                   showSearch={false}
+                  density="compact"
                   columns={[
                     { key: 'name', label: '名称' },
                     { key: 'type', label: '业务类型' },
                     { key: 'key', label: '流程 Key' },
                     { key: 'status', label: '状态' },
                     { key: 'created', label: '创建时间' },
-                    { key: 'actions', label: '操作', align: 'right' },
+                    { key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' },
                   ]}
-                  rows={(instances ?? []).map((inst) => ({
-                    id: String(inst.id),
-                    cells: {
-                      name: inst.name,
-                      type: businessTypeLabels[inst.businessType] ?? inst.businessType,
-                      key: `${inst.processKey} · v${inst.latestVersion}`,
-                      status: <StatusBadge label={inst.status} status={inst.status === 'active' ? 'success' : 'neutral'} />,
-                      created: new Date(inst.createdAt).toLocaleString('zh-CN'),
-                      actions: (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={!canConfigure}
-                          onClick={() => setDeleteTarget(inst)}
-                        >
-                          删除
-                        </Button>
-                      ),
-                    },
-                  }))}
+                  rows={(instances ?? []).map((inst) => {
+                    const status = instanceStatus(inst.status)
+                    return {
+                      id: String(inst.id),
+                      cells: {
+                        name: <span className="cwgsyw-workflow-templates__name" title={inst.name}>{inst.name}</span>,
+                        type: businessTypeLabels[inst.businessType] ?? inst.businessType,
+                        key: `${inst.processKey} · v${inst.latestVersion}`,
+                        status: <StatusBadge size="sm" label={status.label} status={status.tone} />,
+                        created: new Date(inst.createdAt).toLocaleString('zh-CN'),
+                        actions: canConfigure ? (
+                          <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+                            <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                              <IconButton
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="cwgsyw-cmdb-admin__delete-action"
+                                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                                aria-label={`删除 ${inst.name}`}
+                                onClick={() => setDeleteTarget(inst)}
+                              />
+                            </NeutralTooltip>
+                          </div>
+                        ) : null,
+                      },
+                    }
+                  })}
                 />
               )}
             </section>
@@ -318,22 +344,22 @@ export default function WorkflowTemplatesPage() {
         onOpenChange={(open) => !open && closeCreate()}
         title={`基于「${createTpl?.name ?? ''}」创建流程`}
         showDescription={false}
-        size="lg"
+        size="sm"
         footer={
-          <>
-            <Button type="button" variant="secondary" onClick={closeCreate} disabled={submitting}>
+          <div className="cwgsyw-inline-controls cwgsyw-workflow-dialog-actions">
+            <Button type="button" variant="secondary" size="sm" onClick={closeCreate} disabled={submitting}>
               取消
             </Button>
-            <Button type="button" disabled={!canSubmit || submitting} loading={submitting} onClick={handleCreate}>
+            <Button type="button" size="sm" disabled={!canSubmit || submitting} loading={submitting} onClick={handleCreate}>
               创建
             </Button>
-          </>
+          </div>
         }
       >
         {createTpl ? (
-          <div className="cwgsyw-form">
+          <div className="cwgsyw-workflow-dialog-form">
             <Field label="流程名称" htmlFor="tpl-name" required>
-              <Input id="tpl-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="如 变更文档两级审批" />
+              <Input id="tpl-name" size="sm" value={name} onChange={(event) => setName(event.target.value)} placeholder="如 变更文档两级审批" />
             </Field>
             <Field
               label="流程 Key"
@@ -344,6 +370,7 @@ export default function WorkflowTemplatesPage() {
             >
               <Input
                 id="tpl-key"
+                size="sm"
                 value={processKey}
                 onChange={(event) => setProcessKey(event.target.value)}
                 placeholder="字母开头，3-64 位字母数字下划线连字符"
@@ -352,6 +379,8 @@ export default function WorkflowTemplatesPage() {
             <Field label="业务类型" htmlFor="tpl-type" required>
               <Select
                 id="tpl-type"
+                size="sm"
+                overlay
                 value={businessType}
                 placeholder="请选择业务类型"
                 options={createTpl.supportedBusinessTypes.map((bt) => ({
@@ -363,7 +392,7 @@ export default function WorkflowTemplatesPage() {
             </Field>
             {createTpl.configSchema.map(renderField)}
             <Field label="描述" htmlFor="tpl-desc">
-              <Textarea id="tpl-desc" rows={2} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="可选" />
+              <Textarea id="tpl-desc" size="sm" rows={2} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="可选" />
             </Field>
             <Switch
               label="创建后立即绑定"
@@ -377,6 +406,8 @@ export default function WorkflowTemplatesPage() {
       <NeutralAlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
+        className="cwgsyw-cmdb-model-detail__delete-dialog"
+        icon={<img src="/figma-icons/cmdb-model-alert.svg" alt="" width={56} height={56} />}
         title="确认删除模板实例"
         description={`删除 ${deleteTarget?.name ?? ''} 后无法恢复。仅在该模板实例没有业务绑定、运行中流程或历史流程记录时才可删除。`}
         intent="destructive"

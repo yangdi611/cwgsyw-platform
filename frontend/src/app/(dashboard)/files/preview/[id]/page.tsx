@@ -10,7 +10,6 @@ import { downloadSharedFile, fetchSharedFileBlob } from '@/lib/shared-file-conte
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DetailDrawerPage,
   EmptyState,
@@ -168,9 +167,11 @@ export default function FilePreviewPage() {
   return (
     <DetailDrawerPage
       embedded
+      className="cwgsyw-files cwgsyw-files-preview"
       header={
         <PageHeader
-          eyebrow="资源管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title={file?.name ?? (loadFailed ? '无法加载文件' : '文件预览')}
           subtitle={
             file
@@ -183,21 +184,12 @@ export default function FilePreviewPage() {
                 })}`
               : '查看共享文件内容，或下载后离线打开。'
           }
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { href: '/files', label: '共享文档' },
-                { label: file?.name ?? '预览' },
-              ]}
-            />
-          }
           actions={
             <div className="cwgsyw-inline-controls">
-              <Button type="button" variant="secondary" onClick={() => router.push('/files')}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/files')}>
                 返回
               </Button>
-              <Button type="button" variant="primary" disabled={!file || loadFailed} onClick={() => void handleDownload()}>
+              <Button type="button" size="sm" disabled={!file || loadFailed} onClick={() => void handleDownload()}>
                 下载
               </Button>
             </div>
@@ -211,7 +203,7 @@ export default function FilePreviewPage() {
             description="文件可能不存在或你没有访问权限。"
             retry={
               <div className="cwgsyw-inline-controls">
-                <Button type="button" variant="secondary" onClick={retry}>
+                <Button type="button" variant="secondary" size="sm" onClick={retry}>
                   重试
                 </Button>
                 <Link href="/files">返回文件列表</Link>
