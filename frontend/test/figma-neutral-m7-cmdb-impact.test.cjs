@@ -11,6 +11,7 @@ const ts = require('typescript')
 
 const frontendRoot = path.resolve(__dirname, '..')
 const pagePath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/impact/[instanceId]/page.tsx')
+const impactUtilsPath = path.join(frontendRoot, 'src/app/(dashboard)/cmdb/impact/[instanceId]/impact-utils.ts')
 const patternsPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
 
 function compile(filePath) {
@@ -143,7 +144,7 @@ test('cmdb impact keeps status, model and relation badges in one metadata row', 
 })
 
 test('cmdb impact only assigns immediate-layer edges and groups repeated relation labels', () => {
-  const page = loadCompiled(pagePath)
+  const page = loadCompiled(impactUtilsPath)
   const layers = [
     { depth: 0, nodes: [{ id: 1 }] },
     { depth: 1, nodes: [{ id: 2 }, { id: 3 }, { id: 4 }] },
