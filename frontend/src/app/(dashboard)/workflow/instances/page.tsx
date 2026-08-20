@@ -54,6 +54,10 @@ function instanceStatus(inst: InstanceVO): { tone: 'success' | 'warning' | 'neut
   return { tone: 'neutral', label: '运行中' }
 }
 
+function instanceName(inst: InstanceVO) {
+  return inst.processDefinitionName || inst.processDefinitionKey || '未命名流程'
+}
+
 export default function InstancesPage() {
   const { hasPermission } = usePermission()
   const canConfigure = hasPermission('workflow', 'configure')
@@ -147,12 +151,17 @@ export default function InstancesPage() {
 
   const rows = instances.map((r) => {
     const status = instanceStatus(r)
+    const businessKey = r.businessKey || '-'
     return {
       id: r.id,
       selected: selectedInstance?.id === r.id,
       cells: {
-        name: r.processDefinitionName,
-        business_key: r.businessKey || '-',
+        name: instanceName(r),
+        business_key: (
+          <span className="cwgsyw-workflow-instances__business-key" title={businessKey}>
+            {businessKey}
+          </span>
+        ),
         start_time: formatDate(r.startTime),
         end_time: r.endTime ? formatDate(r.endTime) : '-',
         status: <StatusBadge size="sm" label={status.label} status={status.tone} />,
@@ -269,7 +278,7 @@ export default function InstancesPage() {
             setActivities([])
           }
         }}
-        title={selectedInstance?.processDefinitionName ?? '流程详情'}
+        title={selectedInstance ? instanceName(selectedInstance) : '流程详情'}
         description={`Business Key: ${selectedInstance?.businessKey || '-'} · ID: ${selectedInstance?.id ?? ''}`}
       >
         {viewerXml ? (

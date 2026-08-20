@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { PermissionGuard } from '@/components/shared/PermissionGuard'
 import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
+import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
   Button,
@@ -45,6 +46,8 @@ const typeLabel: Record<string, string> = {
 
 export default function DevicesPage() {
   const router = useRouter()
+  const { hasPermission, isHydrated } = usePermission()
+  const canRead = isHydrated && hasPermission('device', 'read')
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -52,6 +55,7 @@ export default function DevicesPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then((r) => r.data.data.records as Device[]),
+    enabled: canRead,
   })
 
   const groupOptions = (() => {
@@ -131,16 +135,16 @@ export default function DevicesPage() {
             showBreadcrumb={false}
             title="设备密码库"
             subtitle="集中管理服务器、网络、安全设备和云资源的访问凭证，点击设备查看详情与密码。"
-            actions={
+            actions={canRead ? (
               <PermissionGuard resource="device" action="create">
                 <Button className="cwgsyw-devices__create" type="button" size="sm" onClick={() => router.push('/devices/new')}>
                   新增设备
                 </Button>
               </PermissionGuard>
-            }
+            ) : undefined}
           />
         }
-        filter={
+        filter={canRead ? (
           <FilterBar
             search={
               <SearchInput
@@ -165,9 +169,17 @@ export default function DevicesPage() {
               />
             }
           />
-        }
+        ) : undefined}
         content={
-          isError ? (
+          !isHydrated ? (
+            <LoadingState label="正在准备设备密码库…" />
+          ) : !canRead ? (
+            <ErrorState
+              title="无权查看设备密码库"
+              description="当前账号缺少设备读取权限，请联系管理员授权后重试。"
+              showRetry={false}
+            />
+          ) : isError ? (
             <ErrorState
               title="设备加载失败"
               description="无法读取设备列表，请稍后重试。"

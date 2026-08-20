@@ -4018,6 +4018,13 @@ html:has(.cwgsyw-app-shell) { overflow-x: clip; contain: paint; }
   font-size: var(--cwgsyw-font-size-label-sm);
   text-overflow: ellipsis;
 }
+.cwgsyw-workflow-instances__business-key {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .cwgsyw-workflow-instances__table--running :where(.cwgsyw-th, .cwgsyw-td):nth-child(1),
 .cwgsyw-workflow-instances__table--finished :where(.cwgsyw-th, .cwgsyw-td):nth-child(1) { width: auto; }
 .cwgsyw-workflow-instances__table--running :where(.cwgsyw-th, .cwgsyw-td):nth-child(2) { width: 22%; }

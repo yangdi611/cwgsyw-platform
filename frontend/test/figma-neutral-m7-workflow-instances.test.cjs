@@ -47,7 +47,19 @@ function loadCompiled(filePath) {
             return { data: [{ processDefinitionKey: 'changeDocApproval', name: '变更审批流', version: 2, totalStarted: 10, runningCount: 1, finishedCount: 9, successRate: 90, avgDurationSeconds: 120 }], isLoading: false }
           }
           if (key === 'instances-running' || key === 'instances-finished' || key.includes('instances-running') || key.includes('instances-finished')) {
-            return { data: { records: [{ id: 'i1', processDefinitionName: '变更审批流', processDefinitionKey: 'changeDocApproval', businessKey: 'DOC-1', startTime: '2026-08-14T00:00:00Z', endTime: null, ended: false, suspended: false }], total: 1 }, isLoading: false, isError: false, refetch() {} }
+            return {
+              data: {
+                records: [
+                  { id: 'i1', processDefinitionName: '变更审批流', processDefinitionKey: 'changeDocApproval', businessKey: 'DOC-1', startTime: '2026-08-14T00:00:00Z', endTime: null, ended: false, suspended: false },
+                  { id: 'i2', processDefinitionName: '', processDefinitionKey: 'wikiPublishApproval', businessKey: 'WIKI-PUBLISH-APPROVAL-20260820-000001', startTime: '2026-08-14T00:00:00Z', endTime: null, ended: false, suspended: false },
+                  { id: 'i3', processDefinitionName: '', processDefinitionKey: '', businessKey: '', startTime: '2026-08-14T00:00:00Z', endTime: null, ended: false, suspended: false },
+                ],
+                total: 3,
+              },
+              isLoading: false,
+              isError: false,
+              refetch() {},
+            }
           }
           if (key.includes('workflow-bindings')) {
             return { data: [{ id: 1, businessType: 'change_doc', processDefinitionId: 'd1', processDefinitionKey: 'changeDocApproval', processDefinitionVersion: 2, templateInstanceId: null, enabled: true, updatedAt: '2026-08-14T00:00:00Z' }], isLoading: false, refetch() {} }
@@ -110,6 +122,9 @@ test('workflow instances leaves old visual entries', () => {
   assert.match(page, /cwgsyw-workflow-instances__table--\$\{tab\}/)
   assert.match(page, /density="compact"/)
   assert.match(page, /cwgsyw-workflow-instances__actions/)
+  assert.match(page, /processDefinitionName \|\| inst\.processDefinitionKey \|\| '未命名流程'/)
+  assert.match(page, /cwgsyw-workflow-instances__business-key/)
+  assert.match(page, /title=\{businessKey\}/)
   assert.doesNotMatch(page, /key: 'actions', label: '操作', align: 'right'/)
   assert.match(css, /\.cwgsyw-workflow-instances__toolbar \{[\s\S]*justify-content: flex-end;/)
   assert.match(css, /\.cwgsyw-workflow-instances__table \.cwgsyw-table \{[\s\S]*table-layout: fixed;/)
@@ -128,4 +143,7 @@ test('workflow instances renders Neutral shell', () => {
   const html = renderToStaticMarkup(React.createElement(page.default))
   assert.match(html, /流程实例/)
   assert.match(html, /变更审批流/)
+  assert.match(html, /wikiPublishApproval/)
+  assert.match(html, /未命名流程/)
+  assert.match(html, /title="WIKI-PUBLISH-APPROVAL-20260820-000001"/)
 })

@@ -24,7 +24,8 @@ function compileTs(filePath) {
   }).outputText
 }
 
-function loadCompiled(filePath) {
+function loadCompiled(filePath, options = {}) {
+  const { canRead = true, isHydrated = true } = options
   const compiled = compileTs(filePath)
   const originalLoad = Module._load
   Module._load = function load(request, parent, isMain) {
@@ -32,7 +33,12 @@ function loadCompiled(filePath) {
     if (request === 'next/navigation') return { useRouter: () => ({ push() {} }) }
     if (request === '@tanstack/react-query') {
       return {
-        useQuery: () => ({
+        useQuery: ({ enabled } = {}) => enabled === false ? ({
+          data: undefined,
+          isLoading: false,
+          isError: false,
+          refetch() {},
+        }) : ({
           data: [
             {
               id: 9,
@@ -51,6 +57,9 @@ function loadCompiled(filePath) {
           refetch() {},
         }),
       }
+    }
+    if (request === '@/hooks/usePermission') {
+      return { usePermission: () => ({ hasPermission: (resource, action) => canRead && resource === 'device' && action === 'read', isHydrated }) }
     }
     if (request === '@/components/shared/PermissionGuard') {
       return { PermissionGuard: ({ children }) => React.createElement(React.Fragment, null, children) }
@@ -73,14 +82,14 @@ function loadCompiled(filePath) {
       const hit = [resolved, `${resolved}.tsx`, `${resolved}.ts`, `${resolved}/index.ts`, `${resolved}/index.tsx`].find(
         (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
       )
-      if (hit) return loadCompiled(hit)
+      if (hit) return loadCompiled(hit, options)
     }
     if (request.startsWith('./') && parent && parent.filename) {
       const resolved = path.join(path.dirname(parent.filename), request)
       const hit = [`${resolved}.tsx`, `${resolved}.ts`, resolved].find(
         (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
       )
-      if (hit && (hit.endsWith('.ts') || hit.endsWith('.tsx'))) return loadCompiled(hit)
+      if (hit && (hit.endsWith('.ts') || hit.endsWith('.tsx'))) return loadCompiled(hit, options)
     }
     return originalLoad.call(this, request, parent, isMain)
   }
@@ -120,4 +129,18 @@ test('devices page renders Neutral table, filters and drawer shell', () => {
   assert.match(html, /10\.0\.0\.1/)
   assert.match(html, /网络模型/)
   assert.doesNotMatch(html, /<main/)
+})
+
+test('devices page shows an explicit permission state and skips data chrome without device read access', () => {
+  const source = fs.readFileSync(pagePath, 'utf8')
+  assert.match(source, /hasPermission\('device', 'read'\)/)
+  assert.match(source, /enabled: canRead/)
+
+  const page = loadCompiled(pagePath, { canRead: false })
+  const html = renderToStaticMarkup(React.createElement(page.default))
+  assert.match(html, /无权查看设备密码库/)
+  assert.match(html, /当前账号缺少设备读取权限/)
+  assert.doesNotMatch(html, /设备加载失败/)
+  assert.doesNotMatch(html, /core-sw/)
+  assert.doesNotMatch(html, /搜索设备名称、IP、分类或组/)
 })
