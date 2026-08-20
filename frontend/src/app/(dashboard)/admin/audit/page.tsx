@@ -121,6 +121,7 @@ function AuditLogPageInner() {
 
   return (
     <DataManagementPage
+      className="cwgsyw-audit"
       embedded
       header={
         <PageHeader
@@ -234,8 +235,9 @@ function AuditLogPageInner() {
         ) : records.length === 0 ? (
           <EmptyState title="暂无审计日志" description="当前筛选条件下没有操作记录。" />
         ) : (
-          <div className="cwgsyw-form">
+          <div className="cwgsyw-form cwgsyw-audit__content">
             <Table
+              className="cwgsyw-audit__table cwgsyw-cmdb-table"
               showSearch={false}
               columns={[
                 { key: 'createdAt', label: '时间' },

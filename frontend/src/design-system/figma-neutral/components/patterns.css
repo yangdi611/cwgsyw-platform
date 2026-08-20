@@ -14,10 +14,14 @@
 html:has(.cwgsyw-app-shell),
 body:has(.cwgsyw-app-shell) {
   height: 100%;
+  width: 100vw;
+  max-width: 100vw;
   overflow: hidden;
 }
+html:has(.cwgsyw-app-shell) { overflow-x: clip; contain: paint; }
 .cwgsyw-app-shell {
   display: flex;
+  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   height: 100dvh;
@@ -7415,6 +7419,8 @@ button.cwgsyw-stack-list__item:focus-visible {
   min-width: 0;
   max-width: 100%;
 }
+.cwgsyw-work { overflow-x: clip; }
+.cwgsyw-app-shell { overflow-x: clip; }
 .cwgsyw-work__table.cwgsyw-cmdb-table .cwgsyw-table-wrap,
 .cwgsyw-ops__table.cwgsyw-cmdb-table .cwgsyw-table-wrap {
   max-width: 100%;
@@ -7423,6 +7429,7 @@ button.cwgsyw-stack-list__item:focus-visible {
   border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
   border-radius: var(--cwgsyw-radius-md);
 }
+.cwgsyw-ops { overflow-x: clip; }
 .cwgsyw-work__table .cwgsyw-table {
   width: 100%;
   min-width: 100%;
@@ -7442,6 +7449,27 @@ button.cwgsyw-stack-list__item:focus-visible {
   font-weight: var(--cwgsyw-font-weight-regular);
 }
 .cwgsyw-ops__table :where(.cwgsyw-th, .cwgsyw-td):last-child { width: 92px; text-align: right; }
+.cwgsyw-audit,
+.cwgsyw-audit__content,
+.cwgsyw-audit__table { min-width: 0; max-width: 100%; }
+.cwgsyw-audit { overflow-x: clip; }
+.cwgsyw-audit__table .cwgsyw-table-wrap { max-width: 100%; overflow-x: auto; }
+.cwgsyw-audit__table .cwgsyw-table { width: 100%; min-width: 0; table-layout: fixed; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td) {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(1) { width: 150px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(2) { width: 100px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(3) { width: 110px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(4) { width: 100px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(5) { width: 130px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(6) { width: 180px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(7) { width: 300px; }
+.cwgsyw-audit__table :where(.cwgsyw-th, .cwgsyw-td):nth-child(8) { width: 120px; }
 .cwgsyw-ops__row-actions {
   display: inline-flex;
   flex-wrap: nowrap;
