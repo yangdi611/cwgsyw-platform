@@ -9,6 +9,7 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
 import '@/design-system/figma-neutral/index.css'
+import { buildImmediateIncomingEdges, summarizeImpactEdges } from './impact-utils'
 import {
   Alert,
   Badge,
@@ -58,42 +59,6 @@ const BIZ_LEVEL_META: Record<string, { label: string; tone: 'danger' | 'warning'
   core: { label: '核心', tone: 'danger' },
   important: { label: '重要', tone: 'warning' },
   normal: { label: '一般', tone: 'neutral' },
-}
-
-function pushEdge(m: Map<number, ImpactEdge[]>, nodeId: number, e: ImpactEdge) {
-  const arr = m.get(nodeId)
-  if (arr) {
-    if (!arr.some((x) => x.src === e.src && x.dst === e.dst && x.kind === e.kind)) arr.push(e)
-  } else {
-    m.set(nodeId, [e])
-  }
-}
-
-export function buildImmediateIncomingEdges(layers: ImpactLayer[], edges: ImpactEdge[]) {
-  const depthByNode = new Map<number, number>()
-  layers.forEach((layer) => layer.nodes.forEach((node) => depthByNode.set(node.id, layer.depth)))
-
-  const incoming = new Map<number, ImpactEdge[]>()
-  edges.forEach((edge) => {
-    const sourceDepth = depthByNode.get(edge.src)
-    const targetDepth = depthByNode.get(edge.dst)
-    if (sourceDepth == null || targetDepth == null) return
-
-    if (targetDepth === sourceDepth + 1) pushEdge(incoming, edge.dst, edge)
-    if (sourceDepth === targetDepth + 1) pushEdge(incoming, edge.src, edge)
-  })
-  return incoming
-}
-
-export function summarizeImpactEdges(edges: ImpactEdge[]) {
-  const summaries = new Map<string, { label: string; count: number }>()
-  edges.forEach((edge) => {
-    const label = edge.label?.trim() || edge.kind
-    const current = summaries.get(label)
-    if (current) current.count += 1
-    else summaries.set(label, { label, count: 1 })
-  })
-  return Array.from(summaries.values())
 }
 
 export default function ImpactAnalysisPage() {
