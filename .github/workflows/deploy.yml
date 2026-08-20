@@ -1,6 +1,6 @@
 # GitHub Actions：在 GH runner（带宽充足）构建 backend/frontend 镜像，
-# push 到 ghcr.io，再 SSH 到云服务器 pull + 重启。
-# 服务器仅 pull 变更 layer，不再本地 --build。
+# push 到 ghcr.io，再 SSH 到云服务器拉取镜像并重启。
+# 部署服务器不依赖 Git HTTPS；服务器上的 compose 配置由运维预置并单独维护。
 name: Build & Deploy
 
 on:
@@ -79,7 +79,7 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.SERVER_PROJECT_DIR }}
-            git pull origin development
+            test -f docker-compose.prod.yml
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull backend frontend
             docker compose -f docker-compose.prod.yml up -d --no-build backend frontend nginx
