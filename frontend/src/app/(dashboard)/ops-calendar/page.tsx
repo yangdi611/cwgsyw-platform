@@ -25,6 +25,7 @@ import {
   DropdownMenu,
   MenuItem,
   FilterBar,
+  IconButton,
   LoadingState,
   NeutralTooltip,
   PageHeader,
@@ -314,13 +315,12 @@ function OpsCalendarInner() {
             <div className="cwgsyw-ops__period">
               <div className="cwgsyw-ops__period-nav">
                 <NeutralTooltip content="上一期" className="cwgsyw-tooltip--pill" followCursor>
-                  <button type="button" className="cwgsyw-ops__icon-btn" aria-label="上一期" onClick={() => step(-1)}>
-                    <span aria-hidden="true" className="cwgsyw-ops__icon cwgsyw-ops__icon--prev" data-figma-node="6:23381" />
-                  </button>
+                  <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn" aria-label="上一期" onClick={() => step(-1)} icon={<span aria-hidden="true" className="cwgsyw-ops__icon cwgsyw-ops__icon--prev" data-figma-node="6:23381" />} />
                 </NeutralTooltip>
                 <NeutralTooltip content="回到本月" className="cwgsyw-tooltip--pill" followCursor>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     className="cwgsyw-ops__period-frame"
                     aria-live="polite"
                     aria-label="回到本月"
@@ -335,12 +335,10 @@ function OpsCalendarInner() {
                         月
                       </span>
                     )}
-                  </button>
+                  </Button>
                 </NeutralTooltip>
                 <NeutralTooltip content="下一期" className="cwgsyw-tooltip--pill" followCursor>
-                  <button type="button" className="cwgsyw-ops__icon-btn" aria-label="下一期" onClick={() => step(1)}>
-                    <span aria-hidden="true" className="cwgsyw-ops__icon cwgsyw-ops__icon--next" data-figma-node="6:23403" />
-                  </button>
+                  <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn" aria-label="下一期" onClick={() => step(1)} icon={<span aria-hidden="true" className="cwgsyw-ops__icon cwgsyw-ops__icon--next" data-figma-node="6:23403" />} />
                 </NeutralTooltip>
               </div>
             </div>

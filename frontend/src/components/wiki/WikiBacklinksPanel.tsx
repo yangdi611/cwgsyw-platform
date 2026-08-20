@@ -25,9 +25,9 @@ export function WikiBacklinksPanel({ pageId }: { pageId: number }) {
         <div className="cwgsyw-wiki-space__list">
           <p className="cwgsyw-wiki-search__count">{links.length} 个页面引用了本文</p>
           {links.map((link) => (
-            <button key={link.pageId} type="button" className="cwgsyw-wiki-space__row" onClick={() => router.push(`/wiki/${link.spaceId}/${link.pageId}`)}>
+            <Button key={link.pageId} type="button" variant="ghost" className="cwgsyw-wiki-space__row" onClick={() => router.push(`/wiki/${link.spaceId}/${link.pageId}`)}>
               <span>{link.title}</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

@@ -114,16 +114,16 @@ function TreeNode({
                 <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />} aria-label={`重命名 ${node.title || '页面'}`} onClick={() => handlers.onRename(node)} />
               </NeutralTooltip>
               <NeutralTooltip content="上移" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron cwgsyw-wiki-space-card__chevron--up" />} aria-label={`上移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, -1)} />
+                <IconButton type="button" variant="ghost" size="sm" icon="chevron-up" aria-label={`上移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, -1)} />
               </NeutralTooltip>
               <NeutralTooltip content="下移" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron" />} aria-label={`下移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, 1)} />
+                <IconButton type="button" variant="ghost" size="sm" icon="chevron-down" aria-label={`下移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, 1)} />
               </NeutralTooltip>
             </>
           )}
           {canDelete && (
             <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" side="right">
-              <IconButton type="button" variant="ghost" size="sm" className="cwgsyw-cmdb-admin__delete-action" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />} aria-label={`删除 ${node.title || '页面'}`} onClick={() => handlers.onDelete(node)} />
+              <IconButton type="button" variant="ghost" size="sm" className="cwgsyw-cmdb-admin__delete-action" icon="trash" aria-label={`删除 ${node.title || '页面'}`} onClick={() => handlers.onDelete(node)} />
             </NeutralTooltip>
           )}
         </div>

@@ -89,15 +89,16 @@ export default function WikiSpaceHomePage() {
               {pages.slice(0, 30).map((page) => {
                 const meta = STATUS_META[page.status]
                 return (
-                  <button
+                  <Button
                     key={page.id}
                     type="button"
+                    variant="ghost"
                     className="cwgsyw-wiki-space__row"
                     onClick={() => router.push(`/wiki/${sid}/${page.id}`)}
                   >
                     <span>{page.title || '无标题'}</span>
                     <StatusBadge size="sm" label={meta.label} status={meta.tone} />
-                  </button>
+                  </Button>
                 )
               })}
             </div>

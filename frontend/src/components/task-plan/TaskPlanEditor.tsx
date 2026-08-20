@@ -221,6 +221,9 @@ function TaskPlanEditorForm({
       }
       form={
         <div className="cwgsyw-tasks-plan-editor">
+          {!editable ? (
+            <p className="cwgsyw-tasks-panel__desc" role="status">已生效或结束的计划只读</p>
+          ) : null}
           <ol className="cwgsyw-cmdb-wizard-steps" aria-label="计划配置步骤">
             {STEPS.map((label, index) => (
               <li
@@ -228,10 +231,10 @@ function TaskPlanEditorForm({
                 data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'}
                 aria-current={step === index ? 'step' : undefined}
               >
-                <button type="button" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+                <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
                   <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
                   <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
-                </button>
+                </Button>
               </li>
             ))}
           </ol>

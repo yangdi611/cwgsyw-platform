@@ -77,15 +77,16 @@ export function CiScopeSelector({ value, onChange }: CiScopeSelectorProps) {
                   label={`选择模型组 ${group.name}`}
                   onChange={() => toggle({ level: 'model_group', key: group.code, label: group.name })}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   className="cwgsyw-tasks-cascader__open"
                   aria-pressed={groupCode === group.code}
                   onClick={() => { setGroupCode(group.code); setModelCode(undefined); setKeyword('') }}
                 >
                   <span>{group.name}</span>
                   <span>{group.modelCount}</span>
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -109,15 +110,16 @@ export function CiScopeSelector({ value, onChange }: CiScopeSelectorProps) {
                   label={`选择模型 ${model.displayName || model.name}`}
                   onChange={() => toggle({ level: 'model', key: model.modelId, label: model.displayName || model.name })}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   className="cwgsyw-tasks-cascader__open"
                   aria-pressed={modelCode === model.modelId}
                   onClick={() => { setModelCode(model.modelId); setKeyword('') }}
                 >
                   <span>{model.displayName || model.name}</span>
                   <span>{model.instanceCount ?? 0}</span>
-                </button>
+                </Button>
               </div>
             ))}
           </div>

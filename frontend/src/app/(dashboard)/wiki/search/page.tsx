@@ -7,6 +7,7 @@ import { wikiApi } from '@/lib/wiki-api'
 import type { WikiSearchResult } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
+  Button,
   DataManagementPage,
   EmptyState,
   LoadingState,
@@ -112,15 +113,16 @@ function SearchResults({ urlKeyword, urlPage }: { urlKeyword: string; urlPage: n
           <div className="cwgsyw-wiki-search__results">
             <p className="cwgsyw-wiki-search__count">找到 {total} 条结果</p>
             {records.map((result) => (
-              <button
+              <Button
                 key={result.pageId}
                 type="button"
+                variant="ghost"
                 className="cwgsyw-wiki-search__row"
                 onClick={() => router.push(`/wiki/${result.spaceId}/${result.pageId}`)}
               >
                 <span>{result.title}</span>
                 {result.highlight ? <span className="cwgsyw-wiki-search__hit">{result.highlight}</span> : null}
-              </button>
+              </Button>
             ))}
             <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={handlePageChange} />
           </div>

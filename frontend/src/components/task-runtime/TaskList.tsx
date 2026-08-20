@@ -142,7 +142,7 @@ export function TaskList() {
                 title="任务加载失败"
                 description="无法读取任务列表，请重试。"
                 retry={
-                  <Button type="button" size="sm" variant="secondary" onClick={() => void tasks.refetch()}>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => void tasks.refetch()}>
                     重试
                   </Button>
                 }

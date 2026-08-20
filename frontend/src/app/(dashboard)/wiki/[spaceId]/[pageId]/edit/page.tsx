@@ -323,15 +323,16 @@ export default function WikiEditorPage() {
           <div className="cwgsyw-wiki-edit__ac" style={{ top: acPos.top, left: acPos.left }}>
             <div className="cwgsyw-wiki-edit__ac-head">插入 Wiki 链接</div>
             {acResults.map((result) => (
-              <button
+              <Button
                 key={result.pageId}
                 type="button"
+                variant="ghost"
                 className="cwgsyw-wiki-edit__ac-item"
                 onClick={() => insertWikiLink(result)}
               >
                 <span>{result.title}</span>
                 {result.highlight ? <span className="cwgsyw-wiki-search__hit">{result.highlight}</span> : null}
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}

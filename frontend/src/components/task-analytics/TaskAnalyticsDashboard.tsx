@@ -251,7 +251,7 @@ function WidgetResult({ type, rows, columns, columnLabels, query, onDrilldown }:
   const metricColumns = columns.filter((column) => !dimensionColumns.includes(column))
   const displayColumns = analyticsDisplayColumns(columns)
   const metric = metricColumns[0]
-  if (type === 'kpi') return <Button type="button" variant="ghost" className="cwgsyw-dashboard-tile" onClick={() => onDrilldown({})}><span className="cwgsyw-type-title-sm">{formatValue(metric ? rows[0]?.[metric] : undefined)}</span><span className="cwgsyw-type-label-xs">点击查看来源任务</span></Button>
+  if (type === 'kpi') return <Button type="button" variant="ghost" className="cwgsyw-dashboard-tile border-[var(--cwgsyw-border-default)] hover:bg-[var(--cwgsyw-bg-surface-hover)]" onClick={() => onDrilldown({})}><span className="cwgsyw-type-title-sm">{formatValue(metric ? rows[0]?.[metric] : undefined)}</span><span className="cwgsyw-type-label-xs">点击查看来源任务</span></Button>
   if ((type === 'line_chart' || type === 'bar_chart') && dimensionColumns[0] && metric) {
     const dimension = dimensionColumns[0]
     const chartData = rows.map((row) => ({ ...row, ...Object.fromEntries(metricColumns.map((column) => [column, numberValue(row[column])])) }))

@@ -183,10 +183,10 @@ export function TaskAnalyticsWorkbench() {
           <ol className="cwgsyw-cmdb-wizard-steps" aria-label="统计查询步骤">
             {ANALYTICS_STEPS.map((label, index) => (
               <li key={label} data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'} aria-current={step === index ? 'step' : undefined}>
-                <button type="button" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+                <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
                   <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
                   <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
-                </button>
+                </Button>
               </li>
             ))}
           </ol>
@@ -283,10 +283,10 @@ export function TaskAnalyticsWorkbench() {
                 ) : (
                   <div className="cwgsyw-tasks-pick-list">
                     {(dashboards.data ?? []).map((dashboard) => (
-                      <button key={dashboard.id} type="button" className="cwgsyw-tasks-pick" onClick={() => router.push(`/tasks/analytics/${dashboard.id}`)}>
+                      <Button key={dashboard.id} type="button" variant="ghost" className="cwgsyw-tasks-pick" onClick={() => router.push(`/tasks/analytics/${dashboard.id}`)}>
                         <span className="cwgsyw-tasks-cell-title">{dashboard.name}</span>
                         <span className="cwgsyw-tasks-cell-meta">{dashboard.scopeType === 'private' ? '私有' : dashboard.scopeType === 'group' ? '组内共享' : '租户共享'}</span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -354,10 +354,11 @@ function TasksFieldMultiSelect({
 
   return (
     <div ref={rootRef} className="cwgsyw-select cwgsyw-tasks-multiselect">
-      <button
+      <Button
         {...aria}
         id={id}
         type="button"
+        variant="ghost"
         className={['cwgsyw-control', 'cwgsyw-control--sm', error ? 'cwgsyw-control--error' : ''].filter(Boolean).join(' ')}
         disabled={disabled}
         aria-haspopup="listbox"
@@ -367,7 +368,7 @@ function TasksFieldMultiSelect({
       >
         <span style={{ flex: 1, textAlign: 'left', color: value.length ? undefined : 'var(--cwgsyw-text-tertiary)' }}>{summary}</span>
         <Icon name="chevron-down" size="sm" />
-      </button>
+      </Button>
       {open ? (
         <ul id={listId} className="cwgsyw-listbox cwgsyw-listbox--overlay" role="listbox" aria-multiselectable="true" aria-label="统计字段">
           {options.length === 0 ? (

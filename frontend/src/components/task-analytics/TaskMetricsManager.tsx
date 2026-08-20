@@ -255,10 +255,10 @@ export function TaskMetricsManager() {
               data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'}
               aria-current={step === index ? 'step' : undefined}
             >
-              <button type="button" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+              <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
                 <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
                 <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
-              </button>
+              </Button>
             </li>
           ))}
         </ol>
@@ -280,11 +280,12 @@ export function TaskMetricsManager() {
             ) : null}
             <div className="cwgsyw-tasks-section">
               <h3 className="cwgsyw-tasks-section__title">已有指标</h3>
-              <div className="cwgsyw-tasks-pick-list">
+              <div className="cwgsyw-tasks-pick-list divide-y divide-[var(--cwgsyw-border-subtle)]">
                 {metrics.data?.map((metric) => (
-                  <button
+                  <Button
                     key={metric.id}
                     type="button"
+                    variant="ghost"
                     className="cwgsyw-tasks-pick"
                     data-selected={selectedId === metric.id}
                     onClick={() => { setSelectedId(metric.id); setEditingMetric(undefined) }}
@@ -294,7 +295,7 @@ export function TaskMetricsManager() {
                       {metric.code} · {metric.bindings.length} 个来源 · {metric.unit || '无单位'}
                     </span>
                     <StatusBadge label={metricAggregationLabels[metric.aggregation] ?? metric.aggregation} status="neutral" />
-                  </button>
+                  </Button>
                 ))}
               </div>
               {metrics.data?.length === 0 ? <TaskEmpty iconSrc={TASK_TARGET_ICON} figmaNode={TASK_TARGET_NODE} title="暂无统一指标" description="创建指标后即可映射模板字段并跟踪目标。" /> : null}

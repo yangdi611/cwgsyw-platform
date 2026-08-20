@@ -107,16 +107,17 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
             {data.versions.map((version) => {
               const versionStatus = TEMPLATE_STATUS[version.status] ?? { label: version.status, tone: 'neutral' as const }
               return (
-                <button
+                <Button
                   key={version.id}
                   type="button"
+                  variant="ghost"
                   className="cwgsyw-tasks-pick"
                   onClick={() => router.push(`/tasks/templates/${templateId}/versions/${version.id}`)}
                 >
                   <span className="cwgsyw-tasks-cell-title">v{version.version} · {version.name}</span>
                   <span className="cwgsyw-tasks-cell-meta">更新于 {new Date(version.updatedAt).toLocaleString('zh-CN')}</span>
                   <StatusBadge label={versionStatus.label} status={versionStatus.tone} />
-                </button>
+                </Button>
               )
             })}
           </div>

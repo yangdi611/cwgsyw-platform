@@ -27,6 +27,7 @@ import {
   EmptyState,
   Field,
   FilterBar,
+  IconButton,
   Input,
   NeutralAlertDialog,
   NeutralDialog,
@@ -248,12 +249,8 @@ export default function RostersPage() {
                 updatedAt: `${roster.updatedBy ? `用户 #${roster.updatedBy}` : '-'} ${roster.updatedAt?.slice(0, 16).replace('T', ' ') ?? ''}`,
                 ops: canManage ? (
                   <div className="cwgsyw-ops__row-actions">
-                    <button type="button" className="cwgsyw-ops__icon-btn" aria-label={`编辑 ${roster.dutyDate} 排班`} onClick={() => openEdit(roster)}>
-                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--edit" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="cwgsyw-ops__icon-btn is-danger" aria-label={`删除 ${roster.dutyDate} 排班`} onClick={() => setDeleteTarget(roster)}>
-                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--trash" aria-hidden="true" />
-                    </button>
+                    <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn" aria-label={`编辑 ${roster.dutyDate} 排班`} onClick={() => openEdit(roster)} icon={<span className="cwgsyw-ops__icon cwgsyw-ops__icon--edit" aria-hidden="true" />} />
+                    <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn is-danger" aria-label={`删除 ${roster.dutyDate} 排班`} onClick={() => setDeleteTarget(roster)} icon={<span className="cwgsyw-ops__icon cwgsyw-ops__icon--trash" aria-hidden="true" />} />
                   </div>
                 ) : null,
               },

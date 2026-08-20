@@ -14,6 +14,7 @@ import {
   DateInput,
   EmptyState,
   Field,
+  IconButton,
   Input,
   NeutralAlertDialog,
   NeutralDialog,
@@ -181,12 +182,8 @@ export default function HolidaysPage() {
                 updatedAt: `${holiday.updatedBy ? `用户 #${holiday.updatedBy}` : '-'} ${holiday.updatedAt?.slice(0, 16).replace('T', ' ') ?? ''}`,
                 ops: canManage ? (
                   <div className="cwgsyw-ops__row-actions">
-                    <button type="button" className="cwgsyw-ops__icon-btn" aria-label={`编辑 ${holiday.name}`} onClick={() => openEdit(holiday)}>
-                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--edit" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="cwgsyw-ops__icon-btn is-danger" aria-label={`删除 ${holiday.name}`} onClick={() => setDeleteTarget(holiday)}>
-                      <span className="cwgsyw-ops__icon cwgsyw-ops__icon--trash" aria-hidden="true" />
-                    </button>
+                    <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn" aria-label={`编辑 ${holiday.name}`} onClick={() => openEdit(holiday)} icon={<span className="cwgsyw-ops__icon cwgsyw-ops__icon--edit" aria-hidden="true" />} />
+                    <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-ops__icon-btn is-danger" aria-label={`删除 ${holiday.name}`} onClick={() => setDeleteTarget(holiday)} icon={<span className="cwgsyw-ops__icon cwgsyw-ops__icon--trash" aria-hidden="true" />} />
                   </div>
                 ) : null,
               },

@@ -160,10 +160,10 @@ export function TaskAutomationsManager() {
         <ol className="cwgsyw-cmdb-wizard-steps" aria-label="自动化配置步骤">
           {AUTOMATION_STEPS.map((label, index) => (
             <li key={label} data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'} aria-current={step === index ? 'step' : undefined}>
-              <button type="button" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+              <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
                 <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
                 <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
-              </button>
+              </Button>
             </li>
           ))}
         </ol>
@@ -182,9 +182,10 @@ export function TaskAutomationsManager() {
               <h3 className="cwgsyw-tasks-section__title">已有规则</h3>
               <div className="cwgsyw-tasks-pick-list">
                 {(rules.data ?? []).map((rule) => (
-                  <button
+                  <Button
                     key={rule.id}
                     type="button"
+                    variant="ghost"
                     className="cwgsyw-tasks-pick"
                     data-selected={selectedId === rule.id}
                     onClick={() => { setSelectedId(rule.id); setEditingDraft(undefined) }}
@@ -192,7 +193,7 @@ export function TaskAutomationsManager() {
                     <span className="cwgsyw-tasks-cell-title">{rule.name}</span>
                     <span className="cwgsyw-tasks-cell-meta">{triggerLabel(rule.triggerType)} → {actionLabel(rule.actionType)}</span>
                     <StatusBadge label={ruleStatusLabel(rule.status)} status={ruleStatusTone(rule.status)} />
-                  </button>
+                  </Button>
                 ))}
               </div>
               {(rules.data ?? []).length === 0 ? <TaskEmpty iconSrc={TASK_ZAP_ICON} figmaNode={TASK_ZAP_NODE} title="暂无自动化规则" description="创建一条草稿规则后即可预演和激活。" /> : null}

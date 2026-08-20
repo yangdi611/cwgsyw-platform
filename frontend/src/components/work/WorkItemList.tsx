@@ -238,7 +238,7 @@ export function WorkItemList() {
               title="工作项加载失败"
               description="无法读取我的工作，请重试。"
               retry={
-                <Button type="button" size="sm" variant="secondary" onClick={() => void items.refetch()}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => void items.refetch()}>
                   重试
                 </Button>
               }
