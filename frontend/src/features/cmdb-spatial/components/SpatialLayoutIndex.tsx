@@ -1,36 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, Building2, FilePlus2, Map, RotateCcw, Search } from 'lucide-react'
-import { EmptyState, PageHeader, PageShell } from '@/components/shared'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  Card,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  StatusBadge,
-} from '@/components/design-system'
 import { getApiErrorMessage } from '@/lib/api-error'
 import {
   archiveSpatialLayout,
@@ -41,6 +13,25 @@ import {
   spatialQueryKeys,
 } from '../api/spatial-api'
 import type { SpatialLayoutSummary } from '../model/types'
+import {
+  Alert,
+  Button,
+  Card,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  LoadingState,
+  NeutralAlertDialog,
+  NeutralDialog,
+  NeutralTooltip,
+  PageHeader,
+  SearchInput,
+  Select,
+  StatusBadge,
+  Tabs,
+} from '@/design-system/figma-neutral/components'
 
 interface SpatialLayoutIndexProps {
   canCreate: boolean
@@ -49,6 +40,7 @@ interface SpatialLayoutIndexProps {
 
 export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndexProps) {
   const client = useQueryClient()
+  const router = useRouter()
   const [keyword, setKeyword] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [roomId, setRoomId] = useState('')
@@ -56,11 +48,17 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
   const [archiving, setArchiving] = useState<SpatialLayoutSummary | null>(null)
   const [restoring, setRestoring] = useState<SpatialLayoutSummary | null>(null)
 
-  const { data: layouts = [], isLoading, isError, error } = useQuery({
+  const { data: layouts = [], isLoading, isError, error, refetch: refetchLayouts } = useQuery({
     queryKey: spatialQueryKeys.layouts(includeArchived),
     queryFn: () => listSpatialLayouts(includeArchived),
   })
-  const { data: rooms = [] } = useQuery({
+  const {
+    data: rooms = [],
+    isLoading: isRoomsLoading,
+    isError: isRoomsError,
+    error: roomsError,
+    refetch: refetchRooms,
+  } = useQuery({
     queryKey: spatialQueryKeys.rooms('', false),
     queryFn: () => listSpatialRooms('', false),
     enabled: canCreate,
@@ -78,9 +76,17 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
     ),
     onSuccess: (layout) => {
       invalidateLayoutAvailability()
-      window.location.assign(`/cmdb/spatial/rooms/${layout.roomInstanceId}/edit`)
+      router.push(`/cmdb/spatial/rooms/${layout.roomInstanceId}/edit`)
     },
   })
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    if (create.isPending) return
+    setShowCreate(open)
+    if (!open) {
+      setRoomId('')
+      create.reset()
+    }
+  }
   const archive = useMutation({
     mutationFn: (layoutId: number) => archiveSpatialLayout(layoutId),
     onSuccess: () => {
@@ -104,242 +110,190 @@ export function SpatialLayoutIndex({ canCreate, canPublish }: SpatialLayoutIndex
     [includeArchived, keyword, layouts],
   )
   const availableRooms = rooms.filter((room) => !room.configured)
+  const modeLabel = includeArchived ? '已归档' : '活动'
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        eyebrow="CMDB"
-        title="空间布局"
-        subtitle="机房、机柜与 CI 的二维位置视图。"
-        actions={canCreate && !includeArchived ? (
-          <Button size="default" variant="primary" onClick={() => setShowCreate(true)}>
-            <FilePlus2 className="h-4 w-4" />
-            新建布局
-          </Button>
-        ) : undefined}
-      />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2" aria-label="布局状态筛选">
-          <Button
-            type="button"
-            size="ui-sm"
-            variant="outline"
-            className={includeArchived
-              ? 'border-v2-border bg-v2-surface text-v2-muted hover:bg-v2-surface-hover'
-              : 'border-v2-primary bg-v2-primary-soft text-v2-primary shadow-none hover:bg-v2-primary-soft'}
-            onClick={() => setIncludeArchived(false)}
-          >
-            活动
-          </Button>
-          <Button
-            type="button"
-            size="ui-sm"
-            variant="outline"
-            className={includeArchived
-              ? 'border-v2-primary bg-v2-primary-soft text-v2-primary shadow-none hover:bg-v2-primary-soft'
-              : 'border-v2-border bg-v2-surface text-v2-muted hover:bg-v2-surface-hover'}
-            onClick={() => setIncludeArchived(true)}
-          >
-            已归档
-          </Button>
-        </div>
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-v2-muted" />
-          <Input
-            className="pl-9"
-            aria-label="搜索布局名称"
-            placeholder="搜索布局名称"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-          />
-        </div>
-      </div>
-
-      {isLoading ? (
-        <Card className="py-24 text-center text-sm text-v2-muted">正在加载空间布局...</Card>
-      ) : isError ? (
-        <Card className="py-24 text-center text-sm text-v2-danger">
-          {getApiErrorMessage(error, '空间布局加载失败')}
-        </Card>
-      ) : visible.length ? (
-        <div className="space-y-3">
-          {visible.map((layout) => (
-            <Card key={layout.layoutId} data-layout-id={layout.layoutId} className="flex p-4" hover>
-              {layout.status === 'ACTIVE' ? (
-                <Link href={`/cmdb/spatial/rooms/${layout.roomInstanceId}`} className="min-w-0 flex-1">
-                  <LayoutSummary layout={layout} />
-                </Link>
-              ) : (
-                <div className="min-w-0 flex-1">
-                  <LayoutSummary layout={layout} />
-                </div>
-              )}
-              {canPublish && (
-                <div className="ml-3 shrink-0">
-                  {layout.status === 'ACTIVE' ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={`归档 ${layout.name}`}
-                      aria-label={`归档 ${layout.name}`}
-                      onClick={() => setArchiving(layout)}
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={`恢复 ${layout.name}`}
-                      aria-label={`恢复 ${layout.name}`}
-                      onClick={() => setRestoring(layout)}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <EmptyState
-            icon={<Building2 className="h-5 w-5 text-v2-muted" />}
-            title={includeArchived ? '暂无已归档布局' : '暂无空间布局'}
-            description={includeArchived
-              ? '归档后的空间布局会保留在这里。'
-              : '点击右上角新建布局，为机房创建二维空间视图。'}
-            action={canCreate && !includeArchived ? (
-              <Button size="default" variant="secondary" onClick={() => setShowCreate(true)}>
-                创建首个布局
-              </Button>
+    <>
+      <DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-spatial-index"
+        header={
+          <div className="cwgsyw-cmdb-instance-page">
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title="空间布局"
+            subtitle={`${modeLabel}布局 ${visible.length} 个 · 机房与机柜位置`}
+            actions={canCreate && !includeArchived ? (
+              <Button className="cwgsyw-cmdb-spatial-index__create-trigger" type="button" size="sm" onClick={() => setShowCreate(true)}>新建布局</Button>
             ) : undefined}
           />
-        </Card>
-      )}
-
-      <Dialog open={showCreate} onOpenChange={(open) => !create.isPending && setShowCreate(open)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新建机房布局</DialogTitle>
-            <DialogDescription>选择一个尚未配置布局的机房，系统会创建空草稿。</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>机房</Label>
-            <Select value={roomId || null} onValueChange={(value) => setRoomId(value ?? '')}>
-              <SelectTrigger className="w-full" disabled={!availableRooms.length}>
-                <SelectValue placeholder={availableRooms.length ? '选择机房' : '暂无可配置机房'}>
-                  {(value: string) => availableRooms.find(
-                    (room) => String(room.roomInstanceId) === value,
-                  )?.name ?? '选择机房'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {availableRooms.map((room) => (
-                  <SelectItem key={room.roomInstanceId} value={String(room.roomInstanceId)}>
-                    {room.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!availableRooms.length && (
-              <p className="text-sm text-v2-muted">
-                所有可见机房均已有活动布局；请先归档不再使用的布局，或在 CMDB 创建机房 CI。
-              </p>
-            )}
-            {create.error && (
-              <p className="text-sm text-v2-danger">{getApiErrorMessage(create.error, '创建失败')}</p>
-            )}
           </div>
-          <DialogFooter>
-            <Button size="default" variant="secondary" disabled={create.isPending} onClick={() => setShowCreate(false)}>
-              取消
+        }
+        toolbar={
+          <div className="cwgsyw-cmdb-spatial-index__toolbar">
+            <SearchInput
+              size="sm"
+              aria-label="搜索布局名称"
+              placeholder="搜索布局名称"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              onClear={() => setKeyword('')}
+            />
+            <div className="cwgsyw-cmdb-spatial-index__mode" aria-label="布局状态">
+              <Tabs
+                style="cmdb"
+                size="sm"
+                value={includeArchived ? 'archived' : 'active'}
+                onChange={(id) => setIncludeArchived(id === 'archived')}
+                items={[
+                  { id: 'active', label: '活动', panel: null },
+                  { id: 'archived', label: '已归档', panel: null },
+                ]}
+              />
+            </div>
+          </div>
+        }
+        content={
+          isLoading ? (
+            <div className="cwgsyw-cmdb-spatial-index__state">
+              <LoadingState label="正在加载空间布局" />
+            </div>
+          ) : isError ? (
+            <div className="cwgsyw-cmdb-spatial-index__state">
+              <ErrorState
+                title="空间布局加载失败"
+                description={getApiErrorMessage(error, '空间布局加载失败')}
+                retry={<Button type="button" size="sm" variant="secondary" onClick={() => void refetchLayouts()}>重试</Button>}
+              />
+            </div>
+          ) : visible.length ? (
+            <div className="cwgsyw-cmdb-spatial-index__grid">
+              {visible.map((layout) => (
+                <Card
+                  key={layout.layoutId}
+                  title={layout.name}
+                  description={`机房 #${layout.roomInstanceId}`}
+                  padding="sm"
+                  headerAction={
+                    <StatusBadge
+                      label={layout.status === 'ARCHIVED' ? '已归档' : layout.publishedVersionId ? '已发布' : '草稿未发布'}
+                      status={layout.status === 'ARCHIVED' ? 'neutral' : layout.publishedVersionId ? 'success' : 'warning'}
+                      size="sm"
+                    />
+                  }
+                  footer={layout.status === 'ACTIVE' || canPublish ? (
+                    <div className="cwgsyw-cmdb-spatial-index__actions">
+                      {layout.status === 'ACTIVE' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => router.push(`/cmdb/spatial/rooms/${layout.roomInstanceId}`)}
+                        >
+                          打开布局
+                        </Button>
+                      ) : <span />}
+                      {canPublish ? (
+                        layout.status === 'ACTIVE' ? (
+                          <NeutralTooltip content="归档" className="cwgsyw-tooltip--pill" followCursor>
+                            <IconButton
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="cwgsyw-cmdb-spatial-index__archive-action"
+                              icon={<span className="cwgsyw-cmdb-spatial-index__archive-icon" aria-hidden="true" />}
+                              aria-label={`归档${layout.name}`}
+                              onClick={() => setArchiving(layout)}
+                            />
+                          </NeutralTooltip>
+                        ) : (
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setRestoring(layout)}>恢复</Button>
+                        )
+                      ) : null}
+                    </div>
+                  ) : null}
+                >
+                  {layout.updatedAt ? (
+                    <time className="cwgsyw-cmdb-spatial-index__updated" dateTime={layout.updatedAt}>
+                      更新于 {layout.updatedAt.replace('T', ' ').slice(0, 16)}
+                    </time>
+                  ) : null}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="cwgsyw-cmdb-spatial-index__state">
+              <EmptyState
+                title={keyword ? '没有匹配的空间布局' : includeArchived ? '暂无已归档布局' : '暂无空间布局'}
+                description={keyword ? '请调整搜索关键词后重试。' : includeArchived ? '归档后的空间布局会保留在这里。' : '点击右上角新建布局，为机房创建二维空间视图。'}
+                action={canCreate && !includeArchived && !keyword ? <Button type="button" size="sm" variant="secondary" onClick={() => setShowCreate(true)}>创建首个布局</Button> : undefined}
+              />
+            </div>
+          )
+        }
+      />
+
+      <NeutralDialog
+        open={showCreate}
+        onOpenChange={handleCreateDialogOpenChange}
+        title="新建机房布局"
+        description="选择一个尚未配置布局的机房，系统会创建空草稿。"
+        size="sm"
+        footer={
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-spatial-index__create-dialog-actions">
+            <Button type="button" size="sm" variant="secondary" disabled={create.isPending} onClick={() => handleCreateDialogOpenChange(false)}>取消</Button>
+            <Button type="button" size="sm" disabled={!roomId || create.isPending} onClick={() => create.mutate()}>
+              {create.isPending ? '创建中…' : '创建并编辑'}
             </Button>
-            <Button size="default"
-              variant="primary"
-              disabled={!roomId || create.isPending}
-              loading={create.isPending}
-              onClick={() => create.mutate()}
-            >
-              创建并编辑
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={Boolean(archiving)}
-        onOpenChange={(open) => !open && !archive.isPending && setArchiving(null)}
+          </div>
+        }
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>归档空间布局</AlertDialogTitle>
-            <AlertDialogDescription>
-              归档后，该布局不再出现在活动机房列表中。已发布版本、历史记录和审计证据会保留，且不会删除任何 CI、关系或参考图。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {archive.error && (
-            <p className="text-sm text-v2-danger">{getApiErrorMessage(archive.error, '归档失败')}</p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={archive.isPending}>取消</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={!archiving || archive.isPending}
-              onClick={() => archiving && archive.mutate(archiving.layoutId)}
-            >
-              {archive.isPending ? '归档中...' : '确认归档'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={Boolean(restoring)}
-        onOpenChange={(open) => !open && !restore.isPending && setRestoring(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>恢复空间布局</AlertDialogTitle>
-            <AlertDialogDescription>
-              恢复后，该布局会重新成为机房的活动布局。若该机房已被其他活动布局占用，系统会拒绝恢复并保留当前归档状态。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {restore.error && (
-            <p className="text-sm text-v2-danger">{getApiErrorMessage(restore.error, '恢复失败')}</p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={restore.isPending}>取消</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!restoring || restore.isPending}
-              onClick={() => restoring && restore.mutate(restoring.layoutId)}
-            >
-              {restore.isPending ? '恢复中...' : '确认恢复'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </PageShell>
-  )
-}
-
-function LayoutSummary({ layout }: { layout: SpatialLayoutSummary }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 rounded-v2-md bg-v2-primary-soft p-2 text-v2-primary">
-        <Map className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-semibold text-v2-fg">{layout.name}</span>
-          <StatusBadge status={layout.status === 'ARCHIVED' ? 'neutral' : layout.publishedVersionId ? 'ok' : 'warn'}>
-            {layout.status === 'ARCHIVED' ? '已归档' : layout.publishedVersionId ? '已发布' : '草稿未发布'}
-          </StatusBadge>
+        <div className="cwgsyw-cmdb-spatial-index__create-dialog-form">
+          <Field label="机房">
+            <Select size="sm" overlay
+              value={roomId}
+              placeholder={isRoomsLoading ? '正在加载机房' : availableRooms.length ? '选择机房' : '暂无可配置机房'}
+              loading={isRoomsLoading}
+              disabled={isRoomsError || !availableRooms.length}
+              options={availableRooms.map((room) => ({ value: String(room.roomInstanceId), label: room.name }))}
+              onChange={setRoomId}
+            />
+          </Field>
+          {isRoomsError ? (
+            <Alert
+              tone="danger"
+              title="机房列表加载失败"
+              description={getApiErrorMessage(roomsError, '请稍后重试')}
+              action={<Button type="button" size="sm" variant="secondary" onClick={() => void refetchRooms()}>重试</Button>}
+              showDismiss={false}
+            />
+          ) : !isRoomsLoading && !availableRooms.length ? (
+            <p className="cwgsyw-type-label-sm">所有可见机房均已有活动布局；请先归档不再使用的布局，或在 CMDB 创建机房 CI。</p>
+          ) : null}
+          {create.error ? <Alert tone="danger" title="创建失败" description={getApiErrorMessage(create.error, '创建失败')} showDismiss={false} /> : null}
         </div>
-        <p className="mt-1 text-sm text-v2-muted">机房 #{layout.roomInstanceId}</p>
-      </div>
-    </div>
+      </NeutralDialog>
+
+      <NeutralAlertDialog
+        open={Boolean(archiving)}
+        onOpenChange={(open) => { if (!open && !archive.isPending) setArchiving(null) }}
+        title="归档空间布局"
+        description={archive.error
+          ? `归档失败：${getApiErrorMessage(archive.error, '请稍后重试')}`
+          : '归档后，该布局不再出现在活动机房列表中。已发布版本、历史记录和审计证据会保留，且不会删除任何 CI、关系或参考图。'}
+        intent="destructive"
+        confirmLabel={archive.isPending ? '归档中...' : '确认归档'}
+        onConfirm={() => archiving && archive.mutate(archiving.layoutId)}
+      />
+      <NeutralAlertDialog
+        open={Boolean(restoring)}
+        onOpenChange={(open) => { if (!open && !restore.isPending) setRestoring(null) }}
+        title="恢复空间布局"
+        description={restore.error
+          ? `恢复失败：${getApiErrorMessage(restore.error, '请稍后重试')}`
+          : '恢复后，该布局会重新成为机房的活动布局。若该机房已被其他活动布局占用，系统会拒绝恢复并保留当前归档状态。'}
+        confirmLabel={restore.isPending ? '恢复中...' : '确认恢复'}
+        onConfirm={() => restoring && restore.mutate(restoring.layoutId)}
+      />
+    </>
   )
 }

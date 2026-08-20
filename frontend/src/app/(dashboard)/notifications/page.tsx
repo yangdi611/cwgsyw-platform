@@ -1,11 +1,19 @@
 'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button, Card } from '@/components/design-system'
-import { ErrorState, LoadingState, PageHeader, EmptyState } from '@/components/shared'
-import { Bell, CheckCheck } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import { NotificationEmpty, NOTIFICATION_BELL_ICON, NOTIFICATION_BELL_NODE } from '@/components/notification/NotificationEmpty'
 import { NotificationItem } from '@/components/notification/NotificationItem'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/notification/notifications.css'
+import {
+  Button,
+  DataManagementPage,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 interface NotificationVO {
   id: number
@@ -29,7 +37,7 @@ export default function NotificationsPage() {
   const { data, isLoading, isError, refetch } = useQuery<PageResult>({
     queryKey: ['notifications'],
     queryFn: () =>
-      api.get('/notifications', { params: { page: 1, size: 50 } }).then((r) => r.data.data),
+      api.get('/notifications', { params: { page: 1, size: 50 } }).then((response) => response.data.data),
   })
 
   const readMutation = useMutation({
@@ -50,59 +58,60 @@ export default function NotificationsPage() {
   })
 
   const records = data?.records ?? []
-  const unreadCount = records.filter((n) => !n.isRead).length
+  const unreadCount = records.filter((item) => !item.isRead).length
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="系统管理"
-        title="通知中心"
-        subtitle={unreadCount > 0 ? `${unreadCount} 条未读通知` : '查看系统与业务通知，点击标记已读。'}
-        actions={
-          unreadCount > 0 ? (
-            <Button
-              variant="secondary"
-              onClick={() => readAllMutation.mutate()}
-              disabled={readAllMutation.isPending}
-            >
-              <CheckCheck className="h-4 w-4" />
-              全部已读
-            </Button>
-          ) : undefined
-        }
-      />
-
-      {isLoading ? (
-        <Card>
-          <LoadingState label="正在加载通知…" minHeight={180} />
-        </Card>
-      ) : isError ? (
-        <Card>
+    <DataManagementPage
+      embedded
+      className="cwgsyw-notifications-page"
+      header={
+        <PageHeader
+          showEyebrow={false}
+          showBreadcrumb={false}
+          title="通知中心"
+          subtitle={unreadCount > 0 ? `${unreadCount} 条未读通知` : '查看系统与业务通知，点击标记已读。'}
+          actions={
+            unreadCount > 0 ? (
+              <Button type="button" size="sm" variant="secondary" loading={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
+                全部已读
+              </Button>
+            ) : null
+          }
+        />
+      }
+      content={
+        isLoading ? (
+          <LoadingState label="正在加载通知…" />
+        ) : isError ? (
           <ErrorState
             title="通知加载失败"
             description="无法读取通知中心，请重试。"
-            onRetry={() => void refetch()}
+            retry={
+              <Button type="button" size="sm" variant="secondary" onClick={() => void refetch()}>
+                重试
+              </Button>
+            }
           />
-        </Card>
-      ) : records.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<Bell className="h-5 w-5 text-v2-muted" />}
+        ) : records.length === 0 ? (
+          <NotificationEmpty
+            iconSrc={NOTIFICATION_BELL_ICON}
+            figmaNode={NOTIFICATION_BELL_NODE}
             title="暂无通知"
             description="系统与业务通知将在这里汇总。"
           />
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {records.map((n) => (
-            <NotificationItem
-              key={n.id}
-              notification={n}
-              onMarkRead={(id) => readMutation.mutate(id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+        ) : (
+          <section className="cwgsyw-notifications-panel">
+            <header>通知</header>
+            <ul className="cwgsyw-notifications-list">
+              {records.map((item) => (
+                <li key={item.id}>
+                  <NotificationItem notification={item} onMarkRead={(id) => readMutation.mutate(id)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    />
   )
 }

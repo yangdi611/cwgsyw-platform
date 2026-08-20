@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button, Input, Label } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import { Button, Field, Input } from '@/design-system/figma-neutral/components'
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error'
 import { submitAccountSetup, type AccountProfile } from '@/lib/account-api'
 import { inspectPassword } from '@/lib/password-policy'
-import { PasswordStrengthHints } from './PasswordStrengthHints'
+import { NeutralPasswordHints } from './NeutralPasswordHints'
 
 interface AccountSetupFormData {
   currentPassword: string
@@ -40,6 +40,7 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
   })
   const newPassword = watch('newPassword')
   const confirmPassword = watch('confirmPassword')
+  const confirmMismatch = mustChangePassword && confirmPassword.length > 0 && confirmPassword !== newPassword
 
   const onSubmit = async (data: AccountSetupFormData) => {
     if (mustChangePassword) {
@@ -79,65 +80,85 @@ export function AccountSetupForm({ username, mustChangePassword, onSuccess }: Ac
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {mustChangePassword && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-v2-fg">第一步：修改初始密码</h3>
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">当前密码</Label>
+    <form className="cwgsyw-form cwgsyw-account-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+      {mustChangePassword ? (
+        <section className="cwgsyw-account-form__section" aria-labelledby="account-setup-password-title">
+          <h3 id="account-setup-password-title" className="cwgsyw-account-form__section-title">第一步：修改初始密码</h3>
+          <Field
+            htmlFor="currentPassword"
+            label="当前密码"
+            required
+            state={errors.currentPassword ? 'error' : 'default'}
+            errorText={errors.currentPassword?.message}
+          >
             <Input
-              id="currentPassword"
+              size="sm"
               type="password"
+              autoComplete="current-password"
               {...register('currentPassword', { required: '请输入当前密码' })}
             />
-            {errors.currentPassword && <p className="text-sm text-v2-danger">{errors.currentPassword.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">新密码</Label>
+          </Field>
+          <Field
+            htmlFor="newPassword"
+            label="新密码"
+            required
+            state={errors.newPassword ? 'error' : 'default'}
+            errorText={errors.newPassword?.message}
+          >
             <Input
-              id="newPassword"
+              size="sm"
               type="password"
+              autoComplete="new-password"
               {...register('newPassword', { required: '请输入新密码' })}
             />
-            <PasswordStrengthHints username={username} password={newPassword} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">确认新密码</Label>
+          </Field>
+          <NeutralPasswordHints username={username} password={newPassword} />
+          <Field
+            htmlFor="confirmPassword"
+            label="确认新密码"
+            required
+            state={confirmMismatch || errors.confirmPassword ? 'error' : 'default'}
+            errorText={confirmMismatch ? '两次输入的密码不一致' : errors.confirmPassword?.message}
+          >
             <Input
-              id="confirmPassword"
+              size="sm"
               type="password"
+              autoComplete="new-password"
               {...register('confirmPassword', { required: '请再次输入新密码' })}
             />
-            {confirmPassword && confirmPassword !== newPassword && (
-              <p className="text-sm text-v2-danger">两次输入的密码不一致</p>
-            )}
-          </div>
-        </div>
-      )}
+          </Field>
+        </section>
+      ) : null}
 
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-v2-fg">
-          {mustChangePassword ? '第二步：补全个人资料' : '补全个人资料'}
-        </h3>
-        <div className="space-y-2">
-          <Label htmlFor="email">邮箱</Label>
-          <Input id="email" type="email" {...register('email', { required: '请输入邮箱' })} />
-          {errors.email && <p className="text-sm text-v2-danger">{errors.email.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">手机号</Label>
-          <Input id="phone" {...register('phone', { required: '请输入手机号' })} />
-          {errors.phone && <p className="text-sm text-v2-danger">{errors.phone.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="avatarUrl">头像 URL（可选）</Label>
-          <Input id="avatarUrl" {...register('avatarUrl')} />
-        </div>
+      <section className="cwgsyw-account-form__section" aria-labelledby="account-setup-profile-title">
+        <h3 id="account-setup-profile-title" className="cwgsyw-account-form__section-title">{mustChangePassword ? '第二步：补全个人资料' : '补全个人资料'}</h3>
+        <Field
+          htmlFor="email"
+          label="邮箱"
+          required
+          state={errors.email ? 'error' : 'default'}
+          errorText={errors.email?.message}
+        >
+          <Input size="sm" type="email" autoComplete="email" {...register('email', { required: '请输入邮箱' })} />
+        </Field>
+        <Field
+          htmlFor="phone"
+          label="手机号"
+          required
+          state={errors.phone ? 'error' : 'default'}
+          errorText={errors.phone?.message}
+        >
+          <Input size="sm" autoComplete="tel" {...register('phone', { required: '请输入手机号' })} />
+        </Field>
+        <Field htmlFor="avatarUrl" label="头像 URL">
+          <Input size="sm" placeholder="可选" {...register('avatarUrl')} />
+        </Field>
+      </section>
+      <div className="cwgsyw-form__actions">
+        <Button type="submit" size="sm" variant="primary" loading={submitting}>
+          {submitting ? '提交中…' : '完成设置'}
+        </Button>
       </div>
-
-      <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
-        {submitting ? '提交中…' : '完成设置'}
-      </Button>
     </form>
   )
 }

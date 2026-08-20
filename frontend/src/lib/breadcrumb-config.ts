@@ -9,6 +9,7 @@ import {
   Settings,
   BookOpen,
   BriefcaseBusiness,
+  CalendarDays,
   ClipboardList,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -27,7 +28,7 @@ export interface Crumb {
   hrefTemplate?: string
 }
 
-/** 模块根面包屑（带侧栏同款图标，宝蓝高亮）。group 类无独立页面 → 不带 href。 */
+/** 模块根面包屑（带侧栏同款图标，宝蓝高亮）。无落地页的分组不带 href；任务中心落地到任务列表，身份与权限落地到用户管理。 */
 const ROOT = {
   dashboard: { label: '工作台', href: '/', icon: LayoutDashboard },
   cmdb: { label: 'CMDB', href: '/cmdb', icon: ServerCog },
@@ -35,10 +36,12 @@ const ROOT = {
   resource: { label: '资源管理', icon: FolderOpen },
   wiki: { label: '知识库', href: '/wiki', icon: BookOpen },
   work: { label: '我的工作', href: '/work', icon: BriefcaseBusiness },
-  task: { label: '任务中心', icon: ClipboardList },
+  opsCalendar: { label: '运维日历', href: '/ops-calendar', icon: CalendarDays },
+  task: { label: '任务中心', href: '/tasks', icon: ClipboardList },
   workflow: { label: '流程中心', icon: GitBranch },
   reports: { label: '报表分析', icon: BarChart2 },
-  identity: { label: '身份与权限', icon: Shield },
+  identity: { label: '身份与权限', href: '/users', icon: Shield },
+  account: { label: '账号' },
   system: { label: '系统管理', icon: Settings },
 } satisfies Record<string, Crumb>
 
@@ -106,6 +109,9 @@ const ROUTES: RouteDef[] = [
 
   // ── 任务中心 ──
   { pattern: '/work', trail: [ROOT.work] },
+  { pattern: '/ops-calendar/holidays', trail: [ROOT.opsCalendar, { label: '节假日' }] },
+  { pattern: '/ops-calendar/rosters', trail: [ROOT.opsCalendar, { label: '排班管理' }] },
+  { pattern: '/ops-calendar', trail: [ROOT.opsCalendar] },
   { pattern: '/tasks/templates/new', trail: [ROOT.task, { label: '任务模板', href: '/tasks/templates' }, { label: '新建模板' }] },
   { pattern: '/tasks/templates/:id/versions/:versionId', trail: [ROOT.task, { label: '任务模板', href: '/tasks/templates' }, { ...DYN, hrefTemplate: '/tasks/templates/:2' }, { label: '版本设计' }] },
   { pattern: '/tasks/templates/:id', trail: [ROOT.task, { label: '任务模板', href: '/tasks/templates' }, { ...DYN }] },
@@ -132,11 +138,18 @@ const ROUTES: RouteDef[] = [
   { pattern: '/rbac/roles', trail: [ROOT.identity, { label: '角色管理' }] },
   { pattern: '/rbac/permissions', trail: [ROOT.identity, { label: '权限配置' }] },
 
+  // ── 账号 ──
+  { pattern: '/account/profile', trail: [ROOT.account, { label: '个人资料' }] },
+  { pattern: '/account/password', trail: [ROOT.account, { label: '修改密码' }] },
+  { pattern: '/account/setup', trail: [ROOT.account, { label: '首次设置' }] },
+
   // ── 系统管理 ──
   { pattern: '/admin/config', trail: [ROOT.system, { label: '系统配置' }] },
   { pattern: '/admin/ai', trail: [ROOT.system, { label: 'AI 配置' }] },
   { pattern: '/admin/audit', trail: [ROOT.system, { label: '审计日志' }] },
   { pattern: '/admin/backup', trail: [ROOT.system, { label: '备份与恢复' }] },
+  { pattern: '/notifications/targets/resolve/:id', trail: [ROOT.system, { label: '通知中心', href: '/notifications' }, { label: '目标解析' }] },
+  { pattern: '/notifications/targets/:refType/:refId', trail: [ROOT.system, { label: '通知中心', href: '/notifications' }, { label: '目标详情' }] },
   { pattern: '/notifications', trail: [ROOT.system, { label: '通知中心' }] },
 
   // ── 工作台 ──

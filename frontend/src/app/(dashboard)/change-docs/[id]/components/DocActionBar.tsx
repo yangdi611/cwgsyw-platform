@@ -1,9 +1,9 @@
 'use client'
 
 import type { UseMutationResult } from '@tanstack/react-query'
-import { Button, Input } from '@/components/design-system'
-import { Download, Save, Send, Check, X } from 'lucide-react'
 import type { ChangeDocVO } from './types'
+import '@/design-system/figma-neutral/index.css'
+import { Button, Input } from '@/design-system/figma-neutral/components'
 
 interface DocActionBarProps {
   doc: ChangeDocVO
@@ -18,7 +18,7 @@ interface DocActionBarProps {
   submitPlanMutation: UseMutationResult<unknown, unknown, void>
   approveMutation: UseMutationResult<unknown, unknown, boolean>
   approveComment: string
-  onApproveCommentChange: (v: string) => void
+  onApproveCommentChange: (value: string) => void
   exporting: boolean
   onExport: (which: 'application' | 'plan', format: 'pdf' | 'docx') => void
 }
@@ -41,151 +41,86 @@ export function DocActionBar({
   onExport,
 }: DocActionBarProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {/* approved / rejected → 可修改重审 */}
-      {canReedit && hasPermission('change_doc', 'update') && (
+    <div className="cwgsyw-designer__actions cwgsyw-change-doc-detail__action-bar">
+      {canReedit && hasPermission('change_doc', 'update') ? (
         <>
-          <Button
-            variant="primary"
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-          >
-            <Save className="h-4 w-4" />
+          <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             {isApproved ? '修改并重新审批' : '修改并重新提交'}
           </Button>
-          <span className="self-center text-xs text-v2-muted">
+          <span className="cwgsyw-change-doc-detail__action-note">
             {isApproved
               ? '保存后将退回草稿状态，需重新提交审批。'
               : '保存后将退回草稿状态，可重新提交审批。'}
           </span>
         </>
-      )}
+      ) : null}
 
-      {/* draft：保存 + 提交 */}
-      {isDraft && (
+      {isDraft ? (
         <>
-          {hasPermission('change_doc', 'update') && (
-            <Button
-              variant="primary"
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-            >
-              <Save className="h-4 w-4" />
+          {hasPermission('change_doc', 'update') ? (
+            <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               保存
             </Button>
-          )}
-          <Button
-            variant="secondary"
-            onClick={() => submitMutation.mutate()}
-            disabled={submitMutation.isPending}
-          >
-            <Send className="h-4 w-4" />
-            {doc.applicationTemplateId && !doc.planTemplateId
-              ? '提交申请单（稍后补填方案）'
-              : '提交审批'}
+          ) : null}
+          <Button type="button" variant="secondary" size="sm" onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+            {doc.applicationTemplateId && !doc.planTemplateId ? '提交申请单（稍后补填方案）' : '提交审批'}
           </Button>
         </>
-      )}
+      ) : null}
 
-      {/* plan_pending：保存 + 提交方案 */}
-      {isPlanPending && hasPermission('change_doc', 'update') && (
+      {isPlanPending && hasPermission('change_doc', 'update') ? (
         <>
-          <Button
-            variant="primary"
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-          >
-            <Save className="h-4 w-4" />
+          <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             保存方案
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => submitPlanMutation.mutate()}
-            disabled={submitPlanMutation.isPending || !doc.planTemplateId}
-          >
-            <Send className="h-4 w-4" />
+          <Button type="button" variant="secondary" size="sm" onClick={() => submitPlanMutation.mutate()} disabled={submitPlanMutation.isPending || !doc.planTemplateId}>
             提交方案
           </Button>
         </>
-      )}
+      ) : null}
 
-      {/* pending：审批 */}
-      {isPending && hasPermission('change_doc', 'approve') && (
+      {isPending && hasPermission('change_doc', 'approve') ? (
         <>
           <Input
+            size="sm"
+            aria-label="审批意见"
             placeholder="审批意见（可选）"
             value={approveComment}
-            onChange={(e) => onApproveCommentChange(e.target.value)}
-            className="max-w-xs flex-1"
+            onChange={(event) => onApproveCommentChange(event.target.value)}
           />
-          <Button
-            variant="primary"
-            onClick={() => approveMutation.mutate(true)}
-            disabled={approveMutation.isPending}
-          >
-            <Check className="h-4 w-4" />
+          <Button type="button" size="sm" onClick={() => approveMutation.mutate(true)} disabled={approveMutation.isPending}>
             审批通过
           </Button>
-          <Button
-            variant="danger"
-            onClick={() => approveMutation.mutate(false)}
-            disabled={approveMutation.isPending}
-          >
-            <X className="h-4 w-4" />
+          <Button type="button" variant="destructive" size="sm" onClick={() => approveMutation.mutate(false)} disabled={approveMutation.isPending}>
             拒绝
           </Button>
         </>
-      )}
+      ) : null}
 
-      {/* approved：导出 */}
-      {doc.status === 'approved' && (
+      {doc.status === 'approved' ? (
         <>
-          {doc.applicationTemplateId && (
+          {doc.applicationTemplateId ? (
             <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onExport('application', 'pdf')}
-                disabled={exporting}
-              >
-                <Download className="h-4 w-4" />
+              <Button type="button" variant="secondary" size="sm" onClick={() => onExport('application', 'pdf')} disabled={exporting}>
                 导出申请单 PDF
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onExport('application', 'docx')}
-                disabled={exporting}
-              >
-                <Download className="h-4 w-4" />
+              <Button type="button" variant="secondary" size="sm" onClick={() => onExport('application', 'docx')} disabled={exporting}>
                 导出申请单 Word
               </Button>
             </>
-          )}
-          {doc.planTemplateId && (
+          ) : null}
+          {doc.planTemplateId ? (
             <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onExport('plan', 'pdf')}
-                disabled={exporting}
-              >
-                <Download className="h-4 w-4" />
+              <Button type="button" variant="secondary" size="sm" onClick={() => onExport('plan', 'pdf')} disabled={exporting}>
                 导出方案 PDF
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onExport('plan', 'docx')}
-                disabled={exporting}
-              >
-                <Download className="h-4 w-4" />
+              <Button type="button" variant="secondary" size="sm" onClick={() => onExport('plan', 'docx')} disabled={exporting}>
                 导出方案 Word
               </Button>
             </>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
     </div>
   )
 }

@@ -1,12 +1,22 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Skeleton } from '@/components/design-system'
-import { PageHeader, DataTable, type ColumnDef } from '@/components/shared'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  DashboardFeedbackPage,
+  EmptyState,
+  ErrorState,
+  Input,
+  LoadingState,
+  MetricCard,
+  PageHeader,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface ActionCountVO {
   created: number
@@ -38,52 +48,6 @@ interface ChangeStatsVO {
   top10Instances: TopInstanceVO[]
 }
 
-function ActionCountCard({
-  title,
-  data,
-  loading,
-}: {
-  title: string
-  data?: ActionCountVO
-  loading: boolean
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-v2-muted">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-        ) : data ? (
-          <>
-            <div className="text-3xl font-bold tabular-nums text-v2-fg">{data.total}</div>
-            <div className="mt-2 flex gap-3 text-xs text-v2-muted">
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-v2-success" />
-                新增 {data.created}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-v2-primary" />
-                修改 {data.updated}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-v2-danger" />
-                删除 {data.deleted}
-              </span>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-v2-muted">暂无数据</p>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 function toIso(date: string, endOfDay = false): string | undefined {
   if (!date) return undefined
   if (!endOfDay) return `${date}T00:00:00`
@@ -92,41 +56,50 @@ function toIso(date: string, endOfDay = false): string | undefined {
   return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}T00:00:00`
 }
 
-function DailyBarChart({ data }: { data: DailyCountVO[] }) {
-  if (!data || data.length === 0) return null
-
-  const maxVal = Math.max(...data.map((d) => Math.max(d.created, d.updated, d.deleted, 1)))
-
+function ActionCountCard({ title, data }: { title: string; data?: ActionCountVO }) {
   return (
-    <div className="space-y-1">
-      {data.map((day) => {
-        const hCreated = (day.created / maxVal) * 100
-        const hUpdated = (day.updated / maxVal) * 100
-        const hDeleted = (day.deleted / maxVal) * 100
-        return (
-          <div key={day.date} className="flex items-center gap-3 text-xs">
-            <span className="w-20 shrink-0 text-right text-v2-muted">{day.date.slice(5)}</span>
-            <div className="flex h-5 flex-1 items-end gap-px">
-              <div
-                className="rounded-t bg-v2-success transition-all"
-                style={{ width: `${hCreated}%`, height: '100%' }}
-                title={`新增 ${day.created}`}
-              />
-              <div
-                className="rounded-t bg-v2-primary transition-all"
-                style={{ width: `${hUpdated}%`, height: '100%' }}
-                title={`修改 ${day.updated}`}
-              />
-              <div
-                className="rounded-t bg-v2-danger transition-all"
-                style={{ width: `${hDeleted}%`, height: '100%' }}
-                title={`删除 ${day.deleted}`}
-              />
+    <MetricCard
+      label={title}
+      value={String(data?.total ?? 0)}
+      description={`新增 ${data?.created ?? 0} · 修改 ${data?.updated ?? 0} · 删除 ${data?.deleted ?? 0}`}
+    />
+  )
+}
+
+function DailyBarChart({ data }: { data: DailyCountVO[] }) {
+  const maxVal = Math.max(...data.map((d) => Math.max(d.created, d.updated, d.deleted, 1)))
+  return (
+    <div className="cwgsyw-cmdb-change-stats__chart" role="table" aria-label="每日新增、修改和删除变更趋势">
+      <div className="cwgsyw-cmdb-change-stats__chart-row is-header" role="row">
+        <span role="columnheader">日期</span>
+        <span role="columnheader"><i className="is-created" aria-hidden="true" />新增</span>
+        <span role="columnheader"><i className="is-updated" aria-hidden="true" />修改</span>
+        <span role="columnheader"><i className="is-deleted" aria-hidden="true" />删除</span>
+        <span role="columnheader">合计</span>
+      </div>
+      <div role="rowgroup">
+        {data.map((day) => {
+          const total = day.created + day.updated + day.deleted
+          return (
+            <div key={day.date} className="cwgsyw-cmdb-change-stats__chart-row" role="row">
+              <time role="cell" dateTime={day.date}>{day.date.slice(5)}</time>
+              <span className="cwgsyw-cmdb-change-stats__bar is-created" role="cell">
+                <progress max={maxVal} value={day.created} aria-label={`${day.date} 新增 ${day.created}`} />
+                <span aria-hidden="true">{day.created}</span>
+              </span>
+              <span className="cwgsyw-cmdb-change-stats__bar is-updated" role="cell">
+                <progress max={maxVal} value={day.updated} aria-label={`${day.date} 修改 ${day.updated}`} />
+                <span aria-hidden="true">{day.updated}</span>
+              </span>
+              <span className="cwgsyw-cmdb-change-stats__bar is-deleted" role="cell">
+                <progress max={maxVal} value={day.deleted} aria-label={`${day.date} 删除 ${day.deleted}`} />
+                <span aria-hidden="true">{day.deleted}</span>
+              </span>
+              <strong role="cell">{total}</strong>
             </div>
-            <span className="w-10 text-v2-muted tabular-nums">{day.created + day.updated + day.deleted}</span>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -143,121 +116,118 @@ export default function CmdbChangesStatsPage() {
   }, [hasPermission, isHydrated, router])
 
   const hasExplicitRange = !!(startDate || endDate)
-  const { data: stats, isLoading } = useQuery<ChangeStatsVO>({
+  const invalidDateRange = Boolean(startDate && endDate && startDate > endDate)
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<ChangeStatsVO>({
     queryKey: ['cmdb-changes-stats', startDate, endDate],
     queryFn: () => api.get('/cmdb/changes/stats', { params: { from: toIso(startDate), to: toIso(endDate, true) } }).then((r) => r.data.data),
-    enabled: isHydrated && hasPermission('cmdb_change', 'read'),
+    enabled: isHydrated && hasPermission('cmdb_change', 'read') && !invalidDateRange,
   })
 
-  const topColumns: ColumnDef<TopInstanceVO>[] = [
-    {
-      key: 'rank',
-      title: '#',
-      render: (_r, idx) => <span className="text-v2-muted tabular-nums">{idx + 1}</span>,
-    },
-    {
-      key: 'instanceName',
-      title: '实例名称',
-      render: (r) => <span className="font-semibold text-v2-fg">{r.instanceName}</span>,
-    },
-    {
-      key: 'modelName',
-      title: '模型',
-      render: (r) => (
-        <span className="inline-flex items-center rounded-md border border-v2-border bg-v2-surface-soft px-2 py-0.5 text-xs text-v2-fg">
-          {r.modelName}
-        </span>
-      ),
-    },
-    {
-      key: 'changeCount',
-      title: '变更次数',
-      align: 'right',
-      render: (r) => <span className="font-v2-mono tabular-nums text-v2-fg">{r.changeCount}</span>,
-    },
-  ]
+  const canRead = hasPermission('cmdb_change', 'read')
+  const pageFeedback = !isHydrated ? (
+    <LoadingState label="正在检查访问权限" />
+  ) : !canRead ? (
+    <ErrorState title="无权查看变更统计" description="需要 CMDB 变更读取权限。" />
+  ) : invalidDateRange ? (
+    <ErrorState title="日期范围无效" description="结束日期不能早于开始日期，请调整后重试。" />
+  ) : isError ? (
+    <ErrorState
+      title="变更统计加载失败"
+      description="无法读取当前统计数据，请稍后重试。"
+      retry={<Button type="button" size="sm" variant="secondary" onClick={() => refetch()}>重试</Button>}
+    />
+  ) : null
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="CMDB"
-        title="变更统计"
-        subtitle="CI 实例变更历史统计与趋势分析，按时间维度与活跃实例查看。"
-      />
-
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-v2-border bg-v2-surface p-4">
-        <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="w-40" />
-        <span className="text-sm text-v2-muted">至</span>
-        <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="w-40" />
-        {hasExplicitRange && <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate('') }}>清除范围</Button>}
-        <span className="text-xs text-v2-muted">{hasExplicitRange ? '统计卡、趋势与 Top 10 均按所选范围汇总' : '未选择范围时显示当前今日、本周和本月汇总，趋势与 Top 10 默认最近 30 天'}</span>
-      </div>
-
-      <div className={`grid grid-cols-1 gap-4 ${hasExplicitRange ? 'max-w-sm' : 'sm:grid-cols-3'}`}>
-        {hasExplicitRange ? (
-          <ActionCountCard title="所选范围变更" data={stats?.today} loading={isLoading} />
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page cwgsyw-cmdb-change-stats"
+      header={
+        <div className="cwgsyw-cmdb-instance-page cwgsyw-cmdb-change-stats__header">
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title="变更统计"
+            subtitle="按时间查看变更趋势"
+            actions={
+              <Button type="button" size="sm" variant="secondary" onClick={() => router.push('/cmdb/changes')}>
+                返回变更历史
+              </Button>
+            }
+          />
+          <div className="cwgsyw-cmdb-change-stats__range" role="group" aria-label="统计日期范围">
+            <div className="cwgsyw-cmdb-change-stats__range-controls">
+              <Input size="sm" aria-label="开始日期" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+              <span className="cwgsyw-type-label-sm" aria-hidden="true">至</span>
+              <Input size="sm" aria-label="结束日期" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+              {hasExplicitRange ? <Button type="button" size="sm" variant="ghost" onClick={() => { setStartDate(''); setEndDate('') }}>清除范围</Button> : null}
+            </div>
+            <p>
+              {hasExplicitRange ? '统计卡、趋势与 Top 10 均按所选范围汇总' : '未选择范围时显示今日、本周和本月汇总，趋势与 Top 10 默认最近 30 天'}
+            </p>
+          </div>
+        </div>
+      }
+      metrics={
+        pageFeedback ? null : isLoading ? (
+          <LoadingState label="加载统计" />
+        ) : hasExplicitRange ? (
+          <ActionCountCard title="所选范围变更" data={stats?.today} />
         ) : (
           <>
-            <ActionCountCard title="今日变更" data={stats?.today} loading={isLoading} />
-            <ActionCountCard title="本周变更" data={stats?.thisWeek} loading={isLoading} />
-            <ActionCountCard title="本月变更" data={stats?.thisMonth} loading={isLoading} />
+            <ActionCountCard title="今日变更" data={stats?.today} />
+            <ActionCountCard title="本周变更" data={stats?.thisWeek} />
+            <ActionCountCard title="本月变更" data={stats?.thisMonth} />
           </>
-        )}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">每日变更趋势</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
-            </div>
-          ) : stats?.dailyBreakdown && stats.dailyBreakdown.length > 0 ? (
-            <div>
-              <div className="mb-3 flex items-center gap-4 text-xs text-v2-muted">
-                <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-v2-success" />
-                  新增
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-v2-primary" />
-                  修改
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded bg-v2-danger" />
-                  删除
-                </span>
+        )
+      }
+      feedback={
+        pageFeedback ?? (isLoading ? null : (
+          <div className="cwgsyw-cmdb-change-stats__feedback">
+            <section className="cwgsyw-cmdb-change-stats__panel" aria-labelledby="cmdb-daily-trend-title">
+              <header><h2 id="cmdb-daily-trend-title">每日变更趋势</h2></header>
+              <div className="cwgsyw-cmdb-change-stats__panel-body">
+              {stats?.dailyBreakdown && stats.dailyBreakdown.length > 0 ? (
+                <DailyBarChart data={stats.dailyBreakdown} />
+              ) : (
+                <EmptyState title="暂无每日变更数据" description="所选范围内还没有可汇总的每日记录。" />
+              )}
               </div>
-              <DailyBarChart data={stats.dailyBreakdown} />
-            </div>
-          ) : (
-            <p className="text-sm text-v2-muted">暂无每日变更数据</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">变更最频繁的实例 (Top 10)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
-          ) : stats?.top10Instances && stats.top10Instances.length > 0 ? (
-            <DataTable columns={topColumns} data={stats.top10Instances} rowKey={(r) => r.instanceId} />
-          ) : (
-            <p className="text-sm text-v2-muted">暂无实例变更统计</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            </section>
+            <section className="cwgsyw-cmdb-change-stats__panel" aria-labelledby="cmdb-top-instances-title">
+              <header><h2 id="cmdb-top-instances-title">变更最频繁的实例（Top 10）</h2></header>
+              <div className="cwgsyw-cmdb-change-stats__panel-body">
+              {stats?.top10Instances && stats.top10Instances.length > 0 ? (
+                <Table
+                  className="cwgsyw-cmdb-table cwgsyw-cmdb-change-stats__table"
+                  showSearch={false}
+                  columns={[
+                    { key: 'rank', label: '#' },
+                    { key: 'instanceName', label: '实例名称' },
+                    { key: 'modelName', label: '模型' },
+                    { key: 'changeCount', label: '变更次数' },
+                  ]}
+                  rows={stats.top10Instances.map((item, index) => ({
+                    id: String(item.instanceId),
+                    cells: {
+                      rank: String(index + 1),
+                      instanceName: item.instanceName || `#${item.instanceId}`,
+                      modelName: item.modelName || item.modelId || '—',
+                      changeCount: String(item.changeCount),
+                    },
+                  }))}
+                />
+              ) : (
+                <EmptyState title="暂无实例变更统计" description="所选范围内没有可排名的实例记录。" />
+              )}
+              </div>
+            </section>
+          </div>
+        ))
+      }
+    />
   )
 }

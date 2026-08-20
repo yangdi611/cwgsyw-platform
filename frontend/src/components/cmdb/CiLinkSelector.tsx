@@ -1,17 +1,9 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import {
-  Badge,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import { X } from 'lucide-react'
+import { Badge, Button, Input, Select } from '@/design-system/figma-neutral/components'
 
 export interface CiLinkItem {
   instanceId: number
@@ -52,16 +44,23 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
     enabled: debouncedKeyword.length >= 1 && open,
   })
 
-  // Close dropdown on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    if (!open) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
 
   const handleSelect = useCallback((inst: { id: number; name: string; modelName: string }) => {
     // Avoid duplicates
@@ -90,82 +89,84 @@ export function CiLinkSelector({ value, onChange, disabled }: CiLinkSelectorProp
   const selectedIds = new Set(value.map(v => v.instanceId))
 
   return (
-    <div className="space-y-3">
-      {/* Search input + dropdown */}
-      <div ref={containerRef} className="relative">
-        <Input
+    <div className="cwgsyw-change-doc-ci-flow">
+      <MotionConfig reducedMotion="user">
+      <motion.div
+        ref={containerRef}
+        layout="size"
+        className="cwgsyw-change-doc-ci-flow__search"
+        data-open={open && debouncedKeyword.length >= 1 ? 'true' : undefined}
+        transition={{ type: 'spring', stiffness: 220, damping: 28, mass: 0.8 }}
+      >
+        <Input size="sm"
+          aria-label="搜索 CI 实例"
           placeholder="输入关键词搜索 CI 实例..."
           value={keyword}
           onChange={e => { setKeyword(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           disabled={disabled}
         />
-        {open && debouncedKeyword.length >= 1 && (
-          <div className="absolute z-50 w-full mt-1 border rounded-md bg-background shadow-lg max-h-48 overflow-auto">
-            {searchResults.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-v2-muted">无匹配结果</p>
-            ) : (
-              (searchResults as { id: number; name: string; modelName: string }[]).map(inst => {
-                const alreadySelected = selectedIds.has(inst.id)
-                return (
-                  <button
-                    key={inst.id}
-                    type="button"
-                    onClick={() => !alreadySelected && handleSelect(inst)}
-                    disabled={alreadySelected || disabled}
-                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left ${
-                      alreadySelected
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'hover:bg-muted cursor-pointer'
-                    }`}
-                  >
-                    <span>{inst.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">{inst.modelName}</Badge>
-                      {alreadySelected && <span className="text-xs text-v2-muted">已选</span>}
-                    </div>
-                  </button>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
+        <AnimatePresence initial={false}>
+          {open && debouncedKeyword.length >= 1 ? (
+            <motion.div
+              key="ci-results"
+              role="listbox"
+              aria-label="CI 实例搜索结果"
+              className="cwgsyw-listbox cwgsyw-change-doc-ci-flow__list"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            >
+              {searchResults.length === 0 ? (
+                <p className="cwgsyw-type-label-sm">无匹配结果</p>
+              ) : (
+                (searchResults as { id: number; name: string; modelName: string }[]).map(inst => {
+                  const alreadySelected = selectedIds.has(inst.id)
+                  return (
+                    <Button
+                      key={inst.id}
+                      type="button"
+                      variant="ghost"
+                      className="cwgsyw-picker-option"
+                      disabled={alreadySelected || disabled}
+                      onClick={() => !alreadySelected && handleSelect(inst)}
+                    >
+                      <span>{inst.name}</span>
+                      <span className="cwgsyw-inline-controls">
+                        <Badge label={inst.modelName} size="sm" />
+                        {alreadySelected ? <span className="cwgsyw-type-label-xs">已选</span> : null}
+                      </span>
+                    </Button>
+                  )
+                })
+              )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+      </MotionConfig>
 
       {/* Selected chips */}
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="cwgsyw-change-doc-ci-flow__selected">
           {value.map(item => (
             <div
               key={item.instanceId}
-              className="flex items-center gap-1.5 border rounded-md px-2.5 py-1.5 text-sm bg-muted/30"
+              className="cwgsyw-chip cwgsyw-chip--md cwgsyw-inline-controls"
             >
               <span>{item.instanceName}</span>
-              <Badge variant="outline" className="text-[10px]">{item.modelName}</Badge>
-              <Select
+              <Badge label={item.modelName} />
+              <Select size="sm" overlay
                 value={item.impactLevel ?? ''}
-                onValueChange={v => handleImpactChange(item.instanceId, v ?? '')}
                 disabled={disabled}
-              >
-                <SelectTrigger className="h-6 w-16 text-xs border-0 p-0 pl-1 shadow-none">
-                  <SelectValue placeholder="影响">
-                    {(v: string) => IMPACT_OPTIONS.find(o => o.value === v)?.label ?? '影响'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {IMPACT_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={IMPACT_OPTIONS}
+                onChange={(v) => handleImpactChange(item.instanceId, v)}
+              />
               {!disabled && (
-                <button
-                  type="button"
-                  onClick={() => handleRemove(item.instanceId)}
-                  className="text-v2-muted hover:text-v2-fg ml-0.5"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => handleRemove(item.instanceId)}>
+                  移除
+                </Button>
               )}
             </div>
           ))}

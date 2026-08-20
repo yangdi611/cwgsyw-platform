@@ -3,10 +3,15 @@
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { FileQuestion } from 'lucide-react'
 import api from '@/lib/api'
-import { Button } from '@/components/design-system'
-import { EmptyState, LoadingState } from '@/components/shared'
+import {
+  NotificationEmpty,
+  NOTIFICATION_UNLINK_ICON,
+  NOTIFICATION_UNLINK_NODE,
+} from '@/components/notification/NotificationEmpty'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/notification/notifications.css'
+import { Button, DetailDrawerPage, LoadingState, PageHeader } from '@/design-system/figma-neutral/components'
 
 type TargetResolver = (id: number) => Promise<string>
 
@@ -55,20 +60,35 @@ export default function NotificationTargetPage() {
     if (href) router.replace(href)
   }, [href, router])
 
-  if (href) {
-    return <LoadingState label="正在打开通知目标…" minHeight={180} />
-  }
-
-  if (isLoading) {
-    return <LoadingState label="正在验证通知目标…" minHeight={180} />
-  }
-
   return (
-    <EmptyState
-      icon={<FileQuestion className="h-5 w-5 text-v2-muted" />}
-      title="通知目标不可用"
-      description="该目标可能已删除、您没有访问权限，或通知引用类型暂不支持。"
-      action={<Button variant="secondary" onClick={() => router.replace('/notifications')}>返回通知中心</Button>}
+    <DetailDrawerPage
+      embedded
+      className="cwgsyw-notifications-page"
+      header={
+        <PageHeader
+          showEyebrow={false}
+          showBreadcrumb={false}
+          title="目标详情"
+          subtitle="正在核对通知指向的业务对象。"
+          actions={
+            <Button type="button" size="sm" variant="secondary" onClick={() => router.replace('/notifications')}>
+              返回通知中心
+            </Button>
+          }
+        />
+      }
+      content={
+        href || isLoading ? (
+          <LoadingState label={href ? '正在打开通知目标…' : '正在验证通知目标…'} />
+        ) : (
+          <NotificationEmpty
+            iconSrc={NOTIFICATION_UNLINK_ICON}
+            figmaNode={NOTIFICATION_UNLINK_NODE}
+            title="通知目标不可用"
+            description="该目标可能已删除、您没有访问权限，或通知引用类型暂不支持。"
+          />
+        )
+      }
     />
   )
 }

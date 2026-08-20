@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import BpmnJSViewer from 'bpmn-js/lib/NavigatedViewer';
 import type { BpmnViewerServices } from '@/types/bpmn';
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
@@ -44,7 +45,7 @@ export default function BpmnViewer({
             if (elementRegistry.get(id)) {
               overlays.add(id, {
                 position: { top: 0, left: 0 },
-                html: '<div style="width:100%;height:100%;background:rgba(34,197,94,0.15);border:2px solid #22c55e;border-radius:6px;pointer-events:none"></div>',
+                html: `<div style="width:100%;height:100%;background:color-mix(in srgb, ${CANVAS_STATUS.success} 15%, transparent);border:2px solid ${CANVAS_STATUS.success};border-radius:6px;pointer-events:none"></div>`,
               });
             }
           } catch { /* ignore */ }
@@ -55,7 +56,7 @@ export default function BpmnViewer({
             if (elementRegistry.get(id)) {
               overlays.add(id, {
                 position: { top: 0, left: 0 },
-                html: '<div style="width:100%;height:100%;background:rgba(59,130,246,0.25);border:2px solid #3b82f6;border-radius:6px;animation:pulse 1.5s ease-in-out infinite;pointer-events:none"></div>',
+                html: `<div style="width:100%;height:100%;background:color-mix(in srgb, ${CANVAS_NEUTRAL[800]} 16%, transparent);border:2px solid ${CANVAS_NEUTRAL[800]};border-radius:6px;animation:pulse 1.5s ease-in-out infinite;pointer-events:none"></div>`,
               });
             }
           } catch { /* ignore */ }
@@ -79,7 +80,7 @@ export default function BpmnViewer({
 
   if (!xml) {
     return (
-      <div className="w-full min-h-[400px] border rounded-lg bg-muted/20 flex items-center justify-center text-v2-muted">
+      <div className="w-full min-h-[400px] border rounded-lg bg-[var(--cwgsyw-bg-surface-subtle)] flex items-center justify-center text-[var(--cwgsyw-text-secondary)]">
         没有流程图数据
       </div>
     );

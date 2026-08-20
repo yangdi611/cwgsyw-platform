@@ -1,5 +1,6 @@
 'use client'
-import { useEffect } from 'react'
+import '@/design-system/figma-neutral/index.css'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
@@ -7,6 +8,7 @@ import { CommandPalette } from '@/components/layout/CommandPalette'
 import { getToken } from '@/lib/auth'
 import { useAuthStore } from '@/store/authStore'
 import { useIdleSession } from '@/hooks/useIdleSession'
+import { useCollapsed } from '@/components/layout/sidebar/useSidebarState'
 
 const SETUP_PATH = '/account/setup'
 
@@ -48,6 +50,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const requiredActions = useAuthStore((s) => s.requiredActions)
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const permissions = useAuthStore((s) => s.permissions)
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const [sidebarCollapsed, toggleSidebarCollapsed] = useCollapsed()
   const token = getToken()
   const routePermission = requiredRoutePermission(pathname)
   const canAccessRoute =
@@ -85,16 +89,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex h-dvh min-h-0 overflow-hidden bg-v2-bg">
-      <Sidebar />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <Header />
+    <div className="cwgsyw-app-shell">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileNavigationOpen}
+        onMobileOpenChange={setMobileNavigationOpen}
+      />
+      <div className="cwgsyw-app-shell__main">
         <main
-          className={`min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 md:p-6 ${
+          className={`cwgsyw-app-shell__content ${
             isFixedWorkspaceRoute ? 'overflow-hidden' : 'overflow-y-auto'
           }`}
         >
-          <div className="min-w-0 w-full">{children}</div>
+          <Header
+            sidebarCollapsed={sidebarCollapsed}
+            onOpenNavigation={() => setMobileNavigationOpen(true)}
+            onToggleSidebar={toggleSidebarCollapsed}
+          />
+          <div className="cwgsyw-app-shell__content-inner">{children}</div>
         </main>
       </div>
       <CommandPalette />

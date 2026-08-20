@@ -1,23 +1,46 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/store/authStore'
+import { useCommandPalette } from '@/store/commandPaletteStore'
 import api from '@/lib/api'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import {
+  Avatar,
+  Button,
+  IconButton,
+  MenuItem,
+} from '@/design-system/figma-neutral/components'
 import { navItems } from './sidebar/navItems'
 import { isGroup } from './sidebar/utils'
-import { useOpenGroup, useCollapsed } from './sidebar/useSidebarState'
+import { useOpenGroup } from './sidebar/useSidebarState'
 import { NavGroupItem } from './sidebar/NavGroupItem'
 import { CollapsedEntry } from './sidebar/CollapsedEntry'
 import { getWorkItemCounts } from '@/lib/work-item-api'
 import type { NavItem } from './sidebar/types'
 
-export function Sidebar() {
+const SIDEBAR_LOGO_URL = '/sidebar-logo.png'
+
+export function Sidebar({
+  collapsed,
+  mobileOpen,
+  onMobileOpenChange,
+}: {
+  collapsed: boolean
+  mobileOpen: boolean
+  onMobileOpenChange: (open: boolean) => void
+}) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuth()
+  const openPalette = useCommandPalette((state) => state.setOpen)
   const { hasPermission } = usePermission()
   const groupScope = useAuthStore((state) => state.groupScope)
   const canReadWorkItems = hasPermission('work_item', 'read')
@@ -61,34 +84,54 @@ export function Sidebar() {
     ? { ...entry, children: entry.children.map((child) => child.badgeKey ? { ...child, badge: badges[child.badgeKey] } : child) }
     : entry.badgeKey ? { ...entry, badge: badges[entry.badgeKey] } : entry)
 
-  // 默认展开的一级菜单：优先「当前页所属组」，其次「defaultOpen」的组。
   const groups = resolvedNavItems.filter(isGroup)
   const initialOpenKey =
-    groups.find(g => {
-      if (!isGroup(g)) return false
-      if (g.resource && g.action && !hasPermission(g.resource, g.action)) return false
-      return g.children?.some(c => (!c.requiredScope || c.requiredScope === groupScope)
-        && pathname.startsWith(c.href))
+    groups.find((group) => {
+      if (!isGroup(group)) return false
+      if (group.resource && group.action && !hasPermission(group.resource, group.action)) return false
+      return group.children.some((child) => (!child.requiredScope || child.requiredScope === groupScope)
+        && pathname.startsWith(child.href))
     })?.storageKey ??
-    groups.find(g => isGroup(g) && g.defaultOpen && (!g.resource || !g.action || hasPermission(g.resource, g.action)))?.storageKey ??
+    groups.find((group) => isGroup(group) && group.defaultOpen && (!group.resource || !group.action || hasPermission(group.resource, group.action)))?.storageKey ??
     null
 
   const [openKey, toggleGroup] = useOpenGroup(initialOpenKey)
-  const [collapsed, toggleCollapsed] = useCollapsed()
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRegionRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+  const isCollapsed = mobileOpen ? false : collapsed
+  const fallbackName = user?.realName?.trim() || user?.username?.trim() || 'U'
+  const fallbackChar = Array.from(fallbackName)[0]?.toUpperCase() ?? 'U'
 
   const [schemaVersion, setSchemaVersion] = useState<string | null>(null)
   useEffect(() => {
     api.get('/system/info')
-      .then(res => setSchemaVersion(res.data?.data?.schema_version ?? null))
+      .then((response) => setSchemaVersion(response.data?.data?.schema_version ?? null))
       .catch(() => {})
   }, [])
 
-  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0'
-  const gitCommit = (process.env.NEXT_PUBLIC_GIT_COMMIT ?? 'dev').slice(0, 7)
-
-  // 一次性迁移清理：移除旧版遗留的 localStorage key
   useEffect(() => {
-    navItems.forEach(entry => {
+    if (!userMenuOpen) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !userMenuRegionRef.current?.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setUserMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [userMenuOpen])
+
+  useEffect(() => {
+    navItems.forEach((entry) => {
       if (isGroup(entry)) {
         try { localStorage.removeItem(entry.storageKey) } catch {}
       }
@@ -96,68 +139,54 @@ export function Sidebar() {
   }, [])
 
   return (
-    <aside
-      className={cn(
-        'bg-v2-sidebar text-v2-sidebar-fg border-r border-v2-sidebar-border flex min-h-0 h-full flex-col sticky top-0 overflow-x-visible transition-[width] duration-200 ease-out motion-reduce:transition-none',
-        collapsed ? 'w-[76px]' : 'w-[76px] md:w-[280px]',
-      )}
-    >
-      {/* Brand */}
-      <div
+    <>
+      {mobileOpen ? (
+        <IconButton
+          type="button"
+          variant="ghost"
+          className="cwgsyw-mobile-nav-scrim"
+          aria-label="关闭导航"
+          onClick={() => onMobileOpenChange(false)}
+        />
+      ) : null}
+      <aside
         className={cn(
-          'h-14 flex items-center border-b border-v2-sidebar-border shrink-0',
-          collapsed ? 'justify-center px-2' : 'justify-center px-2 md:justify-start md:gap-3 md:px-5',
+          'cwgsyw-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh min-h-0 flex-col overflow-hidden transition-[transform,width] duration-200 ease-out motion-reduce:transition-none md:sticky md:top-0 md:z-auto md:h-full md:translate-x-0',
+          mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full md:translate-x-0',
+          isCollapsed ? 'w-16 md:w-16' : 'w-[calc(100vw-48px)] max-w-80 md:w-[260px]',
+          isCollapsed && 'cwgsyw-sidebar--collapsed',
         )}
       >
-        <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-blue-500 to-teal-400 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] shrink-0" />
-        {!collapsed && (
-          <div className="hidden min-w-0 flex-1 items-center gap-3 md:flex">
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-bold leading-tight tracking-tight whitespace-nowrap">CWGSYW 平台</div>
-              <div className="text-xs text-v2-sidebar-muted mt-0.5 whitespace-nowrap">企业运维与 CMDB 工作台</div>
-            </div>
-            <button
-              onClick={toggleCollapsed}
-              title="收起侧栏"
-              className="shrink-0 rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
-            >
-              <PanelLeftClose className="h-[18px] w-[18px]" />
-            </button>
+        <div className="cwgsyw-sidebar__brand">
+          <div className="cwgsyw-sidebar__logomark" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static product logo asset */}
+            <img src={SIDEBAR_LOGO_URL} alt="" />
           </div>
-        )}
-      </div>
-
-      {collapsed && (
-        <div className="flex justify-center py-2 shrink-0">
-          <button
-            onClick={toggleCollapsed}
-            title="展开侧栏"
-            className="rounded-md p-1.5 text-v2-sidebar-muted transition-colors hover:bg-white/8 hover:text-white"
-          >
-            <PanelLeftOpen className="h-[18px] w-[18px]" />
-          </button>
+          {!isCollapsed ? (
+            <div className="cwgsyw-sidebar__brand-copy">
+              <span className="cwgsyw-sidebar__brand-title">CWGSYW 平台</span>
+              <span className="cwgsyw-sidebar__brand-subtitle">企业运维与 CMDB 工作台</span>
+            </div>
+          ) : null}
         </div>
-      )}
 
-      {/* Navigation */}
-      {collapsed ? (
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-visible">
-          {resolvedNavItems.map((entry) => {
-            if (isGroup(entry) && entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
-            return (
-              <CollapsedEntry
-                key={isGroup(entry) ? entry.label : entry.href}
-                entry={entry}
-                pathname={pathname}
-                hasPermission={hasPermission}
-                groupScope={groupScope}
-              />
-            )
-          })}
-        </nav>
-      ) : (
-        <>
-          <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-visible p-2 md:hidden">
+        {!isCollapsed ? (
+          <div className="cwgsyw-sidebar__search-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="cwgsyw-sidebar__search"
+              leadingIcon={<Search className="size-4" />}
+              onClick={() => openPalette(true)}
+            >
+              搜索功能与页面…
+            </Button>
+          </div>
+        ) : null}
+
+        {isCollapsed ? (
+          <nav className="cwgsyw-sidebar__collapsed-nav" aria-label="主导航">
             {resolvedNavItems.map((entry) => {
               if (isGroup(entry) && entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
               return (
@@ -171,84 +200,120 @@ export function Sidebar() {
               )
             })}
           </nav>
-          <nav className="hidden flex-1 space-y-1 overflow-y-auto p-3 md:block">
-          {resolvedNavItems.map((entry) => {
-            if (isGroup(entry)) {
-              if (entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
+        ) : (
+          <nav className="cwgsyw-sidebar__nav" aria-label="主导航">
+            <div className="cwgsyw-sidebar__section-title">核心工作</div>
+            {resolvedNavItems.map((entry) => {
+              if (isGroup(entry)) {
+                if (entry.resource && entry.action && !hasPermission(entry.resource, entry.action)) return null
+                return (
+                  <NavGroupItem
+                    key={entry.label}
+                    group={entry}
+                    pathname={pathname}
+                    hasPermission={hasPermission}
+                    groupScope={groupScope}
+                    isOpen={openKey === entry.storageKey}
+                    onToggle={() => toggleGroup(entry.storageKey)}
+                    onNavigate={() => onMobileOpenChange(false)}
+                  />
+                )
+              }
+
+              const { href, label, icon: Icon, resource, action, badge } = entry
+              if (resource && action && !hasPermission(resource, action)) return null
+              const isActive = pathname === href
               return (
-                <NavGroupItem
-                  key={entry.label}
-                  group={entry}
-                  pathname={pathname}
-                  hasPermission={hasPermission}
-                  groupScope={groupScope}
-                  isOpen={openKey === entry.storageKey}
-                  onToggle={() => toggleGroup(entry.storageKey)}
-                />
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => onMobileOpenChange(false)}
+                  className={cn('cwgsyw-sidebar__item', isActive && 'is-active')}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className="flex-1 truncate">{label}</span>
+                  {badge !== undefined && badge > 0 ? (
+                    <span className="cwgsyw-sidebar__badge">{badge > 99 ? '99+' : badge}</span>
+                  ) : null}
+                </Link>
               )
-            }
-
-            const { href, label, icon: Icon, resource, action, badge } = entry
-            if (resource && action && !hasPermission(resource, action)) return null
-            const isActive = pathname === href
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                    : 'text-slate-300 hover:bg-white/6 hover:text-white'
-                )}
-              >
-                <Icon className="h-[18px] w-[18px] shrink-0 opacity-85" />
-                <span className="flex-1 truncate">{label}</span>
-                {badge !== undefined && badge > 0 && (
-                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
-                    {badge > 99 ? '99+' : badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
+            })}
           </nav>
-        </>
-      )}
+        )}
 
-      {/* Footer: Version Info（折叠态隐藏） */}
-      {!collapsed && (
-        <div className="hidden shrink-0 space-y-2 border-t border-v2-sidebar-border px-4 py-3 md:block">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono text-v2-sidebar-muted">App</span>
-            <span
-              className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded"
-              title={`build ${gitCommit}`}
-            >
-              v{appVersion}
-              <span className="text-slate-500 ml-1">·{gitCommit}</span>
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono text-v2-sidebar-muted">Schema</span>
-            <span className="text-[11px] font-mono text-slate-300 bg-white/8 px-1.5 py-0.5 rounded">
-              {schemaVersion ? `V${schemaVersion}` : '—'}
-            </span>
-          </div>
-          <div className="pt-1 border-t border-white/8 flex items-center justify-between">
-            <span className="text-[10px] text-v2-sidebar-muted">© 2026 All rights reserved</span>
-            <a
-              href="https://github.com/cwgsyw/platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              GitHub ↗
-            </a>
-          </div>
+        <div ref={userMenuRegionRef} className="cwgsyw-sidebar__footer" data-figma-node="2:7746">
+          <IconButton
+            type="button"
+            variant="ghost"
+            className="cwgsyw-sidebar__user-trigger"
+            aria-label="打开用户菜单"
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
+            icon={
+              <span className={cn('cwgsyw-sidebar__user-avatar', !user?.avatarUrl && 'is-fallback')}>
+                <Avatar
+                  type={user?.avatarUrl ? 'image' : 'initials'}
+                  size="md"
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.realName || user?.username}
+                  initials={fallbackChar}
+                />
+              </span>
+            }
+            onClick={() => setUserMenuOpen((open) => !open)}
+          >
+            {!isCollapsed ? (
+              <>
+                <span className="cwgsyw-sidebar__user-copy">
+                  <span className="cwgsyw-sidebar__user-name" title={user?.realName || user?.username || undefined}>
+                    {user?.realName || user?.username || '-'}
+                  </span>
+                  <span className="cwgsyw-sidebar__user-username" title={user?.username || undefined}>
+                    {user?.username || '-'}
+                  </span>
+                </span>
+                <span className="cwgsyw-sidebar__user-chevron" aria-hidden="true">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- exact Figma chevrons-up-down asset */}
+                  <img src="/figma-icons/sidebar-chevrons-up-down.svg" alt="" />
+                </span>
+              </>
+            ) : null}
+          </IconButton>
+          <AnimatePresence initial={false}>
+            {userMenuOpen ? (
+              <motion.div
+                key="sidebar-user-menu"
+                className="cwgsyw-sidebar-user-menu"
+                role="menu"
+                aria-label="用户菜单"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
+                transition={reduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              >
+              <div className="cwgsyw-sidebar-user-menu__identity">
+                <Avatar
+                  type={user?.avatarUrl ? 'image' : 'initials'}
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.realName || user?.username}
+                  initials={fallbackChar}
+                />
+                <div>
+                  <p className="cwgsyw-type-label-md">{user?.realName || '-'}</p>
+                  <p className="cwgsyw-type-label-sm">@{user?.username}</p>
+                </div>
+              </div>
+              <MenuItem label="个人资料" onClick={() => { router.push('/account/profile'); setUserMenuOpen(false) }} />
+              <MenuItem label="修改密码" onClick={() => { router.push('/account/password'); setUserMenuOpen(false) }} />
+              <MenuItem label={schemaVersion ? `Schema V${schemaVersion}` : 'Schema —'} disabled />
+              <MenuItem label="退出登录" type="destructive" onClick={() => logout()} />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
-      )}
-    </aside>
+      </aside>
+    </>
   )
 }

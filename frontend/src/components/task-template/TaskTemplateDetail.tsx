@@ -1,15 +1,30 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CopyPlus, FileLock2, Pencil, ShieldCheck } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { DetailHeader, ErrorState, LoadingState, PageShell } from '@/components/shared'
-import { Button, Card, StatusBadge } from '@/components/design-system'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { createTaskTemplateDraft, getTaskTemplate } from '@/lib/task-template-api'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, TASK_LAYOUT_TEMPLATE_ICON, TASK_LAYOUT_TEMPLATE_NODE } from '@/components/task-runtime/TaskEmpty'
+import {
+  Alert,
+  Button,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
+
+const TEMPLATE_STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  draft: { label: '草稿', tone: 'warning' },
+  published: { label: '已发布', tone: 'success' },
+  deprecated: { label: '已废弃', tone: 'neutral' },
+  archived: { label: '已归档', tone: 'neutral' },
+}
 
 export function TaskTemplateDetail({ templateId }: { templateId: number }) {
   const router = useRouter()
@@ -20,6 +35,7 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
     queryFn: () => getTaskTemplate(templateId),
     enabled: Number.isFinite(templateId),
   })
+  useBreadcrumbLabel(template.data?.name)
   const createDraft = useMutation({
     mutationFn: () => createTaskTemplateDraft(templateId),
     onSuccess: (version) => {
@@ -30,67 +46,90 @@ export function TaskTemplateDetail({ templateId }: { templateId: number }) {
     onError: (error) => toast.error(getApiErrorMessage(error, '创建草稿版本失败')),
   })
 
-  if (template.isLoading) return <LoadingState />
-  if (template.isError || !template.data) return <ErrorState title="模板加载失败" onRetry={() => template.refetch()} />
+  if (template.isLoading) {
+    return (
+      <div className="cwgsyw-tasks-page">
+        <PageHeader showEyebrow={false} showBreadcrumb={false} showSubtitle={false} title="模板详情" />
+        <LoadingState label="正在加载模板…" />
+      </div>
+    )
+  }
+  if (template.isError || !template.data) {
+    return (
+      <div className="cwgsyw-tasks-page">
+        <PageHeader showEyebrow={false} showBreadcrumb={false} showSubtitle={false} title="模板详情" />
+        <ErrorState
+          title="模板加载失败"
+          description="无法读取任务模板，请重试。"
+          retry={<Button type="button" size="sm" variant="secondary" onClick={() => void template.refetch()}>重试</Button>}
+        />
+      </div>
+    )
+  }
 
-  const draft = template.data.versions.find((version) => version.status === 'draft')
+  const data = template.data
+  const draft = data.versions.find((version) => version.status === 'draft')
+  const status = TEMPLATE_STATUS[data.status] ?? { label: data.status, tone: 'neutral' as const }
+
   return (
-    <PageShell width="wide" density="comfortable">
-      <DetailHeader
-        backHref="/tasks/templates"
-        eyebrow={`任务模板 · ${template.data.code}`}
-        title={template.data.name}
-        subtitle={template.data.description || '暂无描述'}
+    <div className="cwgsyw-tasks-page">
+      <PageHeader
+        showEyebrow={false}
+        showBreadcrumb={false}
+        showSubtitle={false}
+        title={data.name}
+        status={<StatusBadge label={status.label} status={status.tone} />}
         actions={
-          <div className="flex gap-2">
-            {draft ? (
-              <Link href={`/tasks/templates/${templateId}/versions/${draft.id}`}>
-                <Button variant="primary"><Pencil className="h-4 w-4" />继续设计 v{draft.version}</Button>
-              </Link>
-            ) : hasPermission('task_template', 'update') && !template.data.builtin ? (
-              <Button variant="primary" onClick={() => createDraft.mutate()} disabled={createDraft.isPending}>
-                <CopyPlus className="h-4 w-4" />创建下一草稿版本
-              </Button>
-            ) : null}
-          </div>
+          draft ? (
+            <Button type="button" size="sm" variant="primary" onClick={() => router.push(`/tasks/templates/${templateId}/versions/${draft.id}`)}>
+              继续设计 v{draft.version}
+            </Button>
+          ) : hasPermission('task_template', 'update') && !data.builtin ? (
+            <Button type="button" size="sm" variant="primary" disabled={createDraft.isPending} onClick={() => createDraft.mutate()}>
+              {createDraft.isPending ? '创建中' : '创建下一草稿版本'}
+            </Button>
+          ) : null
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-4"><p className="text-xs text-v2-muted">当前状态</p><div className="mt-2"><StatusBadge status={template.data.status === 'published' ? 'ok' : template.data.status === 'draft' ? 'warn' : 'neutral'}>{template.data.status}</StatusBadge></div></Card>
-        <Card className="p-4"><p className="text-xs text-v2-muted">版本数量</p><p className="mt-2 text-2xl font-semibold text-v2-fg">{template.data.versions.length}</p></Card>
-        <Card className="p-4"><p className="text-xs text-v2-muted">模板范围</p><p className="mt-2 font-semibold text-v2-fg">{template.data.scopeType}</p></Card>
-        <Card className="p-4"><p className="text-xs text-v2-muted">模板来源</p><p className="mt-2 font-semibold text-v2-fg">{template.data.builtin ? '系统内置' : '租户自定义'}</p></Card>
-      </div>
-
-      {template.data.builtin && (
-        <Card className="flex items-start gap-3 border border-v2-primary-border bg-v2-primary-soft p-4 text-v2-primary">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
-          <div><p className="font-semibold">内置模板保持只读</p><p className="mt-1 text-sm opacity-80">计划可直接引用此模板；需要定制时应复制为新的租户模板。</p></div>
-        </Card>
-      )}
-
-      <Card className="p-5">
-        <div className="mb-4"><h2 className="font-semibold text-v2-fg">版本历史</h2><p className="mt-1 text-sm text-v2-muted">发布版本不可修改，历史任务始终绑定当时的具体版本。</p></div>
-        <div className="space-y-3">
-          {template.data.versions.map((version) => (
-            <Link
-              key={version.id}
-              href={`/tasks/templates/${templateId}/versions/${version.id}`}
-              className="flex items-center justify-between rounded-v2-lg border border-v2-border p-4 transition hover:bg-v2-surface-hover"
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-v2-surface-hover font-v2-mono text-sm font-semibold text-v2-fg">v{version.version}</span>
-                <div><p className="font-medium text-v2-fg">{version.name}</p><p className="text-xs text-v2-muted">更新于 {new Date(version.updatedAt).toLocaleString('zh-CN')}</p></div>
-              </div>
-              <div className="flex items-center gap-2">
-                {version.status !== 'draft' && <FileLock2 className="h-4 w-4 text-v2-muted" />}
-                <StatusBadge status={version.status === 'published' ? 'ok' : version.status === 'draft' ? 'warn' : 'neutral'}>{version.status}</StatusBadge>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Card>
-    </PageShell>
+      {data.builtin ? (
+        <Alert
+          tone="info"
+          title="内置模板保持只读"
+          description="计划可直接引用此模板；需要定制时应复制为新的租户模板。"
+          showDismiss={false}
+        />
+      ) : null}
+      <TaskPanel title="版本历史">
+        {data.versions.length === 0 ? (
+          <TaskEmpty iconSrc={TASK_LAYOUT_TEMPLATE_ICON} figmaNode={TASK_LAYOUT_TEMPLATE_NODE} title="暂无版本" description="发布版本不可修改，历史任务始终绑定当时的具体版本。" />
+        ) : (
+          <div className="cwgsyw-tasks-pick-list">
+            {data.versions.map((version) => {
+              const versionStatus = TEMPLATE_STATUS[version.status] ?? { label: version.status, tone: 'neutral' as const }
+              return (
+                <Button
+                  key={version.id}
+                  type="button"
+                  variant="ghost"
+                  className="cwgsyw-tasks-pick"
+                  onClick={() => router.push(`/tasks/templates/${templateId}/versions/${version.id}`)}
+                >
+                  <span className="cwgsyw-tasks-cell-title">v{version.version} · {version.name}</span>
+                  <span className="cwgsyw-tasks-cell-meta">更新于 {new Date(version.updatedAt).toLocaleString('zh-CN')}</span>
+                  <StatusBadge label={versionStatus.label} status={versionStatus.tone} />
+                </Button>
+              )
+            })}
+          </div>
+        )}
+      </TaskPanel>
+      <TaskPanel title="模板信息">
+        <dl className="cwgsyw-tasks-meta">
+          <div><dt>版本数量</dt><dd>{data.versions.length}</dd></div>
+          <div><dt>模板范围</dt><dd>{data.scopeType}</dd></div>
+          <div><dt>模板来源</dt><dd>{data.builtin ? '系统内置' : '租户自定义'}</dd></div>
+        </dl>
+      </TaskPanel>
+    </div>
   )
 }

@@ -1,47 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlignCenterHorizontal,
-  AlignCenterVertical,
-  AlignEndVertical,
-  AlignLeft,
-  AlignRight,
-  AlignStartVertical,
-  AlertTriangle,
-  ArrowLeft,
-  BetweenHorizontalEnd,
-  BetweenVerticalEnd,
-  Box,
-  CheckCircle2,
-  ChevronRight,
-  Copy,
-  ClipboardPaste,
-  DoorOpen,
-  Download,
-  Grid3X3,
-  ImageUp,
-  Layers,
-  Lock,
-  Minus,
-  Plus,
-  Redo2,
-  RotateCcw,
-  Save,
-  Send,
-  SquareDashedMousePointer,
-  Trash2,
-  Undo2,
-  Unlock,
-  Upload,
-  Warehouse,
-  Wrench,
-  X,
-} from "lucide-react";
-import { Button, Input, Label, Switch, Textarea } from "@/components/design-system";
+import { Button, Checkbox, EmptyState, ErrorState, Field, IconButton, Input, LoadingState, NeutralAlertDialog, NeutralDialog, Select, Switch, Textarea } from "@/design-system/figma-neutral/components";
+import { toast } from "@/design-system/figma-neutral/toast";
+
+type SpatialFigmaIconName =
+  | "undo" | "redo" | "minus" | "plus" | "rotate" | "upload" | "download"
+  | "align-left" | "align-center" | "align-right" | "align-top" | "align-bottom"
+  | "distribute-horizontal" | "distribute-vertical" | "copy" | "trash"
+  | "check-circle" | "save" | "send" | "layers" | "grid" | "wrench" | "box"
+  | "move" | "lock" | "unlock" | "close" | "chevron-previous";
+
+function SpatialFigmaIcon({ name, className }: { name: SpatialFigmaIconName; className?: string }) {
+  return <span aria-hidden="true" className={["cwgsyw-cmdb-spatial-editor__figma-icon", `cwgsyw-cmdb-spatial-editor__figma-icon--${name}`, className].filter(Boolean).join(" ")} />;
+}
+
+function SpatialActionIcon({ name }: { name: "check-circle" | "save" | "send" }) {
+  return <SpatialFigmaIcon name={name} />;
+}
 import { getApiErrorCode, getApiErrorMessage } from "@/lib/api-error";
 import {
   getFacilityCandidates,
@@ -75,6 +55,7 @@ import {
   parseSpatialBlueprint,
   serializeSpatialBlueprint,
 } from "../model/blueprint";
+import { CANVAS_ZONE_DEFAULT } from '@/design-system/figma-neutral/canvas-tokens'
 import {
   FACILITY_TYPE_LABELS,
   FACILITY_TYPES,
@@ -91,12 +72,13 @@ const SpatialEditorStage = dynamic(
     import("./SpatialEditorStage").then((module) => module.SpatialEditorStage),
   {
     ssr: false,
-    loading: () => <div className="h-full animate-pulse bg-v2-surface-soft" />,
+    loading: () => <div className="cwgsyw-cmdb-spatial-editor__canvas-loading" role="status" aria-label="正在准备空间编辑画布" />,
   },
 );
 
 interface SpatialEditorProps {
   roomId: number;
+  roomName: string;
   layoutId: number;
   canPublish: boolean;
 }
@@ -104,19 +86,20 @@ type History = { undo: SpatialDocument[]; redo: SpatialDocument[] };
 const PALETTE: Array<{
   type: SpatialElementType;
   label: string;
-  icon: typeof Warehouse;
+  icon: SpatialFigmaIconName;
 }> = [
-  { type: "ROOM_OUTLINE", label: "外轮廓", icon: SquareDashedMousePointer },
-  { type: "WALL", label: "墙体", icon: Layers },
-  { type: "DOOR", label: "门", icon: DoorOpen },
-  { type: "AISLE", label: "通道", icon: ChevronRight },
-  { type: "ZONE", label: "区域", icon: Grid3X3 },
-  { type: "FACILITY", label: "设施", icon: Wrench },
-  { type: "TEXT", label: "文字", icon: Box },
+  { type: "ROOM_OUTLINE", label: "外轮廓", icon: "move" },
+  { type: "WALL", label: "墙体", icon: "layers" },
+  { type: "DOOR", label: "门", icon: "box" },
+  { type: "AISLE", label: "通道", icon: "move" },
+  { type: "ZONE", label: "区域", icon: "grid" },
+  { type: "FACILITY", label: "设施", icon: "wrench" },
+  { type: "TEXT", label: "文字", icon: "box" },
 ];
 
 export function SpatialEditor({
   roomId,
+  roomName,
   layoutId,
   canPublish,
 }: SpatialEditorProps) {
@@ -125,28 +108,39 @@ export function SpatialEditor({
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery({
     queryKey: spatialQueryKeys.draft(layoutId),
     queryFn: () => getSpatialDraft(layoutId),
   });
   if (isLoading)
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center text-sm text-v2-muted">
-        正在加载编辑草稿...
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <LoadingState label="正在加载编辑草稿" />
       </div>
     );
   if (isError)
     return (
-      <div className="flex flex-col items-center gap-3 py-24 text-sm text-v2-danger">
-        <AlertTriangle className="h-8 w-8" />
-        {getApiErrorMessage(error, "草稿加载失败")}
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <ErrorState
+          title="编辑草稿加载失败"
+          description={getApiErrorMessage(error, "草稿加载失败")}
+          retry={<Button type="button" size="sm" variant="secondary" onClick={() => void refetch()}>重试</Button>}
+        />
       </div>
     );
-  if (!draft) return null;
+  if (!draft) {
+    return (
+      <div className="cwgsyw-cmdb-spatial-editor-state__content">
+        <EmptyState title="未找到编辑草稿" description="请返回空间布局列表后重试。" />
+      </div>
+    );
+  }
   return (
     <SpatialEditorSession
       key={draft.versionId}
       roomId={roomId}
+      roomName={roomName}
       layoutId={layoutId}
       canPublish={canPublish}
       draft={draft}
@@ -156,6 +150,7 @@ export function SpatialEditor({
 
 function SpatialEditorSession({
   roomId,
+  roomName,
   layoutId,
   canPublish,
   draft,
@@ -184,6 +179,9 @@ function SpatialEditorSession({
   const [publishNote, setPublishNote] = useState("");
   const [validationText, setValidationText] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
+  const [pendingImport, setPendingImport] = useState<SpatialDocument | null>(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const router = useRouter();
   const fit = useCallback(() => {
     if (!viewportRef.current || !document) return;
     setViewport(
@@ -370,21 +368,7 @@ function SpatialEditorSession({
       return;
     }
     try {
-      const imported = parseSpatialBlueprint(await file.text());
-      if (
-        !window.confirm(
-          "导入将替换当前草稿中的全部图纸元素，但不会导入 CI 绑定和参考图。替换后可使用撤销恢复，是否继续？",
-        )
-      ) {
-        setStatus("已取消导入图纸");
-        return;
-      }
-      change(imported);
-      blueprintAwaitingConfirmation.current = true;
-      setSelectedIds([]);
-      setValidationText(
-        `图纸导入成功，共 ${imported.elements.length} 个元素；CI 绑定和参考图未导入，请确认后保存。`,
-      );
+      setPendingImport(parseSpatialBlueprint(await file.text()));
     } catch (reason) {
       setValidationText(
         `图纸导入失败：${reason instanceof Error ? reason.message : "无法读取文件"}`,
@@ -422,12 +406,9 @@ function SpatialEditorSession({
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [hasUnsavedChanges]);
   const confirmLeave = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (
-      !hasUnsavedChanges ||
-      window.confirm("当前布局仍有未保存内容，确定离开编辑器吗？")
-    )
-      return;
+    if (!hasUnsavedChanges) return;
     event.preventDefault();
+    setLeaveOpen(true);
   };
   const add = (type: SpatialElementType) => {
     if (
@@ -579,39 +560,40 @@ function SpatialEditorSession({
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, [clipboard, document, selectedIds]);
   return (
-    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col md:-m-6">
-      <header className="flex min-h-14 flex-wrap items-center gap-2 border-b border-v2-border bg-v2-surface px-4 py-2">
+    <div className="cwgsyw-cmdb-page cwgsyw-cmdb-spatial-editor">
+      <header className="cwgsyw-cmdb-spatial-editor__header">
         <Link
           href={`/cmdb/spatial/rooms/${roomId}`}
           onClick={confirmLeave}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-v2-sm text-v2-muted hover:bg-v2-surface-hover"
+          className="cwgsyw-icon-btn cwgsyw-icon-btn--md cwgsyw-icon-btn--ghost"
+          aria-label="返回查看器"
           title="返回查看器"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <SpatialFigmaIcon name="chevron-previous" />
         </Link>
-        <div className="min-w-28 flex-1">
-          <p className="text-sm font-semibold text-v2-fg">编辑空间布局</p>
-          <p className="text-xs text-v2-muted">{status}</p>
+        <div className="cwgsyw-cmdb-spatial-editor__heading">
+          <p className="cwgsyw-cmdb-spatial-editor__title">编辑空间布局</p>
+          <p className="cwgsyw-cmdb-spatial-editor__status">{status}</p>
         </div>
         {hasConflict && (
           <>
             <Button
               variant="outline"
-              size="ui-sm"
+              size="sm"
               onClick={downloadConflictSnapshot}
             >
               导出当前 JSON
             </Button>
-            <Button variant="outline" size="ui-sm" onClick={reloadDraft}>
+            <Button variant="outline" size="sm" onClick={reloadDraft}>
               重新载入草稿
             </Button>
           </>
         )}
         <ToolButton label="撤销" disabled={!history.undo.length} onClick={undo}>
-          <Undo2 className="h-4 w-4" />
+          <SpatialFigmaIcon name="undo" />
         </ToolButton>
         <ToolButton label="重做" disabled={!history.redo.length} onClick={redo}>
-          <Redo2 className="h-4 w-4" />
+          <SpatialFigmaIcon name="redo" />
         </ToolButton>
         <ToolButton
           label="缩小"
@@ -619,9 +601,9 @@ function SpatialEditorSession({
             setViewport((v) => ({ ...v, scale: Math.max(0.1, v.scale - 0.1) }))
           }
         >
-          <Minus className="h-4 w-4" />
+          <SpatialFigmaIcon name="minus" />
         </ToolButton>
-        <span className="w-10 text-center text-xs text-v2-muted">
+        <span className="cwgsyw-cmdb-spatial-editor__scale">
           {Math.round(viewport.scale * 100)}%
         </span>
         <ToolButton
@@ -630,10 +612,10 @@ function SpatialEditorSession({
             setViewport((v) => ({ ...v, scale: Math.min(4, v.scale + 0.1) }))
           }
         >
-          <Plus className="h-4 w-4" />
+          <SpatialFigmaIcon name="plus" />
         </ToolButton>
         <ToolButton label="适配画布" onClick={fit}>
-          <RotateCcw className="h-4 w-4" />
+          <SpatialFigmaIcon name="rotate" />
         </ToolButton>
         <input
           ref={blueprintInputRef}
@@ -645,44 +627,43 @@ function SpatialEditorSession({
         />
         <Button
           variant="outline"
-          size="ui-sm"
+          size="sm"
+          leadingIcon={<SpatialFigmaIcon name="upload" />}
           onClick={() => blueprintInputRef.current?.click()}
         >
-          <Upload className="mr-1.5 h-4 w-4" />
           导入图纸
         </Button>
-        <Button variant="outline" size="ui-sm" onClick={exportBlueprint}>
-          <Download className="mr-1.5 h-4 w-4" />
+        <Button variant="outline" size="sm" leadingIcon={<SpatialFigmaIcon name="download" />} onClick={exportBlueprint}>
           导出图纸
         </Button>
         {selectedIds.length > 1 && (
           <>
             <ToolButton label="左对齐" onClick={() => align("left")}>
-              <AlignLeft className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-left" />
             </ToolButton>
             <ToolButton label="水平居中" onClick={() => align("center")}>
-              <AlignCenterHorizontal className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-center" />
             </ToolButton>
             <ToolButton label="右对齐" onClick={() => align("right")}>
-              <AlignRight className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-right" />
             </ToolButton>
             <ToolButton label="顶部对齐" onClick={() => align("top")}>
-              <AlignStartVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-top" />
             </ToolButton>
             <ToolButton label="垂直居中" onClick={() => align("middle")}>
-              <AlignCenterVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-center" />
             </ToolButton>
             <ToolButton label="底部对齐" onClick={() => align("bottom")}>
-              <AlignEndVertical className="h-4 w-4" />
+              <SpatialFigmaIcon name="align-bottom" />
             </ToolButton>
             <ToolButton
               label="水平等距"
               onClick={() => distribute("horizontal")}
             >
-              <BetweenHorizontalEnd className="h-4 w-4" />
+              <SpatialFigmaIcon name="distribute-horizontal" />
             </ToolButton>
             <ToolButton label="垂直等距" onClick={() => distribute("vertical")}>
-              <BetweenVerticalEnd className="h-4 w-4" />
+              <SpatialFigmaIcon name="distribute-vertical" />
             </ToolButton>
           </>
         )}
@@ -696,14 +677,14 @@ function SpatialEditorSession({
           }
           onClick={copySelected}
         >
-          <Copy className="h-4 w-4" />
+          <SpatialFigmaIcon name="copy" />
         </ToolButton>
         <ToolButton
           label="粘贴元素"
           disabled={!clipboard.length}
           onClick={paste}
         >
-          <ClipboardPaste className="h-4 w-4" />
+          <SpatialFigmaIcon name="copy" />
         </ToolButton>
         <ToolButton
           label="删除所选元素"
@@ -717,73 +698,76 @@ function SpatialEditorSession({
           }
           onClick={removeSelected}
         >
-          <Trash2 className="h-4 w-4" />
+          <SpatialFigmaIcon name="trash" />
         </ToolButton>
-        <Button
-          variant="outline"
-          size="ui-sm"
-          onClick={() => validate.mutate()}
-          disabled={validate.isPending}
-        >
-          <CheckCircle2 className="mr-1.5 h-4 w-4" />
-          校验
-        </Button>
-        <Button
-          variant="outline"
-          size="ui-sm"
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-        >
-          <Save className="mr-1.5 h-4 w-4" />
-          保存
-        </Button>
-        {canPublish && (
-          <Button variant="default" size="ui-sm" onClick={() => setPublishOpen(true)}>
-            <Send className="mr-1.5 h-4 w-4" />
-            发布
+        <div className="cwgsyw-cmdb-spatial-editor__primary-actions" aria-label="草稿操作">
+          <Button
+            variant="outline"
+            size="sm"
+            leadingIcon={<SpatialActionIcon name="check-circle" />}
+            onClick={() => validate.mutate()}
+            disabled={validate.isPending}
+          >
+            校验
           </Button>
-        )}
+          <Button
+            variant="outline"
+            size="sm"
+            leadingIcon={<SpatialActionIcon name="save" />}
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+          >
+            保存
+          </Button>
+          {canPublish && (
+            <Button variant="primary" size="sm" leadingIcon={<SpatialActionIcon name="send" />} onClick={() => setPublishOpen(true)}>
+              发布
+            </Button>
+          )}
+        </div>
       </header>
       {validationText && (
-        <div className="flex items-center justify-between border-b border-v2-border bg-v2-surface-soft px-4 py-2 text-sm">
+        <div className="cwgsyw-cmdb-spatial-editor__validation" role="status">
           <span>{validationText}</span>
-          <button onClick={() => setValidationText(null)} title="关闭">
-            <X className="h-4 w-4" />
-          </button>
+          <IconButton variant="ghost" size="sm" icon={<SpatialFigmaIcon name="close" />} aria-label="关闭校验结果" onClick={() => setValidationText(null)} />
         </div>
       )}
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="hidden w-52 shrink-0 border-r border-v2-border bg-v2-surface p-3 lg:block">
-          <p className="mb-2 text-xs font-medium text-v2-muted">组件库</p>
-          <div className="grid grid-cols-2 gap-2">
-            {PALETTE.map(({ type, label, icon: Icon }) => (
-              <button
+      <main className="cwgsyw-cmdb-spatial-editor__workspace">
+        <aside className="cwgsyw-cmdb-spatial-editor__library">
+          <p className="cwgsyw-cmdb-spatial-editor__panel-title">组件库</p>
+          <div className="cwgsyw-cmdb-spatial-editor__palette">
+            {PALETTE.map(({ type, label, icon }) => (
+              <Button
                 key={type}
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-label={`添加${label}`}
+                className="cwgsyw-cmdb-spatial-editor__palette-item"
                 onClick={() => add(type)}
-                className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-v2-sm border border-v2-border text-xs text-v2-fg hover:bg-v2-surface-hover"
               >
-                <Icon className="h-4 w-4" />
+                <SpatialFigmaIcon name={icon} />
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
-          <div className="mt-4 space-y-3 border-t border-v2-border pt-3">
-            <p className="text-xs font-medium text-v2-muted">绘图辅助</p>
-            <div className="flex items-center justify-between gap-2 text-xs text-v2-fg">
+          <div className="mt-4 space-y-3 border-t border-[var(--cwgsyw-border-default)] pt-3">
+            <p className="text-xs font-medium text-[var(--cwgsyw-text-secondary)]">绘图辅助</p>
+            <div className="flex items-center justify-between gap-2 text-xs text-[var(--cwgsyw-text-primary)]">
               <span>智能对齐</span>
               <Switch
                 size="sm"
                 checked={smartAlignment}
-                onCheckedChange={setSmartAlignment}
+                onChange={(event) => setSmartAlignment(event.target.checked)}
                 aria-label="智能对齐"
               />
             </div>
-            <div className="flex items-center justify-between gap-2 text-xs text-v2-fg">
+            <div className="flex items-center justify-between gap-2 text-xs text-[var(--cwgsyw-text-primary)]">
               <span>正交吸附</span>
               <Switch
                 size="sm"
                 checked={orthogonalSnap}
-                onCheckedChange={setOrthogonalSnap}
+                onChange={(event) => setOrthogonalSnap(event.target.checked)}
                 aria-label="正交吸附"
               />
             </div>
@@ -797,8 +781,8 @@ function SpatialEditorSession({
               })
             }
           />
-          <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-v2-muted">
-            <ImageUp className="h-4 w-4" />
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-[var(--cwgsyw-text-secondary)]">
+            <SpatialFigmaIcon name="upload" />
             上传参考图
             <input
               type="file"
@@ -817,8 +801,11 @@ function SpatialEditorSession({
           ref={viewportRef}
           role="region"
           aria-label="机房空间布局编辑画布"
-          className="min-w-0 flex-1 overflow-hidden bg-v2-surface"
+          className="cwgsyw-cmdb-spatial-editor__canvas"
         >
+          <div className="cwgsyw-cmdb-spatial-editor__canvas-room-name" title={roomName}>
+            {roomName}
+          </div>
           <SpatialEditorStage
             document={document}
             referenceImageUrl={
@@ -895,7 +882,7 @@ function SpatialEditorSession({
             }
           />
         </section>
-        <aside className="hidden w-80 shrink-0 border-l border-v2-border bg-v2-surface lg:block">
+        <aside className="cwgsyw-cmdb-spatial-editor__inspector" aria-label="空间元素属性">
           <PropertiesPanel
             element={selected}
             selectedElements={document.elements.filter((element) =>
@@ -915,16 +902,52 @@ function SpatialEditorSession({
           />
         </aside>
       </main>
-      {publishOpen && (
-        <PublishDialog
-          note={publishNote}
-          onNote={setPublishNote}
-          pending={publish.isPending}
-          error={publish.error}
-          onCancel={() => setPublishOpen(false)}
-          onConfirm={() => publish.mutate()}
+      <PublishDialog
+        open={publishOpen}
+        note={publishNote}
+        onNote={setPublishNote}
+        pending={publish.isPending}
+        error={publish.error}
+        onCancel={() => setPublishOpen(false)}
+        onConfirm={() => publish.mutate()}
+      />
+      {pendingImport ? (
+        <NeutralAlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingImport(null);
+          }}
+          intent="destructive"
+          title="确认导入图纸？"
+          description="导入将替换当前草稿中的全部图纸元素，但不会导入 CI 绑定和参考图。替换后可使用撤销恢复。"
+          confirmLabel="确认导入"
+          cancelLabel="取消"
+          onConfirm={() => {
+            const imported = pendingImport;
+            setPendingImport(null);
+            change(imported);
+            blueprintAwaitingConfirmation.current = true;
+            setSelectedIds([]);
+            setValidationText(
+              `图纸导入成功，共 ${imported.elements.length} 个元素；CI 绑定和参考图未导入，请确认后保存。`,
+            );
+          }}
         />
-      )}
+      ) : null}
+      {leaveOpen ? (
+        <NeutralAlertDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setLeaveOpen(false);
+          }}
+          intent="destructive"
+          title="确定离开编辑器？"
+          description="当前布局仍有未保存内容。"
+          confirmLabel="离开"
+          cancelLabel="继续编辑"
+          onConfirm={() => router.push(`/cmdb/spatial/rooms/${roomId}`)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -933,11 +956,12 @@ function ToolButton({
   label,
   children,
   ...props
-}: React.ComponentProps<typeof Button> & { label: string }) {
+}: Omit<ComponentProps<typeof IconButton>, "aria-label" | "icon"> & {
+  label: string;
+  children: ReactNode;
+}) {
   return (
-    <Button variant="ghost" size="icon" title={label} {...props}>
-      {children}
-    </Button>
+    <IconButton variant="ghost" size="sm" title={label} aria-label={label} icon={children} {...props} />
   );
 }
 function RackRowForm({
@@ -975,21 +999,21 @@ function RackRowForm({
         }),
       );
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "机柜列生成失败");
+      toast.error(error instanceof Error ? error.message : "机柜列生成失败");
     }
   };
   return (
-    <div className="mt-4 space-y-2 border-t border-v2-border pt-3">
-      <p className="text-xs font-medium text-v2-muted">机柜列生成</p>
+    <div className="mt-4 space-y-2 border-t border-[var(--cwgsyw-border-default)] pt-3">
+      <p className="text-xs font-medium text-[var(--cwgsyw-text-secondary)]">机柜列生成</p>
       <div className="flex gap-2">
         <Input
-          className="h-8"
+          size="sm"
           value={code}
           onChange={(event) => setCode(event.target.value)}
           aria-label="机柜列代码"
         />
         <Input
-          className="h-8"
+          size="sm"
           type="number"
           min={1}
           max={200}
@@ -999,10 +1023,10 @@ function RackRowForm({
         />
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           宽度 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0.5}
             max={50}
@@ -1012,10 +1036,10 @@ function RackRowForm({
             aria-label="批量机柜宽度"
           />
         </label>
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           高度 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0.5}
             max={50}
@@ -1025,10 +1049,10 @@ function RackRowForm({
             aria-label="批量机柜高度"
           />
         </label>
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           间距 %
           <Input
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min={0}
             max={20}
@@ -1040,37 +1064,34 @@ function RackRowForm({
         </label>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           排列方向
-          <select
-            className="mt-1 h-8 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm text-v2-fg"
-            value={orientation}
-            onChange={(event) =>
-              setOrientation(event.target.value as "horizontal" | "vertical")
-            }
+          <Select overlay
+            size="sm"
             aria-label="机柜排列方向"
-          >
-            <option value="vertical">纵向</option>
-            <option value="horizontal">横向</option>
-          </select>
+            value={orientation}
+            options={[
+              { value: "vertical", label: "纵向" },
+              { value: "horizontal", label: "横向" },
+            ]}
+            onChange={(value) => setOrientation(value as "horizontal" | "vertical")}
+          />
         </label>
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           编号顺序
-          <select
-            className="mt-1 h-8 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm text-v2-fg"
-            value={numbering}
-            onChange={(event) =>
-              setNumbering(event.target.value as "ascending" | "descending")
-            }
+          <Select overlay
+            size="sm"
             aria-label="机柜编号顺序"
-          >
-            <option value="ascending">正序</option>
-            <option value="descending">倒序</option>
-          </select>
+            value={numbering}
+            options={[
+              { value: "ascending", label: "正序" },
+              { value: "descending", label: "倒序" },
+            ]}
+            onChange={(value) => setNumbering(value as "ascending" | "descending")}
+          />
         </label>
       </div>
-      <Button className="w-full" variant="outline" size="ui-sm" onClick={generate}>
-        <Warehouse className="mr-1.5 h-4 w-4" />
+      <Button className="w-full" variant="outline" size="sm" leadingIcon={<SpatialFigmaIcon name="grid" />} onClick={generate}>
         生成机柜位
       </Button>
     </div>
@@ -1091,28 +1112,25 @@ function ReferenceControls({
       reference: { ...reference, ...patch },
     });
   return (
-    <div className="mt-4 space-y-3 border-t border-v2-border pt-3">
-      <p className="text-xs font-medium text-v2-muted">参考图</p>
-      <label className="flex items-center justify-between gap-2 text-xs text-v2-fg">
-        <span>在已发布视图显示</span>
-        <input
-          aria-label="在已发布视图显示参考图"
-          type="checkbox"
-          checked={reference.visibleInPublishedView === true}
-          onChange={(event) =>
-            update({ visibleInPublishedView: event.target.checked })
-          }
-        />
-      </label>
+    <div className="mt-4 space-y-3 border-t border-[var(--cwgsyw-border-default)] pt-3">
+      <p className="text-xs font-medium text-[var(--cwgsyw-text-secondary)]">参考图</p>
+      <Checkbox
+        label="在已发布视图显示"
+        aria-label="在已发布视图显示参考图"
+        checked={reference.visibleInPublishedView === true}
+        onChange={(event) =>
+          update({ visibleInPublishedView: event.target.checked })
+        }
+      />
       <label
-        className="block text-xs text-v2-fg"
+        className="block text-xs text-[var(--cwgsyw-text-primary)]"
         htmlFor="spatial-reference-opacity"
       >
         透明度 {Math.round((reference.opacity ?? 0.35) * 100)}%
         <input
           id="spatial-reference-opacity"
           aria-label="参考图透明度"
-          className="mt-1 w-full"
+          className="cwgsyw-cmdb-spatial-editor__range mt-1 w-full"
           type="range"
           min="0.05"
           max="1"
@@ -1123,15 +1141,11 @@ function ReferenceControls({
       </label>
       <Button
         variant="outline"
-        size="ui-sm"
+        size="sm"
         className="w-full"
+        leadingIcon={reference.locked ? <SpatialFigmaIcon name="unlock" /> : <SpatialFigmaIcon name="lock" />}
         onClick={() => update({ locked: !reference.locked })}
       >
-        {reference.locked ? (
-          <Unlock className="mr-1.5 h-4 w-4" />
-        ) : (
-          <Lock className="mr-1.5 h-4 w-4" />
-        )}
         {reference.locked ? "解除参考图锁定" : "锁定参考图"}
       </Button>
     </div>
@@ -1164,7 +1178,7 @@ function PropertiesPanel({
   });
   if (!element)
     return (
-      <div className="p-4 text-sm text-v2-muted">
+      <div className="p-4 text-sm text-[var(--cwgsyw-text-secondary)]">
         选择机柜、设施或区域编辑属性。
       </div>
     );
@@ -1206,8 +1220,8 @@ function PropertiesPanel({
       {onlyRacks ? (
         <>
           <div>
-            <p className="text-xs text-v2-muted">批量选择</p>
-            <p className="font-semibold text-v2-fg">
+            <p className="text-xs text-[var(--cwgsyw-text-secondary)]">批量选择</p>
+            <p className="font-semibold text-[var(--cwgsyw-text-primary)]">
               已选 {selectedElements.length} 个机柜
             </p>
           </div>
@@ -1220,13 +1234,14 @@ function PropertiesPanel({
       ) : (
         <>
           <div>
-            <p className="text-xs text-v2-muted">{element.type}</p>
-            <p className="font-semibold text-v2-fg">{elementLabel(element)}</p>
+            <p className="text-xs text-[var(--cwgsyw-text-secondary)]">{element.type}</p>
+            <p className="font-semibold text-[var(--cwgsyw-text-primary)]">{elementLabel(element)}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="spatial-element-name">名称</Label>
+            <label className="cwgsyw-type-label-sm" htmlFor="spatial-element-name">名称</label>
             <Input
               id="spatial-element-name"
+              size="sm"
               value={element.name || ""}
               onChange={(event) =>
                 onChange(
@@ -1238,19 +1253,20 @@ function PropertiesPanel({
             />
           </div>
           {element.type === "ROOM_OUTLINE" && (
-            <p className="text-xs leading-5 text-v2-muted">
+            <p className="text-xs leading-5 text-[var(--cwgsyw-text-secondary)]">
               拖动四角可扩大或缩小外轮廓，双击边线可增加顶点。
             </p>
           )}
           {element.type === "ZONE" && (
             <section className="space-y-3">
-              <Label>区域样式</Label>
+              <span className="cwgsyw-type-label-sm">区域样式</span>
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   aria-label="区域颜色"
-                  className="h-9 w-12 cursor-pointer rounded-v2-sm border border-v2-border bg-v2-surface p-1"
+                  className="w-12"
+                  size="sm"
                   type="color"
-                  value={element.zone?.color || "#a855f7"}
+                  value={element.zone?.color || CANVAS_ZONE_DEFAULT}
                   onChange={(event) =>
                     onChange(
                       updateElement(document, element.id, {
@@ -1259,13 +1275,13 @@ function PropertiesPanel({
                     )
                   }
                 />
-                <span className="text-xs text-v2-muted">填充颜色</span>
+                <span className="text-xs text-[var(--cwgsyw-text-secondary)]">填充颜色</span>
               </div>
-              <label className="block text-xs text-v2-muted">
+              <label className="block text-xs text-[var(--cwgsyw-text-secondary)]">
                 透明度 {Math.round((element.zone?.opacity ?? 0.18) * 100)}%
                 <input
                   aria-label="区域透明度"
-                  className="mt-1 w-full"
+                  className="cwgsyw-cmdb-spatial-editor__range mt-1 w-full"
                   type="range"
                   min="0.05"
                   max="0.6"
@@ -1287,28 +1303,25 @@ function PropertiesPanel({
           )}
           {element.type === "FACILITY" && (
             <div className="space-y-2">
-              <Label htmlFor="spatial-facility-type">设施类型</Label>
-              <select
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-facility-type">设施类型</label>
+              <Select overlay
                 id="spatial-facility-type"
-                className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm"
+                size="sm"
                 value={element.facility?.facilityType || "GENERAL"}
-                onChange={(event) =>
-                  changeFacilityType(event.target.value as SpatialFacilityType)
-                }
-              >
-                {FACILITY_TYPES.map((facilityType) => (
-                  <option key={facilityType} value={facilityType}>
-                    {FACILITY_TYPE_LABELS[facilityType]}
-                  </option>
-                ))}
-              </select>
+                options={FACILITY_TYPES.map((facilityType) => ({
+                  value: facilityType,
+                  label: FACILITY_TYPE_LABELS[facilityType],
+                }))}
+                onChange={(value) => changeFacilityType(value as SpatialFacilityType)}
+              />
             </div>
           )}
           {element.type !== "ROOM_OUTLINE" && (
             <Button
               variant="outline"
-              size="ui-sm"
+              size="sm"
               className="w-full"
+              leadingIcon={element.locked ? <SpatialFigmaIcon name="unlock" /> : <SpatialFigmaIcon name="lock" />}
               onClick={() =>
                 onChange(
                   updateElement(document, element.id, {
@@ -1317,17 +1330,12 @@ function PropertiesPanel({
                 )
               }
             >
-              {element.locked ? (
-                <Unlock className="mr-1.5 h-4 w-4" />
-              ) : (
-                <Lock className="mr-1.5 h-4 w-4" />
-              )}
               {element.locked ? "解除锁定" : "锁定元素"}
             </Button>
           )}
           {element.type === "TEXT" && (
             <div className="space-y-2">
-              <Label htmlFor="spatial-element-text">文字</Label>
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-element-text">文字</label>
               <Textarea
                 id="spatial-element-text"
                 value={element.text || ""}
@@ -1350,32 +1358,30 @@ function PropertiesPanel({
           )}
           {(element.type === "RACK_SLOT" || element.type === "FACILITY") && (
             <div className="space-y-2">
-              <Label htmlFor="spatial-ci-binding">CI 绑定</Label>
-              <select
+              <label className="cwgsyw-type-label-sm" htmlFor="spatial-ci-binding">CI 绑定</label>
+              <Select overlay
                 id="spatial-ci-binding"
-                className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm"
-                value={element.binding?.ciInstanceId || ""}
-                onChange={(event) => bind(event.target.value)}
-              >
-                <option value="">不绑定</option>
-                {availableCandidates.map((candidate) => (
-                  <option
-                    key={candidate.ciInstanceId}
-                    value={candidate.ciInstanceId}
-                  >
-                    {candidate.name}（{candidate.status || "未知状态"}）
-                  </option>
-                ))}
-              </select>
+                size="sm"
+                placeholder="不绑定"
+                value={element.binding?.ciInstanceId ? String(element.binding.ciInstanceId) : ""}
+                options={[
+                  { value: "", label: "不绑定" },
+                  ...availableCandidates.map((candidate) => ({
+                    value: String(candidate.ciInstanceId),
+                    label: `${candidate.name}（${candidate.status || "未知状态"}）`,
+                  })),
+                ]}
+                onChange={(value) => bind(value)}
+              />
             </div>
           )}
-          <Button
-            variant="destructive"
-            size="ui-sm"
-            onClick={onDelete}
-            disabled={element.type === "ROOM_OUTLINE"}
-          >
-            <X className="mr-1.5 h-4 w-4" />
+            <Button
+              variant="destructive"
+              size="sm"
+              leadingIcon={<SpatialFigmaIcon name="trash" />}
+              onClick={onDelete}
+              disabled={element.type === "ROOM_OUTLINE"}
+            >
             删除元素
           </Button>
         </>
@@ -1400,12 +1406,12 @@ function RackDimensionControls({
   const heightPercent = Number((element.geometry.height * 100).toFixed(1));
   return (
     <section className="space-y-2">
-      <Label>机柜尺寸</Label>
+      <span className="cwgsyw-type-label-sm">机柜尺寸</span>
       <div className="grid grid-cols-3 gap-1">
         <Button
           type="button"
           variant="outline"
-          size="ui-sm"
+          size="sm"
           onClick={() => update(0.025, 0.055)}
         >
           紧凑
@@ -1413,7 +1419,7 @@ function RackDimensionControls({
         <Button
           type="button"
           variant="outline"
-          size="ui-sm"
+          size="sm"
           onClick={() => update(0.04, 0.08)}
         >
           标准
@@ -1421,18 +1427,18 @@ function RackDimensionControls({
         <Button
           type="button"
           variant="outline"
-          size="ui-sm"
+          size="sm"
           onClick={() => update(0.055, 0.11)}
         >
           加大
         </Button>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           宽度 %
           <Input
             aria-label="机柜宽度"
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min="0.5"
             max="50"
@@ -1448,11 +1454,11 @@ function RackDimensionControls({
             }
           />
         </label>
-        <label className="text-xs text-v2-muted">
+        <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
           高度 %
           <Input
             aria-label="机柜高度"
-            className="mt-1 h-8"
+            size="sm" className="mt-1"
             type="number"
             min="0.5"
             max="50"
@@ -1551,12 +1557,12 @@ function BatchRackDimensionControls({
   return (
     <section className="space-y-3">
       <div className="space-y-2">
-        <Label>统一机柜尺寸</Label>
+        <span className="cwgsyw-type-label-sm">统一机柜尺寸</span>
         <div className="grid grid-cols-3 gap-1">
           <Button
             type="button"
             variant="outline"
-            size="ui-sm"
+            size="sm"
             onClick={() => update(0.025, 0.055)}
           >
             紧凑
@@ -1564,7 +1570,7 @@ function BatchRackDimensionControls({
           <Button
             type="button"
             variant="outline"
-            size="ui-sm"
+            size="sm"
             onClick={() => update(0.04, 0.08)}
           >
             标准
@@ -1572,18 +1578,18 @@ function BatchRackDimensionControls({
           <Button
             type="button"
             variant="outline"
-            size="ui-sm"
+            size="sm"
             onClick={() => update(0.055, 0.11)}
           >
             加大
           </Button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-v2-muted">
+          <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
             宽度 %
             <Input
               aria-label="批量机柜宽度调整"
-              className="mt-1 h-8"
+              size="sm" className="mt-1"
               type="number"
               min="0.5"
               max="50"
@@ -1597,11 +1603,11 @@ function BatchRackDimensionControls({
               }
             />
           </label>
-          <label className="text-xs text-v2-muted">
+          <label className="text-xs text-[var(--cwgsyw-text-secondary)]">
             高度 %
             <Input
               aria-label="批量机柜高度调整"
-              className="mt-1 h-8"
+              size="sm" className="mt-1"
               type="number"
               min="0.5"
               max="50"
@@ -1617,22 +1623,22 @@ function BatchRackDimensionControls({
           </label>
         </div>
       </div>
-      <div className="space-y-2 border-t border-v2-border pt-3">
-        <Label>统一机柜间距</Label>
+      <div className="space-y-2 border-t border-[var(--cwgsyw-border-default)] pt-3">
+        <span className="cwgsyw-type-label-sm">统一机柜间距</span>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-          <select
+          <Select overlay
+            size="sm"
             aria-label="批量机柜间距方向"
-            className="h-8 rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm"
             value={axis}
-            onChange={(event) =>
-              setAxis(event.target.value as "horizontal" | "vertical")
-            }
-          >
-            <option value="vertical">纵向</option>
-            <option value="horizontal">横向</option>
-          </select>
+            options={[
+              { value: "vertical", label: "纵向" },
+              { value: "horizontal", label: "横向" },
+            ]}
+            onChange={(value) => setAxis(value as "horizontal" | "vertical")}
+          />
           <Input
             aria-label="批量机柜间距调整"
+            size="sm"
             type="number"
             min="0"
             max="20"
@@ -1640,11 +1646,11 @@ function BatchRackDimensionControls({
             value={gapPercent}
             onChange={(event) => setGapPercent(Number(event.target.value))}
           />
-          <Button type="button" variant="outline" size="ui-sm" onClick={applyGap}>
+          <Button type="button" variant="outline" size="sm" onClick={applyGap}>
             应用
           </Button>
         </div>
-        <p className="text-xs text-v2-muted">
+        <p className="text-xs text-[var(--cwgsyw-text-secondary)]">
           按所选机柜在该方向的顺序排列，超出画布时自动取可用最大间距。
         </p>
       </div>
@@ -1652,6 +1658,7 @@ function BatchRackDimensionControls({
   );
 }
 function PublishDialog({
+  open,
   note,
   onNote,
   pending,
@@ -1659,6 +1666,7 @@ function PublishDialog({
   onCancel,
   onConfirm,
 }: {
+  open: boolean;
   note: string;
   onNote: (note: string) => void;
   pending: boolean;
@@ -1667,40 +1675,41 @@ function PublishDialog({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md rounded-v2-md border border-v2-border bg-v2-surface p-5 shadow-v2-lg"
-      >
-        <h2 className="text-base font-semibold text-v2-fg">发布空间布局</h2>
-        <p className="mt-1 text-sm text-v2-muted">
-          发布后当前版本不可修改，后续编辑会基于此版本创建新草稿。
-        </p>
-        <Label htmlFor="spatial-publish-note" className="mt-4 block">
-          版本说明
-        </Label>
-        <Textarea
-          id="spatial-publish-note"
-          className="mt-2"
-          value={note}
-          onChange={(event) => onNote(event.target.value)}
-          maxLength={500}
-        />
-        {Boolean(error) && (
-          <p className="mt-2 text-sm text-v2-danger">
-            {getApiErrorMessage(error, "发布失败，请先修复校验错误")}
-          </p>
-        )}
-        <div className="mt-5 flex justify-end gap-2">
-          <Button size="default" variant="outline" onClick={onCancel}>
+    <NeutralDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onCancel();
+      }}
+      title="发布空间布局"
+      description="发布后当前版本不可修改，后续编辑会基于此版本创建新草稿。"
+      showClose={false}
+      size="sm"
+      footer={
+        <div className="cwgsyw-form__actions">
+          <Button type="button" variant="secondary" onClick={onCancel}>
             取消
           </Button>
-          <Button size="default" variant="default" onClick={onConfirm} disabled={pending}>
+          <Button type="button" variant="primary" onClick={onConfirm} disabled={pending} loading={pending}>
             {pending ? "发布中..." : "确认发布"}
           </Button>
         </div>
+      }
+    >
+      <div className="cwgsyw-form">
+        <Field htmlFor="spatial-publish-note" label="版本说明">
+          <Textarea
+            id="spatial-publish-note"
+            value={note}
+            onChange={(event) => onNote(event.target.value)}
+            maxLength={500}
+          />
+        </Field>
+        {Boolean(error) ? (
+          <p className="cwgsyw-type-label-sm" style={{ color: "var(--cwgsyw-status-danger-fg)" }}>
+            {getApiErrorMessage(error, "发布失败，请先修复校验错误")}
+          </p>
+        ) : null}
       </div>
-    </div>
+    </NeutralDialog>
   );
 }

@@ -2,17 +2,18 @@
 
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { ChevronDown } from 'lucide-react'
+import { Icon, MenuTriggerButton } from '@/design-system/figma-neutral/components'
 import type { NavGroup } from './types'
 import { groupActiveChild } from './utils'
 
-export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle, groupScope }: {
+export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle, groupScope, onNavigate }: {
   group: NavGroup
   pathname: string
   hasPermission: (r: string, a: string) => boolean
   isOpen: boolean
   onToggle: () => void
   groupScope: string
+  onNavigate?: () => void
 }) {
   const visibleChildren = group.children.filter(c =>
     (!c.requiredScope || c.requiredScope === groupScope)
@@ -23,25 +24,30 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
   const isAnyChildActive = groupActiveChild(group, pathname, hasPermission, groupScope)
 
   return (
-    <div className="mb-1">
-      <button
+    <div className="cwgsyw-sidebar__group">
+      <MenuTriggerButton
+        type="button"
+        size="sm"
+        variant="ghost"
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label={group.label}
         className={cn(
-          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-          isAnyChildActive
-            ? 'bg-white/10 text-v2-sidebar-fg'
-            : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-v2-sidebar-fg'
+          'cwgsyw-sidebar__group-trigger',
+          isAnyChildActive && 'is-active',
         )}
       >
-        <group.icon className="h-[18px] w-[18px] shrink-0" />
+        <group.icon className="size-4 shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
-        <ChevronDown
+        <Icon
+          name="chevron-down"
+          size="sm"
           className={cn(
-            'h-3.5 w-3.5 transition-transform duration-200 ease-out motion-reduce:transition-none',
+            'transition-transform duration-200 ease-out motion-reduce:transition-none',
             isOpen ? 'rotate-0' : '-rotate-90',
           )}
         />
-      </button>
+      </MenuTriggerButton>
 
       <div
         className={cn(
@@ -50,7 +56,7 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
         )}
       >
         <div className="overflow-hidden min-h-0">
-          <div className="mt-1 space-y-0.5">
+          <div className="cwgsyw-sidebar__subitems">
             {visibleChildren.map((item) => {
               const isActive = item.exact
                 ? pathname === item.href
@@ -62,17 +68,15 @@ export function NavGroupItem({ group, pathname, hasPermission, isOpen, onToggle,
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-3',
-                    isActive
-                      ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                      : 'text-slate-300 hover:bg-white/6 hover:text-white'
+                    'cwgsyw-sidebar__subitem',
+                    isActive && 'is-active',
                   )}
                 >
-                  <item.icon className="h-3.5 w-3.5 shrink-0 opacity-85" />
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                    <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1.5 font-mono text-[11px] tabular-nums text-[var(--cwgsyw-status-danger-fg)]">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}

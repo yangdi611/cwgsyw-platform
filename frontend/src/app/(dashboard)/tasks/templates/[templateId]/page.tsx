@@ -1,4 +1,5 @@
 import { TaskTemplateDetail } from '@/components/task-template/TaskTemplateDetail'
+import '@/design-system/figma-neutral/index.css'
 
 export default async function TaskTemplateDetailPage({
   params,

@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button, Input, Label } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
+import { Button, Field, Input } from '@/design-system/figma-neutral/components'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { updateAccountProfile, type AccountProfile } from '@/lib/account-api'
 
@@ -35,14 +35,14 @@ export function ProfileForm({ profile, onSuccess }: ProfileFormProps) {
   const onSubmit = async (data: ProfileFormData) => {
     setSubmitting(true)
     try {
-      const profile = await updateAccountProfile(data)
+      const nextProfile = await updateAccountProfile(data)
       reset({
-        email: profile.email ?? '',
-        phone: profile.phone ?? '',
-        avatarUrl: profile.avatarUrl ?? '',
+        email: nextProfile.email ?? '',
+        phone: nextProfile.phone ?? '',
+        avatarUrl: nextProfile.avatarUrl ?? '',
       })
       toast.success('资料已更新')
-      onSuccess?.(profile)
+      onSuccess?.(nextProfile)
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, '更新失败'))
     } finally {
@@ -51,31 +51,29 @@ export function ProfileForm({ profile, onSuccess }: ProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label>用户名</Label>
-        <Input value={profile.username} disabled />
+    <form className="cwgsyw-form cwgsyw-account-form cwgsyw-account-form--profile" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <div className="cwgsyw-account-form__fields cwgsyw-account-form__fields--profile">
+        <Field htmlFor="profile-username" label="用户名" state="disabled">
+          <Input size="sm" autoComplete="username" readOnly value={profile.username} />
+        </Field>
+        <Field htmlFor="profile-realName" label="真实姓名" state="disabled">
+          <Input size="sm" autoComplete="name" readOnly value={profile.realName} />
+        </Field>
+        <Field htmlFor="email" label="邮箱">
+          <Input size="sm" type="email" autoComplete="email" maxLength={128} placeholder="请输入邮箱" {...register('email')} />
+        </Field>
+        <Field htmlFor="phone" label="手机号">
+          <Input size="sm" autoComplete="tel" maxLength={32} placeholder="请输入手机号" {...register('phone')} />
+        </Field>
+        <Field htmlFor="avatarUrl" label="头像 URL">
+          <Input size="sm" maxLength={512} placeholder="可选，留空则使用默认头像" {...register('avatarUrl')} />
+        </Field>
       </div>
-      <div className="space-y-2">
-        <Label>真实姓名</Label>
-        <Input value={profile.realName} disabled />
-        <p className="text-xs text-v2-muted">真实姓名由管理员维护，如需修改请联系管理员。</p>
+      <div className="cwgsyw-form__actions">
+        <Button type="submit" size="sm" variant="primary" loading={submitting}>
+          {submitting ? '保存中…' : '保存资料'}
+        </Button>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">邮箱</Label>
-        <Input id="email" type="email" {...register('email')} maxLength={128} placeholder="请输入邮箱" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="phone">手机号</Label>
-        <Input id="phone" {...register('phone')} maxLength={32} placeholder="请输入手机号" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="avatarUrl">头像 URL</Label>
-        <Input id="avatarUrl" {...register('avatarUrl')} maxLength={512} placeholder="可选，留空则使用默认头像" />
-      </div>
-      <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
-        {submitting ? '保存中…' : '保存资料'}
-      </Button>
     </form>
   )
 }

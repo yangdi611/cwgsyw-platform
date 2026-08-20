@@ -14,8 +14,15 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              group: ["@/components/ui", "@/components/ui/*", "@/components/v2", "@/components/v2/*"],
-              message: "Business code must import UI primitives from @/components/design-system.",
+              group: [
+                "@/components/ui",
+                "@/components/ui/*",
+                "@/components/v2",
+                "@/components/v2/*",
+                "@/components/design-system",
+                "@/components/design-system/*",
+              ],
+              message: "Business code must import UI primitives from @/design-system/figma-neutral/components.",
             },
           ],
         },
@@ -39,6 +46,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "test/**/*.cjs",
+    "src/design-system/figma-neutral/**/*.cjs",
   ]),
 ]);
 

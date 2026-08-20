@@ -3,10 +3,19 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@/components/design-system'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { createOneOffTask } from '@/lib/task-runtime-api'
 import { listDirectoryUsers, listPublishedTemplates } from '@/lib/task-plan-api'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import {
+  Button,
+  Field,
+  Input,
+  NeutralDialog,
+  Select,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 function localDateTime(hours: number, initialDate?: string) {
   const date = initialDate ? new Date(`${initialDate}T09:00:00`) : new Date()
@@ -15,7 +24,15 @@ function localDateTime(hours: number, initialDate?: string) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-export function OneOffTaskDialog({ open, onOpenChange, initialDate }: { open: boolean; onOpenChange: (open: boolean) => void; initialDate?: string }) {
+export function OneOffTaskDialog({
+  open,
+  onOpenChange,
+  initialDate,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialDate?: string
+}) {
   const router = useRouter()
   const templates = useQuery({ queryKey: ['one-off-templates'], queryFn: listPublishedTemplates, enabled: open })
   const users = useQuery({ queryKey: ['one-off-users'], queryFn: listDirectoryUsers, enabled: open })
@@ -26,7 +43,16 @@ export function OneOffTaskDialog({ open, onOpenChange, initialDate }: { open: bo
   const [plannedStartAt, setPlannedStartAt] = useState(() => localDateTime(0, initialDate))
   const [dueAt, setDueAt] = useState(() => localDateTime(24, initialDate))
   const create = useMutation({
-    mutationFn: () => createOneOffTask({ templateVersionId, title, description, plannedStartAt, dueAt, priority: 'normal', assigneeId }),
+    mutationFn: () =>
+      createOneOffTask({
+        templateVersionId,
+        title,
+        description,
+        plannedStartAt,
+        dueAt,
+        priority: 'normal',
+        assigneeId,
+      }),
     onSuccess: (task) => {
       toast.success('一次性任务已创建')
       onOpenChange(false)
@@ -34,22 +60,67 @@ export function OneOffTaskDialog({ open, onOpenChange, initialDate }: { open: bo
     },
     onError: () => toast.error('任务创建失败，请检查必填项'),
   })
-  const canSubmit = title.trim() && templateVersionId > 0 && assigneeId > 0 && dueAt >= plannedStartAt
+  const canSubmit = Boolean(title.trim() && templateVersionId > 0 && assigneeId > 0 && dueAt >= plannedStartAt)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>快速创建一次性任务</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-2 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2"><Label>任务标题 *</Label><Input value={title} onChange={(event) => setTitle(event.target.value)} /></div>
-          <div className="space-y-2"><Label>任务模板 *</Label><Select value={templateVersionId ? String(templateVersionId) : ''} onValueChange={(value) => setTemplateVersionId(Number(value))}><SelectTrigger><SelectValue placeholder="选择已发布模板">{(value: string) => templates.data?.find((item) => String(item.latestVersionId) === value)?.name ?? '选择已发布模板'}</SelectValue></SelectTrigger><SelectContent>{templates.data?.filter((item) => item.latestVersionId).map((item) => <SelectItem key={item.id} value={String(item.latestVersionId)}>{item.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-2"><Label>执行人 *</Label><Select value={assigneeId ? String(assigneeId) : ''} onValueChange={(value) => setAssigneeId(Number(value))}><SelectTrigger><SelectValue placeholder="选择执行人">{(value: string) => { const user = users.data?.find((item) => String(item.id) === value); return user ? user.realName || user.username : '选择执行人' }}</SelectValue></SelectTrigger><SelectContent>{users.data?.map((user) => <SelectItem key={user.id} value={String(user.id)}>{user.realName || user.username}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-2"><Label>开始时间</Label><Input type="datetime-local" value={plannedStartAt} onChange={(event) => setPlannedStartAt(event.target.value)} /></div>
-          <div className="space-y-2"><Label>截止时间</Label><Input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></div>
-          <div className="space-y-2 md:col-span-2"><Label>任务说明</Label><Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></div>
+    <NeutralDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="快速创建一次性任务"
+      size="md"
+      showClose={false}
+      footer={
+        <div className="cwgsyw-form__actions">
+          <Button type="button" size="sm" variant="secondary" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button type="button" size="sm" variant="primary" disabled={!canSubmit} loading={create.isPending} onClick={() => create.mutate()}>
+            {create.isPending ? '创建中' : '创建任务'}
+          </Button>
         </div>
-        <DialogFooter><Button onClick={() => onOpenChange(false)}>取消</Button><Button variant="primary" disabled={!canSubmit || create.isPending} onClick={() => create.mutate()}>{create.isPending ? '创建中' : '创建任务'}</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <div className="cwgsyw-form">
+        <Field htmlFor="one-off-title" label="任务标题" required>
+          <Input id="one-off-title" size="sm" value={title} onChange={(event) => setTitle(event.target.value)} />
+        </Field>
+        <Field htmlFor="one-off-template" label="任务模板" required>
+          <Select
+            id="one-off-template"
+            size="sm"
+            overlay
+            value={templateVersionId ? String(templateVersionId) : ''}
+            placeholder="选择已发布模板"
+            options={(templates.data ?? [])
+              .filter((item) => item.latestVersionId)
+              .map((item) => ({ value: String(item.latestVersionId), label: item.name }))}
+            onChange={(value) => setTemplateVersionId(Number(value))}
+          />
+        </Field>
+        <Field htmlFor="one-off-assignee" label="执行人" required>
+          <Select
+            id="one-off-assignee"
+            size="sm"
+            overlay
+            value={assigneeId ? String(assigneeId) : ''}
+            placeholder="选择执行人"
+            options={(users.data ?? []).map((user) => ({
+              value: String(user.id),
+              label: user.realName || user.username,
+            }))}
+            onChange={(value) => setAssigneeId(Number(value))}
+          />
+        </Field>
+        <Field htmlFor="one-off-start" label="开始时间">
+          <Input id="one-off-start" size="sm" type="datetime-local" value={plannedStartAt} onChange={(event) => setPlannedStartAt(event.target.value)} />
+        </Field>
+        <Field htmlFor="one-off-due" label="截止时间">
+          <Input id="one-off-due" size="sm" type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
+        </Field>
+        <Field htmlFor="one-off-description" label="任务说明">
+          <Textarea id="one-off-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
+        </Field>
+      </div>
+    </NeutralDialog>
   )
 }

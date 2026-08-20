@@ -1,23 +1,27 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import api from '@/lib/api'
-import {
-  Badge,
-  buttonVariants,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import Link from 'next/link'
-import { ArrowLeft, ExternalLink, AlertTriangle, ChevronDown, ChevronRight, Layers } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
-import { cn } from '@/lib/utils'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
-import { PageShell, PageHeader } from '@/components/shared'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  DashboardFeedbackPage,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  Select,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
 type Direction = 'bidirectional' | 'upstream' | 'downstream'
 
@@ -42,26 +46,54 @@ interface ImpactResult {
   edges: ImpactEdge[]
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  running: '运行中',
-  stopped: '已停止',
-  maintenance: '维护中',
-  fault: '故障',
-  offline: '离线',
+const STATUS_META: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }> = {
+  running: { label: '运行中', tone: 'success' },
+  stopped: { label: '已停止', tone: 'neutral' },
+  maintenance: { label: '维护中', tone: 'warning' },
+  fault: { label: '故障', tone: 'danger' },
+  offline: { label: '离线', tone: 'neutral' },
 }
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  running: 'default',
-  stopped: 'secondary',
-  maintenance: 'secondary',
-  fault: 'destructive',
-  offline: 'outline',
+const BIZ_LEVEL_META: Record<string, { label: string; tone: 'danger' | 'warning' | 'neutral' }> = {
+  core: { label: '核心', tone: 'danger' },
+  important: { label: '重要', tone: 'warning' },
+  normal: { label: '一般', tone: 'neutral' },
 }
 
-const BIZ_LEVEL_LABELS: Record<string, string> = {
-  core: '核心',
-  important: '重要',
-  normal: '一般',
+function pushEdge(m: Map<number, ImpactEdge[]>, nodeId: number, e: ImpactEdge) {
+  const arr = m.get(nodeId)
+  if (arr) {
+    if (!arr.some((x) => x.src === e.src && x.dst === e.dst && x.kind === e.kind)) arr.push(e)
+  } else {
+    m.set(nodeId, [e])
+  }
+}
+
+export function buildImmediateIncomingEdges(layers: ImpactLayer[], edges: ImpactEdge[]) {
+  const depthByNode = new Map<number, number>()
+  layers.forEach((layer) => layer.nodes.forEach((node) => depthByNode.set(node.id, layer.depth)))
+
+  const incoming = new Map<number, ImpactEdge[]>()
+  edges.forEach((edge) => {
+    const sourceDepth = depthByNode.get(edge.src)
+    const targetDepth = depthByNode.get(edge.dst)
+    if (sourceDepth == null || targetDepth == null) return
+
+    if (targetDepth === sourceDepth + 1) pushEdge(incoming, edge.dst, edge)
+    if (sourceDepth === targetDepth + 1) pushEdge(incoming, edge.src, edge)
+  })
+  return incoming
+}
+
+export function summarizeImpactEdges(edges: ImpactEdge[]) {
+  const summaries = new Map<string, { label: string; count: number }>()
+  edges.forEach((edge) => {
+    const label = edge.label?.trim() || edge.kind
+    const current = summaries.get(label)
+    if (current) current.count += 1
+    else summaries.set(label, { label, count: 1 })
+  })
+  return Array.from(summaries.values())
 }
 
 export default function ImpactAnalysisPage() {
@@ -93,251 +125,187 @@ export default function ImpactAnalysisPage() {
     },
   })
 
-  // depth map: node id → depth
-  const depthMap = useMemo(() => {
-    const m = new Map<number, number>()
-    data?.layers.forEach(l => l.nodes.forEach(n => m.set(n.id, l.depth)))
-    return m
-  }, [data])
-
-  // For each node, the edge labels connecting it to a shallower node (how it was reached)
-  const incomingByNode = useMemo(() => {
-    const m = new Map<number, ImpactEdge[]>()
-    const rootId = data?.rootId
-    data?.edges.forEach(e => {
-      // edges touching root are attributed to the non-root endpoint
-      if (e.src === rootId || e.dst === rootId) {
-        const otherId = e.src === rootId ? e.dst : e.src
-        if (otherId != null && otherId !== rootId) pushEdge(m, otherId, e)
-        return
-      }
-      const sd = depthMap.get(e.src)
-      const dd = depthMap.get(e.dst)
-      // count edges bridging this node to a strictly shallower node
-      if (sd != null && dd != null) {
-        if (dd > sd) pushEdge(m, e.dst, e)
-        if (sd > dd) pushEdge(m, e.src, e)
-      }
-    })
-    return m
-  }, [data, depthMap])
+  const incomingByNode = useMemo(
+    () => buildImmediateIncomingEdges(data?.layers ?? [], data?.edges ?? []),
+    [data],
+  )
 
   const totalNodes = useMemo(() => {
     const ids = new Set<number>()
-    data?.layers.forEach(l => l.nodes.forEach(n => { if (n.id != null) ids.add(n.id) }))
+    data?.layers.forEach((l) => l.nodes.forEach((n) => { if (n.id != null) ids.add(n.id) }))
     return ids.size
   }, [data])
-
+  const affectedNodeCount = data ? Math.max(totalNodes - 1, 0) : 0
+  const rootNode = data?.layers
+    .flatMap((layer) => layer.nodes)
+    .find((node) => node.id === data.rootId)
+  const rootModelName = rootNode?.modelName?.trim() || data?.rootModelId
   const toggleCollapse = (depth: number) =>
-    setCollapsed(prev => {
-      const next = new Set(prev)
+    setCollapsed((current) => {
+      const next = new Set(current)
       if (next.has(depth)) next.delete(depth)
       else next.add(depth)
       return next
     })
 
-  return (
-    <PageShell>
-      <PageHeader
-        title={`影响分析 · ${data?.rootName ?? `#${instanceId}`}`}
-        subtitle={`共 ${totalNodes} 个节点，${data?.edges.length ?? 0} 条关联`}
-        actions={(
-          <div className="flex flex-wrap items-center gap-2">
-        {data?.rootModelId ? (
-          <Link
-            href={`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md text-sm font-semibold text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回实例
-          </Link>
-        ) : (
-          <span className="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-semibold text-v2-muted">
-            <ArrowLeft className="h-4 w-4" />
-            返回实例
-          </span>
-        )}
-        {/* 方向选择器 */}
-        <Select value={direction} onValueChange={v => setDirection((v as Direction) ?? 'bidirectional')}>
-          <SelectTrigger className="w-36">
-            <SelectValue>
-              {(v: string) =>
-                ({ bidirectional: '双向', upstream: '上游（被影响）', downstream: '下游（影响对象）' } as Record<string, string>)[v] ?? v
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="bidirectional">双向</SelectItem>
-            <SelectItem value="upstream">上游（被影响）</SelectItem>
-            <SelectItem value="downstream">下游（影响对象）</SelectItem>
-          </SelectContent>
-        </Select>
-        {/* 深度选择器 */}
-        <Select value={String(maxDepth)} onValueChange={v => setMaxDepth(Number(v) || 3)}>
-          <SelectTrigger className="w-28">
-            <SelectValue>{(v: string) => `深度 ${v}`}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {[1, 2, 3, 4, 5].map(d => (
-              <SelectItem key={d} value={String(d)}>深度 {d}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-          </div>
-        )}
-      />
-
-      {isLoading ? (
-        <p className="text-muted-foreground text-sm">分析中...</p>
-      ) : isError ? (
-        <ImpactError error={error} onRetry={() => void refetch()} />
-      ) : !data || data.layers.length === 0 ? (
-        <p className="text-muted-foreground text-sm">暂无影响数据</p>
-      ) : (
-        <div className="space-y-4">
-          {/* truncated 提示 */}
-          {data.truncated && (
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
-              <AlertTriangle className="h-4 w-4" />
-              结果已被截断，仅展示部分影响范围。如需查看更多节点，请减小分析深度。
-            </div>
-          )}
-
-          {/* 第 0 层：根节点 */}
-          <ImpactRootCard data={data} />
-
-          {/* 其余层（过滤掉根节点自身，跳过剩余节点为空的层） */}
-          {data.layers.map(layer => {
-            const nodes = layer.nodes.filter(n => n.id !== data.rootId)
-            if (nodes.length === 0) return null
-            const isCollapsed = collapsed.has(layer.depth)
-            const dirLabel = direction === 'upstream' ? '上游' : direction === 'downstream' ? '下游' : '关联'
-            return (
-              <div key={layer.depth}>
-                {/* 层分隔标识 */}
-                <div className="flex items-center gap-2 my-2 pl-1">
-                  <div className="h-px flex-1 bg-border" />
-                  <Badge variant="outline" className="text-xs">第 {layer.depth} 层 · {dirLabel}</Badge>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-                {/* 层头（可收起） */}
-                <button
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => toggleCollapse(layer.depth)}
-                >
-                  <span className="flex items-center gap-1">
-                    {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    {nodes.length} 个节点
-                  </span>
-                </button>
-                {!isCollapsed && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {nodes.map(node => (
-                      <ImpactNodeCard
-                        key={node.id}
-                        node={node}
-                        edges={incomingByNode.get(node.id) ?? []}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </PageShell>
-  )
-}
-
-function ImpactError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const status = isAxiosError(error) ? error.response?.status : undefined
-  const message = status === 404
+  const errorMessage = status === 404
     ? '实例不存在或已被删除。'
     : status === 403
       ? '你没有查看此实例影响分析的权限。'
       : `加载影响分析失败${status ? `（${status}）` : ''}：${getApiErrorMessage(error, '请稍后重试')}`
-  return (
-    <div className="space-y-3 text-sm">
-      <p className="text-destructive">{message}</p>
-      {status !== 403 && <button type="button" onClick={onRetry} className="rounded-md border border-v2-border px-3 py-1.5 hover:bg-v2-surface-soft">重试</button>}
-    </div>
-  )
-}
 
-function pushEdge(m: Map<number, ImpactEdge[]>, nodeId: number, e: ImpactEdge) {
-  const arr = m.get(nodeId)
-  if (arr) {
-    if (!arr.some(x => x.src === e.src && x.dst === e.dst && x.kind === e.kind)) arr.push(e)
-  } else {
-    m.set(nodeId, [e])
-  }
-}
-
-function ImpactRootCard({ data }: { data: ImpactResult }) {
   return (
-    <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4">
-      <div className="flex items-center gap-2 mb-1">
-        <Layers className="h-4 w-4 text-primary" />
-        <Badge variant="default">根节点</Badge>
-        {data.rootModelId && <Badge variant="secondary">{data.rootModelId}</Badge>}
-      </div>
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
-          className="text-lg font-semibold hover:underline"
-        >
-          {data.rootName}
-        </Link>
-        <Link
-          href={`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`}
-          className={cn(buttonVariants({ variant: 'outline', size: 'ui-sm' }))}
-        >
-          <ExternalLink className="h-3.5 w-3.5 mr-1" />查看详情
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-function ImpactNodeCard({ node, edges }: { node: ImpactNode; edges: ImpactEdge[] }) {
-  const statusKey = node.status?.toLowerCase()
-  return (
-    <div className="rounded-lg border bg-card p-3 hover:shadow-sm transition-shadow">
-      {/* 入边标签：关联种类 */}
-      {edges.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {edges.map((e, i) => (
-            <Badge key={i} variant="outline" className="text-[10px]">
-              {e.label ?? e.kind}
-            </Badge>
-          ))}
+    <DashboardFeedbackPage className="cwgsyw-cmdb-page cwgsyw-cmdb-impact"
+      header={
+        <div className="cwgsyw-cmdb-instance-page">
+        <PageHeader
+          showEyebrow={false}
+          showBreadcrumb={false}
+          title={`影响分析 · ${data?.rootName ?? `#${instanceId}`}`}
+          subtitle={`影响节点 ${affectedNodeCount} 个 · 关联 ${data?.edges.length ?? 0} 条`}
+          actions={
+            <div className="cwgsyw-inline-controls cwgsyw-cmdb-impact__controls">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!data?.rootModelId}
+                onClick={() => data?.rootModelId && router.push(`/cmdb/instances/by-model/${data.rootModelId}/${instanceId}`)}
+              >
+                返回实例
+              </Button>
+              <Select aria-label="影响方向" size="sm" overlay
+                value={direction}
+                options={[
+                  { value: 'bidirectional', label: '双向' },
+                  { value: 'upstream', label: '上游（被影响）' },
+                  { value: 'downstream', label: '下游（影响对象）' },
+                ]}
+                onChange={(value) => setDirection((value as Direction) || 'bidirectional')}
+              />
+              <Select aria-label="影响深度" size="sm" overlay
+                value={String(maxDepth)}
+                options={[1, 2, 3, 4, 5].map((d) => ({ value: String(d), label: `深度 ${d}` }))}
+                onChange={(value) => setMaxDepth(Number(value) || 3)}
+              />
+            </div>
+          }
+        />
         </div>
-      )}
-      <div className="flex items-center justify-between gap-2">
-        <Link
-          href={`/cmdb/instances/by-model/${node.modelId}/${node.id}`}
-          className="font-medium text-sm hover:underline truncate"
-        >
-          {node.name}
-        </Link>
-        {node.status && (
-          <Badge variant={STATUS_VARIANT[statusKey ?? ''] ?? 'secondary'} className="text-[10px]">
-            {STATUS_LABELS[statusKey ?? ''] ?? node.status}
-          </Badge>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-        {node.modelName && <Badge variant="secondary" className="text-[10px]">{node.modelName}</Badge>}
-        {node.businessLevel && BIZ_LEVEL_LABELS[node.businessLevel] && (
-          <Badge
-            variant={node.businessLevel === 'core' ? 'destructive' : node.businessLevel === 'important' ? 'default' : 'outline'}
-            className="text-[10px]"
-          >
-            {BIZ_LEVEL_LABELS[node.businessLevel]}
-          </Badge>
-        )}
-      </div>
-    </div>
+      }
+      feedback={
+        !isHydrated ? (
+          <LoadingState label="准备影响分析" />
+        ) : !canAnalyze ? (
+          <ErrorState
+            title="无权查看影响分析"
+            description="当前账号缺少实例或影响分析读取权限。"
+            showRetry={false}
+          />
+        ) : isLoading ? (
+          <LoadingState label="分析中" />
+        ) : isError ? (
+          <ErrorState
+            title="影响分析失败"
+            description={errorMessage}
+            retry={status !== 403 ? <Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button> : null}
+          />
+        ) : !data || data.layers.length === 0 ? (
+          <EmptyState title="暂无影响数据" />
+        ) : (
+          <div className="cwgsyw-cmdb-impact__content">
+            {data.truncated ? (
+              <Alert tone="warning" title="结果已被截断" description="当前仅展示部分影响范围，可缩小分析深度以聚焦近端节点。" showDismiss={false} />
+            ) : null}
+            <section className="cwgsyw-cmdb-impact__root" aria-labelledby="impact-root-title">
+              <h2 id="impact-root-title">分析起点</h2>
+              <Card title={data.rootName} headerAction={rootModelName ? <Badge label={rootModelName} /> : null}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/instances/by-model/${data.rootModelId}/${data.rootId}`)}>
+                  查看详情
+                </Button>
+              </Card>
+            </section>
+            {affectedNodeCount === 0 ? (
+              <div className="cwgsyw-cmdb-impact__empty">
+                <EmptyState
+                  showIcon={false}
+                  title="暂无受影响节点"
+                  description="当前方向和深度下没有发现其他关联实例。"
+                />
+              </div>
+            ) : (
+              <MotionConfig reducedMotion="user">
+                <div className="cwgsyw-cmdb-impact__layers">
+                  {data.layers.map((layer) => {
+                    const nodes = layer.nodes.filter((n) => n.id !== data.rootId)
+                    if (nodes.length === 0) return null
+                    const isCollapsed = collapsed.has(layer.depth)
+                    const panelId = `impact-layer-${layer.depth}`
+                    const dirLabel = direction === 'upstream' ? '上游' : direction === 'downstream' ? '下游' : '关联'
+                    return (
+                      <section key={layer.depth} className="cwgsyw-cmdb-impact__layer">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          aria-expanded={!isCollapsed}
+                          aria-controls={panelId}
+                          onClick={() => toggleCollapse(layer.depth)}
+                        >
+                          第 {layer.depth} 层 · {dirLabel} · {nodes.length} 个节点
+                        </Button>
+                        <AnimatePresence initial={false}>
+                          {!isCollapsed ? (
+                            <motion.div
+                              id={panelId}
+                              className="cwgsyw-cmdb-impact__layer-panel"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                            >
+                              <div className="cwgsyw-cmdb-impact__layer-panel-inner">
+                                {nodes.map((node) => {
+                                  const statusKey = node.status?.toLowerCase() ?? ''
+                                  const statusMeta = STATUS_META[statusKey]
+                                  const biz = node.businessLevel ? BIZ_LEVEL_META[node.businessLevel] : null
+                                  const edgeSummaries = summarizeImpactEdges(incomingByNode.get(node.id) ?? [])
+                                  return (
+                                    <Card
+                                      key={node.id}
+                                      title={node.name}
+                                      headerAction={
+                                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-impact__meta">
+                                          {statusMeta ? <StatusBadge label={statusMeta.label} status={statusMeta.tone} /> : node.status ? <Badge label={node.status} /> : null}
+                                          {node.modelName ? <Badge label={node.modelName} /> : null}
+                                          {biz ? <StatusBadge label={biz.label} status={biz.tone} /> : null}
+                                          {edgeSummaries.map((summary) => (
+                                            <Badge
+                                              key={summary.label}
+                                              label={summary.count > 1 ? `${summary.label} ×${summary.count}` : summary.label}
+                                            />
+                                          ))}
+                                        </div>
+                                      }
+                                    >
+                                      <Link href={`/cmdb/instances/by-model/${node.modelId}/${node.id}`} className="cwgsyw-type-label-sm">查看详情</Link>
+                                    </Card>
+                                  )
+                                })}
+                              </div>
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </section>
+                    )
+                  })}
+                </div>
+              </MotionConfig>
+            )}
+          </div>
+        )
+      }
+    />
   )
 }

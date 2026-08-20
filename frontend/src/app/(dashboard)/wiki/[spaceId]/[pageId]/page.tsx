@@ -1,59 +1,59 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import '@uiw/react-markdown-preview/markdown.css'
-import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { useTheme } from 'next-themes'
+import '@uiw/react-markdown-preview/markdown.css'
+import 'highlight.js/styles/github.css'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Button, StatusBadge } from '@/components/design-system'
 import { WikiBacklinksPanel } from '@/components/wiki/WikiBacklinksPanel'
 import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
-import { Pencil, FileDown, Send, CheckCircle2, Lock, User, Clock, MessageCircle } from 'lucide-react'
-import { useState } from 'react'
-import type { WikiPage, WikiPageTree, WikiStatus, WikiSpace, WikiComment, PageResult } from '@/types/wiki'
-import 'highlight.js/styles/github.css'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
+import type { PageResult, WikiComment, WikiPage, WikiPageTree, WikiSpace, WikiStatus } from '@/types/wiki'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  DetailDrawerPage,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
-const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 'neutral' }> = {
-  draft: { label: '草稿', variant: 'neutral' },
-  review: { label: '审核中', variant: 'warn' },
-  published: { label: '已发布', variant: 'ok' },
-  archived: { label: '已归档', variant: 'neutral' },
+const STATUS_META: Record<WikiStatus, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  draft: { label: '草稿', tone: 'neutral' },
+  review: { label: '审核中', tone: 'warning' },
+  published: { label: '已发布', tone: 'success' },
+  archived: { label: '已归档', tone: 'neutral' },
 }
 
-/** 扁平化目录，建立 title → {id, spaceId} 映射，用于解析 [[wiki link]] */
 function buildTitleMap(nodes: WikiPageTree[]): Map<string, { id: number; spaceId: number }> {
   const map = new Map<string, { id: number; spaceId: number }>()
   const walk = (list: WikiPageTree[]) => {
-    for (const n of list) {
-      if (!map.has(n.title)) map.set(n.title, { id: n.id, spaceId: n.spaceId })
-      if (n.children?.length) walk(n.children)
+    for (const node of list) {
+      if (!map.has(node.title)) map.set(node.title, { id: node.id, spaceId: node.spaceId })
+      if (node.children?.length) walk(node.children)
     }
   }
   walk(nodes)
   return map
 }
 
-/**
- * 把 [[标题]] / [[标题|别名]] 转换为 markdown 链接。
- * 已知标题 → 真实路由链接；未知标题 → 由 Markdown 链接组件识别的受控提示。
- */
 function preprocessWikiLinks(
   content: string,
   titleMap: Map<string, { id: number; spaceId: number }>,
 ): string {
-  return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, rawTitle: string, alias?: string) => {
+  return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, rawTitle: string, alias?: string) => {
     const title = rawTitle.trim()
     const display = (alias ?? title).trim()
     const target = titleMap.get(title)
-    if (target) {
-      return `[${display}](/wiki/${target.spaceId}/${target.id})`
-    }
+    if (target) return `[${display}](/wiki/${target.spaceId}/${target.id})`
     return `[${display}](#wiki-pending-link)`
   })
 }
@@ -75,7 +75,7 @@ export default function WikiPageReader() {
     queryFn: () => wikiApi.listSpaces(),
   })
 
-  const currentSpace = useMemo(() => spaces?.find((s) => s.id === sid), [spaces, sid])
+  const currentSpace = useMemo(() => spaces?.find((space) => space.id === sid), [spaces, sid])
   const spaceExists = Boolean(currentSpace)
 
   const { data: tree, isLoading: treeLoading } = useQuery<WikiPageTree[]>({
@@ -85,8 +85,8 @@ export default function WikiPageReader() {
   })
 
   const pageExists = useMemo(() => {
-    const hasPage = (nodes: WikiPageTree[]): boolean => nodes.some((node) =>
-      node.id === pid || (node.children?.length ? hasPage(node.children) : false))
+    const hasPage = (nodes: WikiPageTree[]): boolean =>
+      nodes.some((node) => node.id === pid || (node.children?.length ? hasPage(node.children) : false))
     return tree ? hasPage(tree) : false
   }, [pid, tree])
 
@@ -103,7 +103,6 @@ export default function WikiPageReader() {
   })
 
   const readOnly = currentSpace?.readOnly ?? false
-
   useBreadcrumbLabel([currentSpace?.name, page?.title])
 
   const titleMap = useMemo(() => buildTitleMap(tree ?? []), [tree])
@@ -119,9 +118,9 @@ export default function WikiPageReader() {
       queryClient.invalidateQueries({ queryKey: ['wiki-tree', sid] })
       toast.success('已提交审批')
     },
-    onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '提交失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '提交失败'
+      toast.error(message)
     },
   })
 
@@ -132,9 +131,9 @@ export default function WikiPageReader() {
       queryClient.invalidateQueries({ queryKey: ['wiki-tree', sid] })
       toast.success('已发布')
     },
-    onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '发布失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '发布失败'
+      toast.error(message)
     },
   })
 
@@ -143,133 +142,127 @@ export default function WikiPageReader() {
   const canManageAcl = page?.canManageAcl ?? false
 
   if (spaces === undefined || (spaceExists && treeLoading) || (pageExists && pageLoading)) {
-    return <div className="py-12 text-center text-sm text-v2-muted">加载中…</div>
+    return <LoadingState label="正在加载页面…" />
   }
   if (!spaceExists || !pageExists || pageError || !page) {
-    return <div className="py-12 text-center text-sm text-v2-muted">页面不存在或已删除</div>
+    return <EmptyState title="页面不存在或已删除" description="请返回知识空间选择其他页面。" />
   }
 
   const meta = STATUS_META[page.status]
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 gap-6 overflow-y-auto">
-      {/* Main content */}
-      <article className="min-w-0 flex-1">
-        {/* 标题不在此渲染：阅读页正文 Markdown 内已含一级标题，避免重复 */}
-        <div className="mb-4 flex items-start justify-end gap-4">
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            {canWrite && (
-              <Button variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}/edit`)}>
-                <Pencil className="h-3.5 w-3.5" />
-                编辑
-              </Button>
-            )}
-            {canPublish ? (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={publishMutation.isPending || page.status === 'published'}
-                onClick={() => publishMutation.mutate()}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                发布
-              </Button>
-            ) : (
-              canWrite && !readOnly && (
+    <>
+      <WikiShellHeader>
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title={page.title || currentSpace?.name || '知识页面'}
+            subtitle={currentSpace?.name}
+            status={<StatusBadge size="sm" label={meta.label} status={meta.tone} />}
+            actions={
+              <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
+                {canWrite ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}/edit`)}>
+                    编辑
+                  </Button>
+                ) : null}
+                {canPublish ? (
+                  <Button type="button" size="sm" disabled={publishMutation.isPending || page.status === 'published'} onClick={() => publishMutation.mutate()}>
+                    发布
+                  </Button>
+                ) : canWrite && !readOnly ? (
+                  <Button type="button" size="sm" disabled={submitMutation.isPending || page.status === 'review'} onClick={() => submitMutation.mutate()}>
+                    提交审批
+                  </Button>
+                ) : null}
                 <Button
-                  variant="primary"
+                  type="button"
+                  variant="secondary"
                   size="sm"
-                  disabled={submitMutation.isPending || page.status === 'review'}
-                  onClick={() => submitMutation.mutate()}
+                  onClick={() => {
+                    wikiApi.exportPage(pid, `${page.title}.md`).catch(() => toast.error('导出失败'))
+                  }}
                 >
-                  <Send className="h-3.5 w-3.5" />
-                  提交审批
+                  导出
                 </Button>
-              )
-            )}
-            <Button variant="secondary" size="sm" onClick={() => { wikiApi.exportPage(pid, `${page.title}.md`).catch(() => toast.error('导出失败')) }}>
-              <FileDown className="h-3.5 w-3.5" />
-              导出
-            </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setCommentsOpen(true)}>
+                  评论 {commentsFirstPage?.total ?? 0}
+                </Button>
+              </div>
+            }
+          />
+      </WikiShellHeader>
+      <DetailDrawerPage
+        embedded
+        className="cwgsyw-wiki cwgsyw-wiki-page"
+        content={
+          <section className="cwgsyw-devices-panel">
+            <header className="cwgsyw-devices-panel__head">正文</header>
+            <div className="cwgsyw-devices-panel__body">
+            <div data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'} className="wmde-markdown cwgsyw-wiki-page__markdown max-w-none !bg-transparent">
+              {page.content ? (
+                <WikiMarkdown
+                  content={rendered}
+                  imageLightbox
+                  mermaidRenderMode="read"
+                  mermaidLazy={false}
+                  mermaidDebounceMs={180}
+                />
+              ) : (
+                <p className="cwgsyw-wiki-page__empty">本页暂无内容。</p>
+              )}
+            </div>
+            </div>
+          </section>
+        }
+        drawer={
+          <div className="cwgsyw-wiki-page__aside">
+            <section className="cwgsyw-devices-panel">
+              <header className="cwgsyw-devices-panel__head">页面信息</header>
+              <div className="cwgsyw-devices-panel__body">
+              <dl className="cwgsyw-devices-defs">
+                <div>
+                  <dt>状态</dt>
+                  <dd><StatusBadge label={meta.label} status={meta.tone} /></dd>
+                </div>
+                <div>
+                  <dt>更新人</dt>
+                  <dd>{page.updatedByName || '—'}</dd>
+                </div>
+                <div>
+                  <dt>更新时间</dt>
+                  <dd>{page.updatedAt ? new Date(page.updatedAt).toLocaleString('zh-CN') : '—'}</dd>
+                </div>
+                <div>
+                  <dt>版本</dt>
+                  <dd>v{page.currentVersion}</dd>
+                </div>
+              </dl>
+              {canManageAcl ? (
+                <Button type="button" variant="secondary" size="sm" onClick={() => setAclOpen(true)}>
+                  权限设置{page.aclCustom ? '（自定义）' : ''}
+                </Button>
+              ) : null}
+              </div>
+            </section>
+            <WikiBacklinksPanel pageId={pid} />
+            <WikiVersionsPanel pageId={pid} />
           </div>
-        </div>
+        }
+      />
 
-        <div className="rounded-v2-lg border border-v2-border bg-v2-surface p-6 shadow-v2-sm sm:p-8">
-          <div
-            data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'}
-            className="wmde-markdown max-w-none !bg-transparent"
-          >
-            {page.content ? (
-              <WikiMarkdown
-                content={rendered}
-                imageLightbox
-                mermaidRenderMode="read"
-                mermaidLazy={false}
-                mermaidDebounceMs={180}
-              />
-            ) : (
-              <p className="text-v2-muted">本页暂无内容。</p>
-            )}
-          </div>
-        </div>
-      </article>
-
-      {/* Right sidebar */}
-      <aside className="hidden w-72 shrink-0 space-y-4 lg:block">
-        <div className="rounded-v2-md border border-v2-border bg-v2-surface p-4">
-          <h3 className="mb-3 text-sm font-semibold text-v2-fg">页面信息</h3>
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-v2-muted">状态</span>
-              <StatusBadge status={meta.variant}>{meta.label}</StatusBadge>
-            </div>
-            <div className="flex items-center gap-1.5 text-v2-muted">
-              <User className="h-3.5 w-3.5" />
-              <span>{page.updatedByName || '—'}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-v2-muted">
-              <Clock className="h-3.5 w-3.5" />
-              <span>
-                {page.updatedAt ? new Date(page.updatedAt).toLocaleString('zh-CN') : '—'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-v2-muted">
-              <span>版本</span>
-              <span className="font-mono">v{page.currentVersion}</span>
-            </div>
-            {canManageAcl && (
-              <Button variant="secondary" size="sm" className="w-full" onClick={() => setAclOpen(true)}>
-                <Lock className="h-3.5 w-3.5" />
-                权限设置
-                {page.aclCustom && <span className="text-v2-warn">（自定义）</span>}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <WikiBacklinksPanel pageId={pid} />
-        <WikiVersionsPanel pageId={pid} />
-      </aside>
-
-      {canManageAcl && (
-        <ResourceAccessDialog resourceType="wiki_page" resourceId={pid} title={page.title}
-          container open={aclOpen} onOpenChange={setAclOpen} />
-      )}
-
-      {/* 右下角评论入口 —— 复用页面 read 权限，无需 wiki:update */}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40 h-10 rounded-full shadow-v2-sm"
-        onClick={() => setCommentsOpen(true)}
-        title="查看评论"
-      >
-        <MessageCircle className="h-4 w-4" />
-        评论 {commentsFirstPage?.total ?? 0}
-      </Button>
+      {canManageAcl ? (
+        <ResourceAccessDialog
+          resourceType="wiki_page"
+          resourceId={pid}
+          title={page.title}
+          container
+          open={aclOpen}
+          onOpenChange={setAclOpen}
+        />
+      ) : null}
 
       <WikiCommentsDrawer key={pid} pageId={pid} open={commentsOpen} onOpenChange={setCommentsOpen} />
-    </div>
+    </>
   )
 }

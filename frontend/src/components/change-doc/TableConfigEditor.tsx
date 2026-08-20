@@ -1,8 +1,17 @@
 'use client'
-import { useState, useCallback } from 'react'
-import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/design-system'
-import { Trash2, Plus, GripVertical, Settings2 } from 'lucide-react'
-import type { TableFieldConfig, TableColumnConfig } from './tableFieldTypes'
+
+import { useCallback, useState } from 'react'
+import type { TableColumnConfig, TableFieldConfig } from './tableFieldTypes'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  Checkbox,
+  Field,
+  IconButton,
+  Input,
+  Select,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
 const COLUMN_TYPES: { value: TableColumnConfig['type']; label: string }[] = [
   { value: 'text', label: '单行文本' },
@@ -37,185 +46,125 @@ export function TableConfigEditor({ value, onChange }: Props) {
   }
 
   const removeColumn = (idx: number) => {
-    const next = value.columns.filter((_, i) => i !== idx)
-    setColumns(next)
+    setColumns(value.columns.filter((_, index) => index !== idx))
     setExpandedIdx(null)
   }
 
   const updateColumn = (idx: number, patch: Partial<TableColumnConfig>) => {
-    setColumns(value.columns.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
+    setColumns(value.columns.map((column, index) => (index === idx ? { ...column, ...patch } : column)))
   }
 
   const setTopLevel = (patch: Partial<TableFieldConfig>) => onChange({ ...value, ...patch })
 
   return (
-    <div className="space-y-4 rounded-v2-md border border-v2-border bg-v2-surface-soft p-4">
-      {/* 行约束 */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">最少行数</Label>
+    <div className="cwgsyw-form">
+      <div className="cwgsyw-form">
+        <Field htmlFor="table-min-rows" label="最少行数">
           <Input
             type="number"
             min={0}
             value={value.minRows ?? ''}
-            onChange={(e) => setTopLevel({ minRows: e.target.value === '' ? undefined : Number(e.target.value) })}
             placeholder="无限制"
+            onChange={(event) => setTopLevel({ minRows: event.target.value === '' ? undefined : Number(event.target.value) })}
           />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">最多行数</Label>
+        </Field>
+        <Field htmlFor="table-max-rows" label="最多行数">
           <Input
             type="number"
             min={0}
             value={value.maxRows ?? ''}
-            onChange={(e) => setTopLevel({ maxRows: e.target.value === '' ? undefined : Number(e.target.value) })}
             placeholder="无限制"
+            onChange={(event) => setTopLevel({ maxRows: event.target.value === '' ? undefined : Number(event.target.value) })}
           />
-        </div>
-        <div className="flex items-center gap-4 pt-5">
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
-            <input
-              type="checkbox"
-              checked={value.allowAddRow}
-              onChange={(e) => setTopLevel({ allowAddRow: e.target.checked })}
-              className="rounded border-v2-border"
-            />
-            允许增行
-          </label>
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
-            <input
-              type="checkbox"
-              checked={value.allowDeleteRow}
-              onChange={(e) => setTopLevel({ allowDeleteRow: e.target.checked })}
-              className="rounded border-v2-border"
-            />
-            允许删行
-          </label>
+        </Field>
+        <div className="cwgsyw-designer__actions">
+          <Checkbox
+            label="允许增行"
+            checked={value.allowAddRow}
+            onChange={(event) => setTopLevel({ allowAddRow: event.target.checked })}
+          />
+          <Checkbox
+            label="允许删行"
+            checked={value.allowDeleteRow}
+            onChange={(event) => setTopLevel({ allowDeleteRow: event.target.checked })}
+          />
         </div>
       </div>
 
-      {/* 列列表 */}
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <Label className="text-xs font-bold">列配置（{value.columns.length} 列）</Label>
-          <Button variant="ghost" size="sm" onClick={addColumn} className="h-7 text-xs">
-            <Plus className="mr-1 h-3.5 w-3.5" />
+      <div className="cwgsyw-form">
+        <div className="cwgsyw-designer__actions">
+          <strong>列配置（{value.columns.length} 列）</strong>
+          <Button type="button" variant="ghost" size="sm" onClick={addColumn}>
             添加列
           </Button>
         </div>
-        {value.columns.length === 0 && (
-          <p className="py-3 text-center text-xs text-v2-muted">暂无列，点击&ldquo;添加列&rdquo;</p>
-        )}
-        <div className="space-y-1">
-          {value.columns.map((col, idx) => (
-            <div key={idx} className="rounded-md border border-v2-border bg-v2-surface">
-              <div className="flex items-center gap-2 px-3 py-2">
-                <GripVertical className="h-3.5 w-3.5 cursor-grab text-v2-muted" />
-                <span className="flex-1 text-xs font-medium text-v2-fg">
-                  {col.label || <span className="text-v2-muted">（未命名列）</span>}
-                  <span className="ml-2 text-v2-muted">[{col.key || '?'}]</span>
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-v2-muted"
-                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
-                >
-                  <Settings2 className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-v2-danger"
-                  onClick={() => removeColumn(idx)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-
-              {expandedIdx === idx && (
-                <div className="grid grid-cols-2 gap-3 border-t border-v2-border px-3 py-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">列 Key（对应占位符后缀）</Label>
-                    <Input
-                      value={col.key}
-                      onChange={(e) => updateColumn(idx, { key: e.target.value })}
-                      placeholder="如 server_name"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">列标签（表头显示）</Label>
-                    <Input
-                      value={col.label}
-                      onChange={(e) => updateColumn(idx, { label: e.target.value })}
-                      placeholder="如 服务器名称"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">类型</Label>
-                    <Select value={col.type} onValueChange={(v) => updateColumn(idx, { type: v as TableColumnConfig['type'] })}>
-                      <SelectTrigger>
-                        <SelectValue>
-                          {(v: string) => COLUMN_TYPES.find((t) => t.value === v)?.label ?? v}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COLUMN_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-4 pt-5">
-                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-v2-fg">
-                      <input
-                        type="checkbox"
-                        checked={col.required ?? false}
-                        onChange={(e) => updateColumn(idx, { required: e.target.checked })}
-                        className="rounded border-v2-border"
-                      />
-                      必填
-                    </label>
-                  </div>
-                  {col.type === 'select' && (
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">选项（每行一个，格式 value:标签，如 yes:是）</Label>
-                      <textarea
-                        className="w-full rounded-md border border-v2-border bg-v2-surface p-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-v2-primary"
-                        rows={4}
-                        value={(col.options ?? []).map((o) => `${o.value}:${o.label}`).join('\n')}
-                        onChange={(e) => {
-                          const opts = e.target.value
-                            .split('\n')
-                            .map((line) => line.trim())
-                            .filter(Boolean)
-                            .map((line) => {
-                              const sep = line.indexOf(':')
-                              return sep >= 0
-                                ? { value: line.slice(0, sep).trim(), label: line.slice(sep + 1).trim() }
-                                : { value: line, label: line }
-                            })
-                          updateColumn(idx, { options: opts })
-                        }}
-                        placeholder={"yes:是\nno:否"}
-                      />
-                    </div>
-                  )}
-                  {col.type !== 'checkbox' && col.type !== 'select' && (
-                    <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">占位提示文字（可选）</Label>
-                      <Input
-                        value={col.placeholder ?? ''}
-                        onChange={(e) => updateColumn(idx, { placeholder: e.target.value })}
-                        placeholder="例如：请输入…"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+        {value.columns.length === 0 ? <p>暂无列，点击“添加列”</p> : null}
+        {value.columns.map((column, idx) => (
+          <div key={`${column.key || 'col'}-${idx}`} className="cwgsyw-form">
+            <div className="cwgsyw-designer__actions">
+              <span>
+                {column.label || '（未命名列）'} [{column.key || '?'}]
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}>
+                {expandedIdx === idx ? '收起' : '展开'}
+              </Button>
+              <IconButton type="button" variant="ghost" size="sm" icon="trash" aria-label="删除列" onClick={() => removeColumn(idx)} />
             </div>
-          ))}
-        </div>
+            {expandedIdx === idx ? (
+              <div className="cwgsyw-form">
+                <Field htmlFor={`col-key-${idx}`} label="列 Key（对应占位符后缀）">
+                  <Input value={column.key} placeholder="如 server_name" onChange={(event) => updateColumn(idx, { key: event.target.value })} />
+                </Field>
+                <Field htmlFor={`col-label-${idx}`} label="列标签（表头显示）">
+                  <Input value={column.label} placeholder="如 服务器名称" onChange={(event) => updateColumn(idx, { label: event.target.value })} />
+                </Field>
+                <Field htmlFor={`col-type-${idx}`} label="类型">
+                  <Select
+                    value={column.type}
+                    options={COLUMN_TYPES}
+                    onChange={(next) => updateColumn(idx, { type: next as TableColumnConfig['type'] })}
+                  />
+                </Field>
+                <Checkbox
+                  label="必填"
+                  checked={column.required ?? false}
+                  onChange={(event) => updateColumn(idx, { required: event.target.checked })}
+                />
+                {column.type === 'select' ? (
+                  <Field htmlFor={`col-options-${idx}`} label="选项（每行一个，格式 value:标签，如 yes:是）">
+                    <Textarea
+                      rows={4}
+                      value={(column.options ?? []).map((option) => `${option.value}:${option.label}`).join('\n')}
+                      placeholder={'yes:是\nno:否'}
+                      onChange={(event) => {
+                        const options = event.target.value
+                          .split('\n')
+                          .map((line) => line.trim())
+                          .filter(Boolean)
+                          .map((line) => {
+                            const sep = line.indexOf(':')
+                            return sep >= 0
+                              ? { value: line.slice(0, sep).trim(), label: line.slice(sep + 1).trim() }
+                              : { value: line, label: line }
+                          })
+                        updateColumn(idx, { options })
+                      }}
+                    />
+                  </Field>
+                ) : null}
+                {column.type !== 'checkbox' && column.type !== 'select' ? (
+                  <Field htmlFor={`col-placeholder-${idx}`} label="占位提示文字（可选）">
+                    <Input
+                      value={column.placeholder ?? ''}
+                      placeholder="例如：请输入…"
+                      onChange={(event) => updateColumn(idx, { placeholder: event.target.value })}
+                    />
+                  </Field>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ))}
       </div>
     </div>
   )

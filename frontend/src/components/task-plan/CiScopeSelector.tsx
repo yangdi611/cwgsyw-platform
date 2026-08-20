@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Database, Layers3, Search, Server, X } from 'lucide-react'
-import { Button, Card, Input, StatusBadge } from '@/components/design-system'
 import {
   listInstances,
   listModelGroups,
@@ -12,10 +10,24 @@ import {
   type CiScopeResolution,
   type CiScopeSelection,
 } from '@/lib/task-plan-api'
+import {
+  Button,
+  Checkbox,
+  Chip,
+  SearchInput,
+} from '@/design-system/figma-neutral/components'
 
 interface CiScopeSelectorProps {
   value: CiScopeSelection[]
   onChange: (value: CiScopeSelection[]) => void
+}
+
+
+export function localizeScopeWarning(warning: string, selections: CiScopeSelection[]) {
+  const replaced = selections.reduce((text, item) => {
+    return item.key ? text.replaceAll(item.key, item.label || item.key) : text
+  }, warning)
+  return replaced.replaceAll(' CI ', ' 配置项 ').replace(/^CI /, '配置项 ')
 }
 
 function selectionKey(selection: CiScopeSelection) {
@@ -46,73 +58,122 @@ export function CiScopeSelector({ value, onChange }: CiScopeSelectorProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid min-h-64 overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface lg:grid-cols-3">
-        <div className="border-b border-v2-border p-3 lg:border-b-0 lg:border-r">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">模型组</p>
-          <div className="space-y-1">
+    <div className="cwgsyw-tasks-cascader-wrap">
+      <div className="cwgsyw-tasks-cascader" role="group" aria-label="配置项范围连续选择">
+        <section className="cwgsyw-tasks-cascader__col">
+          <header>模型组</header>
+          <div className="cwgsyw-tasks-cascader__body">
             {groups.data?.map((group) => (
-              <div key={group.code} className={`flex items-center gap-2 rounded-v2-md px-2 py-1.5 ${groupCode === group.code ? 'bg-v2-primary-soft' : 'hover:bg-v2-surface-hover'}`}>
-                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => { setGroupCode(group.code); setModelCode(undefined) }}>
-                  <Layers3 className="h-4 w-4 text-v2-muted" />
-                  <span className="truncate text-sm text-v2-fg">{group.name}</span>
-                  <span className="ml-auto text-xs text-v2-muted">{group.modelCount}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-v2-muted" />
-                </button>
-                <input aria-label={`选择模型组 ${group.name}`} type="checkbox" checked={selected.has(`model_group:${group.code}`)} onChange={() => toggle({ level: 'model_group', key: group.code, label: group.name })} />
+              <div
+                key={group.code}
+                className="cwgsyw-tasks-cascader__row"
+                data-current={groupCode === group.code ? 'true' : undefined}
+              >
+                <Checkbox
+                  className="cwgsyw-tasks-choice"
+                  aria-label={`选择模型组 ${group.name}`}
+                  checked={selected.has(`model_group:${group.code}`)}
+                  showLabel={false}
+                  label={`选择模型组 ${group.name}`}
+                  onChange={() => toggle({ level: 'model_group', key: group.code, label: group.name })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="cwgsyw-tasks-cascader__open"
+                  aria-pressed={groupCode === group.code}
+                  onClick={() => { setGroupCode(group.code); setModelCode(undefined); setKeyword('') }}
+                >
+                  <span>{group.name}</span>
+                  <span>{group.modelCount}</span>
+                </Button>
               </div>
             ))}
           </div>
-        </div>
-        <div className="border-b border-v2-border p-3 lg:border-b-0 lg:border-r">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">模型</p>
-          {!groupCode ? <p className="py-8 text-center text-sm text-v2-muted">先选择左侧模型组</p> : (
-            <div className="space-y-1">
-              {models.data?.map((model) => (
-                <div key={model.modelId} className={`flex items-center gap-2 rounded-v2-md px-2 py-1.5 ${modelCode === model.modelId ? 'bg-v2-primary-soft' : 'hover:bg-v2-surface-hover'}`}>
-                  <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => setModelCode(model.modelId)}>
-                    <Database className="h-4 w-4 text-v2-muted" />
-                    <span className="truncate text-sm text-v2-fg">{model.displayName || model.name}</span>
-                    <span className="ml-auto text-xs text-v2-muted">{model.instanceCount ?? 0}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-v2-muted" />
-                  </button>
-                  <input aria-label={`选择模型 ${model.displayName || model.name}`} type="checkbox" checked={selected.has(`model:${model.modelId}`)} onChange={() => toggle({ level: 'model', key: model.modelId, label: model.displayName || model.name })} />
+        </section>
+        <section className="cwgsyw-tasks-cascader__col">
+          <header>模型</header>
+          <div className="cwgsyw-tasks-cascader__body">
+            {!groupCode ? (
+              <p className="cwgsyw-tasks-cascader__empty">先选择模型组</p>
+            ) : models.data?.map((model) => (
+              <div
+                key={model.modelId}
+                className="cwgsyw-tasks-cascader__row"
+                data-current={modelCode === model.modelId ? 'true' : undefined}
+              >
+                <Checkbox
+                  className="cwgsyw-tasks-choice"
+                  aria-label={`选择模型 ${model.displayName || model.name}`}
+                  checked={selected.has(`model:${model.modelId}`)}
+                  showLabel={false}
+                  label={`选择模型 ${model.displayName || model.name}`}
+                  onChange={() => toggle({ level: 'model', key: model.modelId, label: model.displayName || model.name })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="cwgsyw-tasks-cascader__open"
+                  aria-pressed={modelCode === model.modelId}
+                  onClick={() => { setModelCode(model.modelId); setKeyword('') }}
+                >
+                  <span>{model.displayName || model.name}</span>
+                  <span>{model.instanceCount ?? 0}</span>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="cwgsyw-tasks-cascader__col">
+          <header>配置项</header>
+          <div className="cwgsyw-tasks-cascader__body">
+            {modelCode ? (
+              <SearchInput size="sm" value={keyword} placeholder="搜索配置项..." onChange={(event) => setKeyword(event.target.value)} />
+            ) : null}
+            {!modelCode ? (
+              <p className="cwgsyw-tasks-cascader__empty">先选择模型</p>
+            ) : (
+              instances.data?.map((instance) => (
+                <div key={instance.id} className="cwgsyw-tasks-cascader__row">
+                  <Checkbox
+                    className="cwgsyw-tasks-choice"
+                    checked={selected.has(`instance:${instance.id}`)}
+                    label={instance.name}
+                    onChange={() => toggle({ level: 'instance', key: String(instance.id), label: instance.name })}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">CI 实例</p>
-          {modelCode && <div className="relative mb-2"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" /><Input className="pl-8" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索实例" /></div>}
-          {!modelCode ? <p className="py-8 text-center text-sm text-v2-muted">先选择中间模型</p> : (
-            <div className="max-h-52 space-y-1 overflow-y-auto">
-              {instances.data?.map((instance) => (
-                <label key={instance.id} className="flex cursor-pointer items-center gap-2 rounded-v2-md px-2 py-1.5 hover:bg-v2-surface-hover">
-                  <Server className="h-4 w-4 text-v2-muted" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-v2-fg">{instance.name}</span>
-                  <input type="checkbox" checked={selected.has(`instance:${instance.id}`)} onChange={() => toggle({ level: 'instance', key: String(instance.id), label: instance.name })} />
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
 
-      {value.length > 0 && (
-        <Card className="p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {value.map((selection) => (
-              <span key={selectionKey(selection)} className="inline-flex items-center gap-1 rounded-v2-md border border-v2-border bg-v2-surface-soft px-2 py-1 text-xs text-v2-fg">
-                {selection.label || selection.key}
-                <button type="button" aria-label="移除选择" onClick={() => toggle(selection)}><X className="h-3 w-3" /></button>
-              </span>
-            ))}
+      {value.length > 0 ? (
+        <div className="cwgsyw-tasks-cascader-selected">
+          <div className="cwgsyw-tasks-cascader-selected__head">
+            <span>已选范围</span>
             <Button type="button" size="sm" variant="ghost" onClick={() => onChange([])}>清空</Button>
           </div>
-          {preview.data && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-v2-muted"><StatusBadge status="ok">命中 {preview.data.total} 个 CI</StatusBadge>{preview.data.truncated && <StatusBadge status="warn">仅预览前 20 个</StatusBadge>}{preview.data.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div>}
-        </Card>
-      )}
+          <div className="cwgsyw-inline-controls">
+            {value.map((selection) => (
+              <Chip
+                key={selectionKey(selection)}
+                label={selection.label || selection.key}
+                showRemove
+                onRemove={() => toggle(selection)}
+              />
+            ))}
+          </div>
+          {preview.data ? (
+            <div className="cwgsyw-tasks-cascader-selected__meta">
+              <p>命中 {preview.data.total} 个配置项{preview.data.truncated ? '，仅预览前 20 个' : ''}</p>
+              {preview.data.warnings.map((warning) => (
+                <p key={warning}>{localizeScopeWarning(warning, value)}</p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input } from '@/components/design-system'
-import { Trash2 } from 'lucide-react'
+import {
+  Button,
+  Checkbox,
+  Field,
+  IconButton,
+  Input,
+  LoadingState,
+  NeutralDialog,
+  NeutralTooltip,
+  Select,
+} from '@/design-system/figma-neutral/components'
 
 type SubjectType = 'user' | 'group' | 'role'
 type PermissionBit = 'r' | 'w' | 'x'
@@ -62,22 +71,37 @@ function ModeMatrix({ mode, container, onChange }: { mode: string; container: bo
     { key: 'group' as const, label: '属组', value: parts.group },
     { key: 'others' as const, label: '其他人', value: parts.others },
   ]
-  const toggle = (row: typeof rows[number], bit: PermissionBit) => {
+  const toggle = (row: (typeof rows)[number], bit: PermissionBit) => {
     const next = row.value ^ bitValues[bit]
     const values = { owner: parts.owner, group: parts.group, others: parts.others, [row.key]: next }
     onChange(`${parts.special}${values.owner}${values.group}${values.others}`)
   }
-  return <div className="overflow-hidden rounded-v2-md border border-v2-border">
-    <div className="grid grid-cols-[1fr_repeat(3,72px)] bg-v2-surface-soft px-3 py-2 text-xs font-medium text-v2-muted">
-      <span>主体</span>{(['r', 'w', 'x'] as PermissionBit[]).map((bit) => <span key={bit} className="text-center">{bitLabels[bit]}</span>)}
+  return (
+    <div className="cwgsyw-resource-access__matrix">
+      <div className="cwgsyw-resource-access__matrix-head">
+        <span>主体</span>
+        {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => (
+          <span key={bit}>{bitLabels[bit]}</span>
+        ))}
+      </div>
+      {rows.map((row) => (
+        <div key={row.key} className="cwgsyw-resource-access__matrix-row">
+          <span>{row.label}</span>
+          {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => (
+            <span key={bit} className="cwgsyw-resource-access__matrix-cell">
+              <Checkbox
+                label={bitLabels[bit]}
+                showLabel={false}
+                checked={Boolean(row.value & bitValues[bit])}
+                disabled={!container && bit === 'x'}
+                onChange={() => toggle(row, bit)}
+              />
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
-    {rows.map((row) => <div key={row.key} className="grid grid-cols-[1fr_repeat(3,72px)] items-center border-t border-v2-border px-3 py-2 text-sm">
-      <span className="font-medium text-v2-fg">{row.label}</span>
-      {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => <div key={bit} className="flex justify-center">
-        <Checkbox checked={Boolean(row.value & bitValues[bit])} disabled={!container && bit === 'x'} onCheckedChange={() => toggle(row, bit)} />
-      </div>)}
-    </div>)}
-  </div>
+  )
 }
 
 export function ResourceAccessDialog({ resourceType, resourceId, title, container, open, onOpenChange }: {
@@ -119,31 +143,147 @@ export function ResourceAccessDialog({ resourceType, resourceId, title, containe
     const setter = kind === 'access' ? setEntries : setDefaultEntries
     setter((current) => current.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch } : entry))
   }
-  const entryEditor = (kind: 'access' | 'default', values: AclEntry[]) => <div className="space-y-2">
-    <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium text-v2-fg">{kind === 'access' ? '指定用户和组' : '新建子项默认权限'}</p>{kind === 'default' && <p className="text-xs text-v2-muted">仅复制给以后创建的子项，不修改现有内容。</p>}</div>
-      <Button type="button" variant="secondary" size="sm" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => [...current, { subjectType: 'group', subjectId: groups[0]?.id ?? 0, permissions: container ? 'r-x' : 'r--' }])}>添加</Button></div>
-    {values.map((entry, index) => <div key={`${kind}-${index}`} className="space-y-3 rounded-v2-md border border-v2-border p-3">
-      <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)_36px] items-center gap-2">
-        <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectType} onChange={(event) => updateEntry(kind, index, { subjectType: event.target.value as SubjectType, subjectId: 0 })}><option value="user">用户</option><option value="group">组</option><option value="role">角色</option></select>
-        <select className="h-9 w-full min-w-0 rounded-v2-sm border border-v2-border bg-v2-surface px-2 text-sm" value={entry.subjectId} onChange={(event) => updateEntry(kind, index, { subjectId: Number(event.target.value) })}><option value={0}>请选择主体</option>{subjects[entry.subjectType].map((option) => <option key={option.id} value={option.id}>{option.name ?? option.realName ?? option.username ?? option.id}</option>)}</select>
-        <Button type="button" variant="ghost" size="sm" className="h-9 w-9 px-0 text-v2-danger" title="删除授权" onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => current.filter((_, entryIndex) => entryIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
-      </div>
-      <div className="grid grid-cols-3 rounded-v2-sm bg-v2-surface-soft px-3 py-2">
-        {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => <label key={bit} className="flex items-center justify-center gap-2 text-xs text-v2-muted"><Checkbox checked={Boolean(permissionValue(entry.permissions) & bitValues[bit])} disabled={!container && bit === 'x'} onCheckedChange={() => updateEntry(kind, index, { permissions: permissionString(permissionValue(entry.permissions) ^ bitValues[bit]) })} /><span>{bitLabels[bit]}</span></label>)}
-      </div>
-    </div>)}
-    {values.length === 0 && <p className="rounded-v2-md border border-dashed border-v2-border py-4 text-center text-xs text-v2-muted">未添加额外授权</p>}
-  </div>
 
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
-    <DialogHeader><DialogTitle>资源权限：{title}</DialogTitle><DialogDescription>功能角色决定能否使用功能；这里决定谁可以访问这一个具体资源。</DialogDescription></DialogHeader>
-    {isLoading ? <div className="py-8 text-center text-sm text-v2-muted">加载中…</div> : <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1 text-sm"><span>属主</span><select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}>{users.map((user) => <option key={user.id} value={user.id}>{user.realName ?? user.username ?? user.id}</option>)}</select></label><label className="space-y-1 text-sm"><span>属组</span><select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={ownerGroupId} onChange={(event) => setOwnerGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name ?? group.id}</option>)}</select></label></div>
-      <div className="space-y-2"><div className="flex items-center justify-between"><p className="text-sm font-medium text-v2-fg">基础权限</p><span className="font-mono text-xs text-v2-muted">Mode: {mode}</span></div><ModeMatrix mode={mode} container={container} onChange={setMode} />{container && <p className="text-xs text-v2-muted">“进入”表示可浏览容器内容；2xxx 表示新建子项继承属组。</p>}</div>
-      {entryEditor('access', entries)}
-      {container && entryEditor('default', defaultEntries)}
-      <div className="rounded-v2-md border border-v2-border"><button type="button" className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium" onClick={() => setAdvanced((value) => !value)}><span>高级模式</span><span className="text-v2-muted">{advanced ? '收起' : '展开'}</span></button>{advanced && <div className="border-t border-v2-border p-3"><label className="space-y-1 text-sm"><span>四位八进制 mode</span><Input value={mode} maxLength={4} onChange={(event) => setMode(event.target.value)} placeholder={container ? '2770' : '0660'} /></label><p className="mt-1 text-xs text-v2-muted">允许 0xxx 或 2xxx；保存前由服务端再次校验。</p></div>}</div>
-    </div>}
-    <DialogFooter><Button variant="secondary" onClick={() => onOpenChange(false)}>取消</Button><Button disabled={!data || save.isPending || !/^(0|2)[0-7]{3}$/.test(mode)} onClick={() => save.mutate()}>{save.isPending ? '保存中…' : '保存'}</Button></DialogFooter>
-  </DialogContent></Dialog>
+  const entryEditor = (kind: 'access' | 'default', values: AclEntry[]) => (
+    <section className="cwgsyw-resource-access__section">
+      <header className="cwgsyw-resource-access__section-head">
+        <div>
+          <p>{kind === 'access' ? '指定用户和组' : '新建子项默认权限'}</p>
+          {kind === 'default' ? <span>仅复制给以后创建的子项，不修改现有内容。</span> : null}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => [...current, { subjectType: 'group', subjectId: groups[0]?.id ?? 0, permissions: container ? 'r-x' : 'r--' }])}
+        >
+          添加
+        </Button>
+      </header>
+      {values.map((entry, index) => (
+        <div key={`${kind}-${index}`} className="cwgsyw-resource-access__entry">
+          <div className="cwgsyw-resource-access__entry-row">
+            <Select
+              size="sm"
+              overlay
+              aria-label="授权主体类型"
+              value={entry.subjectType}
+              options={[{ value: 'user', label: '用户' }, { value: 'group', label: '组' }, { value: 'role', label: '角色' }]}
+              onChange={(value) => updateEntry(kind, index, { subjectType: value as SubjectType, subjectId: 0 })}
+            />
+            <Select
+              size="sm"
+              overlay
+              aria-label="授权主体"
+              placeholder="请选择主体"
+              value={entry.subjectId ? String(entry.subjectId) : '0'}
+              options={[{ value: '0', label: '请选择主体' }, ...subjects[entry.subjectType].map((option) => ({ value: String(option.id), label: String(option.name ?? option.realName ?? option.username ?? option.id) }))]}
+              onChange={(value) => updateEntry(kind, index, { subjectId: Number(value) })}
+            />
+            <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="cwgsyw-cmdb-admin__delete-action"
+                icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                aria-label="删除授权"
+                onClick={() => (kind === 'access' ? setEntries : setDefaultEntries)((current) => current.filter((_, entryIndex) => entryIndex !== index))}
+              />
+            </NeutralTooltip>
+          </div>
+          <div className="cwgsyw-resource-access__bits">
+            {(['r', 'w', 'x'] as PermissionBit[]).map((bit) => (
+              <Checkbox
+                key={bit}
+                label={bitLabels[bit]}
+                checked={Boolean(permissionValue(entry.permissions) & bitValues[bit])}
+                disabled={!container && bit === 'x'}
+                onChange={() => updateEntry(kind, index, { permissions: permissionString(permissionValue(entry.permissions) ^ bitValues[bit]) })}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+      {values.length === 0 ? <p className="cwgsyw-resource-access__empty">未添加额外授权</p> : null}
+    </section>
+  )
+
+  return (
+    <NeutralDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="资源授权"
+      description="功能角色决定能否使用功能；这里决定谁可以访问这一个具体资源。"
+      className="cwgsyw-resource-access-dialog"
+      size="lg"
+      footer={
+        <div className="cwgsyw-inline-controls">
+          <Button type="button" variant="secondary" size="sm" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button type="button" size="sm" disabled={!data || save.isPending || !/^(0|2)[0-7]{3}$/.test(mode)} onClick={() => save.mutate()}>
+            {save.isPending ? '保存中…' : '保存'}
+          </Button>
+        </div>
+      }
+    >
+      <div className="cwgsyw-resource-access">
+        <p className="cwgsyw-resource-access__title">资源权限：{title}</p>
+        {isLoading ? (
+          <LoadingState label="正在加载资源权限…" />
+        ) : (
+          <div className="cwgsyw-resource-access__stack">
+            <div className="cwgsyw-resource-access__owners">
+              <Field label="属主">
+                <Select
+                  size="sm"
+                  overlay
+                  aria-label="属主"
+                  value={ownerUserId}
+                  options={users.map((user) => ({ value: String(user.id), label: String(user.realName ?? user.username ?? user.id) }))}
+                  onChange={setOwnerUserId}
+                />
+              </Field>
+              <Field label="属组">
+                <Select
+                  size="sm"
+                  overlay
+                  aria-label="属组"
+                  value={ownerGroupId}
+                  options={groups.map((group) => ({ value: String(group.id), label: String(group.name ?? group.id) }))}
+                  onChange={setOwnerGroupId}
+                />
+              </Field>
+            </div>
+            <section className="cwgsyw-resource-access__section">
+              <header className="cwgsyw-resource-access__section-head">
+                <p>基础权限</p>
+                <span>权限码 {mode}</span>
+              </header>
+              <ModeMatrix mode={mode} container={container} onChange={setMode} />
+              {container ? <p className="cwgsyw-resource-access__hint">“进入”表示可浏览容器内容；2xxx 表示新建子项继承属组。</p> : null}
+            </section>
+            {entryEditor('access', entries)}
+            {container ? entryEditor('default', defaultEntries) : null}
+            <section className="cwgsyw-resource-access__advanced">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="cwgsyw-resource-access__advanced-toggle"
+                aria-expanded={advanced}
+                onClick={() => setAdvanced((value) => !value)}
+              >
+                {advanced ? '收起高级模式' : '展开高级模式'}
+              </Button>
+              {advanced ? (
+                <Field htmlFor="resource-access-mode" label="四位八进制权限码" helperText="允许 0xxx 或 2xxx；保存前由服务端再次校验。">
+                  <Input id="resource-access-mode" size="sm" value={mode} maxLength={4} onChange={(event) => setMode(event.target.value)} placeholder={container ? '2770' : '0660'} />
+                </Field>
+              ) : null}
+            </section>
+          </div>
+        )}
+      </div>
+    </NeutralDialog>
+  )
 }

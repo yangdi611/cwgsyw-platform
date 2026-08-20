@@ -1,10 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import Link from 'next/link'
-import { Activity, GitCompare } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { InstanceBasicInfoTab } from '@/components/cmdb/InstanceBasicInfoTab'
@@ -17,10 +16,17 @@ import { ResourcePoolCapacityCard } from '@/components/cmdb/ResourcePoolCapacity
 import { RackElevationView } from '@/components/cmdb/RackElevationView'
 import { RackAssignmentCard } from '@/components/cmdb/RackAssignmentCard'
 import { EndpointLinksCard } from '@/components/cmdb/EndpointLinksCard'
-import { cn } from '@/lib/utils'
 import { getApiErrorMessage, isAxiosError } from '@/lib/api-error'
-import { DetailHeader, PageShell } from '@/components/shared'
 import type { CiAttributeResponse, CmdbFieldsData } from '@/types/cmdb-model'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  DetailDrawerPage,
+  ErrorState,
+  Icon,
+  LoadingState,
+  Tabs,
+} from '@/design-system/figma-neutral/components'
 
 interface CiInstanceVO {
   id: number
@@ -66,7 +72,6 @@ export default function InstanceDetailPage() {
     },
     enabled: typeof window !== 'undefined',
     retry: (failureCount, err: unknown) => {
-      // 404 视为实例真不存在，不重试；其余（超时/5xx/网络）重试 2 次
       if (isAxiosError(err) && err.response?.status === 404) return false
       return failureCount < 2
     },
@@ -74,103 +79,92 @@ export default function InstanceDetailPage() {
 
   useBreadcrumbLabel(inst?.name ?? inst?.displayName)
 
-  if (isLoading) return <p className="text-v2-muted">加载中…</p>
+  if (isLoading) return <LoadingState label="加载实例" />
   if (isError) {
     const status = isAxiosError(error) ? error.response?.status : undefined
-    if (status === 404) return <p className="text-v2-danger">实例不存在</p>
-    const msg = getApiErrorMessage(error, '未知错误')
+    if (status === 404) return <ErrorState title="实例不存在" description="无法找到该实例。" showRetry={false} />
     return (
-      <div className="space-y-3">
-        <p className="text-v2-danger">加载实例失败{status ? `（${status}）` : ''}：{msg}</p>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="rounded-md border border-v2-border px-3 py-1.5 text-sm hover:bg-v2-surface-soft"
-        >
-          重试
-        </button>
-      </div>
+      <ErrorState
+        title="加载实例失败"
+        description={`${status ? `（${status}）` : ''}${getApiErrorMessage(error, '未知错误')}`}
+        retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
+      />
     )
   }
-  if (!inst) return <p className="text-v2-danger">实例不存在</p>
+  if (!inst) return <ErrorState title="实例不存在" description="无法找到该实例。" showRetry={false} />
 
   const isRack = inst.modelId === 'rack'
-  const tabs = BASE_TABS.filter((t) => (t.key !== 'rack' || isRack)
-    && (t.key !== 'topology' || hasPermission('cmdb_topology', 'read')))
+  const tabs = BASE_TABS.filter((item) => (item.key !== 'rack' || isRack)
+    && (item.key !== 'topology' || hasPermission('cmdb_topology', 'read')))
+
+  const renderPanel = (key: TabKey) => {
+    if (tab !== key) return null
+    if (key === 'basic') {
+      return (
+        <div className="cwgsyw-cmdb-instance-detail__basic">
+          {inst.modelId === 'resource_pool' && <ResourcePoolCapacityCard fieldsData={inst.fieldsData ?? {}} />}
+          {!isRack && <RackAssignmentCard instanceId={id} />}
+          {!isRack && <EndpointLinksCard instanceId={id} />}
+          <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />
+        </div>
+      )
+    }
+    if (key === 'rack' && isRack) return <RackElevationView rackId={id} />
+    if (key === 'associations') return <InstanceAssociationsTab modelCode={modelCode} id={id} />
+    if (key === 'topology') return <InstanceTopologyTab id={id} />
+    if (key === 'changes') return <InstanceChangeHistoryTab instanceId={id} />
+    if (key === 'alerts') return <InstanceAlertsTab instanceId={id} />
+    if (key === 'resources') return <InstanceResourcesTab instanceId={id} />
+    return null
+  }
 
   return (
-    <PageShell width="wide" density="comfortable">
-      <DetailHeader
-        backHref={`/cmdb/instances/by-model/${modelCode}`}
-        title={inst.name ?? `#${inst.id}`}
-        eyebrow={inst.modelId}
-        meta={
-          <>
-            <span>创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}</span>
-            {inst.createdByName && <span>{inst.createdByName}</span>}
-          </>
-        }
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {hasPermission('cmdb_impact', 'read') && (
-              <Link
-                href={`/cmdb/impact/${id}`}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
-              >
-                <Activity className="h-4 w-4" />
-                影响分析
-              </Link>
-            )}
-            {hasPermission('cmdb_topology', 'read') && (
-              <Link
-                href={`/cmdb/topology/${id}/compare`}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-v2-fg text-sm font-semibold shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
-              >
-                <GitCompare className="h-4 w-4" />
-                拓扑对比
-              </Link>
-            )}
+    <DetailDrawerPage
+      className="cwgsyw-cmdb-page cwgsyw-cmdb-instance-detail"
+      embedded
+      header={
+        <header className="cwgsyw-cmdb-instance-detail__header">
+          <div className="cwgsyw-cmdb-instance-detail__identity">
+            <div className="cwgsyw-cmdb-overview__catalog-title">
+              <h1>{inst.name ?? `#${inst.id}`}</h1>
+              <span className="cwgsyw-cmdb-overview__catalog-note">
+                <Icon name="chevron-next" size="sm" aria-hidden="true" />
+                <span>{modelCode} · #{inst.id}</span>
+                <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+              </span>
+            </div>
+            <p>
+              创建于 {new Date(inst.createdAt).toLocaleString('zh-CN')}
+              {inst.createdByName ? ` · ${inst.createdByName}` : ''}
+            </p>
           </div>
-        }
-      />
-
-      {/* Tab navigation */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-v2-border">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              '-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors',
-              tab === t.key
-                ? 'border-v2-primary text-v2-primary'
-                : 'border-transparent text-v2-muted hover:text-v2-fg',
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="space-y-6">
-        {tab === 'basic' && (
-          <>
-            {inst.modelId === 'resource_pool' && (
-              <ResourcePoolCapacityCard fieldsData={inst.fieldsData ?? {}} />
-            )}
-            {!isRack && <RackAssignmentCard instanceId={id} />}
-            {!isRack && <EndpointLinksCard instanceId={id} />}
-            <InstanceBasicInfoTab modelCode={modelCode} inst={inst} />
-          </>
-        )}
-        {tab === 'rack' && isRack && <RackElevationView rackId={id} />}
-        {tab === 'associations' && <InstanceAssociationsTab modelCode={modelCode} id={id} />}
-        {tab === 'topology' && <InstanceTopologyTab id={id} />}
-        {tab === 'changes' && <InstanceChangeHistoryTab instanceId={id} />}
-        {tab === 'alerts' && <InstanceAlertsTab instanceId={id} />}
-        {tab === 'resources' && <InstanceResourcesTab instanceId={id} />}
-      </div>
-    </PageShell>
+          <div className="cwgsyw-inline-controls cwgsyw-cmdb-instance-detail__actions">
+              {hasPermission('cmdb_impact', 'read') && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/impact/${id}`)}>
+                  影响分析
+                </Button>
+              )}
+              {hasPermission('cmdb_topology', 'read') && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => router.push(`/cmdb/topology/${id}/compare`)}>
+                  拓扑对比
+                </Button>
+              )}
+          </div>
+        </header>
+      }
+      content={
+        <Tabs
+          style="cmdb"
+          size="sm"
+          value={tab}
+          onChange={(next) => setTab(next as TabKey)}
+          items={tabs.map((item) => ({
+            id: item.key,
+            label: item.label,
+            panel: <div className="cwgsyw-cmdb-instance-detail__panel">{renderPanel(item.key)}</div>,
+          }))}
+        />
+      }
+    />
   )
 }

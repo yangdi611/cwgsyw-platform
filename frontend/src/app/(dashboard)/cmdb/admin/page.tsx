@@ -1,11 +1,17 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PageHeader } from '@/components/shared'
 import { usePermission } from '@/hooks/usePermission'
 import { ModelCatalogTab } from './components/ModelCatalogTab'
 import { AssociationsTab } from './components/AssociationsTab'
 import { AttributeGroupsTab } from './components/AttributeGroupsTab'
+import '@/design-system/figma-neutral/index.css'
+import {
+  DataManagementPage,
+  Icon,
+  Tabs,
+} from '@/design-system/figma-neutral/components'
 
 export default function AdminPage() {
   const { hasPermission, isHydrated } = usePermission()
@@ -18,46 +24,33 @@ export default function AdminPage() {
   }, [isHydrated, hasPermission, router])
 
   return (
-    <div className="max-w-5xl space-y-6">
-      <PageHeader eyebrow="CMDB" title="模型管理" subtitle="管理 CI 模型、属性、关联定义与分类配置。" />
-
-      {/* Tab switcher */}
-      <div className="flex gap-1 border-b mb-6">
-        <button
-          onClick={() => setTab('catalog')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === 'catalog'
-              ? 'border-v2-primary text-v2-primary'
-              : 'border-transparent text-v2-muted hover:text-v2-fg'
-          }`}
-        >
-          模型目录
-        </button>
-        <button
-          onClick={() => setTab('attribute-groups')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === 'attribute-groups'
-              ? 'border-v2-primary text-v2-primary'
-              : 'border-transparent text-v2-muted hover:text-v2-fg'
-          }`}
-        >
-          属性分组
-        </button>
-        <button
-          onClick={() => setTab('associations')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === 'associations'
-              ? 'border-v2-primary text-v2-primary'
-              : 'border-transparent text-v2-muted hover:text-v2-fg'
-          }`}
-        >
-          关联定义
-        </button>
-      </div>
-
-      {tab === 'catalog' && <ModelCatalogTab />}
-      {tab === 'attribute-groups' && <AttributeGroupsTab />}
-      {tab === 'associations' && <AssociationsTab />}
-    </div>
+    <DataManagementPage
+      className="cwgsyw-cmdb-page cwgsyw-cmdb-admin"
+      header={
+        <header className="cwgsyw-cmdb-admin__header">
+          <div className="cwgsyw-cmdb-overview__catalog-title">
+            <h1>模型管理</h1>
+            <span className="cwgsyw-cmdb-overview__catalog-note">
+              <Icon name="chevron-next" size="sm" aria-hidden="true" />
+              <span>管理模型、属性分组与关联定义。</span>
+              <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+            </span>
+          </div>
+        </header>
+      }
+      content={
+        <Tabs
+          style="cmdb"
+          size="sm"
+          value={tab}
+          onChange={(id) => setTab(id as typeof tab)}
+          items={[
+            { id: 'catalog', label: '模型目录', panel: <div className="cwgsyw-cmdb-admin__panel"><ModelCatalogTab /></div> },
+            { id: 'attribute-groups', label: '属性分组', panel: <div className="cwgsyw-cmdb-admin__panel"><AttributeGroupsTab /></div> },
+            { id: 'associations', label: '关联定义', panel: <div className="cwgsyw-cmdb-admin__panel"><AssociationsTab /></div> },
+          ]}
+        />
+      }
+    />
   )
 }

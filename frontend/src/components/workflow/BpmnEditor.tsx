@@ -213,27 +213,27 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
     >
       <div className="flex-1 relative">
         {!ready && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-            <span className="text-v2-muted">加载编辑器中...</span>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[color-mix(in_srgb,var(--cwgsyw-bg-surface)_80%,transparent)]">
+            <span className="text-[var(--cwgsyw-text-secondary)]">加载编辑器中...</span>
           </div>
         )}
         <div ref={containerRef} className="w-full h-full" />
       </div>
 
       {/* Properties panel sidebar */}
-      <div className="w-72 border-l overflow-y-auto bg-gray-50 flex-shrink-0 flex flex-col">
+      <div className="w-72 border-l overflow-y-auto bg-[var(--cwgsyw-bg-surface-subtle)] flex-shrink-0 flex flex-col">
         {/* Standard properties panel */}
         <div ref={panelRef}>
-          {!ready && <div className="p-4 text-sm text-v2-muted">加载属性面板...</div>}
+          {!ready && <div className="p-4 text-sm text-[var(--cwgsyw-text-secondary)]">加载属性面板...</div>}
         </div>
 
         {/* Flowable Assignment — rendered separately below the standard panel */}
         {flowableFields && (
           <div className="border-t px-4 py-3">
-            <div className="text-sm font-semibold text-gray-700 mb-3">Flowable Assignment</div>
+            <div className="text-sm font-semibold text-[var(--cwgsyw-text-primary)] mb-3">Flowable Assignment</div>
             {flowableFields.map(f => (
               <div key={f.key} className="mb-3 last:mb-0">
-                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
+                <label className="block text-xs font-medium text-[var(--cwgsyw-text-secondary)] mb-1">{f.label}</label>
                 <input
                   type="text"
                   value={f.value}
@@ -241,7 +241,7 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
                     f.setValue(e.target.value);
                     setFlowableFields(prev => prev?.map(p => p.key === f.key ? { ...p, value: e.target.value } : p) ?? null);
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                  className="w-full px-2 py-1.5 text-sm border border-[var(--cwgsyw-border-default)] rounded bg-[var(--cwgsyw-bg-surface)] focus:border-[var(--cwgsyw-border-strong)] focus:ring-1 focus:ring-[var(--cwgsyw-focus-ring)] outline-none"
                   placeholder={f.key === 'candGroups' ? '${groupId}' : ''}
                 />
               </div>
@@ -252,9 +252,9 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
         {/* Sequence Flow Condition — shows when an arrow line is selected */}
         {seqFlow && (
           <div className="border-t px-4 py-3">
-            <div className="text-sm font-semibold text-gray-700 mb-2">Sequence Flow</div>
-            {seqFlow.name && <p className="text-xs text-gray-500 mb-2">名称: {seqFlow.name}</p>}
-            <label className="block text-xs font-medium text-gray-600 mb-1">Condition（条件表达式）</label>
+            <div className="text-sm font-semibold text-[var(--cwgsyw-text-primary)] mb-2">Sequence Flow</div>
+            {seqFlow.name && <p className="text-xs text-[var(--cwgsyw-text-secondary)] mb-2">名称: {seqFlow.name}</p>}
+            <label className="block text-xs font-medium text-[var(--cwgsyw-text-secondary)] mb-1">Condition（条件表达式）</label>
             <input
               type="text"
               value={seqFlow.condition}
@@ -262,10 +262,10 @@ export default function BpmnEditor({ initialXml, onChange }: BpmnEditorProps) {
                 seqFlow.setCondition(e.target.value);
                 setSeqFlow(prev => prev ? { ...prev, condition: e.target.value } : null);
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none font-mono"
+              className="w-full px-2 py-1.5 text-sm border border-[var(--cwgsyw-border-default)] rounded bg-[var(--cwgsyw-bg-surface)] focus:border-[var(--cwgsyw-border-strong)] focus:ring-1 focus:ring-[var(--cwgsyw-focus-ring)] outline-none font-mono"
               placeholder="${approved == true}"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-[var(--cwgsyw-text-tertiary)] mt-1">
               表达式如 ${"${approved == true}"}、${"${approved == false}"}。只在从 Gateway 出发的连线上有意义。
             </p>
           </div>

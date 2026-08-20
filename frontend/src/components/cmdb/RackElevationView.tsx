@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -46,12 +47,12 @@ const TOTAL_W = NUM_W + RAIL_W + BAY_W + RAIL_W + NUM_W
 function statusMeta(status: string): { color: string; label: string } {
   const s = (status || '').toLowerCase()
   if (['running', 'online', 'normal', 'up', '在线', '运行', '正常'].some((k) => s.includes(k)))
-    return { color: '#22c55e', label: '运行中' }
+    return { color: 'var(--cwgsyw-status-success-700)', label: '运行中' }
   if (['warning', 'warn', 'degraded', '告警', '降级'].some((k) => s.includes(k)))
-    return { color: '#f59e0b', label: '告警' }
+    return { color: 'var(--cwgsyw-status-warning-700)', label: '告警' }
   if (['down', 'offline', 'error', 'fault', 'stopped', '宕机', '离线', '故障', '停机'].some((k) => s.includes(k)))
-    return { color: '#ef4444', label: '异常' }
-  return { color: '#94a3b8', label: status || '未知' }
+    return { color: 'var(--cwgsyw-status-danger-700)', label: '异常' }
+  return { color: 'var(--cwgsyw-neutral-400)', label: status || '未知' }
 }
 
 // modelId → 面板形态：服务器/网络/电源/存储/其他。决定面板上画什么纹理。
@@ -107,25 +108,18 @@ function Texture({ form, cx, cy }: { form: Form; cx: number; cy: number }) {
 
 // __MAIN__
 
-interface HoverState { d: RackDevice; x: number; y: number }
+interface HoverState { d: RackDevice; x: number; y: number; side: 'left' | 'right' }
 
 export function RackElevationView({ rackId }: { rackId: string }) {
   const { hasPermission } = usePermission()
   const router = useRouter()
   const wrapRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
-  const [wrapWidth, setWrapWidth] = useState<number>(300)
 
-  // 监听容器宽度变化，避免在渲染时访问 ref
-  useEffect(() => {
-    const updateWidth = () => {
-      if (wrapRef.current) {
-        setWrapWidth(wrapRef.current.clientWidth)
-      }
-    }
-    updateWidth()
-    window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
+  useEffect(() => () => {
+    if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current)
   }, [])
 
   const { data, isLoading, isError } = useQuery<RackLayout>({
@@ -137,8 +131,8 @@ export function RackElevationView({ rackId }: { rackId: string }) {
     enabled: typeof window !== 'undefined',
   })
 
-  if (isLoading) return <p className="text-v2-muted">加载机柜布局…</p>
-  if (isError || !data) return <p className="text-v2-danger">机柜布局加载失败</p>
+  if (isLoading) return <p className="cwgsyw-cmdb-instance-tab__muted">加载机柜布局…</p>
+  if (isError || !data) return <p className="cwgsyw-cmdb-instance-tab__error">机柜布局加载失败</p>
 
   const height = data.rackHeightU && data.rackHeightU > 0 ? data.rackHeightU : 42
   const placed = data.devices.filter((d) => d.uStart != null && d.uEnd != null && d.uEnd >= d.uStart)
@@ -156,21 +150,49 @@ export function RackElevationView({ rackId }: { rackId: string }) {
   const rows = Array.from({ length: height }, (_, i) => height - i) // [height..1] 顶→底
 
   function onMove(e: React.MouseEvent, d: RackDevice) {
-    const box = wrapRef.current?.getBoundingClientRect()
-    if (!box) return
-    setHover({ d, x: e.clientX - box.left, y: e.clientY - box.top })
+    cancelHoverClose()
+    const svgBox = svgRef.current?.getBoundingClientRect()
+    if (!svgBox) return
+    const popoverWidth = 240
+    const estimatedPopoverHeight = 190
+    const gap = 12
+    const viewportPadding = 8
+    const canFitRight = svgBox.right + gap + popoverWidth <= window.innerWidth - viewportPadding
+    const side = canFitRight ? 'right' : 'left'
+    const x = side === 'right'
+      ? svgBox.right + gap
+      : Math.max(viewportPadding, svgBox.left - gap - popoverWidth)
+    const y = Math.min(
+      Math.max(viewportPadding, e.clientY - 16),
+      window.innerHeight - estimatedPopoverHeight - viewportPadding,
+    )
+    setHover({ d, x, y, side })
+  }
+
+  function cancelHoverClose() {
+    if (!hoverCloseTimerRef.current) return
+    clearTimeout(hoverCloseTimerRef.current)
+    hoverCloseTimerRef.current = null
+  }
+
+  function scheduleHoverClose() {
+    cancelHoverClose()
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setHover(null)
+      hoverCloseTimerRef.current = null
+    }, 180)
   }
 
   // __RENDER__
   return (
-    <div className="space-y-4">
+    <div className="cwgsyw-cmdb-rack-view">
       {data.warnings.length > 0 && (
-        <div className="rounded-lg border border-v2-danger-border bg-v2-danger-soft px-4 py-3">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-v2-danger">
-            <AlertTriangle className="h-4 w-4" />
+        <div className="cwgsyw-cmdb-rack-view__warning">
+          <div className="cwgsyw-cmdb-rack-view__warning-title">
+            <AlertTriangle aria-hidden="true" />
             布局告警（{data.warnings.length}）
           </div>
-          <ul className="space-y-0.5 text-xs text-v2-danger">
+          <ul>
             {data.warnings.map((w, i) => (
               <li key={i}>· {w.message}</li>
             ))}
@@ -178,29 +200,30 @@ export function RackElevationView({ rackId }: { rackId: string }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-v2-fg">{data.rackName} · 机柜视图</h3>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-v2-muted">
+      <div className="cwgsyw-cmdb-rack-view__head">
+        <h2>{data.rackName} · 机柜视图</h2>
+        <div className="cwgsyw-cmdb-rack-view__actions">
+          <span className="cwgsyw-cmdb-rack-view__summary">
             共 {height}U · 已装 {placed.length} 台 · 空 {freeU}U
             {unplaced.length > 0 && ` · 未定位 ${unplaced.length} 台`}
           </span>
           {hasPermission('cmdb_relation', 'create') && (
             <Link
               href={`/cmdb/instances/by-model/rack/${rackId}/associations/new`}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-v2-md border border-v2-border bg-v2-surface text-sm font-semibold text-v2-fg shadow-v2-sm transition-colors hover:bg-v2-surface-hover"
+              className="cwgsyw-btn cwgsyw-btn--sm cwgsyw-btn--outline"
             >
-              <Plus className="h-4 w-4" />
+              <Plus />
               添加设备
             </Link>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-5">
+      <div className="cwgsyw-cmdb-rack-view__body">
         {/* __RACKSVG__ */}
-        <div ref={wrapRef} className="relative shrink-0">
+        <div ref={wrapRef} className="cwgsyw-cmdb-rack-view__canvas">
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${TOTAL_W} ${svgH}`}
             style={{ height: 'min(70vh, 920px)', width: 'auto', maxWidth: '100%' }}
             role="img"
@@ -208,26 +231,26 @@ export function RackElevationView({ rackId }: { rackId: string }) {
           >
             <defs>
               <linearGradient id="rk-frame" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#0b0f17" />
-                <stop offset="0.5" stopColor="#1b212e" />
-                <stop offset="1" stopColor="#0b0f17" />
+                <stop offset="0" stopColor="var(--cwgsyw-neutral-1000)" />
+                <stop offset="0.5" stopColor="var(--cwgsyw-neutral-900)" />
+                <stop offset="1" stopColor="var(--cwgsyw-neutral-1000)" />
               </linearGradient>
               <linearGradient id="rk-rail" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#2a3140" />
-                <stop offset="0.5" stopColor="#3a4253" />
-                <stop offset="1" stopColor="#222836" />
+                <stop offset="0" stopColor="var(--cwgsyw-neutral-800)" />
+                <stop offset="0.5" stopColor="var(--cwgsyw-neutral-700)" />
+                <stop offset="1" stopColor="var(--cwgsyw-neutral-800)" />
               </linearGradient>
               <linearGradient id="rk-face" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#3c4456" />
-                <stop offset="0.5" stopColor="#2e3543" />
-                <stop offset="1" stopColor="#262c38" />
+                <stop offset="0" stopColor="var(--cwgsyw-neutral-700)" />
+                <stop offset="0.5" stopColor="var(--cwgsyw-neutral-800)" />
+                <stop offset="1" stopColor="var(--cwgsyw-neutral-800)" />
               </linearGradient>
             </defs>
 
             {/* 机架外框 */}
             <rect x="0" y="0" width={TOTAL_W} height={svgH} rx="10" fill="url(#rk-frame)" />
             {/* 设备内腔（暗） */}
-            <rect x={BAY_X} y={FRAME} width={BAY_W} height={bodyH} fill="#0a0d14" />
+            <rect x={BAY_X} y={FRAME} width={BAY_W} height={bodyH} fill="var(--cwgsyw-neutral-1000)" />
 
             {/* __RAILS__ */}
             {/* 左右导轨立柱 */}
@@ -245,14 +268,14 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   <line x1={BAY_X} y1={top} x2={BAY_X + BAY_W} y2={top} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
                   {/* cage-nut 方孔（左右各 3） */}
                   {holes.map((hy, i) => (
-                    <rect key={`l${i}`} x={leftHoleX - 2.5} y={hy - 2.5} width={5} height={5} rx={1} fill="#0a0d14" stroke="rgba(0,0,0,0.6)" strokeWidth={0.5} />
+                    <rect key={`l${i}`} x={leftHoleX - 2.5} y={hy - 2.5} width={5} height={5} rx={1} fill="var(--cwgsyw-neutral-1000)" stroke="rgba(0,0,0,0.6)" strokeWidth={0.5} />
                   ))}
                   {holes.map((hy, i) => (
-                    <rect key={`r${i}`} x={rightHoleX - 2.5} y={hy - 2.5} width={5} height={5} rx={1} fill="#0a0d14" stroke="rgba(0,0,0,0.6)" strokeWidth={0.5} />
+                    <rect key={`r${i}`} x={rightHoleX - 2.5} y={hy - 2.5} width={5} height={5} rx={1} fill="var(--cwgsyw-neutral-1000)" stroke="rgba(0,0,0,0.6)" strokeWidth={0.5} />
                   ))}
                   {/* U 编号（两侧） */}
-                  <text x={NUM_W - 4} y={cy + 3} textAnchor="end" fontSize={9} fontFamily="var(--v2-font-mono)" fill="#64748b">{u}</text>
-                  <text x={TOTAL_W - NUM_W + 4} y={cy + 3} textAnchor="start" fontSize={9} fontFamily="var(--v2-font-mono)" fill="#64748b">{u}</text>
+                  <text x={NUM_W - 4} y={cy + 3} textAnchor="end" fontSize={9} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fill="var(--cwgsyw-neutral-400)">{u}</text>
+                  <text x={TOTAL_W - NUM_W + 4} y={cy + 3} textAnchor="start" fontSize={9} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fill="var(--cwgsyw-neutral-400)">{u}</text>
                 </g>
               )
             })}
@@ -262,7 +285,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
               const top = FRAME + (height - (d.uEnd as number)) * U_H
               const h = span * U_H
               const cy = top + h / 2
-              const stripe = d.modelColor || '#64748b'
+              const stripe = d.modelColor || 'var(--cwgsyw-neutral-400)'
               const st = statusMeta(d.status)
               const form = deviceForm(d.modelId)
               return (
@@ -276,7 +299,7 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/cmdb/instances/by-model/${d.modelId}/${d.id}`) } }}
                   onMouseEnter={(e) => onMove(e, d)}
                   onMouseMove={(e) => onMove(e, d)}
-                  onMouseLeave={() => setHover(null)}
+                  onMouseLeave={scheduleHoverClose}
                 >
                   {/* 面板 */}
                   <rect x={BAY_X + 2} y={top + 1.5} width={BAY_W - 4} height={h - 3} rx={3} fill="url(#rk-face)" stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
@@ -285,9 +308,9 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   {/* 型号色条 */}
                   <rect x={BAY_X + 2} y={top + 1.5} width={5} height={h - 3} rx={2} fill={stripe} />
                   {/* 名称 */}
-                  <text x={BAY_X + 16} y={cy - (span > 1 ? 4 : -3.5)} fontSize={span > 1 ? 12 : 11} fontFamily="var(--v2-font-mono)" fontWeight={600} fill="#e2e8f0">{d.name}</text>
+                  <text x={BAY_X + 16} y={cy - (span > 1 ? 4 : -3.5)} fontSize={span > 1 ? 12 : 11} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fontWeight={500} fill="var(--cwgsyw-text-inverse)">{d.name}</text>
                   {span > 1 && (
-                    <text x={BAY_X + 16} y={cy + 11} fontSize={9} fontFamily="var(--v2-font-mono)" fill="#94a3b8">
+                    <text x={BAY_X + 16} y={cy + 11} fontSize={9} fontFamily="var(--cwgsyw-font-family-mono), ui-monospace, monospace" fill="var(--cwgsyw-neutral-400)">
                       {d.modelName}{d.assetNo ? ` · ${d.assetNo}` : ''}
                     </text>
                   )}
@@ -299,62 +322,72 @@ export function RackElevationView({ rackId }: { rackId: string }) {
                   </circle>
                   <circle cx={BAY_X + BAY_W - 16} cy={cy} r={3.2} fill={st.color} stroke="rgba(255,255,255,0.5)" strokeWidth={0.6} />
                   {/* focus 环 */}
-                  <rect className="rk-focus opacity-0" x={BAY_X + 2} y={top + 1.5} width={BAY_W - 4} height={h - 3} rx={3} fill="none" stroke="#60a5fa" strokeWidth={2} />
+                  <rect className="rk-focus opacity-0" x={BAY_X + 2} y={top + 1.5} width={BAY_W - 4} height={h - 3} rx={3} fill="none" stroke="var(--cwgsyw-focus-ring)" strokeWidth={2} />
                 </g>
               )
             })}
           </svg>
           {/* __TOOLTIP__ */}
-          {hover && (
+          {hover && createPortal(
             <div
-              className="pointer-events-none absolute z-50 w-60 rounded-lg border border-white/10 bg-[#11161f] p-3 text-xs shadow-xl"
+              role="tooltip"
+              data-side={hover.side}
+              className="cwgsyw-popover cwgsyw-popover--hover cwgsyw-cmdb-rack-view__popover"
+              onMouseEnter={cancelHoverClose}
+              onMouseLeave={scheduleHoverClose}
               style={{
-                left: Math.min(hover.x + 16, wrapWidth - 248),
-                top: hover.y + 12,
+                position: 'fixed',
+                left: hover.x,
+                top: hover.y,
               }}
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="truncate font-semibold text-slate-100">{hover.d.name}</span>
-                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-slate-300">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta(hover.d.status).color }} />
+              <div className="cwgsyw-cmdb-rack-view__popover-head">
+                <span className="cwgsyw-cmdb-rack-view__popover-title">{hover.d.name}</span>
+                <span className="cwgsyw-cmdb-rack-view__popover-status">
+                  <span className="cwgsyw-cmdb-rack-view__status-dot" style={{ backgroundColor: statusMeta(hover.d.status).color }} />
                   {statusMeta(hover.d.status).label}
                 </span>
               </div>
-              <dl className="space-y-1 font-mono text-slate-400">
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">型号</dt><dd className="truncate text-slate-200">{hover.d.modelName}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">U 位</dt><dd className="text-slate-200">U{hover.d.uStart}–{hover.d.uEnd}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">IP</dt><dd className="truncate text-slate-200">{hover.d.innerIp || '—'}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">资产号</dt><dd className="truncate text-slate-200">{hover.d.assetNo || '—'}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">SN</dt><dd className="truncate text-slate-200">{hover.d.sn || '—'}</dd></div>
+              <dl className="cwgsyw-cmdb-rack-view__popover-list">
+                <div><dt>型号</dt><dd>{hover.d.modelName}</dd></div>
+                <div><dt>U 位</dt><dd>U{hover.d.uStart}–{hover.d.uEnd}</dd></div>
+                <div><dt>IP</dt><dd>{hover.d.innerIp || '—'}</dd></div>
+                <div><dt>资产号</dt><dd>{hover.d.assetNo || '—'}</dd></div>
+                <div><dt>SN</dt><dd>{hover.d.sn || '—'}</dd></div>
               </dl>
-              <div className="mt-2 border-t border-white/10 pt-1.5 text-[10px] text-slate-500">点击查看详情</div>
-            </div>
+              <Link
+                href={`/cmdb/instances/by-model/${hover.d.modelId}/${hover.d.id}`}
+                className="cwgsyw-cmdb-rack-view__popover-hint"
+                onClick={() => setHover(null)}
+              >
+                查看详情
+              </Link>
+            </div>,
+            document.body,
           )}
         </div>
 
         {/* 未定位设备 */}
         {unplaced.length > 0 && (
-          <div className="min-w-[220px] flex-1">
-            <div className="mb-2 text-xs font-semibold text-v2-muted">未定位设备（缺 U 位）</div>
-            <div className="space-y-1.5">
+          <section className="cwgsyw-cmdb-rack-view__unplaced">
+            <h3>未定位设备（缺 U 位）</h3>
+            <div className="cwgsyw-cmdb-rack-view__unplaced-list">
               {unplaced.map((d) => (
                 <Link
                   key={d.id}
                   href={`/cmdb/instances/by-model/${d.modelId}/${d.id}`}
-                  className="flex items-center gap-2 rounded-md border border-v2-border bg-v2-surface px-3 py-1.5 text-sm text-v2-fg hover:bg-v2-surface-hover"
+                  className="cwgsyw-cmdb-rack-view__unplaced-row"
                 >
-                  <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.modelColor || '#8C8C8C' }} />
-                  <Server className="h-3.5 w-3.5 text-v2-muted" />
-                  <span className="truncate">{d.name}</span>
-                  <span className="ml-auto shrink-0 text-xs text-v2-muted">{d.modelName}</span>
+                  <span className="cwgsyw-cmdb-rack-view__model-dot" style={{ backgroundColor: d.modelColor || 'var(--cwgsyw-neutral-400)' }} />
+                  <Server aria-hidden="true" />
+                  <span className="cwgsyw-cmdb-rack-view__device-name">{d.name}</span>
+                  <span className="cwgsyw-cmdb-rack-view__model-name">{d.modelName}</span>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>
   )
 }
-
-

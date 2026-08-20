@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { Button } from '@/design-system/figma-neutral/components'
 import type { NavEntry } from './types'
 import { isGroup, groupActiveChild } from './utils'
 
@@ -47,17 +49,6 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
     }, CLOSE_DELAY)
   }
 
-  const toggleOpen = () => {
-    if (mounted) {
-      if (closeTimer.current) clearTimeout(closeTimer.current)
-      if (unmountTimer.current) clearTimeout(unmountTimer.current)
-      setEntered(false)
-      setMounted(false)
-      return
-    }
-    open()
-  }
-
   useEffect(() => {
     return () => {
       if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -76,36 +67,37 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
 
     return (
       <div ref={ref} className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
-        <button
+        <Button
           type="button"
-          onClick={toggleOpen}
+          variant="ghost"
+          onClick={open}
           aria-expanded={mounted}
           aria-label={entry.label}
           className={cn(
-            'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
+            'cwgsyw-sidebar__collapsed-group-trigger flex h-11 w-full items-center justify-center rounded-lg transition-colors',
             isActive || mounted
-              ? 'bg-white/10 text-white'
-              : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-white',
+              ? 'is-active text-[var(--cwgsyw-text-primary)]'
+              : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]',
           )}
         >
           <Icon className="h-[22px] w-[22px]" />
-        </button>
+        </Button>
 
-        {mounted && (
+        {mounted && typeof document !== 'undefined' ? createPortal(
           <div
-            className="fixed z-50 pl-2"
+            className="fixed z-[70] pl-2"
             style={{ top: coords.top, left: coords.left }}
             onMouseEnter={open}
             onMouseLeave={scheduleClose}
           >
             <div
               className={cn(
-                'w-56 origin-left overflow-hidden rounded-xl border border-white/10 bg-v2-sidebar-2 shadow-2xl ring-1 ring-black/20',
+                'cwgsyw-popover w-56 origin-left overflow-hidden',
                 'transition-all duration-200 ease-out motion-reduce:transition-none',
                 entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
               )}
             >
-              <div className="border-b border-white/8 px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-v2-sidebar-muted">
+              <div className="border-b border-[var(--cwgsyw-border-subtle)] px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--cwgsyw-text-secondary)]">
                 {entry.label}
               </div>
               <div className="space-y-0.5 p-1.5">
@@ -123,14 +115,14 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
                       className={cn(
                         'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
                         childActive
-                          ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-                          : 'text-slate-300 hover:bg-white/8 hover:text-white',
+                          ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+                          : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]',
                       )}
                     >
                       <item.icon className="h-4 w-4 shrink-0 opacity-85" />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-v2-danger px-1.5 font-mono text-[11px] tabular-nums text-white">
+                        <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1.5 font-mono text-[11px] tabular-nums text-[var(--cwgsyw-status-danger-fg)]">
                           {item.badge > 99 ? '99+' : item.badge}
                         </span>
                       )}
@@ -139,8 +131,9 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
                 })}
               </div>
             </div>
-          </div>
-        )}
+          </div>,
+          document.body,
+        ) : null}
       </div>
     )
   }
@@ -157,26 +150,27 @@ export function CollapsedEntry({ entry, pathname, hasPermission, groupScope }: {
         className={cn(
           'flex h-11 w-full items-center justify-center rounded-lg transition-colors',
           isActive
-            ? 'bg-blue-600/30 text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,0.22)]'
-            : 'text-v2-sidebar-muted hover:bg-white/6 hover:text-white',
+            ? 'bg-[var(--cwgsyw-bg-surface-selected)] text-[var(--cwgsyw-text-primary)]'
+            : 'text-[var(--cwgsyw-text-secondary)] hover:bg-[var(--cwgsyw-bg-surface-hover)] hover:text-[var(--cwgsyw-text-primary)]',
         )}
       >
         <Icon className="h-[22px] w-[22px]" />
-        {badge !== undefined && badge > 0 && <span className="absolute right-1 top-1 min-w-4 rounded-full bg-v2-danger px-1 text-center font-v2-mono text-[9px] leading-4 text-white">{badge > 99 ? '99+' : badge}</span>}
+        {badge !== undefined && badge > 0 && <span className="absolute right-1 top-1 min-w-4 rounded-full bg-[var(--cwgsyw-status-danger-bg)] px-1 text-center font-[family-name:var(--cwgsyw-font-family-mono)] text-[9px] leading-4 text-[var(--cwgsyw-status-danger-fg)]">{badge > 99 ? '99+' : badge}</span>}
       </Link>
-      {mounted && (
-        <div className="fixed z-50 pl-2" style={{ top: coords.top + 8, left: coords.left }}>
+      {mounted && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed z-[70] pl-2" style={{ top: coords.top + 8, left: coords.left }}>
           <div
             className={cn(
-              'origin-left whitespace-nowrap rounded-lg border border-white/10 bg-v2-sidebar-2 px-3 py-1.5 text-sm text-white shadow-2xl ring-1 ring-black/20',
+              'cwgsyw-popover cwgsyw-popover--compact origin-left whitespace-nowrap',
               'transition-all duration-200 ease-out motion-reduce:transition-none',
               entered ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
             )}
           >
             {label}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </div>
   )
 }

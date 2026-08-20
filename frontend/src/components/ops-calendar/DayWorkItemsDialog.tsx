@@ -2,8 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, StatusBadge } from '@/components/design-system'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Button, NeutralDialog, StatusBadge } from '@/design-system/figma-neutral/components'
 import { fmtTime, ymd, WEEK_LABELS } from '@/lib/opsCalendar'
 import {
   type CalendarDayFilters,
@@ -52,49 +51,57 @@ export function DayWorkItemsDialog({ date, scope, include, filters, open, onOpen
     : ''
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-4 pr-8">
-            <DialogTitle>{activeDate} <span className="ml-2 text-sm font-normal text-v2-muted">{dayOfWeek}</span></DialogTitle>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => shiftDay(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => shiftDay(1)}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
+    <NeutralDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`${activeDate ?? ''} ${dayOfWeek}`.trim()}
+      size="sm"
+      showClose
+      footer={
+        onCreate && activeDate ? (
+          <div className="cwgsyw-form__actions">
+            <Button type="button" variant="primary" onClick={() => onCreate(activeDate)}>
+              在该日期创建任务
+            </Button>
           </div>
-        </DialogHeader>
-
-        {data?.summary && (
-          <div className="flex flex-wrap gap-4 border-b border-v2-border pb-3 text-sm text-v2-muted">
-            <span>共 <b className="text-v2-fg">{data.summary.total}</b></span>
-            <span>待处理 <b className="text-amber-600">{data.summary.pending}</b></span>
-            <span>逾期 <b className="text-red-600">{data.summary.overdue}</b></span>
-            <span>已完成 <b className="text-green-600">{data.summary.completed}</b></span>
+        ) : null
+      }
+    >
+      <div className="cwgsyw-form">
+        <div className="cwgsyw-inline-controls">
+          <Button type="button" variant="ghost" size="sm" onClick={() => shiftDay(-1)}>
+            前一天
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => shiftDay(1)}>
+            后一天
+          </Button>
+        </div>
+        {data?.summary ? (
+          <div className="cwgsyw-inline-controls">
+            <StatusBadge size="sm" label={`共 ${data.summary.total}`} status="neutral" />
+            <StatusBadge size="sm" label={`待处理 ${data.summary.pending}`} status="warning" />
+            <StatusBadge size="sm" label={`逾期 ${data.summary.overdue}`} status="danger" />
+            <StatusBadge size="sm" label={`已完成 ${data.summary.completed}`} status="success" />
           </div>
-        )}
-
-        {isLoading && <p className="py-8 text-center text-sm text-v2-muted">加载中...</p>}
-        {!isLoading && data?.items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onItemClick(item)}
-            className="flex w-full items-center gap-3 rounded-v2-md border border-v2-border px-3 py-2 text-left transition-colors hover:bg-v2-surface-soft"
-          >
-            <StatusBadge status="neutral">{calendarItemTypeLabel(item.itemType)}</StatusBadge>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-v2-fg">{item.title}</span>
-            {calendarMetaText(item, 'assigneeName') && <span className="text-xs text-v2-muted">{calendarMetaText(item, 'assigneeName')}</span>}
-            <span className="font-v2-mono text-xs text-v2-muted">{fmtTime(item.startAt).slice(11)}</span>
-            <StatusBadge status={item.overdue ? 'danger' : item.status === 'completed' ? 'ok' : 'neutral'}>{item.overdue ? '已逾期' : calendarStatusLabel(item.status)}</StatusBadge>
-          </button>
-        ))}
-        {!isLoading && (!data || data.items.length === 0) && <p className="py-8 text-center text-sm text-v2-muted">当日暂无工作项</p>}
-        {onCreate && activeDate && (
-          <div className="flex justify-end border-t border-v2-border pt-3">
-            <Button variant="primary" onClick={() => onCreate(activeDate)}><Plus className="h-4 w-4" />在该日期创建任务</Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        ) : null}
+        {isLoading ? <p className="cwgsyw-type-body-sm">加载中...</p> : null}
+        {!isLoading
+          ? data?.items.map((item) => (
+              <Button key={item.id} type="button" variant="ghost" className="cwgsyw-ops-cal-item" data-overdue={item.overdue} onClick={() => onItemClick(item)}>
+                <StatusBadge size="sm" label={calendarItemTypeLabel(item.itemType)} status="neutral" />
+                <span className="cwgsyw-ops-day__title">{item.title}</span>
+                {calendarMetaText(item, 'assigneeName') ? <span className="cwgsyw-type-label-xs">{calendarMetaText(item, 'assigneeName')}</span> : null}
+                <span className="cwgsyw-type-label-xs">{fmtTime(item.startAt).slice(11)}</span>
+                <StatusBadge
+                  size="sm"
+                  label={item.overdue ? '已逾期' : calendarStatusLabel(item.status)}
+                  status={item.overdue ? 'danger' : item.status === 'completed' ? 'success' : 'neutral'}
+                />
+              </Button>
+            ))
+          : null}
+        {!isLoading && (!data || data.items.length === 0) ? <p className="cwgsyw-type-body-sm">当日暂无工作项</p> : null}
+      </div>
+    </NeutralDialog>
   )
 }

@@ -1,0 +1,32 @@
+'use strict'
+
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const test = require('node:test')
+
+const frontendRoot = path.resolve(__dirname, '..')
+const sourcePath = path.join(frontendRoot, 'src/components/layout/CommandPalette.tsx')
+const cssPath = path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css')
+
+test('global search dialog follows Neutral baseline recipe', () => {
+  const source = fs.readFileSync(sourcePath, 'utf8')
+  const css = fs.readFileSync(cssPath, 'utf8')
+  assert.match(source, /NeutralDialog/)
+  assert.match(source, /title="全局搜索"/)
+  assert.match(source, /size="md"/)
+  assert.match(source, /SearchInput/)
+  assert.match(source, /size="sm"/)
+  assert.match(source, /cwgsyw-global-search/)
+  assert.match(source, /figma-icons\/cmdb-search\.svg/)
+  assert.match(source, /6:29270/)
+  assert.doesNotMatch(source, /cwgsyw-stack-list/)
+  assert.doesNotMatch(source, /font-semibold/)
+  assert.doesNotMatch(source, /lucide-react/)
+  assert.doesNotMatch(source, /@\/components\/design-system/)
+  assert.match(css, /\.cwgsyw-dialog:has\(\.cwgsyw-global-search\)/)
+  assert.match(css, /\.cwgsyw-global-search \.cwgsyw-control/)
+  assert.match(css, /cmdk-group-heading/)
+  assert.match(css, /text-align: center/)
+  assert.ok(fs.existsSync(path.join(frontendRoot, 'public/figma-icons/cmdb-search.svg')))
+})

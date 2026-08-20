@@ -1,43 +1,35 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
 import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
-import { ErrorState, LoadingState, PageHeader, EmptyState } from '@/components/shared'
-import {
-  Button,
-  Card,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Textarea,
-} from '@/components/design-system'
-import {
-  BookOpen,
-  Library,
-  Plus,
-  FileText,
-  ArrowRight,
-  Pencil,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Shield,
-  Search,
-} from 'lucide-react'
 import type { WikiSpace } from '@/types/wiki'
 import { canWriteSpace } from '@/types/wiki'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Badge,
+  Button,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  Input,
+  LoadingState,
+  NeutralAlertDialog,
+  NeutralDialog,
+  NeutralTooltip,
+  PageHeader,
+  Select,
+  Textarea,
+} from '@/design-system/figma-neutral/components'
 
-/** 个人空间排序：按当前用户 username 隔离存 localStorage（非全局，每人各自的顺序）。 */
 function orderStorageKey(username: string | undefined): string {
   return `wiki_space_order_${username ?? 'anon'}`
 }
@@ -59,14 +51,13 @@ function savePersonalOrder(username: string | undefined, ids: number[]): void {
   }
 }
 
-/** 把后端返回的空间列表按个人顺序排列：已记录的按记录顺序，未记录的（新空间）排末尾。 */
 function applyPersonalOrder(spaces: WikiSpace[], order: number[]): WikiSpace[] {
-  const pos = new Map(order.map((id, i) => [id, i]))
-  return [...spaces].sort((a, b) => {
-    const pa = pos.has(a.id) ? (pos.get(a.id) as number) : Number.MAX_SAFE_INTEGER
-    const pb = pos.has(b.id) ? (pos.get(b.id) as number) : Number.MAX_SAFE_INTEGER
-    if (pa !== pb) return pa - pb
-    return a.id - b.id // 同为新空间时按 id 稳定排序
+  const pos = new Map(order.map((id, index) => [id, index]))
+  return [...spaces].sort((left, right) => {
+    const leftPos = pos.has(left.id) ? (pos.get(left.id) as number) : Number.MAX_SAFE_INTEGER
+    const rightPos = pos.has(right.id) ? (pos.get(right.id) as number) : Number.MAX_SAFE_INTEGER
+    if (leftPos !== rightPos) return leftPos - rightPos
+    return left.id - right.id
   })
 }
 
@@ -74,12 +65,12 @@ export default function WikiSpacesPage() {
   const router = useRouter()
   const { hasPermission, isHydrated } = usePermission()
   const queryClient = useQueryClient()
-  const username = useAuthStore((s) => s.user?.username)
-  const groupId = useAuthStore((s) => s.groupId)
-  const groupScope = useAuthStore((s) => s.groupScope)
+  const username = useAuthStore((state) => state.user?.username)
+  const groupId = useAuthStore((state) => state.groupId)
+  const groupScope = useAuthStore((state) => state.groupScope)
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editing, setEditing] = useState<WikiSpace | null>(null) // null=新建，非空=编辑
+  const [editing, setEditing] = useState<WikiSpace | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [ownerGroupId, setOwnerGroupId] = useState('')
@@ -94,7 +85,6 @@ export default function WikiSpacesPage() {
     if (!hasPermission('wiki', 'read')) router.replace('/')
   }, [isHydrated, hasPermission, router])
 
-  // 加载个人排序（username 就绪后）
   useEffect(() => {
     // Persisted browser state changes when the hydrated username becomes available.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -115,20 +105,15 @@ export default function WikiSpacesPage() {
   const canUpdate = hasPermission('wiki', 'update')
   const canDelete = hasPermission('wiki', 'delete')
 
-  // 两层：官方手册（system seed 空间，置顶固定）+ 团队空间（用户创建，可个人排序）
-  const manualSpaces = useMemo(
-    () => (spaces ?? []).filter((s) => s.system),
-    [spaces],
-  )
+  const manualSpaces = useMemo(() => (spaces ?? []).filter((space) => space.system), [spaces])
   const teamSpaces = useMemo(
-    () => applyPersonalOrder((spaces ?? []).filter((s) => !s.system), order),
+    () => applyPersonalOrder((spaces ?? []).filter((space) => !space.system), order),
     [spaces, order],
   )
 
-  // 上移/下移：仅作用于团队空间，更新个人顺序并持久化（仅本人 localStorage，不动后端）
   const move = useCallback(
     (index: number, dir: -1 | 1) => {
-      const ids = teamSpaces.map((s) => s.id)
+      const ids = teamSpaces.map((space) => space.id)
       const target = index + dir
       if (target < 0 || target >= ids.length) return
       ;[ids[index], ids[target]] = [ids[target], ids[index]]
@@ -142,8 +127,11 @@ export default function WikiSpacesPage() {
     mutationFn: () =>
       editing
         ? wikiApi.updateSpace(editing.id, { name: name.trim(), description: description.trim() })
-        : wikiApi.createSpace({ name: name.trim(), description: description.trim(),
-          ownerGroupId: effectiveOwnerGroupId ? Number(effectiveOwnerGroupId) : undefined }),
+        : wikiApi.createSpace({
+            name: name.trim(),
+            description: description.trim(),
+            ownerGroupId: effectiveOwnerGroupId ? Number(effectiveOwnerGroupId) : undefined,
+          }),
     onSuccess: (space) => {
       queryClient.invalidateQueries({ queryKey: ['wiki-spaces'] })
       const wasCreate = !editing
@@ -155,11 +143,11 @@ export default function WikiSpacesPage() {
       toast.success(wasCreate ? '空间已创建' : '空间已更新')
       if (wasCreate && space) router.push(`/wiki/${space.id}`)
     },
-    onError: (e: unknown) => {
-      const msg =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         (editing ? '更新失败' : '创建失败')
-      toast.error(msg)
+      toast.error(message)
     },
   })
 
@@ -167,17 +155,16 @@ export default function WikiSpacesPage() {
     mutationFn: (id: number) => wikiApi.deleteSpace(id),
     onSuccess: (_void, id) => {
       queryClient.invalidateQueries({ queryKey: ['wiki-spaces'] })
-      // 从个人顺序里移除
-      const next = order.filter((x) => x !== id)
+      const next = order.filter((item) => item !== id)
       setOrder(next)
       savePersonalOrder(username, next)
       setDeleting(null)
       toast.success('空间已删除')
     },
-    onError: (e: unknown) => {
-      const msg =
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '删除失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '删除失败'
+      toast.error(message)
       setDeleting(null)
     },
   })
@@ -189,261 +176,263 @@ export default function WikiSpacesPage() {
     setCreateOpen(true)
   }
 
-  function openEdit(s: WikiSpace) {
-    setEditing(s)
-    setName(s.name)
-    setDescription(s.description ?? '')
+  function openEdit(space: WikiSpace) {
+    setEditing(space)
+    setName(space.name)
+    setDescription(space.description ?? '')
     setCreateOpen(true)
   }
 
-  // 渲染单个空间卡片。idx 仅团队空间传入（带上移/下移）；手册卡不传，无排序。
-  function renderSpaceCard(s: WikiSpace, idx?: number) {
+  function renderSpaceCard(space: WikiSpace, idx?: number) {
     const sortable = idx !== undefined
-    const writable = canWriteSpace(s)
+    const writable = canWriteSpace(space)
     return (
-      <Card
-        key={s.id}
-        hover
-        onClick={() => router.push(`/wiki/${s.id}`)}
-        className="flex cursor-pointer flex-col p-5"
+      <article
+        key={space.id}
+        className="cwgsyw-wiki-space-card"
+        onClick={() => router.push(`/wiki/${space.id}`)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') router.push(`/wiki/${space.id}`)
+        }}
+        role="link"
+        tabIndex={0}
       >
-        <div className="mb-3 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md bg-v2-primary-soft text-v2-primary">
-            {s.system ? <Library className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base font-bold text-v2-fg">{s.name}</h3>
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-v2-muted">
-              <FileText className="h-3 w-3" />
-              {s.pageCount} 篇文档
-            </p>
-          </div>
-          {sortable && (
-            <div className="flex shrink-0 flex-col">
-              <button
-                title="上移"
-                disabled={idx === 0}
-                onClick={(e) => { e.stopPropagation(); move(idx, -1) }}
-                className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-              </button>
-              <button
-                title="下移"
-                disabled={idx === teamSpaces.length - 1}
-                onClick={(e) => { e.stopPropagation(); move(idx, 1) }}
-                className="flex h-5 w-5 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-        <p className="mb-4 line-clamp-2 min-h-[2.5rem] flex-1 text-sm text-v2-muted">
-          {s.description || '暂无描述'}
-        </p>
-        <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate text-xs text-v2-subtle">
-            {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString('zh-CN') : '—'}
-            {s.createdByName ? ` · ${s.createdByName}` : ''}
-          </span>
-          <div className="flex shrink-0 items-center gap-1">
-            {(canUpdate && writable) || s.canManageAcl ? (
-              <button
-                title="重命名"
-                onClick={(e) => { e.stopPropagation(); openEdit(s) }}
-                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
+        <div className="cwgsyw-wiki-space-card__body">
+          <div className="cwgsyw-wiki-space-card__title-row">
+            <span className="cwgsyw-wiki-space-card__name">{space.name}</span>
+            {space.system ? <Badge label="官方手册" /> : null}
+            {sortable ? (
+              <span className="cwgsyw-wiki-space-card__sort">
+                <NeutralTooltip content="上移" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron cwgsyw-wiki-space-card__chevron--up" />}
+                    aria-label={`上移 ${space.name}`}
+                    disabled={idx === 0}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      move(idx, -1)
+                    }}
+                  />
+                </NeutralTooltip>
+                <NeutralTooltip content="下移" className="cwgsyw-tooltip--pill" followCursor>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-wiki-space-card__chevron" />}
+                    aria-label={`下移 ${space.name}`}
+                    disabled={idx === teamSpaces.length - 1}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      move(idx, 1)
+                    }}
+                  />
+                </NeutralTooltip>
+              </span>
             ) : null}
-            {s.canManageAcl && (
-              <button
-                title="授权管理"
-                onClick={(e) => { e.stopPropagation(); setAclTarget(s) }}
-                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-v2-surface-hover hover:text-v2-fg"
-              >
-                <Shield className="h-3.5 w-3.5" />
-              </button>
-            )}
-            {canDelete && writable && (
-              <button
-                title="删除"
-                onClick={(e) => { e.stopPropagation(); setDeleting(s) }}
-                className="flex h-7 w-7 items-center justify-center rounded text-v2-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); router.push(`/wiki/${s.id}`) }}>
+          </div>
+          <p className="cwgsyw-wiki-space-card__meta">{space.pageCount} 篇文档</p>
+          <p className="cwgsyw-wiki-space-card__desc">{space.description || '暂无描述'}</p>
+          <div className="cwgsyw-wiki-space-card__footer">
+            <span className="cwgsyw-wiki-space-card__stamp">
+              {space.updatedAt ? new Date(space.updatedAt).toLocaleDateString('zh-CN') : '—'}
+              {space.createdByName ? ` · ${space.createdByName}` : ''}
+            </span>
+            <span className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions" onClick={(event) => event.stopPropagation()}>
+            {(canUpdate && writable) || space.canManageAcl ? (
+              <NeutralTooltip content="重命名" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />}
+                  aria-label={`重命名 ${space.name}`}
+                  onClick={() => openEdit(space)}
+                />
+              </NeutralTooltip>
+            ) : null}
+            {space.canManageAcl ? (
+              <NeutralTooltip content="授权" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--settings" />}
+                  aria-label={`授权 ${space.name}`}
+                  onClick={() => setAclTarget(space)}
+                />
+              </NeutralTooltip>
+            ) : null}
+            {canDelete && writable ? (
+              <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="cwgsyw-cmdb-admin__delete-action"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                  aria-label={`删除 ${space.name}`}
+                  onClick={() => setDeleting(space)}
+                />
+              </NeutralTooltip>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/wiki/${space.id}`)}
+            >
               进入
-              <ArrowRight className="h-3.5 w-3.5" />
             </Button>
+            </span>
           </div>
         </div>
-      </Card>
+      </article>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="知识库"
-        title="知识空间"
-        subtitle="按团队或主题组织知识空间，集中沉淀运维文档、规范与排障经验。"
-        actions={
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => router.push('/wiki/search')}>
-              <Search className="h-4 w-4" />
-              搜索知识库
-            </Button>
-            {canCreate && (
-              <Button variant="primary" onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                新建空间
-              </Button>
-            )}
-          </div>
+    <>
+      <DataManagementPage
+        embedded
+        className="cwgsyw-wiki"
+        header={
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title="知识空间"
+            subtitle="按团队或主题组织知识空间，集中沉淀运维文档、规范与排障经验。"
+            actions={
+              <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/wiki/search')}>
+                  搜索知识库
+                </Button>
+                {canCreate ? (
+                  <Button type="button" size="sm" onClick={openCreate}>
+                    新建空间
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
+        }
+        content={
+          isLoading ? (
+            <LoadingState label="正在加载知识空间…" />
+          ) : isError ? (
+            <ErrorState
+              title="知识空间加载失败"
+              description="无法读取知识空间列表，请重试。"
+              retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
+            />
+          ) : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
+            <div className="cwgsyw-neutral-empty">
+              {/* Official Figma library glyph; image optimization adds no value here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/figma-icons/wiki-library.svg" width={22} height={22} alt="" data-figma-node="6:27530" />
+              <EmptyState
+                showIcon={false}
+                title="暂无知识空间"
+                description="还没有任何知识空间，点击右上角创建第一个空间开始沉淀文档。"
+                action={canCreate ? <Button type="button" size="sm" onClick={openCreate}>新建空间</Button> : undefined}
+              />
+            </div>
+          ) : (
+            <div className="cwgsyw-wiki-spaces">
+              {manualSpaces.length > 0 ? (
+                <section className="cwgsyw-wiki-spaces__section">
+                  <header className="cwgsyw-wiki-spaces__head">
+                    <span>官方手册</span>
+                    <Badge label="系统维护" />
+                  </header>
+                  <div className="cwgsyw-wiki-spaces__grid">{manualSpaces.map((space) => renderSpaceCard(space))}</div>
+                </section>
+              ) : null}
+              {teamSpaces.length > 0 ? (
+                <section className="cwgsyw-wiki-spaces__section">
+                  <header className="cwgsyw-wiki-spaces__head">
+                    <span>团队空间</span>
+                  </header>
+                  <div className="cwgsyw-wiki-spaces__grid">{teamSpaces.map((space, index) => renderSpaceCard(space, index))}</div>
+                </section>
+              ) : null}
+            </div>
+          )
         }
       />
 
-      {isLoading ? (
-        <LoadingState label="正在加载知识空间…" minHeight={220} />
-      ) : isError ? (
-        <Card>
-          <ErrorState
-            title="知识空间加载失败"
-            description="无法读取知识空间列表，请重试。"
-            onRetry={() => void refetch()}
-          />
-        </Card>
-      ) : manualSpaces.length === 0 && teamSpaces.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<BookOpen className="h-5 w-5 text-v2-muted" />}
-            title="暂无知识空间"
-            description="还没有任何知识空间，点击右上角创建第一个空间开始沉淀文档。"
-            action={
-              canCreate && (
-                <Button variant="primary" onClick={openCreate}>
-                  <Plus className="h-4 w-4" />
-                  新建空间
-                </Button>
-              )
-            }
-          />
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {/* 第一层：官方手册（系统维护，置顶固定） */}
-          {manualSpaces.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">
-                <Library className="h-3.5 w-3.5 text-v2-primary" />
-                官方手册
-                <span className="rounded-full bg-v2-primary-soft px-2 py-0.5 text-[10px] font-medium normal-case text-v2-primary">
-                  系统维护
-                </span>
-                <span className="h-px flex-1 bg-v2-border" />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {manualSpaces.map((s) => renderSpaceCard(s))}
-              </div>
-            </section>
-          )}
-
-          {/* 第二层：团队空间（用户创建，可个人排序） */}
-          {teamSpaces.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-v2-muted">
-                <BookOpen className="h-3.5 w-3.5" />
-                团队空间
-                <span className="h-px flex-1 bg-v2-border" />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {teamSpaces.map((s, idx) => renderSpaceCard(s, idx))}
-              </div>
-            </section>
-          )}
-        </div>
-      )}
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? '编辑知识空间' : '新建知识空间'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Input
-              placeholder="空间名称（必填）"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Textarea
-              placeholder="空间描述（选填）"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            {!editing && (
-              <label className="block space-y-1 text-sm text-v2-fg">
-                <span>归属组（必选）</span>
-                <select className="h-9 w-full rounded-v2-sm border border-v2-border bg-v2-surface px-2" value={effectiveOwnerGroupId} disabled={groupScope === 'group'} onChange={(event) => setOwnerGroupId(event.target.value)}>
-                  <option value="">请选择归属组</option>
-                  {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                </select>
-                {groupScope === 'group' && <span className="text-xs text-v2-muted">组级用户固定为当前会话归属组。</span>}
-              </label>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
-              取消
-            </Button>
+      <NeutralDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={editing ? '编辑知识空间' : '新建知识空间'}
+        size="sm"
+        footer={
+          <>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setCreateOpen(false)}>取消</Button>
             <Button
-              variant="primary"
+              type="button"
+              size="sm"
               disabled={!name.trim() || (!editing && !effectiveOwnerGroupId) || saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
             >
               {editing ? '保存' : '创建'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <div className="cwgsyw-form">
+          <Field htmlFor="wiki-space-name" label="空间名称" required>
+            <Input size="sm" value={name} placeholder="空间名称（必填）" onChange={(event) => setName(event.target.value)} />
+          </Field>
+          <Field htmlFor="wiki-space-desc" label="空间描述">
+            <Textarea value={description} rows={3} placeholder="空间描述（选填）" onChange={(event) => setDescription(event.target.value)} />
+          </Field>
+          {!editing ? (
+            <Field htmlFor="wiki-space-group" label="归属组" required helperText={groupScope === 'group' ? '组级用户固定为当前会话归属组。' : undefined}>
+              <Select
+                overlay
+                size="sm"
+                value={effectiveOwnerGroupId}
+                disabled={groupScope === 'group'}
+                placeholder="请选择归属组"
+                options={[{ value: '', label: '请选择归属组' }, ...groups.map((group) => ({ value: String(group.id), label: group.name }))]}
+                onChange={setOwnerGroupId}
+              />
+            </Field>
+          ) : null}
+        </div>
+      </NeutralDialog>
 
-      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除知识空间</DialogTitle>
-          </DialogHeader>
-          <div className="py-2 text-sm text-v2-fg">
-            确定删除空间「{deleting?.name}」吗？
-            {(deleting?.pageCount ?? 0) > 0 && (
-              <p className="mt-2 text-xs text-amber-600">
-                该空间下还有 {deleting?.pageCount} 篇文档，需先删除全部页面才能删除空间。
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDeleting(null)}>
-              取消
-            </Button>
-            <Button
-              variant="danger"
-              disabled={deleteMutation.isPending}
-              onClick={() => deleting && deleteMutation.mutate(deleting.id)}
-            >
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NeutralAlertDialog
+        open={!!deleting}
+        onOpenChange={(open) => { if (!open) setDeleting(null) }}
+        intent="destructive"
+        title="删除知识空间"
+        description={
+          deleting
+            ? `确定删除空间「${deleting.name}」吗？${(deleting.pageCount ?? 0) > 0 ? ` 该空间下还有 ${deleting.pageCount} 篇文档，需先删除全部页面才能删除空间。` : ''}`
+            : undefined
+        }
+        confirmLabel="删除"
+        cancelLabel="取消"
+        onConfirm={() => {
+          if (deleting) deleteMutation.mutate(deleting.id)
+        }}
+      />
 
-      {aclTarget && (
-        <ResourceAccessDialog resourceType="wiki_space" resourceId={aclTarget.id}
-          title={aclTarget.name} container open={!!aclTarget}
-          onOpenChange={(open) => { if (!open) setAclTarget(null) }} />
-      )}
-    </div>
+      {aclTarget ? (
+        <ResourceAccessDialog
+          resourceType="wiki_space"
+          resourceId={aclTarget.id}
+          title={aclTarget.name}
+          container
+          open={!!aclTarget}
+          onOpenChange={(open) => { if (!open) setAclTarget(null) }}
+        />
+      ) : null}
+    </>
   )
 }

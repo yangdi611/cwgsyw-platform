@@ -1,38 +1,36 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Button, Input } from '@/components/design-system'
-import { ArrowLeft, FileQuestion, Save } from 'lucide-react'
-import { EmptyState, WorkspaceShell, WorkspaceToolbar } from '@/components/shared'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
 import '@uiw/react-md-editor/markdown-editor.css'
+import '@/components/wiki/WikiEditor.css'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  EmptyState,
+  Input,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 
-// 图片上传约束
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] as const
 const ALLOWED_IMAGE_MIMES = [
   'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
 ]
-// file input 的 accept 属性
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp,.svg,image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
-
 const FMT = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 const WIKI_PAGE_TITLE_MAX_LENGTH = 255
 
-/**
- * 镜像 div 测量法：算出 textarea 中某字符位置光标的像素坐标（相对 textarea 内容左上角）。
- * 复制 textarea 的字体/内边距/换行等样式到隐藏 div，在光标处插入标记 span 取其偏移。
- * 这是 textarea 光标定位的业界标准做法，正确处理自动换行与横向位置。
- */
 const MIRROR_PROPS = [
   'boxSizing', 'width', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
   'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
@@ -74,7 +72,6 @@ export default function WikiEditorPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [savedAt, setSavedAt] = useState<string | null>(null)
-  // Autocomplete state for [[ trigger
   const [acQuery, setAcQuery] = useState<string | null>(null)
   const [acResults, setAcResults] = useState<WikiSearchResult[]>([])
   const [acPos, setAcPos] = useState<{ top: number; left: number } | null>(null)
@@ -86,7 +83,7 @@ export default function WikiEditorPage() {
     queryKey: ['wiki-spaces'],
     queryFn: () => wikiApi.listSpaces(),
   })
-  const currentSpace = spaces?.find((s) => s.id === sid)
+  const currentSpace = spaces?.find((space) => space.id === sid)
 
   const { data: page, isError: pageError } = useQuery<WikiPage>({
     queryKey: ['wiki-page', pid],
@@ -107,23 +104,24 @@ export default function WikiEditorPage() {
     setContent(page.content ?? '')
   }, [page])
 
+  const displayedTitle = title || page?.title || ''
+
   const saveMutation = useMutation({
     mutationFn: (comment?: string) =>
-      wikiApi.savePage(pid, { title: title.trim(), content, comment }),
+      wikiApi.savePage(pid, { title: displayedTitle.trim(), content, comment }),
     onSuccess: (updated) => {
       setSavedAt(FMT.format(new Date()))
       queryClient.setQueryData<WikiPage>(['wiki-page', pid], updated)
       queryClient.invalidateQueries({ queryKey: ['wiki-tree', sid] })
     },
-    onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '保存失败'
-      toast.error(msg)
+    onError: (error: unknown) => {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '保存失败'
+      toast.error(message)
     },
   })
 
-  // Auto-save: 30s debounce after content/title changes
   useEffect(() => {
-    if (!page) return // don't auto-save before initial load
+    if (!page) return
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
       saveMutation.mutate(undefined)
@@ -134,11 +132,10 @@ export default function WikiEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, title])
 
-  // Ctrl+S manual save
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault()
         saveMutation.mutate(undefined)
       }
     }
@@ -146,7 +143,6 @@ export default function WikiEditorPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [saveMutation])
 
-  // 校验 + 上传 + 在光标处插入 ![](url)；粘贴和工具栏按钮共用
   const uploadAndInsert = useCallback(
     async (file: File) => {
       const name = file.name?.toLowerCase() ?? ''
@@ -165,12 +161,12 @@ export default function WikiEditorPage() {
       try {
         const { url } = await wikiApi.uploadAttachment(pid, file)
         const insertText = `\n![](${url})\n`
-        const ta = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
-        if (ta) {
-          const start = ta.selectionStart
-          setContent((c) => c.slice(0, start) + insertText + c.slice(start))
+        const textarea = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
+        if (textarea) {
+          const start = textarea.selectionStart
+          setContent((current) => current.slice(0, start) + insertText + current.slice(start))
         } else {
-          setContent((c) => c + insertText)
+          setContent((current) => current + insertText)
         }
       } catch {
         toast.error('图片上传失败')
@@ -179,15 +175,14 @@ export default function WikiEditorPage() {
     [pid],
   )
 
-  // 图片粘贴 → 上传附件 → 插入 ![](url)
   const handlePaste = useCallback(
-    async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
+    async (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items
       if (!items) return
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i]
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index]
         if (item.type.startsWith('image/')) {
-          e.preventDefault?.()
+          event.preventDefault?.()
           const file = item.getAsFile()
           if (file) await uploadAndInsert(file)
           break
@@ -197,12 +192,11 @@ export default function WikiEditorPage() {
     [uploadAndInsert],
   )
 
-  // 工具栏图片按钮 → 选本地图片 → 上传插入
   const handleFileInputChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
       if (file) await uploadAndInsert(file)
-      e.target.value = '' // 允许重复选同一文件
+      event.target.value = ''
     },
     [uploadAndInsert],
   )
@@ -210,38 +204,35 @@ export default function WikiEditorPage() {
   useEffect(() => {
     const el = editorRef.current
     if (!el) return
-    const handler = (e: ClipboardEvent) => handlePaste(e)
+    const handler = (event: ClipboardEvent) => {
+      void handlePaste(event)
+    }
     el.addEventListener('paste', handler)
     return () => el.removeEventListener('paste', handler)
   }, [handlePaste])
 
-  // [[ autocomplete: 用 textarea 真实光标位置检测，支持文档中间输入
   const handleContentChange = useCallback(
     (val: string | undefined) => {
-      const v = val ?? ''
-      setContent(v)
-      // 取编辑器内 textarea 的光标位置；取不到则回退到文末
-      const ta = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
-      const caret = ta ? ta.selectionStart : v.length
-      const before = v.slice(0, caret)
-      // 光标前最近的未闭合 [[xxx（xxx 不含 ] 和换行，最多 30 字）
+      const next = val ?? ''
+      setContent(next)
+      const textarea = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
+      const caret = textarea ? textarea.selectionStart : next.length
+      const before = next.slice(0, caret)
       const match = before.match(/\[\[([^\]\n]{0,30})$/)
       if (match) {
-        const q = match[1]
-        setAcQuery(q)
-        // 计算浮层位置：镜像 div 测量光标真实像素坐标
-        if (ta) {
-          const caretXY = getCaretCoordinates(ta, caret)
-          const taRect = ta.getBoundingClientRect()
+        const query = match[1]
+        setAcQuery(query)
+        if (textarea) {
+          const caretXY = getCaretCoordinates(textarea, caret)
+          const taRect = textarea.getBoundingClientRect()
           const edRect = editorRef.current?.getBoundingClientRect()
-          // 光标坐标 → 相对编辑器容器；+20 让浮层落在光标下一行
           const top = taRect.top - (edRect?.top ?? 0) + caretXY.top + 20
           const left = taRect.left - (edRect?.left ?? 0) + caretXY.left
           setAcPos({ top, left })
         }
         wikiApi
-          .search({ keyword: q, space_id: sid, page: 1, size: 8 })
-          .then((r) => setAcResults(r.records))
+          .search({ keyword: query, space_id: sid, page: 1, size: 8 })
+          .then((result) => setAcResults(result.records))
           .catch(() => setAcResults([]))
       } else {
         setAcQuery(null)
@@ -252,22 +243,18 @@ export default function WikiEditorPage() {
     [sid],
   )
 
-  const insertWikiLink = useCallback(
-    (result: WikiSearchResult) => {
-      const ta = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
-      setContent((c) => {
-        const caret = ta ? ta.selectionStart : c.length
-        const before = c.slice(0, caret)
-        const after = c.slice(caret)
-        // 把光标前最近的 [[xxx 替换为 [[标题]]
-        const newBefore = before.replace(/\[\[([^\]\n]{0,30})$/, `[[${result.title}]]`)
-        return newBefore + after
-      })
-      setAcQuery(null)
-      setAcResults([])
-    },
-    [],
-  )
+  const insertWikiLink = useCallback((result: WikiSearchResult) => {
+    const textarea = editorRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
+    setContent((current) => {
+      const caret = textarea ? textarea.selectionStart : current.length
+      const before = current.slice(0, caret)
+      const after = current.slice(caret)
+      const newBefore = before.replace(/\[\[([^\]\n]{0,30})$/, `[[${result.title}]]`)
+      return newBefore + after
+    })
+    setAcQuery(null)
+    setAcResults([])
+  }, [])
 
   const previewComponents = useMemo(
     () =>
@@ -281,68 +268,45 @@ export default function WikiEditorPage() {
   )
 
   if (pageError || (spaces && !currentSpace)) {
-    return <EmptyState icon={<FileQuestion className="h-5 w-5 text-v2-muted" />} title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
+    return <EmptyState title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
   }
 
   return (
-    <WorkspaceShell
-      height="viewport"
-      className="-m-4 md:-m-6"
-      toolbar={(
-        <WorkspaceToolbar
-          leading={(
-            <button
-              onClick={() => router.push(`/wiki/${sid}/${pid}`)}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-v2-sm px-2.5 text-sm font-medium text-v2-muted transition-colors hover:bg-v2-surface-soft hover:text-v2-fg"
-            >
-              <ArrowLeft className="h-4 w-4" />返回
-            </button>
-          )}
-          title={(
-            <Input
-              className="h-9 min-w-0 text-base font-semibold"
-              value={title}
-              maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="页面标题"
-            />
-          )}
-          subtitle={`${title.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
-          actions={(
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!title.trim() || saveMutation.isPending}
-              onClick={() => saveMutation.mutate(undefined)}
-            >
-              <Save className="h-3.5 w-3.5" />保存
+    <div className="cwgsyw-page cwgsyw-page--embedded cwgsyw-wiki cwgsyw-wiki-edit">
+      <WikiShellHeader>
+      <PageHeader
+        showEyebrow={false}
+        showBreadcrumb={false}
+        title={displayedTitle || '编辑页面'}
+        subtitle={`${displayedTitle.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
+        actions={
+          <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
+            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}`)}>
+              返回
             </Button>
-          )}
-        />
-      )}
-    >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-v2-lg border border-v2-border bg-v2-surface shadow-v2-sm">
-
-      {/* 隐藏 file input：由工具栏图片按钮触发 */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={IMAGE_ACCEPT}
-        className="hidden"
-        onChange={handleFileInputChange}
+            <Button type="button" size="sm" disabled={!displayedTitle.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate(undefined)}>
+              保存
+            </Button>
+          </div>
+        }
       />
-
-      {/* Editor */}
+      </WikiShellHeader>
+      <Input
+        size="sm"
+        value={displayedTitle}
+        maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
+        placeholder="页面标题"
+        onChange={(event) => setTitle(event.target.value)}
+      />
+      <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} hidden onChange={handleFileInputChange} />
       <div className="wiki-editor relative min-h-0 flex-1 overflow-hidden" ref={editorRef} data-color-mode="light">
         <MDEditor
           value={content}
           onChange={handleContentChange}
           preview="live"
           height="100%"
-          style={{ borderRadius: 0, border: 'none', height: '100%' }}
           visibleDragbar={false}
           commandsFilter={(cmd) => {
-            // 拦截 image 命令：改为打开本地文件选择框
             if (cmd.name === 'image') {
               return {
                 ...cmd,
@@ -355,30 +319,24 @@ export default function WikiEditorPage() {
             components: previewComponents,
           }}
         />
-
-        {/* [[ autocomplete popover —— 跟随光标定位 */}
-        {acQuery !== null && acResults.length > 0 && acPos && (
-          <div
-            className="absolute z-50 max-h-64 w-72 overflow-y-auto rounded-v2-md border border-v2-border bg-v2-surface shadow-lg"
-            style={{ top: acPos.top, left: acPos.left }}
-          >
-            <div className="px-3 py-1.5 text-xs font-semibold text-v2-muted">插入 Wiki 链接</div>
-            {acResults.map((r) => (
-              <button
-                key={r.pageId}
-                onClick={() => insertWikiLink(r)}
-                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-v2-surface-hover"
+        {acQuery !== null && acResults.length > 0 && acPos ? (
+          <div className="cwgsyw-wiki-edit__ac" style={{ top: acPos.top, left: acPos.left }}>
+            <div className="cwgsyw-wiki-edit__ac-head">插入 Wiki 链接</div>
+            {acResults.map((result) => (
+              <Button
+                key={result.pageId}
+                type="button"
+                variant="ghost"
+                className="cwgsyw-wiki-edit__ac-item"
+                onClick={() => insertWikiLink(result)}
               >
-                <span className="font-medium text-v2-fg">{r.title}</span>
-                {r.highlight && (
-                  <span className="truncate text-xs text-v2-muted">{r.highlight}</span>
-                )}
-              </button>
+                <span>{result.title}</span>
+                {result.highlight ? <span className="cwgsyw-wiki-search__hit">{result.highlight}</span> : null}
+              </Button>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
-      </div>
-    </WorkspaceShell>
+    </div>
   )
 }

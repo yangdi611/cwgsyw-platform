@@ -1,17 +1,30 @@
 'use client'
+
 import { useState } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@/components/design-system'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/account/account.css'
+import {
+  Button,
+  Card,
+  Field,
+  FormSettingsPage,
+  IconButton,
+  Input,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     setError('')
     setLoading(true)
     try {
@@ -24,39 +37,90 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl text-v2-fg">CWGSYW 运维平台</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">用户名</Label>
+    <FormSettingsPage
+      centered
+      layout="default"
+      className="cwgsyw-account-page cwgsyw-account-page--login"
+      header={
+        <div className="cwgsyw-account-login-brand">
+          <Image
+            className="cwgsyw-account-login-brand__logo"
+            src="/sidebar-logo.png"
+            alt=""
+            width={72}
+            height={72}
+            unoptimized
+          />
+          <PageHeader
+            showBreadcrumb={false}
+            showEyebrow={false}
+            showSubtitle={false}
+            title="IT 基础设施运维管理平台"
+          />
+        </div>
+      }
+      form={
+        <>
+        <Card title="登录" description="登录成功后进入工作台。">
+          <form className="cwgsyw-form cwgsyw-account-form" noValidate onSubmit={handleSubmit}>
+            <Field htmlFor="username" label="用户名" required>
               <Input
                 id="username"
+                size="sm"
+                autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 required
+                onChange={(event) => setUsername(event.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
+            </Field>
+            <Field
+              htmlFor="password"
+              label="密码"
+              required
+              state={error ? 'error' : 'default'}
+              errorText={error || undefined}
+            >
               <Input
                 id="password"
-                type="password"
+                size="sm"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
+                onChange={(event) => setPassword(event.target.value)}
+                trailingIcon={
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="cwgsyw-account-password-toggle"
+                    icon={
+                      <Image
+                        className="cwgsyw-account-password-toggle__icon"
+                        src={showPassword ? '/figma-icons/account-login-eye-off.svg' : '/figma-icons/account-login-eye.svg'}
+                        alt=""
+                        width={16}
+                        height={16}
+                        unoptimized
+                      />
+                    }
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                    title={showPassword ? '隐藏密码' : '显示密码'}
+                    onClick={() => setShowPassword((current) => !current)}
+                  />
+                }
               />
+            </Field>
+            <div className="cwgsyw-form__actions">
+              <Button type="submit" size="sm" variant="primary" loading={loading}>
+                {loading ? '登录中…' : '登录'}
+              </Button>
             </div>
-            {error && <p className="text-sm text-v2-danger">{error}</p>}
-            <Button type="submit" variant="primary" className="w-full" disabled={loading}>
-              {loading ? '登录中…' : '登录'}
-            </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </Card>
+        <p className="cwgsyw-account-login-hint">联系管理员获取账号；首次登录可能需要完成账号安全设置。</p>
+        </>
+      }
+    />
   )
 }

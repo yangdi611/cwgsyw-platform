@@ -1,19 +1,31 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
-import { Button } from '@/components/design-system'
-import { ErrorState, PageHeader, PageShell, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
-import { toast } from 'sonner'
-import Link from 'next/link'
-import { Plus, Trash2, Upload, ArrowLeft, FileText, ArrowRight, GitBranch, Pencil, Copy } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
 import { CsvImportDialog } from '@/components/cmdb/CsvImportDialog'
 import { BatchEditDialog } from '@/components/cmdb/BatchEditDialog'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { decodeModelCodeOnce } from '@/lib/cmdb-model-code'
 import type { CiModelWithAttributes, CmdbFieldsData } from '@/types/cmdb-model'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  Checkbox,
+  DataManagementPage,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  NeutralAlertDialog,
+  NeutralDrawer,
+  PageHeader,
+  Pagination,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface CiInstanceVO {
   id: number
@@ -36,6 +48,8 @@ interface PageResult {
   size: number
 }
 
+const PAGE_SIZE = 20
+
 export default function InstanceListPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
   const canonicalModelCode = decodeModelCodeOnce(modelCode)
@@ -45,8 +59,10 @@ export default function InstanceListPage() {
 
   const [csvOpen, setCsvOpen] = useState(false)
   const [selected, setSelected] = useState<CiInstanceVO | null>(null)
-  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [batchOpen, setBatchOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     if (!isHydrated) return
@@ -67,17 +83,19 @@ export default function InstanceListPage() {
   })
 
   const { data: result, isLoading, isError, refetch } = useQuery<PageResult>({
-    queryKey: ['cmdb-instances', canonicalModelCode],
+    queryKey: ['cmdb-instances', canonicalModelCode, page],
     queryFn: () =>
-      api.get('/cmdb/instances', { params: { model: canonicalModelCode } }).then((r) => r.data.data),
+      api.get('/cmdb/instances', { params: { model: canonicalModelCode, page, size: PAGE_SIZE } }).then((r) => r.data.data),
     enabled: isHydrated && hasPermission('cmdb_instance', 'read'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/cmdb/instances/${id}`),
-    onSuccess: () => {
+    onSuccess: (_data, deletedId) => {
       toast.success('已删除')
       queryClient.invalidateQueries({ queryKey: ['cmdb-instances', canonicalModelCode] })
+      setSelectedIds((current) => current.filter((id) => id !== deletedId))
+      setDeleteId(null)
     },
     onError: (e: unknown) => toast.error(getApiErrorMessage(e, '删除失败')),
   })
@@ -96,133 +114,155 @@ export default function InstanceListPage() {
   const listColumns = (model?.attributes ?? []).filter((a) => a.isListShow).slice(0, 5)
   const drawerColumns = (model?.attributes ?? []).filter((a) => a.isDrawerShow)
   const instances = result?.records ?? []
+  const total = result?.total ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const canUpdate = hasPermission('cmdb_instance', 'update')
+  const currentPageIds = instances.map((item) => item.id)
+  const allPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.includes(id))
+  const somePageSelected = !allPageSelected && currentPageIds.some((id) => selectedIds.includes(id))
+  const deleteTarget = deleteId == null ? null : instances.find((item) => item.id === deleteId)
 
-  const columns = useMemo<ColumnDef<CiInstanceVO>[]>(() => {
-    const cols: ColumnDef<CiInstanceVO>[] = [
-      {
-        key: 'name',
-        title: '实例名称',
-        render: (r) => (
-          <span className="font-semibold text-v2-fg">{r.name ?? `#${r.id}`}</span>
-        ),
-      },
-      ...listColumns.map((col) => ({
-        key: col.fieldKey,
-        title: col.name,
-        render: (r: CiInstanceVO) => (
-          <span className="text-sm text-v2-muted">
-            {String(r.fieldsData?.[col.fieldKey] ?? '—')}
+  const columns = [
+      ...(canUpdate ? [{
+        key: 'selection',
+        label: (
+          <span className="cwgsyw-cmdb-instance-list__selection" onClick={(event) => event.stopPropagation()}>
+            <Checkbox
+              label="全选当前页实例"
+              showLabel={false}
+              checked={allPageSelected}
+              indeterminate={somePageSelected}
+              onChange={(event) => setSelectedIds(event.target.checked ? currentPageIds : [])}
+            />
           </span>
         ),
-      })),
-      {
-        key: 'createdAt',
-        title: '创建时间',
-        render: (r) => (
-          <span className="text-xs text-v2-muted">
-            {new Date(r.createdAt).toLocaleDateString('zh-CN')}
-          </span>
-        ),
-      },
-      {
-        key: 'actions',
-        title: '操作',
-        align: 'right' as const,
-        render: (r) => (
-          <div className="flex items-center justify-end gap-1">
-            {hasPermission('cmdb_instance', 'delete') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 px-0 text-v2-danger"
-                title="删除"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (confirm('删除此实例?')) deleteMutation.mutate(r.id)
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        ),
-      },
+        align: 'center' as const,
+      }] : []),
+      { key: 'name', label: '实例名称' },
+      ...listColumns.map((col) => ({ key: col.fieldKey, label: col.name })),
+      { key: 'createdAt', label: '创建时间' },
+      { key: 'actions', label: '', align: 'right' as const },
     ]
-    return cols
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listColumns, hasPermission, canonicalModelCode])
+
+  const toggleSelected = (id: number) => {
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
+  }
+
+  const changePage = (nextPage: number) => {
+    setSelectedIds([])
+    setDeleteId(null)
+    setPage(nextPage)
+  }
 
   return (
-    <PageShell width="full" density="comfortable">
-      <PageHeader
-        className="flex-wrap gap-4"
-        eyebrow="CMDB"
-        title={`${model?.name ?? canonicalModelCode} 实例列表`}
-        subtitle={`共 ${result?.total ?? 0} 条实例，按模型属性展示列表字段。`}
-        actions={
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-            <Link
-              href="/cmdb/instances"
-              className="inline-flex h-9 items-center gap-1.5 rounded-v2-md px-3 text-sm font-semibold text-v2-muted transition-colors hover:bg-v2-surface-hover hover:text-v2-fg"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              返回 CI 资源
-            </Link>
-            {hasPermission('cmdb_instance', 'update') && selectedIds.length > 0 && (
-              <Button variant="secondary" onClick={() => setBatchOpen(true)}>
-                <Pencil className="h-4 w-4" />
-                批量编辑（{selectedIds.length}）
-              </Button>
-            )}
-            {hasPermission('cmdb_import', 'execute') && (
-              <Button variant="secondary" onClick={() => setCsvOpen(true)}>
-                <Upload className="h-4 w-4" />
-                导入 CSV
-              </Button>
-            )}
-            {hasPermission('cmdb_instance', 'create') && (
-              <Button variant="primary" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/new`)}>
-                <Plus className="h-4 w-4" />
-                新建实例
-              </Button>
-            )}
+    <>
+      <DataManagementPage className="cwgsyw-cmdb-page cwgsyw-cmdb-instance-list"
+        header={
+          <div className="cwgsyw-cmdb-instance-page">
+          <PageHeader
+            showEyebrow={false}
+            showBreadcrumb={false}
+            title={`${model?.name ?? canonicalModelCode} 实例列表`}
+            subtitle={`${result?.total ?? 0} 条`}
+            actions={
+              <div className="cwgsyw-inline-controls">
+                {canUpdate && selectedIds.length > 0 ? (
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setBatchOpen(true)}>
+                    批量编辑（{selectedIds.length}）
+                  </Button>
+                ) : null}
+                {hasPermission('cmdb_import', 'execute') ? (
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setCsvOpen(true)}>
+                    导入 CSV
+                  </Button>
+                ) : null}
+                {hasPermission('cmdb_instance', 'create') ? (
+                  <Button type="button" size="sm" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/new`)}>
+                    新建实例
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
           </div>
+        }
+        content={
+          isError ? (
+            <ErrorState
+              title="实例加载失败"
+              description="无法读取当前模型的实例，请稍后重试。"
+              retry={<Button type="button" variant="secondary" onClick={() => refetch()}>重试</Button>}
+            />
+          ) : instances.length === 0 && !isLoading ? (
+            <EmptyState title="暂无实例" description="点击右上角新建实例或导入 CSV。" />
+          ) : (
+            <div className="cwgsyw-cmdb-instance-list__content">
+              <Table
+                className={`cwgsyw-cmdb-table${canUpdate ? ' cwgsyw-cmdb-instance-list__table--selectable' : ''}`}
+                showSearch={false}
+                state={isLoading ? 'loading' : 'data'}
+                columns={columns}
+                rows={instances.map((item) => ({
+                  id: String(item.id),
+                  selected: selectedIds.includes(item.id),
+                  cells: {
+                    selection: canUpdate ? (
+                      <span className="cwgsyw-cmdb-instance-list__selection" onClick={(event) => event.stopPropagation()}>
+                        <Checkbox
+                          label={`选择实例 ${item.name ?? `#${item.id}`}`}
+                          showLabel={false}
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => toggleSelected(item.id)}
+                        />
+                      </span>
+                    ) : null,
+                    name: item.name ?? `#${item.id}`,
+                    ...Object.fromEntries(
+                      listColumns.map((col) => [col.fieldKey, String(item.fieldsData?.[col.fieldKey] ?? '—')]),
+                    ),
+                    createdAt: new Date(item.createdAt).toLocaleDateString('zh-CN'),
+                    actions: (
+                      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions" onClick={(event) => event.stopPropagation()}>
+                        {hasPermission('cmdb_instance', 'delete') ? (
+                          <IconButton
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="cwgsyw-cmdb-admin__delete-action"
+                            icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />}
+                            aria-label={`删除实例 ${item.name ?? `#${item.id}`}`}
+                            title="删除"
+                            onClick={() => setDeleteId(item.id)}
+                          />
+                        ) : null}
+                      </div>
+                    ),
+                  },
+                }))}
+                onRowClick={(id) => {
+                  const hit = instances.find((item) => String(item.id) === id)
+                  if (hit) setSelected(hit)
+                }}
+              />
+              {pageCount > 1 ? (
+                <Pagination page={page} pageCount={pageCount} totalCount={total} onPageChange={changePage} />
+              ) : null}
+            </div>
+          )
         }
       />
 
-      {isError ? (
-        <div className="rounded-lg border border-v2-border bg-v2-surface">
-          <ErrorState
-            title="实例加载失败"
-            description="无法读取当前模型的实例，请稍后重试。"
-            onRetry={() => refetch()}
-          />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={instances}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          onRowClick={(r) => setSelected(r)}
-          selectedKeys={hasPermission('cmdb_instance', 'update') ? selectedIds : undefined}
-          onSelectionChange={hasPermission('cmdb_instance', 'update') ? setSelectedIds : undefined}
-          empty={{ title: '暂无实例', description: '点击右上角新建实例或导入 CSV。' }}
-        />
-      )}
-
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} model={canonicalModelCode} />
-
       <BatchEditDialog
         open={batchOpen}
         onClose={() => setBatchOpen(false)}
         modelCode={canonicalModelCode}
-        attributes={model?.attributes.map(a => ({
+        attributes={model?.attributes.map((a) => ({
           fieldKey: a.fieldKey,
           name: a.name,
           fieldType: a.fieldType,
           isEditable: a.isEditable,
-          option: Array.isArray(a.option) ? a.option : null
+          option: Array.isArray(a.option) ? a.option : null,
         })) ?? []}
         selectedIds={selectedIds.map(Number)}
         onDone={() => {
@@ -231,125 +271,67 @@ export default function InstanceListPage() {
         }}
       />
 
-      {/* Detail Drawer — click a row to preview */}
-      <DetailDrawer
+      <NeutralDrawer
         open={!!selected}
-        onClose={() => setSelected(null)}
-        width={640}
-        title={selected?.name ?? (selected ? `#${selected.id}` : '')}
-        subtitle={
-          selected ? (
-            <span className="text-xs text-v2-muted font-mono">{selected.modelId}</span>
-          ) : undefined
-        }
-        footer={
-          selected ? (
-            <div className="flex items-center justify-end gap-2">
-              {hasPermission('cmdb_instance', 'create') && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={cloneMutation.isPending}
-                  onClick={() => cloneMutation.mutate(selected.id)}
-                >
-                  <Copy className="h-4 w-4" />
-                  克隆
-                </Button>
-              )}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
-              >
-                <GitBranch className="h-4 w-4" />
-                查看拓扑
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() =>
-                  router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${selected.id}`)
-                }
-              >
-                <FileText className="h-4 w-4" />
-                完整详情
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : undefined
-        }
+        onOpenChange={(open) => !open && setSelected(null)}
+        className="cwgsyw-cmdb-preview-drawer"
+        showClose
+        title={selected?.name ?? (selected ? `#${selected.id}` : '实例详情')}
+        description={selected?.modelId}
       >
-        {selected && (
-          <div className="space-y-5">
-            {selected.description && (
-              <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
-                <div className="text-xs font-semibold text-v2-muted mb-1">描述</div>
-                <p className="text-sm text-v2-fg leading-relaxed">{selected.description}</p>
-              </div>
-            )}
+        {selected ? (
+          <CmdbInstancePreview
+            description={selected.description}
+            fields={[
+              { label: '实例 ID', value: selected.id },
+              { label: '状态', value: selected.status ?? '-' },
+              { label: '负责人', value: selected.owner || '-' },
+              { label: '创建时间', value: new Date(selected.createdAt).toLocaleString('zh-CN') },
+            ]}
+            extraFields={drawerColumns.map((col) => {
+              const value = selected.fieldsData?.[col.fieldKey]
+              const display =
+                value === null || value === undefined || value === ''
+                  ? '-'
+                  : Array.isArray(value)
+                    ? value.join(', ')
+                    : typeof value === 'object'
+                      ? JSON.stringify(value)
+                      : String(value)
+              return { label: col.name, value: display }
+            })}
+            actions={
+              <>
+                {hasPermission('cmdb_instance', 'create') ? (
+                  <Button type="button" variant="secondary" size="sm" disabled={cloneMutation.isPending} onClick={() => cloneMutation.mutate(selected.id)}>
+                    克隆
+                  </Button>
+                ) : null}
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/cmdb/topology/${selected.id}`)}>
+                  查看拓扑
+                </Button>
+                <Button type="button" size="sm" onClick={() => router.push(`/cmdb/instances/by-model/${canonicalModelCode}/${selected.id}`)}>
+                  完整详情
+                </Button>
+              </>
+            }
+          />
+        ) : null}
+      </NeutralDrawer>
 
-            <div>
-              <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
-                基本信息
-              </div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                <InfoItem label="实例 ID" value={String(selected.id)} mono />
-                <InfoItem label="状态" value={selected.status ?? '-'} />
-                <InfoItem label="负责人" value={selected.owner || '-'} />
-                <InfoItem
-                  label="创建时间"
-                  value={new Date(selected.createdAt).toLocaleString('zh-CN')}
-                />
-                {selected.updatedAt && (
-                  <InfoItem
-                    label="更新时间"
-                    value={new Date(selected.updatedAt).toLocaleString('zh-CN')}
-                  />
-                )}
-              </dl>
-            </div>
-
-            {drawerColumns.length > 0 && (
-              <div>
-                <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
-                  关键属性
-                </div>
-                <dl className="space-y-2.5">
-                  {drawerColumns.map((col) => {
-                    const v = selected.fieldsData?.[col.fieldKey]
-                    const display =
-                      v === null || v === undefined || v === ''
-                        ? '-'
-                        : Array.isArray(v)
-                          ? v.join(', ')
-                          : typeof v === 'object'
-                            ? JSON.stringify(v)
-                            : String(v)
-                    return (
-                      <div
-                        key={col.fieldKey}
-                        className="flex items-start justify-between gap-3 text-sm"
-                      >
-                        <dt className="shrink-0 text-v2-muted">{col.name}</dt>
-                        <dd className="text-right break-all text-v2-fg">{display}</dd>
-                      </div>
-                    )
-                  })}
-                </dl>
-              </div>
-            )}
-          </div>
-        )}
-      </DetailDrawer>
-    </PageShell>
-  )
-}
-
-function InfoItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <dt className="text-xs text-v2-muted mb-0.5">{label}</dt>
-      <dd className={`text-sm text-v2-fg ${mono ? 'font-mono' : ''}`}>{value}</dd>
-    </div>
+      <NeutralAlertDialog
+        open={deleteId != null}
+        onOpenChange={(open) => { if (!open && !deleteMutation.isPending) setDeleteId(null) }}
+        className="cwgsyw-cmdb-model-detail__delete-dialog"
+        icon={<span aria-hidden="true" className="cwgsyw-cmdb-model-detail__delete-alert-icon" />}
+        title="确认删除实例"
+        description={`确认删除实例「${deleteTarget?.name ?? (deleteId == null ? '' : `#${deleteId}`)}」？此操作不可恢复。`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={() => {
+          if (deleteId != null && !deleteMutation.isPending) deleteMutation.mutate(deleteId)
+        }}
+      />
+    </>
   )
 }

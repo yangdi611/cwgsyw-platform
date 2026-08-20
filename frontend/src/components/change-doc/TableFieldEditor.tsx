@@ -1,8 +1,9 @@
 'use client'
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@/components/design-system'
-import { Plus, Trash2 } from 'lucide-react'
+
 import type { TableFieldConfig, TableRow } from './tableFieldTypes'
 import { createBlankRow } from './tableFieldTypes'
+import '@/design-system/figma-neutral/index.css'
+import { Button, Checkbox, IconButton, Input, Select, Textarea } from '@/design-system/figma-neutral/components'
 
 interface Props {
   config: TableFieldConfig
@@ -16,150 +17,114 @@ export function TableFieldEditor({ config, rows, onChange, disabled }: Props) {
   const canDelete = config.allowDeleteRow && (config.minRows === undefined || rows.length > config.minRows)
 
   const addRow = () => onChange([...rows, createBlankRow(config)])
-  const removeRow = (rowId: string) => onChange(rows.filter((r) => r.rowId !== rowId))
+  const removeRow = (rowId: string) => onChange(rows.filter((row) => row.rowId !== rowId))
   const updateCell = (rowId: string, key: string, value: unknown) =>
-    onChange(rows.map((r) => (r.rowId === rowId ? { ...r, [key]: value } : r)))
+    onChange(rows.map((row) => (row.rowId === rowId ? { ...row, [key]: value } : row)))
 
   return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto rounded-v2-md border border-v2-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-v2-border bg-v2-surface-soft">
-              {config.columns.map((col) => (
-                <th key={col.key} className="whitespace-nowrap px-2 py-2 text-left text-xs font-semibold text-v2-fg">
-                  {col.label}
-                  {col.required && <span className="ml-0.5 text-v2-danger">*</span>}
-                </th>
-              ))}
-              {!disabled && <th className="w-10 px-2 py-2" />}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={config.columns.length + 1} className="py-4 text-center text-xs text-v2-muted">
-                  暂无数据{!disabled && canAdd ? '，点击下方"添加行"' : ''}
-                </td>
-              </tr>
-            )}
-            {rows.map((row) => (
-              <tr key={row.rowId} className="border-b border-v2-border last:border-0">
-                {config.columns.map((col) => (
-                  <td key={col.key} className="p-1.5 align-top">
-                    {renderCell(col, row[col.key], disabled ?? false, (v) => updateCell(row.rowId, col.key, v))}
-                  </td>
-                ))}
-                {!disabled && (
-                  <td className="p-1.5 align-top">
-                    {canDelete && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-v2-danger"
-                        onClick={() => removeRow(row.rowId)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </td>
-                )}
-              </tr>
+    <div className="cwgsyw-form">
+      <table className="cwgsyw-table">
+        <thead>
+          <tr>
+            {config.columns.map((column) => (
+              <th key={column.key}>
+                {column.label}
+                {column.required ? ' *' : ''}
+              </th>
             ))}
-          </tbody>
-        </table>
-      </div>
-      {!disabled && canAdd && (
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={addRow}>
-          <Plus className="mr-1 h-3.5 w-3.5" />
+            {!disabled ? <th /> : null}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={config.columns.length + 1}>
+                暂无数据{!disabled && canAdd ? '，点击下方"添加行"' : ''}
+              </td>
+            </tr>
+          ) : null}
+          {rows.map((row) => (
+            <tr key={row.rowId}>
+              {config.columns.map((column) => (
+                <td key={column.key}>
+                  {renderCell(column, row[column.key], disabled ?? false, (value) => updateCell(row.rowId, column.key, value))}
+                </td>
+              ))}
+              {!disabled ? (
+                <td>
+                  {canDelete ? (
+                    <IconButton type="button" variant="ghost" size="sm" icon="trash" aria-label="删除行" onClick={() => removeRow(row.rowId)} />
+                  ) : null}
+                </td>
+              ) : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!disabled && canAdd ? (
+        <Button type="button" variant="ghost" size="sm" onClick={addRow}>
           添加行
         </Button>
-      )}
+      ) : null}
     </div>
   )
 }
 
 function renderCell(
-  col: TableFieldConfig['columns'][number],
+  column: TableFieldConfig['columns'][number],
   value: unknown,
   disabled: boolean,
-  onChange: (v: unknown) => void,
+  onChange: (value: unknown) => void,
 ) {
   if (disabled) {
-    if (col.type === 'checkbox') return <span className="text-xs text-v2-fg">{value ? '是' : '否'}</span>
-    if (col.type === 'select') {
-      const opt = col.options?.find((o) => o.value === String(value))
-      return <span className="text-xs text-v2-fg">{opt ? opt.label : String(value ?? '—')}</span>
+    if (column.type === 'checkbox') return <span>{value ? '是' : '否'}</span>
+    if (column.type === 'select') {
+      const option = column.options?.find((item) => item.value === String(value))
+      return <span>{option ? option.label : String(value ?? '—')}</span>
     }
-    return <span className="whitespace-pre-wrap text-xs text-v2-fg">{value ? String(value) : '—'}</span>
+    return <span>{value ? String(value) : '—'}</span>
   }
 
-  switch (col.type) {
+  switch (column.type) {
     case 'textarea':
       return (
         <Textarea
-          className="min-w-[10rem] text-xs"
           rows={2}
           value={String(value ?? '')}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={col.placeholder ?? undefined}
+          placeholder={column.placeholder ?? undefined}
+          onChange={(event) => onChange(event.target.value)}
         />
       )
     case 'number':
       return (
         <Input
           type="number"
-          className="min-w-[6rem] text-xs"
           value={String(value ?? '')}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={col.placeholder ?? undefined}
+          placeholder={column.placeholder ?? undefined}
+          onChange={(event) => onChange(event.target.value)}
         />
       )
     case 'date':
-      return (
-        <Input
-          type="date"
-          className="min-w-[9rem] text-xs"
-          value={String(value ?? '')}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      )
+      return <Input type="date" value={String(value ?? '')} onChange={(event) => onChange(event.target.value)} />
     case 'datetime':
-      return (
-        <Input
-          type="datetime-local"
-          className="min-w-[11rem] text-xs"
-          value={String(value ?? '')}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      )
+      return <Input type="datetime-local" value={String(value ?? '')} onChange={(event) => onChange(event.target.value)} />
     case 'checkbox':
-      return (
-        <input
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-v2-border"
-        />
-      )
+      return <Checkbox label="勾选" showLabel={false} checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />
     case 'select':
       return (
-        <Select value={String(value ?? '')} onValueChange={(v) => onChange(v ?? '')}>
-          <SelectTrigger className="h-8 min-w-[8rem] text-xs"><SelectValue placeholder="请选择" /></SelectTrigger>
-          <SelectContent>
-            {(col.options ?? []).map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Select
+          value={String(value ?? '')}
+          placeholder="请选择"
+          options={column.options ?? []}
+          onChange={(next) => onChange(next)}
+        />
       )
     default:
       return (
         <Input
-          className="min-w-[8rem] text-xs"
           value={String(value ?? '')}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={col.placeholder ?? undefined}
+          placeholder={column.placeholder ?? undefined}
+          onChange={(event) => onChange(event.target.value)}
         />
       )
   }

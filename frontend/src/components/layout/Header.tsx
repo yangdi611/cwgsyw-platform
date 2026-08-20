@@ -1,98 +1,65 @@
 'use client'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Monitor, Moon, Search, Sun } from 'lucide-react'
+
 import { useTheme } from 'next-themes'
-import { useAuth } from '@/hooks/useAuth'
-import { Avatar, AvatarFallback, AvatarImage, buttonVariants } from '@/components/design-system'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/design-system'
-import { NotificationBell } from '@/components/layout/NotificationBell'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
-import { useCommandPalette } from '@/store/commandPaletteStore'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+import { IconButton } from '@/design-system/figma-neutral/components'
 
-/** Topbar 头像入口：个人资料 / 修改密码 / 退出登录（SPEC 13.7）。 */
-export function Header() {
-  const { user, logout } = useAuth()
-  const { setTheme, theme } = useTheme()
-  const router = useRouter()
-  const openPalette = useCommandPalette((s) => s.setOpen)
-
-  const fallbackChar = user?.realName?.[0] ?? user?.username?.[0] ?? 'U'
+export function Header({
+  sidebarCollapsed,
+  onOpenNavigation,
+  onToggleSidebar,
+}: {
+  sidebarCollapsed: boolean
+  onOpenNavigation: () => void
+  onToggleSidebar: () => void
+}) {
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-v2-border bg-v2-surface/95 backdrop-blur supports-[backdrop-filter]:bg-v2-surface/90">
-      <div className="flex h-full min-w-0 items-center justify-between gap-2 px-2 sm:gap-4 sm:px-4 md:px-6">
-        <div className="min-w-0 flex-1 overflow-hidden md:shrink-0">
+    <header className="cwgsyw-app-header">
+      <div className="cwgsyw-app-header__context">
+        <IconButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="cwgsyw-app-header__sidebar-toggle"
+          aria-label={sidebarCollapsed ? '展开侧栏' : '收起侧栏'}
+          icon={sidebarCollapsed ? <PanelLeftOpen className="size-[16px]" /> : <PanelLeftClose className="size-[16px]" />}
+          onClick={onToggleSidebar}
+        />
+        <span className="cwgsyw-app-header__divider" aria-hidden="true" />
+        <IconButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="cwgsyw-app-header__nav-trigger"
+          aria-label="打开导航"
+          icon={<PanelLeftOpen className="size-[16px]" />}
+          onClick={onOpenNavigation}
+        />
+        <div className="cwgsyw-app-header__breadcrumb">
           <Breadcrumb />
         </div>
-
-        <button
+      </div>
+      <div className="cwgsyw-app-header__actions">
+        <IconButton
           type="button"
-          onClick={() => openPalette(true)}
-          className="hidden h-9 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-v2-sm border border-v2-border bg-v2-surface-soft px-3 text-sm text-v2-muted transition-colors hover:bg-v2-surface-hover md:flex"
-        >
-          <Search className="h-4 w-4 shrink-0" />
-          <span className="truncate">搜索 CI、共享文件、变更单、设备、用户、知识库…</span>
-          <kbd className="ml-auto rounded border border-v2-border bg-v2-surface px-1.5 py-0.5 text-[11px] text-v2-subtle">⌘K</kbd>
-        </button>
-
-        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-          <Link href="/change-docs/new" className={buttonVariants({ variant: 'default', size: 'ui-sm', className: 'hidden sm:inline-flex' })}>
-            新建变更
-          </Link>
-          <NotificationBell />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger aria-label="打开用户菜单" className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none hover:bg-muted/60">
-              <Avatar className="h-8 w-8">
-                {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.realName || user.username} />}
-                <AvatarFallback>{fallbackChar}</AvatarFallback>
-              </Avatar>
-              <span className="hidden max-w-24 truncate text-sm md:inline">{user?.realName || user?.username}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{user?.realName || '-'}</span>
-                    <span className="text-xs text-muted-foreground">@{user?.username}</span>
-                  </div>
-                </DropdownMenuLabel>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>外观</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setTheme('light')}>
-                  <Sun className="mr-2 h-4 w-4" />
-                  浅色{theme === 'light' ? '（当前）' : ''}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('dark')}>
-                  <Moon className="mr-2 h-4 w-4" />
-                  深色{theme === 'dark' ? '（当前）' : ''}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('system')}>
-                  <Monitor className="mr-2 h-4 w-4" />
-                  跟随系统{theme === 'system' ? '（当前）' : ''}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/account/profile')}>个人资料</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/account/password')}>修改密码</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => logout()}>
-                退出登录
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          variant="ghost"
+          size="sm"
+          className="cwgsyw-app-header__theme-toggle"
+          aria-label={isDark ? '切换至浅色模式' : '切换至深色模式'}
+          icon={(
+            <span
+              className={`cwgsyw-app-header__figma-icon ${isDark ? 'cwgsyw-app-header__figma-icon--moon' : 'cwgsyw-app-header__figma-icon--sun'}`}
+              aria-hidden="true"
+            />
+          )}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        />
+        <NotificationBell />
       </div>
     </header>
   )

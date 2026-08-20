@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { Button, StatusBadge } from '@/design-system/figma-neutral/components'
 import { monthGrid, isToday, ymd, WEEK_LABELS } from '@/lib/opsCalendar'
-import { type CalendarWorkItem, calendarItemColor, calendarItemDate } from '@/lib/calendar-api'
+import { type CalendarWorkItem, calendarItemDate } from '@/lib/calendar-api'
 
 interface Props {
   currentDate: Date
@@ -23,60 +23,52 @@ export function CalendarMonthView({ currentDate, items, holidayMap, onDateClick,
   }
 
   return (
-    <div className="overflow-hidden rounded-v2-md border border-v2-border bg-v2-surface">
-      <div className="grid grid-cols-7 border-b border-v2-border bg-v2-surface-soft">
-        {WEEK_LABELS.map((week, index) => (
-          <div key={week} className={cn('px-2 py-2 text-center text-xs font-medium text-v2-muted', index >= 5 && 'text-v2-subtle')}>
+    <div className="cwgsyw-ops-cal">
+      <div className="cwgsyw-ops-cal__head">
+        {WEEK_LABELS.map((week) => (
+          <div key={week} className="cwgsyw-ops-cal__label cwgsyw-type-label-xs">
             周{week}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
-        {grid.map((date, index) => {
+      <div className="cwgsyw-ops-cal__grid">
+        {grid.map((date) => {
           const key = ymd(date)
           const dayItems = byDate.get(key) ?? []
           const visible = dayItems.slice(0, 3)
           const more = dayItems.length - visible.length
           const holiday = holidayMap?.get(key)
           return (
-            <div
+            <Button
               key={key}
+              type="button"
+              variant="ghost"
+              className="cwgsyw-ops-cal__cell"
+              data-outside={date.getMonth() !== month}
+              data-today={isToday(date)}
               onClick={() => onDateClick(key)}
-              className={cn(
-                'min-h-[104px] cursor-pointer border-b border-r border-v2-border p-1.5 transition-colors hover:bg-v2-surface-soft',
-                date.getMonth() !== month && 'bg-v2-surface-soft/40',
-                index % 7 === 6 && 'border-r-0',
-              )}
             >
-              <div className="flex items-center">
-                <span className={cn(
-                  'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm font-medium',
-                  date.getMonth() !== month ? 'text-v2-subtle' : 'text-v2-fg',
-                  isToday(date) && 'bg-v2-primary text-base font-bold text-white',
-                )}>{date.getDate()}</span>
-              </div>
-              {holiday && <div className="mt-0.5 truncate text-[10px] text-red-600" title={holiday}>休 {holiday}</div>}
-              <div className="mt-1 space-y-1">
-                {visible.map((item) => {
-                  const color = calendarItemColor(item)
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      title={item.title}
-                      onClick={(event) => { event.stopPropagation(); onItemClick(item) }}
-                      className={cn('block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] leading-tight', item.overdue && 'ring-1 ring-red-400')}
-                      style={{ background: `${color}1a`, color }}
-                    >
-                      <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: color }} />
-                      {item.itemType === 'roster' && <span className="mr-0.5">[班]</span>}
-                      {item.title}
-                    </button>
-                  )
-                })}
-                {more > 0 && <div className="px-1.5 text-[10px] text-v2-muted">+{more} 更多</div>}
-              </div>
-            </div>
+              <span className="cwgsyw-ops-cal__date">{date.getDate()}</span>
+              {holiday ? <StatusBadge size="sm" label={`休 ${holiday}`} status="danger" /> : null}
+              {visible.map((item) => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant="ghost"
+                  title={item.title}
+                  className="cwgsyw-ops-cal-item"
+                  data-overdue={item.overdue}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onItemClick(item)
+                  }}
+                >
+                  {item.itemType === 'roster' ? '[班] ' : ''}
+                  {item.title}
+                </Button>
+              ))}
+              {more > 0 ? <div className="cwgsyw-type-label-xs">+{more} 更多</div> : null}
+            </Button>
           )
         })}
       </div>

@@ -1,19 +1,43 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, ChevronDown, Download, ExternalLink, FileDown, Plus, Save, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Button, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger, Input } from '@/components/design-system'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
 import { analyticsDisplayColumns, formatAnalyticsValue } from '@/components/task-analytics/analytics-display'
 import { listTaskTemplates, type TaskTemplateSummary } from '@/lib/task-template-api'
-import { addAnalyticsWidget, createAnalyticsDashboard, exportTaskAnalytics, listAnalyticsDashboards, listAnalyticsFields, listAnalyticsDimensions, queryTaskAnalytics, type AnalyticsFieldMetadata, type AnalyticsQueryRequest } from '@/lib/task-analytics-api'
+import {
+  addAnalyticsWidget,
+  createAnalyticsDashboard,
+  exportTaskAnalytics,
+  listAnalyticsDashboards,
+  listAnalyticsFields,
+  listAnalyticsDimensions,
+  queryTaskAnalytics,
+  type AnalyticsFieldMetadata,
+  type AnalyticsQueryRequest,
+} from '@/lib/task-analytics-api'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { usePermission } from '@/hooks/usePermission'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, TASK_BAR_CHART_ICON, TASK_BAR_CHART_NODE } from '@/components/task-runtime/TaskEmpty'
+import {
+  Button,
+  ErrorState,
+  Field,
+  Icon,
+  Input,
+  LoadingState,
+  NeutralPopover,
+  PageHeader,
+  SearchInput,
+  Select,
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 const today = new Date().toISOString().slice(0, 10)
 const monthStart = `${today.slice(0, 8)}01`
+const ANALYTICS_STEPS = ['查询条件', '结果与看板']
 const aggregationLabels: Record<string, string> = { sum: '合计', avg: '平均值', min: '最小值', max: '最大值', count: '计数', distinct_count: '去重计数', weighted_avg: '加权平均值', ratio: '比率' }
 
 interface FieldSelection { key: string; aggregation: string }
@@ -31,6 +55,7 @@ export function TaskAnalyticsWorkbench() {
   const [output, setOutput] = useState('aggregate')
   const [textSearch, setTextSearch] = useState('')
   const [request, setRequest] = useState<AnalyticsQueryRequest>()
+  const [step, setStep] = useState(0)
 
   const templates = useQuery({
     queryKey: ['task-analytics-templates'],
@@ -104,6 +129,7 @@ export function TaskAnalyticsWorkbench() {
     const next = buildRequest()
     if (!next) return
     setRequest(next)
+    setStep(1)
     void queryClient.invalidateQueries({ queryKey: ['task-analytics-query'] })
   }
 
@@ -122,41 +148,246 @@ export function TaskAnalyticsWorkbench() {
   }
 
   const tableColumns = useMemo(() => analyticsDisplayColumns(result.data?.columns ?? []), [result.data?.columns])
+  const tableRows = (result.data?.rows ?? []).map((row, index) => ({
+    id: String(index),
+    cells: Object.fromEntries(tableColumns.map((column) => [column, formatAnalyticsValue(column, row[column])])),
+  }))
 
   return (
-    <div className="space-y-6">
+    <div className="cwgsyw-tasks-page">
       <PageHeader
-        eyebrow="统一任务平台"
+        showEyebrow={false}
+        showBreadcrumb={false}
+        showSubtitle={false}
         title="任务统计"
-        subtitle="按模板字段、时间、人员、组和 CI 快照查询数字、文字与附件事实。"
-        actions={<div className="flex flex-wrap gap-2">{canCreateDashboard && request && <Button size="sm" onClick={() => void saveDashboard()}><Save className="h-4 w-4" />保存为看板</Button>}{canExport && request && <><Button size="sm" onClick={() => void exportTaskAnalytics(request, 'csv')}><Download className="h-4 w-4" />CSV</Button><Button size="sm" onClick={() => void exportTaskAnalytics(request, 'xlsx')}><FileDown className="h-4 w-4" />Excel</Button></>}</div>}
+        actions={
+          <div className="cwgsyw-inline-controls">
+            {canCreateDashboard && request ? <Button type="button" size="sm" onClick={() => void saveDashboard()}>保存为看板</Button> : null}
+            {canExport && request ? (
+              <>
+                <Button type="button" size="sm" variant="secondary" onClick={() => void exportTaskAnalytics(request, 'csv')}>CSV</Button>
+                <Button type="button" size="sm" variant="secondary" onClick={() => void exportTaskAnalytics(request, 'xlsx')}>Excel</Button>
+              </>
+            ) : null}
+          </div>
+        }
       />
-      {setupLoading ? <LoadingState label="正在加载统计配置…" minHeight={260} /> : setupError ? <ErrorState title="统计配置加载失败" description="无法读取模板、字段或维度配置，请重试。" onRetry={retrySetup} /> : <>
-      <section className="grid gap-4 border border-v2-border bg-v2-surface p-4 lg:grid-cols-4">
-        <label className="space-y-1 text-sm"><span>任务模板</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={effectiveTemplateVersionId ?? ''} onChange={(event) => { setTemplateVersionId(Number(event.target.value)); setFieldSelections([]) }}><option value="">选择模板</option>{publishedTemplates.map((template: TaskTemplateSummary) => <option key={template.latestVersionId} value={template.latestVersionId}>{template.name}</option>)}</select></label>
-        <div className="space-y-1 text-sm"><span>统计字段</span><DropdownMenu><DropdownMenuTrigger className="flex h-9 w-full items-center justify-between gap-2 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-left"><span className="min-w-0 truncate">{selectedFieldSummary}</span><ChevronDown className="h-4 w-4 shrink-0 text-v2-muted" /></DropdownMenuTrigger><DropdownMenuContent className="min-w-72"><DropdownMenuGroup><DropdownMenuLabel>选择一个或多个字段</DropdownMenuLabel>{fields.data?.map((field) => <DropdownMenuCheckboxItem key={field.key} checked={fieldSelections.some((item) => item.key === field.key)} closeOnClick={false} onCheckedChange={(checked) => toggleField(field, checked)}>{field.label}</DropdownMenuCheckboxItem>)}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
-        <div className="space-y-1 text-sm"><span>聚合方式</span><DropdownMenu><DropdownMenuTrigger disabled={output !== 'aggregate' || selectedFields.length === 0} className="flex h-9 w-full items-center justify-between gap-2 rounded-v2-md border border-v2-border bg-v2-surface px-3 text-left disabled:cursor-not-allowed disabled:opacity-60"><span className="min-w-0 truncate">{output === 'aggregate' ? aggregationSummary : '明细无需聚合'}</span><ChevronDown className="h-4 w-4 shrink-0 text-v2-muted" /></DropdownMenuTrigger><DropdownMenuContent className="min-w-80 p-2"><DropdownMenuGroup><DropdownMenuLabel>分别配置聚合方式</DropdownMenuLabel><div className="space-y-2">{selectedFields.map(({ field, selection }) => <label key={field.key} className="grid grid-cols-[minmax(0,1fr)_120px] items-center gap-3"><span className="truncate">{field.label}</span><select aria-label={`${field.label}聚合方式`} className="h-8 rounded-v2-md border border-v2-border bg-v2-surface px-2" value={selection.aggregation} onClick={(event) => event.stopPropagation()} onChange={(event) => updateAggregation(field.key, event.target.value)}>{field.aggregations.map((option) => <option key={option} value={option}>{aggregationLabels[option] ?? option}</option>)}</select></label>)}</div></DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
-        <label className="space-y-1 text-sm"><span>输出类型</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={output} onChange={(event) => setOutput(event.target.value)}><option value="aggregate">聚合</option><option value="detail">明细</option><option value="text_list">文字列表</option><option value="attachment_list">附件列表</option><option value="image_gallery">图片墙</option></select></label>
-        <label className="space-y-1 text-sm"><span>开始日期</span><Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-        <label className="space-y-1 text-sm"><span>结束日期</span><Input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-        <label className="space-y-1 text-sm"><span>时间粒度</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={grain} onChange={(event) => setGrain(event.target.value)}><option value="day">日</option><option value="week">周</option><option value="month">月</option><option value="quarter">季</option><option value="year">年</option></select></label>
-        <label className="space-y-1 text-sm"><span>分组维度</span><select className="h-9 w-full rounded-v2-md border border-v2-border bg-v2-surface px-3" value={dimension} onChange={(event) => setDimension(event.target.value)}>{dimensions.data?.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
-        <label className="relative space-y-1 text-sm lg:col-span-3"><span>文字搜索</span><Search className="absolute left-3 top-8 h-4 w-4 text-v2-muted" /><Input className="pl-9" value={textSearch} onChange={(event) => setTextSearch(event.target.value)} placeholder="仅对文字事实筛选" /></label>
-        <div className="flex items-end"><Button variant="primary" className="w-full" onClick={run} disabled={!effectiveTemplateVersionId || fieldSelections.length === 0}><BarChart3 className="h-4 w-4" />运行统计</Button></div>
-      </section>
-      <section className="overflow-hidden border border-v2-border bg-v2-surface">
-        <div className="flex items-center justify-between border-b border-v2-border px-4 py-3"><div><h2 className="font-semibold">结果</h2><p className="text-xs text-v2-muted">{result.data ? `扫描 ${result.data.scannedFacts} 条事实，生成于 ${new Date(result.data.generatedAt).toLocaleString('zh-CN')}` : '选择条件后运行统计'}</p></div><Button size="sm" variant="ghost" onClick={() => setRequest(undefined)} disabled={!request}><Plus className="h-4 w-4 rotate-45" />清空</Button></div>
-        {result.isLoading && <LoadingState label="正在计算统计结果…" minHeight={180} />}
-        {result.isError && <ErrorState title="统计查询失败" description={getApiErrorMessage(result.error, '请检查查询条件后重试。')} onRetry={() => void result.refetch()} />}
-        {!result.isLoading && !result.isError && <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-v2-surface-soft"><tr>{tableColumns.map((column) => <th key={column} className="whitespace-nowrap px-4 py-3 text-left font-semibold">{result.data?.columnLabels?.[column] ?? column}</th>)}</tr></thead><tbody>{result.data?.rows.map((row, index) => <tr key={index} className="border-t border-v2-border">{tableColumns.map((column) => <td key={column} className="max-w-96 whitespace-pre-wrap px-4 py-3 align-top">{formatAnalyticsValue(column, row[column])}</td>)}</tr>)}</tbody></table></div>}
-        {result.data?.rows.length === 0 && <p className="p-8 text-center text-sm text-v2-muted">没有符合条件的事实。</p>}
-      </section>
-      <section className="border border-v2-border bg-v2-surface p-4">
-        <div className="mb-3 flex items-center justify-between"><div><h2 className="font-semibold">我的看板</h2><p className="text-xs text-v2-muted">保存后的统计组件会按查看人的任务权限重新计算。</p></div><BarChart3 className="h-5 w-5 text-v2-primary" /></div>
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">{(dashboards.data ?? []).map((dashboard) => <button key={dashboard.id} type="button" onClick={() => router.push(`/tasks/analytics/${dashboard.id}`)} className="flex items-center justify-between border border-v2-border p-3 text-left hover:border-v2-primary"><span><span className="block font-medium">{dashboard.name}</span><span className="text-xs text-v2-muted">{dashboard.scopeType === 'private' ? '私有' : dashboard.scopeType === 'group' ? '组内共享' : '租户共享'}</span></span><ExternalLink className="h-4 w-4 text-v2-muted" /></button>)}</div>
-        {dashboards.data?.length === 0 && <p className="text-sm text-v2-muted">暂无看板，运行一次统计后即可保存。</p>}
-      </section>
-      </>}
+      {setupLoading ? <LoadingState label="正在加载统计配置" /> : setupError ? (
+        <ErrorState
+          title="统计配置加载失败"
+          description="无法读取模板、字段或维度配置，请重试。"
+          retry={<Button type="button" size="sm" variant="secondary" onClick={retrySetup}>重试</Button>}
+        />
+      ) : (
+        <div className="cwgsyw-tasks-wizard" data-steps="2">
+          <ol className="cwgsyw-cmdb-wizard-steps" aria-label="统计查询步骤">
+            {ANALYTICS_STEPS.map((label, index) => (
+              <li key={label} data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'} aria-current={step === index ? 'step' : undefined}>
+                <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+                  <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
+                  <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
+                </Button>
+              </li>
+            ))}
+          </ol>
+
+          {step === 0 ? (
+            <TaskPanel title="查询条件" description="按模板字段、时间和维度查询数字、文字与附件事实。">
+              <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--wide">
+                <Field label="任务模板">
+                  <Select size="sm" overlay value={effectiveTemplateVersionId ? String(effectiveTemplateVersionId) : ''} onChange={(value) => { setTemplateVersionId(Number(value)); setFieldSelections([]) }} options={publishedTemplates.map((template: TaskTemplateSummary) => ({ value: String(template.latestVersionId), label: template.name }))} placeholder="选择模板" />
+                </Field>
+                <Field label="统计字段">
+                  <TasksFieldMultiSelect
+                    placeholder="选择字段"
+                    value={fieldSelections.map((item) => item.key)}
+                    options={(fields.data ?? []).map((field) => ({ value: field.key, label: field.label }))}
+                    onToggle={(key, checked) => {
+                      const field = (fields.data ?? []).find((item) => item.key === key)
+                      if (field) toggleField(field, checked)
+                    }}
+                  />
+                </Field>
+                <Field label="聚合方式">
+                  <NeutralPopover title="分别配置聚合方式" trigger={<Button type="button" size="sm" variant="secondary" disabled={output !== 'aggregate' || selectedFields.length === 0}>{output === 'aggregate' ? aggregationSummary : '明细无需聚合'}</Button>}>
+                    <div className="cwgsyw-tasks-form-grid">
+                      {selectedFields.map(({ field, selection }) => (
+                        <Field key={field.key} label={field.label}>
+                          <Select size="sm" overlay value={selection.aggregation} onChange={(value) => updateAggregation(field.key, value)} options={field.aggregations.map((option) => ({ value: option, label: aggregationLabels[option] ?? option }))} />
+                        </Field>
+                      ))}
+                    </div>
+                  </NeutralPopover>
+                </Field>
+                <Field label="输出类型">
+                  <Select size="sm" overlay value={output} onChange={setOutput} options={[{ value: 'aggregate', label: '聚合' }, { value: 'detail', label: '明细' }, { value: 'text_list', label: '文字列表' }, { value: 'attachment_list', label: '附件列表' }, { value: 'image_gallery', label: '图片墙' }]} />
+                </Field>
+                <Field label="开始日期">
+                  <Input size="sm" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+                </Field>
+                <Field label="结束日期">
+                  <Input size="sm" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+                </Field>
+                <Field label="时间粒度">
+                  <Select size="sm" overlay value={grain} onChange={setGrain} options={[{ value: 'day', label: '日' }, { value: 'week', label: '周' }, { value: 'month', label: '月' }, { value: 'quarter', label: '季' }, { value: 'year', label: '年' }]} />
+                </Field>
+                <Field label="分组维度">
+                  <Select size="sm" overlay value={dimension} onChange={setDimension} options={(dimensions.data ?? []).map((item) => ({ value: item.key, label: item.label }))} />
+                </Field>
+                <div className="cwgsyw-tasks-form-grid__full">
+                  <Field label="文字搜索">
+                    <SearchInput size="sm" value={textSearch} onChange={(event) => setTextSearch(event.target.value)} placeholder="仅对文字事实筛选" />
+                  </Field>
+                </div>
+                <div className="cwgsyw-tasks-form-grid__full">
+                  <Button type="button" size="sm" variant="primary" onClick={run} disabled={!effectiveTemplateVersionId || fieldSelections.length === 0}>运行统计</Button>
+                </div>
+              </div>
+            </TaskPanel>
+          ) : null}
+
+          {step === 1 ? (
+            <>
+              <TaskPanel
+                title="查询结果"
+                description={result.data ? `扫描 ${result.data.scannedFacts} 条事实，生成于 ${new Date(result.data.generatedAt).toLocaleString('zh-CN')}` : '选择条件后运行统计'}
+                action={<Button type="button" size="sm" variant="secondary" onClick={() => setRequest(undefined)} disabled={!request}>清空</Button>}
+              >
+                {result.isLoading ? <LoadingState label="正在计算统计结果" /> : null}
+                {result.isError ? (
+                  <ErrorState
+                    title="统计查询失败"
+                    description={getApiErrorMessage(result.error, '请检查查询条件后重试。')}
+                    retry={<Button type="button" size="sm" variant="secondary" onClick={() => void result.refetch()}>重试</Button>}
+                  />
+                ) : null}
+                {!result.isLoading && !result.isError && result.data?.rows.length === 0 ? (
+                  <TaskEmpty iconSrc={TASK_BAR_CHART_ICON} figmaNode={TASK_BAR_CHART_NODE} title="没有符合条件的事实" description="调整查询条件后重新运行统计。" />
+                ) : null}
+                {!result.isLoading && !result.isError && (result.data?.rows.length ?? 0) > 0 ? (
+                  <div className="cwgsyw-cmdb-table">
+                    <Table
+                      showSearch={false}
+                      columns={tableColumns.map((column) => ({ key: column, label: result.data?.columnLabels?.[column] ?? column }))}
+                      rows={tableRows}
+                    />
+                  </div>
+                ) : null}
+                {!request && !result.isLoading && !result.isError && !result.data ? (
+                  <TaskEmpty iconSrc={TASK_BAR_CHART_ICON} figmaNode={TASK_BAR_CHART_NODE} title="尚未运行统计" description="回到上一步选择条件后运行统计。" />
+                ) : null}
+              </TaskPanel>
+              <TaskPanel title="我的看板" description="保存后的统计组件会按查看人的任务权限重新计算。">
+                {(dashboards.data ?? []).length === 0 ? (
+                  <TaskEmpty iconSrc={TASK_BAR_CHART_ICON} figmaNode={TASK_BAR_CHART_NODE} title="暂无看板" description="运行一次统计后即可保存。" />
+                ) : (
+                  <div className="cwgsyw-tasks-pick-list">
+                    {(dashboards.data ?? []).map((dashboard) => (
+                      <Button key={dashboard.id} type="button" variant="ghost" className="cwgsyw-tasks-pick" onClick={() => router.push(`/tasks/analytics/${dashboard.id}`)}>
+                        <span className="cwgsyw-tasks-cell-title">{dashboard.name}</span>
+                        <span className="cwgsyw-tasks-cell-meta">{dashboard.scopeType === 'private' ? '私有' : dashboard.scopeType === 'group' ? '组内共享' : '租户共享'}</span>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </TaskPanel>
+            </>
+          ) : null}
+
+          <div className="cwgsyw-form__actions cwgsyw-tasks-create-actions">
+            <Button type="button" size="sm" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => value - 1)}>上一步</Button>
+            {step === 0 ? (
+              <Button type="button" size="sm" variant="primary" onClick={run} disabled={!effectiveTemplateVersionId || fieldSelections.length === 0}>运行统计</Button>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+
+function TasksFieldMultiSelect({
+  id,
+  disabled,
+  error,
+  placeholder,
+  value,
+  options,
+  onToggle,
+  ...aria
+}: {
+  id?: string
+  disabled?: boolean
+  error?: boolean
+  placeholder: string
+  value: string[]
+  options: { value: string; label: string }[]
+  onToggle: (value: string, checked: boolean) => void
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean | 'true' | 'false'
+  'aria-required'?: boolean | 'true' | 'false'
+}) {
+  const listId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const summary = value.length === 0
+    ? placeholder
+    : options.filter((option) => value.includes(option.value)).map((option) => option.label).join('、')
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  return (
+    <div ref={rootRef} className="cwgsyw-select cwgsyw-tasks-multiselect">
+      <Button
+        {...aria}
+        id={id}
+        type="button"
+        variant="ghost"
+        className={['cwgsyw-control', 'cwgsyw-control--sm', error ? 'cwgsyw-control--error' : ''].filter(Boolean).join(' ')}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span style={{ flex: 1, textAlign: 'left', color: value.length ? undefined : 'var(--cwgsyw-text-tertiary)' }}>{summary}</span>
+        <Icon name="chevron-down" size="sm" />
+      </Button>
+      {open ? (
+        <ul id={listId} className="cwgsyw-listbox cwgsyw-listbox--overlay" role="listbox" aria-multiselectable="true" aria-label="统计字段">
+          {options.length === 0 ? (
+            <li>
+              <span className="cwgsyw-tasks-multiselect__empty">暂无可选字段</span>
+            </li>
+          ) : options.map((option) => {
+            const checked = value.includes(option.value)
+            return (
+              <li key={option.value}>
+                <label className="cwgsyw-tasks-multiselect__option" data-selected={checked || undefined}>
+                  <input type="checkbox" checked={checked} onChange={(event) => onToggle(option.value, event.target.checked)} />
+                  <span>{option.label}</span>
+                </label>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
     </div>
   )
 }

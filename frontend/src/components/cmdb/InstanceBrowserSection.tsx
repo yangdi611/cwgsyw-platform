@@ -1,27 +1,25 @@
 'use client'
+
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
+import type { CiModelSummary } from '@/types/cmdb-model'
+import { CmdbInstancePreview } from '@/components/cmdb/CmdbInstancePreview'
+import '@/design-system/figma-neutral/index.css'
 import {
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
+  Chip,
+  EmptyState,
+  Icon,
+  LoadingState,
+  NeutralDrawer,
+  SearchInput,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   StatusBadge,
-} from '@/components/design-system'
-import { FilterBar, DataTable, DetailDrawer, type ColumnDef } from '@/components/shared'
-import { Search, GitBranch, FileText, ArrowRight, Download } from 'lucide-react'
-import type { CiModelSummary, CiAttributeResponse } from '@/types/cmdb-model'
+  Table,
+} from '@/design-system/figma-neutral/components'
 
 interface CiInstanceVO {
   id: number
@@ -36,17 +34,17 @@ interface CiInstanceVO {
   updatedAt: string
 }
 
-type StatusVariant = 'ok' | 'warn' | 'danger' | 'neutral'
+type StatusTone = 'success' | 'warning' | 'danger' | 'neutral'
 
-function statusMeta(status: string): { variant: StatusVariant; label: string } {
+function statusMeta(status: string): { tone: StatusTone; label: string } {
   const s = (status || '').toLowerCase()
   if (['running', 'active', 'online', 'up', 'healthy', 'ok', 'in_service', 'inservice', 'running中'].includes(s))
-    return { variant: 'ok', label: '运行中' }
+    return { tone: 'success', label: '运行中' }
   if (['stopped', 'offline', 'down', 'inactive', 'fault', 'error', 'out_of_service', 'failed'].includes(s))
-    return { variant: 'danger', label: '已停用' }
+    return { tone: 'danger', label: '已停用' }
   if (['maintenance', 'pending', 'warning', 'degraded', 'standby', 'paused'].includes(s))
-    return { variant: 'warn', label: '维护中' }
-  return { variant: 'neutral', label: status || '未知' }
+    return { tone: 'warning', label: '维护中' }
+  return { tone: 'neutral', label: status || '未知' }
 }
 
 function formatTime(iso: string): string {
@@ -61,23 +59,6 @@ function formatValue(v: unknown): string {
   return String(v)
 }
 
-function ModelChip({ name }: { name: string }) {
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-v2-border bg-v2-surface-soft text-xs font-medium text-v2-fg">
-      {name}
-    </span>
-  )
-}
-
-function InfoItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <dt className="text-xs text-v2-muted">{label}</dt>
-      <dd className={cn('mt-0.5 text-sm text-v2-fg break-all', mono && 'font-v2-mono')}>{value}</dd>
-    </div>
-  )
-}
-
 export default function InstanceBrowserSection() {
   const router = useRouter()
   const { hasPermission } = usePermission()
@@ -87,7 +68,6 @@ export default function InstanceBrowserSection() {
   const [status, setStatus] = useState('')
   const [selected, setSelected] = useState<CiInstanceVO | null>(null)
 
-  // Fetch models for filter + attribute label translation
   const { data: models = [] } = useQuery<CiModelSummary[]>({
     queryKey: ['cmdb-models-all'],
     queryFn: async () => {
@@ -101,7 +81,6 @@ export default function InstanceBrowserSection() {
     enabled: hasPermission('cmdb_model', 'read'),
   })
 
-  // Fetch instances (default: most recent 10)
   const { data, isLoading } = useQuery({
     queryKey: ['cmdb-overview-instance-browser', model, keyword, status],
     queryFn: () =>
@@ -121,255 +100,166 @@ export default function InstanceBrowserSection() {
 
   const instances = (data?.records ?? []) as CiInstanceVO[]
 
-  // Translate field key → label via model attributes
   const getAttrLabel = (modelId: string, key: string): string => {
-    const m = models.find((x) => x.modelId === modelId)
-    const attr = m?.attributes?.find((a) => (a.fieldKey ?? a.id.toString()) === key)
+    const current = models.find((item) => item.modelId === modelId)
+    const attr = current?.attributes?.find((item) => (item.fieldKey ?? item.id.toString()) === key)
     return attr?.name ?? key
   }
 
-  const columns = useMemo<ColumnDef<CiInstanceVO>[]>(
-    () => [
-      {
-        key: 'name',
-        title: '实例名称',
-        render: (r) => <span className="font-semibold text-v2-fg">{r.name}</span>,
-      },
-      {
-        key: 'modelName',
-        title: '模型',
-        render: (r) => <ModelChip name={r.modelName} />,
-      },
-      {
-        key: 'status',
-        title: '状态',
-        render: (r) =>
-          r.status ? (
-            <StatusBadge status={statusMeta(r.status).variant}>{statusMeta(r.status).label}</StatusBadge>
-          ) : (
-            <span className="text-v2-subtle">-</span>
-          ),
-      },
-      {
-        key: 'owner',
-        title: '负责人',
-        render: (r) => <span className="text-v2-fg">{r.owner || '-'}</span>,
-      },
-      {
-        key: 'updatedAt',
-        title: '更新时间',
-        render: (r) => (
-          <span className="whitespace-nowrap text-sm text-v2-muted">{formatTime(r.updatedAt)}</span>
-        ),
-      },
-    ],
-    [],
-  )
-
   const selectedFields = selected ? Object.entries(selected.fieldsData ?? {}).slice(0, 8) : []
-  const canExport = hasPermission('cmdb_instance', 'export')
-
-  const downloadExport = async () => {
-    const params = new URLSearchParams()
-    if (model) params.set('model', model)
-    if (keyword) params.set('keyword', keyword)
-    if (status) params.set('status', status)
-    const response = await api.get(`/cmdb/instances/export?${params.toString()}`, {
-      responseType: 'blob',
-    })
-    const url = URL.createObjectURL(response.data)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'cmdb-instances.csv'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
-  // 判断是否为默认态（无筛选）
   const isDefaultState = model === '' && keyword.trim() === '' && status === ''
 
+  const rows = instances.map((item) => ({
+    id: String(item.id),
+    selected: selected?.id === item.id,
+    cells: {
+      name: item.name,
+      modelName: <Chip label={item.modelName} />,
+      status: item.status ? (
+        <StatusBadge label={statusMeta(item.status).label} status={statusMeta(item.status).tone} />
+      ) : (
+        '-'
+      ),
+      owner: item.owner || '-',
+      updatedAt: formatTime(item.updatedAt),
+    },
+  }))
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>实例浏览</CardTitle>
-        <p className="mt-1 text-sm text-v2-muted">
-          默认显示最近更新的 CI，可按模型、关键词和状态筛选。
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Filters */}
-        <FilterBar>
-          <Select
-            value={model || '__all__'}
-            onValueChange={(v) => {
-              setModel(v === '__all__' ? '' : v ?? '')
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue>
-                {(v) => {
-                  if (v === '__all__') return '全部模型'
-                  const m = models.find((m) => m.modelId === v)
-                  return m?.displayName ?? v
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">全部模型</SelectItem>
-              {models.map((m) => (
-                <SelectItem key={m.modelId} value={m.modelId}>
-                  {m.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-v2-muted" />
-            <Input
-              className="pl-8"
-              placeholder="搜索实例名称..."
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value)
-              }}
-            />
-          </div>
-
-          <Select
-            value={status || '__all__'}
-            onValueChange={(v) => {
-              setStatus(v === '__all__' ? '' : v ?? '')
-            }}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue>
-                {(v) => {
-                  if (v === '__all__') return '全部状态'
-                  return statusMeta(v).label
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">全部状态</SelectItem>
-              <SelectItem value="running">运行中</SelectItem>
-              <SelectItem value="stopped">已停用</SelectItem>
-              <SelectItem value="maintenance">维护中</SelectItem>
-            </SelectContent>
-          </Select>
-          {canExport && (
-            <Button variant="secondary" size="sm" onClick={downloadExport}>
-              <Download className="h-4 w-4" />
-              导出 CSV
-            </Button>
-          )}
-        </FilterBar>
-
-        {/* Table */}
-        <DataTable
-          columns={columns}
-          data={instances}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          onRowClick={(r) => setSelected(r)}
-          empty={{
-            title: isDefaultState ? '暂无实例' : '暂无匹配实例',
-            description: isDefaultState
-              ? '请先从上方模型分类进入具体模型后新建 CI。'
-              : '请调整模型、关键词或状态筛选。',
-          }}
+    <section className="cwgsyw-instance-browser" aria-labelledby="cmdb-instance-browser-title">
+      <div className="cwgsyw-instance-browser__header">
+        <div className="cwgsyw-cmdb-overview__catalog-title">
+          <h2 id="cmdb-instance-browser-title" className="cwgsyw-type-title-sm">实例浏览</h2>
+          <span className="cwgsyw-cmdb-overview__catalog-note">
+            <Icon name="chevron-next" size="sm" aria-hidden="true" />
+            <span>默认显示最近更新的 CI，可按模型、关键词和状态筛选。</span>
+            <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+          </span>
+        </div>
+      </div>
+      <div className="cwgsyw-instance-browser__filters" aria-label="实例筛选">
+        <Select
+          overlay
+          size="sm"
+          value={model || '__all__'}
+          placeholder="全部模型"
+          options={[
+            { value: '__all__', label: '全部模型' },
+            ...models.map((item) => ({ value: item.modelId, label: item.displayName || item.name })),
+          ]}
+          onChange={(value) => setModel(value === '__all__' ? '' : value)}
         />
+        <div className="cwgsyw-instance-browser__search">
+          <SearchInput
+            size="sm"
+            value={keyword}
+            placeholder="搜索实例名称..."
+            onChange={(event) => setKeyword(event.target.value)}
+            onClear={() => setKeyword('')}
+          />
+        </div>
+        <Select
+          overlay
+          size="sm"
+          value={status || '__all__'}
+          placeholder="全部状态"
+          options={[
+            { value: '__all__', label: '全部状态' },
+            { value: 'running', label: '运行中' },
+            { value: 'stopped', label: '已停用' },
+            { value: 'maintenance', label: '维护中' },
+          ]}
+          onChange={(value) => setStatus(value === '__all__' ? '' : value)}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isDefaultState}
+          onClick={() => {
+            setModel('')
+            setKeyword('')
+            setStatus('')
+          }}
+        >
+          重置筛选
+        </Button>
+      </div>
 
-        {/* Detail Drawer */}
-        <DetailDrawer
-          open={!!selected}
-          onClose={() => setSelected(null)}
-          title={selected?.name}
-          subtitle={
-            selected ? (
-              <div className="flex items-center gap-2">
-                <ModelChip name={selected.modelName} />
-                {selected.status && (
-                  <StatusBadge status={statusMeta(selected.status).variant}>
-                    {statusMeta(selected.status).label}
-                  </StatusBadge>
-                )}
-              </div>
-            ) : undefined
+      {isLoading ? (
+        <LoadingState label="加载实例" />
+      ) : instances.length === 0 ? (
+        <EmptyState
+          title={isDefaultState ? '暂无实例' : '暂无匹配实例'}
+          description={
+            isDefaultState
+              ? '请先从上方模型分类进入具体模型后新建 CI。'
+              : '请调整模型、关键词或状态筛选。'
           }
-          footer={
-            selected ? (
-              <div className="flex items-center justify-end gap-2">
-                {hasPermission('cmdb_topology', 'read') && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => router.push(`/cmdb/topology/${selected.id}`)}
-                  >
-                    <GitBranch className="h-4 w-4" />
+        />
+      ) : (
+        <div className="cwgsyw-instance-browser__table cwgsyw-cmdb-table">
+          <Table
+            showSearch={false}
+            columns={[
+              { key: 'name', label: '实例名称' },
+              { key: 'modelName', label: '模型' },
+              { key: 'status', label: '状态' },
+              { key: 'owner', label: '负责人' },
+              { key: 'updatedAt', label: '更新时间' },
+            ]}
+            rows={rows}
+            onRowClick={(id) => {
+              const hit = instances.find((item) => String(item.id) === id)
+              if (hit) setSelected(hit)
+            }}
+          />
+        </div>
+      )}
+
+      <NeutralDrawer
+        open={!!selected}
+        onOpenChange={(open) => !open && setSelected(null)}
+        className="cwgsyw-cmdb-preview-drawer"
+        showClose
+        title={selected?.name ?? '实例详情'}
+        description={selected ? `${selected.modelName}${selected.status ? ` · ${statusMeta(selected.status).label}` : ''}` : undefined}
+      >
+        {selected ? (
+          <CmdbInstancePreview
+            description={selected.description}
+            fields={[
+              { label: '模型', value: selected.modelName },
+              { label: '状态', value: selected.status ? statusMeta(selected.status).label : '-' },
+              { label: '负责人', value: selected.owner || '-' },
+              { label: '实例 ID', value: selected.id },
+              { label: '创建时间', value: formatTime(selected.createdAt) },
+              { label: '更新时间', value: formatTime(selected.updatedAt) },
+            ]}
+            extraFields={selectedFields.map(([key, value]) => ({
+              label: getAttrLabel(selected.modelId, key),
+              value: formatValue(value),
+            }))}
+            actions={
+              <>
+                {hasPermission('cmdb_topology', 'read') ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/cmdb/topology/${selected.id}`)}>
                     查看拓扑
                   </Button>
-                )}
+                ) : null}
                 <Button
+                  type="button"
                   variant="primary"
                   size="sm"
-                  onClick={() =>
-                    router.push(`/cmdb/instances/by-model/${selected.modelId}/${selected.id}`)
-                  }
+                  onClick={() => router.push(`/cmdb/instances/by-model/${selected.modelId}/${selected.id}`)}
                 >
-                  <FileText className="h-4 w-4" />
                   完整详情
-                  <ArrowRight className="h-4 w-4" />
                 </Button>
-              </div>
-            ) : undefined
-          }
-        >
-          {selected && (
-            <div className="space-y-5">
-              {selected.description && (
-                <div className="rounded-v2-md border border-v2-border bg-v2-surface-soft p-3">
-                  <div className="text-xs font-semibold text-v2-muted mb-1">描述</div>
-                  <p className="text-sm text-v2-fg leading-relaxed">{selected.description}</p>
-                </div>
-              )}
-
-              <div>
-                <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
-                  基本信息
-                </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <InfoItem label="模型" value={selected.modelName} />
-                  <InfoItem
-                    label="状态"
-                    value={selected.status ? statusMeta(selected.status).label : '-'}
-                  />
-                  <InfoItem label="负责人" value={selected.owner || '-'} />
-                  <InfoItem label="实例 ID" value={String(selected.id)} mono />
-                  <InfoItem label="创建时间" value={formatTime(selected.createdAt)} />
-                  <InfoItem label="更新时间" value={formatTime(selected.updatedAt)} />
-                </dl>
-              </div>
-
-              {selectedFields.length > 0 && (
-                <div>
-                  <div className="mb-3 text-xs font-bold uppercase tracking-wider text-v2-muted">
-                    关键属性
-                  </div>
-                  <dl className="space-y-2.5">
-                    {selectedFields.map(([k, v]) => (
-                      <div key={k} className="flex items-start justify-between gap-3 text-sm">
-                        <dt className="shrink-0 text-v2-muted">{getAttrLabel(selected.modelId, k)}</dt>
-                        <dd className="text-right break-all text-v2-fg">{formatValue(v)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              )}
-            </div>
-          )}
-        </DetailDrawer>
-      </CardContent>
-    </Card>
+              </>
+            }
+          />
+        ) : null}
+      </NeutralDrawer>
+    </section>
   )
 }

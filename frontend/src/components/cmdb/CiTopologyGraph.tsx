@@ -1,12 +1,15 @@
 'use client'
-import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Node, Edge, Background, Controls, MiniMap,
   useNodesState, useEdgesState, MarkerType,
-  Handle, Position, NodeProps,
+  Handle, Position, NodeProps, NodeToolbar,
 } from '@xyflow/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import '@xyflow/react/dist/style.css'
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
+import { Button } from '@/design-system/figma-neutral/components'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,25 +99,24 @@ function hashHex(seed: string): string {
 
 interface Palette { border: string; bg: string; text: string }
 
-function resolvePalette(color: string | null, seed: string | null): Palette {
-  const base = normalizeHex(color) ?? hashHex(seed ?? 'default')
+function resolvePalette(_color: string | null, _seed: string | null): Palette {
   return {
-    border: base,
-    bg: mixHex(base, '#0f172a', 0.80),
-    text: mixHex(base, '#ffffff', 0.30),
+    border: 'var(--cwgsyw-border-strong)',
+    bg: 'var(--cwgsyw-bg-surface)',
+    text: 'var(--cwgsyw-text-primary)',
   }
 }
 
 // ── Status border + diff styling ─────────────────────────────────────────────
 
 const STATUS_BORDER: Record<string, { border: string; style: string }> = {
-  online:      { border: '#22c55e', style: 'solid' },
-  running:     { border: '#22c55e', style: 'solid' },
-  active:      { border: '#22c55e', style: 'solid' },
-  offline:     { border: '#ef4444', style: 'dashed' },
-  stopped:     { border: '#ef4444', style: 'dashed' },
-  error:       { border: '#ef4444', style: 'dashed' },
-  maintenance: { border: '#eab308', style: 'dashed' },
+  online:      { border: CANVAS_STATUS.success, style: 'solid' },
+  running:     { border: CANVAS_STATUS.success, style: 'solid' },
+  active:      { border: CANVAS_STATUS.success, style: 'solid' },
+  offline:     { border: CANVAS_STATUS.danger, style: 'dashed' },
+  stopped:     { border: CANVAS_STATUS.danger, style: 'dashed' },
+  error:       { border: CANVAS_STATUS.danger, style: 'dashed' },
+  maintenance: { border: CANVAS_STATUS.warning, style: 'dashed' },
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -123,31 +125,56 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  online: '#22c55e', running: '#22c55e', active: '#22c55e',
-  offline: '#ef4444', stopped: '#ef4444', error: '#ef4444',
-  maintenance: '#eab308',
+  online: CANVAS_STATUS.success, running: CANVAS_STATUS.success, active: CANVAS_STATUS.success,
+  offline: CANVAS_STATUS.danger, stopped: CANVAS_STATUS.danger, error: CANVAS_STATUS.danger,
+  maintenance: CANVAS_STATUS.warning,
 }
 
-const DIFF_NODE: Record<DiffStatus, { bg: string; border: string; borderStyle: string }> = {
-  added:      { bg: '#14532d', border: '#22c55e', borderStyle: 'solid' },
-  removed:    { bg: '#451a1f', border: '#ef4444', borderStyle: 'dashed' },
-  modified:   { bg: '#45190f', border: '#eab308', borderStyle: 'solid' },
-  unchanged:  { bg: '#1e293b', border: '#475569', borderStyle: 'solid' },
+const DIFF_NODE: Record<DiffStatus, { bg: string; border: string; text: string; borderStyle: string }> = {
+  added: {
+    bg: 'var(--cwgsyw-status-success-bg)',
+    border: 'var(--cwgsyw-status-success-fg)',
+    text: 'var(--cwgsyw-status-success-fg)',
+    borderStyle: 'solid',
+  },
+  removed: {
+    bg: 'var(--cwgsyw-status-danger-bg)',
+    border: 'var(--cwgsyw-status-danger-fg)',
+    text: 'var(--cwgsyw-status-danger-fg)',
+    borderStyle: 'dashed',
+  },
+  modified: {
+    bg: 'var(--cwgsyw-status-warning-bg)',
+    border: 'var(--cwgsyw-status-warning-fg)',
+    text: 'var(--cwgsyw-status-warning-fg)',
+    borderStyle: 'solid',
+  },
+  unchanged: {
+    bg: 'var(--cwgsyw-bg-surface)',
+    border: 'var(--cwgsyw-border-strong)',
+    text: 'var(--cwgsyw-text-primary)',
+    borderStyle: 'solid',
+  },
 }
 
 const DIFF_EDGE: Record<DiffStatus, { stroke: string; dashed: boolean }> = {
-  added:     { stroke: '#22c55e', dashed: false },
-  removed:   { stroke: '#ef4444', dashed: true },
-  modified:  { stroke: '#eab308', dashed: false },
-  unchanged: { stroke: '#475569', dashed: false },
+  added:     { stroke: CANVAS_STATUS.success, dashed: false },
+  removed:   { stroke: CANVAS_STATUS.danger, dashed: true },
+  modified:  { stroke: CANVAS_STATUS.warning, dashed: false },
+  unchanged: { stroke: CANVAS_NEUTRAL[600], dashed: false },
 }
 
 const DIFF_BADGE: Record<DiffStatus, { label: string; cls: string }> = {
-  added:     { label: '新增', cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
-  removed:   { label: '删除', cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
-  modified:  { label: '修改', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-  unchanged: { label: '未变', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/40' },
+  added:     { label: '新增', cls: 'cwgsyw-type-label-sm' },
+  removed:   { label: '删除', cls: 'cwgsyw-type-label-sm' },
+  modified:  { label: '修改', cls: 'cwgsyw-type-label-sm' },
+  unchanged: { label: '未变', cls: 'cwgsyw-type-label-sm' },
 }
+
+const COLLAPSED_KEY_ATTR_LIMIT = 6
+const COLLAPSED_POPOVER_WIDTH = 184
+const EXPANDED_POPOVER_WIDTH = 376
+const POPOVER_EXPAND_TRANSITION = { type: 'spring', stiffness: 180, damping: 26, bounce: 0 } as const
 
 // ── Custom CI node ───────────────────────────────────────────────────────────
 
@@ -162,123 +189,214 @@ function StatusDot({ status }: { status: string }) {
   )
 }
 
-function NodeTooltip({ d, palette }: { d: TopologyNodeData; palette: Palette }) {
+interface NodeTooltipProps {
+  d: TopologyNodeData
+  palette: Palette
+  visible: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}
+
+function NodeTooltip({ d, palette, visible, onMouseEnter, onMouseLeave }: NodeTooltipProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
   const statusLabel = d.status ? (STATUS_LABEL[d.status] ?? d.status) : null
-  const keyAttrEntries = d.keyAttrs ? Object.entries(d.keyAttrs).slice(0, 6) : []
+  const keyAttrEntries = d.keyAttrs ? Object.entries(d.keyAttrs) : []
+  const visibleKeyAttrEntries = keyAttrEntries.slice(0, COLLAPSED_KEY_ATTR_LIMIT)
+  const extraKeyAttrEntries = keyAttrEntries.slice(COLLAPSED_KEY_ATTR_LIMIT)
+
+  const toggleExpanded = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setIsExpanded((expanded) => !expanded)
+  }
+
   return (
-    <div className="hidden group-hover:block absolute z-50 left-0 top-full mt-2 pointer-events-none w-64 rounded-lg border bg-popover text-popover-foreground shadow-xl backdrop-blur p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: palette.border }} />
-        <span className="font-semibold text-sm truncate">{d.name}</span>
-      </div>
-      <dl className="space-y-1 text-xs">
-        <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">模型</dt>
-          <dd className="font-medium truncate">{d.modelName ?? d.modelId ?? '—'}</dd>
+    <NodeToolbar
+      isVisible={visible}
+      position={Position.Bottom}
+      align="start"
+      offset={8}
+      className="cwgsyw-topology-node-popover-anchor nodrag nopan nowheel"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <motion.div
+        className={`cwgsyw-popover cwgsyw-popover--hover cwgsyw-topology-node-popover${isExpanded ? ' is-expanded' : ''}`}
+        initial={false}
+        animate={{ width: isExpanded ? EXPANDED_POPOVER_WIDTH : COLLAPSED_POPOVER_WIDTH }}
+        transition={prefersReducedMotion ? { duration: 0 } : POPOVER_EXPAND_TRANSITION}
+      >
+        <div className="cwgsyw-topology-node-popover__header flex items-center gap-2">
+          <span className="cwgsyw-topology-node-popover__marker flex-shrink-0" style={{ background: palette.border }} />
+          <span className="cwgsyw-topology-node-popover__title">{d.name}</span>
         </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">状态</dt>
-          <dd className="flex items-center gap-1.5 font-medium">
-            {d.status && <StatusDot status={d.status} />}
-            {statusLabel ?? '—'}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-v2-muted">负责人</dt>
-          <dd className="font-medium truncate">{d.owner ?? '—'}</dd>
-        </div>
-        {d.isRoot && (
-          <div className="flex justify-between gap-2">
-            <dt className="text-v2-muted">根节点</dt>
-            <dd className="font-medium text-amber-500">是</dd>
+        <dl className="cwgsyw-topology-node-popover__list">
+          <div>
+            <dt className="cwgsyw-type-label-sm">模型</dt>
+            <dd>{d.modelName ?? d.modelId ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="cwgsyw-type-label-sm">状态</dt>
+            <dd className="flex items-center gap-1.5">
+              {d.status && <StatusDot status={d.status} />}
+              {statusLabel ?? '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="cwgsyw-type-label-sm">负责人</dt>
+            <dd>{d.owner ?? '—'}</dd>
+          </div>
+          {d.isRoot && (
+            <div>
+              <dt className="cwgsyw-type-label-sm">根节点</dt>
+              <dd className="text-[var(--cwgsyw-status-warning-fg)]">是</dd>
+            </div>
+          )}
+        </dl>
+        {visibleKeyAttrEntries.length > 0 && (
+          <div className="cwgsyw-topology-node-popover__attrs">
+            <p className="cwgsyw-type-label-sm">关键属性</p>
+            <div className={`cwgsyw-topology-node-popover__attr-columns${isExpanded ? ' is-expanded' : ''}`}>
+              <div className="cwgsyw-topology-node-popover__attr-list">
+                {visibleKeyAttrEntries.map(([k, v]) => (
+                  <div key={k}>
+                    <span className="cwgsyw-type-label-sm font-mono">{k}</span>
+                    <span>{String(v ?? '—')}</span>
+                  </div>
+                ))}
+              </div>
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    className="cwgsyw-topology-node-popover__attr-list cwgsyw-topology-node-popover__attr-list--extra"
+                    initial={prefersReducedMotion ? false : { opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.16, ease: 'easeOut' }}
+                  >
+                    {extraKeyAttrEntries.map(([k, v]) => (
+                      <div key={k}>
+                        <span className="cwgsyw-type-label-sm font-mono">{k}</span>
+                        <span>{String(v ?? '—')}</span>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {extraKeyAttrEntries.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="cwgsyw-topology-node-popover__expand"
+                aria-expanded={isExpanded}
+                onClick={toggleExpanded}
+              >
+                {isExpanded ? '收起' : `查看全部（${keyAttrEntries.length}）`}
+              </Button>
+            )}
           </div>
         )}
-      </dl>
-      {keyAttrEntries.length > 0 && (
-        <div className="mt-2 pt-2 border-t">
-          <p className="text-[11px] text-v2-muted mb-1">关键属性</p>
-          <div className="grid grid-cols-1 gap-0.5 text-xs">
-            {keyAttrEntries.map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-2">
-                <span className="text-v2-muted font-mono text-[11px]">{k}</span>
-                <span className="font-medium truncate">{String(v ?? '—')}</span>
-              </div>
-            ))}
+        {d.diffStatus && (
+          <div className={`cwgsyw-topology-node-popover__diff ${DIFF_BADGE[d.diffStatus].cls}`}>
+            {DIFF_BADGE[d.diffStatus].label}
           </div>
-        </div>
-      )}
-      {d.diffStatus && (
-        <div className={`mt-2 pt-2 border-t text-[11px] font-medium px-1.5 py-0.5 rounded border inline-block ${DIFF_BADGE[d.diffStatus].cls}`}>
-          {DIFF_BADGE[d.diffStatus].label}
-        </div>
-      )}
-    </div>
+        )}
+      </motion.div>
+    </NodeToolbar>
   )
 }
 
 function CiNode({ data }: NodeProps) {
   const d = data as TopologyNodeData
+  const [isHovered, setIsHovered] = useState(false)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const palette = resolvePalette(d.modelColor, d.modelId)
+
+  const keepTooltipOpen = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = null
+    setIsHovered(true)
+  }, [])
+
+  const scheduleTooltipClose = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => {
+      setIsHovered(false)
+      hideTimerRef.current = null
+    }, 150)
+  }, [])
+
+  useEffect(() => () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+  }, [])
 
   const diffStyle = d.diffStatus ? DIFF_NODE[d.diffStatus] : null
   const statusStyle = d.status ? STATUS_BORDER[d.status] : null
 
   const borderColor = diffStyle?.border ?? statusStyle?.border ?? palette.border
-  const borderStyle = diffStyle?.borderStyle ?? statusStyle?.style ?? 'solid'
-  const bg = diffStyle?.bg ?? palette.bg
+  const bg = palette.bg
   const textColor = palette.text
 
   return (
-    <div className="group relative" style={{ opacity: d.dimmed ? 0.25 : 1, transition: 'opacity 0.2s' }}>
+    <div
+      className="cwgsyw-topology-node relative"
+      onMouseEnter={keepTooltipOpen}
+      onMouseLeave={scheduleTooltipClose}
+      style={{ opacity: d.dimmed ? 0.25 : 1, transition: 'opacity 0.2s' }}
+    >
       <div
+        className="cwgsyw-topology-node__frame"
         style={{
           background: bg,
-          border: `2px ${borderStyle} ${borderColor}`,
-          borderRadius: 8,
-          padding: '6px 12px',
-          minWidth: 130,
-          boxShadow: d.isRoot ? `0 0 0 3px ${borderColor}55` : '0 1px 3px rgba(0,0,0,0.4)',
-        }}
+          border: 'var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-subtle)',
+          color: textColor,
+          '--cwgsyw-topology-node-accent': borderColor,
+        } as React.CSSProperties}
       >
-        <Handle type="target" position={Position.Left} style={{ background: borderColor }} />
-        <div className="flex items-center gap-1.5">
+        <Handle type="target" position={Position.Left} className="cwgsyw-topology-node__handle" style={{ background: borderColor }} />
+        <div className="cwgsyw-topology-node__title-row flex items-center">
           {d.hasDownstream && (
             <span
-              className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[11px] font-bold leading-none"
+              className="cwgsyw-topology-node__toggle flex-shrink-0 rounded-full flex items-center justify-center leading-none"
               style={{ background: borderColor, color: bg }}
               title={d.collapsed ? '点击展开下游' : '点击折叠下游'}
             >
               {d.collapsed ? '+' : '−'}
             </span>
           )}
-          <span style={{ fontWeight: 600, fontSize: 13, color: '#e2e8f0' }} className="truncate max-w-[140px]">
+          <span className="cwgsyw-topology-node__title truncate">
             {d.name}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 mt-1">
+        <div className="cwgsyw-topology-node__meta flex items-center">
           {d.modelName && (
-            <span
-              style={{
-                fontSize: 10, padding: '1px 6px', borderRadius: 4,
-                background: palette.border + '33', color: textColor, display: 'inline-block',
-              }}
-            >
+            <span className="cwgsyw-topology-node__model">
               {d.modelName}
             </span>
           )}
           {d.status && <StatusDot status={d.status} />}
           {d.diffStatus && (
             <span
-              className={`text-[9px] px-1 rounded border ${DIFF_BADGE[d.diffStatus].cls}`}
-              style={{ lineHeight: '14px' }}
+              className={`cwgsyw-topology-node__diff ${DIFF_BADGE[d.diffStatus].cls}`}
+              style={{ color: borderColor }}
             >
               {DIFF_BADGE[d.diffStatus].label}
             </span>
           )}
         </div>
-        <Handle type="source" position={Position.Right} style={{ background: borderColor }} />
+        <Handle type="source" position={Position.Right} className="cwgsyw-topology-node__handle" style={{ background: borderColor }} />
       </div>
-      {!d.preview && <NodeTooltip d={d} palette={palette} />}
+      {!d.preview && isHovered && (
+        <NodeTooltip
+          d={d}
+          palette={palette}
+          visible={isHovered}
+          onMouseEnter={keepTooltipOpen}
+          onMouseLeave={scheduleTooltipClose}
+        />
+      )}
     </div>
   )
 }
@@ -417,14 +535,14 @@ function toRFEdges(
         source: String(e.src),
         target: String(e.dst),
         label: e.label || undefined,
-        markerEnd: { type: MarkerType.ArrowClosed, color: style?.stroke ?? '#64748b' },
+        markerEnd: { type: MarkerType.ArrowClosed, color: style?.stroke ?? CANVAS_NEUTRAL[500] },
         style: {
-          stroke: style?.stroke ?? '#475569',
+          stroke: style?.stroke ?? CANVAS_NEUTRAL[600],
           strokeWidth: status === 'removed' || status === 'added' ? 2 : 1.5,
           strokeDasharray: style?.dashed ? '6 4' : undefined,
         },
-        labelStyle: { fontSize: 10, fill: '#94a3b8' },
-        labelBgStyle: { fill: '#1e293b' },
+        labelStyle: { fontSize: 10, fill: 'var(--cwgsyw-text-secondary)' },
+        labelBgStyle: { fill: 'var(--cwgsyw-bg-surface)' },
       }
     })
 }
@@ -510,7 +628,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
     }, [onNodeClick, topoNodes, neighbors])
 
     return (
-      <div ref={ref} style={{ height: '100%', width: '100%', background: '#0f172a', borderRadius: 8 }}>
+      <div ref={ref} className="cwgsyw-topology-graph">
         <ReactFlow
           nodes={stateNodes}
           edges={stateEdges}
@@ -523,12 +641,12 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
           zoomOnPinch={!preview}
           panOnScroll={false}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{ padding: 0.35, maxZoom: 1 }}
           minZoom={0.1}
-          maxZoom={2}
-          colorMode="dark"
+          maxZoom={1.5}
+          colorMode="light"
         >
-          <Background color="#1e293b" gap={20} />
+          <Background color="var(--cwgsyw-border-strong)" gap={18} size={1} />
           {!preview && <Controls />}
           {!preview && (
             <MiniMap
@@ -537,7 +655,7 @@ export const CiTopologyGraph = forwardRef<HTMLDivElement, CiTopologyGraphProps>(
                 if (d.diffStatus) return DIFF_NODE[d.diffStatus].border
                 return resolvePalette(d.modelColor, d.modelId).border
               }}
-              maskColor="rgba(0,0,0,0.4)"
+              maskColor="rgba(115, 115, 115, 0.16)"
             />
           )}
         </ReactFlow>

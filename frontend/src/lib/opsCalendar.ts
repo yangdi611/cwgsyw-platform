@@ -1,3 +1,4 @@
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
 // 运维日历共享类型与工具函数（无第三方日期库，使用原生 Date）
 
 export type CalendarView = 'month' | 'week' | 'list'
@@ -170,20 +171,20 @@ export interface HolidayVO {
 }
 
 export const CALENDAR_ITEM_META: Record<CalendarItemType, { label: string; color: string }> = {
-  task: { label: '任务', color: '#2563eb' },
-  roster: { label: '排班', color: '#0891b2' },
-  holiday: { label: '节假日', color: '#dc2626' },
+  task: { label: '任务', color: CANVAS_NEUTRAL[800] },
+  roster: { label: '排班', color: CANVAS_NEUTRAL[600] },
+  holiday: { label: '节假日', color: CANVAS_STATUS.danger },
 }
 
 // ---------- 任务类型/状态展示元数据 ----------
 
 export const TASK_TYPE_META: Record<string, { label: string; color: string }> = {
-  inspection:   { label: '巡检', color: '#3b82f6' },
-  roster:       { label: '排班', color: '#06b6d4' },
-  report:       { label: '报表', color: '#8b5cf6' },
-  compliance:   { label: '合规', color: '#f59e0b' },
-  monitoring:   { label: '监控', color: '#ef4444' },
-  other:        { label: '其他', color: '#94a3b8' },
+  inspection:   { label: '巡检', color: CANVAS_NEUTRAL[800] },
+  roster:       { label: '排班', color: CANVAS_NEUTRAL[600] },
+  report:       { label: '报表', color: CANVAS_NEUTRAL[700] },
+  compliance:   { label: '合规', color: CANVAS_NEUTRAL[700] },
+  monitoring:   { label: '监控', color: CANVAS_STATUS.danger },
+  other:        { label: '其他', color: CANVAS_NEUTRAL[400] },
 }
 
 export const STATUS_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' }> = {
@@ -197,7 +198,7 @@ export const STATUS_META: Record<string, { label: string; tone: 'ok' | 'warn' | 
 }
 
 export function taskTypeLabel(t: string): string { return TASK_TYPE_META[t]?.label ?? t }
-export function taskTypeColor(t: string): string { return TASK_TYPE_META[t]?.color ?? '#94a3b8' }
+export function taskTypeColor(t: string): string { return TASK_TYPE_META[t]?.color ?? CANVAS_NEUTRAL[400] }
 export function statusLabel(s: string): string { return STATUS_META[s]?.label ?? s }
 export function statusTone(s: string): 'ok' | 'warn' | 'danger' | 'neutral' { return STATUS_META[s]?.tone ?? 'neutral' }
 

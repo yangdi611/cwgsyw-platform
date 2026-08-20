@@ -5,24 +5,30 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { Card, StatusBadge } from '@/components/design-system'
-import { DetailHeader, EmptyState } from '@/components/shared'
-import { BookOpen, FileText, Network } from 'lucide-react'
+import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
 import type { WikiPageTree, WikiStatus } from '@/types/wiki'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  DataManagementPage,
+  EmptyState,
+  PageHeader,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
 
-const STATUS_META: Record<WikiStatus, { label: string; variant: 'ok' | 'warn' | 'neutral' }> = {
-  draft: { label: '草稿', variant: 'neutral' },
-  review: { label: '审核中', variant: 'warn' },
-  published: { label: '已发布', variant: 'ok' },
-  archived: { label: '已归档', variant: 'neutral' },
+const STATUS_META: Record<WikiStatus, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  draft: { label: '草稿', tone: 'neutral' },
+  review: { label: '审核中', tone: 'warning' },
+  published: { label: '已发布', tone: 'success' },
+  archived: { label: '已归档', tone: 'neutral' },
 }
 
 function flatten(nodes: WikiPageTree[]): WikiPageTree[] {
   const out: WikiPageTree[] = []
   const walk = (list: WikiPageTree[]) => {
-    for (const n of list) {
-      out.push(n)
-      if (n.children?.length) walk(n.children)
+    for (const node of list) {
+      out.push(node)
+      if (node.children?.length) walk(node.children)
     }
   }
   walk(nodes)
@@ -43,58 +49,64 @@ export default function WikiSpaceHomePage() {
   })
 
   const pages = useMemo(() => flatten(tree ?? []), [tree])
-
   useBreadcrumbLabel(space?.name)
 
   if (spaceError || treeError || (spaces && !space)) {
-    return <EmptyState icon={<BookOpen className="h-5 w-5 text-v2-muted" />} title="知识空间不存在或无权访问" description="请返回知识库列表选择可访问的空间。" />
+    return <EmptyState title="知识空间不存在或无权访问" description="请返回知识库列表选择可访问的空间。" />
   }
 
   return (
-    <div className="space-y-6">
-      <DetailHeader
-        eyebrow="知识空间"
-        title={space?.name ?? '知识空间'}
-        subtitle={space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}
-        actions={(
-          <button
-            onClick={() => router.push(`/wiki/${sid}/graph`)}
-            className="flex shrink-0 items-center gap-1.5 rounded-v2-md border border-v2-border bg-v2-surface px-3 py-2 text-sm text-v2-fg hover:bg-v2-surface-hover"
-          >
-            <Network className="h-4 w-4" />
-            知识图谱
-          </button>
-        )}
-      />
-
-      <Card className="p-5">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-v2-muted">最近更新</h2>
-        {pages.length === 0 ? (
-          <EmptyState
-            icon={<FileText className="h-5 w-5 text-v2-muted" />}
-            title="暂无页面"
-            description="从左侧目录新建第一个页面开始记录。"
-          />
-        ) : (
-          <ul className="divide-y divide-v2-border/60">
-            {pages.slice(0, 30).map((p) => {
-              const meta = STATUS_META[p.status]
-              return (
-                <li key={p.id}>
-                  <button
-                    onClick={() => router.push(`/wiki/${sid}/${p.id}`)}
-                    className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-v2-surface-hover"
+    <>
+    <WikiShellHeader>
+        <PageHeader
+          showEyebrow={false}
+          showBreadcrumb={false}
+          title={space?.name ?? '知识空间'}
+          subtitle={space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}
+          actions={
+            <Button className="cwgsyw-wiki__header-actions" type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/graph`)}>
+              知识图谱
+            </Button>
+          }
+        />
+    </WikiShellHeader>
+    <DataManagementPage
+      embedded
+      className="cwgsyw-wiki cwgsyw-wiki-space-home"
+      content={
+        <section className="cwgsyw-devices-panel">
+          <header className="cwgsyw-devices-panel__head">最近更新</header>
+          <div className="cwgsyw-devices-panel__body">
+          {pages.length === 0 ? (
+            <div className="cwgsyw-neutral-empty">
+              {/* Official Figma book glyph; image optimization adds no value here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/figma-icons/wiki-book.svg" width={22} height={22} alt="" data-figma-node="6:23850" />
+              <EmptyState showIcon={false} title="暂无页面" description="从左侧目录新建第一个页面开始记录。" />
+            </div>
+          ) : (
+            <div className="cwgsyw-wiki-space__list">
+              {pages.slice(0, 30).map((page) => {
+                const meta = STATUS_META[page.status]
+                return (
+                  <Button
+                    key={page.id}
+                    type="button"
+                    variant="ghost"
+                    className="cwgsyw-wiki-space__row"
+                    onClick={() => router.push(`/wiki/${sid}/${page.id}`)}
                   >
-                    <FileText className="h-4 w-4 shrink-0 text-v2-muted" />
-                    <span className="min-w-0 flex-1 truncate text-sm text-v2-fg">{p.title || '无标题'}</span>
-                    <StatusBadge status={meta.variant}>{meta.label}</StatusBadge>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Card>
-    </div>
+                    <span>{page.title || '无标题'}</span>
+                    <StatusBadge size="sm" label={meta.label} status={meta.tone} />
+                  </Button>
+                )
+              })}
+            </div>
+          )}
+          </div>
+        </section>
+      }
+    />
+    </>
   )
 }

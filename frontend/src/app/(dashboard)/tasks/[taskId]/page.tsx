@@ -1,4 +1,5 @@
 'use client'
+import '@/design-system/figma-neutral/index.css'
 
 import { useParams } from 'next/navigation'
 import { TaskDetail } from '@/components/task-runtime/TaskDetail'

@@ -1,0 +1,22 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="17.7778" height="26.6667" viewBox="0 0 17.7778 26.6667" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g id="Logomark wrapper" filter="url(#filter0_d_0_3818)">
+    <path id="Vector" d="M2.22222 8.83227L11.8586 8.83227L2.3801 18.3108L3.91142 19.8421L13.3899 10.3636V20H13.4513L15.5556 17.8957L15.5556 9.02695L13.1953 6.66667L4.3253 6.66667L2.22222 8.76975L2.22222 8.83227Z" fill="url(#paint0_linear_0_3818)"/>
+  </g>
+  <defs>
+    <filter id="filter0_d_0_3818" x="-1.19209e-07" y="-0.555555" width="17.7778" height="31.1111" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feMorphology radius="1.11111" operator="erode" in="SourceAlpha" result="effect1_dropShadow_0_3818"/>
+      <feOffset dy="1.66667"/>
+      <feGaussianBlur stdDeviation="1.66667"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.141176 0 0 0 0 0.141176 0 0 0 0 0.141176 0 0 0 0.1 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_3818"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_3818" result="shape"/>
+    </filter>
+    <linearGradient id="paint0_linear_0_3818" x1="8.88889" y1="6.66667" x2="8.88889" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.5"/>
+    </linearGradient>
+  </defs>
+</svg>

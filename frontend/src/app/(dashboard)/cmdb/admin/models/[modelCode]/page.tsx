@@ -1,13 +1,11 @@
 'use client'
+
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/design-system/figma-neutral/toast'
 import api from '@/lib/api'
-import { Button, Card, CardContent } from '@/components/design-system'
-import { toast } from 'sonner'
-import Link from 'next/link'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { ArrowLeft, Plus } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
 import { AttributeList } from './components/AttributeList'
 import { AddAttributeDialog } from './components/AddAttributeDialog'
@@ -21,6 +19,13 @@ import type {
   UpdateAttributePayload,
 } from './components/types'
 import { toAttributeAdminItem } from './components/types'
+import '@/design-system/figma-neutral/index.css'
+import {
+  Button,
+  DetailDrawerPage,
+  EmptyState,
+  Icon,
+} from '@/design-system/figma-neutral/components'
 
 export default function ModelDetailPage() {
   const { modelCode } = useParams<{ modelCode: string }>()
@@ -88,39 +93,31 @@ export default function ModelDetailPage() {
   })
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/cmdb/admin"
-            className="inline-flex h-9 items-center gap-1.5 rounded-v2-md px-3 text-sm font-semibold text-v2-muted transition-colors hover:bg-v2-surface-hover hover:text-v2-fg"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            返回
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-v2-fg">{model?.displayName ?? modelCode}</h1>
-            <p className="mt-0.5 font-v2-mono text-xs text-v2-muted">{modelCode}</p>
-          </div>
-        </div>
-        {canCreateAttributes && (
-          <Button variant="primary" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            新建属性
-          </Button>
-        )}
-      </div>
-
-      {/* Attributes List */}
-      <Card>
-        <CardContent className="p-6">
-          {!canReadAttributes ? (
-            <p className="py-8 text-center text-sm text-v2-muted">无权查看模型属性。</p>
+    <>
+      <DetailDrawerPage
+        className="cwgsyw-cmdb-page cwgsyw-cmdb-admin cwgsyw-cmdb-model-detail"
+        header={
+          <header className="cwgsyw-cmdb-model-detail__header">
+            <div className="cwgsyw-cmdb-overview__catalog-title">
+              <h1>{model?.displayName ?? modelCode}</h1>
+              <span className="cwgsyw-cmdb-overview__catalog-note">
+                <Icon name="chevron-next" size="sm" aria-hidden="true" />
+                <span>{modelCode}</span>
+                <Icon name="chevron-previous" size="sm" aria-hidden="true" />
+              </span>
+            </div>
+            {canCreateAttributes ? (
+              <Button type="button" size="sm" onClick={() => setAddDialogOpen(true)}>
+                新建属性
+              </Button>
+            ) : null}
+          </header>
+        }
+        content={
+          !canReadAttributes ? (
+            <EmptyState title="无权查看模型属性" description="当前账号没有 cmdb_attribute:read 权限。" />
           ) : attributes.length === 0 ? (
-            <p className="py-8 text-center text-sm text-v2-muted">
-              该模型暂无属性。点击右上角「新建属性」开始配置。
-            </p>
+            <EmptyState title="该模型暂无属性" description="点击右上角「新建属性」开始配置。" />
           ) : (
             <AttributeList
               attributes={attributes}
@@ -129,12 +126,11 @@ export default function ModelDetailPage() {
               onEdit={setEditingAttr}
               onDelete={(attr) => deleteAttrMutation.mutate(attr.id)}
             />
-          )}
-        </CardContent>
-      </Card>
+          )
+        }
+      />
 
-      {/* Add Dialog */}
-      {addDialogOpen && (
+      {addDialogOpen ? (
         <AddAttributeDialog
           open
           groups={groups}
@@ -142,10 +138,9 @@ export default function ModelDetailPage() {
           onClose={() => setAddDialogOpen(false)}
           onCreate={(data) => createAttrMutation.mutate(data)}
         />
-      )}
+      ) : null}
 
-      {/* Edit Dialog */}
-      {editingAttr && (
+      {editingAttr ? (
         <EditAttributeDialog
           key={editingAttr.id}
           attr={editingAttr}
@@ -153,7 +148,7 @@ export default function ModelDetailPage() {
           onClose={() => setEditingAttr(null)}
           onUpdate={(data) => updateAttrMutation.mutate(data)}
         />
-      )}
-    </div>
+      ) : null}
+    </>
   )
 }

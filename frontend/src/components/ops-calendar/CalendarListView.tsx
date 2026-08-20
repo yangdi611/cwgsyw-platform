@@ -1,7 +1,6 @@
 'use client'
 
-import { DataTable, type ColumnDef } from '@/components/shared'
-import { StatusBadge } from '@/components/design-system'
+import { EmptyState, StatusBadge, Table } from '@/design-system/figma-neutral/components'
 import { fmtTime } from '@/lib/opsCalendar'
 import { type CalendarWorkItem, calendarItemTypeLabel, calendarMetaText, calendarStatusLabel } from '@/lib/calendar-api'
 
@@ -12,28 +11,47 @@ interface Props {
 }
 
 export function CalendarListView({ items, loading, onItemClick }: Props) {
-  const columns: ColumnDef<CalendarWorkItem>[] = [
-    { key: 'title', title: '事项', render: (item) => <span className="font-semibold text-v2-fg">{item.title}</span> },
-    { key: 'itemType', title: '类型', render: (item) => <StatusBadge status="neutral">{calendarItemTypeLabel(item.itemType)}</StatusBadge> },
-    { key: 'startAt', title: '开始时间', render: (item) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(item.startAt)}</span> },
-    { key: 'endAt', title: '结束/截止', render: (item) => <span className="font-v2-mono text-xs text-v2-fg">{fmtTime(item.endAt)}</span> },
-    {
-      key: 'assigneeName', title: '负责人',
-      render: (item) => calendarMetaText(item, 'assigneeName')
-        ? <span className="text-sm text-v2-fg">{calendarMetaText(item, 'assigneeName')}</span>
-        : <span className="text-v2-subtle">-</span>,
-    },
-    { key: 'status', title: '状态', render: (item) => <StatusBadge status={item.overdue ? 'danger' : item.status === 'completed' ? 'ok' : 'neutral'}>{item.overdue ? '已逾期' : calendarStatusLabel(item.status)}</StatusBadge> },
-  ]
-
   return (
-    <DataTable
-      columns={columns}
-      data={items}
-      rowKey={(item) => item.id}
-      loading={loading}
-      onRowClick={onItemClick}
-      empty={{ title: '暂无日历事项', description: '当前筛选范围内没有任务、排班或节假日' }}
+    <Table
+      className="cwgsyw-cmdb-table cwgsyw-ops__table"
+      density="compact"
+      showSearch={false}
+      columns={[
+        { key: 'title', label: '事项' },
+        { key: 'itemType', label: '类型' },
+        { key: 'startAt', label: '开始时间' },
+        { key: 'endAt', label: '结束/截止' },
+        { key: 'assigneeName', label: '负责人' },
+        { key: 'status', label: '状态' },
+      ]}
+      rows={items.map((item) => ({
+        id: item.id,
+        cells: {
+          title: item.title,
+          itemType: <StatusBadge size="sm" label={calendarItemTypeLabel(item.itemType)} status="neutral" />,
+          startAt: fmtTime(item.startAt),
+          endAt: fmtTime(item.endAt),
+          assigneeName: calendarMetaText(item, 'assigneeName') || '-',
+          status: (
+            <StatusBadge
+              size="sm"
+              label={item.overdue ? '已逾期' : calendarStatusLabel(item.status)}
+              status={item.overdue ? 'danger' : item.status === 'completed' ? 'success' : 'neutral'}
+            />
+          ),
+        },
+      }))}
+      state={loading ? 'loading' : items.length === 0 ? 'empty' : 'data'}
+      empty={
+        <div className="cwgsyw-ops__empty">
+          <img src="/figma-icons/home-calendar.svg" width={22} height={22} alt="" data-figma-node="6:24162" />
+          <EmptyState showIcon={false} title="暂无日历事项" description="当前筛选范围内没有任务、排班或节假日。" showAction={false} />
+        </div>
+      }
+      onRowClick={(id) => {
+        const item = items.find((entry) => entry.id === id)
+        if (item) onItemClick(item)
+      }}
     />
   )
 }

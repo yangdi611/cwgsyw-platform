@@ -1,5 +1,8 @@
 # 视觉验证闭环 Runbook
 
+> 当前 Goal 例外（2026-08-14，用户授权）：不要执行本 Runbook 的截图评分和视觉闭环。保留本文作为原始合同；STATUS.md 中的 `visualAudit: WAIVED` 优先。
+
+
 ## 1. 目的
 
 本 Runbook 用于验证 React 实现是否忠实执行 Figma Neutral Design System，同时保持真实功能、交互、权限和可访问性。视觉验证不是最后一次截图检查，而是每个切片的持续反馈环。

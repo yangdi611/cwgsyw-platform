@@ -2,10 +2,24 @@
 
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Link2, Pencil, RefreshCw, Save, Trash2, X } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, StatusBadge } from '@/components/design-system'
-import { ErrorState, LoadingState, PageHeader } from '@/components/shared'
+import { toast } from '@/design-system/figma-neutral/toast'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import { TaskEmpty, TaskPanel, TASK_TARGET_ICON, TASK_TARGET_NODE } from '@/components/task-runtime/TaskEmpty'
+import {
+  Button,
+  Checkbox,
+  Field,
+  IconButton,
+  ErrorState,
+  Input,
+  LoadingState,
+  NeutralTooltip,
+  PageHeader,
+  Select,
+  StatusBadge,
+} from '@/design-system/figma-neutral/components'
+
 import { usePermission } from '@/hooks/usePermission'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { listDirectoryGroups, listDirectoryUsers } from '@/lib/task-plan-api'
@@ -33,17 +47,22 @@ import {
   type TaskMetricGoalPayload,
 } from '@/lib/task-analytics-api'
 
+const METRIC_STEPS = ['指标定义', '来源字段', '指标目标', '期间预览']
 const today = new Date().toISOString().slice(0, 10)
 const monthStart = `${today.slice(0, 8)}01`
 type SelectOption = { value: string; label: string }
 const metricValueTypeOptions: SelectOption[] = [{ value: 'number', label: '数值' }, { value: 'count', label: '计数' }, { value: 'percentage', label: '百分比' }, { value: 'duration', label: '时长' }, { value: 'ratio', label: '比率' }]
-const metricAggregationLabels: Record<string, string> = { sum: '合计', avg: '平均值', min: '最小值', max: '最大值', count: '计数', distinct_count: '去重计数', latest: '最新值', ratio: '比率' }
+const metricAggregationLabels: Record<string, string> = { sum: '合计', avg: '平均值', min: '最小值', max: '最大值', count: '计数', distinct_count: '去重计数', latest: '最新值', ratio: '比率', weighted_avg: '加权平均' }
 const metricAdditivityOptions: SelectOption[] = [{ value: 'additive', label: '可加' }, { value: 'non_additive', label: '不可加' }, { value: 'semi_additive', label: '半可加' }, { value: 'distinct', label: '去重' }, { value: 'snapshot', label: '快照' }, { value: 'formula', label: '公式' }]
 const sourceRoleOptions: SelectOption[] = [{ value: 'fact', label: '明细事实' }, { value: 'system_rollup', label: '系统汇总' }, { value: 'manual_report', label: '人工上报' }]
 const ratioComponentOptions: SelectOption[] = [{ value: '', label: '请选择' }, { value: 'numerator', label: '分子' }, { value: 'denominator', label: '分母' }]
 const comparisonOptions: SelectOption[] = [{ value: 'at_least', label: '至少' }, { value: 'at_most', label: '至多' }, { value: 'exact', label: '等于' }]
 const periodOptions: SelectOption[] = [{ value: 'daily', label: '每日' }, { value: 'weekly', label: '每周' }, { value: 'monthly', label: '每月' }, { value: 'quarterly', label: '每季度' }, { value: 'yearly', label: '每年' }, { value: 'custom', label: '自定义' }]
-const scopeLabels: Record<string, string> = { tenant: '全平台', template: '任务模板', group: '用户组', user: '用户' }
+const scopeLabels: Record<string, string> = { tenant: '租户', template: '任务模板', group: '用户组', user: '用户' }
+const valueTypeLabels: Record<string, string> = Object.fromEntries(metricValueTypeOptions.map((item) => [item.value, item.label]))
+const sourceRoleLabels: Record<string, string> = Object.fromEntries(sourceRoleOptions.map((item) => [item.value, item.label]))
+const periodLabels: Record<string, string> = Object.fromEntries(periodOptions.map((item) => [item.value, item.label]))
+const goalStatusLabels: Record<string, string> = { met: '已达成', not_met: '未达成', warning: '预警', critical: '严重', in_progress: '进行中' }
 
 export function TaskMetricsManager() {
   const { hasPermission } = usePermission()
@@ -56,6 +75,7 @@ export function TaskMetricsManager() {
   const [goalDraft, setGoalDraft] = useState<GoalDraft>(emptyGoalDraft)
   const [editingGoalId, setEditingGoalId] = useState<number>()
   const [previewRange, setPreviewRange] = useState({ from: monthStart, to: today })
+  const [step, setStep] = useState(0)
 
   const metrics = useQuery({ queryKey: ['task-metrics'], queryFn: listTaskMetrics })
   const goals = useQuery({ queryKey: ['task-metric-goals'], queryFn: listTaskMetricGoals })
@@ -101,6 +121,7 @@ export function TaskMetricsManager() {
       toast.success('指标已创建')
       setSelectedId(value.id)
       setMetricDraft(emptyMetricDraft)
+      setStep(1)
       await invalidate()
     },
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '指标创建失败')),
@@ -119,6 +140,7 @@ export function TaskMetricsManager() {
     onSuccess: async () => {
       toast.success('指标已删除')
       setSelectedId(undefined)
+      setStep(0)
       await invalidate()
     },
     onError: (error: unknown) => toast.error(getApiErrorMessage(error, '指标删除失败')),
@@ -176,9 +198,9 @@ export function TaskMetricsManager() {
     delete: hasPermission('task_analytics', 'delete'),
   }
 
-  if (metrics.isLoading || goals.isLoading) return <LoadingState label="正在加载指标与目标" minHeight={360} />
+  if (metrics.isLoading || goals.isLoading) return <LoadingState label="正在加载指标与目标" />
   if (metrics.isError || goals.isError) {
-    return <ErrorState title="指标配置加载失败" onRetry={() => { void metrics.refetch(); void goals.refetch() }} />
+    return <ErrorState title="指标配置加载失败" retry={<Button type="button" variant="secondary" onClick={() => { void metrics.refetch(); void goals.refetch() }}>重试</Button>} />
   }
 
   const startMetricEdit = () => {
@@ -190,82 +212,110 @@ export function TaskMetricsManager() {
     setGoalDraft(goalDraftFrom(goal))
   }
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="统一任务平台 / 跨周期汇总"
-        title="指标与目标"
-        subtitle="将不同模板中的统计字段映射为统一口径，并按组织、人员或模板跟踪周期目标。"
-      />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>指标定义</CardTitle>
-            <CardDescription>统一指标编码、聚合方式、单位和权威数据源。</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {permissions.create && (
-              <MetricDefinitionForm
-                value={metricDraft}
-                onChange={setMetricDraft}
-                onSubmit={() => createMetric.mutate()}
-                busy={createMetric.isPending}
-                submitLabel="新建指标"
-              />
-            )}
-            <div className="divide-y divide-v2-border border-y border-v2-border">
-              {metrics.data?.map((metric) => (
-                <button
-                  key={metric.id}
-                  type="button"
-                  onClick={() => { setSelectedId(metric.id); setEditingMetric(undefined) }}
-                  className={`block w-full px-2 py-3 text-left ${selectedId === metric.id ? 'bg-v2-primary-soft' : 'hover:bg-v2-surface-hover'}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{metric.name}</span>
-                    <StatusBadge status="neutral">{metric.aggregation}</StatusBadge>
-                  </div>
-                  <p className="mt-1 text-xs text-v2-muted">
-                    {metric.code} · {metric.bindings.length} 个来源 · {metric.unit || '无单位'}
-                  </p>
-                </button>
-              ))}
-            </div>
-            {metrics.data?.length === 0 && <p className="text-sm text-v2-muted">暂无统一指标。</p>}
-          </CardContent>
-        </Card>
+  const detailProps = selected ? {
+    metric: selected,
+    editDraft: editingMetric,
+    onEditDraft: setEditingMetric,
+    onStartEdit: startMetricEdit,
+    onSaveEdit: () => saveMetric.mutate(),
+    savingEdit: saveMetric.isPending,
+    bindingDraft,
+    onBindingDraft: setBindingDraft,
+    editingBinding,
+    onEditingBinding: setEditingBinding,
+    templates: templates.data?.records ?? [],
+    fields: numericFields,
+    onAddBinding: () => addBinding.mutate(),
+    addingBinding: addBinding.isPending,
+    onSaveBinding: () => saveBinding.mutate(),
+    savingBinding: saveBinding.isPending,
+    onDeleteBinding: (id: number) => removeBinding.mutate(id),
+    onDeleteMetric: () => removeMetric.mutate(selected.id),
+    preview: previewRange,
+    onPreviewChange: setPreviewRange,
+    onRunPreview: () => metricPreview.mutate(),
+    previewResult: metricPreview.data,
+    previewing: metricPreview.isPending,
+    permissions,
+  } : null
 
-        <section className="space-y-6">
-          {selected ? (
-            <MetricDetail
-              metric={selected}
-              editDraft={editingMetric}
-              onEditDraft={setEditingMetric}
-              onStartEdit={startMetricEdit}
-              onSaveEdit={() => saveMetric.mutate()}
-              savingEdit={saveMetric.isPending}
-              bindingDraft={bindingDraft}
-              onBindingDraft={setBindingDraft}
-              editingBinding={editingBinding}
-              onEditingBinding={setEditingBinding}
-              templates={templates.data?.records ?? []}
-              fields={numericFields}
-              onAddBinding={() => addBinding.mutate()}
-              addingBinding={addBinding.isPending}
-              onSaveBinding={() => saveBinding.mutate()}
-              savingBinding={saveBinding.isPending}
-              onDeleteBinding={(id) => removeBinding.mutate(id)}
-              onDeleteMetric={() => removeMetric.mutate(selected.id)}
-              preview={previewRange}
-              onPreviewChange={setPreviewRange}
-              onRunPreview={() => metricPreview.mutate()}
-              previewResult={metricPreview.data}
-              previewing={metricPreview.isPending}
-              permissions={permissions}
-            />
+  return (
+    <div className="cwgsyw-tasks-page">
+      <PageHeader
+        showEyebrow={false}
+        showBreadcrumb={false}
+        showSubtitle={false}
+        title="指标与目标"
+      />
+      <div className="cwgsyw-tasks-metrics-editor">
+        <ol className="cwgsyw-cmdb-wizard-steps" aria-label="指标配置步骤">
+          {METRIC_STEPS.map((label, index) => (
+            <li
+              key={label}
+              data-state={index < step ? 'complete' : index === step ? 'current' : 'upcoming'}
+              aria-current={step === index ? 'step' : undefined}
+            >
+              <Button type="button" variant="ghost" className="cwgsyw-tasks-wizard-step" onClick={() => setStep(index)}>
+                <span className="cwgsyw-cmdb-wizard-steps__index" aria-hidden="true">{index + 1}</span>
+                <span className="cwgsyw-cmdb-wizard-steps__label">{label}</span>
+              </Button>
+            </li>
+          ))}
+        </ol>
+
+        {step === 0 ? (
+          <>
+          <TaskPanel title="指标定义" description="先新建一个统一口径，或从下方已有指标继续配置。">
+            {permissions.create ? (
+              <div className="cwgsyw-tasks-section">
+                <h3 className="cwgsyw-tasks-section__title">新建指标</h3>
+                <MetricDefinitionForm
+                  value={metricDraft}
+                  onChange={setMetricDraft}
+                  onSubmit={() => createMetric.mutate()}
+                  busy={createMetric.isPending}
+                  submitLabel="新建指标"
+                />
+              </div>
+            ) : null}
+            <div className="cwgsyw-tasks-section">
+              <h3 className="cwgsyw-tasks-section__title">已有指标</h3>
+              <div className="cwgsyw-tasks-pick-list divide-y divide-[var(--cwgsyw-border-subtle)]">
+                {metrics.data?.map((metric) => (
+                  <Button
+                    key={metric.id}
+                    type="button"
+                    variant="ghost"
+                    className="cwgsyw-tasks-pick"
+                    data-selected={selectedId === metric.id}
+                    onClick={() => { setSelectedId(metric.id); setEditingMetric(undefined) }}
+                  >
+                    <span className="cwgsyw-tasks-cell-title">{metric.name}</span>
+                    <span className="cwgsyw-tasks-cell-meta">
+                      {metric.code} · {metric.bindings.length} 个来源 · {metric.unit || '无单位'}
+                    </span>
+                    <StatusBadge label={metricAggregationLabels[metric.aggregation] ?? metric.aggregation} status="neutral" />
+                  </Button>
+                ))}
+              </div>
+              {metrics.data?.length === 0 ? <TaskEmpty iconSrc={TASK_TARGET_ICON} figmaNode={TASK_TARGET_NODE} title="暂无统一指标" description="创建指标后即可映射模板字段并跟踪目标。" /> : null}
+            </div>
+          </TaskPanel>
+          {selected && detailProps ? <MetricDetail {...detailProps} section="definition" /> : null}
+          </>
+        ) : null}
+
+        {step === 1 ? (
+          selected && detailProps ? (
+            <MetricDetail {...detailProps} section="sources" />
           ) : (
-            <Card><CardContent className="py-12 text-center text-sm text-v2-muted"><BarChart3 className="mx-auto mb-3 h-8 w-8" />选择一个指标以配置来源、预览和目标。</CardContent></Card>
-          )}
+            <TaskPanel title="来源字段">
+              <TaskEmpty iconSrc={TASK_TARGET_ICON} figmaNode={TASK_TARGET_NODE} title="先选择指标" description="回到上一步选择或新建指标后，再绑定来源字段。" />
+            </TaskPanel>
+          )
+        ) : null}
+
+        {step === 2 ? (
           <GoalsCard
             metrics={metrics.data ?? []}
             goals={goals.data ?? []}
@@ -282,7 +332,24 @@ export function TaskMetricsManager() {
             onDelete={(id) => removeGoal.mutate(id)}
             permissions={permissions}
           />
-        </section>
+        ) : null}
+
+        {step === 3 ? (
+          selected && detailProps ? (
+            <MetricDetail {...detailProps} section="preview" />
+          ) : (
+            <TaskPanel title="期间预览">
+              <TaskEmpty iconSrc={TASK_TARGET_ICON} figmaNode={TASK_TARGET_NODE} title="先选择指标" description="回到第一步选择指标后，再计算期间预览。" />
+            </TaskPanel>
+          )
+        ) : null}
+
+        <div className="cwgsyw-form__actions cwgsyw-tasks-create-actions">
+          <Button type="button" size="sm" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => value - 1)}>上一步</Button>
+          {step < METRIC_STEPS.length - 1 ? (
+            <Button type="button" size="sm" variant="primary" disabled={!selectedId} onClick={() => setStep((value) => value + 1)}>下一步</Button>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -297,17 +364,39 @@ function MetricDefinitionForm({ value, onChange, onSubmit, busy, submitLabel }: 
 }) {
   const aggregations = value.valueType === 'ratio' ? ['ratio'] : ['sum', 'avg', 'min', 'max', 'count', 'weighted_avg']
   return (
-    <div className="grid gap-3 border border-v2-border bg-v2-surface-soft p-3 sm:grid-cols-2">
-      <label className="text-sm">名称<Input value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} /></label>
-      <label className="text-sm">稳定编码<Input value={value.code} onChange={(event) => onChange({ ...value, code: event.target.value.replace(/\s+/g, '_').toLowerCase() })} /></label>
-      <label className="text-sm">值类型<Select value={value.valueType} onChange={(valueType) => onChange({ ...value, valueType: valueType as MetricValueType, aggregation: valueType === 'ratio' ? 'ratio' : value.aggregation === 'ratio' ? 'sum' : value.aggregation })} options={metricValueTypeOptions} /></label>
-      <label className="text-sm">聚合方式<Select value={value.aggregation} onChange={(aggregation) => onChange({ ...value, aggregation: aggregation as MetricAggregation })} options={aggregations.map((aggregation) => ({ value: aggregation, label: metricAggregationLabels[aggregation] ?? aggregation }))} /></label>
-      <label className="text-sm">可加性<Select value={value.additivity} onChange={(additivity) => onChange({ ...value, additivity: additivity as MetricAdditivity })} options={metricAdditivityOptions} /></label>
-      <label className="text-sm">权威来源<Select value={value.authoritySource} onChange={(authoritySource) => onChange({ ...value, authoritySource: authoritySource as MetricSourceRole })} options={sourceRoleOptions} /></label>
-      <label className="text-sm">单位（可选）<Input value={value.unit} onChange={(event) => onChange({ ...value, unit: event.target.value })} /></label>
-      <label className="text-sm">小数位<Input type="number" min="0" max="10" value={value.scale} onChange={(event) => onChange({ ...value, scale: event.target.value })} /></label>
-      <label className="text-sm sm:col-span-2">说明<Input value={value.description} onChange={(event) => onChange({ ...value, description: event.target.value })} /></label>
-      <div className="sm:col-span-2"><Button size="sm" onClick={onSubmit} disabled={busy || !value.name.trim() || !value.code.trim()}><Save className="h-4 w-4" />{submitLabel}</Button></div>
+    <div className="cwgsyw-tasks-form-grid">
+      <Field label="名称" required>
+        <Input size="sm" value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} />
+      </Field>
+      <Field label="稳定编码" required>
+        <Input size="sm" value={value.code} onChange={(event) => onChange({ ...value, code: event.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+      </Field>
+      <Field label="值类型">
+        <Select size="sm" overlay value={value.valueType} onChange={(valueType) => onChange({ ...value, valueType: valueType as MetricValueType, aggregation: valueType === 'ratio' ? 'ratio' : value.aggregation === 'ratio' ? 'sum' : value.aggregation })} options={metricValueTypeOptions} />
+      </Field>
+      <Field label="聚合方式">
+        <Select size="sm" overlay value={value.aggregation} onChange={(aggregation) => onChange({ ...value, aggregation: aggregation as MetricAggregation })} options={aggregations.map((aggregation) => ({ value: aggregation, label: metricAggregationLabels[aggregation] ?? aggregation }))} />
+      </Field>
+      <Field label="可加性">
+        <Select size="sm" overlay value={value.additivity} onChange={(additivity) => onChange({ ...value, additivity: additivity as MetricAdditivity })} options={metricAdditivityOptions} />
+      </Field>
+      <Field label="权威来源">
+        <Select size="sm" overlay value={value.authoritySource} onChange={(authoritySource) => onChange({ ...value, authoritySource: authoritySource as MetricSourceRole })} options={sourceRoleOptions} />
+      </Field>
+      <Field label="单位（可选）">
+        <Input size="sm" value={value.unit} onChange={(event) => onChange({ ...value, unit: event.target.value })} />
+      </Field>
+      <Field label="小数位">
+        <Input size="sm" type="number" min="0" max="10" value={value.scale} onChange={(event) => onChange({ ...value, scale: event.target.value })} />
+      </Field>
+      <div className="cwgsyw-tasks-form-grid__full">
+        <Field label="说明">
+          <Input size="sm" value={value.description} onChange={(event) => onChange({ ...value, description: event.target.value })} />
+        </Field>
+      </div>
+      <div className="cwgsyw-tasks-form-grid__full">
+        <Button size="sm" onClick={onSubmit} disabled={busy || !value.name.trim() || !value.code.trim()}>{submitLabel}</Button>
+      </div>
     </div>
   )
 }
@@ -317,63 +406,99 @@ function MetricDetail(props: MetricDetailProps) {
     metric, editDraft, onEditDraft, onStartEdit, onSaveEdit, savingEdit, bindingDraft, onBindingDraft,
     editingBinding, onEditingBinding, templates, fields, onAddBinding, addingBinding, onSaveBinding,
     savingBinding, onDeleteBinding, onDeleteMetric, preview, onPreviewChange, onRunPreview,
-    previewResult, previewing, permissions,
+    previewResult, previewing, permissions, section = 'all',
   } = props
+  const showDefinition = section === 'all' || section === 'definition'
+  const showSources = section === 'all' || section === 'sources'
+  const showPreview = section === 'all' || section === 'preview'
   const selectedField = fields.find((field) => field.id === bindingDraft.fieldId)
   const sourceUnit = textValue(selectedField?.analytics?.unit)
   const needsConversion = Boolean(metric.unit && sourceUnit && metric.unit !== sourceUnit)
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div><CardTitle>{metric.name}</CardTitle><CardDescription>{metric.code} · {metric.valueType} · {metric.unit || '无单位'} · 权威来源 {textValue(metric.authorityPolicy.sourceRole) || 'fact'}</CardDescription></div>
-          <div className="flex gap-1">
-            {permissions.update && !editDraft && <Button size="sm" variant="ghost" title="编辑指标" onClick={onStartEdit}><Pencil className="h-4 w-4" /></Button>}
-            {permissions.delete && <Button size="sm" variant="danger" title="删除指标" onClick={onDeleteMetric}><Trash2 className="h-4 w-4" /></Button>}
+    <TaskPanel
+      title={metric.name}
+      description={`${metric.code} · ${valueTypeLabels[metric.valueType] ?? metric.valueType} · ${metric.unit || '无单位'} · 权威来源 ${sourceRoleLabels[textValue(metric.authorityPolicy.sourceRole)] ?? '明细事实'}`}
+      action={showDefinition ? (
+        <span className="cwgsyw-inline-controls">
+          {permissions.update && !editDraft ? <TaskIconAction label="编辑指标" icon="edit" onClick={onStartEdit} /> : null}
+          {permissions.delete ? <TaskIconAction label="删除指标" icon="trash" danger onClick={onDeleteMetric} /> : null}
+        </span>
+      ) : undefined}
+    >
+        {showDefinition && editDraft ? (
+          <div className="cwgsyw-tasks-form-stack">
+            <MetricDefinitionForm value={editDraft} onChange={onEditDraft} onSubmit={onSaveEdit} busy={savingEdit} submitLabel="保存指标" />
+            <Button size="sm" variant="secondary" onClick={() => onEditDraft(undefined)}>取消编辑</Button>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {editDraft && <div className="space-y-2"><MetricDefinitionForm value={editDraft} onChange={onEditDraft} onSubmit={onSaveEdit} busy={savingEdit} submitLabel="保存指标" /><Button size="sm" variant="ghost" onClick={() => onEditDraft(undefined)}><X className="h-4 w-4" />取消编辑</Button></div>}
-        <section>
-          <h2 className="mb-2 text-sm font-semibold">来源字段</h2>
-          <div className="divide-y divide-v2-border border-y border-v2-border">
+        ) : null}
+        {showSources ? <section className="cwgsyw-tasks-section">
+          <h3 className="cwgsyw-tasks-section__title">来源字段</h3>
+          <div className="cwgsyw-tasks-row-list">
             {metric.bindings.map((item) => editingBinding?.id === item.id ? (
               <BindingEditor key={item.id} value={editingBinding} onChange={onEditingBinding} onSave={onSaveBinding} saving={savingBinding} onCancel={() => onEditingBinding(undefined)} />
             ) : (
-              <div key={item.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
-                <span className="min-w-48 flex-1">{item.fieldLabel} <span className="text-v2-muted">({item.fieldKey})</span></span>
-                <StatusBadge status={item.enabled ? 'ok' : 'neutral'}>{item.enabled ? item.ratioComponent ? `${item.sourceRole} · ${item.ratioComponent === 'numerator' ? '分子' : '分母'}` : item.sourceRole : '已停用'}</StatusBadge>
-                <span className="text-xs text-v2-muted">换算 {conversionFactor(item.unitConversion)}</span>
-                {permissions.update && <Button size="sm" variant="ghost" title="编辑字段绑定" onClick={() => onEditingBinding(bindingDraftFrom(item))}><Pencil className="h-4 w-4" /></Button>}
-                {permissions.update && <Button size="sm" variant="ghost" title="移除字段绑定" onClick={() => onDeleteBinding(item.id)}><Trash2 className="h-4 w-4 text-v2-danger" /></Button>}
+              <div key={item.id} className="cwgsyw-tasks-row">
+                <div className="cwgsyw-tasks-row__main">
+                  <p className="cwgsyw-tasks-cell-title">{item.fieldLabel}</p>
+                  <p className="cwgsyw-tasks-cell-meta">{item.fieldKey} · 换算 {conversionFactor(item.unitConversion)}</p>
+                </div>
+                <StatusBadge
+                  label={item.enabled ? item.ratioComponent ? `${sourceRoleLabels[item.sourceRole] ?? item.sourceRole} · ${item.ratioComponent === 'numerator' ? '分子' : '分母'}` : (sourceRoleLabels[item.sourceRole] ?? item.sourceRole) : '已停用'}
+                  status={item.enabled ? 'success' : 'neutral'}
+                />
+                {permissions.update ? <TaskIconAction label="编辑字段绑定" icon="edit" onClick={() => onEditingBinding(bindingDraftFrom(item))} /> : null}
+                {permissions.update ? <TaskIconAction label="移除字段绑定" icon="trash" danger onClick={() => onDeleteBinding(item.id)} /> : null}
               </div>
             ))}
           </div>
-          {metric.bindings.length === 0 && <p className="mt-3 text-sm text-v2-muted">尚未绑定来源字段。</p>}
-          {permissions.update && (
-            <div className="mt-3 grid gap-3 border border-v2-border bg-v2-surface-soft p-3 md:grid-cols-4">
-              <label className="text-sm">模板版本<select className={selectClass} value={bindingDraft.templateVersionId ?? ''} onChange={(event) => onBindingDraft({ ...bindingDraft, templateVersionId: Number(event.target.value) || undefined, fieldId: undefined })}><option value="">选择模板</option>{templates.filter((item) => item.latestVersionId).map((item) => <option key={item.id} value={item.latestVersionId}>{item.name}</option>)}</select></label>
-              <label className="text-sm">统计字段<select className={selectClass} value={bindingDraft.fieldId ?? ''} onChange={(event) => onBindingDraft({ ...bindingDraft, fieldId: Number(event.target.value) || undefined })}><option value="">选择字段</option>{fields.map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
-              <label className="text-sm">来源角色<Select value={bindingDraft.sourceRole} onChange={(sourceRole) => onBindingDraft({ ...bindingDraft, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} /></label>
-              {metric.valueType === 'ratio' && <label className="text-sm">比率组成<Select value={bindingDraft.ratioComponent ?? ''} onChange={(ratioComponent) => onBindingDraft({ ...bindingDraft, ratioComponent: ratioComponent as BindingDraft['ratioComponent'] })} options={ratioComponentOptions} /></label>}
-              <label className="text-sm">换算系数{needsConversion ? ' *' : ''}<Input type="number" min="0.000001" step="any" value={bindingDraft.conversionFactor} placeholder={needsConversion ? `${sourceUnit} → ${metric.unit}` : '默认 1'} onChange={(event) => onBindingDraft({ ...bindingDraft, conversionFactor: event.target.value })} /></label>
-              <div className="md:col-span-4"><Button size="sm" onClick={onAddBinding} disabled={addingBinding || !bindingDraft.templateVersionId || !bindingDraft.fieldId || (metric.valueType === 'ratio' && !bindingDraft.ratioComponent) || (needsConversion && !bindingDraft.conversionFactor)}><Link2 className="h-4 w-4" />绑定字段</Button></div>
+          {metric.bindings.length === 0 ? <p className="cwgsyw-tasks-cell-meta">尚未绑定来源字段。</p> : null}
+          {permissions.update ? (
+            <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--binding">
+              <Field label="模板版本">
+                <Select size="sm" overlay placeholder="选择模板" value={bindingDraft.templateVersionId == null ? '' : String(bindingDraft.templateVersionId)} options={[{ value: '', label: '选择模板' }, ...templates.filter((item) => item.latestVersionId).map((item) => ({ value: String(item.latestVersionId), label: item.name }))]} onChange={(value) => onBindingDraft({ ...bindingDraft, templateVersionId: value ? Number(value) : undefined, fieldId: undefined })} />
+              </Field>
+              <Field label="统计字段">
+                <Select size="sm" overlay placeholder="选择字段" value={bindingDraft.fieldId == null ? '' : String(bindingDraft.fieldId)} options={[{ value: '', label: '选择字段' }, ...fields.map((field) => ({ value: String(field.id), label: field.label }))]} onChange={(value) => onBindingDraft({ ...bindingDraft, fieldId: value ? Number(value) : undefined })} />
+              </Field>
+              <Field label="来源角色">
+                <Select size="sm" overlay value={bindingDraft.sourceRole} onChange={(sourceRole) => onBindingDraft({ ...bindingDraft, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} />
+              </Field>
+              {metric.valueType === 'ratio' ? (
+                <Field label="比率组成">
+                  <Select size="sm" overlay value={bindingDraft.ratioComponent ?? ''} onChange={(ratioComponent) => onBindingDraft({ ...bindingDraft, ratioComponent: ratioComponent as BindingDraft['ratioComponent'] })} options={ratioComponentOptions} />
+                </Field>
+              ) : null}
+              <Field label={needsConversion ? '换算系数 *' : '换算系数'}>
+                <Input size="sm" type="number" min="0.000001" step="any" value={bindingDraft.conversionFactor} placeholder={needsConversion ? `${sourceUnit} → ${metric.unit}` : '默认 1'} onChange={(event) => onBindingDraft({ ...bindingDraft, conversionFactor: event.target.value })} />
+              </Field>
+              <div className="cwgsyw-tasks-form-grid__full">
+                <Button size="sm" onClick={onAddBinding} disabled={addingBinding || !bindingDraft.templateVersionId || !bindingDraft.fieldId || (metric.valueType === 'ratio' && !bindingDraft.ratioComponent) || (needsConversion && !bindingDraft.conversionFactor)}>绑定字段</Button>
+              </div>
             </div>
-          )}
-        </section>
-        <section className="border-t border-v2-border pt-4">
-          <h2 className="mb-2 text-sm font-semibold">期间预览</h2>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="text-sm">开始日期<Input type="date" value={preview.from} onChange={(event) => onPreviewChange({ ...preview, from: event.target.value })} /></label>
-            <label className="text-sm">结束日期<Input type="date" value={preview.to} onChange={(event) => onPreviewChange({ ...preview, to: event.target.value })} /></label>
-            <Button size="sm" onClick={onRunPreview} disabled={previewing}><RefreshCw className="h-4 w-4" />计算</Button>
+          ) : null}
+        </section> : null}
+        {showPreview ? <section className="cwgsyw-tasks-section">
+          <h3 className="cwgsyw-tasks-section__title">期间预览</h3>
+          <div className="cwgsyw-tasks-preview-controls">
+            <Field label="开始日期">
+              <Input size="sm" type="date" value={preview.from} onChange={(event) => onPreviewChange({ ...preview, from: event.target.value })} />
+            </Field>
+            <Field label="结束日期">
+              <Input size="sm" type="date" value={preview.to} onChange={(event) => onPreviewChange({ ...preview, to: event.target.value })} />
+            </Field>
+            <Button size="sm" onClick={onRunPreview} disabled={previewing}>计算</Button>
           </div>
-          {previewResult && <div className="mt-3 grid gap-3 text-sm sm:grid-cols-4"><MetricValue label="系统汇总" value={previewResult.systemValue} /><MetricValue label="人工上报" value={previewResult.manualValue} /><MetricValue label="差异" value={previewResult.difference} /><MetricValue label="来源任务" value={previewResult.sourceTaskCount} note={previewResult.selectedSourceRole} /></div>}
-        </section>
-      </CardContent>
-    </Card>
+          {previewResult ? (
+            <div className="cwgsyw-tasks-preview">
+              <MetricValue label="系统汇总" value={previewResult.systemValue} />
+              <MetricValue label="人工上报" value={previewResult.manualValue} />
+              <MetricValue label="差异" value={previewResult.difference} />
+              <MetricValue label="来源任务" value={previewResult.sourceTaskCount} note={sourceRoleLabels[previewResult.selectedSourceRole] ?? previewResult.selectedSourceRole} />
+            </div>
+          ) : null}
+        </section> : null}
+    </TaskPanel>
   )
 }
 
@@ -384,7 +509,25 @@ function BindingEditor({ value, onChange, onSave, saving, onCancel }: {
   saving: boolean
   onCancel: () => void
 }) {
-  return <div className="grid gap-3 py-3 md:grid-cols-[1fr_180px_160px_auto] md:items-end"><p className="text-sm">{value.fieldLabel}<span className="block text-xs text-v2-muted">{value.fieldKey}</span></p><label className="text-sm">来源角色<Select value={value.sourceRole} onChange={(sourceRole) => onChange({ ...value, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} /></label><label className="text-sm">换算系数<Input type="number" min="0.000001" step="any" value={value.conversionFactor} onChange={(event) => onChange({ ...value, conversionFactor: event.target.value })} /></label><div className="flex items-center gap-1"><label className="mr-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={(event) => onChange({ ...value, enabled: event.target.checked })} />启用</label><Button size="sm" title="保存绑定" onClick={onSave} disabled={saving}><Save className="h-4 w-4" /></Button><Button size="sm" variant="ghost" title="取消编辑" onClick={onCancel}><X className="h-4 w-4" /></Button></div></div>
+  return (
+    <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--binding">
+      <div>
+        <p className="cwgsyw-tasks-cell-title">{value.fieldLabel}</p>
+        <p className="cwgsyw-tasks-cell-meta">{value.fieldKey}</p>
+      </div>
+      <Field label="来源角色">
+        <Select size="sm" overlay value={value.sourceRole} onChange={(sourceRole) => onChange({ ...value, sourceRole: sourceRole as MetricSourceRole })} options={sourceRoleOptions} />
+      </Field>
+      <Field label="换算系数">
+        <Input size="sm" type="number" min="0.000001" step="any" value={value.conversionFactor} onChange={(event) => onChange({ ...value, conversionFactor: event.target.value })} />
+      </Field>
+      <div className="cwgsyw-tasks-inline-end">
+        <Checkbox className="cwgsyw-tasks-choice" label="启用" checked={value.enabled} onChange={(event) => onChange({ ...value, enabled: event.target.checked })} />
+        <Button size="sm" onClick={onSave} disabled={saving}>保存</Button>
+        <Button size="sm" variant="secondary" onClick={onCancel}>取消</Button>
+      </div>
+    </div>
+  )
 }
 
 function GoalsCard(props: GoalsCardProps) {
@@ -392,41 +535,103 @@ function GoalsCard(props: GoalsCardProps) {
   const scopeOptions = goalScopeOptions(value.scopeType, templates, groups, users)
   const allowedScopes = ['tenant', ...(groups.length ? ['group'] : []), ...(users.length ? ['user'] : []), ...(templates.length ? ['template'] : [])]
   return (
-    <Card>
-      <CardHeader><CardTitle>指标目标</CardTitle><CardDescription>不同周期可使用独立目标、告警阈值和统计范围。</CardDescription></CardHeader>
-      <CardContent className="space-y-4">
-        {(permissions.create || editingGoalId) && (
-          <div className="grid gap-3 border border-v2-border bg-v2-surface-soft p-3 md:grid-cols-3">
-            <label className="text-sm">指标<select className={selectClass} value={value.metricId ?? ''} onChange={(event) => onChange({ ...value, metricId: Number(event.target.value) || undefined })}><option value="">选择指标</option>{metrics.map((metric) => <option key={metric.id} value={metric.id}>{metric.name}</option>)}</select></label>
-            <label className="text-sm">范围<Select value={value.scopeType} onChange={(scopeType) => onChange({ ...value, scopeType: scopeType as GoalDraft['scopeType'], scopeKey: '' })} options={allowedScopes.map((scope) => ({ value: scope, label: scopeLabels[scope] ?? scope }))} /></label>
-            {value.scopeType !== 'tenant' && <label className="text-sm">范围对象<select className={selectClass} value={value.scopeKey} onChange={(event) => onChange({ ...value, scopeKey: event.target.value })}><option value="">请选择</option>{scopeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
-            <label className="text-sm">目标值<Input type="number" min="0" step="any" value={value.targetValue} onChange={(event) => onChange({ ...value, targetValue: event.target.value })} /></label>
-            <label className="text-sm">预警阈值<Input type="number" min="0" step="any" value={value.warningThreshold} onChange={(event) => onChange({ ...value, warningThreshold: event.target.value })} /></label>
-            <label className="text-sm">严重阈值<Input type="number" min="0" step="any" value={value.criticalThreshold} onChange={(event) => onChange({ ...value, criticalThreshold: event.target.value })} /></label>
-            <label className="text-sm">比较<Select value={value.comparison} onChange={(comparison) => onChange({ ...value, comparison: comparison as GoalDraft['comparison'] })} options={comparisonOptions} /></label>
-            <label className="text-sm">周期<Select value={value.periodType} onChange={(periodType) => onChange({ ...value, periodType: periodType as GoalDraft['periodType'] })} options={periodOptions} /></label>
-            <label className="text-sm">生效开始<Input type="date" value={value.effectiveFrom} onChange={(event) => onChange({ ...value, effectiveFrom: event.target.value })} /></label>
-            <label className="text-sm">生效结束<Input type="date" value={value.effectiveTo} onChange={(event) => onChange({ ...value, effectiveTo: event.target.value })} /></label>
-            <div className="flex items-end gap-2"><Button size="sm" onClick={onSave} disabled={saving || !value.metricId || value.targetValue === '' || (value.scopeType !== 'tenant' && !value.scopeKey)}><Save className="h-4 w-4" />{editingGoalId ? '更新目标' : '创建目标'}</Button>{editingGoalId && <Button size="sm" variant="ghost" onClick={onCancelEdit}><X className="h-4 w-4" />取消</Button>}</div>
+    <TaskPanel title="指标目标" description="不同周期可使用独立目标、告警阈值和统计范围。">
+        {(permissions.create || editingGoalId) ? (
+          <div className="cwgsyw-tasks-form-grid cwgsyw-tasks-form-grid--wide">
+            <Field label="指标">
+              <Select size="sm" overlay placeholder="选择指标" value={value.metricId == null ? '' : String(value.metricId)} options={[{ value: '', label: '选择指标' }, ...metrics.map((metric) => ({ value: String(metric.id), label: metric.name }))]} onChange={(next) => onChange({ ...value, metricId: next ? Number(next) : undefined })} />
+            </Field>
+            <Field label="范围">
+              <Select size="sm" overlay value={value.scopeType} onChange={(scopeType) => onChange({ ...value, scopeType: scopeType as GoalDraft['scopeType'], scopeKey: '' })} options={allowedScopes.map((scope) => ({ value: scope, label: scopeLabels[scope] ?? scope }))} />
+            </Field>
+            {value.scopeType !== 'tenant' ? (
+              <Field label="范围对象">
+                <Select size="sm" overlay placeholder="请选择" value={value.scopeKey} options={[{ value: '', label: '请选择' }, ...scopeOptions.map((option) => ({ value: option.value, label: option.label }))]} onChange={(scopeKey) => onChange({ ...value, scopeKey })} />
+              </Field>
+            ) : null}
+            <Field label="目标值">
+              <Input size="sm" type="number" min="0" step="any" value={value.targetValue} onChange={(event) => onChange({ ...value, targetValue: event.target.value })} />
+            </Field>
+            <Field label="预警阈值">
+              <Input size="sm" type="number" min="0" step="any" value={value.warningThreshold} onChange={(event) => onChange({ ...value, warningThreshold: event.target.value })} />
+            </Field>
+            <Field label="严重阈值">
+              <Input size="sm" type="number" min="0" step="any" value={value.criticalThreshold} onChange={(event) => onChange({ ...value, criticalThreshold: event.target.value })} />
+            </Field>
+            <Field label="比较">
+              <Select size="sm" overlay value={value.comparison} onChange={(comparison) => onChange({ ...value, comparison: comparison as GoalDraft['comparison'] })} options={comparisonOptions} />
+            </Field>
+            <Field label="周期">
+              <Select size="sm" overlay value={value.periodType} onChange={(periodType) => onChange({ ...value, periodType: periodType as GoalDraft['periodType'] })} options={periodOptions} />
+            </Field>
+            <Field label="生效开始">
+              <Input size="sm" type="date" value={value.effectiveFrom} onChange={(event) => onChange({ ...value, effectiveFrom: event.target.value })} />
+            </Field>
+            <Field label="生效结束">
+              <Input size="sm" type="date" value={value.effectiveTo} onChange={(event) => onChange({ ...value, effectiveTo: event.target.value })} />
+            </Field>
+            <div className="cwgsyw-tasks-form-grid__full cwgsyw-inline-controls">
+              <Button size="sm" onClick={onSave} disabled={saving || !value.metricId || value.targetValue === '' || (value.scopeType !== 'tenant' && !value.scopeKey)}>{editingGoalId ? '更新目标' : '创建目标'}</Button>
+              {editingGoalId ? <Button size="sm" variant="secondary" onClick={onCancelEdit}>取消</Button> : null}
+            </div>
           </div>
-        )}
-        <div className="divide-y divide-v2-border border-y border-v2-border">
-          {goals.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-3 py-3 text-sm"><div className="min-w-48 flex-1"><p className="font-medium">{item.metricName}</p><p className="text-xs text-v2-muted">{scopeLabel(item, templates, groups, users)} · {item.periodType} · {item.effectiveFrom} 至 {item.effectiveTo}</p></div><StatusBadge status={goalTone(item.status)}>{item.status}</StatusBadge><span>目标 {item.targetValue} · 实际 {item.actualValue ?? '-'}</span><span className="text-v2-muted">{item.completionRate == null ? '-' : `${item.completionRate}%`}</span>{permissions.update && <Button size="sm" variant="ghost" title="编辑目标" onClick={() => onEdit(item)}><Pencil className="h-4 w-4" /></Button>}{permissions.delete && <Button size="sm" variant="ghost" title="删除目标" onClick={() => onDelete(item.id)}><Trash2 className="h-4 w-4 text-v2-danger" /></Button>}</div>)}
+        ) : null}
+        <div className="cwgsyw-tasks-row-list">
+          {goals.map((item) => (
+            <div key={item.id} className="cwgsyw-tasks-row">
+              <div className="cwgsyw-tasks-row__main">
+                <p className="cwgsyw-tasks-cell-title">{item.metricName}</p>
+                <p className="cwgsyw-tasks-cell-meta">{scopeLabel(item, templates, groups, users)} · {periodLabels[item.periodType] ?? item.periodType} · {item.effectiveFrom} 至 {item.effectiveTo}</p>
+              </div>
+              <StatusBadge label={goalStatusLabels[item.status] ?? item.status} status={goalTone(item.status)} />
+              <span className="cwgsyw-tasks-cell-meta">目标 {item.targetValue} · 实际 {item.actualValue ?? '-'}</span>
+              <span className="cwgsyw-tasks-cell-meta">{item.completionRate == null ? '-' : `${item.completionRate}%`}</span>
+              {permissions.update ? <TaskIconAction label="编辑目标" icon="edit" onClick={() => onEdit(item)} /> : null}
+              {permissions.delete ? <TaskIconAction label="删除目标" icon="trash" danger onClick={() => onDelete(item.id)} /> : null}
+            </div>
+          ))}
         </div>
-        {goals.length === 0 && <p className="text-sm text-v2-muted">暂无指标目标。</p>}
-      </CardContent>
-    </Card>
+        {goals.length === 0 ? <TaskEmpty iconSrc={TASK_TARGET_ICON} figmaNode={TASK_TARGET_NODE} title="暂无指标目标" description="为当前指标设置周期目标后会显示在这里。" /> : null}
+    </TaskPanel>
   )
 }
 
-const selectClass = 'mt-1 h-9 w-full border border-v2-border bg-v2-surface px-2'
-
-function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: SelectOption[] }) {
-  return <select className={selectClass} value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-}
 
 function MetricValue({ label, value, note }: { label: string; value?: number; note?: string }) {
-  return <div className="border border-v2-border p-3"><p className="text-xs text-v2-muted">{label}</p><p className="mt-1 font-semibold">{value == null ? '-' : value}</p>{note && <p className="mt-1 text-xs text-v2-muted">{note}</p>}</div>
+  return (
+    <div className="cwgsyw-tasks-preview__item">
+      <p className="cwgsyw-tasks-cell-meta">{label}</p>
+      <p className="cwgsyw-tasks-preview__value">{value == null ? '-' : value}</p>
+      {note ? <p className="cwgsyw-tasks-cell-meta">{note}</p> : null}
+    </div>
+  )
+}
+
+
+function TaskIconAction({
+  label,
+  icon,
+  onClick,
+  danger = false,
+}: {
+  label: string
+  icon: 'edit' | 'trash'
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <NeutralTooltip content={label} className="cwgsyw-tooltip--pill" followCursor>
+      <IconButton
+        type="button"
+        size="sm"
+        variant="ghost"
+        aria-label={label}
+        className={['cwgsyw-tasks-icon-action', danger ? 'cwgsyw-tasks-icon-action--danger' : ''].filter(Boolean).join(' ')}
+        icon={<span aria-hidden="true" className={['cwgsyw-tasks-figma-icon', `cwgsyw-tasks-figma-icon--${icon}`].join(' ')} />}
+        onClick={onClick}
+      />
+    </NeutralTooltip>
+  )
 }
 
 function isNumericAnalyticField(field: TaskFieldDefinition) {
@@ -527,7 +732,7 @@ function goalScopeOptions(scopeType: GoalDraft['scopeType'], templates: TaskTemp
 }
 
 function scopeLabel(goal: TaskMetricGoal, templates: TaskTemplateSummary[], groups: DirectoryGroup[], users: DirectoryUser[]) {
-  if (goal.scopeType === 'tenant') return '全租户'
+  if (goal.scopeType === 'tenant') return '租户'
   return goalScopeOptions(goal.scopeType, templates, groups, users).find((item) => item.value === goal.scopeKey)?.label
     ?? `${goal.scopeType} #${goal.scopeKey}`
 }
@@ -544,8 +749,8 @@ function textValue(value: unknown) {
   return value == null ? '' : String(value)
 }
 
-function goalTone(status: string): 'ok' | 'warn' | 'danger' | 'neutral' {
-  return status === 'met' ? 'ok' : status === 'critical' ? 'danger' : status === 'warning' || status === 'not_met' ? 'warn' : 'neutral'
+function goalTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  return status === 'met' ? 'success' : status === 'critical' ? 'danger' : status === 'warning' || status === 'not_met' ? 'warning' : 'neutral'
 }
 
 interface MetricDraft {
@@ -614,6 +819,7 @@ interface MetricDetailProps {
   previewResult?: { systemValue?: number; manualValue?: number; difference?: number; selectedSourceRole: string; sourceTaskCount: number }
   previewing: boolean
   permissions: PermissionSet
+  section?: 'all' | 'definition' | 'sources' | 'preview'
 }
 
 interface GoalsCardProps {

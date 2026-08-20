@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/design-system'
-import { ErrorState, LoadingState } from '@/components/shared'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/account/account.css'
+import {
+  Button,
+  Card,
+  ErrorState,
+  FormSettingsPage,
+  LoadingState,
+  PageHeader,
+} from '@/design-system/figma-neutral/components'
 import { AccountSetupForm } from '@/components/account/AccountSetupForm'
 import { useAuthStore } from '@/store/authStore'
 import { getAccountProfile, type AccountProfile } from '@/lib/account-api'
@@ -34,48 +42,54 @@ export default function AccountSetupPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
-        <LoadingState label="正在加载账号安全设置…" minHeight={160} />
-      </div>
-    )
-  }
-
-  if (loadError || !profile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
-        <ErrorState
-          title="账号安全设置加载失败"
-          description="无法读取当前账号状态，请重试。"
-          onRetry={() => {
-            setLoading(true)
-            setLoadError(false)
-            getAccountProfile()
-              .then(setProfile)
-              .catch(() => setLoadError(true))
-              .finally(() => setLoading(false))
-          }}
-        />
-      </div>
-    )
+  const loadProfile = () => {
+    setLoading(true)
+    setLoadError(false)
+    getAccountProfile()
+      .then(setProfile)
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false))
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-v2-bg px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>完善账号安全</CardTitle>
-          <CardDescription>首次登录需要修改初始密码并补全个人资料才能继续使用系统。</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AccountSetupForm
-            username={authUser?.username ?? profile.username}
-            mustChangePassword={profile.mustChangePassword}
-            onSuccess={handleSuccess}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <FormSettingsPage
+      embedded
+      layout="default"
+      className="cwgsyw-account-page"
+      header={
+        <PageHeader
+          showBreadcrumb={false}
+          showEyebrow={false}
+          title="完善账号安全"
+          subtitle="首次登录需要修改初始密码并补全个人资料才能继续使用系统。"
+        />
+      }
+      form={
+        <Card
+          title="首次设置"
+          description={profile ? `@${profile.username} · ${profile.realName}。完成后将进入工作台。` : '账号安全设置加载状态'}
+        >
+          {loading ? (
+            <LoadingState label="正在加载账号安全设置…" />
+          ) : loadError || !profile ? (
+            <ErrorState
+              title="账号安全设置加载失败"
+              description="无法读取当前账号状态，请重试。"
+              retry={
+                <Button type="button" size="sm" variant="secondary" onClick={loadProfile}>
+                  重试
+                </Button>
+              }
+            />
+          ) : (
+            <AccountSetupForm
+              username={authUser?.username ?? profile.username}
+              mustChangePassword={profile.mustChangePassword}
+              onSuccess={handleSuccess}
+            />
+          )}
+        </Card>
+      }
+    />
   )
 }

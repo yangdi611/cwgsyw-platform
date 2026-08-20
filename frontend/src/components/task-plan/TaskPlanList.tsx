@@ -1,14 +1,30 @@
 'use client'
 
-import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Pause, Play, Plus, Search, Settings2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { toast } from 'sonner'
-import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/shared'
-import { Button, Card, Input, StatusBadge } from '@/components/design-system'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 import { changeTaskPlanStatus, listTaskPlans, type TaskPlanStatus } from '@/lib/task-plan-api'
+import {
+  TaskEmpty,
+  TASK_CALENDAR_CLOCK_ICON,
+  TASK_CALENDAR_CLOCK_NODE,
+} from '@/components/task-runtime/TaskEmpty'
+import '@/design-system/figma-neutral/index.css'
+import '@/components/task-runtime/tasks.css'
+import {
+  Button,
+  DataManagementPage,
+  ErrorState,
+  IconButton,
+  NeutralTooltip,
+  PageHeader,
+  SearchInput,
+  StatusBadge,
+  Table,
+  Tabs,
+} from '@/design-system/figma-neutral/components'
 
 const STATUS_LABELS: Record<TaskPlanStatus, string> = {
   draft: '草稿',
@@ -18,16 +34,30 @@ const STATUS_LABELS: Record<TaskPlanStatus, string> = {
   archived: '已归档',
 }
 
-const STATUS_TONES: Record<TaskPlanStatus, 'ok' | 'warn' | 'danger' | 'neutral'> = {
-  draft: 'warn', active: 'ok', paused: 'warn', finished: 'neutral', archived: 'neutral',
+const STATUS_TONES: Record<TaskPlanStatus, 'success' | 'warning' | 'neutral'> = {
+  draft: 'warning',
+  active: 'success',
+  paused: 'warning',
+  finished: 'neutral',
+  archived: 'neutral',
 }
 
 const SCHEDULE_LABELS: Record<string, string> = {
-  once: '一次性', daily: '每日', weekly: '每周', monthly: '每月', quarterly: '每季度',
-  semiannual: '每半年', yearly: '每年', cron: '高级 Cron', holiday_relative: '节假日相对',
+  once: '一次性',
+  daily: '每日',
+  weekly: '每周',
+  monthly: '每月',
+  quarterly: '每季度',
+  semiannual: '每半年',
+  yearly: '每年',
+  cron: '自定义周期',
+  holiday_relative: '节假日相对',
 }
 
+const FILTERS: Array<'all' | TaskPlanStatus> = ['all', 'draft', 'active', 'paused', 'finished', 'archived']
+
 export function TaskPlanList() {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { hasPermission } = usePermission()
   const [keyword, setKeyword] = useState('')
@@ -44,45 +74,114 @@ export function TaskPlanList() {
     },
     onError: () => toast.error('计划状态更新失败'),
   })
+  const records = plans.data?.records ?? []
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="统一任务平台"
-        title="任务计划"
-        subtitle="将已发布模板配置为一次性或周期任务，并统一分配执行人、CI 范围、提醒与审批。"
-        actions={hasPermission('task_plan', 'create') ? <Link href="/tasks/plans/new"><Button variant="primary"><Plus className="h-4 w-4" />新建计划</Button></Link> : undefined}
-      />
-      <Card className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v2-muted" /><Input className="pl-9" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索计划名称或描述" /></div>
-        <div className="flex flex-wrap gap-2">
-          {(['all', 'draft', 'active', 'paused', 'finished', 'archived'] as const).map((item) => <button key={item} type="button" onClick={() => setStatus(item)} className={`h-8 rounded-v2-md border px-3 text-xs font-semibold ${status === item ? 'border-v2-primary bg-v2-primary-soft text-v2-primary' : 'border-v2-border text-v2-muted hover:bg-v2-surface-hover'}`}>{item === 'all' ? '全部' : STATUS_LABELS[item]}</button>)}
+    <DataManagementPage
+      embedded
+      className="cwgsyw-tasks-page"
+      header={
+        <PageHeader
+          showEyebrow={false}
+          showBreadcrumb={false}
+          title="任务计划"
+          subtitle="将已发布模板配置为一次性或周期任务，并统一分配执行人、CI 范围、提醒与审批。"
+          actions={
+            hasPermission('task_plan', 'create') ? (
+              <Button type="button" size="sm" variant="primary" onClick={() => router.push('/tasks/plans/new')}>
+                新建计划
+              </Button>
+            ) : null
+          }
+        />
+      }
+      filter={
+        <div className="cwgsyw-tasks-toolbar cwgsyw-tasks-toolbar--split">
+          <SearchInput
+            size="sm"
+            value={keyword}
+            placeholder="搜索计划名称..."
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+          <Tabs
+            style="cmdb"
+            size="sm"
+            value={status}
+            onChange={(id) => setStatus(id as 'all' | TaskPlanStatus)}
+            items={FILTERS.map((item) => ({
+              id: item,
+              label: item === 'all' ? '全部' : STATUS_LABELS[item],
+              panel: null,
+            }))}
+          />
         </div>
-      </Card>
-
-      {plans.isLoading ? <LoadingState /> : plans.isError ? <ErrorState title="计划加载失败" onRetry={() => plans.refetch()} /> : plans.data?.records.length === 0 ? (
-        <Card><EmptyState icon={<CalendarClock className="h-5 w-5" />} title="暂无任务计划" description="从一次性任务、日报或巡检计划开始。" /></Card>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {plans.data?.records.map((plan) => (
-            <Card key={plan.id} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Link href={`/tasks/plans/${plan.id}`} className="truncate font-semibold text-v2-fg hover:text-v2-primary">{plan.name}</Link><StatusBadge status={STATUS_TONES[plan.status]}>{STATUS_LABELS[plan.status]}</StatusBadge></div><p className="mt-1 text-sm text-v2-muted">{plan.templateName || `模板版本 #${plan.templateVersionId}`}</p></div>
-                <StatusBadge status="neutral">{SCHEDULE_LABELS[plan.scheduleType] || plan.scheduleType}</StatusBadge>
-              </div>
-              <p className="mt-3 line-clamp-2 text-sm text-v2-muted">{plan.description || '暂无描述'}</p>
-              <div className="mt-4 grid gap-2 border-t border-v2-border pt-3 text-xs text-v2-muted sm:grid-cols-2">
-                <span>生成方式：{plan.generationMode}</span><span>下次扫描：{plan.nextGenerateAt ? new Date(plan.nextGenerateAt).toLocaleString('zh-CN') : '-'}</span>
-              </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <Link href={`/tasks/plans/${plan.id}`}><Button size="sm" variant="ghost"><Settings2 className="h-4 w-4" />配置</Button></Link>
-                {hasPermission('task_plan', 'activate') && ['draft', 'paused'].includes(plan.status) && <Button size="sm" variant="primary" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ planId: plan.id, action: 'activate' })}><Play className="h-4 w-4" />激活</Button>}
-                {hasPermission('task_plan', 'activate') && plan.status === 'active' && <Button size="sm" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ planId: plan.id, action: 'pause' })}><Pause className="h-4 w-4" />暂停</Button>}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+      }
+      content={
+        plans.isError ? (
+          <ErrorState
+            title="计划加载失败"
+            description="无法读取任务计划，请重试。"
+            retry={<Button type="button" size="sm" variant="secondary" onClick={() => void plans.refetch()}>重试</Button>}
+          />
+        ) : (
+          <div className="cwgsyw-cmdb-table cwgsyw-tasks-plans-table">
+          <Table
+            showSearch={false}
+            density="compact"
+            columns={[
+              { key: 'name', label: '计划' },
+              { key: 'template', label: '模板' },
+              { key: 'status', label: '状态' },
+              { key: 'schedule', label: '周期' },
+              { key: 'next', label: '下次扫描' },
+              { key: 'actions', label: '', align: 'right' },
+            ]}
+            rows={records.map((plan) => ({
+              id: String(plan.id),
+              cells: {
+                name: <p className="cwgsyw-tasks-cell-title">{plan.name}</p>,
+                template: plan.templateName || `模板版本 #${plan.templateVersionId}`,
+                status: <StatusBadge label={STATUS_LABELS[plan.status]} status={STATUS_TONES[plan.status]} />,
+                schedule: SCHEDULE_LABELS[plan.scheduleType] || plan.scheduleType,
+                next: plan.nextGenerateAt ? new Date(plan.nextGenerateAt).toLocaleString('zh-CN') : '-',
+                actions: hasPermission('task_plan', 'activate') && ['draft', 'paused', 'active'].includes(plan.status) ? (
+                  <NeutralTooltip content={plan.status === 'active' ? '暂停' : '激活'} className="cwgsyw-tooltip--pill" followCursor>
+                    <IconButton
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="cwgsyw-tasks-icon-action"
+                      disabled={statusMutation.isPending}
+                      aria-label={`${plan.status === 'active' ? '暂停' : '激活'}计划 ${plan.name}`}
+                      icon={
+                        <span
+                          aria-hidden="true"
+                          className={`cwgsyw-tasks-figma-icon ${plan.status === 'active' ? 'cwgsyw-tasks-figma-icon--pause' : 'cwgsyw-tasks-figma-icon--play'}`}
+                        />
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        statusMutation.mutate({ planId: plan.id, action: plan.status === 'active' ? 'pause' : 'activate' })
+                      }}
+                    />
+                  </NeutralTooltip>
+                ) : null,
+              },
+            }))}
+            state={plans.isLoading ? 'loading' : records.length === 0 ? 'empty' : 'data'}
+            empty={
+              <TaskEmpty
+                iconSrc={TASK_CALENDAR_CLOCK_ICON}
+                figmaNode={TASK_CALENDAR_CLOCK_NODE}
+                title="暂无任务计划"
+                description="从一次性任务、日报或巡检计划开始。"
+              />
+            }
+            onRowClick={(id) => router.push(`/tasks/plans/${id}`)}
+          />
+          </div>
+        )
+      }
+    />
   )
 }

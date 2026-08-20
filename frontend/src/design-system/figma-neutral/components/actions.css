@@ -1,0 +1,289 @@
+/* Isolated CWGSYW Neutral action recipes. Do not import from old pages. */
+
+.cwgsyw-btn,
+.cwgsyw-icon-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cwgsyw-space-2);
+  margin: 0;
+  border: var(--cwgsyw-border-width-default) solid transparent;
+  border-radius: var(--cwgsyw-radius-md);
+  font-family: var(--cwgsyw-type-label-md-font-family), Inter, sans-serif;
+  font-weight: var(--cwgsyw-type-label-md-font-weight);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--cwgsyw-text-primary);
+  background: var(--cwgsyw-bg-surface);
+}
+
+.cwgsyw-btn:focus-visible,
+.cwgsyw-icon-btn:focus-visible {
+  outline: var(--cwgsyw-border-width-strong) solid var(--cwgsyw-focus-ring);
+  outline-offset: 2px;
+}
+
+.cwgsyw-btn--sm {
+  height: var(--cwgsyw-control-height-sm);
+  padding: 0 var(--cwgsyw-space-3);
+  font-family: var(--cwgsyw-type-label-sm-font-family), Inter, sans-serif;
+  font-size: var(--cwgsyw-type-label-sm-font-size);
+  font-weight: var(--cwgsyw-type-label-sm-font-weight);
+  line-height: var(--cwgsyw-type-label-sm-line-height);
+}
+
+.cwgsyw-btn--md {
+  height: var(--cwgsyw-control-height-md);
+  padding: 0 var(--cwgsyw-space-4);
+  font-size: var(--cwgsyw-type-label-md-font-size);
+  line-height: var(--cwgsyw-type-label-md-line-height);
+}
+
+.cwgsyw-btn--lg {
+  height: var(--cwgsyw-control-height-lg);
+  padding: 0 var(--cwgsyw-space-5);
+  font-family: var(--cwgsyw-type-label-lg-font-family), Inter, sans-serif;
+  font-size: var(--cwgsyw-type-label-lg-font-size);
+  font-weight: var(--cwgsyw-type-label-lg-font-weight);
+  line-height: var(--cwgsyw-type-label-lg-line-height);
+}
+
+.cwgsyw-icon-btn--sm {
+  width: var(--cwgsyw-control-height-sm);
+  height: var(--cwgsyw-control-height-sm);
+  padding: 0;
+}
+
+.cwgsyw-icon-btn--md {
+  width: var(--cwgsyw-control-height-md);
+  height: var(--cwgsyw-control-height-md);
+  padding: 0;
+}
+
+.cwgsyw-icon-btn--lg {
+  width: var(--cwgsyw-control-height-lg);
+  height: var(--cwgsyw-control-height-lg);
+  padding: 0;
+}
+
+.cwgsyw-btn--primary,
+.cwgsyw-icon-btn--primary {
+  background: var(--cwgsyw-action-primary);
+  color: var(--cwgsyw-text-inverse);
+}
+
+.cwgsyw-btn--primary:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--primary:hover:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-action-primary-hover);
+}
+
+.cwgsyw-btn--primary:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--primary:active:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-action-primary-pressed);
+}
+
+.cwgsyw-btn--secondary,
+.cwgsyw-icon-btn--secondary,
+.cwgsyw-btn--outline,
+.cwgsyw-icon-btn--outline {
+  background: var(--cwgsyw-bg-surface);
+  color: var(--cwgsyw-text-primary);
+  border-color: var(--cwgsyw-border-default);
+}
+
+.cwgsyw-btn--secondary:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--secondary:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-btn--outline:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--outline:hover:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-bg-surface-hover);
+}
+
+.cwgsyw-btn--secondary:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--secondary:active:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-bg-surface-selected);
+}
+
+.cwgsyw-btn--outline:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--outline:active:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-bg-surface-selected);
+  border-color: var(--cwgsyw-border-strong);
+}
+
+.cwgsyw-btn--ghost,
+.cwgsyw-icon-btn--ghost {
+  background: var(--cwgsyw-bg-surface);
+  color: var(--cwgsyw-text-primary);
+}
+
+.cwgsyw-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-bg-surface-hover);
+}
+
+.cwgsyw-btn--ghost:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-bg-surface-selected);
+}
+
+.cwgsyw-btn--destructive,
+.cwgsyw-icon-btn--destructive {
+  background: var(--cwgsyw-action-destructive);
+  color: var(--cwgsyw-action-destructive-foreground);
+}
+
+.cwgsyw-btn--destructive:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--destructive:hover:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-action-destructive-hover);
+}
+
+.cwgsyw-btn--destructive:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-icon-btn--destructive:active:not(:disabled):not([aria-busy="true"]) {
+  background: var(--cwgsyw-action-destructive-pressed);
+}
+
+.cwgsyw-btn:disabled,
+.cwgsyw-icon-btn:disabled {
+  background: var(--cwgsyw-action-disabled-bg);
+  color: var(--cwgsyw-action-disabled-fg);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.cwgsyw-btn--secondary:disabled,
+.cwgsyw-icon-btn--secondary:disabled,
+.cwgsyw-btn--outline:disabled,
+.cwgsyw-icon-btn--outline:disabled {
+  background: var(--cwgsyw-bg-surface-subtle);
+  border-color: var(--cwgsyw-border-default);
+}
+
+.cwgsyw-btn[aria-busy="true"],
+.cwgsyw-icon-btn[aria-busy="true"] {
+  cursor: progress;
+}
+
+.cwgsyw-icon {
+  display: inline-flex;
+  width: var(--cwgsyw-size-icon-md);
+  height: var(--cwgsyw-size-icon-md);
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+.cwgsyw-icon--sm {
+  width: var(--cwgsyw-size-icon-sm);
+  height: var(--cwgsyw-size-icon-sm);
+}
+
+.cwgsyw-icon--md {
+  width: var(--cwgsyw-size-icon-md);
+  height: var(--cwgsyw-size-icon-md);
+}
+
+.cwgsyw-icon--lg {
+  width: var(--cwgsyw-size-icon-lg);
+  height: var(--cwgsyw-size-icon-lg);
+}
+
+.cwgsyw-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cwgsyw-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cwgsyw-space-1);
+  color: var(--cwgsyw-icon-primary);
+}
+
+.cwgsyw-spinner--md,
+.cwgsyw-spinner--lg {
+  gap: var(--cwgsyw-space-2);
+}
+
+.cwgsyw-spinner--neutral { color: var(--cwgsyw-icon-primary); }
+.cwgsyw-spinner--info { color: var(--cwgsyw-status-info-fg); }
+.cwgsyw-spinner--success { color: var(--cwgsyw-status-success-fg); }
+.cwgsyw-spinner--warning { color: var(--cwgsyw-status-warning-fg); }
+.cwgsyw-spinner--danger { color: var(--cwgsyw-status-danger-fg); }
+
+.cwgsyw-spinner__mark {
+  box-sizing: border-box;
+  width: var(--cwgsyw-size-icon-sm);
+  height: var(--cwgsyw-size-icon-sm);
+  border-radius: 999px;
+  border: var(--cwgsyw-border-width-strong) solid currentColor;
+  border-right-color: transparent;
+  animation: cwgsyw-spin 700ms linear infinite;
+}
+
+.cwgsyw-spinner--md .cwgsyw-spinner__mark {
+  width: var(--cwgsyw-size-icon-md);
+  height: var(--cwgsyw-size-icon-md);
+}
+
+.cwgsyw-spinner--lg .cwgsyw-spinner__mark {
+  width: var(--cwgsyw-size-icon-lg);
+  height: var(--cwgsyw-size-icon-lg);
+}
+
+.cwgsyw-spinner__label {
+  margin: 0;
+  font-family: var(--cwgsyw-type-body-sm-font-family), Inter, sans-serif;
+  font-size: var(--cwgsyw-type-body-sm-font-size);
+  font-weight: var(--cwgsyw-type-body-sm-font-weight);
+  line-height: var(--cwgsyw-type-body-sm-line-height);
+  color: var(--cwgsyw-text-primary);
+}
+
+@keyframes cwgsyw-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cwgsyw-spinner__mark {
+    animation: none;
+    border-right-color: currentColor;
+  }
+}
+
+.cwgsyw-separator {
+  background: var(--cwgsyw-border-subtle);
+  border: 0;
+}
+
+.cwgsyw-separator--horizontal {
+  display: block;
+  width: 100%;
+  height: var(--cwgsyw-border-width-default);
+}
+
+.cwgsyw-separator--vertical {
+  display: inline-block;
+  width: var(--cwgsyw-border-width-default);
+  height: 160px;
+  align-self: stretch;
+}
+
+.cwgsyw-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cwgsyw-space-2);
+}
+
+.cwgsyw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

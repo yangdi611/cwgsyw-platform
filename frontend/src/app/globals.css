@@ -2,10 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
-  /* Original shadcn/ui tokens */
+  /* Compatibility aliases reminted to Neutral */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -48,210 +48,77 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* V2 Design System tokens for Tailwind utilities
-     Usage: bg-v2-bg, text-v2-fg, border-v2-border, etc. */
-  --color-v2-bg: var(--v2-bg);
-  --color-v2-surface: var(--v2-surface);
-  --color-v2-surface-soft: var(--v2-surface-soft);
-  --color-v2-surface-hover: var(--v2-surface-hover);
-  --color-v2-table-header: var(--v2-table-header);
-  --color-v2-fg: var(--v2-fg);
-  --color-v2-muted: var(--v2-muted);
-  --color-v2-subtle: var(--v2-subtle);
-  --color-v2-border: var(--v2-border);
-  --color-v2-border-strong: var(--v2-border-strong);
-  --color-v2-primary: var(--v2-primary);
-  --color-v2-primary-hover: var(--v2-primary-hover);
-  --color-v2-primary-soft: var(--v2-primary-soft);
-  --color-v2-primary-border: var(--v2-primary-border);
-  --color-v2-success: var(--v2-success);
-  --color-v2-success-soft: var(--v2-success-soft);
-  --color-v2-success-border: var(--v2-success-border);
-  --color-v2-warning: var(--v2-warning);
-  --color-v2-warning-soft: var(--v2-warning-soft);
-  --color-v2-warning-border: var(--v2-warning-border);
-  --color-v2-danger: var(--v2-danger);
-  --color-v2-danger-soft: var(--v2-danger-soft);
-  --color-v2-danger-border: var(--v2-danger-border);
-  --color-v2-sidebar: var(--v2-sidebar);
-  --color-v2-sidebar-2: var(--v2-sidebar-2);
-  --color-v2-sidebar-border: var(--v2-sidebar-border);
-  --color-v2-sidebar-muted: var(--v2-sidebar-muted);
-  --color-v2-sidebar-fg: var(--v2-sidebar-fg);
-
-  /* V2 shadow utilities
-     Usage: shadow-v2-sm, shadow-v2-md */
-  --shadow-v2-sm: var(--v2-shadow-sm);
-  --shadow-v2-md: var(--v2-shadow-md);
-
-  /* V2 radius utilities
-     Usage: rounded-v2-sm, rounded-v2-md, rounded-v2-lg */
-  --radius-v2-sm: var(--v2-radius-sm);
-  --radius-v2-md: var(--v2-radius-md);
-  --radius-v2-lg: var(--v2-radius-lg);
-
-  /* V2 font families
-     Usage: font-v2-sans, font-v2-mono */
-  --font-v2-sans: var(--v2-font-sans);
-  --font-v2-mono: var(--v2-font-mono);
 }
 
 :root {
-  /* Shadcn/ui original tokens (preserved for compatibility) */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-
-  /* ============================================
-     V2 Design System Tokens (from OD prototype)
-     Use these for new components and pages
-     ============================================ */
-
-  /* Background & Surface */
-  --v2-bg: #f7f8fa;
-  --v2-surface: #ffffff;
-  --v2-surface-soft: #f8fafc;
-  --v2-surface-hover: #f9fbff;
-  --v2-table-header: #eef2f7;
-
-  /* Text Colors */
-  --v2-fg: #101828;
-  --v2-muted: #667085;
-  --v2-subtle: #98a2b3;
-
-  /* Border */
-  --v2-border: #e4e7ec;
-  --v2-border-strong: #d0d5dd;
-
-  /* Primary (Deep Blue) */
-  --v2-primary: #1d4ed8;
-  --v2-primary-hover: #1e40af;
-  --v2-primary-soft: #eff6ff;
-  --v2-primary-border: #bfdbfe;
-
-  /* Success (Teal Green) */
-  --v2-success: #067647;
-  --v2-success-soft: #ecfdf3;
-  --v2-success-border: #abefc6;
-
-  /* Warning (Amber) */
-  --v2-warning: #b54708;
-  --v2-warning-soft: #fffaeb;
-  --v2-warning-border: #fedf89;
-
-  /* Danger (Red) */
-  --v2-danger: #b42318;
-  --v2-danger-soft: #fef3f2;
-  --v2-danger-border: #fecdca;
-
-  /* Sidebar (Dark Navy) */
-  --v2-sidebar: #0f172a;
-  --v2-sidebar-2: #111c33;
-  --v2-sidebar-border: rgba(255, 255, 255, 0.08);
-  --v2-sidebar-muted: #94a3b8;
-  --v2-sidebar-fg: #e5e7eb;
-
-  /* Shadow */
-  --v2-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --v2-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
-
-  /* Radius */
-  --v2-radius-sm: 8px;
-  --v2-radius-md: 12px;
-  --v2-radius-lg: 16px;
-
-  /* Typography */
-  --v2-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --v2-font-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
+  /* Compatibility aliases reminted to Neutral. Independent shadcn hues are not allowed. */
+  --background: var(--cwgsyw-bg-canvas);
+  --foreground: var(--cwgsyw-text-primary);
+  --card: var(--cwgsyw-bg-surface);
+  --card-foreground: var(--cwgsyw-text-primary);
+  --popover: var(--cwgsyw-bg-surface);
+  --popover-foreground: var(--cwgsyw-text-primary);
+  --primary: var(--cwgsyw-action-primary);
+  --primary-foreground: var(--cwgsyw-text-inverse);
+  --secondary: var(--cwgsyw-bg-surface-subtle);
+  --secondary-foreground: var(--cwgsyw-text-primary);
+  --muted: var(--cwgsyw-bg-surface-subtle);
+  --muted-foreground: var(--cwgsyw-text-secondary);
+  --accent: var(--cwgsyw-bg-surface-hover);
+  --accent-foreground: var(--cwgsyw-text-primary);
+  --destructive: var(--cwgsyw-action-destructive);
+  --border: var(--cwgsyw-border-default);
+  --input: var(--cwgsyw-border-default);
+  --ring: var(--cwgsyw-focus-ring);
+  --chart-1: var(--cwgsyw-neutral-200);
+  --chart-2: var(--cwgsyw-neutral-400);
+  --chart-3: var(--cwgsyw-neutral-600);
+  --chart-4: var(--cwgsyw-neutral-700);
+  --chart-5: var(--cwgsyw-neutral-800);
+  --radius: var(--cwgsyw-radius-lg);
+  --sidebar: var(--cwgsyw-bg-surface);
+  --sidebar-foreground: var(--cwgsyw-text-primary);
+  --sidebar-primary: var(--cwgsyw-action-primary);
+  --sidebar-primary-foreground: var(--cwgsyw-text-inverse);
+  --sidebar-accent: var(--cwgsyw-bg-surface-hover);
+  --sidebar-accent-foreground: var(--cwgsyw-text-primary);
+  --sidebar-border: var(--cwgsyw-border-subtle);
+  --sidebar-ring: var(--cwgsyw-focus-ring);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-
-  --v2-bg: #111827;
-  --v2-surface: #1f2937;
-  --v2-surface-soft: #273449;
-  --v2-surface-hover: #334155;
-  --v2-table-header: #2f3e53;
-  --v2-fg: #f8fafc;
-  --v2-muted: #cbd5e1;
-  --v2-subtle: #94a3b8;
-  --v2-border: #475569;
-  --v2-border-strong: #64748b;
-  --v2-primary: #93c5fd;
-  --v2-primary-hover: #bfdbfe;
-  --v2-primary-soft: #1e3a5f;
-  --v2-primary-border: #2563eb;
-  --v2-success: #6ee7b7;
-  --v2-success-soft: #064e3b;
-  --v2-success-border: #047857;
-  --v2-warning: #fcd34d;
-  --v2-warning-soft: #78350f;
-  --v2-warning-border: #b45309;
-  --v2-danger: #fca5a5;
-  --v2-danger-soft: #7f1d1d;
-  --v2-danger-border: #b91c1c;
-  --v2-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
-  --v2-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.32);
+[data-theme="dark"] {
+  /* Dark aliases follow Neutral token mode. */
+  --background: var(--cwgsyw-bg-canvas);
+  --foreground: var(--cwgsyw-text-primary);
+  --card: var(--cwgsyw-bg-surface);
+  --card-foreground: var(--cwgsyw-text-primary);
+  --popover: var(--cwgsyw-bg-surface);
+  --popover-foreground: var(--cwgsyw-text-primary);
+  --primary: var(--cwgsyw-action-primary);
+  --primary-foreground: var(--cwgsyw-text-inverse);
+  --secondary: var(--cwgsyw-bg-surface-subtle);
+  --secondary-foreground: var(--cwgsyw-text-primary);
+  --muted: var(--cwgsyw-bg-surface-subtle);
+  --muted-foreground: var(--cwgsyw-text-secondary);
+  --accent: var(--cwgsyw-bg-surface-hover);
+  --accent-foreground: var(--cwgsyw-text-primary);
+  --destructive: var(--cwgsyw-action-destructive);
+  --border: var(--cwgsyw-border-default);
+  --input: var(--cwgsyw-border-default);
+  --ring: var(--cwgsyw-focus-ring);
+  --chart-1: var(--cwgsyw-neutral-700);
+  --chart-2: var(--cwgsyw-neutral-500);
+  --chart-3: var(--cwgsyw-neutral-400);
+  --chart-4: var(--cwgsyw-neutral-300);
+  --chart-5: var(--cwgsyw-neutral-200);
+  --sidebar: var(--cwgsyw-bg-surface);
+  --sidebar-foreground: var(--cwgsyw-text-primary);
+  --sidebar-primary: var(--cwgsyw-action-primary);
+  --sidebar-primary-foreground: var(--cwgsyw-text-inverse);
+  --sidebar-accent: var(--cwgsyw-bg-surface-hover);
+  --sidebar-accent-foreground: var(--cwgsyw-text-primary);
+  --sidebar-border: var(--cwgsyw-border-subtle);
+  --sidebar-ring: var(--cwgsyw-focus-ring);
 }
 
 @layer base {
@@ -259,7 +126,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--cwgsyw-bg-canvas);
+    color: var(--cwgsyw-text-primary);
   }
   html {
     @apply font-sans;
@@ -268,245 +136,5 @@
 
 :where(table > thead, [data-slot="table-header"]),
 :where(table > thead, [data-slot="table-header"]) > tr {
-  background-color: var(--v2-table-header) !important;
-}
-
-/* ============================================================
-   Wiki Markdown 编辑器（@uiw/react-md-editor）主题统一
-   作用域 .wiki-editor：让编辑器的背景/工具栏/预览/边框沿用 v2 主题色，
-   与阅读页一致；同时放大工具栏图标。
-   ============================================================ */
-.wiki-editor .w-md-editor {
-  background-color: var(--v2-surface) !important;
-  color: var(--v2-fg);
-  display: flex;
-  height: 100% !important;
-  min-height: 0;
-  box-shadow: none;
-  --color-border-default: var(--v2-border);
-}
-/* 工具栏 */
-.wiki-editor .w-md-editor-toolbar {
-  background-color: var(--v2-surface-soft);
-  border-bottom: 1px solid var(--v2-border);
-  padding: 6px 8px;
-}
-.wiki-editor .w-md-editor-toolbar ul > li > button {
-  height: 30px;
-  min-width: 30px;
-}
-/* 工具栏图标放大 */
-.wiki-editor .w-md-editor-toolbar svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-.wiki-editor .w-md-editor-toolbar li > button:hover,
-.wiki-editor .w-md-editor-toolbar li > button.active {
-  background-color: var(--v2-primary-soft);
-  color: var(--v2-primary);
-}
-.wiki-editor .w-md-editor-toolbar-divider {
-  background-color: var(--v2-border);
-}
-/* 输入区 + 文本框 */
-.wiki-editor .w-md-editor-content,
-.wiki-editor .w-md-editor-area,
-.wiki-editor .w-md-editor-text,
-.wiki-editor .w-md-editor-input,
-.wiki-editor .w-md-editor-text-pre {
-  background-color: var(--v2-surface) !important;
-  color: var(--v2-fg);
-  -webkit-text-fill-color: var(--v2-fg);
-}
-.wiki-editor .w-md-editor-content {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-.wiki-editor .w-md-editor-text-pre > code,
-.wiki-editor .w-md-editor-text-pre > code *,
-.wiki-editor .w-md-editor-text-pre span {
-  -webkit-text-fill-color: var(--v2-fg);
-}
-.wiki-editor .w-md-editor-text-input {
-  background-color: transparent !important;
-  caret-color: var(--v2-fg);
-  -webkit-text-fill-color: transparent;
-}
-/* 编辑区与预览区分隔线 */
-.wiki-editor .w-md-editor-bar {
-  background-color: var(--v2-border);
-}
-/* 实时预览区 */
-.wiki-editor .w-md-editor-preview {
-  background-color: var(--v2-surface) !important;
-  box-shadow: inset 1px 0 0 0 var(--v2-border);
-}
-.wiki-editor .w-md-editor-preview .wmde-markdown {
-  background-color: var(--v2-surface) !important;
-  color: var(--v2-fg);
-}
-
-/* ============================================================
-   Wiki Mermaid 图表样式
-   ============================================================ */
-.wiki-mermaid {
-  margin: 1rem 0;
-  border: 1px solid var(--v2-border);
-  border-radius: var(--v2-radius-md);
-  background: var(--v2-surface-soft);
-  overflow: hidden;
-}
-
-.wiki-mermaid__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.375rem;
-  border-bottom: 1px solid var(--v2-border);
-  background: var(--v2-surface);
-  padding: 0.375rem 0.5rem;
-}
-
-.wiki-mermaid__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  height: 1.75rem;
-  border-radius: var(--v2-radius-sm);
-  padding: 0 0.5rem;
-  color: var(--v2-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.wiki-mermaid__button:hover {
-  background: var(--v2-surface-hover);
-  color: var(--v2-fg);
-}
-
-.wiki-mermaid__viewport {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 1rem;
-}
-
-.wiki-mermaid__svg {
-  display: flex;
-  justify-content: center;
-  min-width: max-content;
-}
-
-.wiki-mermaid__svg svg {
-  max-width: none;
-  height: auto;
-}
-
-.wiki-mermaid__status {
-  padding: 1rem;
-  text-align: center;
-  color: var(--v2-muted);
-  font-size: 0.875rem;
-}
-
-.wiki-mermaid__placeholder {
-  min-height: 6rem;
-}
-
-.wiki-mermaid__error {
-  border-top: 1px solid var(--v2-danger-border);
-  background: var(--v2-danger-soft);
-  padding: 0.75rem 1rem;
-  color: var(--v2-danger);
-}
-
-.wiki-mermaid__error-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.wiki-mermaid__error-message {
-  margin-top: 0.25rem;
-  max-height: 5rem;
-  overflow: auto;
-  font-size: 0.75rem;
-  color: var(--v2-danger);
-}
-
-.wiki-mermaid__source {
-  margin: 0;
-  border-top: 1px solid var(--v2-border);
-  background: var(--v2-bg);
-  overflow-x: auto;
-  padding: 0.875rem 1rem;
-  color: var(--v2-fg);
-  font-family: var(--v2-font-mono);
-  font-size: 0.8125rem;
-  line-height: 1.6;
-}
-
-.wiki-mermaid__fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.72);
-  padding: 1rem;
-}
-
-.wiki-mermaid__fullscreen-panel {
-  position: relative;
-  width: min(96vw, 1280px);
-  height: min(92vh, 900px);
-  border: 1px solid var(--v2-border);
-  border-radius: var(--v2-radius-lg);
-  background: var(--v2-surface);
-  box-shadow: var(--v2-shadow-md);
-}
-
-.wiki-mermaid__fullscreen-scroll {
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  padding: 1.25rem;
-}
-
-.wiki-mermaid__fullscreen-close {
-  position: fixed;
-  right: 1.5rem;
-  top: 1.5rem;
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--v2-radius-md);
-  background: var(--v2-surface);
-  border: 1px solid var(--v2-border);
-  color: var(--v2-fg);
-  cursor: pointer;
-}
-
-.wiki-mermaid__fullscreen-close:hover {
-  background: var(--v2-surface-hover);
-}
-
-.dark .wiki-mermaid {
-  background: var(--v2-surface);
-}
-
-@media (max-width: 640px) {
-  .wiki-mermaid__fullscreen {
-    padding: 0.5rem;
-  }
-
-  .wiki-mermaid__fullscreen-panel {
-    width: 100%;
-    height: 92vh;
-  }
+  background-color: var(--cwgsyw-bg-surface-subtle) !important;
 }

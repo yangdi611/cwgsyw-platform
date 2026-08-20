@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="aiMain" x1="3.5" y1="2" x2="17" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="55%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="aiSmall" x1="15" y1="2" x2="22.5" y2="10.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#aiMain)" d="M10.35 1.85c.2-.7 1.2-.7 1.4 0C12.5 5.95 13.75 8.05 17.85 8.8c.72.13.72 1.17 0 1.3-4.1.75-5.35 2.85-6.1 6.95-.2.7-1.2.7-1.4 0C9.6 12.95 8.35 10.85 4.25 10.1c-.72-.13-.72-1.17 0-1.3 4.1-.75 5.35-2.85 6.1-6.95Z"/>
+  <path fill="url(#aiSmall)" transform="translate(0 1.25) translate(18.8 6.15) scale(0.78 1.06) translate(-18.8 -6.15)" d="M18.35 2.2c.13-.46.77-.46.9 0 .5 1.78 1.22 2.64 3.05 3.05.47.13.47.77 0 .9-1.83.41-2.55 1.27-3.05 3.05-.13.46-.77-.46-.9 0-.5-1.78-1.22-2.64-3.05-3.05-.47-.13-.47-.77 0-.9 1.83-.41 2.55-1.27 3.05-3.05Z"/>
+</svg>

@@ -1,12 +1,17 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { Button } from '@/components/design-system'
-import { toast } from 'sonner'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { getApiErrorMessage } from '@/lib/api-error'
-import { Eye, EyeOff, Copy, Trash2, Pencil } from 'lucide-react'
-import { Input } from '@/components/design-system'
 import { usePermission } from '@/hooks/usePermission'
+import {
+  Button,
+  IconButton,
+  Input,
+  NeutralAlertDialog,
+  NeutralTooltip,
+} from '@/design-system/figma-neutral/components'
 
 interface Props {
   credentialId: number
@@ -59,7 +64,6 @@ async function fetchPassword(credentialId: number): Promise<string> {
     })
     return rsaDecrypt(res.data.data, kp.privateKey)
   }
-  // Fallback: HTTP env without Web Crypto
   const res = await api.get(`/devices/credentials/${credentialId}/reveal`)
   return res.data.data
 }
@@ -69,6 +73,7 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [editUsername, setEditUsername] = useState(username)
   const [editPassword, setEditPassword] = useState('')
   const [editDescription, setEditDescription] = useState(description ?? '')
@@ -77,20 +82,22 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
   const canDelete = hasPermission('device', 'delete')
   const canUpdate = hasPermission('device', 'update')
 
-  // Auto-clear revealed password after 30 s
   useEffect(() => {
     if (!password) return
-    const t = setTimeout(() => setPassword(null), 30_000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setPassword(null), 30_000)
+    return () => clearTimeout(timer)
   }, [password])
 
   const reveal = async () => {
-    if (password) { setPassword(null); return }
+    if (password) {
+      setPassword(null)
+      return
+    }
     setLoading(true)
     try {
       setPassword(await fetchPassword(credentialId))
-    } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, '获取密码失败'))
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, '获取密码失败'))
     } finally {
       setLoading(false)
     }
@@ -98,34 +105,33 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
 
   const copy = async () => {
     try {
-      const pwd = password ?? await fetchPassword(credentialId)
-      // Don't call setPassword — keep it off-screen when copying silently
+      const nextPassword = password ?? await fetchPassword(credentialId)
       try {
-        await navigator.clipboard.writeText(pwd)
+        await navigator.clipboard.writeText(nextPassword)
       } catch {
-        const el = document.createElement('textarea')
-        el.value = pwd
-        el.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
-        document.body.appendChild(el)
-        el.select()
+        const element = document.createElement('textarea')
+        element.value = nextPassword
+        element.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
+        document.body.appendChild(element)
+        element.select()
         document.execCommand('copy')
-        document.body.removeChild(el)
+        document.body.removeChild(element)
       }
       toast.success('密码已复制到剪贴板')
-    } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, '获取密码失败'))
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, '获取密码失败'))
     }
   }
 
   const deleteCred = async () => {
-    if (!confirm(`确定要删除账号 "${username}" 吗？`)) return
     setDeleting(true)
     try {
       await api.delete(`/devices/credentials/${credentialId}`)
       toast.success('账号已删除')
+      setConfirmDelete(false)
       onDeleted?.()
-    } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, '删除失败'))
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, '删除失败'))
     } finally {
       setDeleting(false)
     }
@@ -142,60 +148,67 @@ export function CredentialRow({ credentialId, username, description, onDeleted }
       setEditPassword('')
       setEditing(false)
       onDeleted?.()
-    } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, '更新失败'))
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, '更新失败'))
     }
   }
 
   return (
-    <div className="flex items-center justify-between py-3 border-b last:border-0">
-      <div className="min-w-0 flex-1">
+    <div className="cwgsyw-devices-cred-row">
+      <div className="cwgsyw-devices-cred-row__meta">
         {editing ? (
-          <div className="flex flex-wrap gap-2">
-            <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} maxLength={128} />
-            <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="留空不修改密码" maxLength={1024} />
-            <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="备注" maxLength={255} />
-            <Button variant="secondary" size="ui-sm" onClick={saveEdit} disabled={!editUsername}>保存</Button>
-            <Button variant="ghost" size="ui-sm" onClick={() => { setEditing(false); setEditPassword('') }}>取消</Button>
+          <div className="cwgsyw-inline-controls">
+            <Input size="sm" value={editUsername} maxLength={128} onChange={(event) => setEditUsername(event.target.value)} />
+            <Input size="sm" type="password" value={editPassword} maxLength={1024} placeholder="留空不修改密码" onChange={(event) => setEditPassword(event.target.value)} />
+            <Input size="sm" value={editDescription} maxLength={255} placeholder="备注" onChange={(event) => setEditDescription(event.target.value)} />
+            <Button type="button" variant="secondary" size="sm" disabled={!editUsername} onClick={saveEdit}>
+              保存
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setEditPassword('') }}>
+              取消
+            </Button>
           </div>
         ) : (
-          <><span className="font-medium text-sm">{username}</span>{description && <span className="text-xs text-v2-muted ml-2">{description}</span>}</>
-        )}
-      </div>
-      <div className="flex items-center gap-1">
-        {password ? (
-          <code className="text-sm bg-muted px-2 py-0.5 rounded select-all mr-1">{password}</code>
-        ) : (
-          <span className="text-sm text-v2-muted tracking-widest mr-2">••••••••</span>
-        )}
-        {canReveal && (
           <>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copy} title="复制密码">
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost" size="icon" className="h-7 w-7"
-              onClick={reveal} disabled={loading}
-              title={password ? '隐藏密码' : '查看密码'}
-            >
-              {password ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            </Button>
+            <span className="cwgsyw-devices-cred-row__name">{username}</span>
+            {description ? <span className="cwgsyw-devices-cred-row__desc">{description}</span> : null}
           </>
         )}
-        {canDelete && (
-          <Button
-            variant="ghost" size="icon" className="h-7 w-7 text-v2-danger hover:text-v2-danger"
-            onClick={deleteCred} disabled={deleting} title="删除账号"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        {canUpdate && !editing && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(true)} title="编辑账号">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
+      <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
+        {password ? <code className="cwgsyw-devices-cred-row__secret">{password}</code> : <span className="cwgsyw-devices-cred-row__secret">••••••••</span>}
+        {canReveal ? (
+          <>
+            <NeutralTooltip content="复制" className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton type="button" size="sm" variant="ghost" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--copy" />} aria-label={`复制 ${username} 密码`} onClick={copy} />
+            </NeutralTooltip>
+            <NeutralTooltip content={password ? '隐藏' : '查看'} className="cwgsyw-tooltip--pill" followCursor>
+              <IconButton type="button" size="sm" variant="ghost" disabled={loading} icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--eye" />} aria-label={password ? `隐藏 ${username} 密码` : `查看 ${username} 密码`} onClick={reveal} />
+            </NeutralTooltip>
+          </>
+        ) : null}
+        {canUpdate && !editing ? (
+          <NeutralTooltip content="编辑" className="cwgsyw-tooltip--pill" followCursor>
+            <IconButton type="button" size="sm" variant="ghost" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />} aria-label={`编辑 ${username}`} onClick={() => setEditing(true)} />
+          </NeutralTooltip>
+        ) : null}
+        {canDelete ? (
+          <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" followCursor>
+            <IconButton type="button" size="sm" variant="ghost" className="cwgsyw-cmdb-admin__delete-action" disabled={deleting} icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--trash" />} aria-label={`删除 ${username}`} onClick={() => setConfirmDelete(true)} />
+          </NeutralTooltip>
+        ) : null}
+      </div>
+      <NeutralAlertDialog
+        open={confirmDelete}
+        title="确认删除"
+        description={`确定要删除账号 “${username}” 吗？`}
+        intent="destructive"
+        confirmLabel="删除"
+        onConfirm={deleteCred}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(false)
+        }}
+      />
     </div>
   )
 }

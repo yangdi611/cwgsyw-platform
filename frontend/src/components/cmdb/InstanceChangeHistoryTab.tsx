@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Button } from '@/components/design-system'
 import { ChangeRecordItem, ChangeHistoryV2VO } from '@/components/cmdb/ChangeRecordItem'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { EmptyState, LoadingState, Pagination } from '@/design-system/figma-neutral/components'
 
 interface PageData {
   records: ChangeHistoryV2VO[]
@@ -20,11 +19,6 @@ interface Props {
 
 const PAGE_SIZE = 20
 
-/**
- * Per-instance change-history timeline. Backed by the V2 history endpoint
- * (`GET /cmdb/instances/{id}/history`). Each record is rendered via the shared
- * {@link ChangeRecordItem} with field-level JSONB diff on expand.
- */
 export function InstanceChangeHistoryTab({ instanceId }: Props) {
   const [page, setPage] = useState(1)
 
@@ -32,7 +26,7 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
     queryKey: ['cmdb-instance-history', instanceId, page],
     queryFn: () => api.get(`/cmdb/instances/${instanceId}/history`, {
       params: { page, size: PAGE_SIZE },
-    }).then(r => r.data.data),
+    }).then((r) => r.data.data),
     enabled: !!instanceId,
   })
 
@@ -41,31 +35,31 @@ export function InstanceChangeHistoryTab({ instanceId }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="border rounded-lg p-5">
-      {isLoading ? (
-        <p className="text-sm text-v2-muted py-8 text-center">加载中...</p>
-      ) : records.length === 0 ? (
-        <p className="text-sm text-v2-muted py-8 text-center">暂无变更记录</p>
-      ) : (
-        <div className="space-y-3">
-          {records.map(record => (
-            <ChangeRecordItem key={record.id} record={record} compact />
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mt-4 pt-3 border-t">
-        <span className="text-sm text-v2-muted">共 {total} 条</span>
-        <div className="flex items-center gap-2">
-          <Button size="ui-sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">{page} / {totalPages}</span>
-          <Button size="ui-sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+    <section className="cwgsyw-cmdb-instance-tab__section cwgsyw-cmdb-instance-tab__history">
+      <div className="cwgsyw-cmdb-instance-tab__head">
+        <h2>变更历史</h2>
+        <span>{total} 条记录</span>
       </div>
-    </div>
+      <div className="cwgsyw-cmdb-instance-tab__body">
+        {isLoading ? (
+          <LoadingState label="加载变更历史" />
+        ) : records.length === 0 ? (
+          <EmptyState title="暂无变更记录" description="该实例还没有变更历史。" />
+        ) : (
+          <div className="cwgsyw-cmdb-instance-tab__history-list">
+            {records.map((record) => (
+              <ChangeRecordItem key={record.id} record={record} compact />
+            ))}
+          </div>
+        )}
+        <Pagination
+          page={page}
+          pageCount={totalPages}
+          totalCount={total}
+          density="compact"
+          onPageChange={setPage}
+        />
+      </div>
+    </section>
   )
 }

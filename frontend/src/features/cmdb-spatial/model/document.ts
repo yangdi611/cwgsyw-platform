@@ -1,4 +1,5 @@
 import { FACILITY_TYPE_LABELS, type RectGeometry, type SpatialDocument, type SpatialElement, type SpatialElementType, type SpatialGeometry } from './types'
+import { CANVAS_ZONE_DEFAULT } from '@/design-system/figma-neutral/canvas-tokens'
 
 type RectSpatialGeometry = Extract<SpatialGeometry, { kind: 'RECT' }>
 
@@ -21,7 +22,7 @@ export function createElement(type: SpatialElementType, index: number): SpatialE
   if (type === 'ROOM_OUTLINE') return { ...base, name: '机房外轮廓', geometry: { kind: 'POLYGON', points: [[0.05, 0.05], [0.95, 0.05], [0.95, 0.95], [0.05, 0.95]] }, locked: true, zIndex: 0 }
   if (type === 'WALL') return { ...base, name: '墙体', geometry: { kind: 'LINE', points: [[0.15, 0.15], [0.45, 0.15]] }, zIndex: 2 }
   if (type === 'DOOR') return { ...base, name: '门', door: { style: 'SINGLE', swing: 'LEFT', direction: 'INWARD' }, geometry: { kind: 'RECT', x: 0.25, y: 0.15, width: 0.1, height: 0.025, rotation: 0 }, zIndex: 4 }
-  if (type === 'ZONE') return { ...base, name: '功能区域', zone: { color: '#a855f7', opacity: 0.18 }, zIndex: 1 }
+  if (type === 'ZONE') return { ...base, name: '功能区域', zone: { color: CANVAS_ZONE_DEFAULT, opacity: 0.18 }, zIndex: 1 }
   if (type === 'TEXT') return { ...base, name: '文字标注', text: '文字标注', geometry: { kind: 'RECT', x: 0.2, y: 0.2, width: 0.16, height: 0.04 } }
   if (type === 'RACK_SLOT') return { ...base, name: `R-${String(index + 1).padStart(2, '0')}`, rack: { rowCode: 'R', positionNo: String(index + 1).padStart(2, '0'), slotState: 'EMPTY' }, geometry: { kind: 'RECT', x: 0.2, y: 0.2, width: 0.04, height: 0.08 } }
   if (type === 'FACILITY') return { ...base, name: FACILITY_TYPE_LABELS.GENERAL, facility: { facilityType: 'GENERAL' }, geometry: { kind: 'RECT', x: 0.2, y: 0.2, width: 0.1, height: 0.08 } }

@@ -2,11 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import Image from 'next/image'
 import Link from 'next/link'
-import { Server, FileText, ExternalLink } from 'lucide-react'
-import { Badge } from '@/components/design-system'
-
-/* ------ Types ------ */
+import type { ReactNode } from 'react'
+import { Badge, EmptyState, LoadingState } from '@/design-system/figma-neutral/components'
 
 interface DeviceVO {
   id: number
@@ -25,73 +24,55 @@ interface ChangeDocVO {
   linkCreatedAt: string | null
 }
 
-/* ------ Component ------ */
-
 export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
   const devices = useQuery<DeviceVO[]>({
     queryKey: ['cmdb-instance-devices', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}/devices`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${instanceId}/devices`).then((r) => r.data.data),
   })
 
   const changeDocs = useQuery<ChangeDocVO[]>({
     queryKey: ['cmdb-instance-changedocs', instanceId],
-    queryFn: () => api.get(`/cmdb/instances/${instanceId}/change-docs`).then(r => r.data.data),
+    queryFn: () => api.get(`/cmdb/instances/${instanceId}/change-docs`).then((r) => r.data.data),
   })
 
-  const isLoading = devices.isLoading || changeDocs.isLoading
-
-  if (isLoading) {
-    return <p className="text-sm text-v2-muted">加载中...</p>
+  if (devices.isLoading || changeDocs.isLoading) {
+    return <LoadingState label="加载关联资源" />
   }
 
   return (
-    <div className="space-y-8">
-      {/* 关联设备凭证 */}
-      <Section icon={<Server className="h-4 w-4" />} title="关联设备凭证" emptyMsg="暂无关联设备凭证">
-        {devices.data?.map(d => (
-          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
-              <Server className="h-4 w-4 text-v2-muted shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{d.name}</p>
-                <p className="text-xs text-v2-muted">{d.ip || '-'}</p>
-              </div>
+    <div className="cwgsyw-cmdb-instance-tab cwgsyw-cmdb-instance-tab__resources">
+      <Section
+        title="关联设备凭证"
+        emptyMsg="暂无关联设备凭证"
+        emptyIcon={{ src: '/figma-icons/cmdb-resource-key.svg', figmaNode: '6:27336', width: 22, height: 21 }}
+      >
+        {devices.data?.map((d) => (
+          <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
+            <div className="cwgsyw-cmdb-instance-tab__row-main">
+              <p className="cwgsyw-cmdb-instance-tab__row-title">{d.name}</p>
+              <p className="cwgsyw-cmdb-instance-tab__muted">{d.ip || '-'}</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="secondary" className="text-xs">{d.deviceType}</Badge>
-              <Link
-                href={`/devices/${d.id}`}
-                className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
-              >
-                查看 <ExternalLink className="h-3 w-3" />
-              </Link>
-            </div>
+            <Badge label={d.deviceType} />
+            <Link href={`/devices/${d.id}`}>查看</Link>
           </div>
         ))}
       </Section>
 
-      {/* 关联变更文档 */}
-      <Section icon={<FileText className="h-4 w-4" />} title="关联变更文档" emptyMsg="暂无关联变更文档">
-        {changeDocs.data?.map(d => (
-          <div key={d.id} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/30 transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
-              <FileText className="h-4 w-4 text-v2-muted shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{d.title}</p>
-                <p className="text-xs text-v2-muted">
-                  {d.changeNo}{d.linkCreatedAt ? ` · ${new Date(d.linkCreatedAt).toLocaleString('zh-CN')}` : ''}
-                </p>
-              </div>
+      <Section
+        title="关联变更文档"
+        emptyMsg="暂无关联变更文档"
+        emptyIcon={{ src: '/figma-icons/cmdb-resource-file-diff.svg', figmaNode: '6:25779', width: 18, height: 22 }}
+      >
+        {changeDocs.data?.map((d) => (
+          <div key={d.id} className="cwgsyw-cmdb-instance-tab__row">
+            <div className="cwgsyw-cmdb-instance-tab__row-main">
+              <p className="cwgsyw-cmdb-instance-tab__row-title">{d.title}</p>
+              <p className="cwgsyw-cmdb-instance-tab__muted">
+                {d.changeNo}{d.linkCreatedAt ? ` · ${new Date(d.linkCreatedAt).toLocaleString('zh-CN')}` : ''}
+              </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="outline" className="text-xs">{d.status}</Badge>
-              <Link
-                href={`/change-docs/${d.id}`}
-                className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
-              >
-                查看 <ExternalLink className="h-3 w-3" />
-              </Link>
-            </div>
+            <Badge label={d.status} />
+            <Link href={`/change-docs/${d.id}`}>查看</Link>
           </div>
         ))}
       </Section>
@@ -99,30 +80,37 @@ export function InstanceResourcesTab({ instanceId }: { instanceId: string }) {
   )
 }
 
-/* ------ Section sub-component ------ */
-
 function Section({
-  icon, title, emptyMsg, children,
+  title, emptyMsg, emptyIcon, children,
 }: {
-  icon: React.ReactNode
   title: string
   emptyMsg: string
-  children: React.ReactNode
+  emptyIcon?: { src: string; figmaNode: string; width: number; height: number }
+  children: ReactNode
 }) {
   const items = Array.isArray(children) ? children : []
   const hasContent = items.some(Boolean)
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        {icon}
-        <h3 className="text-sm font-semibold">{title}</h3>
+    <section className="cwgsyw-cmdb-instance-tab__section">
+      <div className="cwgsyw-cmdb-instance-tab__head"><h2>{title}</h2></div>
+      <div className="cwgsyw-cmdb-instance-tab__body">
+        {hasContent ? <div className="cwgsyw-cmdb-instance-tab__rows">{children}</div> : emptyIcon ? (
+          <div className="cwgsyw-cmdb-instance-tab__empty">
+            <span className="cwgsyw-cmdb-instance-tab__empty-icon" aria-hidden="true">
+              <Image
+                src={emptyIcon.src}
+                alt=""
+                width={emptyIcon.width}
+                height={emptyIcon.height}
+                data-figma-node={emptyIcon.figmaNode}
+                className="cwgsyw-cmdb-instance-tab__empty-icon-image"
+              />
+            </span>
+            <EmptyState title={emptyMsg} showIcon={false} />
+          </div>
+        ) : <EmptyState title={emptyMsg} />}
       </div>
-      <div className="border rounded-lg divide-y">
-        {hasContent ? children : (
-          <p className="text-sm text-v2-muted text-center py-6">{emptyMsg}</p>
-        )}
-      </div>
-    </div>
+    </section>
   )
 }

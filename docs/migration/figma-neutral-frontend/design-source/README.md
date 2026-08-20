@@ -47,4 +47,4 @@
 - 正式资产发现必须使用 `FORMAL-ASSET-API-MANIFEST.md` 的精确 allowlist；禁止只按名称前缀匹配历史同名资产。
 - 实时交付基线：201 个本地 Variables，其中 9 个正式集合共 176 个正式 Variables，Legacy `Collection 1` 25 个；61 个正式公开 Component / Pattern 根；10 个 Text Styles；5 个 Effect Styles。
 - 正式 Variables 的 WEB Code Syntax：176/176 合法；缺失、非法格式、同集合重复均为 0。
-- 未执行：依据新 Figma 重构 React。该工作必须从独立任务按 `FRONTEND-REFACTOR-EXECUTION-PROMPT.md` 启动。
+- 实施入口：Linear [YAN-11](https://linear.app/yangdi/issue/YAN-11/实施-figma-neutral-m0token-pipeline-与视觉验证基线) 已启动 M0 Token pipeline；组件和页面重构仍未授权。执行时使用 `FRONTEND-REFACTOR-EXECUTION-PROMPT.md`，且不得用当前前端显色定义新设计。

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/design-system/figma-neutral/components'
 
 interface NotificationVO {
   id: number
@@ -35,37 +35,34 @@ export function NotificationItem({ notification: n, onMarkRead }: NotificationIt
   const href = getNotificationTargetHref(n.id, n.refType, n.refId)
 
   const inner = (
-    <div
-      onClick={() => !n.isRead && onMarkRead(n.id)}
-      className={cn(
-        'p-4 border rounded-lg transition-colors',
-        n.isRead
-          ? 'bg-card cursor-default'
-          : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/30'
-      )}
+    <article
+      className={['cwgsyw-notifications-item', n.isRead ? '' : 'cwgsyw-notifications-item--unread'].filter(Boolean).join(' ')}
+      onClick={() => {
+        if (!n.isRead) onMarkRead(n.id)
+      }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-2 min-w-0">
-          {!n.isRead && (
-            <span className="mt-1.5 inline-block w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-          )}
-          <div className="min-w-0">
-            <p className={cn('font-medium text-sm', !n.isRead && 'text-v2-fg')}>{n.title}</p>
-            <p className="text-sm text-v2-muted mt-0.5">{n.content}</p>
-          </div>
-        </div>
-        <span className="text-xs text-v2-muted whitespace-nowrap flex-shrink-0">
-          {new Date(n.createdAt).toLocaleString('zh-CN', {
-            month: 'numeric', day: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          })}
-        </span>
+      {n.isRead ? <StatusBadge label="已读" status="neutral" /> : <StatusBadge label="未读" status="neutral" />}
+      <div className="cwgsyw-notifications-item__body">
+        <p className="cwgsyw-notifications-item__title">{n.title}</p>
+        <p className="cwgsyw-notifications-item__content">{n.content}</p>
       </div>
-    </div>
+      <time className="cwgsyw-notifications-item__time" dateTime={n.createdAt}>
+        {new Date(n.createdAt).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+      </time>
+    </article>
   )
 
   if (href) {
-    return <Link href={href} prefetch={false} className="block">{inner}</Link>
+    return (
+      <Link href={href} prefetch={false}>
+        {inner}
+      </Link>
+    )
   }
   return inner
 }

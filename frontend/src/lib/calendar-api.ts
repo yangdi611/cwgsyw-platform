@@ -1,4 +1,5 @@
 import api from '@/lib/api'
+import { CANVAS_NEUTRAL, CANVAS_STATUS } from '@/design-system/figma-neutral/canvas-tokens'
 
 export type CalendarView = 'month' | 'week' | 'list'
 export type CalendarScope = 'my' | 'group' | 'all'
@@ -59,10 +60,10 @@ export function calendarItemDate(item: CalendarWorkItem) {
 }
 
 export function calendarItemColor(item: CalendarWorkItem) {
-  if (item.itemType === 'holiday') return '#dc2626'
-  if (item.itemType === 'roster') return '#0891b2'
-  if (item.meta.templateCode === 'daily_work_report') return '#16a34a'
-  return '#2563eb'
+  if (item.itemType === 'holiday') return CANVAS_STATUS.danger
+  if (item.itemType === 'roster') return CANVAS_NEUTRAL[600]
+  if (item.meta.templateCode === 'daily_work_report') return CANVAS_STATUS.success
+  return CANVAS_NEUTRAL[800]
 }
 
 export function calendarItemTypeLabel(type: CalendarItemType) {

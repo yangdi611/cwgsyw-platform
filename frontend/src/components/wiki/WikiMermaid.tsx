@@ -3,7 +3,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { createPortal } from 'react-dom'
-import { Code2, Copy, Check, Maximize2, X } from 'lucide-react'
+import { Alert, Button, Icon, IconButton, LoadingState, Skeleton } from '@/design-system/figma-neutral/components'
+import { CANVAS_NEUTRAL } from '@/design-system/figma-neutral/canvas-tokens'
+import './WikiMermaid.css'
 
 export interface WikiMermaidProps {
   chart: string
@@ -98,7 +100,28 @@ export function WikiMermaid({
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: 'strict',
-          theme,
+          theme: 'base',
+          themeVariables: theme === 'dark'
+            ? {
+                background: CANVAS_NEUTRAL[900],
+                primaryColor: CANVAS_NEUTRAL[800],
+                primaryTextColor: CANVAS_NEUTRAL[0],
+                primaryBorderColor: CANVAS_NEUTRAL[600],
+                lineColor: CANVAS_NEUTRAL[400],
+                secondaryColor: CANVAS_NEUTRAL[700],
+                tertiaryColor: CANVAS_NEUTRAL[800],
+                fontFamily: 'Inter, sans-serif',
+              }
+            : {
+                background: CANVAS_NEUTRAL[0],
+                primaryColor: CANVAS_NEUTRAL[100],
+                primaryTextColor: CANVAS_NEUTRAL[900],
+                primaryBorderColor: CANVAS_NEUTRAL[400],
+                lineColor: CANVAS_NEUTRAL[600],
+                secondaryColor: CANVAS_NEUTRAL[50],
+                tertiaryColor: CANVAS_NEUTRAL[200],
+                fontFamily: 'Inter, sans-serif',
+              },
         })
 
         renderSeq.current += 1
@@ -177,60 +200,46 @@ export function WikiMermaid({
   return (
     <>
       <div ref={containerRef} className={`wiki-mermaid ${className}`}>
-        {/* Toolbar */}
         {(status === 'success' || status === 'error') && (
           <div className="wiki-mermaid__toolbar">
             {enableSourceToggle && (
-              <button
-                type="button"
-                className="wiki-mermaid__button"
-                onClick={() => setSourceOpen(!sourceOpen)}
-              >
-                <Code2 className="h-3.5 w-3.5" />
+              <Button type="button" variant="ghost" size="sm" leadingIcon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--code" />} onClick={() => setSourceOpen(!sourceOpen)}>
                 {sourceOpen ? '收起源码' : '查看源码'}
-              </button>
+              </Button>
             )}
-            <button type="button" className="wiki-mermaid__button" onClick={handleCopy}>
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            <Button type="button" variant="ghost" size="sm" leadingIcon={copied ? <Icon name="check" size="sm" /> : <span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--copy" />} onClick={handleCopy}>
               {copied ? '已复制' : '复制源码'}
-            </button>
+            </Button>
             {enableFullscreen && status === 'success' && (
-              <button type="button" className="wiki-mermaid__button" onClick={openFullscreen}>
-                <Maximize2 className="h-3.5 w-3.5" />
+              <Button type="button" variant="ghost" size="sm" leadingIcon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--maximize" />} onClick={openFullscreen}>
                 全屏查看
-              </button>
+              </Button>
             )}
           </div>
         )}
 
-        {/* Rendering status */}
         {status === 'rendering' && (
-          <div className="wiki-mermaid__status">图表渲染中...</div>
+          <LoadingState layout="compact" label="图表渲染中" />
         )}
 
-        {status === 'waiting' && (
-          <div className="wiki-mermaid__placeholder" style={{ minHeight: '6rem' }} />
-        )}
+        {status === 'waiting' && <Skeleton type="card" />}
 
-        {/* Success: show SVG */}
         {status === 'success' && (
           <div className="wiki-mermaid__viewport">
             <div className="wiki-mermaid__svg" dangerouslySetInnerHTML={{ __html: svg }} />
           </div>
         )}
 
-        {/* Error state */}
         {status === 'error' && (
-          <div className="wiki-mermaid__error">
-            <div className="wiki-mermaid__error-title">Mermaid 图表渲染失败</div>
-            {renderMode === 'preview' && errorMessage && (
-              <div className="wiki-mermaid__error-message">{errorMessage}</div>
-            )}
-            <div className="wiki-mermaid__error-message">请检查图表语法。</div>
-          </div>
+          <Alert
+            tone="danger"
+            layout="compact"
+            title="Mermaid 图表渲染失败"
+            description={renderMode === 'preview' && errorMessage ? errorMessage : '请检查图表语法。'}
+            showDismiss={false}
+          />
         )}
 
-        {/* Source code (shown when sourceOpen or error) */}
         {(sourceOpen || status === 'error') && (
           <pre className="wiki-mermaid__source">
             <code>{chart.trim()}</code>
@@ -238,18 +247,13 @@ export function WikiMermaid({
         )}
       </div>
 
-      {/* Fullscreen portal */}
       {fullscreenOpen && typeof document !== 'undefined' &&
         createPortal(
-          <div className="wiki-mermaid__fullscreen" onClick={closeFullscreen}>
-            <button
-              type="button"
-              className="wiki-mermaid__fullscreen-close"
-              onClick={closeFullscreen}
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="wiki-mermaid__fullscreen-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="wiki-mermaid__fullscreen" onClick={closeFullscreen} role="presentation">
+            <div className="wiki-mermaid__fullscreen-close">
+              <IconButton variant="outline" size="md" icon="close" aria-label="关闭全屏图表" onClick={closeFullscreen} />
+            </div>
+            <div className="wiki-mermaid__fullscreen-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Mermaid 图表全屏">
               <div className="wiki-mermaid__fullscreen-scroll">
                 <div dangerouslySetInnerHTML={{ __html: svg }} />
               </div>

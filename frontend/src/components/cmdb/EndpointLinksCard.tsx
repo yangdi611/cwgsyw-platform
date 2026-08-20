@@ -2,23 +2,9 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Cable, Plus, X } from 'lucide-react'
 import api from '@/lib/api'
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/design-system'
-import { toast } from 'sonner'
+import { Button, Input, NeutralDialog, Select } from '@/design-system/figma-neutral/components'
+import { toast } from '@/design-system/figma-neutral/toast'
 import { usePermission } from '@/hooks/usePermission'
 
 import { getApiErrorMessage } from '@/lib/api-error'
@@ -136,39 +122,36 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
   if (tableFields.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-v2-border bg-v2-surface overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-v2-border bg-v2-surface-soft">
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-v2-muted">
-          <Cable className="h-3.5 w-3.5" />
-          端口连接
-        </span>
+    <section className="cwgsyw-cmdb-instance-detail__utility">
+      <header className="cwgsyw-cmdb-instance-detail__utility-head">
+        <h3>端口连接</h3>
         {canWrite && (
-          <Button size="ui-sm" variant="outline" onClick={() => { setSrcFieldKey(tableFields[0]?.fieldKey ?? ''); setOpen(true) }}>
-            <Plus className="h-3.5 w-3.5 mr-1" />新建连接
+          <Button size="sm" variant="primary" onClick={() => { setSrcFieldKey(tableFields[0]?.fieldKey ?? ''); setOpen(true) }}>
+            新建连接
           </Button>
         )}
-      </div>
-      <div className="px-4 py-3">
+      </header>
+      <div className="cwgsyw-cmdb-instance-detail__utility-body">
         {(links ?? []).length === 0 ? (
-          <span className="text-sm text-v2-subtle">暂无端口连接</span>
+          <span className="cwgsyw-cmdb-instance-detail__utility-empty">暂无端口连接</span>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="cwgsyw-cmdb-instance-detail__utility-list">
             {(links ?? []).map((l) => {
               const isSrc = String(l.srcInstanceId) === String(instanceId)
               const localLabel = isSrc ? l.srcEndpointLabel ?? l.srcEndpointUid : l.dstEndpointLabel ?? l.dstEndpointUid
               const peerName = isSrc ? l.dstInstanceName : l.srcInstanceName
               const peerLabel = isSrc ? l.dstEndpointLabel ?? l.dstEndpointUid : l.srcEndpointLabel ?? l.srcEndpointUid
               return (
-                <li key={l.id} className="flex items-center justify-between text-sm">
-                  <span className="text-v2-fg">
-                    <span className="font-v2-mono text-xs px-1.5 py-0.5 rounded bg-v2-surface-soft border border-v2-border mr-1">{l.linkType}</span>
-                    {localLabel} <span className="text-v2-muted">↔</span> {peerName ?? `#${isSrc ? l.dstInstanceId : l.srcInstanceId}`}
-                    {peerLabel && <span className="text-v2-muted"> / {peerLabel}</span>}
+                <li key={l.id}>
+                  <span>
+                    <span className="cwgsyw-cmdb-instance-detail__link-type">{l.linkType}</span>
+                    {localLabel} <span className="cwgsyw-cmdb-instance-detail__link-separator">↔</span> {peerName ?? `#${isSrc ? l.dstInstanceId : l.srcInstanceId}`}
+                    {peerLabel && <span className="cwgsyw-cmdb-instance-detail__link-separator"> / {peerLabel}</span>}
                   </span>
                   {canWrite && (
-                    <button type="button" onClick={() => deleteMutation.mutate(l.id)} className="text-v2-danger hover:opacity-70" title="解除连接">
-                      <X className="h-4 w-4" />
-                    </button>
+                    <Button type="button" size="sm" variant="destructive" onClick={() => deleteMutation.mutate(l.id)} aria-label="解除连接">
+                      删除
+                    </Button>
                   )}
                 </li>
               )
@@ -177,104 +160,58 @@ export function EndpointLinksCard({ instanceId }: { instanceId: string }) {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>新建端口连接</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">连接类型</Label>
-              <Select value={linkType} onValueChange={(v) => setLinkType(v ?? 'net')}>
-                <SelectTrigger>
-                  <SelectValue>{(v: string) => LINK_TYPES.find((t) => t.value === v)?.label ?? v}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>{LINK_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">本端字段</Label>
-                <Select value={srcFieldKey} onValueChange={(v) => { setSrcFieldKey(v ?? ''); setSrcEndpointUid('') }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择端口表">
-                      {(v: string) => tableFields.find((f) => f.fieldKey === v)?.name ?? '选择端口表'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>{tableFields.map((f) => <SelectItem key={f.fieldKey} value={f.fieldKey}>{f.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">本端端口</Label>
-                <Select value={srcEndpointUid} onValueChange={(v) => setSrcEndpointUid(v ?? '')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择端口">
-                      {(v: string) => srcRows.find((r) => r.uid === v)?.label ?? '选择端口'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>{srcRows.map((r) => <SelectItem key={r.uid} value={r.uid}>{r.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">对端模型</Label>
-                <Input value={dstModel} onChange={(e) => setDstModel(e.target.value)} placeholder="net_switch / storage…" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">对端设备</Label>
-                <Input placeholder="搜索…" value={dstKeyword} onChange={(e) => setDstKeyword(e.target.value)} />
-              </div>
-            </div>
-            <Select value={dstId} onValueChange={(v) => { setDstId(v ?? ''); setDstFieldKey(''); setDstEndpointUid('') }}>
-              <SelectTrigger>
-                <SelectValue placeholder="选择对端设备">
-                  {(v: string) => {
-                    const d = (dstList ?? []).find((dd) => String(dd.id) === v)
-                    return d ? (d.name ?? `#${d.id}`) : '选择对端设备'
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>{(dstList ?? []).map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name ?? `#${d.id}`}</SelectItem>)}</SelectContent>
-            </Select>
-
-            {dstId && dstTableFields.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">对端字段（可选）</Label>
-                  <Select value={dstFieldKey} onValueChange={(v) => { setDstFieldKey(v ?? ''); setDstEndpointUid('') }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择端口表">
-                        {(v: string) => dstTableFields.find((f) => f.fieldKey === v)?.name ?? '选择端口表'}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>{dstTableFields.map((f) => <SelectItem key={f.fieldKey} value={f.fieldKey}>{f.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">对端端口（可选）</Label>
-                  <Select value={dstEndpointUid} onValueChange={(v) => setDstEndpointUid(v ?? '')}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择端口">
-                        {(v: string) => dstRows.find((r) => r.uid === v)?.label ?? '选择端口'}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>{dstRows.map((r) => <SelectItem key={r.uid} value={r.uid}>{r.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button size="default" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-              <Button size="default" variant="default" onClick={() => createMutation.mutate()} disabled={!srcFieldKey || !srcEndpointUid || !dstId || createMutation.isPending}>
-                建立连接
-              </Button>
-            </div>
+      <NeutralDialog open={open} onOpenChange={setOpen} title="新建端口连接">
+        <div className="cwgsyw-form cwgsyw-cmdb-instance-detail__dialog-form">
+          <Select size="sm" overlay
+            value={linkType}
+            options={LINK_TYPES}
+            onChange={(v) => setLinkType(v || 'net')}
+          />
+          <Select size="sm" overlay
+            value={srcFieldKey}
+            placeholder="本端字段"
+            options={tableFields.map((f) => ({ value: f.fieldKey, label: f.name }))}
+            onChange={(v) => { setSrcFieldKey(v); setSrcEndpointUid('') }}
+          />
+          <Select size="sm" overlay
+            value={srcEndpointUid}
+            placeholder="本端端口"
+            options={srcRows.map((r) => ({ value: r.uid, label: r.label }))}
+            onChange={setSrcEndpointUid}
+          />
+          <Input size="sm" value={dstModel} onChange={(e) => setDstModel(e.target.value)} placeholder="对端模型 net_switch / storage…" />
+          <Input size="sm" placeholder="搜索对端设备" value={dstKeyword} onChange={(e) => setDstKeyword(e.target.value)} />
+          <Select size="sm" overlay
+            value={dstId}
+            placeholder="选择对端设备"
+            options={(dstList ?? []).map((d) => ({ value: String(d.id), label: d.name ?? `#${d.id}` }))}
+            onChange={(v) => { setDstId(v); setDstFieldKey(''); setDstEndpointUid('') }}
+          />
+          {dstId && dstTableFields.length > 0 ? (
+            <>
+              <Select size="sm" overlay
+                value={dstFieldKey}
+                placeholder="对端字段（可选）"
+                options={dstTableFields.map((f) => ({ value: f.fieldKey, label: f.name }))}
+                onChange={(v) => { setDstFieldKey(v); setDstEndpointUid('') }}
+              />
+              <Select size="sm" overlay
+                value={dstEndpointUid}
+                placeholder="对端端口（可选）"
+                options={dstRows.map((r) => ({ value: r.uid, label: r.label }))}
+                onChange={setDstEndpointUid}
+              />
+            </>
+          ) : null}
+          <div className="cwgsyw-inline-controls">
+            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+            <Button type="button" size="sm" disabled={!srcFieldKey || !srcEndpointUid || !dstId || createMutation.isPending} onClick={() => createMutation.mutate()}>
+              建立连接
+            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      </NeutralDialog>
+    </section>
   )
 }
 

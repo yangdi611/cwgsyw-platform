@@ -11,7 +11,9 @@
 | 在新任务中恢复 | `TASK-GOAL-PROMPT.md` 的“续跑 Prompt” |
 | 只检查并自动修正视觉 | `ADAPTIVE-VISUAL-QA-PROMPT.md` 的“自适应视觉闭环 Prompt” |
 | 只审查、不修改 | `TASK-GOAL-PROMPT.md` 的“只做 Review Prompt” |
-| 开始未来 React 重构 | 先读 `FORMAL-ASSET-API-MANIFEST.md` 和 `FIGMA-TO-REACT-IMPLEMENTATION-CONTRACT.md`，再使用 `FRONTEND-REFACTOR-EXECUTION-PROMPT.md` |
+| 开始 React 实施 / Goal 一镜到底 | 使用 `../goal-prompts/SHORT-GOAL-PROMPT.md`；完整纪律在 `../goal-prompts/LONG-GOAL-PROMPT.md`。不要用本文的 Figma 设计 Prompt |
+
+> 2026-08-14 用户授权：后续 React 实施 Goal 不要做视觉审计。下面的自适应视觉 Prompt 仅在用户撤回该例外后使用。
 
 ## 2. Figma 设计执行
 
@@ -42,16 +44,17 @@
 对 currentPointer 对应组件执行自适应视觉闭环。检查组件单体、同族组合和代表页面三个层级；不合理就直接修正，直到满足门禁，再更新 STATUS.md。
 ```
 
-## 4. React 重构入口
+## 4. React 实施入口
 
-React 重构是独立交付流程：
+React 实施是独立交付流程，使用 Goal Prompt，不使用上面的 Figma 设计 Prompt。
 
-1. 获取真实任务号并满足当时仓库 Definition of Ready。
-2. 完整读取 `FORMAL-ASSET-API-MANIFEST.md` 和 `FIGMA-TO-REACT-IMPLEMENTATION-CONTRACT.md`。
-3. 开始每个切片前，以 Node ID + 完整名称 + API 指纹回读实时 Figma；drift 未分类时停止实现。
-4. 使用 `FRONTEND-REFACTOR-EXECUTION-PROMPT.md` 的主执行 Prompt。
-5. 一次只实施一个垂直切片，并完成 Light / Dark × 1440 / 1024 / 390、交互、A11y 和消费者回归。
+1. 当前任务是 YAN-91，活树在 `/Users/byron/AI/worktrees/YAN-71`。不要退回 YAN-11。
+2. 把 `docs/migration/figma-neutral-frontend/goal-prompts/SHORT-GOAL-PROMPT.md` 的「短 Goal」贴进**新的** Codex Goal。
+3. AI 必须先读同目录 `LONG-GOAL-PROMPT.md`，以及 `FORMAL-ASSET-API-MANIFEST.md` 和 `FIGMA-TO-REACT-IMPLEMENTATION-CONTRACT.md`。
+4. 从迁移 `STATUS.md` 的 `currentPointer` 恢复。M0-M8 已落地，不要重做页面。
+5. 视觉审计保持 WAIVED，除非用户撤回。布局明显坏掉仍按 Token -> Component -> Composition -> Page 回修。
 6. 当前代码只提供功能、数据、权限和业务状态清单；不得作为新视觉参考。
+7. `FRONTEND-REFACTOR-EXECUTION-PROMPT.md` 仍可作补充规则，但启动和续跑以 `goal-prompts/` 为准。
 
 ## 5. Figma 完成定义
 
