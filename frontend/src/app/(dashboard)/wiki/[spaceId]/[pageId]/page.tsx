@@ -14,7 +14,7 @@ import { WikiVersionsPanel } from '@/components/wiki/WikiVersionsPanel'
 import { ResourceAccessDialog } from '@/components/authorization/ResourceAccessDialog'
 import { WikiCommentsDrawer } from '@/components/wiki/WikiCommentsDrawer'
 import { WikiMarkdown } from '@/components/wiki/WikiMarkdown'
-import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
+import { WikiShellToggle } from '@/components/wiki/WikiShellChrome'
 import type { PageResult, WikiComment, WikiPage, WikiPageTree, WikiSpace, WikiStatus } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
@@ -22,7 +22,6 @@ import {
   DetailDrawerPage,
   EmptyState,
   LoadingState,
-  PageHeader,
   StatusBadge,
 } from '@/design-system/figma-neutral/components'
 
@@ -152,52 +151,15 @@ export default function WikiPageReader() {
 
   return (
     <>
-      <WikiShellHeader>
-          <PageHeader
-            showEyebrow={false}
-            showBreadcrumb={false}
-            title={page.title || currentSpace?.name || '知识页面'}
-            subtitle={currentSpace?.name}
-            status={<StatusBadge size="sm" label={meta.label} status={meta.tone} />}
-            actions={
-              <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
-                {canWrite ? (
-                  <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}/edit`)}>
-                    编辑
-                  </Button>
-                ) : null}
-                {canPublish ? (
-                  <Button type="button" size="sm" disabled={publishMutation.isPending || page.status === 'published'} onClick={() => publishMutation.mutate()}>
-                    发布
-                  </Button>
-                ) : canWrite && !readOnly ? (
-                  <Button type="button" size="sm" disabled={submitMutation.isPending || page.status === 'review'} onClick={() => submitMutation.mutate()}>
-                    提交审批
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    wikiApi.exportPage(pid, `${page.title}.md`).catch(() => toast.error('导出失败'))
-                  }}
-                >
-                  导出
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setCommentsOpen(true)}>
-                  评论 {commentsFirstPage?.total ?? 0}
-                </Button>
-              </div>
-            }
-          />
-      </WikiShellHeader>
       <DetailDrawerPage
         embedded
         className="cwgsyw-wiki cwgsyw-wiki-page"
         content={
           <section className="cwgsyw-devices-panel">
-            <header className="cwgsyw-devices-panel__head">正文</header>
+            <header className="cwgsyw-devices-panel__head cwgsyw-wiki-page__body-head">
+              <WikiShellToggle />
+              正文
+            </header>
             <div className="cwgsyw-devices-panel__body">
             <div data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'} className="wmde-markdown cwgsyw-wiki-page__markdown max-w-none !bg-transparent">
               {page.content ? (
@@ -238,11 +200,40 @@ export default function WikiPageReader() {
                   <dd>v{page.currentVersion}</dd>
                 </div>
               </dl>
-              {canManageAcl ? (
-                <Button type="button" variant="secondary" size="sm" onClick={() => setAclOpen(true)}>
-                  权限设置{page.aclCustom ? '（自定义）' : ''}
+              <div className="cwgsyw-inline-controls cwgsyw-wiki-page__info-actions">
+                {canWrite ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}/edit`)}>
+                    编辑
+                  </Button>
+                ) : null}
+                {canPublish ? (
+                  <Button type="button" size="sm" disabled={publishMutation.isPending || page.status === 'published'} onClick={() => publishMutation.mutate()}>
+                    发布
+                  </Button>
+                ) : canWrite && !readOnly ? (
+                  <Button type="button" size="sm" disabled={submitMutation.isPending || page.status === 'review'} onClick={() => submitMutation.mutate()}>
+                    提交审批
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    wikiApi.exportPage(pid, `${page.title}.md`).catch(() => toast.error('导出失败'))
+                  }}
+                >
+                  导出
                 </Button>
-              ) : null}
+                <Button type="button" variant="secondary" size="sm" onClick={() => setCommentsOpen(true)}>
+                  评论 {commentsFirstPage?.total ?? 0}
+                </Button>
+                {canManageAcl ? (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setAclOpen(true)}>
+                    权限设置{page.aclCustom ? '（自定义）' : ''}
+                  </Button>
+                ) : null}
+              </div>
               </div>
             </section>
             <WikiBacklinksPanel pageId={pid} />

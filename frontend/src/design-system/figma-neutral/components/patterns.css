@@ -6313,6 +6313,8 @@ button.cwgsyw-stack-list__item:focus-visible {
 }
 
 .cwgsyw-preview {
+  display: block;
+  width: 100%;
   min-height: 28rem;
   overflow: auto;
   border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
@@ -7889,6 +7891,38 @@ button.cwgsyw-stack-list__item:focus-visible {
 .cwgsyw-files .cwgsyw-page-header__row { align-items: center; }
 .cwgsyw-files .cwgsyw-page-header__row > .cwgsyw-files__header-actions {
   margin-left: auto;
+  flex: 0 0 auto;
+}
+.cwgsyw-files-preview .cwgsyw-page-header__row {
+  flex-wrap: nowrap;
+}
+.cwgsyw-files-preview .cwgsyw-page-header h1 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwgsyw-files-preview.cwgsyw-page {
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: calc(100dvh - 128px);
+  height: calc(100dvh - 128px);
+}
+.cwgsyw-files-preview .cwgsyw-page-header {
+  min-width: 0;
+}
+.cwgsyw-files-preview .cwgsyw-page__grid,
+.cwgsyw-files-preview .cwgsyw-page__grid > section {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+}
+.cwgsyw-files-preview .cwgsyw-preview {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
 }
 .cwgsyw-files .cwgsyw-split--nav,
 .cwgsyw-files .cwgsyw-split__pane,
@@ -7902,6 +7936,12 @@ button.cwgsyw-stack-list__item:focus-visible {
   padding-block: 1px;
   padding-right: 4px;
   overflow: hidden;
+  background: transparent;
+}
+.cwgsyw-files .cwgsyw-tree-item:hover,
+.cwgsyw-files .cwgsyw-tree-item[data-selected="true"],
+.cwgsyw-files .cwgsyw-tree-item[data-selected="true"]:hover {
+  background: var(--cwgsyw-bg-surface-hover);
 }
 .cwgsyw-files .cwgsyw-files-tree__root {
   justify-content: flex-start;
@@ -7911,6 +7951,19 @@ button.cwgsyw-stack-list__item:focus-visible {
   flex: 1 1 0;
   min-width: 0;
   max-width: 100%;
+}
+.cwgsyw-files .cwgsyw-files-tree__name,
+.cwgsyw-files .cwgsyw-files-tree__name:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-files-tree__name:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-files-tree__root,
+.cwgsyw-files .cwgsyw-files-tree__root:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-files-tree__root:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-tree-item .cwgsyw-icon-btn,
+.cwgsyw-files .cwgsyw-tree-item .cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-tree-item .cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-files .cwgsyw-tree-item .cwgsyw-icon-btn[aria-expanded="true"] {
+  background: transparent;
+  box-shadow: none;
 }
 .cwgsyw-files .cwgsyw-files-tree__name {
   flex: 1 1 0;
@@ -7941,7 +7994,7 @@ button.cwgsyw-stack-list__item:focus-visible {
   background: var(--cwgsyw-bg-surface-hover);
 }
 .cwgsyw-files .cwgsyw-tree-item[data-selected="true"] .cwgsyw-tree-item__actions {
-  background: var(--cwgsyw-bg-surface-selected);
+  background: var(--cwgsyw-bg-surface-hover);
 }
 .cwgsyw-files .cwgsyw-tree-item:hover .cwgsyw-tree-item__actions,
 .cwgsyw-files .cwgsyw-tree-item:focus-within .cwgsyw-tree-item__actions {
@@ -8105,6 +8158,92 @@ button.cwgsyw-stack-list__item:focus-visible {
   line-height: 20px;
 }
 .cwgsyw-wiki-page__aside { display: flex; flex-direction: column; gap: 12px; }
+.cwgsyw-wiki-page__info-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cwgsyw-wiki-page__body-head {
+  justify-content: flex-start;
+}
+.cwgsyw-wiki-page__body-head .cwgsyw-wiki-shell__toggle-slot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.cwgsyw-wiki-page__body-head .cwgsyw-wiki-shell__toggle,
+.cwgsyw-wiki-page__body-head .cwgsyw-wiki-shell__toggle.cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-page__body-head .cwgsyw-wiki-shell__toggle.cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]) {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  background: transparent;
+  box-shadow: none;
+}
+.cwgsyw-wiki-shell__main:has(.cwgsyw-wiki-edit) {
+  overflow: hidden;
+}
+.cwgsyw-wiki-edit {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.cwgsyw-wiki-edit__head {
+  justify-content: space-between;
+}
+.cwgsyw-wiki-edit__head-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.cwgsyw-wiki-edit__head .cwgsyw-wiki-shell__toggle,
+.cwgsyw-wiki-edit__head .cwgsyw-wiki-shell__toggle.cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-edit__head .cwgsyw-wiki-shell__toggle.cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]) {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  background: transparent;
+  box-shadow: none;
+}
+.cwgsyw-wiki-edit__head .cwgsyw-wiki__header-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.cwgsyw-wiki-edit__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 8px;
+  padding: 12px;
+}
+.cwgsyw-wiki-edit__title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cwgsyw-wiki-edit__status {
+  margin: 0;
+  color: var(--cwgsyw-text-tertiary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+.cwgsyw-wiki-edit .wiki-editor {
+  border: 1px solid var(--cwgsyw-border-default);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cwgsyw-wiki-page__info-actions .cwgsyw-btn {
+  flex: 1 1 calc(50% - 8px);
+}
+.cwgsyw-wiki-shell__header:not(:has(.cwgsyw-page-header)) {
+  min-height: 0;
+  margin-bottom: 0;
+}
 .cwgsyw-wiki-version {
   display: flex;
   align-items: flex-start;
@@ -8226,7 +8365,7 @@ button.cwgsyw-stack-list__item:focus-visible {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px 16px;
+  padding: 0 4px 16px;
 }
 .cwgsyw-wiki-tree__row {
   display: flex;
@@ -8235,9 +8374,23 @@ button.cwgsyw-stack-list__item:focus-visible {
   min-width: 0;
   min-height: 32px;
   border-radius: 4px;
-  overflow: hidden;
 }
-.cwgsyw-wiki-tree__row.is-active {
+.cwgsyw-wiki-tree__chevron-btn.cwgsyw-icon-btn,
+.cwgsyw-wiki-tree__chevron-btn.cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-tree__chevron-btn.cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]) {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+.cwgsyw-wiki-tree__chevron-spacer {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+.cwgsyw-wiki-tree__row.is-active,
+.cwgsyw-wiki-tree__row.is-active:hover {
   background: var(--cwgsyw-bg-surface-hover);
 }
 .cwgsyw-wiki-tree__row:hover {
@@ -8251,23 +8404,48 @@ button.cwgsyw-stack-list__item:focus-visible {
   background: var(--cwgsyw-bg-surface-hover);
 }
 .cwgsyw-wiki-tree__row:hover .cwgsyw-wiki-tree__row-actions,
-.cwgsyw-wiki-tree__row:focus-within .cwgsyw-wiki-tree__row-actions {
+.cwgsyw-wiki-tree__row:focus-within .cwgsyw-wiki-tree__row-actions,
+.cwgsyw-wiki-tree__row-actions:has([aria-expanded="true"]) {
   opacity: 1;
   pointer-events: auto;
 }
-.cwgsyw-wiki-tree__row-actions .cwgsyw-icon-btn {
+.cwgsyw-wiki-tree__row-actions .cwgsyw-icon-btn,
+.cwgsyw-wiki-tree__row-actions .cwgsyw-icon-btn--ghost:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-tree__row-actions .cwgsyw-icon-btn--ghost:active:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-tree__row-actions .cwgsyw-icon-btn[aria-expanded="true"] {
   width: 24px;
   height: 24px;
   min-width: 24px;
+  background: transparent;
+  box-shadow: none;
+}
+.cwgsyw-wiki-tree__more-icon {
+  background: currentColor;
+  -webkit-mask-image: url('/figma-icons/cmdb-admin-more-horizontal.svg');
+  mask-image: url('/figma-icons/cmdb-admin-more-horizontal.svg');
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 75% 16.67%;
+  mask-size: 75% 16.67%;
+}
+.cwgsyw-wiki-tree__title,
+.cwgsyw-wiki-tree__title:hover:not(:disabled):not([aria-busy="true"]),
+.cwgsyw-wiki-tree__title:active:not(:disabled):not([aria-busy="true"]) {
+  background: transparent;
 }
 .cwgsyw-wiki-tree__title {
   flex: 1 1 0;
   justify-content: flex-start;
   min-width: 0;
   height: 28px;
-  padding-inline: 4px;
+  padding-inline: 2px 4px;
   overflow: hidden;
   font-weight: 400;
+}
+.cwgsyw-wiki-tree__row.is-active .cwgsyw-wiki-tree__title {
+  font-weight: 500;
 }
 .cwgsyw-wiki-tree__title > span:last-child {
   min-width: 0;
@@ -8345,7 +8523,7 @@ button.cwgsyw-stack-list__item:focus-visible {
 
 .cwgsyw-wiki-shell {
   display: grid;
-  grid-template-columns: 260px 32px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   align-items: stretch;
@@ -8353,15 +8531,56 @@ button.cwgsyw-stack-list__item:focus-visible {
   height: calc(100vh - 120px);
 }
 .cwgsyw-wiki-shell[data-collapsed="true"] {
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+.cwgsyw-wiki-shell__nav {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--cwgsyw-border-default);
+  border-radius: 6px;
+  background: var(--cwgsyw-bg-surface);
+  overflow: hidden;
 }
 .cwgsyw-wiki-shell__header {
-  grid-column: 1 / -1;
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  align-items: flex-start;
+  gap: var(--cwgsyw-space-2);
   min-width: 0;
 }
+.cwgsyw-wiki-shell[data-collapsed="true"] .cwgsyw-wiki-shell__header,
+.cwgsyw-wiki-shell[data-collapsed="true"] .cwgsyw-wiki-shell__main {
+  grid-column: 1;
+}
 .cwgsyw-wiki-shell__header:empty { display: none; }
+.cwgsyw-wiki-shell:has(.cwgsyw-wiki-shell__header:empty) {
+  grid-template-rows: minmax(0, 1fr);
+}
+.cwgsyw-wiki-shell:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__main {
+  grid-row: 1;
+}
+.cwgsyw-wiki-shell[data-collapsed="true"]:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__main {
+  grid-column: 1;
+  grid-row: 1;
+}
 .cwgsyw-wiki-shell__header .cwgsyw-page-header {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
   gap: var(--cwgsyw-space-2);
+}
+.cwgsyw-wiki-shell__header .cwgsyw-page-header__row {
+  width: 100%;
+  min-width: 0;
+}
+.cwgsyw-wiki-shell__header .cwgsyw-page-header__row > .cwgsyw-wiki__header-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 .cwgsyw-wiki-shell__header .cwgsyw-page-header h1 {
   max-width: min(760px, 72vw);
@@ -8371,16 +8590,6 @@ button.cwgsyw-stack-list__item:focus-visible {
   line-height: 24px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.cwgsyw-wiki-shell__nav {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  border: 1px solid var(--cwgsyw-border-default);
-  border-radius: 6px;
-  background: var(--cwgsyw-bg-surface);
-  overflow: hidden;
 }
 .cwgsyw-wiki-shell__nav .cwgsyw-wiki-tree {
   min-height: 0;
@@ -8393,8 +8602,18 @@ button.cwgsyw-stack-list__item:focus-visible {
   padding: 8px 12px 12px;
   border-top: 1px solid var(--cwgsyw-border-subtle);
 }
-.cwgsyw-wiki-shell__toggle { align-self: start; }
+.cwgsyw-wiki-shell__toggle-slot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.cwgsyw-wiki-shell__toggle {
+  flex: 0 0 auto;
+  align-self: center;
+}
 .cwgsyw-wiki-shell__main {
+  grid-column: 2;
+  grid-row: 2;
   min-width: 0;
   min-height: 0;
   overflow: auto;
@@ -8403,13 +8622,41 @@ button.cwgsyw-stack-list__item:focus-visible {
   .cwgsyw-wiki-shell,
   .cwgsyw-wiki-shell[data-collapsed="true"] {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     height: auto;
     min-height: 0;
   }
+  .cwgsyw-wiki-shell__header {
+    grid-column: 1;
+    grid-row: 1;
+  }
   .cwgsyw-wiki-shell__nav {
+    grid-column: 1;
+    grid-row: 2;
     max-height: 40vh;
   }
-  .cwgsyw-wiki-shell__toggle { position: sticky; top: 8px; z-index: 2; }
+  .cwgsyw-wiki-shell__main {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .cwgsyw-wiki-shell:has(.cwgsyw-wiki-shell__header:empty),
+  .cwgsyw-wiki-shell[data-collapsed="true"]:has(.cwgsyw-wiki-shell__header:empty) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .cwgsyw-wiki-shell:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__nav {
+    grid-row: 1;
+  }
+  .cwgsyw-wiki-shell:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__main,
+  .cwgsyw-wiki-shell[data-collapsed="true"]:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .cwgsyw-wiki-shell[data-collapsed="true"]:has(.cwgsyw-wiki-shell__header:empty) {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .cwgsyw-wiki-shell[data-collapsed="true"]:has(.cwgsyw-wiki-shell__header:empty) .cwgsyw-wiki-shell__main {
+    grid-row: 1;
+  }
 }
 
 .cwgsyw-dialog.cwgsyw-resource-access-dialog {

@@ -28,12 +28,12 @@ export interface Crumb {
   hrefTemplate?: string
 }
 
-/** 模块根面包屑（带侧栏同款图标，宝蓝高亮）。无落地页的分组不带 href；任务中心落地到任务列表，身份与权限落地到用户管理。 */
+/** 模块根面包屑（带侧栏同款图标，宝蓝高亮）。无落地页的分组不带 href；任务中心落地到任务列表，身份与权限落地到用户管理，资源管理落地到设备密码库。 */
 const ROOT = {
   dashboard: { label: '工作台', href: '/', icon: LayoutDashboard },
   cmdb: { label: 'CMDB', href: '/cmdb', icon: ServerCog },
   changedoc: { label: '变更文档', href: '/change-docs', icon: FileText },
-  resource: { label: '资源管理', icon: FolderOpen },
+  resource: { label: '资源管理', href: '/devices', icon: FolderOpen },
   wiki: { label: '知识库', href: '/wiki', icon: BookOpen },
   work: { label: '我的工作', href: '/work', icon: BriefcaseBusiness },
   opsCalendar: { label: '运维日历', href: '/ops-calendar', icon: CalendarDays },

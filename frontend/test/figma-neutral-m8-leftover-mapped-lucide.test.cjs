@@ -5,12 +5,14 @@ const fs = require('node:fs')
 const path = require('node:path')
 const test = require('node:test')
 
-test('wiki tree move actions use Neutral chevron IconButtons', () => {
+test('wiki tree move actions use Neutral overflow menu items', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../src/components/wiki/WikiTreeSidebar.tsx'), 'utf8')
   assert.doesNotMatch(source, /ArrowUp|ArrowDown|Trash2/)
-  assert.match(source, /icon="chevron-up"/)
-  assert.match(source, /icon="chevron-down"/)
-  assert.match(source, /icon="trash"/)
+  assert.doesNotMatch(source, /icon="chevron-up"|icon="chevron-down"|icon="trash"/)
+  assert.match(source, /label="上移"/)
+  assert.match(source, /label="下移"/)
+  assert.match(source, /label="删除"/)
+  assert.match(source, /cwgsyw-wiki-tree__more-icon/)
 })
 
 test('spatial editor chrome uses verified Figma icon assets', () => {

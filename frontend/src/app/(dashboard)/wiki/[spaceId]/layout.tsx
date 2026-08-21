@@ -5,9 +5,9 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
 import { WikiTreeSidebar } from '@/components/wiki/WikiTreeSidebar'
-import { WikiShellHeaderProvider } from '@/components/wiki/WikiShellChrome'
+import { WikiShellHeaderProvider, WikiShellToggle } from '@/components/wiki/WikiShellChrome'
 import '@/design-system/figma-neutral/index.css'
-import { Button, IconButton } from '@/design-system/figma-neutral/components'
+import { Button } from '@/design-system/figma-neutral/components'
 
 export default function WikiSpaceLayout({ children }: { children: React.ReactNode }) {
   const { spaceId } = useParams<{ spaceId: string }>()
@@ -17,6 +17,7 @@ export default function WikiSpaceLayout({ children }: { children: React.ReactNod
   const [headerHost, setHeaderHost] = useState<HTMLDivElement | null>(null)
   const sid = Number(spaceId)
   const isSpaceHome = pathname === `/wiki/${spaceId}`
+  const isWikiDocumentRoute = /^\/wiki\/[^/]+\/\d+(?:\/edit)?$/.test(pathname)
 
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 767px)')
@@ -27,9 +28,8 @@ export default function WikiSpaceLayout({ children }: { children: React.ReactNod
   }, [])
 
   return (
-    <WikiShellHeaderProvider host={headerHost}>
+    <WikiShellHeaderProvider host={headerHost} collapsed={collapsed} setCollapsed={setCollapsed}>
     <div className="cwgsyw-wiki-shell" data-collapsed={collapsed ? 'true' : 'false'} data-home={isSpaceHome ? 'true' : 'false'}>
-      <div className="cwgsyw-wiki-shell__header" ref={setHeaderHost} />
       {!collapsed ? (
         <aside className="cwgsyw-wiki-shell__nav">
           <WikiTreeSidebar spaceId={sid} />
@@ -50,15 +50,9 @@ export default function WikiSpaceLayout({ children }: { children: React.ReactNod
           </div>
         </aside>
       ) : null}
-      <IconButton
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="cwgsyw-wiki-shell__toggle"
-        icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-files-tree__chevron${collapsed ? '' : ' is-open'}`} />}
-        aria-label={collapsed ? '展开目录' : '收起目录'}
-        onClick={() => setCollapsed((value) => !value)}
-      />
+      <div className="cwgsyw-wiki-shell__header" ref={setHeaderHost}>
+        {isWikiDocumentRoute ? null : <WikiShellToggle />}
+      </div>
       <div className="cwgsyw-wiki-shell__main">{children}</div>
     </div>
     </WikiShellHeaderProvider>

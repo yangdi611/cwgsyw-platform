@@ -13,17 +13,85 @@
 .wiki-editor .w-md-editor-toolbar {
   background-color: var(--cwgsyw-bg-surface-subtle);
   border-bottom: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  color: var(--cwgsyw-text-secondary);
+  font-weight: 400;
   padding: var(--cwgsyw-space-1) var(--cwgsyw-space-2);
 }
 
 .wiki-editor .w-md-editor-toolbar ul > li > button {
   height: var(--cwgsyw-control-height-sm);
   min-width: var(--cwgsyw-control-height-sm);
+  color: var(--cwgsyw-text-secondary);
+  font-weight: 400;
 }
 
 .wiki-editor .w-md-editor-toolbar svg {
-  width: var(--cwgsyw-control-icon-md) !important;
-  height: var(--cwgsyw-control-icon-md) !important;
+  width: var(--cwgsyw-control-icon-sm) !important;
+  height: var(--cwgsyw-control-icon-sm) !important;
+}
+
+.wiki-editor .w-md-editor-toolbar button:has(.cwgsyw-wiki-editor__toolbar-icon) svg {
+  display: none;
+}
+
+.cwgsyw-wiki-editor__toolbar-icon {
+  display: block;
+  width: var(--cwgsyw-control-icon-sm);
+  height: var(--cwgsyw-control-icon-sm);
+  background: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.cwgsyw-wiki-editor__toolbar-icon--bold { -webkit-mask-image: url('/figma-icons/wiki-editor-bold.svg'); mask-image: url('/figma-icons/wiki-editor-bold.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--italic { -webkit-mask-image: url('/figma-icons/wiki-editor-italic.svg'); mask-image: url('/figma-icons/wiki-editor-italic.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--strikethrough { -webkit-mask-image: url('/figma-icons/wiki-editor-strikethrough.svg'); mask-image: url('/figma-icons/wiki-editor-strikethrough.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--minus { -webkit-mask-image: url('/figma-icons/wiki-editor-minus.svg'); mask-image: url('/figma-icons/wiki-editor-minus.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading { -webkit-mask-image: url('/figma-icons/wiki-editor-heading.svg'); mask-image: url('/figma-icons/wiki-editor-heading.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-1 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-1.svg'); mask-image: url('/figma-icons/wiki-editor-heading-1.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-2 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-2.svg'); mask-image: url('/figma-icons/wiki-editor-heading-2.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-3 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-3.svg'); mask-image: url('/figma-icons/wiki-editor-heading-3.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-4 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-4.svg'); mask-image: url('/figma-icons/wiki-editor-heading-4.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-5 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-5.svg'); mask-image: url('/figma-icons/wiki-editor-heading-5.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--heading-6 { -webkit-mask-image: url('/figma-icons/wiki-editor-heading-6.svg'); mask-image: url('/figma-icons/wiki-editor-heading-6.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--link { -webkit-mask-image: url('/figma-icons/wiki-editor-link.svg'); mask-image: url('/figma-icons/wiki-editor-link.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--quote { -webkit-mask-image: url('/figma-icons/wiki-editor-quote.svg'); mask-image: url('/figma-icons/wiki-editor-quote.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--code { -webkit-mask-image: url('/figma-icons/wiki-editor-code.svg'); mask-image: url('/figma-icons/wiki-editor-code.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--code-2 { -webkit-mask-image: url('/figma-icons/wiki-editor-code-2.svg'); mask-image: url('/figma-icons/wiki-editor-code-2.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--message-square { -webkit-mask-image: url('/figma-icons/wiki-editor-message-square.svg'); mask-image: url('/figma-icons/wiki-editor-message-square.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--image { -webkit-mask-image: url('/figma-icons/wiki-editor-image.svg'); mask-image: url('/figma-icons/wiki-editor-image.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--table { -webkit-mask-image: url('/figma-icons/wiki-editor-table.svg'); mask-image: url('/figma-icons/wiki-editor-table.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--list { -webkit-mask-image: url('/figma-icons/wiki-editor-list.svg'); mask-image: url('/figma-icons/wiki-editor-list.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--list-ordered { -webkit-mask-image: url('/figma-icons/wiki-editor-list-ordered.svg'); mask-image: url('/figma-icons/wiki-editor-list-ordered.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--list-checks { -webkit-mask-image: url('/figma-icons/wiki-editor-list-checks.svg'); mask-image: url('/figma-icons/wiki-editor-list-checks.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--help { -webkit-mask-image: url('/figma-icons/wiki-editor-help.svg'); mask-image: url('/figma-icons/wiki-editor-help.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--file-code { -webkit-mask-image: url('/figma-icons/wiki-editor-file-code.svg'); mask-image: url('/figma-icons/wiki-editor-file-code.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--columns { -webkit-mask-image: url('/figma-icons/wiki-editor-columns.svg'); mask-image: url('/figma-icons/wiki-editor-columns.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--eye { -webkit-mask-image: url('/figma-icons/wiki-editor-eye.svg'); mask-image: url('/figma-icons/wiki-editor-eye.svg'); }
+.cwgsyw-wiki-editor__toolbar-icon--maximize-2 { -webkit-mask-image: url('/figma-icons/wiki-editor-maximize-2.svg'); mask-image: url('/figma-icons/wiki-editor-maximize-2.svg'); }
+
+.wiki-editor .w-md-editor-toolbar-child {
+  overflow: hidden;
+  border: var(--cwgsyw-border-width-default) solid var(--cwgsyw-border-default);
+  border-radius: 6px;
+  background-color: var(--cwgsyw-bg-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+.wiki-editor .w-md-editor-toolbar-child .w-md-editor-toolbar {
+  background-color: var(--cwgsyw-bg-surface);
+  border-bottom: 0;
+  padding: var(--cwgsyw-space-1);
+}
+
+.wiki-editor .w-md-editor-toolbar-child .w-md-editor-toolbar ul > li button {
+  width: var(--cwgsyw-control-height-sm);
+  min-width: var(--cwgsyw-control-height-sm);
+  height: var(--cwgsyw-control-height-sm);
 }
 
 .wiki-editor .w-md-editor-toolbar li > button:hover,
