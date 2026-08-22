@@ -51,7 +51,7 @@ export default function WikiSpaceLayout({ children }: { children: React.ReactNod
         </aside>
       ) : null}
       <div className="cwgsyw-wiki-shell__header" ref={setHeaderHost}>
-        {isWikiDocumentRoute ? null : <WikiShellToggle />}
+        {isWikiDocumentRoute || isSpaceHome ? null : <WikiShellToggle />}
       </div>
       <div className="cwgsyw-wiki-shell__main">{children}</div>
     </div>

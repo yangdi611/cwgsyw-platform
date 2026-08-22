@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { wikiApi } from '@/lib/wiki-api'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
-import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
+import { WikiShellHeader, WikiShellToggle } from '@/components/wiki/WikiShellChrome'
 import type { WikiPageTree, WikiStatus } from '@/types/wiki'
 import '@/design-system/figma-neutral/index.css'
 import {
@@ -61,8 +61,8 @@ export default function WikiSpaceHomePage() {
         <PageHeader
           showEyebrow={false}
           showBreadcrumb={false}
+          showSubtitle={false}
           title={space?.name ?? '知识空间'}
-          subtitle={space?.description || '欢迎来到知识空间，从左侧目录开始浏览或创建页面。'}
           actions={
             <Button className="cwgsyw-wiki__header-actions" type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/graph`)}>
               知识图谱
@@ -75,7 +75,12 @@ export default function WikiSpaceHomePage() {
       className="cwgsyw-wiki cwgsyw-wiki-space-home"
       content={
         <section className="cwgsyw-devices-panel">
-          <header className="cwgsyw-devices-panel__head">最近更新</header>
+          <header className="cwgsyw-devices-panel__head">
+            <span className="cwgsyw-wiki-space-home__head-start">
+              <WikiShellToggle />
+              最近更新
+            </span>
+          </header>
           <div className="cwgsyw-devices-panel__body">
           {pages.length === 0 ? (
             <div className="cwgsyw-neutral-empty">

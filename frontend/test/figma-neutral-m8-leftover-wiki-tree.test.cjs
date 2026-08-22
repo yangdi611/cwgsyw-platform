@@ -72,7 +72,16 @@ test('wiki space layout collapse toggle lives in the content header with a left 
   assert.doesNotMatch(layout, /cwgsyw-files-tree__chevron/)
   assert.match(page, /WikiShellToggle/)
   assert.match(page, /cwgsyw-wiki-page__body-head/)
+  const spaceHome = fs.readFileSync(
+    path.resolve(__dirname, '../src/app/(dashboard)/wiki/[spaceId]/page.tsx'),
+    'utf8',
+  )
+  assert.match(spaceHome, /WikiShellToggle/)
+  assert.match(spaceHome, /cwgsyw-wiki-space-home__head-start/)
+  assert.match(layout, /isWikiDocumentRoute \|\| isSpaceHome/)
   assert.match(css, /\.cwgsyw-wiki-shell \{[\s\S]{0,180}grid-template-columns: 260px minmax\(0, 1fr\)/)
   assert.doesNotMatch(css, /grid-template-columns: 260px 32px minmax\(0, 1fr\)/)
+  assert.match(css, /\.cwgsyw-wiki-shell__header \{[\s\S]{0,160}grid-column: 1 \/ -1/)
+  assert.match(css, /\.cwgsyw-wiki-shell__nav \{[\s\S]{0,180}grid-row: 2/)
   assert.match(css, /\.cwgsyw-wiki-page__body-head \{[\s\S]{0,80}justify-content: flex-start/)
 })
