@@ -10,7 +10,6 @@ import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
   Alert,
-  Breadcrumb,
   Button,
   EmptyState,
   ErrorState,
@@ -18,6 +17,7 @@ import {
   LoadingState,
   NeutralAlertDialog,
   NeutralDialog,
+  NeutralTooltip,
   OverlayDestructivePage,
   PageHeader,
   Pagination,
@@ -188,13 +188,13 @@ export default function BackupPage() {
         embedded
         header={
           <PageHeader
-            eyebrow="系统管理"
+            showEyebrow={false}
+            showBreadcrumb={false}
             title="备份与恢复"
             subtitle="备份 PostgreSQL 数据库和 MinIO 文件数据，可随时下载或恢复到指定备份点。超过 30 天的备份自动删除。"
-            breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '备份与恢复' }]} />}
             actions={
               hasPermission('backup', 'create') ? (
-                <div className="cwgsyw-designer__actions">
+                <div className="cwgsyw-inline-controls cwgsyw-admin-backup__header-actions">
                   <input ref={fileInputRef} type="file" accept=".tar.gz,.gz" hidden onChange={handleUpload} />
                   <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending}>
                     {uploadMutation.isPending ? '上传中' : '上传备份'}
@@ -219,8 +219,10 @@ export default function BackupPage() {
           ) : records.length === 0 ? (
             <EmptyState title="暂无备份记录" description="点击「立即备份」创建第一份备份。" />
           ) : (
-            <div className="cwgsyw-form">
+            <div className="cwgsyw-form cwgsyw-admin-backup__content">
               <Table
+                className="cwgsyw-cmdb-table cwgsyw-admin-backup__table"
+                density="compact"
                 showSearch={false}
                 columns={[
                   { key: 'fileName', label: '文件名' },
@@ -229,34 +231,39 @@ export default function BackupPage() {
                   { key: 'createdAt', label: '创建时间' },
                   { key: 'createdByName', label: '操作人' },
                   { key: 'errorMessage', label: '错误信息' },
-                  { key: 'actions', label: '操作' },
+                  { key: 'actions', label: <span className="cwgsyw-sr-only">操作</span>, align: 'right' },
                 ]}
                 rows={records.map((record) => {
                   const status = STATUS[record.status] ?? { tone: 'neutral' as const, label: record.status }
+                  const createdAt = new Date(record.createdAt).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
                   return {
                     id: String(record.id),
                     cells: {
-                      fileName: record.fileName,
-                      fileSizeBytes: formatBytes(record.fileSizeBytes),
+                      fileName: <TruncatedHint value={record.fileName} />,
+                      fileSizeBytes: <TruncatedHint value={formatBytes(record.fileSizeBytes)} />,
                       status: <StatusBadge label={status.label} status={status.tone} />,
-                      createdAt: new Date(record.createdAt).toLocaleString('zh-CN'),
-                      createdByName: record.createdByName ?? '—',
-                      errorMessage: record.errorMessage ?? '',
+                      createdAt: <TruncatedHint value={createdAt} />,
+                      createdByName: <TruncatedHint value={record.createdByName ?? '—'} />,
+                      errorMessage: <TruncatedHint value={record.errorMessage ?? '—'} />,
                       actions: (
-                        <div className="cwgsyw-designer__actions">
+                        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions">
                           {record.status === 'success' && hasPermission('backup', 'read') ? (
-                            <IconButton type="button" variant="ghost" size="sm" icon="inbox" aria-label="下载" onClick={() => handleDownload(record)} />
+                            <BackupRowAction icon="download" label={`下载 ${record.fileName}`} onClick={() => handleDownload(record)} />
                           ) : null}
                           {record.status === 'success' && hasPermission('backup', 'restore') ? (
-                            <Button type="button" variant="ghost" size="sm" onClick={() => setRestoreTarget(record)}>恢复</Button>
+                            <BackupRowAction icon="restore" label={`恢复 ${record.fileName}`} onClick={() => setRestoreTarget(record)} />
                           ) : null}
                           {hasPermission('backup', 'delete') ? (
-                            <IconButton
-                              type="button"
-                              variant="ghost"
-                              size="sm"
+                            <BackupRowAction
                               icon="trash"
-                              aria-label="删除"
+                              label={`删除 ${record.fileName}`}
+                              danger
                               onClick={() => setDeleteTarget(record)}
                             />
                           ) : null}
@@ -306,5 +313,39 @@ export default function BackupPage() {
         }
       />
     </>
+  )
+}
+
+function BackupRowAction({
+  icon,
+  label,
+  onClick,
+  danger = false,
+}: {
+  icon: 'download' | 'restore' | 'trash'
+  label: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <NeutralTooltip content={label} className="cwgsyw-tooltip--pill" followCursor>
+      <IconButton
+        type="button"
+        size="sm"
+        variant="ghost"
+        className={danger ? 'cwgsyw-cmdb-admin__delete-action' : undefined}
+        icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--${icon}`} />}
+        aria-label={label}
+        onClick={onClick}
+      />
+    </NeutralTooltip>
+  )
+}
+
+function TruncatedHint({ value }: { value: string }) {
+  return (
+    <NeutralTooltip content={value} className="cwgsyw-tooltip--pill" followCursor>
+      <span className="cwgsyw-admin-backup__cell">{value}</span>
+    </NeutralTooltip>
   )
 }

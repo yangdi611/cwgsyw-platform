@@ -17,6 +17,7 @@ const navGroup = fs.readFileSync(
 test('breadcrumb and nav group use Neutral chevron icons already in the formal set', () => {
   assert.doesNotMatch(breadcrumb, /from 'lucide-react'/)
   assert.match(breadcrumb, /name="chevron-right"/)
+  assert.match(breadcrumb, /cwgsyw-app-header__crumb-link/)
   assert.doesNotMatch(navGroup, /from 'lucide-react'/)
   assert.match(navGroup, /name="chevron-down"/)
   assert.doesNotMatch(breadcrumb, /name="bell"|name="panel-left/)

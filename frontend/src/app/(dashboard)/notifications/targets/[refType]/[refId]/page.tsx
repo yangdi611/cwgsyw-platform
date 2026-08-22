@@ -71,9 +71,11 @@ export default function NotificationTargetPage() {
           title="目标详情"
           subtitle="正在核对通知指向的业务对象。"
           actions={
-            <Button type="button" size="sm" variant="secondary" onClick={() => router.replace('/notifications')}>
-              返回通知中心
-            </Button>
+            <div className="cwgsyw-inline-controls cwgsyw-notifications__header-actions">
+              <Button type="button" size="sm" variant="secondary" onClick={() => router.replace('/notifications')}>
+                返回通知中心
+              </Button>
+            </div>
           }
         />
       }

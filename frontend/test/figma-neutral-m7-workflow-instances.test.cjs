@@ -147,3 +147,11 @@ test('workflow instances renders Neutral shell', () => {
   assert.match(html, /未命名流程/)
   assert.match(html, /title="WIKI-PUBLISH-APPROVAL-20260820-000001"/)
 })
+
+test('workflow breadcrumb root stays clickable', () => {
+  const config = fs.readFileSync(path.join(frontendRoot, 'src/lib/breadcrumb-config.ts'), 'utf8')
+  assert.match(config, /workflow: \{ label: '流程中心', href: '\/workflow\/instances'/)
+  assert.match(config, /reports: \{ label: '报表分析', href: '\/tasks\/analytics'/)
+  assert.match(config, /system: \{ label: '系统管理', href: '\/admin\/config'/)
+})
+

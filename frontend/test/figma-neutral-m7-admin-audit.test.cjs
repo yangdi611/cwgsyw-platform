@@ -111,3 +111,22 @@ test('admin audit renders Neutral management table', () => {
   assert.match(html, /立即备份/)
   assert.match(html, /重置/)
 })
+
+test('admin audit page header follows Neutral baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+})
+
+test('admin audit filter controls match other Neutral filter bars', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /<DateInput/)
+  assert.match(page, /size="sm"/)
+  assert.match(page, /开始日期/)
+  assert.match(css, /\.cwgsyw-audit \.cwgsyw-filter-bar \{[\s\S]{0,80}align-items: flex-end/)
+  assert.match(css, /\.cwgsyw-audit \.cwgsyw-filter-bar > \.cwgsyw-btn \{[\s\S]{0,80}margin-bottom: var\(--cwgsyw-space-1\)/)
+  assert.match(css, /\.cwgsyw-audit input\[type="date"\]/)
+})
+

@@ -125,6 +125,13 @@ test('Checkbox Radio Switch keep selection semantics', () => {
   assert.match(sw, /role="switch"/)
 })
 
+test('Switch thumb slides with transform instead of jumping', () => {
+  assert.match(fieldsCss, /\.cwgsyw-switch__thumb \{[\s\S]{0,240}transition: transform 180ms cubic-bezier\(0\.2, 0, 0, 1\)/)
+  assert.match(fieldsCss, /input:checked \+ \.cwgsyw-switch__track \.cwgsyw-switch__thumb \{[\s\S]{0,80}transform: translateX\(16px\)/)
+  assert.match(fieldsCss, /prefers-reduced-motion: reduce[\s\S]{0,160}\.cwgsyw-switch__thumb \{ transition: none; \}/)
+  assert.doesNotMatch(fieldsCss, /\.cwgsyw-switch input:checked \+ \.cwgsyw-switch__track \.cwgsyw-switch__thumb \{ left: 18px; \}/)
+})
+
 test('Textarea stays a native multiline control', () => {
   const html = renderToStaticMarkup(React.createElement(Textarea, { placeholder: '请输入内容' }))
   assert.match(html, /<textarea/)

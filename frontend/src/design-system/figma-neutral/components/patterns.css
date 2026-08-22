@@ -110,6 +110,10 @@ html:has(.cwgsyw-app-shell) { overflow-x: clip; contain: paint; }
   min-width: 0;
   overflow: hidden;
 }
+.cwgsyw-app-header__crumb-link {
+  cursor: pointer;
+}
+
 .cwgsyw-app-header__breadcrumb > * { white-space: nowrap; }
 .cwgsyw-app-header__divider {
   display: block;
@@ -713,6 +717,12 @@ html:has(.cwgsyw-app-shell) { overflow-x: clip; contain: paint; }
   mask-image: url('/figma-icons/cmdb-spatial-undo.svg');
   -webkit-mask-size: 83.33% 83.33%;
   mask-size: 83.33% 83.33%;
+}
+.cwgsyw-cmdb-admin__figma-action-icon--restore {
+  -webkit-mask-image: url('/figma-icons/cmdb-spatial-archive-restore.svg');
+  mask-image: url('/figma-icons/cmdb-spatial-archive-restore.svg');
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 .cwgsyw-cmdb-admin__figma-action-icon--settings {
   -webkit-mask-image: url('/figma-icons/cmdb-admin-settings-2.svg');
@@ -7634,7 +7644,8 @@ button.cwgsyw-stack-list__item:focus-visible {
 .cwgsyw-ops-dialog input[type="date"],
 .cwgsyw-ops-dialog input[type="time"],
 .cwgsyw-ops__filters input[type="date"],
-.cwgsyw-work__filters input[type="date"] {
+.cwgsyw-work__filters input[type="date"],
+.cwgsyw-audit input[type="date"] {
   min-width: 0;
   font: inherit;
   font-size: var(--cwgsyw-font-size-label-sm);
@@ -7645,7 +7656,8 @@ button.cwgsyw-stack-list__item:focus-visible {
 .cwgsyw-ops-dialog input[type="date"]::-webkit-datetime-edit,
 .cwgsyw-ops-dialog input[type="time"]::-webkit-datetime-edit,
 .cwgsyw-ops__filters input[type="date"]::-webkit-datetime-edit,
-.cwgsyw-work__filters input[type="date"]::-webkit-datetime-edit {
+.cwgsyw-work__filters input[type="date"]::-webkit-datetime-edit,
+.cwgsyw-audit input[type="date"]::-webkit-datetime-edit {
   font-size: var(--cwgsyw-font-size-label-sm);
   line-height: var(--cwgsyw-type-label-sm-line-height);
   font-weight: var(--cwgsyw-font-weight-regular);
@@ -7888,6 +7900,151 @@ button.cwgsyw-stack-list__item:focus-visible {
 .cwgsyw-files-audit .cwgsyw-pagination {
   padding: 12px 0 0;
 }
+.cwgsyw-admin-config .cwgsyw-page-header__row,
+.cwgsyw-admin-ai .cwgsyw-page-header__row,
+.cwgsyw-audit .cwgsyw-filter-bar {
+  align-items: flex-end;
+}
+.cwgsyw-audit .cwgsyw-filter-bar > .cwgsyw-field {
+  min-width: 0;
+  flex: 1 1 9rem;
+}
+.cwgsyw-audit .cwgsyw-filter-bar > .cwgsyw-field:has(input[type="date"]) {
+  flex: 0 1 10.5rem;
+}
+.cwgsyw-audit .cwgsyw-filter-bar > .cwgsyw-btn {
+  flex: 0 0 auto;
+  margin-bottom: var(--cwgsyw-space-1);
+}
+.cwgsyw-audit .cwgsyw-page-header__row,
+.cwgsyw-notifications-page .cwgsyw-page-header__row {
+  align-items: center;
+}
+.cwgsyw-admin-ai .cwgsyw-page__grid > section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 42rem;
+}
+.cwgsyw-admin-ai .cwgsyw-page__grid > section > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwgsyw-space-3);
+  width: 100%;
+}
+.cwgsyw-admin-ai .cwgsyw-tabs {
+  align-self: flex-start;
+  justify-content: flex-start;
+  margin-left: 0;
+}
+.cwgsyw-admin-ai .cwgsyw-card {
+  width: 100%;
+  max-width: 42rem;
+}
+.cwgsyw-admin-ai .cwgsyw-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cwgsyw-space-3);
+}
+.cwgsyw-admin-ai .cwgsyw-designer__actions .cwgsyw-btn {
+  width: auto;
+  justify-self: start;
+}
+@media (max-width: 640px) {
+  .cwgsyw-admin-ai .cwgsyw-filter-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.cwgsyw-admin-config .cwgsyw-page__grid > section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 42rem;
+}
+.cwgsyw-admin-config .cwgsyw-page__grid > section > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwgsyw-space-3);
+  width: 100%;
+}
+.cwgsyw-admin-config .cwgsyw-tabs {
+  align-self: flex-start;
+  justify-content: flex-start;
+  margin-left: 0;
+}
+.cwgsyw-admin-config .cwgsyw-card {
+  width: 100%;
+  max-width: 42rem;
+}
+.cwgsyw-admin-config .cwgsyw-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cwgsyw-space-3);
+}
+.cwgsyw-admin-config .cwgsyw-form > .cwgsyw-btn {
+  width: auto;
+  min-width: 7.5rem;
+  justify-self: start;
+}
+@media (max-width: 640px) {
+  .cwgsyw-admin-config .cwgsyw-filter-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.cwgsyw-page-header__row > .cwgsyw-admin-config__header-actions,
+.cwgsyw-admin-backup__table.cwgsyw-cmdb-table .cwgsyw-table-wrap {
+  overflow: hidden;
+  max-width: 100%;
+}
+.cwgsyw-admin-backup__table .cwgsyw-table { width: 100%; min-width: 0; table-layout: fixed; }
+.cwgsyw-admin-backup__table .cwgsyw-th,
+.cwgsyw-admin-backup__table .cwgsyw-td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwgsyw-admin-backup__cell {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwgsyw-admin-backup__table .cwgsyw-td:not(:last-child) .cwgsyw-tooltip-trigger {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(1),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(1) { width: auto; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(2),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(2) { width: 88px; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(3),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(3) { width: 72px; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(4),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(4) { width: 148px; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(5),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(5) { width: 96px; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(6),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(6) { width: 140px; }
+.cwgsyw-admin-backup__table .cwgsyw-th:nth-child(7),
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(7) {
+  width: 112px;
+  overflow: visible;
+}
+.cwgsyw-admin-backup__table .cwgsyw-td:nth-child(7) .cwgsyw-icon-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+}
+.cwgsyw-page-header__row > .cwgsyw-admin-backup__header-actions,
+.cwgsyw-page-header__row > .cwgsyw-notifications__header-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.cwgsyw-admin-backup__header-actions [role="tabpanel"],
+.cwgsyw-admin-config__header-actions [role="tabpanel"] {
+  display: none;
+}
+
 .cwgsyw-files .cwgsyw-page-header__row { align-items: center; }
 .cwgsyw-files .cwgsyw-page-header__row > .cwgsyw-files__header-actions {
   margin-left: auto;

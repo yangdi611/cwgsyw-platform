@@ -43,26 +43,31 @@ export function Breadcrumb() {
                   className="shrink-0 text-[var(--cwgsyw-text-tertiary)]"
                 />
               )}
-              {RootIcon && (
-                <RootIcon className="h-4 w-4 shrink-0 text-[var(--cwgsyw-action-primary)]" aria-hidden />
-              )}
               {c.href && !isLast ? (
                 <Link
                   href={c.href}
-                  className="truncate text-[var(--cwgsyw-text-secondary)] transition-colors hover:text-[var(--cwgsyw-text-primary)]"
+                  className="cwgsyw-app-header__crumb-link flex min-w-0 items-center gap-1.5 truncate text-[var(--cwgsyw-text-secondary)] transition-colors hover:text-[var(--cwgsyw-text-primary)]"
                 >
+                  {RootIcon ? (
+                    <RootIcon className="h-4 w-4 shrink-0 text-[var(--cwgsyw-action-primary)]" aria-hidden />
+                  ) : null}
                   {c.label}
                 </Link>
               ) : (
-                <span
-                  className={cn(
-                    'truncate',
-                    isLast ? 'font-semibold text-[var(--cwgsyw-text-primary)]' : 'text-[var(--cwgsyw-text-secondary)]',
-                  )}
-                  aria-current={isLast ? 'page' : undefined}
-                >
-                  {c.label}
-                </span>
+                <>
+                  {RootIcon ? (
+                    <RootIcon className="h-4 w-4 shrink-0 text-[var(--cwgsyw-action-primary)]" aria-hidden />
+                  ) : null}
+                  <span
+                    className={cn(
+                      'truncate',
+                      isLast ? 'font-semibold text-[var(--cwgsyw-text-primary)]' : 'text-[var(--cwgsyw-text-secondary)]',
+                    )}
+                    aria-current={isLast ? 'page' : undefined}
+                  >
+                    {c.label}
+                  </span>
+                </>
               )}
             </li>
           )
