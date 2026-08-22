@@ -8,7 +8,6 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Card,
   Field,
@@ -115,23 +114,19 @@ function AdminConfigForm({ config, activeTab, onActiveTabChange }: AdminConfigFo
   return (
     <FormSettingsPage
       embedded
+      className="cwgsyw-admin-config"
       header={
         <PageHeader
-          eyebrow="系统管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="系统配置"
           subtitle="配置邮件服务、监控集成与文档水印等系统级参数。"
-          breadcrumb={
-            <Breadcrumb
-              items={[
-                { href: '/', label: '工作台' },
-                { label: '系统配置' },
-              ]}
-            />
-          }
         />
       }
       form={
         <Tabs
+          style="cmdb"
+          size="sm"
           value={activeTab}
           onChange={(value) => onActiveTabChange(value as TabId)}
           items={[
@@ -163,7 +158,7 @@ function AdminConfigForm({ config, activeTab, onActiveTabChange }: AdminConfigFo
                       </Field>
                     </div>
                     <Switch id="smtp-ssl" label="使用 SSL" checked={ssl} onChange={(event) => setSsl(event.target.checked)} />
-                    <Button type="button" onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>保存 SMTP 配置</Button>
+                    <Button type="button" size="sm" onClick={() => smtpMutation.mutate()} disabled={smtpMutation.isPending}>保存 SMTP 配置</Button>
                   </div>
                 </Card>
               ),
@@ -181,7 +176,7 @@ function AdminConfigForm({ config, activeTab, onActiveTabChange }: AdminConfigFo
                     <Field label="同步间隔（秒）" helperText="从 Prometheus 拉取告警的间隔时间">
                       <Input type="number" min={10} value={prometheusInterval} onChange={(event) => setPrometheusInterval(event.target.value)} placeholder="60" />
                     </Field>
-                    <Button type="button" onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>保存 Prometheus 配置</Button>
+                    <Button type="button" size="sm" onClick={() => prometheusMutation.mutate()} disabled={prometheusMutation.isPending}>保存 Prometheus 配置</Button>
                   </div>
                 </Card>
               ),
@@ -231,7 +226,7 @@ function AdminConfigForm({ config, activeTab, onActiveTabChange }: AdminConfigFo
                         )}
                       </div>
                     </Field>
-                    <Button type="button" onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>保存水印配置</Button>
+                    <Button type="button" size="sm" onClick={() => watermarkMutation.mutate()} disabled={watermarkMutation.isPending}>保存水印配置</Button>
                   </div>
                 </Card>
               ),

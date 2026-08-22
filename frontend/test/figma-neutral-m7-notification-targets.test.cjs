@@ -98,3 +98,11 @@ test('notification target resolver renders Neutral unavailable empty state', () 
   assert.match(html, /返回通知中心/)
   assert.match(html, /notification-unlink\.svg/)
 })
+
+test('notification target pages keep return actions on the right', () => {
+  const resolve = fs.readFileSync(resolvePath, 'utf8')
+  const ref = fs.readFileSync(refPath, 'utf8')
+  assert.match(resolve, /cwgsyw-notifications__header-actions/)
+  assert.match(ref, /cwgsyw-notifications__header-actions/)
+})
+

@@ -90,3 +90,27 @@ test('admin config renders Neutral settings and SMTP tab', () => {
   assert.match(html, /保存 SMTP 配置/)
   assert.doesNotMatch(html, /<main/)
 })
+
+test('admin config page header follows Neutral baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.match(page, /style="cmdb"/)
+  assert.match(page, /cwgsyw-admin-config/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.match(css, /\.cwgsyw-admin-config \.cwgsyw-tabs \{[\s\S]{0,160}align-self: flex-start[\s\S]{0,80}justify-content: flex-start[\s\S]{0,80}margin-left: 0/)
+  assert.match(css, /\.cwgsyw-admin-config \.cwgsyw-page__grid > section > div \{[\s\S]{0,160}gap: var\(--cwgsyw-space-3\)/)
+})
+
+test('admin config save buttons stay compact and fields are not full-bleed', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /size="sm"/)
+  assert.match(page, /保存 SMTP 配置/)
+  assert.match(page, /保存 Prometheus 配置/)
+  assert.match(page, /保存水印配置/)
+  assert.match(css, /\.cwgsyw-admin-config \.cwgsyw-page__grid > section \{[\s\S]{0,160}max-width: 42rem/)
+  assert.match(css, /\.cwgsyw-admin-config \.cwgsyw-card \{[\s\S]{0,80}max-width: 42rem/)
+  assert.match(css, /\.cwgsyw-admin-config \.cwgsyw-form > \.cwgsyw-btn \{[\s\S]{0,80}width: auto/)
+})

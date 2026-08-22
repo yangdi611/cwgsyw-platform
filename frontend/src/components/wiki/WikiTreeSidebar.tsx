@@ -9,11 +9,12 @@ import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/store/authStore'
 import {
   Button,
+  DropdownMenu,
   IconButton,
   Input,
+  MenuItem,
   NeutralAlertDialog,
   NeutralDialog,
-  NeutralTooltip,
 } from '@/design-system/figma-neutral/components'
 import type { WikiPageTree, WikiStatus, WikiSpace } from '@/types/wiki'
 import { canDeleteInSpace } from '@/types/wiki'
@@ -69,31 +70,34 @@ function TreeNode({
   const router = useRouter()
   const [expanded, setExpanded] = useState(depth === 0)
   const hasChildren = node.children && node.children.length > 0
+  const siblingIndex = siblings.findIndex((item) => item.id === node.id)
+  const pageTitle = node.title || '页面'
 
   return (
     <div>
       <div
         className={`cwgsyw-wiki-tree__row${activeId === node.id ? ' is-active' : ''}`}
+        style={{ paddingLeft: depth * 10 }}
       >
         {hasChildren ? (
           <IconButton
             type="button"
             variant="ghost"
             size="sm"
+            className="cwgsyw-wiki-tree__chevron-btn"
             icon={<span aria-hidden="true" className={`cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-files-tree__chevron${expanded ? ' is-open' : ''}`} />}
             aria-label={expanded ? '折叠子页面' : '展开子页面'}
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
           />
         ) : (
-          <span className="w-7 shrink-0" />
+          <span className="cwgsyw-wiki-tree__chevron-spacer" />
         )}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="cwgsyw-wiki-tree__title"
-          style={{ paddingLeft: `${4 + depth * 14}px` }}
           onClick={() => router.push(`/wiki/${spaceId}/${node.id}`)}
         >
           <span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--file" />
@@ -101,32 +105,48 @@ function TreeNode({
             className={`cwgsyw-wiki-tree__dot ${STATUS_DOT[node.status]}`}
             aria-label={STATUS_LABEL[node.status]}
           />
-          <span className="truncate">{node.title || '无标题'}</span>
+          <span className="truncate" title={node.title || '无标题'}>{node.title || '无标题'}</span>
         </Button>
 
-        <div className="cwgsyw-inline-controls cwgsyw-cmdb-admin__row-actions cwgsyw-wiki-tree__row-actions">
-          {canWrite && (
-            <>
-              <NeutralTooltip content="新建" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--plus" />} aria-label={`新建 ${node.title || '页面'} 的子页面`} onClick={() => handlers.onAddChild(node)} />
-              </NeutralTooltip>
-              <NeutralTooltip content="重命名" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-cmdb-admin__figma-action-icon cwgsyw-cmdb-admin__figma-action-icon--edit" />} aria-label={`重命名 ${node.title || '页面'}`} onClick={() => handlers.onRename(node)} />
-              </NeutralTooltip>
-              <NeutralTooltip content="上移" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon="chevron-up" aria-label={`上移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, -1)} />
-              </NeutralTooltip>
-              <NeutralTooltip content="下移" className="cwgsyw-tooltip--pill" side="right">
-                <IconButton type="button" variant="ghost" size="sm" icon="chevron-down" aria-label={`下移 ${node.title || '页面'}`} onClick={() => handlers.onMove(node, siblings, parentId, 1)} />
-              </NeutralTooltip>
-            </>
-          )}
-          {canDelete && (
-            <NeutralTooltip content="删除" className="cwgsyw-tooltip--pill" side="right">
-              <IconButton type="button" variant="ghost" size="sm" className="cwgsyw-cmdb-admin__delete-action" icon="trash" aria-label={`删除 ${node.title || '页面'}`} onClick={() => handlers.onDelete(node)} />
-            </NeutralTooltip>
-          )}
-        </div>
+        {(canWrite || canDelete) && (
+          <div className="cwgsyw-inline-controls cwgsyw-wiki-tree__row-actions">
+            <DropdownMenu
+              trigger={
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<span aria-hidden="true" className="cwgsyw-icon cwgsyw-icon--sm cwgsyw-wiki-tree__more-icon" />}
+                  aria-label={`${pageTitle} 操作`}
+                />
+              }
+            >
+              {canWrite ? (
+                <>
+                  <MenuItem label="新建子页面" onClick={() => handlers.onAddChild(node)} />
+                  <MenuItem label="重命名" onClick={() => handlers.onRename(node)} />
+                  <MenuItem
+                    label="上移"
+                    disabled={siblingIndex <= 0}
+                    onClick={() => handlers.onMove(node, siblings, parentId, -1)}
+                  />
+                  <MenuItem
+                    label="下移"
+                    disabled={siblingIndex >= siblings.length - 1}
+                    onClick={() => handlers.onMove(node, siblings, parentId, 1)}
+                  />
+                </>
+              ) : null}
+              {canDelete ? (
+                <MenuItem
+                  label="删除"
+                  type="destructive"
+                  onClick={() => handlers.onDelete(node)}
+                />
+              ) : null}
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {expanded && hasChildren && (

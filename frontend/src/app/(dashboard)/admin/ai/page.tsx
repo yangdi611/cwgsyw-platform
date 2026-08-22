@@ -8,7 +8,6 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   Card,
   ErrorState,
@@ -18,6 +17,7 @@ import {
   LoadingState,
   PageHeader,
   Switch,
+  Tabs,
   Textarea,
 } from '@/design-system/figma-neutral/components'
 
@@ -120,12 +120,48 @@ function ProviderCard({ config, canWrite }: { config: AiProviderConfigVO; canWri
         </Field>
         {canWrite ? (
           <div className="cwgsyw-designer__actions">
-            <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
-            <Button type="button" variant="secondary" onClick={() => testMutation.mutate()} disabled={testMutation.isPending}>测试</Button>
+            <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>保存</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => testMutation.mutate()} disabled={testMutation.isPending}>测试</Button>
           </div>
         ) : null}
       </div>
     </Card>
+  )
+}
+
+
+function AdminAiProvidersForm({ providers, canWrite }: { providers: AiProviderConfigVO[]; canWrite: boolean }) {
+  const [activeProvider, setActiveProvider] = useState(providers[0]?.provider ?? '')
+  const selectedProvider = providers.some((provider) => provider.provider === activeProvider)
+    ? activeProvider
+    : providers[0]?.provider ?? ''
+
+  if (providers.length === 0) {
+    return (
+      <Card title="AI 供应商">
+        <p>暂无可用的 AI 供应商配置。</p>
+      </Card>
+    )
+  }
+
+  return (
+    <Tabs
+      style="cmdb"
+      size="sm"
+      value={selectedProvider}
+      onChange={setActiveProvider}
+      items={providers.map((provider) => ({
+        id: provider.provider,
+        label: provider.providerLabel,
+        panel: (
+          <ProviderCard
+            key={`${provider.provider}:${provider.baseUrl}:${provider.model}:${provider.enabled}:${provider.systemPrompt}`}
+            config={provider}
+            canWrite={canWrite}
+          />
+        ),
+      }))}
+    />
   )
 }
 
@@ -150,12 +186,13 @@ export default function AdminAiPage() {
   return (
     <FormSettingsPage
       embedded
+      className="cwgsyw-admin-ai"
       header={
         <PageHeader
-          eyebrow="系统管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="AI 网关配置"
           subtitle="配置 AI 供应商的 API Key、模型与系统提示词，供变更文档 AI 生成使用。"
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { href: '/admin/config', label: '系统配置' }, { label: 'AI 网关' }]} />}
         />
       }
       form={
@@ -168,15 +205,7 @@ export default function AdminAiPage() {
             retry={<Button type="button" variant="secondary" onClick={() => void refetch()}>重试</Button>}
           />
         ) : (
-          <div className="cwgsyw-form">
-            {providers.map((provider) => (
-              <ProviderCard
-                key={`${provider.provider}:${provider.baseUrl}:${provider.model}:${provider.enabled}:${provider.systemPrompt}`}
-                config={provider}
-                canWrite={canWrite}
-              />
-            ))}
-          </div>
+          <AdminAiProvidersForm providers={providers} canWrite={canWrite} />
         )
       }
     />

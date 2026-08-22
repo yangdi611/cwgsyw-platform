@@ -188,6 +188,7 @@ test('files page leaves old visual entries and keeps file APIs', () => {
   assert.doesNotMatch(audit, /max-height/)
   assert.doesNotMatch(fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8'), /max-height: min\(280px, 36vh\)/)
   assert.match(preview, /DetailDrawerPage/)
+  assert.match(preview, /cwgsyw-files__header-actions/)
   assert.match(page, /aria-label="搜索文件名"/)
   assert.match(page, /cwgsyw-files__header-actions/)
   assert.match(fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8'), /\.cwgsyw-files__table\.cwgsyw-cmdb-table \.cwgsyw-table-wrap \{[\s\S]{0,160}border-bottom/)
@@ -209,3 +210,35 @@ test('files page renders Neutral split workspace, folders and files', () => {
   assert.match(html, /全部文件/)
   assert.doesNotMatch(html, /<main/)
 })
+
+test('files preview header actions stay on the right', () => {
+  const preview = fs.readFileSync(previewPath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(preview, /cwgsyw-inline-controls cwgsyw-files__header-actions/)
+  assert.match(css, /\.cwgsyw-files \.cwgsyw-page-header__row > \.cwgsyw-files__header-actions \{[\s\S]{0,80}margin-left: auto/)
+  assert.match(css, /\.cwgsyw-files-preview \.cwgsyw-page-header__row \{[\s\S]{0,60}flex-wrap: nowrap/)
+})
+
+test('files preview canvas fills the remaining page', () => {
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const preview = fs.readFileSync(previewPath, 'utf8')
+  assert.match(preview, /<iframe src=\{previewUrl\} className="cwgsyw-preview"/)
+  assert.match(css, /\.cwgsyw-preview \{[\s\S]{0,80}width: 100%/)
+  assert.match(css, /\.cwgsyw-files-preview\.cwgsyw-page \{[\s\S]{0,160}grid-template-rows: auto minmax\(0, 1fr\)/)
+  assert.match(css, /\.cwgsyw-files-preview \.cwgsyw-preview \{[\s\S]{0,120}height: 100%/)
+})
+
+test('resource management breadcrumb root stays clickable', () => {
+  const compiled = loadCompiled(path.join(frontendRoot, 'src/lib/breadcrumb-config.ts'))
+  const files = compiled.resolveBreadcrumb('/files')
+  assert.equal(files[0].label, '资源管理')
+  assert.equal(files[0].href, '/devices')
+  assert.equal(files[1].label, '共享文档')
+  assert.equal(files[1].href, undefined)
+  const preview = compiled.resolveBreadcrumb('/files/preview/21')
+  assert.equal(preview[0].href, '/devices')
+  assert.equal(preview[1].href, '/files')
+  const devices = compiled.resolveBreadcrumb('/devices')
+  assert.equal(devices[0].href, '/devices')
+})
+

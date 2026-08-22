@@ -72,9 +72,11 @@ export default function NotificationsPage() {
           subtitle={unreadCount > 0 ? `${unreadCount} 条未读通知` : '查看系统与业务通知，点击标记已读。'}
           actions={
             unreadCount > 0 ? (
-              <Button type="button" size="sm" variant="secondary" loading={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
-                全部已读
-              </Button>
+              <div className="cwgsyw-inline-controls cwgsyw-notifications__header-actions">
+                <Button type="button" size="sm" variant="secondary" loading={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
+                  全部已读
+                </Button>
+              </div>
             ) : null
           }
         />

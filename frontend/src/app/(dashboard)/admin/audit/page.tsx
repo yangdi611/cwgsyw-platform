@@ -7,9 +7,9 @@ import api from '@/lib/api'
 import { usePermission } from '@/hooks/usePermission'
 import '@/design-system/figma-neutral/index.css'
 import {
-  Breadcrumb,
   Button,
   DataManagementPage,
+  DateInput,
   EmptyState,
   ErrorState,
   Field,
@@ -125,10 +125,10 @@ function AuditLogPageInner() {
       embedded
       header={
         <PageHeader
-          eyebrow="系统管理"
+          showEyebrow={false}
+          showBreadcrumb={false}
           title="审计日志"
           subtitle="记录所有写操作的模块、动作、操作人与目标对象，支持按模块与时间范围筛选。"
-          breadcrumb={<Breadcrumb items={[{ href: '/', label: '工作台' }, { label: '审计日志' }]} />}
         />
       }
       filter={
@@ -137,6 +137,7 @@ function AuditLogPageInner() {
             <>
               <Field htmlFor="audit-module" label="模块">
                 <Select
+                  size="sm"
                   value={module || '__all__'}
                   placeholder="全部模块"
                   options={[
@@ -151,6 +152,7 @@ function AuditLogPageInner() {
               </Field>
               <Field htmlFor="audit-action" label="操作">
                 <Input
+                  size="sm"
                   value={action}
                   placeholder="如 create"
                   onChange={(event) => {
@@ -161,6 +163,7 @@ function AuditLogPageInner() {
               </Field>
               <Field htmlFor="audit-operator" label="操作人 ID">
                 <Input
+                  size="sm"
                   type="number"
                   min="1"
                   value={operatorId}
@@ -173,6 +176,7 @@ function AuditLogPageInner() {
               </Field>
               <Field htmlFor="audit-keyword" label="关键词">
                 <Input
+                  size="sm"
                   value={keyword}
                   placeholder="备注或目标"
                   onChange={(event) => {
@@ -182,7 +186,8 @@ function AuditLogPageInner() {
                 />
               </Field>
               <Field htmlFor="audit-start" label="开始日期">
-                <Input
+                <DateInput
+                  size="sm"
                   type="date"
                   value={startDate}
                   onChange={(event) => {
@@ -192,7 +197,8 @@ function AuditLogPageInner() {
                 />
               </Field>
               <Field htmlFor="audit-end" label="结束日期">
-                <Input
+                <DateInput
+                  size="sm"
                   type="date"
                   value={endDate}
                   onChange={(event) => {

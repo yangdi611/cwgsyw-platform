@@ -185,7 +185,7 @@ export default function FilePreviewPage() {
               : '查看共享文件内容，或下载后离线打开。'
           }
           actions={
-            <div className="cwgsyw-inline-controls">
+            <div className="cwgsyw-inline-controls cwgsyw-files__header-actions">
               <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/files')}>
                 返回
               </Button>

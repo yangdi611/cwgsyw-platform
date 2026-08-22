@@ -116,3 +116,30 @@ test('admin backup renders Neutral management table', () => {
   assert.match(html, /backup-2026-08-14\.tar\.gz/)
   assert.match(html, /恢复/)
 })
+
+test('admin backup page header follows Neutral baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.match(page, /cwgsyw-admin-backup__header-actions/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+  assert.match(css, /cwgsyw-admin-backup__header-actions/)
+  assert.match(css, /\.cwgsyw-page-header__row > \.cwgsyw-admin-backup__header-actions[\s\S]{0,240}margin-left: auto/)
+})
+
+test('admin backup table follows Neutral compact row-action baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /cwgsyw-cmdb-table cwgsyw-admin-backup__table/)
+  assert.match(page, /density="compact"/)
+  assert.match(page, /NeutralTooltip/)
+  assert.match(page, /cwgsyw-cmdb-admin__figma-action-icon--\$\{icon\}/)
+  assert.match(page, /icon="download"/)
+  assert.match(page, /icon="restore"/)
+  assert.match(page, /icon="trash"/)
+  assert.doesNotMatch(page, /cwgsyw-designer__actions/)
+  assert.match(css, /\.cwgsyw-admin-backup__table \.cwgsyw-table \{[^}]*table-layout: fixed/)
+  assert.match(css, /cwgsyw-cmdb-admin__figma-action-icon--restore/)
+})
+

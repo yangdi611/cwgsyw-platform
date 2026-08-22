@@ -86,3 +86,25 @@ test('admin ai renders Neutral provider card', () => {
   assert.match(html, /OpenAI/)
   assert.match(html, /系统提示词/)
 })
+
+test('admin AI page header follows Neutral baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  assert.match(page, /showBreadcrumb=\{false\}/)
+  assert.match(page, /showEyebrow=\{false\}/)
+  assert.doesNotMatch(page, /<Breadcrumb/)
+})
+
+test('admin AI providers use cmdb tabs and compact save actions', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const html = renderToStaticMarkup(React.createElement(loadCompiled(pagePath).default))
+  assert.match(page, /style="cmdb"/)
+  assert.match(page, /size="sm"/)
+  assert.match(html, /role="tab"/)
+  assert.match(html, /OpenAI/)
+  assert.match(html, /保存/)
+  assert.match(css, /\.cwgsyw-admin-ai \.cwgsyw-page__grid > section \{[\s\S]{0,160}max-width: 42rem/)
+  assert.match(css, /\.cwgsyw-admin-ai \.cwgsyw-tabs \{[\s\S]{0,160}align-self: flex-start[\s\S]{0,80}justify-content: flex-start[\s\S]{0,80}margin-left: 0/)
+  assert.match(css, /\.cwgsyw-admin-ai \.cwgsyw-page__grid > section > div \{[\s\S]{0,160}gap: var\(--cwgsyw-space-3\)/)
+})
+

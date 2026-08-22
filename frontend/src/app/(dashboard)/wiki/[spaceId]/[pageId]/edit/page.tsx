@@ -6,10 +6,11 @@ import dynamic from 'next/dynamic'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/design-system/figma-neutral/toast'
 import { wikiApi } from '@/lib/wiki-api'
-import { WikiShellHeader } from '@/components/wiki/WikiShellChrome'
+import { WikiShellToggle } from '@/components/wiki/WikiShellChrome'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
+import type { ICommand } from '@uiw/react-md-editor/commands'
 import '@uiw/react-md-editor/markdown-editor.css'
 import '@/components/wiki/WikiEditor.css'
 import '@/design-system/figma-neutral/index.css'
@@ -17,7 +18,6 @@ import {
   Button,
   EmptyState,
   Input,
-  PageHeader,
 } from '@/design-system/figma-neutral/components'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
@@ -30,6 +30,61 @@ const ALLOWED_IMAGE_MIMES = [
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.gif,.webp,.svg,image/png,image/jpeg,image/gif,image/webp,image/svg+xml'
 const FMT = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 const WIKI_PAGE_TITLE_MAX_LENGTH = 255
+
+
+const WIKI_EDITOR_TOOLBAR_ICONS: Record<string, string> = {
+  bold: 'bold',
+  italic: 'italic',
+  strikethrough: 'strikethrough',
+  hr: 'minus',
+  title: 'heading',
+  heading: 'heading',
+  heading1: 'heading-1',
+  heading2: 'heading-2',
+  heading3: 'heading-3',
+  heading4: 'heading-4',
+  heading5: 'heading-5',
+  heading6: 'heading-6',
+  link: 'link',
+  quote: 'quote',
+  code: 'code',
+  codeBlock: 'code-2',
+  comment: 'message-square',
+  image: 'image',
+  table: 'table',
+  'unordered-list': 'list',
+  'ordered-list': 'list-ordered',
+  'checked-list': 'list-checks',
+  help: 'help',
+  edit: 'file-code',
+  live: 'columns',
+  preview: 'eye',
+  fullscreen: 'maximize-2',
+}
+
+function WikiEditorToolbarIcon({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`cwgsyw-wiki-editor__toolbar-icon cwgsyw-wiki-editor__toolbar-icon--${name}`}
+    />
+  )
+}
+
+function withWikiEditorToolbarIcon(cmd: ICommand): ICommand {
+  const iconName = cmd.name ? WIKI_EDITOR_TOOLBAR_ICONS[cmd.name] : undefined
+  const next: ICommand = {
+    ...cmd,
+    ...(iconName ? { icon: <WikiEditorToolbarIcon name={iconName} /> } : {}),
+  }
+  if (Array.isArray(cmd.children)) {
+    return {
+      ...next,
+      children: cmd.children.map((child) => withWikiEditorToolbarIcon(child)),
+    }
+  }
+  return next
+}
 
 const MIRROR_PROPS = [
   'boxSizing', 'width', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
@@ -268,36 +323,50 @@ export default function WikiEditorPage() {
   )
 
   if (pageError || (spaces && !currentSpace)) {
-    return <EmptyState title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
+    return (
+      <section className="cwgsyw-devices-panel cwgsyw-wiki-edit">
+        <header className="cwgsyw-devices-panel__head cwgsyw-wiki-edit__head">
+          <span className="cwgsyw-wiki-edit__head-start">
+            <WikiShellToggle />
+            编辑
+          </span>
+        </header>
+        <div className="cwgsyw-devices-panel__body">
+          <EmptyState title="页面不存在或无权编辑" description="请返回知识空间后重新选择页面。" />
+        </div>
+      </section>
+    )
   }
 
   return (
-    <div className="cwgsyw-page cwgsyw-page--embedded cwgsyw-wiki cwgsyw-wiki-edit">
-      <WikiShellHeader>
-      <PageHeader
-        showEyebrow={false}
-        showBreadcrumb={false}
-        title={displayedTitle || '编辑页面'}
-        subtitle={`${displayedTitle.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
-        actions={
-          <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
-            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}`)}>
-              返回
-            </Button>
-            <Button type="button" size="sm" disabled={!displayedTitle.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate(undefined)}>
-              保存
-            </Button>
-          </div>
-        }
-      />
-      </WikiShellHeader>
-      <Input
-        size="sm"
-        value={displayedTitle}
-        maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
-        placeholder="页面标题"
-        onChange={(event) => setTitle(event.target.value)}
-      />
+    <section className="cwgsyw-devices-panel cwgsyw-wiki cwgsyw-wiki-edit">
+      <header className="cwgsyw-devices-panel__head cwgsyw-wiki-edit__head">
+        <span className="cwgsyw-wiki-edit__head-start">
+          <WikiShellToggle />
+          编辑
+        </span>
+        <div className="cwgsyw-inline-controls cwgsyw-wiki__header-actions">
+          <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/wiki/${sid}/${pid}`)}>
+            返回
+          </Button>
+          <Button type="button" size="sm" disabled={!displayedTitle.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate(undefined)}>
+            保存
+          </Button>
+        </div>
+      </header>
+      <div className="cwgsyw-wiki-edit__body">
+      <div className="cwgsyw-wiki-edit__title-row">
+        <Input
+          size="sm"
+          value={displayedTitle}
+          maxLength={WIKI_PAGE_TITLE_MAX_LENGTH}
+          placeholder="页面标题"
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <p className="cwgsyw-wiki-edit__status">
+          {`${displayedTitle.length}/${WIKI_PAGE_TITLE_MAX_LENGTH} · ${savedAt ? `已保存 ${savedAt}` : '未保存'}`}
+        </p>
+      </div>
       <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} hidden onChange={handleFileInputChange} />
       <div className="wiki-editor relative min-h-0 flex-1 overflow-hidden" ref={editorRef} data-color-mode="light">
         <MDEditor
@@ -307,13 +376,16 @@ export default function WikiEditorPage() {
           height="100%"
           visibleDragbar={false}
           commandsFilter={(cmd) => {
+            const next = withWikiEditorToolbarIcon(cmd)
             if (cmd.name === 'image') {
               return {
-                ...cmd,
-                execute: () => fileInputRef.current?.click(),
+                ...next,
+                execute: () => {
+                  fileInputRef.current?.click()
+                },
               }
             }
-            return cmd
+            return next
           }}
           previewOptions={{
             components: previewComponents,
@@ -337,6 +409,7 @@ export default function WikiEditorPage() {
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+    </section>
   )
 }

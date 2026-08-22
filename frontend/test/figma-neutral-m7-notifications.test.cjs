@@ -160,3 +160,11 @@ test('notifications page renders Neutral unread and read items', () => {
   assert.doesNotMatch(html, /<main/)
   assert.doesNotMatch(html, /系统管理/)
 })
+
+test('notifications page header follows Neutral baseline', () => {
+  const page = fs.readFileSync(pagePath, 'utf8')
+  const css = fs.readFileSync(path.join(frontendRoot, 'src/design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(page, /cwgsyw-notifications__header-actions/)
+  assert.match(css, /\.cwgsyw-page-header__row > \.cwgsyw-notifications__header-actions \{[\s\S]{0,80}margin-left: auto/)
+})
+
