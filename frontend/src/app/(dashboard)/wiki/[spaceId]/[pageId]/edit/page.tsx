@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { WikiShellToggle } from '@/components/wiki/WikiShellChrome'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import type { WikiPage, WikiSearchResult, WikiSpace } from '@/types/wiki'
 import { createWikiMarkdownComponents } from '@/components/wiki/wikiMarkdownComponents'
+import type { ICommand } from '@uiw/react-md-editor/commands'
 import '@uiw/react-md-editor/markdown-editor.css'
 import '@/components/wiki/WikiEditor.css'
 import '@/design-system/figma-neutral/index.css'
@@ -70,22 +71,19 @@ function WikiEditorToolbarIcon({ name }: { name: string }) {
   )
 }
 
-type WikiEditorCommand = {
-  name?: string
-  icon?: ReactNode
-  children?: WikiEditorCommand[]
-  execute?: (...args: never[]) => unknown
-}
-
-function withWikiEditorToolbarIcon<T extends WikiEditorCommand>(cmd: T): T {
+function withWikiEditorToolbarIcon(cmd: ICommand): ICommand {
   const iconName = cmd.name ? WIKI_EDITOR_TOOLBAR_ICONS[cmd.name] : undefined
-  return {
+  const next: ICommand = {
     ...cmd,
     ...(iconName ? { icon: <WikiEditorToolbarIcon name={iconName} /> } : {}),
-    ...(Array.isArray(cmd.children)
-      ? { children: cmd.children.map((child) => withWikiEditorToolbarIcon(child)) }
-      : {}),
   }
+  if (Array.isArray(cmd.children)) {
+    return {
+      ...next,
+      children: cmd.children.map((child) => withWikiEditorToolbarIcon(child)),
+    }
+  }
+  return next
 }
 
 const MIRROR_PROPS = [
@@ -382,7 +380,9 @@ export default function WikiEditorPage() {
             if (cmd.name === 'image') {
               return {
                 ...next,
-                execute: () => fileInputRef.current?.click(),
+                execute: () => {
+                  fileInputRef.current?.click()
+                },
               }
             }
             return next
