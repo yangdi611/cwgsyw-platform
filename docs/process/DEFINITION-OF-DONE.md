@@ -2,6 +2,18 @@
 
 This checklist extends the global Definition of Done. Every applicable item must be supported by evidence linked from the Linear issue or pull request.
 
+## Applicability and local handoff
+
+Apply frontend/backend/runtime evidence only when that surface is affected.
+Documentation-only changes use diff, structure, and reference checks. Run relevant
+checks once per changed state; repeat or expand for new edits, failures, or
+unresolved risk. Required PR/CI and human release gates are not waived.
+
+A local handoff may be ready for review while external gates are `NOT RUN` or
+`BLOCKED`. Report that distinction instead of treating local work as tracker `Done`
+or blocking all authorized local work on future release steps. Keep one canonical
+delivery report and link it where authorized.
+
 ## Scope and Behavior
 
 - [ ] Every acceptance criterion is mapped to delivered behavior or an approved exclusion.
@@ -35,8 +47,8 @@ This checklist extends the global Definition of Done. Every applicable item must
 
 ## Analysis and Review
 
-- [ ] Required GitNexus impact analysis was completed before symbol edits.
-- [ ] GitNexus change detection was run when available and affected processes are explained.
+- [ ] Impact analysis was completed for the risky/core/contract changes defined in `AGENTS.md`, with tool limitations and fallback evidence recorded.
+- [ ] For substantive code changes, GitNexus change detection was run when available and affected processes are explained; documentation-only changes have diff/reference evidence.
 - [ ] Pull request CI, CodeQL, dependency review, and required conversations pass or are resolved.
 - [ ] An authorized human completed required code, security, QA, UAT, and release review.
 

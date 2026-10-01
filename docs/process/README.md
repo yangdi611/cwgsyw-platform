@@ -11,4 +11,4 @@ This directory adapts the global AI software-delivery workflow under `~/.codex/w
 - `docs/templates/linear/`: templates to create in Linear.
 - `.github/pull_request_template.md`: required pull-request evidence.
 
-The repository root `AGENTS.md` makes these rules mandatory for coding agents. Existing feature-specific runbooks remain valid inside their own scope; this directory is the repository-wide baseline.
+The repository root `AGENTS.md` defines applicability and points to these gates. Read the relevant sections once per task, not the entire directory before every edit. Existing feature-specific runbooks remain valid inside their own scope; this directory is the repository-wide baseline.

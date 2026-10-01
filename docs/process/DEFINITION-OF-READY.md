@@ -1,6 +1,6 @@
 # cwgsyw-platform Definition of Ready
 
-This checklist extends the global Definition of Ready. Every applicable item must pass before implementation begins.
+This checklist extends the global Definition of Ready. Every applicable item must pass before implementation begins or have an explicitly authorized, recorded exception. Read-only investigation needs no issue. A small task can record scope and evidence concisely; this does not waive task identity or approval gates.
 
 ## Common Gate
 
