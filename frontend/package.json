@@ -15,7 +15,7 @@
     "@tanstack/react-query": "^5.100.11",
     "@uiw/react-md-editor": "^4.1.1",
     "@xyflow/react": "^12.10.2",
-    "axios": "^1.18.0",
+    "axios": "^1.20.0",
     "bpmn-js": "^18.16.1",
     "bpmn-js-properties-panel": "^5.58.0",
     "class-variance-authority": "^0.7.1",
