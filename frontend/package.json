@@ -16,7 +16,7 @@
     "@bpmn-io/properties-panel": "^3.44.0",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-dialog": "^1.1.23",
-    "@tanstack/react-query": "^5.100.11",
+    "@tanstack/react-query": "^5.101.4",
     "@uiw/react-md-editor": "^4.1.1",
     "@xyflow/react": "^12.11.2",
     "axios": "^1.18.0",
