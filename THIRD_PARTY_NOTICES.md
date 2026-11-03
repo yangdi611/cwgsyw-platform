@@ -54,7 +54,7 @@ metadata are authoritative for exact transitive versions.
 | rehype-highlight | 7.0.2 | MIT |
 | remark-breaks | 4.0.0 | MIT |
 | remark-gfm | 4.0.1 | MIT |
-| shadcn | 4.7.0 | MIT |
+| shadcn (vendored `frontend/src/app/shadcn-tailwind.css` only; not an npm dependency since YAN-108) | 4.16.2 | MIT |
 | sonner | 2.0.7 | MIT |
 | tailwind-merge | 3.6.0 | MIT |
 | tw-animate-css | 1.4.0 | MIT |
