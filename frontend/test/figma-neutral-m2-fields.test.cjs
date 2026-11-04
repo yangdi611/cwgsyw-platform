@@ -70,6 +70,17 @@ test('Field wires label, helper, required and error text', () => {
   assert.match(html, /cwgsyw-control--error/)
 })
 
+test('required marker shares label-sm metrics so required fields stay row-aligned (YAN-107)', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(Field, { label: 'IP', required: true }, React.createElement(Input)),
+  )
+  assert.match(html, /<label class="cwgsyw-type-label-sm"/)
+  const rule = fieldsCss.match(/\.cwgsyw-field__required \{([^}]*)\}/)
+  assert.ok(rule, 'expected a .cwgsyw-field__required rule')
+  assert.match(rule[1], /font-size: var\(--cwgsyw-type-label-sm-font-size\)/)
+  assert.match(rule[1], /line-height: var\(--cwgsyw-type-label-sm-line-height\)/)
+})
+
 test('Input loading disables the native control', () => {
   const html = renderToStaticMarkup(React.createElement(Input, { loading: true, placeholder: '请输入内容' }))
   assert.match(html, /disabled=""/)

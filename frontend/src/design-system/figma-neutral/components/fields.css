@@ -9,7 +9,12 @@
   gap: var(--cwgsyw-space-1);
   color: var(--cwgsyw-text-primary);
 }
-.cwgsyw-field__required { color: var(--cwgsyw-status-danger-fg); }
+/* Match the label-sm metrics so the marker never makes the label row taller than the label (YAN-107). */
+.cwgsyw-field__required {
+  color: var(--cwgsyw-status-danger-fg);
+  font-size: var(--cwgsyw-type-label-sm-font-size);
+  line-height: var(--cwgsyw-type-label-sm-line-height);
+}
 .cwgsyw-field__helper { color: var(--cwgsyw-text-secondary); }
 .cwgsyw-field__error { color: var(--cwgsyw-status-danger-fg); }
 .cwgsyw-field--disabled { color: var(--cwgsyw-text-disabled); }
