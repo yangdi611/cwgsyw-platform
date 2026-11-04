@@ -73,16 +73,27 @@ Never move, discard, include, or clean unrelated user changes. If target files o
 
 ## 6. Codex Execution Loop
 
-1. Read global workflow files, root `AGENTS.md`, nested instructions, and this directory.
-2. Verify the task is real and passes the project DoR.
-3. Inspect worktree status and confirm branch, base, scope, non-goals, validation, and rollback.
-4. Refresh GitNexus when stale, then perform required impact analysis before symbol edits.
-5. Create or update a written plan for large or high-risk changes.
-6. Implement the smallest reviewable change without unrelated cleanup.
-7. Run impact-based checks from `docs/standards/code-review-checklist.md`.
-8. Run GitNexus change detection when available and explain the affected scope.
-9. Produce a delivery report and prepare a pull request using `.github/pull_request_template.md`.
-10. Wait for explicit authorization before commit, push, external state updates, merge, or deployment when not already authorized.
+Load applicable global/repository instructions once per task, including nested
+instructions for touched files. Consult additional documents when the scope needs
+them; an unchanged task does not require re-reading the workflow before each edit.
+
+1. Verify the real issue and applicable DoR, or record an explicit exception.
+2. Establish branch/worktree, scope, non-goals, validation, and rollback without
+   disturbing user changes. Keep the note proportional; large/high-risk work needs
+   a plan under `docs/plan/`.
+3. Assess impact before risky contract/core-code changes as defined in `AGENTS.md`.
+   Use graph analysis when useful and available; refresh only when staleness blocks
+   that analysis. Known local edits can use targeted source/reference inspection.
+4. Implement and verify the requested outcome. Add meaningful regression coverage
+   when warranted, not automatically for reversible text or mechanical edits.
+5. Review the actual diff and, for substantive code changes, use GitNexus change
+   detection when available. Required checks passing is a stopping condition unless
+   new edits, failures, or unresolved risks justify broader verification.
+6. Report applicable DoD evidence and the Documentation Impact Assessment. Prepare
+   PR evidence if a PR is in scope; local delivery does not claim CI/release/Done.
+7. Perform commit, push, external updates, PR creation/merge, or deployment only
+   when explicitly authorized for this task. Continue independent authorized work
+   while an external step awaits approval.
 
 ## 7. Quality Gates
 
@@ -94,7 +105,7 @@ Required GitHub checks currently include:
 - CodeQL for Actions, Java/Kotlin, and JavaScript/TypeScript.
 - Resolution of review conversations.
 
-Run the smallest relevant local checks first. Historical failures must be distinguished from new failures with reproducible evidence; they are not automatically waived.
+Required CI checks remain release gates, not a requirement to run every suite locally for every task. Documentation-only edits use diff, structure, and reference checks. For code, run the smallest checks that cover the changed behavior; expand for cross-module or release risk. Historical failures must be distinguished from new failures with reproducible evidence; they are not automatically waived.
 
 High-risk protection applies to authentication, authorization, RBAC, workflow, CMDB models, database migrations, import/export, backup/restore, secrets, deployment, and large refactors.
 

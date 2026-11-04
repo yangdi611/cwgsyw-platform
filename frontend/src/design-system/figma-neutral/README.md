@@ -1,6 +1,6 @@
 # Figma Neutral Token Pipeline
 
-Isolated M0 Token pipeline for the CWGSYW Neutral design source. Do not import these files from old pages or `components/design-system`.
+Token pipeline for the CWGSYW Neutral design source, now consumed by migrated application pages. Reuse the existing component/token exports; do not reintroduce removed legacy component systems. Migration history is in `docs/migration/figma-neutral-frontend/STATUS.md` (repository root).
 
 ## Generate
 
