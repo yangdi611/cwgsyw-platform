@@ -94,3 +94,8 @@ logs/
 *.png
 !frontend/public/**/*.png
 claude-*.log
+
+# sosreport 样本可能含明文凭据，不进入仓库
+/sosreport-*
+# 根目录的 Excel 是本地业务资料，不进入仓库
+/*.xlsx

@@ -24,6 +24,7 @@ const NOTIFICATION_REFERENCE_TYPES = new Set([
   'task',
   'ci_instance',
   'wiki_page',
+  'sos_report',
 ])
 
 export function getNotificationTargetHref(notificationId: number, refType: string | null, refId: number | null): string | null {

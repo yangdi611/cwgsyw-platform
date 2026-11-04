@@ -9016,3 +9016,16 @@ button.cwgsyw-stack-list__item:focus-visible {
   .cwgsyw-resource-access__owners,
   .cwgsyw-resource-access__entry-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* SOS 报告 */
+.cwgsyw-sos-report__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.cwgsyw-sos-report__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
