@@ -97,6 +97,9 @@ const ROUTES: RouteDef[] = [
   { pattern: '/ipam', trail: [ROOT.resource, { label: 'IP 地址池' }] },
   { pattern: '/files/preview/:id', trail: [ROOT.resource, { label: '共享文档', href: '/files' }, { label: '预览' }] },
   { pattern: '/files', trail: [ROOT.resource, { label: '共享文档' }] },
+  { pattern: '/sos-reports/mappings', trail: [ROOT.resource, { label: 'SOS 报告', href: '/sos-reports' }, { label: '字段映射规则' }] },
+  { pattern: '/sos-reports/:id', trail: [ROOT.resource, { label: 'SOS 报告', href: '/sos-reports' }, { ...DYN }] },
+  { pattern: '/sos-reports', trail: [ROOT.resource, { label: 'SOS 报告' }] },
 
   // ── 知识库 ──
   // wiki 是唯一两层动态路由：空间段 + 页面段。中间的空间段可点回空间首页（hrefTemplate :1 = spaceId）。

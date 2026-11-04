@@ -14,8 +14,11 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,24 @@ public class AiGatewayService {
     private final CryptoService cryptoService;
 
     private final RestClient restClient = RestClient.create();
+
+    private static final double DEFAULT_TEMPERATURE = 0.7;
+    private static final double STRUCTURED_TEMPERATURE = 0.1;
+
+    /** 读超时小于 nginx 的 /api 默认超时（60 秒），让调用方能给出明确错误，而不是 504。 */
+    private final RestClient boundedClient = RestClient.builder()
+        .requestFactory(boundedRequestFactory())
+        .build();
+
+    private static JdkClientHttpRequestFactory boundedRequestFactory() {
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
+        factory.setReadTimeout(Duration.ofSeconds(50));
+        return factory;
+    }
+
+    private record Invocation(String systemPrompt, double temperature, RestClient client) {
+    }
 
     private static final Map<String, String> PROVIDER_LABELS = Map.of(
         "kimi",     "Kimi（月之暗面）",
@@ -49,6 +70,34 @@ public class AiGatewayService {
             throw new IllegalStateException("未配置可用的 AI 服务，请联系管理员在系统配置中启用 AI 提供商");
         }
         return callWithLogging(config, userPrompt, refType, refId, operatorId);
+    }
+
+    /** 当前租户是否有可用的 AI 服务。 */
+    public boolean isAvailable(String tenantId) {
+        return findEnabledConfig(tenantId) != null;
+    }
+
+    /**
+     * 用于需要解析输出的场景：使用调用方的系统提示词而不是提供商配置的（后者面向变更文档写作），
+     * 温度较低，并设置明确的超时。返回值是模型的原始文本，调用方必须把它当作不可信输入校验。
+     */
+    public String generateStructured(String tenantId, String systemPrompt, String userPrompt,
+                                     String refType, Long refId, Long operatorId) {
+        AiProviderConfig config = findEnabledConfig(tenantId);
+        if (config == null) {
+            throw new IllegalStateException("未配置可用的 AI 服务，请联系管理员在系统配置中启用 AI 提供商");
+        }
+        return callWithLogging(config, userPrompt, refType, refId, operatorId,
+            new Invocation(systemPrompt, STRUCTURED_TEMPERATURE, boundedClient));
+    }
+
+    private AiProviderConfig findEnabledConfig(String tenantId) {
+        return configMapper.selectOne(
+            new LambdaQueryWrapper<AiProviderConfig>()
+                .eq(AiProviderConfig::getTenantId, tenantId)
+                .eq(AiProviderConfig::getEnabled, true)
+                .orderByAsc(AiProviderConfig::getProvider)
+                .last("LIMIT 1"));
     }
 
     /** Called by AiConfigController to test a specific provider. */
@@ -142,6 +191,12 @@ public class AiGatewayService {
 
     private String callWithLogging(AiProviderConfig config, String userPrompt,
                                     String refType, Long refId, Long operatorId) {
+        return callWithLogging(config, userPrompt, refType, refId, operatorId,
+            new Invocation(config.getSystemPrompt(), DEFAULT_TEMPERATURE, restClient));
+    }
+
+    private String callWithLogging(AiProviderConfig config, String userPrompt,
+                                    String refType, Long refId, Long operatorId, Invocation invocation) {
         long start = System.currentTimeMillis();
         boolean success = true;
         String errorMsg = null;
@@ -149,7 +204,7 @@ public class AiGatewayService {
         String result = null;
         try {
             String apiKey = cryptoService.decrypt(config.getApiKeyEnc());
-            ChatResponse resp = callProvider(config, apiKey, userPrompt);
+            ChatResponse resp = callProvider(config, apiKey, userPrompt, invocation);
             ChatChoice choice = resp.getChoices().get(0);
             if (choice == null || choice.getMessage() == null || choice.getMessage().getContent() == null) {
                 throw new IllegalStateException("AI provider returned empty content");
@@ -183,16 +238,16 @@ public class AiGatewayService {
         return result;
     }
 
-    private ChatResponse callProvider(AiProviderConfig config, String apiKey, String userPrompt) {
+    private ChatResponse callProvider(AiProviderConfig config, String apiKey, String userPrompt, Invocation invocation) {
         List<ChatMessage> messages = new ArrayList<>();
-        if (config.getSystemPrompt() != null && !config.getSystemPrompt().isBlank()) {
-            messages.add(new ChatMessage("system", config.getSystemPrompt()));
+        if (invocation.systemPrompt() != null && !invocation.systemPrompt().isBlank()) {
+            messages.add(new ChatMessage("system", invocation.systemPrompt()));
         }
         messages.add(new ChatMessage("user", userPrompt));
 
-        ChatRequest req = new ChatRequest(config.getModel(), messages, 0.7);
+        ChatRequest req = new ChatRequest(config.getModel(), messages, invocation.temperature());
 
-        return restClient
+        return invocation.client()
             .post()
             .uri(config.getBaseUrl() + "/chat/completions")
             .header("Authorization", "Bearer " + apiKey)

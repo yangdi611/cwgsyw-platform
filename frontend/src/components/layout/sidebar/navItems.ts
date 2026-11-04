@@ -1,6 +1,7 @@
 import type { NavEntry } from './types'
 import {
   LayoutDashboard,
+  FileSearch,
   FileText,
   FolderOpen,
   GitBranch,
@@ -124,6 +125,7 @@ export const navItems: NavEntry[] = [
       { href: '/ipam', label: 'IP 地址池', icon: Globe, resource: 'ip_pool', action: 'read' },
       { href: '/files', label: '共享文档', icon: FolderOpen, resource: 'shared_file', action: 'read' },
       { href: '/wiki', label: '知识库', icon: BookOpen, resource: 'wiki', action: 'read' },
+      { href: '/sos-reports', label: 'SOS 报告', icon: FileSearch, resource: 'sos_report', action: 'read' },
     ],
   },
 

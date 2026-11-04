@@ -63,6 +63,7 @@ const businessTypeLabels: Record<string, string> = {
   wiki_page: 'Wiki 页面',
   change_doc: '变更文档',
   device_access: '设备权限',
+  sos_cmdb_request: 'SOS 报告入库',
 }
 
 const sourceOptionLabels: Record<string, string> = {

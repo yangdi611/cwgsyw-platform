@@ -37,6 +37,10 @@ const targetResolvers: Record<string, TargetResolver> = {
     if (!page.spaceId) throw new Error('目标 Wiki 页面缺少空间信息')
     return `/wiki/${page.spaceId}/${id}`
   },
+  sos_report: async (id) => {
+    await api.get(`/sos-reports/${id}`)
+    return `/sos-reports/${id}`
+  },
 }
 
 export default function NotificationTargetPage() {
