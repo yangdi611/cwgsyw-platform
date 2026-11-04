@@ -4,6 +4,7 @@ import com.cwgsyw.platform.module.changedoc.ChangeDocController;
 import com.cwgsyw.platform.module.cmdb.controller.CiInstanceController;
 import com.cwgsyw.platform.module.notification.dto.NotificationTargetVO;
 import com.cwgsyw.platform.module.notification.entity.NotificationMessage;
+import com.cwgsyw.platform.module.sosreport.SosReportController;
 import com.cwgsyw.platform.module.task.runtime.service.TaskRuntimeService;
 import com.cwgsyw.platform.module.wiki.WikiController;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -18,6 +19,7 @@ public class NotificationTargetResolverService {
     private final CiInstanceController ciInstanceController;
     private final WikiController wikiController;
     private final TaskRuntimeService taskRuntimeService;
+    private final SosReportController sosReportController;
 
     public NotificationTargetVO resolve(Long notificationId, SecurityUser user) {
         NotificationMessage notification = notificationMapper.selectById(notificationId);
@@ -44,6 +46,10 @@ public class NotificationTargetResolverService {
                 case "wiki_page" -> {
                     var page = wikiController.getPage(notification.getRefId(), user).getData();
                     yield NotificationTargetVO.available("/wiki/" + page.getSpaceId() + "/" + notification.getRefId());
+                }
+                case "sos_report" -> {
+                    sosReportController.detail(notification.getRefId(), user);
+                    yield NotificationTargetVO.available("/sos-reports/" + notification.getRefId());
                 }
                 default -> NotificationTargetVO.unavailable();
             };

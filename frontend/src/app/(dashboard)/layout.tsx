@@ -15,6 +15,7 @@ const SETUP_PATH = '/account/setup'
 const ROUTE_PERMISSIONS = [
   { path: '/cmdb/spatial', permissions: ['cmdb_spatial:read', 'cmdb_instance:read'] },
   { path: '/work', permissions: ['work_item:read'] },
+  { path: '/sos-reports', permissions: ['sos_report:read'] },
   { path: '/ops-calendar/rosters', permissions: ['calendar_settings:read'] },
   { path: '/ops-calendar/holidays', permissions: ['calendar_settings:read'] },
   { path: '/ops-calendar', permissions: ['task:read'] },

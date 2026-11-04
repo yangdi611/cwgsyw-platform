@@ -46,6 +46,7 @@ interface ProcessDef {
 const BUSINESS_TYPES = [
   { value: 'wiki_page', label: 'Wiki 页面审批' },
   { value: 'change_doc', label: '变更文档审批' },
+  { value: 'sos_cmdb_request', label: 'SOS 报告入库审批' },
 ]
 
 function businessTypeLabel(v: string): string {

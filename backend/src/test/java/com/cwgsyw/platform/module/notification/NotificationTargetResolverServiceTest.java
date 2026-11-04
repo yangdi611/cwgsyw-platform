@@ -16,12 +16,40 @@ import static org.mockito.Mockito.when;
 class NotificationTargetResolverServiceTest {
     private final NotificationMapper notificationMapper = mock(NotificationMapper.class);
     private final TaskRuntimeService taskRuntimeService = mock(TaskRuntimeService.class);
+    private final com.cwgsyw.platform.module.sosreport.SosReportController sosReportController =
+        mock(com.cwgsyw.platform.module.sosreport.SosReportController.class);
     private final NotificationTargetResolverService service = new NotificationTargetResolverService(
         notificationMapper,
         mock(com.cwgsyw.platform.module.changedoc.ChangeDocController.class),
         mock(com.cwgsyw.platform.module.cmdb.controller.CiInstanceController.class),
         mock(com.cwgsyw.platform.module.wiki.WikiController.class),
-        taskRuntimeService);
+        taskRuntimeService,
+        sosReportController);
+
+    @Test
+    void resolveSosReport_linksToReportWhenReadable() {
+        SecurityUser user = user();
+        NotificationMessage message = notification(902L, user.getUserId(), 55L);
+        message.setRefType("sos_report");
+        when(notificationMapper.selectById(902L)).thenReturn(message);
+
+        NotificationTargetVO target = service.resolve(902L, user);
+
+        assertThat(target.isAvailable()).isTrue();
+        assertThat(target.getHref()).isEqualTo("/sos-reports/55");
+        verify(sosReportController).detail(55L, user);
+    }
+
+    @Test
+    void resolveSosReport_unavailableWhenReportIsNotReadable() {
+        SecurityUser user = user();
+        NotificationMessage message = notification(903L, user.getUserId(), 56L);
+        message.setRefType("sos_report");
+        when(notificationMapper.selectById(903L)).thenReturn(message);
+        when(sosReportController.detail(56L, user)).thenThrow(new IllegalStateException("denied"));
+
+        assertThat(service.resolve(903L, user).isAvailable()).isFalse();
+    }
 
     @Test
     void resolveTask_returnsUnifiedTaskRouteWhenTaskIsAccessible() {

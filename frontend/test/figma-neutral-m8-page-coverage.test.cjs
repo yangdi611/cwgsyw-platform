@@ -34,9 +34,9 @@ function routeFromPage(rel) {
   return stripped ? `/${stripped}` : '/'
 }
 
-test('81 page entries are in the matrix and are Neutral or approved redirects', () => {
+test('84 page entries are in the matrix and are Neutral or approved redirects', () => {
   const pages = walk(appRoot).map((file) => path.relative(frontendRoot, file)).sort()
-  assert.equal(pages.length, 81)
+  assert.equal(pages.length, 84)
   const matrix = fs.readFileSync(matrixPath, 'utf8')
   const missing = []
   for (const rel of pages) {

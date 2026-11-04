@@ -46,4 +46,10 @@ public interface WorkflowRuntimeFacade {
      * 调用方必须先完成业务对象 runId 归属校验。
      */
     void purgeBusinessProcessForRemediation(String tenantId, String businessType, String businessId);
+
+    /** 流程实例当前未完成的任务 id。 */
+    List<String> listActiveTaskIds(String processInstanceId);
+
+    /** 用户是否是任务的处理人或候选人，判定规则与审批时相同（不含业务权限）。 */
+    boolean isTaskCandidate(String taskId, SecurityUser user);
 }

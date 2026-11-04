@@ -2,7 +2,7 @@
 
 ## 1. 使用规则
 
-当前基线包含 81 个 `page.tsx` 入口。这里先按路由域建立完整覆盖框架；每个实现 Issue 必须把所选域展开为逐路由记录，不能只凭域级 `PASS` 宣称页面完成。
+当前基线包含 84 个 `page.tsx` 入口。这里先按路由域建立完整覆盖框架；每个实现 Issue 必须把所选域展开为逐路由记录，不能只凭域级 `PASS` 宣称页面完成。
 
 每页仍需修改或确认页面组合，但不重复实现 Button、Input、Table 等共享组件。共享层先完成，页面工作主要负责真实数据、权限、状态、内容层级、Pattern 组合和视觉验收。
 
@@ -33,12 +33,13 @@
 | `/notifications/*` | 3 | Data / Management; Detail / Drawer | 未读/已读、目标解析、空态、跳转 | VERIFYING |
 | `/ops-calendar/*` | 3 | Dashboard / Feedback; Data / Management; Overlay / Destructive | 月/周/列表、排班、节假日、日期和 Dialog | VERIFYING |
 | `/rbac/*` | 2 | Data / Management; Overlay / Destructive | 角色、权限、禁用/继承/危险变更 | VERIFYING |
+| `/sos-reports/*` | 3 | Data / Management; Overlay / Destructive | 上传、解析状态、结构化数据、CMDB 入库预览、审批、映射规则、权限（`/sos-reports`、`/sos-reports/[id]`、`/sos-reports/mappings`；YAN-109 新增，未做真实浏览器验证） | VERIFYING |
 | `/tasks/*` | 13 | 全五类 Pattern | 列表、详情、计划、模板、分析、指标、自动化、动态表单 | VERIFYING |
 | `/users` | 1 | Data / Management; Overlay / Destructive | 用户 CRUD、授权、状态和权限 | VERIFYING |
 | `/wiki/*` | 6 | Data / Management; Detail / Drawer; Form / Settings | 空间、页面、编辑、搜索、图谱、评论/版本 Drawer | VERIFYING |
 | `/work` | 1 | Data / Management; Detail / Drawer | 待办、审批 Drawer、权限和状态更新 | VERIFYING |
 | `/workflow/*` | 7 | Data / Management; Form / Settings; Detail / Drawer | 设计画布、实例、模板、绑定、统计、BPMN；七页已本地 Neutral | VERIFYING |
-| **合计** | **81** |  |  | **VERIFYING**（78 Neutral + 3 EXCLUDED redirect；视觉审计 WAIVED，故不写视觉 PASS） |
+| **合计** | **84** |  |  | **VERIFYING**（81 Neutral + 3 EXCLUDED redirect；视觉审计 WAIVED，故不写视觉 PASS） |
 
 ## 3. Pattern 选择规则
 

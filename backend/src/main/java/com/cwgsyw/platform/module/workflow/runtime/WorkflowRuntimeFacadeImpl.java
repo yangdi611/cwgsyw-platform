@@ -286,6 +286,18 @@ public class WorkflowRuntimeFacadeImpl implements WorkflowRuntimeFacade {
     }
 
     @Override
+    public List<String> listActiveTaskIds(String processInstanceId) {
+        return taskService.createTaskQuery().processInstanceId(processInstanceId).list()
+            .stream().map(Task::getId).toList();
+    }
+
+    @Override
+    public boolean isTaskCandidate(String taskId, SecurityUser user) {
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        return task != null && isAssigneeOrCandidate(task, user.getUserId(), user);
+    }
+
+    @Override
     public boolean hasRunningBusinessProcess(String tenantId, String businessType, String businessId) {
         return businessInstanceMapper.selectCount(new LambdaQueryWrapper<WorkflowBusinessInstance>()
             .eq(WorkflowBusinessInstance::getTenantId, tenantId)

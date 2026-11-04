@@ -119,6 +119,12 @@ class UnifiedTaskFreshInstallMigrationTest {
         assertEquals(1, count("SELECT COUNT(*) FROM sys_resource WHERE code = 'cmdb_spatial'"));
         assertEquals(5, count("SELECT COUNT(*) FROM sys_permission WHERE code LIKE 'cmdb_spatial:%'"));
 
+        List.of("sos_report", "sos_field_mapping", "sos_cmdb_request")
+            .forEach(table -> assertTrue(tableExists(table), table + " must exist after a V1 fresh install"));
+        assertEquals(1, count("SELECT COUNT(*) FROM sys_resource WHERE code = 'sos_report'"));
+        assertEquals(6, count("SELECT COUNT(*) FROM sys_permission WHERE code LIKE 'sos_report:%'"));
+        assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uq_sos_cmdb_request_pending'"));
+
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_task_automation_rule_active'"));
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_task_analytics_subscription_due'"));
         assertEquals(1, count("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_notification_user_unread'"));

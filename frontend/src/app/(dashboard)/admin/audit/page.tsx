@@ -51,6 +51,7 @@ const MODULE_LABELS: Record<string, string> = {
   group: '组管理',
   backup: '备份与恢复',
   shared_file: '共享文档',
+  sos_report: 'SOS 报告',
 }
 
 const ACTION_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {

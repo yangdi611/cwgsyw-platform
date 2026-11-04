@@ -94,3 +94,6 @@ logs/
 *.png
 !frontend/public/**/*.png
 claude-*.log
+
+# sosreport 样本可能含明文凭据，不进入仓库
+/sosreport-*
