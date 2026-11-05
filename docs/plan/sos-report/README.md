@@ -33,10 +33,38 @@ AI 只负责为新字段提出候选规则。
 原包只在解析期间存放于 MinIO，解析进入终态（成功或最终失败）后立即删除，也不提供下载接口。
 这样凭据不会进入对象存储的长期数据和备份。代价是解析器升级后需要重新上传才能重新解析。
 
+## 分片上传（YAN-114）
+
+**问题：** 生产环境经 Cloudflare，实测约 15 KB/s，而 Cloudflare 的响应时限是 120 秒，超过约 1.8 MB 的整包上传必然返回 524。
+进度条只反映浏览器发出的字节，所以会很快到 100%，但服务器还没收到。
+
+**做法：** 浏览器把文件切成每片 1 MB（实测约 70 秒）逐片发送，全部到齐后由后端合并，再走原有的写库和解析流程。
+分片解决的是超时，不提高速度：9.7 MB 约 11 分钟，200 MB 约 3.8 小时。
+
+- 分片存在 MinIO 的 `sos-report-uploads/<uploadId>/<序号>`，实例重启不影响。MinIO 的 compose 要求除最后一块外每块至少 5 MB，
+  所以合并时由后端顺序读取再写入 `sos-reports/<uuid>`，边写入边计算 SHA-256。
+- 状态记录在 `sos_upload_session`。它是临时状态，到期后物理删除，不做软删除；成功上传的审计记录写在报告上。
+- 单片和完成请求都可以安全重试。遇到网络错误、超时、5xx（含 Cloudflare 的 52x）时，同一个请求最多重试 4 次，
+  间隔 2、5、15、30 秒。4xx 不重试，立即结束。
+- 分片可能含凭据，完成、取消和失败时都立即删除。删除失败或页面被关闭时，会话在最后一次收到分片的 60 分钟后过期，
+  由定时任务每分钟清理；分片全部删除后才删除会话。
+- 每个用户最多保留 3 个未完成的会话，再开新上传时淘汰最早的。
+- 浏览器先算 SHA-256 再上传，重复文件立即被拒绝，合并后也用它校验。`crypto.subtle` 不可用时不带摘要，靠数据库唯一索引去重。
+- 第一片检查文件头，不是压缩包就不用传完。
+- 报告和会话状态在同一个事务里提交，所以完成请求的响应丢失后，重试一定能拿到同一份报告。
+- 合并结果的对象 key 由会话决定（`sos-reports/<uploadId>`）。合并后、提交前进程中断时，清理任务也能把它删掉。
+- **空闲超时的例外：** 登录空闲时限是 60 分钟，按 15 KB/s 约 54 MB 以上的文件传不完。所以每确认一片，都算一次用户活动，
+  包括页面隐藏时。这是对“只有真实交互才算活动”这条规则的例外，范围仅限用户发起且确实有进展的上传；
+  卡住的上传不续期。其他标签页的空闲计时器不受影响，见“已知风险”。
+
+不支持刷新页面后续传。整页刷新或关闭会中断上传，页面会提示；站内跳转不受影响。
+
+原来的 `POST /upload` 保留，用于在服务器上绕开 Cloudflare 直接上传。页面不再使用它。
+
 ## 流程
 
 ```text
-上传 -> MinIO 暂存 -> sos_report(pending)
+分片上传 -> 合并 -> MinIO 暂存 -> sos_report(pending)
      -> 定时器认领（租约）-> 流式读取白名单文件 -> facts JSONB(parsed) -> 删除原包
      -> 预览：规则 + 事实 = 字段值，与现有 CI 比对
      -> 提交：sos_cmdb_request(pending_approval) + Flowable 流程
@@ -143,7 +171,11 @@ Spring 默认调度线程只有一个，解析不能阻塞其他定时任务。`
 
 | 方法与路径 | 权限 | 说明 |
 |---|---|---|
-| `POST /upload` | `upload` | multipart 字段 `file` |
+| `POST /upload` | `upload` | 整包上传，multipart 字段 `file`。经 Cloudflare 时受 120 秒时限影响，只用于服务器本机 |
+| `POST /uploads` | `upload` | 开始分片上传，请求体 `fileName`、`fileSize`、可选 `sha256`；返回 `uploadId`、`chunkSize`、`chunkCount` |
+| `POST /uploads/{uploadId}/chunks/{index}` | `upload` | 发送一片，multipart 字段 `chunk`，可重复发送 |
+| `POST /uploads/{uploadId}/complete` | `upload` | 合并并生成报告，可重复调用；正在合并时返回 409 `SOS_UPLOAD_ASSEMBLING` |
+| `DELETE /uploads/{uploadId}` | `upload` | 取消并删除分片 |
 | `GET /` | `read` | 分页，参数 `keyword`、`status`、`page`、`size` |
 | `GET /{id}` | `read` | 详情和事实 |
 | `DELETE /{id}` | `delete` | 软删除，审批中不可删 |
@@ -162,7 +194,7 @@ Spring 默认调度线程只有一个，解析不能阻塞其他定时任务。`
 
 1. 发布后需要管理员在工作流模板和绑定页面为 `sos_cmdb_request` 配置流程。未配置时页面提示，不写 CMDB。
 2. AI 建议需要在 AI 配置页启用提供商。未启用时只影响“生成建议”。
-3. nginx 为 `/api/sos-reports/upload` 单独设置 `client_max_body_size 200m`。
+3. nginx 为 `/api/sos-reports/upload` 单独设置 `client_max_body_size 200m`，为 `/api/sos-reports/uploads` 设置 `2m`（1 MB 分片加 multipart 开销）。
 4. 配置 `APP_PUBLIC_URL` 和 SMTP，审批通知邮件才带完整链接。
 
 ## 发布前验证
@@ -190,6 +222,15 @@ cd backend && mvn test -Dtest='UnifiedTaskFreshInstallMigrationTest,UnifiedTaskI
 10. 确认候选审批人收到站内通知和邮件，点击能打开报告；确认 AI 建议的字段在审批弹窗和通知里都有标注。
 11. 用 `member` 角色确认看不到删除、审批和映射配置入口，并直接调用接口得到 403。
 
+分片上传验收（YAN-114，在生产域名上经 Cloudflare 执行）：
+
+1. 浏览器上传真实 sosreport，进度按“已上传 x / y”增长，预计时间合理，完成后列表出现报告并解析成功。
+2. 确认对象存储中 `sos-report-uploads/` 下没有残留分片。
+3. 再传一次同一个文件，立即提示“这份报告已经上传过”。
+4. 上传中点“取消上传”，提示已取消，`sos_upload_session` 对应行和分片都被删除。
+5. 上传中关闭页面，约 60 分钟后确认分片和会话被定时任务清理。
+6. 把一个其他文件改名成 `.tar.xz` 上传，第一片之后立即提示文件内容不对。
+
 用其他报告核对解析结果（报告不进入仓库）：
 
 ```bash
@@ -203,6 +244,9 @@ SOS_REPORT_SAMPLE=/path/report.tar.xz SOS_REPORT_OUTPUT=/tmp/facts.json \
 2. 迁移 `V112` 只新增对象，不改现有表，不需要回滚脚本。确需清理时，先确认无数据依赖，
    再删除 `sos_cmdb_request`、`sos_field_mapping`、`sos_report` 和 `sos_report:*` 权限。这是单独授权的操作。
 3. 已审批写入的 CI 是正常 CMDB 数据，不随回滚删除；可通过 `ci_change_record` 和 `sos_cmdb_request` 追溯。
+4. 回滚 YAN-114 后页面恢复整包上传，经 Cloudflare 的超时问题也会恢复。`V113` 只新增 `sos_upload_session`，可以保留。
+   旧版本没有清理定时任务，回滚前要确认没有进行中的上传；如有残留，手动删除对象存储的 `sos-report-uploads/` 前缀。
+   这是单独授权的操作。
 
 ## 已知风险
 
@@ -211,3 +255,7 @@ SOS_REPORT_SAMPLE=/path/report.tar.xz SOS_REPORT_OUTPUT=/tmp/facts.json \
 - CMDB 字段没有描述列，AI 只能依据字段名和类型判断，所以新规则必须人工确认。
 - 字段名和枚举选项会随 AI 请求外发，其中可能出现业务名称。
 - `disk_gb` 的口径是“操作系统可见的物理盘容量合计”，RAID 卡后的物理盘不可见。
+- 分片上传的前提是单片能在 120 秒内传完。线路低于约 9 KB/s 时，1 MB 分片也会超时并在重试后失败。
+- 经 Cloudflare 约 15 KB/s 的根因没有查明，大文件上传仍然很慢，备份恢复的上传仍会超时。
+- 上传期间，其他标签页如果 60 分钟没有操作，其空闲计时器仍会退出登录，上传随之中断。各标签页分别计时是现有行为，这次没有改。
+- JWT 有效期 24 小时，上传时不会刷新。在 token 快到期时开始的长上传，会在到期时中断。

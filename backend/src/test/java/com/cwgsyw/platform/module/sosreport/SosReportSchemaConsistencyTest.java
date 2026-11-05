@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.cwgsyw.platform.module.sosreport.entity.SosCmdbRequest;
 import com.cwgsyw.platform.module.sosreport.entity.SosFieldMapping;
 import com.cwgsyw.platform.module.sosreport.entity.SosReport;
+import com.cwgsyw.platform.module.sosreport.entity.SosUploadSession;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -34,7 +35,8 @@ class SosReportSchemaConsistencyTest {
     @BeforeAll
     static void load() throws IOException {
         SosTestSupport.initTables();
-        migration = new ClassPathResource("db/migration/V112__sos_report.sql").getContentAsString(StandardCharsets.UTF_8);
+        migration = new ClassPathResource("db/migration/V112__sos_report.sql").getContentAsString(StandardCharsets.UTF_8)
+            + new ClassPathResource("db/migration/V113__sos_upload_session.sql").getContentAsString(StandardCharsets.UTF_8);
     }
 
     private static Set<String> tableColumns(String table) {
@@ -75,8 +77,14 @@ class SosReportSchemaConsistencyTest {
     }
 
     @Test
+    void uploadSessionEntityMatchesMigration() {
+        assertEntityMatchesTable(SosUploadSession.class, "sos_upload_session");
+    }
+
+    @Test
     void statusConstantsAreAllowedByCheckConstraints() {
         for (String status : List.of(SosReport.STATUS_PENDING, SosReport.STATUS_PARSING, SosReport.STATUS_PARSED, SosReport.STATUS_FAILED,
+            SosUploadSession.STATUS_UPLOADING, SosUploadSession.STATUS_ASSEMBLING, SosUploadSession.STATUS_COMPLETED,
             SosFieldMapping.STATUS_SUGGESTED, SosFieldMapping.STATUS_CONFIRMED, SosFieldMapping.STATUS_UNMAPPABLE,
             SosFieldMapping.SOURCE_MANUAL, SosFieldMapping.SOURCE_AI,
             SosCmdbRequest.STATUS_PENDING, SosCmdbRequest.STATUS_APPLIED, SosCmdbRequest.STATUS_REJECTED, SosCmdbRequest.STATUS_APPLY_FAILED,

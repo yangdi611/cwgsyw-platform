@@ -7,6 +7,7 @@ import com.cwgsyw.platform.module.cmdb.entity.CiInstance;
 import com.cwgsyw.platform.module.sosreport.entity.SosCmdbRequest;
 import com.cwgsyw.platform.module.sosreport.entity.SosFieldMapping;
 import com.cwgsyw.platform.module.sosreport.entity.SosReport;
+import com.cwgsyw.platform.module.sosreport.entity.SosUploadSession;
 import com.cwgsyw.platform.security.SecurityUser;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 
@@ -22,7 +23,7 @@ public final class SosTestSupport {
     /** Lambda 条件构造器依赖 MyBatis-Plus 的表信息缓存。 */
     public static void initTables() {
         MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "sosReportTest");
-        for (Class<?> type : List.of(SosReport.class, SosFieldMapping.class, SosCmdbRequest.class, CiInstance.class)) {
+        for (Class<?> type : List.of(SosReport.class, SosFieldMapping.class, SosCmdbRequest.class, SosUploadSession.class, CiInstance.class)) {
             TableInfoHelper.initTableInfo(assistant, type);
         }
     }

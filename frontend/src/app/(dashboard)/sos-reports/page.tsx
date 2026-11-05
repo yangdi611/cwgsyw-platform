@@ -4,9 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
 import { getApiErrorMessage } from '@/lib/api-error'
 import { sosReportApi, type SosReport } from '@/lib/sos-report-api'
+import {
+  SosUploadCancelledError,
+  describeUploadError,
+  uploadProgressLabel,
+  uploadSosReport,
+  type SosUploadProgress,
+} from '@/lib/sos-report-upload'
 import {
   ACCEPTED_SUFFIXES,
   MAX_UPLOAD_BYTES,
@@ -20,6 +26,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { toast } from '@/design-system/figma-neutral/toast'
 import '@/design-system/figma-neutral/index.css'
 import {
+  Alert,
   Button,
   DataManagementPage,
   EmptyState,
@@ -54,7 +61,8 @@ export default function SosReportsPage() {
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [deleting, setDeleting] = useState<SosReport | null>(null)
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<SosUploadProgress | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -76,18 +84,19 @@ export default function SosReportsPage() {
     mutationFn: (file: File) => {
       const controller = new AbortController()
       abortRef.current = controller
-      setUploadProgress(0)
-      return sosReportApi.upload(file, setUploadProgress, controller.signal)
+      setUploadError(null)
+      return uploadSosReport(file, setUploadProgress, controller.signal)
     },
     onSuccess: () => {
       toast.success('上传成功，正在后台解析')
-      queryClient.invalidateQueries({ queryKey: ['sos-reports'] })
     },
     onError: (error) => {
-      if (axios.isCancel(error)) toast.message('已取消上传')
-      else toast.error(getApiErrorMessage(error, '上传失败'))
+      if (error instanceof SosUploadCancelledError) toast.message('已取消上传')
+      else setUploadError(describeUploadError(error))
     },
     onSettled: () => {
+      // 失败时也刷新：完成请求的响应可能丢了，报告其实已经生成。
+      queryClient.invalidateQueries({ queryKey: ['sos-reports'] })
       setUploadProgress(null)
       abortRef.current = null
       if (inputRef.current) inputRef.current.value = ''
@@ -125,6 +134,14 @@ export default function SosReportsPage() {
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const uploading = uploadMutation.isPending
   const canDelete = hasPermission('sos_report', 'delete')
+
+  // 整页刷新或关闭会中断上传。站内跳转不受影响，上传会在后台继续。
+  useEffect(() => {
+    if (!uploading) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [uploading])
 
   return (
     <>
@@ -196,8 +213,11 @@ export default function SosReportsPage() {
               className="cwgsyw-sr-only"
               onChange={onFileChange}
             />
+            {uploadError ? (
+              <Alert tone="danger" title="上传失败" description={uploadError} onDismiss={() => setUploadError(null)} />
+            ) : null}
             {uploadProgress != null ? (
-              <Progress value={uploadProgress} label="上传进度" showLabel showPercentage size="sm" tone="neutral" />
+              <Progress value={uploadProgress.percent} label={uploadProgressLabel(uploadProgress)} showLabel showPercentage size="sm" tone="neutral" />
             ) : null}
             <PendingApprovals />
             {query.isError ? (

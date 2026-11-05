@@ -180,25 +180,10 @@ export interface SosSuggestResult {
   rejected: { fieldKey: string; reason: string }[]
 }
 
-/** 上传和 AI 调用都比普通请求慢，默认 30 秒的超时不够。 */
-const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000
+/** AI 调用比普通请求慢，默认 30 秒的超时不够。 */
 const AI_TIMEOUT_MS = 60 * 1000
 
 export const sosReportApi = {
-  upload: (file: File, onProgress: (percent: number) => void, signal: AbortSignal) => {
-    const form = new FormData()
-    form.append('file', file)
-    return api
-      .post('/sos-reports/upload', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: UPLOAD_TIMEOUT_MS,
-        signal,
-        onUploadProgress: (event) => {
-          if (event.total) onProgress(Math.round((event.loaded / event.total) * 100))
-        },
-      })
-      .then((response) => response.data.data as SosReport)
-  },
   list: (params: { keyword?: string; status?: string; page: number; size: number }) =>
     api.get('/sos-reports', { params }).then((response) => response.data.data as SosReportPage),
   detail: (id: string) => api.get(`/sos-reports/${id}`).then((response) => response.data.data as SosReport),

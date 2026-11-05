@@ -37,8 +37,8 @@ class UnifiedTaskFreshInstallMigrationTest {
             .validateOnMigrate(true)
             .load();
 
-        assertEquals(110, flyway.migrate().migrationsExecuted);
-        assertEquals(112, jdbcTemplate.queryForObject(
+        assertEquals(111, flyway.migrate().migrationsExecuted);
+        assertEquals(113, jdbcTemplate.queryForObject(
             "SELECT MAX(CAST(version AS INTEGER)) FROM flyway_schema_history", Integer.class));
     }
 
