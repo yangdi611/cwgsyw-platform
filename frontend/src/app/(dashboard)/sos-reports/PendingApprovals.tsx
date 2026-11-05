@@ -6,8 +6,9 @@ import { useQuery } from '@tanstack/react-query'
 import { sosReportApi, type SosPendingApproval } from '@/lib/sos-report-api'
 import { aiFields, formatDateTime } from '@/lib/sos-report-format'
 import { usePermission } from '@/hooks/usePermission'
-import { Alert, Button, Card, Table } from '@/design-system/figma-neutral/components'
+import { Alert, Button, Table } from '@/design-system/figma-neutral/components'
 import { ApprovalDialog } from './ApprovalDialog'
+import { SosPanel } from './SosPanel'
 
 /** 报告详情页的审批入口。通知里的链接落在详情页，审批人不用再回列表找。 */
 export function ReportApprovalBanner({ reportId }: { reportId: number }) {
@@ -52,7 +53,7 @@ export function PendingApprovals() {
 
   return (
     <>
-      <Card title={`待我审批（${approvals.length}）`}>
+      <SosPanel title={`待我审批（${approvals.length}）`} flush>
         <Table
           className="cwgsyw-cmdb-table"
           density="compact"
@@ -84,7 +85,7 @@ export function PendingApprovals() {
           }))}
           state="data"
         />
-      </Card>
+      </SosPanel>
       {reviewing ? <ApprovalDialog approval={reviewing} onClose={() => setReviewing(null)} /> : null}
     </>
   )

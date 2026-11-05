@@ -12,7 +12,6 @@ import {
   Alert,
   Badge,
   Button,
-  Card,
   Checkbox,
   ErrorState,
   Field,
@@ -23,6 +22,7 @@ import {
   StatusBadge,
   Table,
 } from '@/design-system/figma-neutral/components'
+import { SosPanel } from '../SosPanel'
 
 const ACTION_LABEL = { create: '新增实例', update: '更新实例', conflict: '存在冲突' } as const
 const ACTION_TONE = { create: 'info', update: 'info', conflict: 'danger' } as const
@@ -110,7 +110,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
 
   return (
     <div className="cwgsyw-sos-report__stack">
-      <Card title="入库方式">
+      <SosPanel title="入库方式">
         <div className="cwgsyw-sos-report__stack">
           <div className="cwgsyw-inline-controls">
             <StatusBadge label={ACTION_LABEL[data.action]} status={ACTION_TONE[data.action]} />
@@ -129,7 +129,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
             />
           </Field>
         </div>
-      </Card>
+      </SosPanel>
 
       {data.blockingReasons.map((reason) => (
         <Alert key={reason} tone="danger" showDismiss={false} title="暂时不能提交" description={reason} />
@@ -149,7 +149,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
         <div><Link href="/sos-reports/mappings">前往配置字段映射规则</Link></div>
       ) : null}
 
-      <Card title="字段值">
+      <SosPanel title="字段值" flush>
         <Table
           className="cwgsyw-cmdb-table"
           density="compact"
@@ -205,7 +205,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
           })}
           state="data"
         />
-      </Card>
+      </SosPanel>
 
       {canSubmitPermission ? (
         <div className="cwgsyw-inline-controls">
@@ -225,7 +225,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
         </div>
       ) : null}
 
-      <Card title="入库申请记录">
+      <SosPanel title="入库申请记录" flush>
         <Table
           className="cwgsyw-cmdb-table"
           density="compact"
@@ -258,7 +258,7 @@ export function CmdbPanel({ reportId }: { reportId: string }) {
           state={requests.isLoading ? 'loading' : (requests.data ?? []).length === 0 ? 'empty' : 'data'}
           empty="还没有入库申请"
         />
-      </Card>
+      </SosPanel>
     </div>
   )
 }

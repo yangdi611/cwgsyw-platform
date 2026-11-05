@@ -9021,11 +9021,56 @@ button.cwgsyw-stack-list__item:focus-visible {
 .cwgsyw-sos-report__stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cwgsyw-space-3);
   min-width: 0;
+}
+.cwgsyw-sos-report__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cwgsyw-space-6);
+  min-width: 0;
+}
+.cwgsyw-sos-report__section-title {
+  margin: 0;
+  color: var(--cwgsyw-text-primary);
+  font-size: var(--cwgsyw-font-size-body-md);
+  font-weight: var(--cwgsyw-font-weight-regular);
+  line-height: var(--cwgsyw-type-body-md-line-height);
+}
+.cwgsyw-sos-report__split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cwgsyw-space-3);
+  align-items: start;
 }
 .cwgsyw-sos-report__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--cwgsyw-space-2);
+}
+.cwgsyw-sos-report__note {
+  margin: 0;
+  color: var(--cwgsyw-text-tertiary);
+  font-size: var(--cwgsyw-font-size-label-sm);
+  font-weight: var(--cwgsyw-font-weight-regular);
+  line-height: var(--cwgsyw-type-label-sm-line-height);
+}
+.cwgsyw-sos-report .cwgsyw-devices-defs dd { overflow-wrap: anywhere; }
+/* 表格贴满模块，由模块提供外框；表头用白底，和上方的浅灰标题行区分开。 */
+.cwgsyw-sos-report__panel-flush .cwgsyw-cmdb-table .cwgsyw-table-wrap {
+  border: 0;
+  border-radius: 0 0 var(--cwgsyw-radius-md) var(--cwgsyw-radius-md);
+}
+.cwgsyw-sos-report__panel-flush .cwgsyw-cmdb-table .cwgsyw-th { background: var(--cwgsyw-bg-surface); }
+/* 窄屏时表格变成行卡片，不能贴到模块外框上。 */
+.cwgsyw-sos-report__panel-flush .cwgsyw-table-mobile { padding: var(--cwgsyw-space-3); }
+/* Table 的空状态和加载状态是没有 class 的 div，贴满模块后要自己留出内边距。 */
+.cwgsyw-sos-report__panel-flush .cwgsyw-cmdb-table > div:not([class]) {
+  padding: var(--cwgsyw-space-3);
+  color: var(--cwgsyw-text-tertiary);
+  font-size: var(--cwgsyw-font-size-label-sm);
+  line-height: var(--cwgsyw-type-label-sm-line-height);
+}
+@media (max-width: 860px) {
+  .cwgsyw-sos-report__split { grid-template-columns: minmax(0, 1fr); }
 }
