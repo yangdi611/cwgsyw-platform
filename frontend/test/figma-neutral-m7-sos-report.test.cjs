@@ -248,6 +248,60 @@ test('facts panel handles missing data', () => {
   assert.match(html, /没有失败的服务/)
 })
 
+test('detail modules use the same light panel as other detail pages', () => {
+  for (const file of [FACTS_PANEL, CMDB_PANEL, PENDING_APPROVALS]) {
+    assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /\bCard\b/, path.basename(file))
+  }
+
+  const facts = render(FACTS_PANEL, {}, { report: REPORT })
+  for (const title of ['主机身份', '硬件', '操作系统', '网络', '网卡', '磁盘', '监听端口']) {
+    assert.match(facts, new RegExp(`cwgsyw-devices-panel__head">${title}<`), title)
+  }
+  // Table 窄屏时每行是一个 cwgsyw-card；只有 Card 组件才带 --sm/--md/--lg 修饰类。
+  assert.doesNotMatch(facts, /cwgsyw-card--/)
+  assert.doesNotMatch(facts, /cwgsyw-type-title-sm/, '模块标题不能用 20px 的卡片标题')
+  assert.match(facts, /<h2[^>]*>基本信息<\/h2>/)
+  assert.match(facts, /<h2[^>]*>网络与存储明细<\/h2>/)
+  assert.match(facts, /<h2[^>]*>服务<\/h2>/)
+
+  const cmdb = render(CMDB_PANEL, { queries: { 'sos-report-cmdb-preview': { data: PREVIEW }, 'sos-report-cmdb-requests': { data: [] } } }, { reportId: '5' })
+  for (const title of ['入库方式', '字段值', '入库申请记录']) {
+    assert.match(cmdb, new RegExp(`cwgsyw-devices-panel__head">${title}<`), title)
+  }
+  assert.doesNotMatch(cmdb, /cwgsyw-card--/)
+
+  const queue = render(PENDING_APPROVALS, { exportName: 'PendingApprovals', queries: { 'sos-report-approvals': { data: [APPROVAL] } } })
+  assert.match(queue, /cwgsyw-devices-panel__head">待我审批（1）</)
+})
+
+test('tables fill their module instead of adding a second border', () => {
+  const html = render(FACTS_PANEL, {}, { report: REPORT })
+  assert.match(html, /cwgsyw-sos-report__panel-flush/)
+
+  const css = fs.readFileSync(src('design-system/figma-neutral/components/patterns.css'), 'utf8')
+  assert.match(css, /\.cwgsyw-sos-report__panel-flush \.cwgsyw-cmdb-table \.cwgsyw-table-wrap \{\s*border: 0;/)
+
+  // 贴满模块后，窄屏行卡片和空状态提示都不能贴到外框上。
+  assert.match(css, /\.cwgsyw-sos-report__panel-flush \.cwgsyw-table-mobile \{ padding: var\(--cwgsyw-space-3\); \}/)
+  assert.match(css, /\.cwgsyw-sos-report__panel-flush \.cwgsyw-cmdb-table > div:not\(\[class\]\) \{\s*padding: var\(--cwgsyw-space-3\);/)
+  assert.match(render(FACTS_PANEL, {}, { report: { ...REPORT, facts: {} } }), /<div class="cwgsyw-cmdb-table"><div>没有配置 bond<\/div>/, '样式依赖这个结构')
+})
+
+test('sos report styles use design tokens for spacing', () => {
+  const css = fs.readFileSync(src('design-system/figma-neutral/components/patterns.css'), 'utf8')
+  const rules = css.slice(css.indexOf('/* SOS 报告 */')).match(/[^{}]*cwgsyw-sos-report[^{}]*\{[^}]*\}/g)
+  assert.ok(rules.length >= 8)
+  for (const rule of rules) {
+    assert.doesNotMatch(rule, /(?:gap|margin|padding|font-size|line-height)\s*:\s*[^;]*\b[1-9]\d*px/, rule)
+  }
+})
+
+test('package count moves into basic information', () => {
+  const html = render(FACTS_PANEL, {}, { report: REPORT })
+  assert.match(html, /<dt>软件包<\/dt><dd>544 个<\/dd>/)
+  assert.doesNotMatch(html, /cwgsyw-devices-panel__head">软件包</)
+})
+
 test('facts panel lists failed services and bond members', () => {
   const html = render(FACTS_PANEL, {}, { report: REPORT })
   assert.match(html, /kdump\.service/)

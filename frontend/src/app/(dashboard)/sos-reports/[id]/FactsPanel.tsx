@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import type { SosReport } from '@/lib/sos-report-api'
 import { fact, factRows, factStrings, formatValue } from '@/lib/sos-report-format'
-import { Card, Chip, Table } from '@/design-system/figma-neutral/components'
+import { Chip, Table } from '@/design-system/figma-neutral/components'
+import { SosPanel } from '../SosPanel'
 
 type Definition = [label: string, key: string, unit?: string]
 
@@ -27,6 +28,7 @@ const OS: Definition[] = [
   ['SELinux', 'os.selinux'],
   ['启动方式', 'os.bootMode'],
   ['安装日期（近似）', 'os.installDate'],
+  ['软件包', 'software.packageCount', '个'],
 ]
 
 const HARDWARE: Definition[] = [
@@ -71,7 +73,7 @@ function FactTable({ title, columns, rows, empty }: {
   empty: string
 }) {
   return (
-    <Card title={title}>
+    <SosPanel title={title} flush>
       <Table
         className="cwgsyw-cmdb-table"
         density="compact"
@@ -84,21 +86,30 @@ function FactTable({ title, columns, rows, empty }: {
         state={rows.length === 0 ? 'empty' : 'data'}
         empty={empty}
       />
-    </Card>
+    </SosPanel>
   )
 }
 
-function Tags({ title, values, empty }: { title: string; values: string[]; empty: string }) {
+function Tags({ title, values, empty, tone }: { title: string; values: string[]; empty: string; tone?: 'danger' }) {
   return (
-    <Card title={`${title}（${values.length}）`}>
+    <SosPanel title={`${title}（${values.length}）`}>
       {values.length === 0 ? (
-        <p className="cwgsyw-type-body-sm">{empty}</p>
+        <p className="cwgsyw-sos-report__note">{empty}</p>
       ) : (
         <div className="cwgsyw-sos-report__tags">
-          {values.map((value) => <Chip key={value} label={value} />)}
+          {values.map((value) => <Chip key={value} label={value} tone={tone} />)}
         </div>
       )}
-    </Card>
+    </SosPanel>
+  )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="cwgsyw-sos-report__stack">
+      <h2 className="cwgsyw-sos-report__section-title">{title}</h2>
+      {children}
+    </section>
   )
 }
 
@@ -114,88 +125,93 @@ export function FactsPanel({ report }: { report: SosReport }) {
   const failed = factStrings(facts, 'software.failedServices')
 
   return (
-    <div className="cwgsyw-sos-report__stack">
-      <Card title="主机身份"><Definitions facts={facts} items={IDENTITY} /></Card>
-      <Card title="硬件"><Definitions facts={facts} items={HARDWARE} /></Card>
-      <Card title="操作系统"><Definitions facts={facts} items={OS} /></Card>
-      <Card title="网络"><Definitions facts={facts} items={NETWORK} /></Card>
-      <FactTable
-        title="网卡"
-        columns={[
-          { key: 'name', label: '名称' },
-          { key: 'master', label: '所属 bond' },
-          { key: 'mac', label: 'MAC' },
-          { key: 'ipv4', label: 'IPv4' },
-          { key: 'speed', label: '速率' },
-          { key: 'linkDetected', label: '链路' },
-          { key: 'driver', label: '驱动' },
-          { key: 'firmware', label: '固件' },
-        ]}
-        rows={interfaces}
-        empty="报告中没有网卡信息"
-      />
-      <FactTable
-        title="Bond"
-        columns={[
-          { key: 'name', label: '名称' },
-          { key: 'mode', label: '模式' },
-          { key: 'status', label: '状态' },
-          { key: 'memberNames', label: '成员' },
-        ]}
-        rows={bonds}
-        empty="没有配置 bond"
-      />
-      <FactTable
-        title="磁盘"
-        columns={[
-          { key: 'name', label: '名称' },
-          { key: 'sizeGb', label: '容量 (GB)' },
-          { key: 'type', label: '类型' },
-          { key: 'vendor', label: '厂商' },
-          { key: 'model', label: '型号' },
-          { key: 'serial', label: '序列号' },
-        ]}
-        rows={factRows(facts, 'storage.disks')}
-        empty="报告中没有磁盘信息"
-      />
-      <FactTable
-        title="文件系统"
-        columns={[
-          { key: 'mountPoint', label: '挂载点' },
-          { key: 'device', label: '设备' },
-          { key: 'sizeGb', label: '容量 (GB)' },
-          { key: 'usedPercent', label: '使用率' },
-        ]}
-        rows={factRows(facts, 'storage.filesystems')}
-        empty="报告中没有文件系统信息"
-      />
-      <FactTable
-        title="软 RAID"
-        columns={[
-          { key: 'name', label: '名称' },
-          { key: 'level', label: '级别' },
-          { key: 'state', label: '状态' },
-          { key: 'members', label: '成员盘' },
-        ]}
-        rows={factRows(facts, 'storage.softwareRaids')}
-        empty="没有软 RAID"
-      />
-      <FactTable
-        title="监听端口"
-        columns={[
-          { key: 'protocol', label: '协议' },
-          { key: 'address', label: '地址' },
-          { key: 'port', label: '端口' },
-          { key: 'process', label: '进程' },
-        ]}
-        rows={factRows(facts, 'network.listeningPorts')}
-        empty="报告中没有监听端口信息"
-      />
-      <Tags title="运行中的服务" values={factStrings(facts, 'software.runningServices')} empty="报告中没有服务信息" />
-      <Tags title="失败的服务" values={failed} empty="没有失败的服务" />
-      <Card title="软件包">
-        <p className="cwgsyw-type-body-sm">{formatValue(fact(facts, 'software.packageCount'), '个')}</p>
-      </Card>
+    <div className="cwgsyw-sos-report__sections">
+      <Section title="基本信息">
+        <SosPanel title="主机身份"><Definitions facts={facts} items={IDENTITY} /></SosPanel>
+        <SosPanel title="硬件"><Definitions facts={facts} items={HARDWARE} /></SosPanel>
+        <SosPanel title="操作系统"><Definitions facts={facts} items={OS} /></SosPanel>
+        <SosPanel title="网络"><Definitions facts={facts} items={NETWORK} /></SosPanel>
+      </Section>
+      <Section title="网络与存储明细">
+        <FactTable
+          title="网卡"
+          columns={[
+            { key: 'name', label: '名称' },
+            { key: 'master', label: '所属 bond' },
+            { key: 'mac', label: 'MAC' },
+            { key: 'ipv4', label: 'IPv4' },
+            { key: 'speed', label: '速率' },
+            { key: 'linkDetected', label: '链路' },
+            { key: 'driver', label: '驱动' },
+            { key: 'firmware', label: '固件' },
+          ]}
+          rows={interfaces}
+          empty="报告中没有网卡信息"
+        />
+        <FactTable
+          title="Bond"
+          columns={[
+            { key: 'name', label: '名称' },
+            { key: 'mode', label: '模式' },
+            { key: 'status', label: '状态' },
+            { key: 'memberNames', label: '成员' },
+          ]}
+          rows={bonds}
+          empty="没有配置 bond"
+        />
+        <FactTable
+          title="磁盘"
+          columns={[
+            { key: 'name', label: '名称' },
+            { key: 'sizeGb', label: '容量 (GB)' },
+            { key: 'type', label: '类型' },
+            { key: 'vendor', label: '厂商' },
+            { key: 'model', label: '型号' },
+            { key: 'serial', label: '序列号' },
+          ]}
+          rows={factRows(facts, 'storage.disks')}
+          empty="报告中没有磁盘信息"
+        />
+        <FactTable
+          title="文件系统"
+          columns={[
+            { key: 'mountPoint', label: '挂载点' },
+            { key: 'device', label: '设备' },
+            { key: 'sizeGb', label: '容量 (GB)' },
+            { key: 'usedPercent', label: '使用率' },
+          ]}
+          rows={factRows(facts, 'storage.filesystems')}
+          empty="报告中没有文件系统信息"
+        />
+        <FactTable
+          title="软 RAID"
+          columns={[
+            { key: 'name', label: '名称' },
+            { key: 'level', label: '级别' },
+            { key: 'state', label: '状态' },
+            { key: 'members', label: '成员盘' },
+          ]}
+          rows={factRows(facts, 'storage.softwareRaids')}
+          empty="没有软 RAID"
+        />
+        <FactTable
+          title="监听端口"
+          columns={[
+            { key: 'protocol', label: '协议' },
+            { key: 'address', label: '地址' },
+            { key: 'port', label: '端口' },
+            { key: 'process', label: '进程' },
+          ]}
+          rows={factRows(facts, 'network.listeningPorts')}
+          empty="报告中没有监听端口信息"
+        />
+      </Section>
+      <Section title="服务">
+        <div className="cwgsyw-sos-report__split">
+          <Tags title="失败的服务" values={failed} empty="没有失败的服务" tone="danger" />
+          <Tags title="运行中的服务" values={factStrings(facts, 'software.runningServices')} empty="报告中没有服务信息" />
+        </div>
+      </Section>
     </div>
   )
 }
