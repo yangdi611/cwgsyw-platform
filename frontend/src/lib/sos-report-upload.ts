@@ -3,6 +3,7 @@ import api from './api'
 import { getApiErrorCode, getApiErrorMessage } from './api-error'
 import type { SosReport } from './sos-report-api'
 import { formatBytes, formatDuration } from './sos-report-format'
+import { reportLongTaskActivity } from './session-activity'
 
 export interface SosUploadProgress {
   phase: 'preparing' | 'uploading' | 'assembling'
@@ -114,6 +115,8 @@ export async function uploadSosReport(
         signal,
         wait,
       )
+      // 大文件要传几个小时，用户只是在等，不能因为没点页面就被退出登录。
+      reportLongTaskActivity()
       const elapsedMs = now() - startedAt
       onProgress({
         phase: 'uploading',

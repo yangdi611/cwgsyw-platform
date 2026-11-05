@@ -106,11 +106,13 @@ class SosUploadSessionMapperIntegrationTest {
         LocalDateTime now = LocalDateTime.now();
         String released = insert("assembling", now.plusMinutes(5));
         String completed = insert("assembling", now.plusMinutes(5));
+        String leaseExpired = insert("assembling", now.minusMinutes(1));
 
         inSession(mapper -> {
             assertEquals(1, mapper.releaseAssembly(released, now, now.plusMinutes(60)));
             assertEquals(1, mapper.markCompleted(completed, 42L, now, now.plusMinutes(60)));
             assertEquals(0, mapper.markCompleted(completed, 42L, now, now.plusMinutes(60)));
+            assertEquals(0, mapper.markCompleted(leaseExpired, 42L, now, now.plusMinutes(60)), "租约过期后清理任务可能已经在删除文件");
         });
         assertEquals("uploading", status(released));
         assertEquals("completed", status(completed));
@@ -131,6 +133,7 @@ class SosUploadSessionMapperIntegrationTest {
             SosUploadSession row = found.stream().filter(session -> expired.equals(session.getId())).findFirst().orElseThrow();
             assertEquals(2, row.getChunkCount());
             assertEquals("tenant-a", row.getTenantId());
+            assertEquals("uploading", row.getStatus(), "清理任务靠状态判断合并结果归谁所有");
             assertTrue(found.stream().noneMatch(session -> renewed.equals(session.getId())));
             assertTrue(found.stream().anyMatch(session -> cancelled.equals(session.getId())));
 

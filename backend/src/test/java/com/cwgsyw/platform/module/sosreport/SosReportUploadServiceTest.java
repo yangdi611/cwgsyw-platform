@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -24,6 +25,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -47,8 +49,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,20 +73,23 @@ class SosReportUploadServiceTest {
 
     private final SecurityUser user = SosTestSupport.user("tenant-a", 7L, "sos_report:upload");
     private final Map<String, byte[]> objects = new HashMap<>();
+    private PlatformTransactionManager transactionManager;
     private SosReportUploadService service;
 
     @BeforeEach
     void setUp() {
         SosTestSupport.initTables();
-        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        transactionManager = mock(PlatformTransactionManager.class);
         when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         SosReportService reportService = new SosReportService(reportMapper, requestMapper, userMapper, auditLogMapper,
-            storageService, new TransactionTemplate(transactionManager));
-        service = new SosReportUploadService(sessionMapper, reportService, storageService);
+            storageService, transactionTemplate);
+        service = new SosReportUploadService(sessionMapper, reportService, storageService, transactionTemplate);
 
         when(reportMapper.selectCount(any())).thenReturn(0L);
         when(sessionMapper.touch(anyString(), any(), any())).thenReturn(1);
         when(sessionMapper.claimForAssembly(anyString(), any(), any())).thenReturn(1);
+        when(sessionMapper.markCompleted(anyString(), any(), any(), any())).thenReturn(1);
         doAnswer(call -> {
             try (InputStream input = call.getArgument(1)) {
                 objects.put(call.getArgument(0), input.readNBytes(Math.toIntExact((long) call.getArgument(2))));
@@ -304,6 +311,78 @@ class SosReportUploadServiceTest {
         assertEquals(1, objects.size(), "分片可能含凭据，合并后只留最终对象");
         verify(sessionMapper).markCompleted(eq("upload-1"), eq(42L), any(), any());
         verify(auditLogMapper).insert(any(com.cwgsyw.platform.common.entity.AuditLog.class));
+    }
+
+    @Test
+    void reportAndSessionStatusCommitTogether() {
+        byte[] content = archive(100);
+        session(content.length, null);
+        sendAllChunks(content);
+        // 第一次是外层事务；createReport 里的事务加入它，提交时不生效。
+        TransactionStatus outer = new SimpleTransactionStatus(true);
+        when(transactionManager.getTransaction(any())).thenReturn(outer, new SimpleTransactionStatus(false));
+
+        service.complete(user, "upload-1");
+
+        InOrder order = inOrder(reportMapper, sessionMapper, transactionManager);
+        order.verify(reportMapper).insert(any(SosReport.class));
+        order.verify(sessionMapper).markCompleted(eq("upload-1"), any(), any(), any());
+        order.verify(transactionManager).commit(outer);
+    }
+
+    @Test
+    void reportIsRolledBackWhenTheSessionCannotBeMarkedCompleted() {
+        byte[] content = archive(100);
+        session(content.length, null);
+        sendAllChunks(content);
+        when(sessionMapper.markCompleted(anyString(), any(), any(), any())).thenReturn(0);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.complete(user, "upload-1"));
+
+        assertEquals("SOS_UPLOAD_NOT_ACTIVE", exception.getErrorCode());
+        verify(transactionManager, atLeastOnce()).rollback(any());
+        assertTrue(objects.isEmpty(), "报告回滚后，合并结果和分片都不能留下");
+    }
+
+    @Test
+    void databaseFailureWhileCompletingKeepsChunksSoTheRetrySucceeds() {
+        byte[] content = archive(100);
+        session(content.length, null);
+        sendAllChunks(content);
+        when(sessionMapper.markCompleted(anyString(), any(), any(), any()))
+            .thenThrow(new IllegalStateException("db down"))
+            .thenReturn(1);
+
+        assertThrows(IllegalStateException.class, () -> service.complete(user, "upload-1"));
+
+        verify(transactionManager, atLeastOnce()).rollback(any());
+        verify(sessionMapper).releaseAssembly(eq("upload-1"), any(), any());
+        assertFalse(objects.containsKey(SosReportUploadService.assembledKey("upload-1")));
+        assertTrue(objects.containsKey(SosReportUploadService.chunkKey("upload-1", 0)));
+
+        service.complete(user, "upload-1");
+
+        assertTrue(objects.containsKey(SosReportUploadService.assembledKey("upload-1")));
+        assertFalse(objects.containsKey(SosReportUploadService.chunkKey("upload-1", 0)));
+    }
+
+    @Test
+    void purgeRemovesTheAssembledFileLeftByACrashButNotACompletedReportsFile() {
+        SosUploadSession crashed = new SosUploadSession();
+        crashed.setId("crashed");
+        crashed.setChunkCount(1);
+        crashed.setStatus(SosUploadSession.STATUS_ASSEMBLING);
+        SosUploadSession completed = new SosUploadSession();
+        completed.setId("completed");
+        completed.setChunkCount(1);
+        completed.setStatus(SosUploadSession.STATUS_COMPLETED);
+        when(sessionMapper.findExpired(any(), eq(5))).thenReturn(List.of(crashed, completed));
+
+        service.purgeExpired();
+
+        verify(storageService).deleteOrThrow(SosReportUploadService.assembledKey("crashed"));
+        verify(storageService, never()).deleteOrThrow(SosReportUploadService.assembledKey("completed"));
+        verify(sessionMapper).deleteExpired(eq("completed"), any());
     }
 
     @Test

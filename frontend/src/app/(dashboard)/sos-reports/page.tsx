@@ -89,13 +89,14 @@ export default function SosReportsPage() {
     },
     onSuccess: () => {
       toast.success('上传成功，正在后台解析')
-      queryClient.invalidateQueries({ queryKey: ['sos-reports'] })
     },
     onError: (error) => {
       if (error instanceof SosUploadCancelledError) toast.message('已取消上传')
       else setUploadError(describeUploadError(error))
     },
     onSettled: () => {
+      // 失败时也刷新：完成请求的响应可能丢了，报告其实已经生成。
+      queryClient.invalidateQueries({ queryKey: ['sos-reports'] })
       setUploadProgress(null)
       abortRef.current = null
       if (inputRef.current) inputRef.current.value = ''

@@ -4,11 +4,14 @@ import { useEffect, useRef } from 'react'
 import api from '@/lib/api'
 import { getToken } from '@/lib/auth'
 import { subscribeAuthBroadcast } from '@/lib/auth-broadcast'
+import { subscribeLongTaskActivity } from '@/lib/session-activity'
 import { useAuth } from '@/hooks/useAuth'
 
 /**
  * 1 小时无真实操作自动退出（SPEC 13.5）。只在真实用户交互后节流调用
  * /auth/session/touch；后台轮询、路由跳转产生的请求不算真实操作。
+ * 例外：用户发起的长任务有实际进展时也算活动（见 reportLongTaskActivity），
+ * 页面隐藏时也算，否则切到别的标签页等待大文件上传会被退出登录。
  */
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000
 const TOUCH_THROTTLE_MS = 5 * 60 * 1000
@@ -45,6 +48,7 @@ export function useIdleSession() {
 
     REAL_INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, markInteraction))
     document.addEventListener('visibilitychange', onVisibilityChange)
+    const unsubscribeLongTask = subscribeLongTaskActivity(markInteraction)
 
     const checkTimer = window.setInterval(() => {
       if (Date.now() - lastInteractionAt.current > IDLE_TIMEOUT_MS) {
@@ -61,6 +65,7 @@ export function useIdleSession() {
     return () => {
       REAL_INTERACTION_EVENTS.forEach((evt) => window.removeEventListener(evt, markInteraction))
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      unsubscribeLongTask()
       window.clearInterval(checkTimer)
       unsubscribe()
     }

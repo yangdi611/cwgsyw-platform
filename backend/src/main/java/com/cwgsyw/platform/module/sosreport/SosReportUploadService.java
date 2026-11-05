@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -58,6 +59,7 @@ public class SosReportUploadService {
     private final SosUploadSessionMapper sessionMapper;
     private final SosReportService reportService;
     private final MinioStorageService storageService;
+    private final TransactionTemplate transactionTemplate;
 
     public UploadSessionVO start(SecurityUser user, StartUploadRequest request) {
         String fileName = reportService.validateFileName(request.getFileName());
@@ -134,18 +136,25 @@ public class SosReportUploadService {
             throw assembling();
         }
 
-        String objectKey = SosReportService.newObjectKey();
+        String objectKey = assembledKey(session.getId());
         SosReportVO report;
         try {
             String sha256 = assemble(session, objectKey);
             if (session.getExpectedSha256() != null && !session.getExpectedSha256().equals(sha256)) {
-                storageService.delete(objectKey);
                 throw BusinessException.badRequest("SOS_UPLOAD_CORRUPTED", "文件校验未通过，请重新上传");
             }
-            report = reportService.createReport(user, session.getFileName(), session.getFileSize(), sha256, objectKey);
+            // 报告和会话状态一起提交，否则报告生成后状态写失败，重试就再也拿不到这份报告。
+            report = transactionTemplate.execute(status -> {
+                SosReportVO created = reportService.createReport(user, session.getFileName(), session.getFileSize(), sha256, objectKey);
+                LocalDateTime now = LocalDateTime.now();
+                if (sessionMapper.markCompleted(session.getId(), created.getId(), now, now.plusMinutes(SESSION_TTL_MINUTES)) != 1) {
+                    throw new BusinessException(HttpStatus.CONFLICT, "SOS_UPLOAD_NOT_ACTIVE", "这次上传已经结束，请重新上传");
+                }
+                return created;
+            });
         } catch (BusinessException e) {
-            // 校验不通过或文件重复，重试也不会成功，立即清理。
-            discard(session.getId(), session.getChunkCount());
+            // 校验不通过、文件重复或会话已结束，重试也不会成功，立即清理。
+            discard(session);
             throw e;
         } catch (RuntimeException e) {
             // 对象存储或数据库的临时故障，保留分片供重试。
@@ -155,8 +164,6 @@ public class SosReportUploadService {
             throw e;
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        sessionMapper.markCompleted(session.getId(), report.getId(), now, now.plusMinutes(SESSION_TTL_MINUTES));
         deleteChunksQuietly(session.getId(), session.getChunkCount());
         return report;
     }
@@ -166,14 +173,14 @@ public class SosReportUploadService {
         if (SosUploadSession.STATUS_ASSEMBLING.equals(session.getStatus())) throw assembling();
         // 已完成的会话留给重试，分片已经删除，到期后自然清理。
         if (SosUploadSession.STATUS_COMPLETED.equals(session.getStatus())) return;
-        discard(session.getId(), session.getChunkCount());
+        discard(session);
     }
 
     @Scheduled(fixedDelay = 60_000L, initialDelay = 60_000L)
     public void purgeExpired() {
         LocalDateTime now = LocalDateTime.now();
         for (SosUploadSession session : sessionMapper.findExpired(now, PURGE_BATCH)) {
-            purge(session.getId(), session.getChunkCount(), now);
+            purge(session, now);
         }
     }
 
@@ -197,7 +204,7 @@ public class SosReportUploadService {
             .orderByAsc(SosUploadSession::getCreatedAt));
         int excess = active.size() - MAX_ACTIVE_SESSIONS + 1;
         for (int i = 0; i < excess; i++) {
-            discard(active.get(i).getId(), active.get(i).getChunkCount());
+            discard(active.get(i));
         }
     }
 
@@ -210,7 +217,7 @@ public class SosReportUploadService {
     private void rejectUnlessArchive(SosUploadSession session, MultipartFile chunk) {
         try (InputStream input = chunk.getInputStream()) {
             if (!SosArchiveReader.isSupportedMagic(input.readNBytes(6))) {
-                discard(session.getId(), session.getChunkCount());
+                discard(session);
                 throw BusinessException.badRequest("SOS_REPORT_FORMAT", "文件内容不是 .tar.xz 或 .tar.gz 压缩包");
             }
         } catch (IOException e) {
@@ -253,19 +260,23 @@ public class SosReportUploadService {
         });
     }
 
-    private void discard(String sessionId, int chunkCount) {
+    private void discard(SosUploadSession session) {
         LocalDateTime now = LocalDateTime.now();
-        sessionMapper.expireNow(sessionId, now);
-        purge(sessionId, chunkCount, now);
+        sessionMapper.expireNow(session.getId(), now);
+        purge(session, now);
     }
 
-    /** 分片全部删除后才删除会话。删除失败时保留会话，由定时任务重试，确保凭据不会留存。 */
-    private void purge(String sessionId, int chunkCount, LocalDateTime now) {
+    /** 文件全部删除后才删除会话。删除失败时保留会话，由定时任务重试，确保凭据不会留存。 */
+    private void purge(SosUploadSession session, LocalDateTime now) {
         try {
-            deleteChunks(sessionId, chunkCount);
-            sessionMapper.deleteExpired(sessionId, now);
+            deleteChunks(session.getId(), session.getChunkCount());
+            // 已完成会话的合并结果归报告所有。其他状态下它要么不存在，要么是合并后进程中断留下的。
+            if (!SosUploadSession.STATUS_COMPLETED.equals(session.getStatus())) {
+                storageService.deleteOrThrow(assembledKey(session.getId()));
+            }
+            sessionMapper.deleteExpired(session.getId(), now);
         } catch (RuntimeException e) {
-            log.warn("SOS 上传分片清理失败，将重试: uploadId={} error={}", sessionId, e.getClass().getSimpleName());
+            log.warn("SOS 上传文件清理失败，将重试: uploadId={} error={}", session.getId(), e.getClass().getSimpleName());
         }
     }
 
@@ -286,6 +297,11 @@ public class SosReportUploadService {
 
     static String chunkKey(String sessionId, int index) {
         return "sos-report-uploads/" + sessionId + "/" + index;
+    }
+
+    /** 由会话决定，进程中断后清理任务才能找到它。重试合并时直接覆盖。 */
+    static String assembledKey(String sessionId) {
+        return "sos-reports/" + sessionId;
     }
 
     private static BusinessException assembling() {

@@ -15,7 +15,7 @@ import java.util.List;
 public interface SosUploadSessionMapper extends BaseMapper<SosUploadSession> {
 
     @Select("""
-        SELECT id, tenant_id, chunk_count
+        SELECT id, tenant_id, chunk_count, status
           FROM sos_upload_session
          WHERE expires_at <= #{now}
          ORDER BY expires_at, id
@@ -47,11 +47,14 @@ public interface SosUploadSessionMapper extends BaseMapper<SosUploadSession> {
         """)
     int releaseAssembly(@Param("id") String id, @Param("now") LocalDateTime now, @Param("expiresAt") LocalDateTime expiresAt);
 
-    /** 保留到期前，让响应丢失后的重试能拿到同一份报告。 */
+    /**
+     * 保留到期前，让响应丢失后的重试能拿到同一份报告。
+     * 租约已过的不能完成：清理任务可能已经在删除合并结果。
+     */
     @Update("""
         UPDATE sos_upload_session
            SET status = 'completed', report_id = #{reportId}, expires_at = #{expiresAt}, updated_at = #{now}
-         WHERE id = #{id} AND status = 'assembling'
+         WHERE id = #{id} AND status = 'assembling' AND expires_at > #{now}
         """)
     int markCompleted(@Param("id") String id, @Param("reportId") Long reportId,
                       @Param("now") LocalDateTime now, @Param("expiresAt") LocalDateTime expiresAt);

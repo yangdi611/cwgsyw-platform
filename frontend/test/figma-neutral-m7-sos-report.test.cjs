@@ -90,9 +90,10 @@ function compile(filePath) {
   }).outputText
 }
 
-function load(filePath, { permissions = () => true, queries = {} } = {}) {
+function load(filePath, { permissions = () => true, queries = {}, extraMocks = {} } = {}) {
   const originalLoad = Module._load
   const mocks = (request) => {
+    if (extraMocks[request]) return extraMocks[request]
     if (request.endsWith('.css')) return {}
     if (request === 'next/navigation') {
       return { useRouter: () => ({ replace() {}, push() {} }), useParams: () => ({ id: '5' }), usePathname: () => '/sos-reports/5' }
@@ -607,6 +608,92 @@ test('cancelling during the retry wait takes effect immediately', async () => {
   assert.ok(Date.now() - started < 1500, '不能等完 2 秒的重试间隔')
   assert.deepEqual(client.calls.deleted, ['/sos-reports/uploads/u1'])
 })
+
+/** 在假的 window 上运行回调，结束后恢复全局对象。 */
+async function withFakeWindow(run) {
+  const originals = { window: globalThis.window, document: globalThis.document, now: Date.now }
+  let tick = () => {}
+  let clock = 1_000_000
+  const fakeWindow = Object.assign(new EventTarget(), {
+    setInterval: (callback) => { tick = callback; return 1 },
+    clearInterval() {},
+    location: { href: '' },
+  })
+  globalThis.window = fakeWindow
+  globalThis.document = Object.assign(new EventTarget(), { visibilityState: 'visible' })
+  Date.now = () => clock
+  try {
+    return await run({
+      fakeWindow,
+      tick: () => tick(),
+      advanceMinutes: (minutes) => { clock += minutes * 60_000 },
+    })
+  } finally {
+    globalThis.window = originals.window
+    globalThis.document = originals.document
+    Date.now = originals.now
+  }
+}
+
+function startIdleSession() {
+  const touches = []
+  const logouts = []
+  const { useIdleSession } = load(src('hooks/useIdleSession.ts'), {
+    extraMocks: {
+      react: { useEffect: (effect) => effect(), useRef: (value) => ({ current: value }) },
+      '@/lib/api': { __esModule: true, default: { post: async (url) => { touches.push(url) } } },
+      '@/lib/auth': { getToken: () => 'token' },
+      '@/lib/auth-broadcast': { subscribeAuthBroadcast: () => () => {} },
+      '@/hooks/useAuth': { useAuth: () => ({ logout: (reason) => logouts.push(reason) }) },
+    },
+  })
+  useIdleSession()
+  return { touches, logouts }
+}
+
+test('without activity the idle timer still logs the user out', () => withFakeWindow(({ tick, advanceMinutes }) => {
+  const { logouts } = startIdleSession()
+  advanceMinutes(61)
+  tick()
+  assert.deepEqual(logouts, ['SESSION_TIMEOUT'])
+}))
+
+test('an upload that keeps making progress is not interrupted by the idle timeout', () => withFakeWindow(async ({ tick, advanceMinutes }) => {
+  const { touches, logouts } = startIdleSession()
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(CHUNK * 3)
+  const client = fakeClient({ size: content.length })
+  const post = client.post
+  // 每片约 40 分钟，三片共两小时，远超 60 分钟的空闲时限。
+  client.post = async (url, body) => {
+    if (url.includes('/chunks/')) {
+      advanceMinutes(40)
+      tick()
+    }
+    return post(url, body)
+  }
+
+  await uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait })
+
+  assert.deepEqual(logouts, [])
+  assert.deepEqual(touches, ['/auth/session/touch', '/auth/session/touch', '/auth/session/touch'], '后端的空闲时限也要续期')
+}))
+
+test('a stalled upload does not keep the session alive', () => withFakeWindow(async ({ tick, advanceMinutes }) => {
+  const { touches, logouts } = startIdleSession()
+  const { uploadSosReport } = uploadModule()
+  const stalled = networkError()
+  const client = fakeClient({ size: 10, failures: { chunk0: Array(5).fill(stalled) } })
+
+  await assert.rejects(uploadSosReport(new File([bytes(10)], 'a.tar.xz'), () => {}, new AbortController().signal, {
+    client,
+    wait: async () => { advanceMinutes(20) },
+  }), stalled)
+  tick()
+
+  assert.deepEqual(touches, [], '没有确认任何分片，不能续期')
+  assert.deepEqual(logouts, ['SESSION_TIMEOUT'])
+}))
 
 test('progress label tells the user what is happening', () => {
   const { uploadProgressLabel } = uploadModule()
