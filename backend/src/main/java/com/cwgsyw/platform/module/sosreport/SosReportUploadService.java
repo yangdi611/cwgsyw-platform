@@ -79,7 +79,7 @@ public class SosReportUploadService {
         session.setFileName(fileName);
         session.setFileSize(fileSize);
         session.setChunkSize(CHUNK_SIZE);
-        session.setChunkCount(Math.toIntExact((fileSize + CHUNK_SIZE - 1) / CHUNK_SIZE));
+        session.setChunkCount(Math.toIntExact(Math.ceilDiv(fileSize, (long) CHUNK_SIZE)));
         session.setExpectedSha256(sha256);
         session.setStatus(SosUploadSession.STATUS_UPLOADING);
         session.setCreatedBy(user.getUserId());
