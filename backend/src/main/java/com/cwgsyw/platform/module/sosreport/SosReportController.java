@@ -16,6 +16,8 @@ import com.cwgsyw.platform.module.sosreport.dto.SosMappingDtos.SaveMappingReques
 import com.cwgsyw.platform.module.sosreport.dto.SosMappingDtos.SuggestRequest;
 import com.cwgsyw.platform.module.sosreport.dto.SosMappingDtos.SuggestResultVO;
 import com.cwgsyw.platform.module.sosreport.dto.SosReportVO;
+import com.cwgsyw.platform.module.sosreport.dto.SosUploadDtos.StartUploadRequest;
+import com.cwgsyw.platform.module.sosreport.dto.SosUploadDtos.UploadSessionVO;
 import com.cwgsyw.platform.module.sosreport.mapping.SosFieldMappingService;
 import com.cwgsyw.platform.module.sosreport.mapping.SosMappingSuggestionService;
 import com.cwgsyw.platform.security.SecurityUser;
@@ -41,6 +43,7 @@ import java.util.List;
 public class SosReportController {
 
     private final SosReportService reportService;
+    private final SosReportUploadService uploadService;
     private final SosCmdbRequestService cmdbRequestService;
     private final SosCmdbApprovalService approvalService;
     private final SosFieldMappingService mappingService;
@@ -51,6 +54,37 @@ public class SosReportController {
     public R<SosReportVO> upload(@RequestParam("file") MultipartFile file,
                                  @AuthenticationPrincipal SecurityUser user) {
         return R.ok(reportService.upload(user, file));
+    }
+
+    @PostMapping("/uploads")
+    @PreAuthorize("hasAuthority('sos_report:upload')")
+    public R<UploadSessionVO> startUpload(@RequestBody StartUploadRequest request,
+                                          @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(uploadService.start(user, request));
+    }
+
+    @PostMapping("/uploads/{uploadId}/chunks/{index}")
+    @PreAuthorize("hasAuthority('sos_report:upload')")
+    public R<Void> uploadChunk(@PathVariable String uploadId,
+                               @PathVariable int index,
+                               @RequestParam("chunk") MultipartFile chunk,
+                               @AuthenticationPrincipal SecurityUser user) {
+        uploadService.saveChunk(user, uploadId, index, chunk);
+        return R.ok(null);
+    }
+
+    @PostMapping("/uploads/{uploadId}/complete")
+    @PreAuthorize("hasAuthority('sos_report:upload')")
+    public R<SosReportVO> completeUpload(@PathVariable String uploadId,
+                                         @AuthenticationPrincipal SecurityUser user) {
+        return R.ok(uploadService.complete(user, uploadId));
+    }
+
+    @DeleteMapping("/uploads/{uploadId}")
+    @PreAuthorize("hasAuthority('sos_report:upload')")
+    public R<Void> cancelUpload(@PathVariable String uploadId, @AuthenticationPrincipal SecurityUser user) {
+        uploadService.cancel(user, uploadId);
+        return R.ok(null);
     }
 
     @GetMapping

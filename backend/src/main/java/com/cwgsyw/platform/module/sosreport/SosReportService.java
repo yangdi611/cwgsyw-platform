@@ -69,19 +69,28 @@ public class SosReportService {
         String sha256 = inspectContent(file);
         rejectDuplicate(tenantId, sha256);
 
-        // 对象名不使用原文件名：文件名是外部输入。
-        String objectKey = "sos-reports/" + UUID.randomUUID();
+        String objectKey = newObjectKey();
         try (InputStream input = file.getInputStream()) {
             storageService.upload(objectKey, input, file.getSize(), "application/octet-stream");
         } catch (IOException e) {
             throw new IllegalStateException("读取上传文件失败", e);
         }
+        return createReport(user, fileName, file.getSize(), sha256, objectKey);
+    }
 
+    /** 对象名不使用原文件名：文件名是外部输入。 */
+    static String newObjectKey() {
+        return "sos-reports/" + UUID.randomUUID();
+    }
+
+    /** 文件已存入对象存储后写入记录，进入解析队列。写入失败时删除对象。 */
+    SosReportVO createReport(SecurityUser user, String fileName, long fileSize, String sha256, String objectKey) {
+        String tenantId = user.getTenantId();
         LocalDateTime now = LocalDateTime.now();
         SosReport report = new SosReport();
         report.setTenantId(tenantId);
         report.setFileName(fileName);
-        report.setFileSize(file.getSize());
+        report.setFileSize(fileSize);
         report.setContentSha256(sha256);
         report.setObjectKey(objectKey);
         report.setStatus(SosReport.STATUS_PENDING);
@@ -96,7 +105,7 @@ public class SosReportService {
                     .tenantId(tenantId).module("sos_report").action("upload")
                     .targetId(report.getId()).targetType("sos_report")
                     .operatorId(user.getUserId())
-                    .remark("size=" + file.getSize() + " sha256=" + sha256)
+                    .remark("size=" + fileSize + " sha256=" + sha256)
                     .createdAt(now).build());
             });
         } catch (DuplicateKeyException e) {
@@ -208,10 +217,21 @@ public class SosReportService {
         if (file == null || file.isEmpty()) {
             throw BusinessException.badRequest("SOS_REPORT_EMPTY", "请选择要上传的文件");
         }
-        if (file.getSize() > MAX_UPLOAD_BYTES) {
+        validateFileSize(file.getSize());
+        return validateFileName(file.getOriginalFilename());
+    }
+
+    void validateFileSize(long size) {
+        if (size <= 0) {
+            throw BusinessException.badRequest("SOS_REPORT_EMPTY", "请选择要上传的文件");
+        }
+        if (size > MAX_UPLOAD_BYTES) {
             throw new BusinessException(HttpStatus.PAYLOAD_TOO_LARGE, "SOS_REPORT_TOO_LARGE", "文件不能超过 200 MB");
         }
-        String fileName = safeFileName(file.getOriginalFilename());
+    }
+
+    String validateFileName(String original) {
+        String fileName = safeFileName(original);
         String lower = fileName.toLowerCase(Locale.ROOT);
         if (ALLOWED_SUFFIXES.stream().noneMatch(lower::endsWith)) {
             throw BusinessException.badRequest("SOS_REPORT_FORMAT", "只支持 .tar.xz 和 .tar.gz 格式");
@@ -242,7 +262,7 @@ public class SosReportService {
         }
     }
 
-    private void rejectDuplicate(String tenantId, String sha256) {
+    void rejectDuplicate(String tenantId, String sha256) {
         long count = reportMapper.selectCount(new LambdaQueryWrapper<SosReport>()
             .eq(SosReport::getTenantId, tenantId)
             .eq(SosReport::getContentSha256, sha256));

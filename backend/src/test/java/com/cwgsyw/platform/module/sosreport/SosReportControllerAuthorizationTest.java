@@ -20,6 +20,10 @@ class SosReportControllerAuthorizationTest {
 
     private static final Map<String, String> EXPECTED = Map.ofEntries(
         Map.entry("upload", "upload"),
+        Map.entry("startUpload", "upload"),
+        Map.entry("uploadChunk", "upload"),
+        Map.entry("completeUpload", "upload"),
+        Map.entry("cancelUpload", "upload"),
         Map.entry("list", "read"),
         Map.entry("detail", "read"),
         Map.entry("delete", "delete"),

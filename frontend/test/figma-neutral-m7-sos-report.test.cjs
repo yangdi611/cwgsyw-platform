@@ -412,12 +412,226 @@ test('navigation, route guard, breadcrumb, role grouping and workflow lists are 
   assert.match(read('app/(dashboard)/workflow/templates/page.tsx'), /sos_cmdb_request/)
 })
 
-test('upload path only loosens the body limit for itself', () => {
+test('upload paths only loosen the body limit for themselves', () => {
   for (const name of ['nginx.dev.conf', 'nginx.prod.conf']) {
     const conf = fs.readFileSync(path.join(frontendRoot, '..', 'nginx', name), 'utf8')
     assert.match(conf, /location = \/api\/sos-reports\/upload \{[\s\S]*?client_max_body_size 200m;/, name)
+    assert.match(conf, /location \/api\/sos-reports\/uploads \{[^}]*client_max_body_size 2m;/, name)
     assert.doesNotMatch(conf, /location \/api \{[^}]*client_max_body_size/, name)
   }
+})
+
+const CHUNK = 1024 * 1024
+
+/** 假的 axios 客户端：按路径记录请求，可以让某个请求按顺序失败若干次。 */
+function fakeClient({ size, failures = {} }) {
+  const calls = { chunks: [], deleted: [], completed: 0, started: [] }
+  const remaining = { ...failures }
+  const failIfScripted = (key) => {
+    const queue = remaining[key]
+    if (queue?.length) throw queue.shift()
+  }
+  return {
+    calls,
+    post: async (url, body) => {
+      if (url === '/sos-reports/uploads') {
+        calls.started.push(body)
+        failIfScripted('start')
+        return { data: { data: { uploadId: 'u1', chunkSize: CHUNK, chunkCount: Math.ceil(size / CHUNK) } } }
+      }
+      if (url.includes('/chunks/')) {
+        const index = Number(url.split('/').pop())
+        failIfScripted(`chunk${index}`)
+        calls.chunks.push({ index, url, bytes: Buffer.from(await body.get('chunk').arrayBuffer()) })
+        return { data: {} }
+      }
+      assert.equal(url, '/sos-reports/uploads/u1/complete')
+      calls.completed += 1
+      failIfScripted('complete')
+      return { data: { data: { id: 5 } } }
+    },
+    delete: async (url) => {
+      calls.deleted.push(url)
+      return { data: {} }
+    },
+  }
+}
+
+function bytes(size) {
+  const content = Buffer.alloc(size)
+  for (let i = 0; i < size; i += 1) content[i] = (i + Math.floor(i / 1024)) % 251
+  return content
+}
+
+const httpError = (status, data) => Object.assign(new Error(`status ${status}`), { response: { status, data } })
+const networkError = () => Object.assign(new Error('Network Error'), { response: undefined })
+const noWait = async () => {}
+const uploadModule = () => load(src('lib/sos-report-upload.ts'))
+
+test('upload slices the file into 1 MB chunks that reassemble exactly', async () => {
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(CHUNK * 2 + 500)
+  const client = fakeClient({ size: content.length })
+
+  const report = await uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait })
+
+  assert.equal(report.id, 5)
+  assert.deepEqual(client.calls.chunks.map((chunk) => chunk.bytes.length), [CHUNK, CHUNK, 500])
+  assert.deepEqual(client.calls.chunks.map((chunk) => chunk.index), [0, 1, 2])
+  assert.ok(Buffer.concat(client.calls.chunks.map((chunk) => chunk.bytes)).equals(content))
+  assert.equal(client.calls.completed, 1)
+  assert.deepEqual(client.calls.deleted, [])
+  assert.equal(client.calls.started[0].fileName, 'a.tar.xz')
+  assert.equal(client.calls.started[0].fileSize, content.length)
+  assert.equal(client.calls.started[0].sha256, require('node:crypto').createHash('sha256').update(content).digest('hex'))
+})
+
+test('progress only counts chunks the server confirmed', async () => {
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(CHUNK * 2)
+  const client = fakeClient({ size: content.length })
+  const seen = []
+  let clock = 0
+
+  await uploadSosReport(new File([content], 'a.tar.xz'), (progress) => {
+    seen.push({ ...progress, confirmed: client.calls.chunks.length, completed: client.calls.completed })
+  }, new AbortController().signal, { client, wait: noWait, now: () => (clock += 70_000) })
+
+  const uploading = seen.filter((progress) => progress.phase === 'uploading')
+  assert.deepEqual(uploading.map((progress) => progress.percent), [0, 50, 100])
+  assert.deepEqual(uploading.map((progress) => progress.confirmed), [0, 1, 2])
+  assert.equal(uploading[1].remainingSeconds, 70)
+  assert.equal(seen.at(-1).phase, 'assembling')
+  assert.equal(seen.at(-1).completed, 0, '合并状态要在调用完成接口之前显示')
+})
+
+test('a chunk that hits Cloudflare or network failures is retried and not skipped', async () => {
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(CHUNK + 10)
+  const client = fakeClient({ size: content.length, failures: { chunk0: [httpError(524, { message: 'timeout' }), networkError()] } })
+  const waits = []
+
+  await uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, {
+    client,
+    wait: async (ms) => { waits.push(ms) },
+  })
+
+  assert.deepEqual(client.calls.chunks.map((chunk) => chunk.index), [0, 1])
+  assert.deepEqual(waits, [2000, 5000])
+})
+
+test('complete waits while the server is still assembling', async () => {
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(10)
+  const client = fakeClient({ size: 10, failures: { complete: [networkError(), httpError(409, { errorCode: 'SOS_UPLOAD_ASSEMBLING', message: '合并中' })] } })
+
+  const report = await uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait })
+
+  assert.equal(report.id, 5)
+  assert.equal(client.calls.completed, 3)
+})
+
+test('a permanent rejection stops at once and removes the partial upload', async () => {
+  const { uploadSosReport } = uploadModule()
+  const content = bytes(CHUNK + 10)
+  const rejected = httpError(400, { errorCode: 'SOS_REPORT_FORMAT', message: '文件内容不是压缩包' })
+  const client = fakeClient({ size: content.length, failures: { chunk0: [rejected] } })
+
+  await assert.rejects(uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait }), rejected)
+
+  assert.equal(client.calls.chunks.length, 0)
+  assert.deepEqual(client.calls.deleted, ['/sos-reports/uploads/u1'])
+})
+
+test('retries give up eventually and the failure is readable', async () => {
+  const { uploadSosReport, describeUploadError } = uploadModule()
+  const content = bytes(10)
+  const cloudflare = httpError(524, { message: 'did not return a complete response within the 120-second window' })
+  const client = fakeClient({ size: 10, failures: { chunk0: Array(5).fill(cloudflare) } })
+
+  await assert.rejects(uploadSosReport(new File([content], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait }), cloudflare)
+
+  assert.deepEqual(client.calls.deleted, ['/sos-reports/uploads/u1'])
+  assert.match(describeUploadError(cloudflare), /网络不稳定或服务器响应超时/)
+  assert.doesNotMatch(describeUploadError(cloudflare), /120-second/)
+  assert.match(describeUploadError(networkError()), /网络不稳定/)
+  assert.equal(describeUploadError(httpError(409, { errorCode: 'SOS_REPORT_DUPLICATE', message: '这份报告已经上传过' })), '这份报告已经上传过')
+  assert.equal(describeUploadError(httpError(403, '<html>')), '上传请求被拒绝（HTTP 403）')
+})
+
+test('duplicate detected at start never creates an upload to clean up', async () => {
+  const { uploadSosReport } = uploadModule()
+  const rejected = httpError(409, { errorCode: 'SOS_REPORT_DUPLICATE', message: '这份报告已经上传过' })
+  const client = fakeClient({ size: 10, failures: { start: [rejected] } })
+
+  await assert.rejects(uploadSosReport(new File([bytes(10)], 'a.tar.xz'), () => {}, new AbortController().signal, { client, wait: noWait }), rejected)
+
+  assert.equal(client.calls.chunks.length, 0)
+  assert.deepEqual(client.calls.deleted, [])
+})
+
+test('cancelling stops uploading, removes the partial upload and reports cancellation', async () => {
+  const { uploadSosReport, SosUploadCancelledError } = uploadModule()
+  const content = bytes(CHUNK * 3)
+  const controller = new AbortController()
+  const client = fakeClient({ size: content.length })
+  const post = client.post
+  client.post = async (url, body) => {
+    if (url.includes('/chunks/') && client.calls.chunks.length === 1) {
+      controller.abort()
+      throw Object.assign(new Error('canceled'), { code: 'ERR_CANCELED' })
+    }
+    return post(url, body)
+  }
+
+  await assert.rejects(
+    uploadSosReport(new File([content], 'a.tar.xz'), () => {}, controller.signal, { client, wait: noWait }),
+    SosUploadCancelledError,
+  )
+
+  assert.equal(client.calls.chunks.length, 1)
+  assert.equal(client.calls.completed, 0)
+  assert.deepEqual(client.calls.deleted, ['/sos-reports/uploads/u1'])
+})
+
+test('cancelling during the retry wait takes effect immediately', async () => {
+  const { uploadSosReport, SosUploadCancelledError } = uploadModule()
+  const controller = new AbortController()
+  const client = fakeClient({ size: 10, failures: { chunk0: [networkError()] } })
+  const started = Date.now()
+
+  const upload = uploadSosReport(new File([bytes(10)], 'a.tar.xz'), () => {}, controller.signal, { client })
+  setTimeout(() => controller.abort(), 20)
+
+  await assert.rejects(upload, SosUploadCancelledError)
+  assert.ok(Date.now() - started < 1500, '不能等完 2 秒的重试间隔')
+  assert.deepEqual(client.calls.deleted, ['/sos-reports/uploads/u1'])
+})
+
+test('progress label tells the user what is happening', () => {
+  const { uploadProgressLabel } = uploadModule()
+  const total = 10 * CHUNK
+  assert.match(uploadProgressLabel({ phase: 'preparing', percent: 0, uploadedBytes: 0, totalBytes: total }), /校验/)
+  const uploading = uploadProgressLabel({ phase: 'uploading', percent: 30, uploadedBytes: 3 * CHUNK, totalBytes: total, remainingSeconds: 480 })
+  assert.match(uploading, /已上传 3\.0 MB \/ 10\.0 MB/)
+  assert.match(uploading, /约 8 分钟/)
+  assert.match(uploading, /请勿刷新或关闭页面/)
+  assert.match(uploadProgressLabel({ phase: 'assembling', percent: 100, uploadedBytes: total, totalBytes: total }), /合并/)
+})
+
+test('duration format', () => {
+  const format = load(src('lib/sos-report-format.ts'))
+  assert.equal(format.formatDuration(30), '不到 1 分钟')
+  assert.equal(format.formatDuration(660), '约 11 分钟')
+  assert.equal(format.formatDuration(13_680), '约 3.8 小时')
+})
+
+test('the page uses chunked upload and keeps failures on screen', () => {
+  const page = fs.readFileSync(LIST_PAGE, 'utf8')
+  assert.match(page, /uploadSosReport\(/)
+  assert.doesNotMatch(page, /toast\.error\(getApiErrorMessage\(error, '上传失败'\)\)/)
+  assert.match(page, /<Alert tone="danger" title="上传失败"/)
+  assert.doesNotMatch(fs.readFileSync(src('lib/sos-report-api.ts'), 'utf8'), /sos-reports\/upload'/)
 })
 
 test('api client does not send snake_case fields', () => {

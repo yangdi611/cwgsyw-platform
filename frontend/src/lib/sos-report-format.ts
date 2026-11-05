@@ -5,6 +5,13 @@ type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 export const ACCEPTED_SUFFIXES = ['.tar.xz', '.txz', '.tar.gz', '.tgz']
 
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return '不到 1 分钟'
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `约 ${minutes} 分钟`
+  return `约 ${(minutes / 60).toFixed(1)} 小时`
+}
+
 export const REPORT_STATUS: Record<SosReportStatus, { label: string; tone: Tone }> = {
   pending: { label: '排队中', tone: 'neutral' },
   parsing: { label: '解析中', tone: 'info' },

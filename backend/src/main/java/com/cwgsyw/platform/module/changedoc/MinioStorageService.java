@@ -57,6 +57,22 @@ public class MinioStorageService {
         }
     }
 
+    /** 对象不存在时返回 -1，其他故障仍然抛异常，调用方能区分“缺失”和“暂时读不到”。 */
+    public long objectSizeIfPresent(String objectKey) {
+        try {
+            return minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build())
+                    .size();
+        } catch (ErrorResponseException exception) {
+            if ("NoSuchKey".equals(exception.errorResponse().code())) return -1L;
+            throw new RuntimeException("读取文件信息失败: " + exception.getMessage(), exception);
+        } catch (Exception exception) {
+            throw new RuntimeException("读取文件信息失败: " + exception.getMessage(), exception);
+        }
+    }
+
     public void delete(String objectKey) {
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()
