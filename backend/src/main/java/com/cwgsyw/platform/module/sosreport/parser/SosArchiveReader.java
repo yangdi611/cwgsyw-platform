@@ -85,6 +85,9 @@ public final class SosArchiveReader {
         "sos_commands/pci/lspci_-nnvvv",
         // sos 3.x 运行的是 lspci -nnvv。
         "sos_commands/pci/lspci_-nnvv",
+        // 主机没装 pciutils 时没有 lspci 输出，退回 udev 设备数据库和 /proc/bus/pci/devices（只含设备属性和 ID）。
+        "sos_commands/devices/udevadm_info_--export-db",
+        "proc/bus/pci/devices",
         "sos_commands/systemd/systemctl_list-unit-files",
         "sos_commands/tuned/tuned-adm_active");
 
@@ -112,6 +115,18 @@ public final class SosArchiveReader {
         Pattern.compile("sos_commands/lvm2/(vgs_-v_-o_|lvs_-a_-o_|pvs_-a_-v_-o_)[A-Za-z0-9_.,=-]{1,300}"));
 
     private static final Pattern PLAIN_FILE_NAME = Pattern.compile("[A-Za-z0-9_./:-]+");
+
+    /**
+     * {@code /proc/net} 是指向 {@code self/net} 的符号链接，{@code /proc/self} 又指向 sos 进程号，
+     * 所以 sos 把 {@code /proc/net} 下的文件存成 {@code proc/<进程号>/net/...}，{@code proc/net} 只是链接。
+     * 读取器不跟随链接，这里把真实路径改写回 {@code proc/net/...}，再按白名单判断。
+     */
+    private static final Pattern PROC_PID_NET = Pattern.compile("^proc/[0-9]{1,10}/net/");
+
+    static String normalizeProcNet(String relative) {
+        if (relative == null) return null;
+        return PROC_PID_NET.matcher(relative).replaceFirst("proc/net/");
+    }
 
     /** {@code ethtool_-S_} 这类统计输出量大且无用，不读取。 */
     private static final Pattern ETHTOOL_OTHER_OPTION = Pattern.compile("sos_commands/networking/ethtool_-(?![iPm]_).*");
@@ -155,7 +170,7 @@ public final class SosArchiveReader {
                 if (System.nanoTime() > deadline) {
                     throw new SosParseException("ARCHIVE_TIMEOUT", "归档解析超时，已拒绝解析");
                 }
-                String relative = relativePath(entry.getName());
+                String relative = normalizeProcNet(relativePath(entry.getName()));
                 if (relative == null) continue;
                 // 先判断特殊条目：isFile() 对 FIFO 这类条目也可能返回 true。
                 if (entry.isSymbolicLink() || entry.isLink() || entry.isFIFO()

@@ -131,9 +131,10 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'numaNode', label: 'NUMA' },
             { key: 'partNumber', label: '料号' },
             { key: 'serial', label: '序列号' },
+            { key: 'source', label: '来源' },
           ]}
           rows={pci}
-          empty="报告中没有 PCI 设备信息（需要 sos 的 pci 插件采集 lspci）"
+          empty="报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库"
         />
         <FactTable
           title="GPU 与加速卡"

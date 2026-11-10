@@ -71,7 +71,9 @@ final class PciFacts {
         Map.entry("10ec", "Realtek"), Map.entry("1924", "Solarflare"), Map.entry("1137", "Cisco"),
         Map.entry("15ad", "VMware"), Map.entry("1af4", "Red Hat (virtio)"), Map.entry("1bd4", "Inspur"),
         Map.entry("1d17", "Zhaoxin"), Map.entry("1dd8", "AMD Pensando"), Map.entry("1fc9", "Tehuti"),
-        Map.entry("177d", "Cavium"), Map.entry("1425", "Chelsio"), Map.entry("1fc1", "QLogic (InfiniPath)"));
+        Map.entry("177d", "Cavium"), Map.entry("1425", "Chelsio"), Map.entry("1fc1", "QLogic (InfiniPath)"),
+        // 国产芯片：hwdb 和较旧的 pci.ids 里常常没有名称。ID 与 Linux 内核驱动（rnpgbe、sssraid）中的定义一致。
+        Map.entry("8848", "Mucse（沐创）"), Map.entry("1f3f", "3SNIC"), Map.entry("1e49", "YMTC（长江存储）"));
 
     private final SosParseContext ctx;
 
@@ -133,12 +135,19 @@ final class PciFacts {
                 }
             }
         }
+        // 主机没有安装 pciutils 时 sos 运行不了 lspci，依次退回 udev 数据库和 /proc/bus/pci/devices。
+        if (rows.isEmpty()) rows = PciFallbacks.fromUdevDatabase(ctx.text(PciFallbacks.UDEV_DB));
+        if (rows.isEmpty()) rows = PciFallbacks.fromProcDevices(ctx.text(PciFallbacks.PROC_DEVICES));
 
         List<Map<String, Object>> kept = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             String address = String.valueOf(row.get("address"));
             String key = pciKey(address);
             String location = SystemFacts.locationOf(ctx, address);
+            // 多功能设备（如双口网卡的 .1）在 DMI 里只登记功能 0 的地址，沿用同一张卡的位置。
+            if (location == null && key != null && !key.endsWith(".0")) {
+                location = SystemFacts.locationOf(ctx, key.substring(0, key.length() - 1) + "0");
+            }
             if (location != null) row.put("location", location);
             else if (row.get("physicalSlot") != null) row.put("location", "Slot " + row.get("physicalSlot"));
             if (key != null) ctx.pciByAddress.put(key, row);
@@ -162,10 +171,10 @@ final class PciFacts {
             Map<String, Object> row = (Map<String, Object>) raw;
             Map<String, Object> device = ctx.pciByAddress.get(pciKey((String) row.get("busAddress")));
             // 部分 BIOS 填的是上游桥的地址，桥不是插在槽里的卡，不能当成占用设备。
-            if (device == null || category(String.valueOf(device.get("classCode"))) == null) continue;
+            if (device == null || !isCard(device)) continue;
             putIfPresent(row, "deviceCategory", device.get("category"));
             putIfPresent(row, "deviceVendor", device.get("vendor"));
-            putIfPresent(row, "deviceModel", model(device));
+            putIfPresent(row, "deviceModel", label(device));
         }
     }
 
@@ -182,22 +191,37 @@ final class PciFacts {
         return tabs + spaces / 8;
     }
 
+    /** 是否为板卡类设备。有类别代码时按类别判断；/proc 来源没有类别，按是否绑定了非根端口驱动判断。 */
+    static boolean isCard(Map<String, Object> device) {
+        Object classCode = device.get("classCode");
+        if (classCode != null) return category(String.valueOf(classCode)) != null;
+        Object driver = device.get("driver");
+        return driver != null && !"pcieport".equals(driver);
+    }
+
+    /** 各来源共用的设备行：地址、类别代码、厂商和设备 ID；只保留板卡类设备（打上 kept 标记）。 */
+    static Map<String, Object> baseRow(String address, String classCode, String vendorId, String deviceId, String className) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("address", clean(address));
+        if (classCode != null) row.put("classCode", classCode);
+        String category = classCode == null ? null : category(classCode);
+        if (category != null) row.put("category", category);
+        else putIfUseful(row, "category", className);
+        row.put("vendorId", vendorId);
+        row.put("deviceId", deviceId);
+        if (VENDORS.containsKey(vendorId)) row.put("vendor", VENDORS.get(vendorId));
+        if (category != null) row.put("kept", Boolean.TRUE);
+        return row;
+    }
+
     private static Map<String, Object> device(String line) {
         Matcher matcher = DEVICE_LINE.matcher(line.trim());
         if (!matcher.matches()) return null;
-        String classCode = matcher.group(3).toLowerCase(Locale.ROOT);
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("address", clean(matcher.group(1)));
-        row.put("classCode", classCode);
-        String category = category(classCode);
-        row.put("category", category != null ? category : clean(matcher.group(2)));
-        String vendorId = matcher.group(5).toLowerCase(Locale.ROOT);
-        row.put("vendorId", vendorId);
-        row.put("deviceId", matcher.group(6).toLowerCase(Locale.ROOT));
-        if (VENDORS.containsKey(vendorId)) row.put("vendor", VENDORS.get(vendorId));
+        Map<String, Object> row = baseRow(matcher.group(1), matcher.group(3).toLowerCase(Locale.ROOT),
+            matcher.group(5).toLowerCase(Locale.ROOT), matcher.group(6).toLowerCase(Locale.ROOT), matcher.group(2));
         putIfUseful(row, "description", matcher.group(4));
         if (matcher.group(7) != null) row.put("revision", matcher.group(7));
-        if (category != null) row.put("kept", Boolean.TRUE);
+        row.put("source", "lspci");
         return row;
     }
 
@@ -233,12 +257,21 @@ final class PciFacts {
         row.put(key, clean(downgraded ? text + "（降级）" : text));
     }
 
-    /** 设备的“型号”：优先 VPD 产品名，其次子系统名，最后用 lspci 描述。 */
+    /** 设备的“型号”：优先 VPD 产品名，其次子系统名，再次 lspci 或 hwdb 描述；都没有时给出 PCI ID。 */
     static String model(Map<String, Object> device) {
         for (String key : List.of("productName", "subsystem", "description")) {
             Object value = device.get(key);
             if (value != null) return String.valueOf(value);
         }
-        return null;
+        Object vendorId = device.get("vendorId");
+        Object deviceId = device.get("deviceId");
+        return vendorId != null && deviceId != null ? "PCI ID " + vendorId + ":" + deviceId : null;
+    }
+
+    /** 单独展示设备时的名称：型号只有 PCI ID 时在前面加上厂商名。 */
+    static String label(Map<String, Object> device) {
+        String model = model(device);
+        Object vendor = device.get("vendor");
+        return model != null && model.startsWith("PCI ID ") && vendor != null ? vendor + " " + model : model;
     }
 }

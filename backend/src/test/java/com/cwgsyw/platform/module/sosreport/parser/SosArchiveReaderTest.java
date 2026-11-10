@@ -25,6 +25,21 @@ class SosArchiveReaderTest {
 
     private static final String TOP = "sosreport-host-2026-01-01-abc/";
 
+    /** 真实 sos 3.9 报告：proc/net -> self/net，proc/self -> 进程号，bond 文件存在 proc/<进程号>/net/bonding/ 下。 */
+    @Test
+    void readsProcNetFilesStoredUnderTheSosProcessId() throws IOException {
+        byte[] archive = xzTar(tar -> {
+            file(tar, TOP + "proc/85942/net/bonding/bond0", "Bonding Mode: fault-tolerance (active-backup)\n");
+            file(tar, TOP + "proc/85942/net/dev", "do-not-read\n");
+        });
+
+        SosArchiveReader.Result result = new SosArchiveReader().read(new ByteArrayInputStream(archive));
+
+        assertEquals(Map.of("proc/net/bonding/bond0", "Bonding Mode: fault-tolerance (active-backup)\n"), result.files());
+        assertEquals("proc/net/bonding/bond0", SosArchiveReader.normalizeProcNet("proc/85942/net/bonding/bond0"));
+        assertEquals("proc/bus/pci/devices", SosArchiveReader.normalizeProcNet("proc/bus/pci/devices"), "其他 proc 路径不改写");
+    }
+
     @Test
     void readsOnlyWhitelistedRegularFiles() throws IOException {
         byte[] archive = xzTar(tar -> {
@@ -185,6 +200,7 @@ class SosArchiveReaderTest {
     void whitelistCoversHardwareInventorySources() {
         for (String path : new String[] {
             "sos_commands/pci/lspci_-nnvvv", "sos_commands/pci/lspci_-nnvv", "sos_commands/ipmitool/ipmitool_sel_list",
+            "sos_commands/devices/udevadm_info_--export-db", "proc/bus/pci/devices",
             "sos_commands/nvidia/nvidia-smi_--query-gpu_gpu_name_gpu_bus_id_vbios_version_temperature.gpu_utilization.gpu_memory.total_memory.free_memory.used_--format_csv",
             "proc/cpuinfo", "sys/class/dmi/id/product_serial",
             "sys/devices/virtual/dmi/id/board_serial", "sys/firmware/devicetree/base/model",

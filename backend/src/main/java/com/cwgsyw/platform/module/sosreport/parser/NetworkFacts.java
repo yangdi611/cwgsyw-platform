@@ -175,13 +175,15 @@ final class NetworkFacts {
                     }
                     case "MII Status" -> (member == null ? bond : member).put("status", value);
                     case "Speed" -> {
-                        if (member != null) member.put("speed", value);
+                        // 链路断开时为 Unknown。
+                        if (member != null && useful(known(value)) != null) member.put("speed", value);
                     }
                     case "Permanent HW addr" -> {
                         if (member != null) member.put("mac", value);
                     }
                     case "Currently Active Slave" -> {
-                        if (member == null && value != null) bond.put("activeMember", value);
+                        // 没有可用成员时写 None。
+                        if (member == null && useful(value) != null) bond.put("activeMember", value);
                     }
                     case "Link Failure Count" -> {
                         if (member != null) putIfPresent(member, "linkFailures", parseInteger(value));
