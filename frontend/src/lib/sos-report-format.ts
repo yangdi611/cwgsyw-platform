@@ -102,6 +102,25 @@ export function formatValue(value: unknown, unit?: string): string {
   return unit ? `${String(value)} ${unit}` : String(value)
 }
 
+/**
+ * 报告事实的展示文本。与 {@link formatValue} 相同，另外把布尔值显示为“是/否”，
+ * 并按 labels 把枚举值换成中文。只用于结构化数据页，CMDB 字段值仍用 formatValue。
+ */
+export function formatFactValue(value: unknown, unit?: string, labels?: Record<string, string>): string {
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (typeof value === 'string' && labels?.[value]) return labels[value]
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const parts = Object.values(value as Record<string, unknown>).filter((part) => part !== null && part !== undefined && part !== '')
+    return parts.length === 0 ? '—' : parts.map(String).join(' / ')
+  }
+  return formatValue(value, unit)
+}
+
+/** 解析器把没有安装部件的插槽、托架标为 installed: false。 */
+export function isEmptySlot(row: Record<string, unknown>): boolean {
+  return row.installed === false
+}
+
 export function fact(facts: SosFacts | undefined, key: string): unknown {
   return facts?.[key]
 }

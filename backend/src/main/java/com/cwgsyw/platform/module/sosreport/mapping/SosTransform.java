@@ -100,6 +100,8 @@ public enum SosTransform {
 
     /** 元素是简单值的列表才能拼接；网卡、磁盘这类对象列表只能计数。 */
     private static final List<String> SCALAR_LISTS = List.of(
-        "network.ipv4Addresses", "network.dnsServers", "network.ntpServers",
-        "software.packages", "software.runningServices", "software.failedServices");
+        "network.ipv4Addresses", "network.ipv6Addresses", "network.dnsServers", "network.ntpServers",
+        "software.packages", "software.runningServices", "software.failedServices",
+        "software.enabledServices", "software.kernelModules", "cpu.vulnerabilities",
+        "hardware.chassisFaults", "health.issues");
 }
