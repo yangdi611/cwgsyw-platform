@@ -350,4 +350,17 @@ class SosHardwareInventoryTest {
         assertEquals("e1000e", rows.get(0).get("driver"), "驱动名本身是十六进制字符，按列位置取");
         assertEquals(Boolean.TRUE, rows.get(0).get("kept"));
     }
+
+    /** 取自真实 sos 3.9 报告（内核 4.19）的原始行：17 列固定字段后是驱动名，未绑定驱动时行尾是空字段。 */
+    @Test
+    void readsDriverFromTheEighteenthColumnOfRealProcDevices() {
+        String content = "2100\t88488308\tff\t        fa200004\t               0\t        f9900004\t               0\t               0\t               0\t        f9880000\t            8000\t               0\t           40000\t               0\t               0\t               0\t           80000\t\n"
+            + "8100\t1f3f2200\t63\t        f6a00004\t               0\t               0\t               0\t               0\t               0\t        f6900000\t           10000\t               0\t               0\t               0\t               0\t               0\t          100000\tsssraid\n";
+        List<Map<String, Object>> rows = PciFallbacks.fromProcDevices(content);
+        assertEquals(List.of("21:00.0", "81:00.0"), rows.stream().map(row -> row.get("address")).toList());
+        assertFalse(rows.get(0).containsKey("driver"), "未绑定驱动的设备行尾是空字段");
+        assertFalse(rows.get(0).containsKey("kept"));
+        assertEquals("sssraid", rows.get(1).get("driver"));
+        assertEquals("3SNIC", rows.get(1).get("vendor"));
+    }
 }
