@@ -34,7 +34,7 @@ final class PciFallbacks {
     static List<Map<String, Object>> fromUdevDatabase(String content) {
         List<Map<String, Object>> rows = new ArrayList<>();
         Map<String, String> values = new LinkedHashMap<>();
-        for (String line : (content + "\n\n").split("\\R")) {
+        for (String line : content.split("\\R")) {
             if (line.isBlank()) {
                 Map<String, Object> row = udevRow(values);
                 if (row != null) rows.add(row);
@@ -45,6 +45,9 @@ final class PciFallbacks {
             int equals = line.indexOf('=');
             if (equals > 3) values.put(line.substring(3, equals), line.substring(equals + 1));
         }
+        // 最后一段后面可能没有空行（split 也会丢掉末尾的空串），单独收尾。
+        Map<String, Object> last = udevRow(values);
+        if (last != null) rows.add(last);
         return rows;
     }
 
@@ -89,9 +92,9 @@ final class PciFallbacks {
             String ids = fields[1].toLowerCase(Locale.ROOT);
             Map<String, Object> row = PciFacts.baseRow(address, null, ids.substring(0, 4), ids.substring(4), null);
             row.put("category", "未知类别");
-            String last = fields[fields.length - 1].trim();
-            // 驱动名在第 18 列之后，基址和大小都是十六进制，用是否为纯十六进制区分。
-            if (fields.length > 17 && !HEX.matcher(last).matches()) putIfUseful(row, "driver", last);
+            // 前 17 列固定（地址、ID、中断、7 个基址、7 个大小），驱动名是第 18 列。
+            // 按位置取，不能按“是否十六进制”判断，e1000e 这类驱动名本身就是十六进制字符。
+            if (fields.length > 17) putIfUseful(row, "driver", fields[17].trim());
             row.put("source", "proc");
             // 没有类别时只能靠驱动判断：未绑定驱动的（主机桥等）和 PCIe 根端口不是板卡，只用于地址关联，不列出。
             Object driver = row.get("driver");

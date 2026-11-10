@@ -333,4 +333,21 @@ class SosHardwareInventoryTest {
         assertEquals("Integrated NIC 1", row(facts, "network.interfaces", "name", "ens5f0").get("location"));
         assertEquals("未知类别", row(facts, "hardware.pciSlots", "designation", "PCIe Slot 1").get("deviceCategory"));
     }
+
+    @Test
+    void keepsTheLastUdevRecordWithoutTrailingBlankLine() {
+        String content = "P: /devices/pci0000:00/0000:00:01.0/0000:3b:00.0\n"
+            + "E: PCI_CLASS=10400\nE: PCI_ID=1F3F:2200\nE: PCI_SLOT_NAME=0000:3b:00.0\nE: SUBSYSTEM=pci";
+        List<Map<String, Object>> rows = PciFallbacks.fromUdevDatabase(content);
+        assertEquals(1, rows.size(), "最后一段没有空行结尾也要解析");
+        assertEquals("3SNIC", rows.get(0).get("vendor"));
+    }
+
+    @Test
+    void readsHexLikeDriverNamesFromProcDevices() {
+        String zeros = String.join("\t", java.util.Collections.nCopies(15, "0"));
+        List<Map<String, Object>> rows = PciFallbacks.fromProcDevices("0300\t808610d3\t" + zeros + "\te1000e\n");
+        assertEquals("e1000e", rows.get(0).get("driver"), "驱动名本身是十六进制字符，按列位置取");
+        assertEquals(Boolean.TRUE, rows.get(0).get("kept"));
+    }
 }
