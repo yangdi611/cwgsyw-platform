@@ -149,9 +149,16 @@ final class StorageFacts {
         Object used = disk.get("percentageUsed");
         if (used instanceof Integer percent && percent >= 90) ctx.issue(label + " 寿命已用 " + percent + "%");
 
+        // 物理路径指向 RAID 控制器时，这块“磁盘”是 RAID 卡导出的逻辑盘，型号和固件是控制器给的，不是物理盘的。
+        Map<String, Object> controller = ctx.pciByAddress.get(SosParseContext.pciKey((String) disk.get("location")));
+        boolean raidVolume = controller != null && "0104".equals(controller.get("classCode"));
+        if (raidVolume) {
+            disk.put("raidVolume", true);
+            putIfPresent(disk, "controller", PciFacts.model(controller));
+        }
         if (disk.get("firmware") != null) {
             String location = disk.get("location") != null ? name + "（" + disk.get("location") + "）" : name;
-            ctx.firmware("磁盘", (String) disk.get("model"), location, (String) disk.get("firmware"));
+            ctx.firmware(raidVolume ? "RAID 逻辑盘" : "磁盘", (String) disk.get("model"), location, (String) disk.get("firmware"));
         }
     }
 

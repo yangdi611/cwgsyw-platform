@@ -7,7 +7,8 @@ import { FactTable, Section, slotTitle } from './FactParts'
 export function StorageFacts({ facts }: { facts: SosFacts | undefined }) {
   const physical = factRows(facts, 'storage.raidPhysicalDrives')
   const controllers = factRows(facts, 'storage.raidControllers')
-  const disks = factRows(facts, 'storage.disks').map((row) => ({ ...row, type: row.type ?? row.transport }))
+  // RAID 卡导出的逻辑盘类型标为“RAID 逻辑盘”，它的型号和固件来自控制器，不是物理盘。
+  const disks = factRows(facts, 'storage.disks').map((row) => ({ ...row, type: row.raidVolume ? 'RAID 逻辑盘' : row.type ?? row.transport }))
 
   return (
     <div className="cwgsyw-sos-report__sections">
@@ -22,6 +23,7 @@ export function StorageFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'model', label: '型号' },
             { key: 'serial', label: '序列号' },
             { key: 'firmware', label: '固件' },
+            { key: 'controller', label: '所属 RAID 卡' },
             { key: 'location', label: '物理路径' },
             { key: 'smartHealth', label: 'SMART' },
             { key: 'powerOnHours', label: '通电小时' },

@@ -427,4 +427,24 @@ class SosStorageParserTest {
         Map<String, Object> facts = parse(files);
         assertTrue(rows(facts, "storage.raidPhysicalDrives").stream().noneMatch(row -> Boolean.FALSE.equals(row.get("installed"))));
     }
+
+    @Test
+    void marksRaidVolumesAndDescribesSlotOccupants() {
+        Map<String, String> files = files();
+        files.put("sos_commands/block/udevadm_info_.dev.sda",
+            "E: ID_VENDOR=AVAGO\nE: ID_MODEL=MR9361-8i\nE: ID_REVISION=4.68\nE: ID_PATH=pci-0000:3b:00.0-scsi-0:2:0:0\n");
+        files.remove("sos_commands/ata/smartctl_-a_.dev.sda");
+        Map<String, Object> facts = parse(files);
+        Map<String, Object> sda = row(facts, "storage.disks", "name", "sda");
+        assertEquals(true, sda.get("raidVolume"));
+        assertEquals("Broadcom / LSI MegaRAID SAS 9361-8i", sda.get("controller"));
+        assertEquals("RAID 逻辑盘", row(facts, "hardware.firmwareInventory", "version", "4.68").get("category"));
+        assertFalse(row(facts, "storage.disks", "name", "nvme0n1").containsKey("raidVolume"), "NVMe 控制器不是 RAID 卡");
+
+        Map<String, Object> slot = row(facts, "hardware.pciSlots", "designation", "PCIe Slot 1");
+        assertEquals("RAID 控制器", slot.get("deviceCategory"));
+        assertEquals("Broadcom / LSI MegaRAID SAS 9361-8i", slot.get("deviceModel"));
+        assertFalse(row(facts, "hardware.pciSlots", "designation", "PCIe Slot 2").containsKey("deviceModel"));
+        assertEquals("以太网卡", row(facts, "hardware.onboardDevices", "designation", "Integrated NIC 1").get("deviceCategory"));
+    }
 }

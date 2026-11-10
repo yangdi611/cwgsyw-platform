@@ -37,6 +37,11 @@ final class NetworkFacts {
     /** {@code 2: ens1f0.100@ens1f0: <BROADCAST,...> mtu 1500 qdisc ... state UP ...} */
     private static final Pattern LINK_HEADER = Pattern.compile("^\\d+:\\s+([^:@\\s]+)(?:@(\\S+?))?:\\s+<([^>]*)>\\s+(.*)$");
     private static final Pattern VLAN_DETAIL = Pattern.compile("^vlan protocol (\\S+) id (\\d+)");
+    private static final Pattern BOND_MODE = Pattern.compile("^bond mode (\\S+)");
+    /** 虚拟接口的驱动。它们在 ethtool -i 里报的 firmware-version（如 bonding 的 "2"）不是固件版本。 */
+    private static final Set<String> VIRTUAL_DRIVERS = Set.of(
+        "bonding", "team", "bridge", "802.1Q VLAN Support", "8021q", "veth", "tun", "macvlan", "ipvlan", "vxlan",
+        "openvswitch", "dummy", "ipip", "gre", "ip_gre", "sit");
     private static final Set<String> LINK_KINDS = Set.of(
         "vlan", "bond", "bridge", "team", "veth", "macvlan", "ipvlan", "vxlan", "tun", "ipip", "gre", "openvswitch", "dummy");
 
@@ -107,9 +112,19 @@ final class NetworkFacts {
         ntp.addAll(ntpServers("etc/ntp.conf"));
         ctx.putList("network.ntpServers", ntp);
 
-        List<Map<String, Object>> bonds = parseBonds();
-        if (!bonds.isEmpty()) ctx.facts.put("network.bonds", bonds);
         Map<String, Map<String, Object>> links = parseLinks();
+        // /proc/net/bonding 最详细；报告里没有时（如 sos 复制 /proc/net 超出大小上限），退回 ip -d link。
+        List<Map<String, Object>> bonds = parseBonds();
+        if (bonds.isEmpty()) bonds = bondsFromLinks(links);
+        if (!bonds.isEmpty()) ctx.facts.put("network.bonds", bonds);
+        for (Map<String, Object> bond : bonds) {
+            if (!(bond.get("members") instanceof List<?> members)) continue;
+            for (Object item : members) {
+                if (item instanceof Map<?, ?> member && !"up".equalsIgnoreCase(String.valueOf(member.get("status")))) {
+                    ctx.issue("bond " + bond.get("name") + " 的成员 " + member.get("name") + " 链路状态：" + member.get("status"));
+                }
+            }
+        }
         List<Map<String, Object>> interfaces = parseInterfaces(ipsByInterface, ip6ByInterface, bonds, links);
         if (!interfaces.isEmpty()) ctx.facts.put("network.interfaces", interfaces);
         ctx.putRows("network.vlans", links.values().stream().filter(link -> "vlan".equals(link.get("kind"))).map(link -> {
@@ -177,11 +192,37 @@ final class NetworkFacts {
             }
             bond.put("members", members);
             bonds.add(bond);
-            for (Map<String, Object> row : members) {
-                if (!"up".equalsIgnoreCase(String.valueOf(row.get("status")))) {
-                    ctx.issue("bond " + bond.get("name") + " 的成员 " + row.get("name") + " 链路状态：" + row.get("status"));
-                }
+        }
+        return bonds;
+    }
+
+    /** 从 {@code ip -d link} 还原 bond：主接口带 bond mode，成员带 master 和 bond_slave 状态。 */
+    private static List<Map<String, Object>> bondsFromLinks(Map<String, Map<String, Object>> links) {
+        List<Map<String, Object>> bonds = new ArrayList<>();
+        for (Map<String, Object> link : links.values()) {
+            if (!"bond".equals(link.get("kind"))) continue;
+            Map<String, Object> bond = new LinkedHashMap<>();
+            bond.put("name", link.get("name"));
+            putIfPresent(bond, "mode", link.get("bondMode"));
+            Object state = link.get("state");
+            if (state != null) bond.put("status", String.valueOf(state).toLowerCase(Locale.ROOT));
+            List<Map<String, Object>> members = new ArrayList<>();
+            for (Map<String, Object> member : links.values()) {
+                if (!bond.get("name").equals(member.get("master"))) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("name", member.get("name"));
+                Object mii = member.get("miiStatus");
+                row.put("status", mii != null ? String.valueOf(mii).toLowerCase(Locale.ROOT)
+                    : String.valueOf(member.getOrDefault("state", "unknown")).toLowerCase(Locale.ROOT));
+                putIfPresent(row, "mac", member.get("permHwaddr"));
+                putIfPresent(row, "slaveState", member.get("slaveState"));
+                putIfPresent(row, "linkFailures", member.get("linkFailures"));
+                if ("ACTIVE".equals(member.get("slaveState"))) bond.putIfAbsent("activeMember", member.get("name"));
+                members.add(row);
             }
+            bond.put("members", members);
+            bond.put("source", "ip link");
+            bonds.add(bond);
         }
         return bonds;
     }
@@ -225,6 +266,23 @@ final class NetworkFacts {
             }
             String kind = firstToken(trimmed);
             if (kind != null && LINK_KINDS.contains(kind) && !current.containsKey("kind")) current.put("kind", kind);
+            // bond mode 802.3ad miimon 100 ...
+            Matcher mode = BOND_MODE.matcher(trimmed);
+            if (mode.find()) current.putIfAbsent("bondMode", clean(mode.group(1)));
+            // bond_slave state ACTIVE mii_status UP link_failure_count 0 perm_hwaddr 4c:74:a7:43:c8:f6 ...
+            if (trimmed.startsWith("bond_slave ")) {
+                String[] tokens = trimmed.split("\\s+");
+                for (int i = 1; i + 1 < tokens.length; i++) {
+                    switch (tokens[i]) {
+                        case "state" -> current.put("slaveState", clean(tokens[i + 1]));
+                        case "mii_status" -> current.put("miiStatus", clean(tokens[i + 1]));
+                        case "perm_hwaddr" -> current.put("permHwaddr", clean(tokens[i + 1]));
+                        case "link_failure_count" -> putIfPresent(current, "linkFailures", parseInteger(tokens[i + 1]));
+                        default -> {
+                        }
+                    }
+                }
+            }
         }
         return links;
     }
@@ -259,18 +317,19 @@ final class NetworkFacts {
             Map<String, String> driver = keyColonValues(ctx.text(prefix + "-i_" + name));
             Matcher permanent = Pattern.compile("Permanent address:\\s*([0-9a-fA-F:]{17})").matcher(ctx.text(prefix + "-P_" + name));
             if (permanent.find() && !permanent.group(1).equals("00:00:00:00:00:00")) row.put("mac", permanent.group(1));
-            putIfUseful(row, "speed", ethtool.get("Speed"));
+            putIfUseful(row, "speed", known(ethtool.get("Speed")));
             putIfUseful(row, "linkDetected", ethtool.get("Link detected"));
             putIfUseful(row, "driver", driver.get("driver"));
-            putIfUseful(row, "firmware", driver.get("firmware-version"));
+            boolean virtual = VIRTUAL_DRIVERS.contains(String.valueOf(driver.get("driver")));
+            if (!virtual) putIfUseful(row, "firmware", driver.get("firmware-version"));
             putIfUseful(row, "busInfo", driver.get("bus-info"));
             if (masterByMember.containsKey(name)) row.put("master", masterByMember.get(name));
             if (ips.containsKey(name)) row.put("ipv4", ips.get(name));
 
             // 以下为扩展字段，取不到就不写。
             putIfUseful(row, "driverVersion", driver.get("version"));
-            putIfUseful(row, "duplex", ethtool.get("Duplex"));
-            putIfUseful(row, "port", ethtool.get("Port"));
+            putIfUseful(row, "duplex", known(ethtool.get("Duplex")));
+            if (!virtual) putIfUseful(row, "port", known(ethtool.get("Port")));
             putIfUseful(row, "autoNegotiation", ethtool.get("Auto-negotiation"));
             if (ip6.containsKey(name)) row.put("ipv6", ip6.get(name));
             Map<String, Object> link = links.get(name);
@@ -290,6 +349,11 @@ final class NetworkFacts {
             rows.add(row);
         }
         return rows;
+    }
+
+    /** ethtool 取不到值时输出 "Unknown!" 或 "Unknown! (255)"。 */
+    private static String known(String value) {
+        return value == null || value.trim().toLowerCase(Locale.ROOT).startsWith("unknown") ? null : value;
     }
 
     private void enrichFromPci(Map<String, Object> row) {

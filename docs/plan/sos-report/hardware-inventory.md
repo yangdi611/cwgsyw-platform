@@ -51,6 +51,26 @@ sos 把命令转换为文件名的规则：去掉 `/usr/bin/` 等前缀，`[^\w\
 | 存储逻辑层 | multipath、lvm2 | `multipath/multipath_-ll`、`lvm2/{vgs,lvs,pvs}_*` | 多路径 LUN、路径状态；VG/LV/PV 容量 |
 | 系统 | host、boot、tuned、kdump、firewalld、chrony、systemd、kernel、dpkg | `host/uptime`、`host/hostname_-f`、`boot/mokutil_--sb-state`、`tuned/tuned-adm_active`、`kdump/kdumpctl_status`、`firewalld/firewall-cmd_--state`、`chrony/chronyc_tracking`、`systemd/systemctl_list-unit-files`、`kernel/lsmod`、`dpkg/dpkg_-l`、`proc/sys/kernel/tainted`、`etc/ntp.conf` | 运行时长、安全启动、调优配置、kdump、防火墙、时间同步、开机自启服务、内核模块、deb 包 |
 
+### sos 3.x 的差异（YAN-117）
+
+上表按 sos 4.x 编写。UOS 20 等系统常见的 sos 3.9 有以下不同，已对照 3.9 插件源码处理：
+
+| 插件 | sos 3.x | sos 4.x | 处理 |
+|---|---|---|---|
+| pci | `lspci -nnvv` → `lspci_-nnvv` | `lspci -nnvvv` | 两个文件都读，格式相同 |
+| ipmitool | `sel list`；不采集 `lan print` | `sel elist`、`lan print` | 读 `sel list`；3.x 报告取不到 BMC IP |
+| nvidia | 只有 `--query-gpu=... --format=csv` | 另有 `-q` | 没有 `-q` 时按 CSV 列名读 |
+| block | 不采集 `lsblk -O -P` | 采集 | 3.x 缺少转速、HCTL 等补充字段 |
+| networking | 不采集 `ethtool -m` | 采集 | 3.x 没有光模块信息 |
+| storcli、perccli、hpssm、arcconf、dellrac | 没有这些插件 | 有 | 3.x 报告没有这些 RAID 卡和 iDRAC 的数据 |
+
+bond 优先读 `proc/net/bonding/*`。实测的 3.9 报告没有这个文件（原包已删除，原因无法确认），因此没有时改从 `ip -s -d link`
+还原：主接口的 `bond mode`，成员的 `master`、`bond_slave` 状态、`mii_status` 和 `perm_hwaddr`。
+
+其他修正：bonding、team、bridge 等虚拟接口在 `ethtool -i` 中的 `firmware-version`（如 `2`）不是固件版本，不再记录；
+PCIe 插槽和板载设备按总线地址补充插入设备的类别和型号（只匹配板卡类设备，不匹配上游桥）；
+磁盘的 `ID_PATH` 指向 RAID 类 PCI 设备时标为 RAID 逻辑盘（`raidVolume`）并记录所属控制器。
+
 汇总事实：`hardware.firmwareInventory` 把 BIOS、BMC、CPU 微码、网卡、RAID 卡、磁盘、GPU、IB、FC、电源的固件版本合并成一张表；
 `health.issues` 汇总 SMART 失败、RAID 降级、传感器异常、机箱故障、失败的服务等告警。
 

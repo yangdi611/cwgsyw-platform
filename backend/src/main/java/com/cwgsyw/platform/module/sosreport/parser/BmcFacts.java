@@ -178,7 +178,10 @@ final class BmcFacts {
         }
 
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (String line : ipmi("sel_elist").split("\\R")) {
+        // sos 4.x 采集 sel elist（传感器显示名称），3.x 只采集 sel list（传感器显示编号），格式相同。
+        String events = ipmi("sel_elist");
+        if (events.isEmpty()) events = ipmi("sel_list");
+        for (String line : events.split("\\R")) {
             String[] parts = line.split("\\|");
             if (parts.length < 5) continue;
             Map<String, Object> row = new LinkedHashMap<>();

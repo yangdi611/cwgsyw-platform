@@ -49,6 +49,42 @@ final class AcceleratorFacts {
         ctx.putRows("hardware.gpus", rows);
     }
 
+    /**
+     * sos 3.x 没有 {@code nvidia-smi -q}，只有 {@code --query-gpu=... --format=csv}。
+     * 首行是列名（如 {@code name, pci.bus_id, vbios_version, memory.total [MiB]}），按列名取值。
+     */
+    private List<Map<String, Object>> nvidiaCsv() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String content = ctx.pathWithPrefix("sos_commands/nvidia/nvidia-smi_--query-gpu_gpu_name_gpu_bus_id_vbios_version_")
+            .map(ctx::text).orElse("");
+        List<String> lines = content.lines().filter(line -> !line.isBlank()).toList();
+        if (lines.size() < 2) return rows;
+        String[] header = lines.get(0).split(",");
+        for (int i = 0; i < header.length; i++) header[i] = header[i].replaceAll("\\[.*]", "").trim();
+        for (String line : lines.subList(1, lines.size())) {
+            String[] cells = line.split(",");
+            if (cells.length != header.length) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            for (int i = 0; i < header.length; i++) {
+                String value = cells[i].trim();
+                switch (header[i]) {
+                    case "name" -> putIfUseful(row, "model", value);
+                    case "pci.bus_id" -> putIfPresent(row, "busId", pciKey(value));
+                    case "vbios_version" -> putIfUseful(row, "vbios", value);
+                    case "memory.total" -> putIfUseful(row, "memoryTotal", value);
+                    case "temperature.gpu" -> putIfUseful(row, "temperature", value.matches("\\d+") ? value + " C" : value);
+                    default -> {
+                    }
+                }
+            }
+            if (row.get("busId") == null) continue;
+            row.put("vendor", "NVIDIA");
+            row.put("source", "nvidia-smi");
+            rows.add(row);
+        }
+        return rows;
+    }
+
     private List<Map<String, Object>> nvidia() {
         String content = ctx.text("sos_commands/nvidia/nvidia-smi_-q");
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -104,6 +140,7 @@ final class AcceleratorFacts {
                 putIfUseful(gpu, "eccMode", value);
             }
         }
+        if (rows.isEmpty()) rows.addAll(nvidiaCsv());
         for (Map<String, Object> row : rows) {
             if (driver != null) row.put("driverVersion", driver);
             if (cuda != null) row.put("cudaVersion", cuda);

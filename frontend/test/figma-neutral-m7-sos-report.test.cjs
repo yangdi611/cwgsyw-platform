@@ -312,7 +312,7 @@ const HARDWARE_FACTS = {
     { locator: 'B1', installed: false, status: '空槽位' },
   ],
   'hardware.pciSlots': [
-    { designation: 'PCIe Slot 1', installed: true, busAddress: '3b:00.0' },
+    { designation: 'PCIe Slot 1', installed: true, busAddress: '3b:00.0', deviceCategory: 'RAID 控制器', deviceModel: 'MegaRAID SAS 9361-8i' },
     { designation: 'PCIe Slot 2', installed: false, status: '空槽位' },
   ],
   'hardware.firmwareInventory': [{ category: 'RAID 卡', component: 'AVAGO MegaRAID SAS 9361-8i', location: '控制器 0（PCIe Slot 1）', version: '4.680.00-8417' }],
@@ -337,6 +337,7 @@ test('facts panel groups hardware details into tabs and shows empty slots', () =
   assert.match(html, /RAID 物理盘（已用 1 \/ 共 2）/)
   assert.match(html, /cwgsyw-chip[^"]*"[^>]*>(?:<[^>]+>)*空槽位/, '空槽位用标签标出')
   assert.match(html, /Samsung（80CE）/)
+  assert.match(html, /MegaRAID SAS 9361-8i/, '插槽表显示插在槽里的设备')
   assert.match(html, /4\.680\.00-8417/)
   assert.match(html, /FTLX8571D3BCL/, '光模块单独成表')
   assert.match(html, /<dt>kdump<\/dt><dd>未就绪<\/dd>/)

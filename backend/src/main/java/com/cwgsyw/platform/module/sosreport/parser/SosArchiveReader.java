@@ -83,6 +83,8 @@ public final class SosArchiveReader {
         "sos_commands/nvidia/nvidia-smi_-q",
         "sos_commands/nvme/nvme_list",
         "sos_commands/pci/lspci_-nnvvv",
+        // sos 3.x 运行的是 lspci -nnvv。
+        "sos_commands/pci/lspci_-nnvv",
         "sos_commands/systemd/systemctl_list-unit-files",
         "sos_commands/tuned/tuned-adm_active");
 
@@ -98,7 +100,10 @@ public final class SosArchiveReader {
         Pattern.compile("sys/(class|devices/virtual)/dmi/id/[a-z_]{1,32}"),
         Pattern.compile("sos_commands/ata/smartctl_-a_\\.dev\\.[a-z0-9]{1,32}"),
         Pattern.compile("sos_commands/nvme/smartctl_--all_\\.dev\\.nvme[0-9]{1,3}n[0-9]{1,3}"),
-        Pattern.compile("sos_commands/ipmitool/ipmitool(_-I_usb)?_(mc_info|lan_print(_[0-9]{1,2})?|fru_print|sensor_list|sel_info|sel_elist|chassis_status)"),
+        // sos 3.x 采集 sel list，4.x 采集 sel elist。
+        Pattern.compile("sos_commands/ipmitool/ipmitool(_-I_usb)?_(mc_info|lan_print(_[0-9]{1,2})?|fru_print|sensor_list|sel_info|sel_elist|sel_list|chassis_status)"),
+        // nvidia-smi 的 CSV 查询，列名随 sos 版本不同；只接受以这几列开头的。
+        Pattern.compile("sos_commands/nvidia/nvidia-smi_--query-gpu_gpu_name_gpu_bus_id_vbios_version_[A-Za-z0-9_.]{1,200}_--format_csv"),
         Pattern.compile("sos_commands/(storcli/storcli64|perccli/perccli64|perccli2/perccli2)_\\.call(_show_all|\\.eall\\.sall_show_all|\\.sall_show_all)"),
         Pattern.compile("sos_commands/arcconf/arcconf_getconfig_[0-9]{1,2}"),
         Pattern.compile("sos_commands/sas3ircu/sas3ircu_[0-9]{1,2}_display"),

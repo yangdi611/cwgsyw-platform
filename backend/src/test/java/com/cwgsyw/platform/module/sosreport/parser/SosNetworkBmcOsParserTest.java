@@ -188,4 +188,87 @@ class SosNetworkBmcOsParserTest {
         assertEquals(List.of("10.100.0.5/24"), row(facts, "network.vlans", "name", "ens5f0.100").get("ipv4"));
         assertTrue(rows(facts, "network.interfaces").stream().noneMatch(row -> String.valueOf(row.get("name")).contains("@")));
     }
+
+    /** sos 3.9（UOS 20 常见）：lspci 为 -nnvv，没有 /proc/net/bonding，bond 只能从 ip -d link 取。 */
+    private static Map<String, String> sos3Files() {
+        Map<String, String> files = files();
+        files.put("sos_commands/pci/lspci_-nnvv", files.remove("sos_commands/pci/lspci_-nnvvv"));
+        files.put("sos_commands/networking/ip_-s_-d_link", """
+            6: bond0: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+                link/ether 4c:74:a7:43:c8:f6 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 68 maxmtu 65535
+                bond mode 802.3ad miimon 100 updelay 0 downdelay 0 use_carrier 1 arp_interval 0
+                RX: bytes  packets  errors  dropped overrun mcast
+            2: ens5f0: <BROADCAST,MULTICAST,SLAVE,UP,LOWER_UP> mtu 1500 qdisc mq master bond0 state UP mode DEFAULT group default qlen 1000
+                link/ether 4c:74:a7:43:c8:f6 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 68 maxmtu 9702
+                bond_slave state ACTIVE mii_status UP link_failure_count 0 perm_hwaddr 3c:fd:fe:a1:b2:c3 queue_id 0 ad_aggregator_id 1
+            3: ens5f1: <NO-CARRIER,BROADCAST,MULTICAST,SLAVE,UP> mtu 1500 qdisc mq master bond0 state DOWN mode DEFAULT group default qlen 1000
+                link/ether 4c:74:a7:43:c8:f6 brd ff:ff:ff:ff:ff:ff promiscuity 0
+                bond_slave state BACKUP mii_status DOWN link_failure_count 3 perm_hwaddr 3c:fd:fe:a1:b2:c4 queue_id 0
+            """);
+        files.put("sos_commands/networking/ethtool_bond0", "Settings for bond0:\n\tSpeed: 10000Mb/s\n\tDuplex: Full\n\tPort: Other\n");
+        files.put("sos_commands/networking/ethtool_-i_bond0", "driver: bonding\nversion: 3.7.1\nfirmware-version: 2\nbus-info: \n");
+        files.put("sos_commands/networking/ethtool_ens5f1", "Settings for ens5f1:\n\tSpeed: Unknown!\n\tDuplex: Unknown! (255)\n\tLink detected: no\n");
+        return files;
+    }
+
+    @Test
+    void readsBondsFromIpLinkWhenProcBondingIsMissing() {
+        Map<String, Object> facts = parse(sos3Files());
+        Map<String, Object> bond = row(facts, "network.bonds", "name", "bond0");
+        assertEquals("802.3ad", bond.get("mode"));
+        assertEquals("up", bond.get("status"));
+        assertEquals("ens5f0", bond.get("activeMember"));
+        assertEquals("ip link", bond.get("source"));
+        List<Map<String, Object>> members = (List<Map<String, Object>>) bond.get("members");
+        assertEquals(List.of("ens5f0", "ens5f1"), members.stream().map(member -> member.get("name")).toList());
+        assertEquals("up", members.get(0).get("status"));
+        assertEquals("3c:fd:fe:a1:b2:c3", members.get(0).get("mac"));
+        assertEquals("down", members.get(1).get("status"));
+        assertEquals(3, members.get(1).get("linkFailures"));
+        assertTrue(hasIssue(facts, "bond bond0 的成员 ens5f1 链路状态：down"));
+        assertEquals("bond0", row(facts, "network.interfaces", "name", "ens5f0").get("master"));
+    }
+
+    @Test
+    void doesNotTreatVirtualDriverVersionsAsFirmware() {
+        Map<String, Object> facts = parse(sos3Files());
+        Map<String, Object> bond = row(facts, "network.interfaces", "name", "bond0");
+        assertFalse(bond.containsKey("firmware"), "bonding 的 firmware-version 2 不是固件版本");
+        assertFalse(bond.containsKey("port"));
+        assertTrue(rows(facts, "hardware.firmwareInventory").stream().noneMatch(row -> String.valueOf(row.get("location")).startsWith("bond0")));
+        Map<String, Object> down = row(facts, "network.interfaces", "name", "ens5f1");
+        assertFalse(down.containsKey("duplex"), "Unknown! (255) 视为空");
+        assertFalse(down.containsKey("speed"));
+    }
+
+    @Test
+    void enrichesInterfacesFromSos3Lspci() {
+        Map<String, Object> facts = parse(sos3Files());
+        Map<String, Object> nic = row(facts, "network.interfaces", "name", "ens5f0");
+        assertEquals("Intel", nic.get("vendor"));
+        assertEquals("XL710 40GbE Controller", nic.get("model"));
+        assertEquals("Integrated NIC 1", nic.get("location"));
+        assertEquals(5, rows(facts, "hardware.pciDevices").size());
+    }
+
+    @Test
+    void readsSos3SelListAndNvidiaCsv() {
+        Map<String, String> files = sos3Files();
+        files.put("sos_commands/ipmitool/ipmitool_sel_list", files.remove("sos_commands/ipmitool/ipmitool_sel_elist"));
+        files.remove("sos_commands/nvidia/nvidia-smi_-q");
+        files.put("sos_commands/nvidia/nvidia-smi_--query-gpu_gpu_name_gpu_bus_id_vbios_version_temperature.gpu_utilization.gpu_memory.total_memory.free_memory.used_--format_csv", """
+            name, pci.bus_id, vbios_version, temperature.gpu, utilization.gpu [%], memory.total [MiB], memory.free [MiB], memory.used [MiB]
+            NVIDIA A100-PCIE-40GB, 00000000:AF:00.0, 92.00.25.00.08, 33, 0 %, 40960 MiB, 40000 MiB, 960 MiB
+            """);
+        Map<String, Object> facts = parse(files);
+        assertEquals(2, rows(facts, "hardware.selEvents").size());
+        Map<String, Object> gpu = rows(facts, "hardware.gpus").get(0);
+        assertEquals("af:00.0", gpu.get("busId"));
+        assertEquals("NVIDIA A100-PCIE-40GB", gpu.get("model"));
+        assertEquals("92.00.25.00.08", gpu.get("vbios"));
+        assertEquals("40960 MiB", gpu.get("memoryTotal"));
+        assertEquals("33 C", gpu.get("temperature"));
+        assertEquals("nvidia-smi", gpu.get("source"));
+        assertEquals(1, rows(facts, "hardware.gpus").size(), "lspci 里的同一张卡不重复");
+    }
 }
