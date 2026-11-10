@@ -247,4 +247,120 @@ class SosHardwareInventoryTest {
         assertEquals("i40e", nic.get("driver"), "VPD 之后的一级缩进字段不能被当成 VPD");
         assertEquals("1", nic.get("numaNode"));
     }
+
+    /** 主机只装了 pciutils-libs、没装 pciutils 时，sos 运行不了 lspci，报告里只有 udev 数据库。 */
+    @Test
+    void readsPciDevicesFromUdevDatabaseWithoutLspci() {
+        Map<String, String> files = files();
+        files.remove("sos_commands/pci/lspci_-nnvvv");
+        files.put("sos_commands/devices/udevadm_info_--export-db", """
+            P: /devices/pci0000:00/0000:00:00.0
+            E: DEVPATH=/devices/pci0000:00/0000:00:00.0
+            E: PCI_CLASS=60000
+            E: PCI_ID=8086:2020
+            E: PCI_SLOT_NAME=0000:00:00.0
+            E: SUBSYSTEM=pci
+
+            P: /devices/pci0000:3a/0000:3a:00.0/0000:3b:00.0
+            E: DRIVER=megaraid_sas
+            E: PCI_CLASS=10400
+            E: PCI_ID=1000:005D
+            E: PCI_SUBSYS_ID=1000:9361
+            E: PCI_SLOT_NAME=0000:3b:00.0
+            E: SUBSYSTEM=pci
+            E: ID_PCI_CLASS_FROM_DATABASE=Mass storage controller
+            E: ID_PCI_SUBCLASS_FROM_DATABASE=RAID bus controller
+            E: ID_VENDOR_FROM_DATABASE=LSI Logic / Symbios Logic
+            E: ID_MODEL_FROM_DATABASE=MegaRAID SAS-3 3108 [Invader]
+
+            P: /devices/pci0000:5d/0000:5d:00.0/0000:5e:00.0
+            E: DRIVER=rnp
+            E: PCI_CLASS=20000
+            E: PCI_ID=8848:1000
+            E: PCI_SLOT_NAME=0000:5e:00.0
+            E: SUBSYSTEM=pci
+
+            P: /devices/virtual/net/bond0
+            E: INTERFACE=bond0
+            E: SUBSYSTEM=net
+            """);
+        files.put("sos_commands/block/udevadm_info_.dev.sda", "E: ID_MODEL=RAID1\nE: ID_PATH=pci-0000:3b:00.0-scsi-0:2:0:0\n");
+        Map<String, Object> facts = parse(files);
+
+        List<Map<String, Object>> devices = rows(facts, "hardware.pciDevices");
+        assertEquals(List.of("3b:00.0", "5e:00.0"), devices.stream().map(row -> row.get("address")).toList(), "主机桥不列出");
+        Map<String, Object> raid = devices.get(0);
+        assertEquals("RAID 控制器", raid.get("category"));
+        assertEquals("0104", raid.get("classCode"));
+        assertEquals("Broadcom / LSI", raid.get("vendor"));
+        assertEquals("005d", raid.get("deviceId"));
+        assertEquals("LSI Logic / Symbios Logic MegaRAID SAS-3 3108 [Invader]", raid.get("description"));
+        assertEquals("1000:9361", raid.get("subsystemId"));
+        assertEquals("megaraid_sas", raid.get("driver"));
+        assertEquals("PCIe Slot 1", raid.get("location"));
+        assertEquals("udev", raid.get("source"));
+
+        Map<String, Object> nic = devices.get(1);
+        assertEquals("以太网卡", nic.get("category"));
+        assertEquals("8848", nic.get("vendorId"));
+        assertEquals("Mucse（沐创）", nic.get("vendor"), "hwdb 没有名称时按 vendor ID 取厂商");
+        assertEquals("PCI ID 8848:1000", PciFacts.model(nic), "没有型号名称时给出 PCI ID");
+
+        assertEquals("Integrated NIC 1", row(facts, "network.interfaces", "name", "ens5f0").get("location"));
+        assertEquals("RAID 控制器", row(facts, "hardware.pciSlots", "designation", "PCIe Slot 1").get("deviceCategory"));
+        assertEquals(true, row(facts, "storage.disks", "name", "sda").get("raidVolume"));
+    }
+
+    @Test
+    void readsPciDevicesFromProcWhenNothingElseExists() {
+        Map<String, String> files = files();
+        files.remove("sos_commands/pci/lspci_-nnvvv");
+        String zeros = String.join("\t", java.util.Collections.nCopies(15, "0"));
+        files.put("proc/bus/pci/devices", String.join("\n",
+            "0000\t80862020\t" + zeros,
+            "0018\t80862030\t" + zeros + "\tpcieport",
+            "3b00\t1000005d\t" + zeros + "\tmegaraid_sas",
+            "5e00\t88481000\t" + zeros + "\trnp") + "\n");
+        Map<String, Object> facts = parse(files);
+
+        List<Map<String, Object>> devices = rows(facts, "hardware.pciDevices");
+        assertEquals(List.of("3b:00.0", "5e:00.0"), devices.stream().map(row -> row.get("address")).toList(),
+            "没有驱动的主机桥和 PCIe 根端口不列出");
+        assertEquals("megaraid_sas", devices.get(0).get("driver"));
+        assertEquals("未知类别", devices.get(0).get("category"));
+        assertEquals("Broadcom / LSI", devices.get(0).get("vendor"));
+        assertEquals("proc", devices.get(0).get("source"));
+        assertEquals("Integrated NIC 1", row(facts, "network.interfaces", "name", "ens5f0").get("location"));
+        assertEquals("未知类别", row(facts, "hardware.pciSlots", "designation", "PCIe Slot 1").get("deviceCategory"));
+    }
+
+    @Test
+    void keepsTheLastUdevRecordWithoutTrailingBlankLine() {
+        String content = "P: /devices/pci0000:00/0000:00:01.0/0000:3b:00.0\n"
+            + "E: PCI_CLASS=10400\nE: PCI_ID=1F3F:2200\nE: PCI_SLOT_NAME=0000:3b:00.0\nE: SUBSYSTEM=pci";
+        List<Map<String, Object>> rows = PciFallbacks.fromUdevDatabase(content);
+        assertEquals(1, rows.size(), "最后一段没有空行结尾也要解析");
+        assertEquals("3SNIC", rows.get(0).get("vendor"));
+    }
+
+    @Test
+    void readsHexLikeDriverNamesFromProcDevices() {
+        String zeros = String.join("\t", java.util.Collections.nCopies(15, "0"));
+        List<Map<String, Object>> rows = PciFallbacks.fromProcDevices("0300\t808610d3\t" + zeros + "\te1000e\n");
+        assertEquals("e1000e", rows.get(0).get("driver"), "驱动名本身是十六进制字符，按列位置取");
+        assertEquals(Boolean.TRUE, rows.get(0).get("kept"));
+    }
+
+    /** 取自真实 sos 3.9 报告（内核 4.19）的原始行：17 列固定字段后是驱动名，未绑定驱动时行尾是空字段。 */
+    @Test
+    void readsDriverFromTheEighteenthColumnOfRealProcDevices() {
+        String content = "2100\t88488308\tff\t        fa200004\t               0\t        f9900004\t               0\t               0\t               0\t        f9880000\t            8000\t               0\t           40000\t               0\t               0\t               0\t           80000\t\n"
+            + "8100\t1f3f2200\t63\t        f6a00004\t               0\t               0\t               0\t               0\t               0\t        f6900000\t           10000\t               0\t               0\t               0\t               0\t               0\t          100000\tsssraid\n";
+        List<Map<String, Object>> rows = PciFallbacks.fromProcDevices(content);
+        assertEquals(List.of("21:00.0", "81:00.0"), rows.stream().map(row -> row.get("address")).toList());
+        assertFalse(rows.get(0).containsKey("driver"), "未绑定驱动的设备行尾是空字段");
+        assertFalse(rows.get(0).containsKey("kept"));
+        assertEquals("sssraid", rows.get(1).get("driver"));
+        assertEquals("3SNIC", rows.get(1).get("vendor"));
+    }
 }

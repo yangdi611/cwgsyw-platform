@@ -111,7 +111,7 @@ public final class SosFactCatalog {
         fact("hardware.memoryModules", "内存插槽明细", FactType.LIST, null, "DMI 中每个内存插槽，含空槽位；每项含位置、容量、类型、速率、厂商、序列号、料号、Rank"),
 
         // 板卡、电源与 BMC
-        fact("hardware.pciDevices", "PCI 板卡", FactType.LIST, null, "lspci 中的存储、网络、显示、加速、FC、IB 设备；每项含地址、厂商、型号、驱动、插槽、NUMA、PCIe 链路、料号和序列号"),
+        fact("hardware.pciDevices", "PCI 板卡", FactType.LIST, null, "lspci 中的存储、网络、显示、加速、FC、IB 设备；每项含地址、厂商、型号、驱动、插槽、NUMA、PCIe 链路、料号和序列号。没有 lspci 时取自 udev 数据库或 /proc/bus/pci/devices，字段较少，source 标明来源"),
         fact("hardware.pciSlots", "PCIe 插槽", FactType.LIST, null, "DMI 中每个扩展槽，含空插槽；每项含名称、类型、占用状态、总线地址，以及按地址关联的设备类别和型号"),
         fact("hardware.onboardDevices", "板载设备", FactType.LIST, null, "DMI 中的板载网卡、显卡、存储控制器及其总线地址"),
         fact("hardware.powerSupplies", "电源模块", FactType.LIST, null, "DMI 中每个电源位，含未安装的空位；每项含位置、厂商、型号、序列号、功率、状态"),

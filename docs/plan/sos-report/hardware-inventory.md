@@ -64,8 +64,15 @@ sos 把命令转换为文件名的规则：去掉 `/usr/bin/` 等前缀，`[^\w\
 | networking | 不采集 `ethtool -m` | 采集 | 3.x 没有光模块信息 |
 | storcli、perccli、hpssm、arcconf、dellrac | 没有这些插件 | 有 | 3.x 报告没有这些 RAID 卡和 iDRAC 的数据 |
 
-bond 优先读 `proc/net/bonding/*`。实测的 3.9 报告没有这个文件（原包已删除，原因无法确认），因此没有时改从 `ip -s -d link`
-还原：主接口的 `bond mode`，成员的 `master`、`bond_slave` 状态、`mii_status` 和 `perm_hwaddr`。
+用真实的 sos 3.9 报告（UOS 20、开天 KR722h G3）核实后，又发现两处：
+
+- **`/proc/net` 的真实路径**：归档里 `proc/net -> self/net`、`proc/self -> <sos 进程号>` 都是符号链接，
+  bond 文件实际存在 `proc/<进程号>/net/bonding/`。读取器不跟随链接，改为把 `proc/<数字>/net/` 改写成 `proc/net/` 再按白名单匹配。
+  没有 bond 文件时仍可从 `ip -s -d link` 还原（主接口的 `bond mode`，成员的 `master`、`bond_slave` 状态、`mii_status`、`perm_hwaddr`）。
+- **没有 lspci**：主机只装了 `pciutils-libs`、没装 `pciutils`，sos 运行不了 `lspci`，归档里没有 `sos_commands/pci/`。
+  PCI 设备依次退回 `sos_commands/devices/udevadm_info_--export-db`（类别、ID、驱动、hwdb 名称）和 `proc/bus/pci/devices`（只有 ID 和驱动）。
+  国产芯片在 hwdb 中常没有名称，厂商表补充了 Mucse（8848）、3SNIC（1f3f）、YMTC（1e49），型号缺失时显示 `PCI ID vvvv:dddd`。
+  多功能设备的其他功能沿用功能 0 的插槽位置。
 
 其他修正：bonding、team、bridge 等虚拟接口在 `ethtool -i` 中的 `firmware-version`（如 `2`）不是固件版本，不再记录；
 PCIe 插槽和板载设备按总线地址补充插入设备的类别和型号（只匹配板卡类设备，不匹配上游桥）；

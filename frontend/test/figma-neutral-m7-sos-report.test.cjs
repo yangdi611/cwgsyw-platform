@@ -321,6 +321,7 @@ const HARDWARE_FACTS = {
     { controller: '0', location: '/c0/e252/s0', installed: true, state: 'Onln', serialNumber: 'PHDV1' },
     { controller: '0', location: '/c0/e252/s4', installed: false, state: '空槽位', inferred: true },
   ],
+  'hardware.pciDevices': [{ address: '01:00.0', category: '以太网卡', vendor: 'Mucse（沐创）', vendorId: '8848', deviceId: '1000', source: 'udev' }],
   'os.kdumpStatus': 'not_operational',
   'os.ntpSynchronized': false,
   'network.interfaces': [{ name: 'ens5f0', transceiver: { vendor: 'FINISAR CORP.', partNumber: 'FTLX8571D3BCL' } }],
@@ -338,6 +339,7 @@ test('facts panel groups hardware details into tabs and shows empty slots', () =
   assert.match(html, /cwgsyw-chip[^"]*"[^>]*>(?:<[^>]+>)*空槽位/, '空槽位用标签标出')
   assert.match(html, /Samsung（80CE）/)
   assert.match(html, /MegaRAID SAS 9361-8i/, '插槽表显示插在槽里的设备')
+  assert.match(html, /PCI ID 8848:1000/, '没有型号名称时 PCI 表显示 PCI ID')
   assert.match(html, /4\.680\.00-8417/)
   assert.match(html, /FTLX8571D3BCL/, '光模块单独成表')
   assert.match(html, /<dt>kdump<\/dt><dd>未就绪<\/dd>/)

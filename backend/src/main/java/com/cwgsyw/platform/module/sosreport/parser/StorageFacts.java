@@ -154,7 +154,7 @@ final class StorageFacts {
         boolean raidVolume = controller != null && "0104".equals(controller.get("classCode"));
         if (raidVolume) {
             disk.put("raidVolume", true);
-            putIfPresent(disk, "controller", PciFacts.model(controller));
+            putIfPresent(disk, "controller", PciFacts.label(controller));
         }
         if (disk.get("firmware") != null) {
             String location = disk.get("location") != null ? name + "（" + disk.get("location") + "）" : name;

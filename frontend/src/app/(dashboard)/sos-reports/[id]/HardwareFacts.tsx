@@ -4,9 +4,11 @@ import type { SosFacts } from '@/lib/sos-report-api'
 import { factRows, isEmptySlot } from '@/lib/sos-report-format'
 import { FactTable, Section, slotTitle, type FactRow } from './FactParts'
 
-/** PCI 设备的型号：VPD 产品名最准确，其次是子系统名，最后用 lspci 描述。 */
+/** PCI 设备的型号：VPD 产品名最准确，其次是子系统名、lspci 或 hwdb 描述；都没有时与后端一致，显示 PCI ID。 */
 function pciModel(row: FactRow): unknown {
-  return row.productName ?? row.subsystem ?? row.description
+  const named = row.productName ?? row.subsystem ?? row.description
+  if (named) return named
+  return row.vendorId && row.deviceId ? `PCI ID ${String(row.vendorId)}:${String(row.deviceId)}` : undefined
 }
 
 export function FirmwareTable({ facts }: { facts: SosFacts | undefined }) {
@@ -131,9 +133,10 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'numaNode', label: 'NUMA' },
             { key: 'partNumber', label: '料号' },
             { key: 'serial', label: '序列号' },
+            { key: 'source', label: '来源' },
           ]}
           rows={pci}
-          empty="报告中没有 PCI 设备信息（需要 sos 的 pci 插件采集 lspci）"
+          empty="报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库"
         />
         <FactTable
           title="GPU 与加速卡"
