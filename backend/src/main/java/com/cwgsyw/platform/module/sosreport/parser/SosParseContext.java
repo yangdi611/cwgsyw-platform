@@ -41,6 +41,8 @@ final class SosParseContext {
     final List<Map<String, Object>> firmware = new ArrayList<>();
     /** lspci 设备，按去掉 PCI 域后的地址索引，供网卡、GPU、控制器关联。 */
     final Map<String, Map<String, Object>> pciByAddress = new LinkedHashMap<>();
+    /** 需要列入清单的 PCI 功能（板卡类），网卡解析完成后按物理设备合并写出。 */
+    final List<Map<String, Object>> pciFunctions = new ArrayList<>();
 
     private final Map<String, List<Map<String, String>>> dmiCache = new LinkedHashMap<>();
 

@@ -362,6 +362,7 @@ final class NetworkFacts {
         String key = pciKey((String) row.get("busInfo"));
         Map<String, Object> device = key == null ? null : ctx.pciByAddress.get(key);
         if (device == null) return;
+        device.put("interface", row.get("name"));
         putIfPresent(row, "vendor", device.get("vendor"));
         putIfPresent(row, "model", PciFacts.model(device));
         putIfPresent(row, "location", device.get("location"));

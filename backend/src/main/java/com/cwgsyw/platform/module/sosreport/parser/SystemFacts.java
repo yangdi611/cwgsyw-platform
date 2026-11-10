@@ -223,6 +223,16 @@ final class SystemFacts {
         return null;
     }
 
+    /** 地址是否登记在 DMI 的板载设备（type 41）里。 */
+    static boolean isOnboard(SosParseContext ctx, String pciAddress) {
+        String key = pciKey(pciAddress);
+        if (key == null) return false;
+        for (Map<String, String> section : ctx.dmi("Onboard Device")) {
+            if (key.equals(pciKey(section.get("Bus Address")))) return true;
+        }
+        return false;
+    }
+
     private String dmiId(String name) {
         String value = ctx.firstLine(DMI_ID + name);
         if (value == null) value = ctx.firstLine("sys/devices/virtual/dmi/id/" + name);

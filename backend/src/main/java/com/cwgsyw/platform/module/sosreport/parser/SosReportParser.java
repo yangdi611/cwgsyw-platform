@@ -38,8 +38,10 @@ public final class SosReportParser {
         new OsFacts(ctx).parse();
         new CpuMemoryFacts(ctx).parse();
         // PCI 设备要先解析，网卡、RAID 卡和 GPU 依靠它补充型号和物理位置。
-        new PciFacts(ctx).parse();
+        PciFacts pci = new PciFacts(ctx);
+        pci.parse();
         new NetworkFacts(ctx).parse();
+        pci.publishDevices();
         new StorageFacts(ctx).parse();
         new RaidFacts(ctx).parse();
         new BmcFacts(ctx).parse();
