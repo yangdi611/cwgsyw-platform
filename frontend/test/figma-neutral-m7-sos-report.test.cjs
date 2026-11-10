@@ -261,7 +261,8 @@ test('detail modules use the same light panel as other detail pages', () => {
   assert.doesNotMatch(facts, /cwgsyw-card--/)
   assert.doesNotMatch(facts, /cwgsyw-type-title-sm/, '模块标题不能用 20px 的卡片标题')
   assert.match(facts, /<h2[^>]*>基本信息<\/h2>/)
-  assert.match(facts, /<h2[^>]*>网络与存储明细<\/h2>/)
+  assert.match(facts, /<h2[^>]*>存储<\/h2>/)
+  assert.match(facts, /<h2[^>]*>网络明细<\/h2>/)
   assert.match(facts, /<h2[^>]*>服务<\/h2>/)
 
   const cmdb = render(CMDB_PANEL, { queries: { 'sos-report-cmdb-preview': { data: PREVIEW }, 'sos-report-cmdb-requests': { data: [] } } }, { reportId: '5' })
@@ -300,6 +301,66 @@ test('package count moves into basic information', () => {
   const html = render(FACTS_PANEL, {}, { report: REPORT })
   assert.match(html, /<dt>软件包<\/dt><dd>544 个<\/dd>/)
   assert.doesNotMatch(html, /cwgsyw-devices-panel__head">软件包</)
+})
+
+const HARDWARE_FACTS = {
+  ...REPORT.facts,
+  'health.issues': ['物理盘 /c0/e252/s3 状态：Offln'],
+  'memory.slotsTotal': 2,
+  'hardware.memoryModules': [
+    { locator: 'A1', installed: true, status: '已安装', sizeGb: 32, manufacturer: 'Samsung（80CE）', partNumber: 'M393A4K40CB2-CVF' },
+    { locator: 'B1', installed: false, status: '空槽位' },
+  ],
+  'hardware.pciSlots': [
+    { designation: 'PCIe Slot 1', installed: true, busAddress: '3b:00.0' },
+    { designation: 'PCIe Slot 2', installed: false, status: '空槽位' },
+  ],
+  'hardware.firmwareInventory': [{ category: 'RAID 卡', component: 'AVAGO MegaRAID SAS 9361-8i', location: '控制器 0（PCIe Slot 1）', version: '4.680.00-8417' }],
+  'storage.raidControllers': [{ tool: 'storcli', controller: '0', model: 'AVAGO MegaRAID SAS 9361-8i', firmwareVersion: '4.680.00-8417' }],
+  'storage.raidPhysicalDrives': [
+    { controller: '0', location: '/c0/e252/s0', installed: true, state: 'Onln', serialNumber: 'PHDV1' },
+    { controller: '0', location: '/c0/e252/s4', installed: false, state: '空槽位', inferred: true },
+  ],
+  'os.kdumpStatus': 'not_operational',
+  'os.ntpSynchronized': false,
+  'network.interfaces': [{ name: 'ens5f0', transceiver: { vendor: 'FINISAR CORP.', partNumber: 'FTLX8571D3BCL' } }],
+}
+
+test('facts panel groups hardware details into tabs and shows empty slots', () => {
+  const html = render(FACTS_PANEL, {}, { report: { ...REPORT, facts: HARDWARE_FACTS } })
+  for (const tab of ['概览（1 项告警）', '硬件部件', '存储', '网络', 'BMC 与传感器', '系统与软件']) {
+    assert.match(html, new RegExp(`role="tab"[^>]*>(?:<[^>]+>)*${tab.replace(/[()（）]/g, '.')}<`), tab)
+  }
+  assert.match(html, /物理盘 \/c0\/e252\/s3 状态：Offln/)
+  assert.match(html, /内存插槽（已用 1 \/ 共 2）/)
+  assert.match(html, /PCIe 插槽（已用 1 \/ 共 2）/)
+  assert.match(html, /RAID 物理盘（已用 1 \/ 共 2）/)
+  assert.match(html, /cwgsyw-chip[^"]*"[^>]*>(?:<[^>]+>)*空槽位/, '空槽位用标签标出')
+  assert.match(html, /Samsung（80CE）/)
+  assert.match(html, /4\.680\.00-8417/)
+  assert.match(html, /FTLX8571D3BCL/, '光模块单独成表')
+  assert.match(html, /<dt>kdump<\/dt><dd>未就绪<\/dd>/)
+  assert.match(html, /<dt>时钟已同步<\/dt><dd>否<\/dd>/)
+})
+
+test('vendor specific tables stay hidden without data', () => {
+  const html = render(FACTS_PANEL, {}, { report: { ...REPORT, facts: {} } })
+  assert.match(html, /报告中没有 RAID 卡信息/)
+  assert.match(html, /报告中没有 BMC 信息/)
+  assert.match(html, /解析中没有发现告警/)
+  for (const title of ['InfiniBand', '光纤通道', '多路径设备', 'GPU 与加速卡', 'RAID 物理盘', '光模块']) {
+    assert.doesNotMatch(html, new RegExp(`cwgsyw-devices-panel__head">${title}`), title)
+  }
+})
+
+test('fact values format booleans and enum labels', () => {
+  const format = load(src('lib/sos-report-format.ts'))
+  assert.equal(format.formatFactValue(true), '是')
+  assert.equal(format.formatFactValue('enabled', undefined, { enabled: '已开启' }), '已开启')
+  assert.equal(format.formatFactValue({ vendor: 'A', partNumber: 'B', empty: '' }), 'A / B')
+  assert.equal(format.formatFactValue(32, 'GB'), '32 GB')
+  assert.equal(format.isEmptySlot({ installed: false }), true)
+  assert.equal(format.isEmptySlot({}), false)
 })
 
 test('facts panel lists failed services and bond members', () => {

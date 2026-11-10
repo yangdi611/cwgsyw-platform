@@ -182,6 +182,39 @@ class SosArchiveReaderTest {
     }
 
     @Test
+    void whitelistCoversHardwareInventorySources() {
+        for (String path : new String[] {
+            "sos_commands/pci/lspci_-nnvvv", "proc/cpuinfo", "sys/class/dmi/id/product_serial",
+            "sys/devices/virtual/dmi/id/board_serial", "sys/firmware/devicetree/base/model",
+            "sos_commands/ata/smartctl_-a_.dev.sda", "sos_commands/nvme/smartctl_--all_.dev.nvme0n1",
+            "sos_commands/nvme/nvme_list", "sos_commands/block/lsblk_-O_-P",
+            "sos_commands/ipmitool/ipmitool_mc_info", "sos_commands/ipmitool/ipmitool_-I_usb_lan_print_1",
+            "sos_commands/ipmitool/ipmitool_fru_print", "sos_commands/ipmitool/ipmitool_sensor_list",
+            "sos_commands/ipmitool/ipmitool_sel_elist", "sos_commands/storcli/storcli64_.call_show_all",
+            "sos_commands/storcli/storcli64_.call.eall.sall_show_all", "sos_commands/perccli/perccli64_.call_show_all",
+            "sos_commands/megacli/opt.MegaRAID.MegaCli.MegaCli64_LDPDInfo_-aALL",
+            "sos_commands/hpssm/ssacli_ctrl_all_show_config_detail", "sos_commands/arcconf/arcconf_getconfig_1",
+            "sos_commands/sas3ircu/sas3ircu_0_display", "sos_commands/networking/ethtool_-m_ens1f0",
+            "sos_commands/networking/ip_-s_-d_link", "sos_commands/infiniband/ibstat",
+            "sos_commands/fibrechannel/udevadm_info_-a_.sys.class.fc_host.host1",
+            "sos_commands/nvidia/nvidia-smi_-q", "sos_commands/multipath/multipath_-ll",
+            "sos_commands/lvm2/vgs_-v_-o_vg_mda_count_vg_mda_free_vg_mda_size_vg_mda_used_count_vg_tags_systemid_lock_type_--config_global_locking_type_0_metadata_read_only_1_--foreign",
+            "sos_commands/dellrac/idracadm7_getsysinfo", "sos_commands/kernel/lsmod", "sos_commands/dpkg/dpkg_-l"}) {
+            assertTrue(SosArchiveReader.isWhitelisted(path), path);
+        }
+        for (String path : new String[] {
+            // ipmitool 的用户列表、storcli 的事件和日志、命令行参数都不读取。
+            "sos_commands/ipmitool/ipmitool_user_list", "sos_commands/ipmitool/ipmitool_sel_list_-v_extra",
+            "sos_commands/storcli/storcli64_.call_show_events_file_.dev.stdout",
+            "sos_commands/storcli/storcli64_.call_show_termlog", "sos_commands/ata/smartctl_-a_.dev.sda_-j_x/../x",
+            "sos_commands/networking/ethtool_-e_eth0", "proc/cmdline", "etc/passwd",
+            "sos_commands/lvm2/lvmdump_-d_.tmp", "sos_commands/dellrac/idracadm7_supportassist_collect_-f",
+            "sys/class/dmi/id/../../../../etc/shadow"}) {
+            assertFalse(SosArchiveReader.isWhitelisted(path), path);
+        }
+    }
+
+    @Test
     void recognizesMagicBytes() {
         assertTrue(SosArchiveReader.isSupportedMagic(new byte[] {(byte) 0xFD, '7', 'z', 'X', 'Z', 0}));
         assertTrue(SosArchiveReader.isSupportedMagic(new byte[] {0x1F, (byte) 0x8B, 8, 0, 0, 0}));

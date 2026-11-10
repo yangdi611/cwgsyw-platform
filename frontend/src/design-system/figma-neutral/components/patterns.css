@@ -9056,6 +9056,9 @@ button.cwgsyw-stack-list__item:focus-visible {
   line-height: var(--cwgsyw-type-label-sm-line-height);
 }
 .cwgsyw-sos-report .cwgsyw-devices-defs dd { overflow-wrap: anywhere; }
+/* 结构化数据的分组页签：窄屏时换行，不出现横向滚动。 */
+.cwgsyw-sos-report__facts-tabs .cwgsyw-tabs { flex-wrap: wrap; }
+.cwgsyw-sos-report__facts-tabs [role="tabpanel"] { padding-top: var(--cwgsyw-space-4); }
 /* 表格贴满模块，由模块提供外框；表头用白底，和上方的浅灰标题行区分开。 */
 .cwgsyw-sos-report__panel-flush .cwgsyw-cmdb-table .cwgsyw-table-wrap {
   border: 0;

@@ -78,6 +78,7 @@ AI 只负责为新字段提出候选规则。
 - 路径穿越条目直接判定归档不安全；symlink、硬链接、FIFO、设备文件一律跳过，不跟随。
 - 上限：上传 200 MB；解压总量 5 GiB；条目 50 万；单文件 16 MiB；读入内存合计 128 MiB；XZ 字典内存 256 MiB；耗时 5 分钟。
 - 白名单见 `SosArchiveReader`。Ansible 清单、kickstart、日志、进程表都不在白名单内。
+  硬件明细、BMC、RAID 卡等扩展来源（解析器版本 2）见 [hardware-inventory.md](hardware-inventory.md)。
 - 错误信息只记录错误码和固定文案，不回显归档内容。
 
 ## 调度
@@ -252,6 +253,7 @@ SOS_REPORT_SAMPLE=/path/report.tar.xz SOS_REPORT_OUTPUT=/tmp/facts.json \
 
 - 没有禁止提交人审批自己的申请，与 Wiki 审批行为一致；审批人由流程绑定决定。
 - 解析器只用一份 UOS 20 物理机样本验证过，虚拟机、ARM 和其他 sos 版本需要更多样本。
+  版本 2 新增的 RAID 卡、BMC、NVMe、FC/IB 解析只用按上游格式编写的样本测试过，见 [hardware-inventory.md](hardware-inventory.md)。
 - CMDB 字段没有描述列，AI 只能依据字段名和类型判断，所以新规则必须人工确认。
 - 字段名和枚举选项会随 AI 请求外发，其中可能出现业务名称。
 - `disk_gb` 的口径是“操作系统可见的物理盘容量合计”，RAID 卡后的物理盘不可见。

@@ -1,23 +1,34 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import type { SosReport } from '@/lib/sos-report-api'
-import { fact, factRows, factStrings, formatValue } from '@/lib/sos-report-format'
-import { Chip, Table } from '@/design-system/figma-neutral/components'
+import { useState } from 'react'
+import type { SosFacts, SosReport } from '@/lib/sos-report-api'
+import { factStrings } from '@/lib/sos-report-format'
+import { Tabs } from '@/design-system/figma-neutral/components'
 import { SosPanel } from '../SosPanel'
-
-type Definition = [label: string, key: string, unit?: string]
+import { BmcFacts } from './BmcFacts'
+import { Definitions, Section, Tags, type Definition } from './FactParts'
+import { HardwareFacts } from './HardwareFacts'
+import { NetworkFacts } from './NetworkFacts'
+import { StorageFacts } from './StorageFacts'
 
 const IDENTITY: Definition[] = [
   ['主机名', 'system.hostname'],
+  ['完整域名', 'system.fqdn'],
   ['序列号', 'system.serialNumber'],
   ['系统 UUID', 'system.uuid'],
   ['厂商', 'system.manufacturer'],
   ['型号', 'system.productName'],
+  ['产品系列', 'system.family'],
   ['主机类型', 'system.hostType'],
+  ['机箱', 'chassis.type'],
+  ['机箱高度', 'chassis.heightU', 'U'],
+  ['资产标签', 'chassis.assetTag'],
   ['主板', 'baseboard.productName'],
+  ['主板序列号', 'baseboard.serialNumber'],
   ['BIOS 版本', 'bios.version'],
   ['BIOS 日期', 'bios.releaseDate'],
+  ['BMC IP', 'bmc.ipAddress'],
+  ['BMC 固件', 'bmc.firmwareVersion'],
 ]
 
 const OS: Definition[] = [
@@ -27,6 +38,7 @@ const OS: Definition[] = [
   ['时区', 'os.timezone'],
   ['SELinux', 'os.selinux'],
   ['启动方式', 'os.bootMode'],
+  ['安全启动', 'os.secureBoot', undefined, { enabled: '已开启', disabled: '未开启', unsupported: '不支持' }],
   ['安装日期（近似）', 'os.installDate'],
   ['软件包', 'software.packageCount', '个'],
 ]
@@ -38,8 +50,11 @@ const HARDWARE: Definition[] = [
   ['逻辑 CPU', 'cpu.threads', '线程'],
   ['实配内存', 'memory.installedGb', 'GB'],
   ['系统可用内存', 'memory.usableGb', 'GiB'],
+  ['内存类型', 'memory.type'],
+  ['内存速率', 'memory.speed'],
   ['内存插槽', 'memory.slotsTotal', '个'],
   ['已用插槽', 'memory.slotsUsed', '个'],
+  ['最大支持内存', 'memory.maxCapacity'],
   ['交换分区', 'memory.swapGb', 'GB'],
   ['磁盘合计（系统可见）', 'storage.totalDiskGb', 'GB'],
 ]
@@ -49,169 +64,98 @@ const NETWORK: Definition[] = [
   ['主网卡', 'network.primaryInterface'],
   ['默认网关', 'network.defaultGateway'],
   ['全部 IPv4', 'network.ipv4Addresses'],
+  ['全部 IPv6', 'network.ipv6Addresses'],
   ['DNS', 'network.dnsServers'],
   ['NTP', 'network.ntpServers'],
 ]
 
-function Definitions({ facts, items }: { facts: SosReport['facts']; items: Definition[] }) {
-  return (
-    <dl className="cwgsyw-devices-defs">
-      {items.map(([label, key, unit]) => (
-        <div key={key}>
-          <dt>{label}</dt>
-          <dd>{formatValue(fact(facts, key), unit)}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
+const CPU_DETAIL: Definition[] = [
+  ['厂商', 'cpu.vendor'],
+  ['家族', 'cpu.family'],
+  ['型号编号', 'cpu.modelId'],
+  ['步进', 'cpu.stepping'],
+  ['最高主频', 'cpu.maxMhz', 'MHz'],
+  ['每核线程', 'cpu.threadsPerCore'],
+  ['NUMA 节点', 'cpu.numaNodes', '个'],
+  ['虚拟化', 'cpu.virtualization'],
+  ['L2 缓存', 'cpu.l2Cache'],
+  ['L3 缓存', 'cpu.l3Cache'],
+  ['微码版本', 'cpu.microcode'],
+  ['内存纠错', 'memory.errorCorrection'],
+  ['大页', 'memory.hugepagesTotal', '页'],
+  ['透明大页', 'memory.transparentHugepage'],
+]
 
-function FactTable({ title, columns, rows, empty }: {
-  title: string
-  columns: { key: string; label: string }[]
-  rows: Record<string, unknown>[]
-  empty: string
-}) {
-  return (
-    <SosPanel title={title} flush>
-      <Table
-        className="cwgsyw-cmdb-table"
-        density="compact"
-        showSearch={false}
-        columns={columns}
-        rows={rows.map((row, index) => ({
-          id: String(index),
-          cells: Object.fromEntries(columns.map((column) => [column.key, formatValue(row[column.key])])) as Record<string, ReactNode>,
-        }))}
-        state={rows.length === 0 ? 'empty' : 'data'}
-        empty={empty}
-      />
-    </SosPanel>
-  )
-}
+const RUNTIME: Definition[] = [
+  ['运行时长', 'os.uptime'],
+  ['系统负载', 'os.loadAverage'],
+  ['调优配置', 'os.tunedProfile'],
+  ['kdump', 'os.kdumpStatus', undefined, { operational: '就绪', not_operational: '未就绪' }],
+  ['防火墙', 'os.firewall', undefined, { running: '运行中', not_running: '未运行' }],
+  ['内核污染标志', 'os.kernelTainted'],
+  ['时钟已同步', 'os.ntpSynchronized'],
+  ['时间同步服务', 'os.ntpService'],
+  ['当前时间源', 'os.timeSource'],
+  ['时钟偏差', 'os.timeOffset'],
+]
 
-function Tags({ title, values, empty, tone }: { title: string; values: string[]; empty: string; tone?: 'danger' }) {
-  return (
-    <SosPanel title={`${title}（${values.length}）`}>
-      {values.length === 0 ? (
-        <p className="cwgsyw-sos-report__note">{empty}</p>
-      ) : (
-        <div className="cwgsyw-sos-report__tags">
-          {values.map((value) => <Chip key={value} label={value} tone={tone} />)}
-        </div>
-      )}
-    </SosPanel>
-  )
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="cwgsyw-sos-report__stack">
-      <h2 className="cwgsyw-sos-report__section-title">{title}</h2>
-      {children}
-    </section>
-  )
-}
-
-export function FactsPanel({ report }: { report: SosReport }) {
-  const facts = report.facts
-  const bonds = factRows(facts, 'network.bonds').map((bond) => ({
-    ...bond,
-    memberNames: Array.isArray(bond.members)
-      ? (bond.members as Record<string, unknown>[]).map((member) => `${String(member.name)}（${String(member.status ?? '未知')}）`)
-      : [],
-  }))
-  const interfaces = factRows(facts, 'network.interfaces')
-  const failed = factStrings(facts, 'software.failedServices')
-
+function Overview({ facts }: { facts: SosFacts | undefined }) {
   return (
     <div className="cwgsyw-sos-report__sections">
+      <Section title="健康">
+        <Tags title="硬件与系统告警" values={factStrings(facts, 'health.issues')} empty="解析中没有发现告警" tone="danger" />
+      </Section>
       <Section title="基本信息">
         <SosPanel title="主机身份"><Definitions facts={facts} items={IDENTITY} /></SosPanel>
         <SosPanel title="硬件"><Definitions facts={facts} items={HARDWARE} /></SosPanel>
         <SosPanel title="操作系统"><Definitions facts={facts} items={OS} /></SosPanel>
         <SosPanel title="网络"><Definitions facts={facts} items={NETWORK} /></SosPanel>
       </Section>
-      <Section title="网络与存储明细">
-        <FactTable
-          title="网卡"
-          columns={[
-            { key: 'name', label: '名称' },
-            { key: 'master', label: '所属 bond' },
-            { key: 'mac', label: 'MAC' },
-            { key: 'ipv4', label: 'IPv4' },
-            { key: 'speed', label: '速率' },
-            { key: 'linkDetected', label: '链路' },
-            { key: 'driver', label: '驱动' },
-            { key: 'firmware', label: '固件' },
-          ]}
-          rows={interfaces}
-          empty="报告中没有网卡信息"
-        />
-        <FactTable
-          title="Bond"
-          columns={[
-            { key: 'name', label: '名称' },
-            { key: 'mode', label: '模式' },
-            { key: 'status', label: '状态' },
-            { key: 'memberNames', label: '成员' },
-          ]}
-          rows={bonds}
-          empty="没有配置 bond"
-        />
-        <FactTable
-          title="磁盘"
-          columns={[
-            { key: 'name', label: '名称' },
-            { key: 'sizeGb', label: '容量 (GB)' },
-            { key: 'type', label: '类型' },
-            { key: 'vendor', label: '厂商' },
-            { key: 'model', label: '型号' },
-            { key: 'serial', label: '序列号' },
-          ]}
-          rows={factRows(facts, 'storage.disks')}
-          empty="报告中没有磁盘信息"
-        />
-        <FactTable
-          title="文件系统"
-          columns={[
-            { key: 'mountPoint', label: '挂载点' },
-            { key: 'device', label: '设备' },
-            { key: 'sizeGb', label: '容量 (GB)' },
-            { key: 'usedPercent', label: '使用率' },
-          ]}
-          rows={factRows(facts, 'storage.filesystems')}
-          empty="报告中没有文件系统信息"
-        />
-        <FactTable
-          title="软 RAID"
-          columns={[
-            { key: 'name', label: '名称' },
-            { key: 'level', label: '级别' },
-            { key: 'state', label: '状态' },
-            { key: 'members', label: '成员盘' },
-          ]}
-          rows={factRows(facts, 'storage.softwareRaids')}
-          empty="没有软 RAID"
-        />
-        <FactTable
-          title="监听端口"
-          columns={[
-            { key: 'protocol', label: '协议' },
-            { key: 'address', label: '地址' },
-            { key: 'port', label: '端口' },
-            { key: 'process', label: '进程' },
-          ]}
-          rows={factRows(facts, 'network.listeningPorts')}
-          empty="报告中没有监听端口信息"
-        />
+    </div>
+  )
+}
+
+function SystemFacts({ facts }: { facts: SosFacts | undefined }) {
+  return (
+    <div className="cwgsyw-sos-report__sections">
+      <Section title="系统">
+        <SosPanel title="运行状态"><Definitions facts={facts} items={RUNTIME} /></SosPanel>
+        <SosPanel title="CPU 与内存参数"><Definitions facts={facts} items={CPU_DETAIL} /></SosPanel>
+        <Tags title="CPU 漏洞缓解" values={factStrings(facts, 'cpu.vulnerabilities')} empty="报告中没有 CPU 漏洞信息" hideWhenEmpty />
       </Section>
       <Section title="服务">
         <div className="cwgsyw-sos-report__split">
-          <Tags title="失败的服务" values={failed} empty="没有失败的服务" tone="danger" />
+          <Tags title="失败的服务" values={factStrings(facts, 'software.failedServices')} empty="没有失败的服务" tone="danger" />
           <Tags title="运行中的服务" values={factStrings(facts, 'software.runningServices')} empty="报告中没有服务信息" />
         </div>
+        <Tags title="开机自启的服务" values={factStrings(facts, 'software.enabledServices')} empty="报告中没有服务启用信息" hideWhenEmpty />
+        <Tags title="已加载的内核模块" values={factStrings(facts, 'software.kernelModules')} empty="报告中没有内核模块信息" hideWhenEmpty />
       </Section>
+    </div>
+  )
+}
+
+export function FactsPanel({ report }: { report: SosReport }) {
+  const facts = report.facts
+  const [tab, setTab] = useState('overview')
+  const issues = factStrings(facts, 'health.issues').length
+
+  return (
+    <div className="cwgsyw-sos-report__facts-tabs">
+      <Tabs
+        style="underline"
+        size="sm"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { id: 'overview', label: issues > 0 ? `概览（${issues} 项告警）` : '概览', panel: <Overview facts={facts} /> },
+          { id: 'hardware', label: '硬件部件', panel: <HardwareFacts facts={facts} /> },
+          { id: 'storage', label: '存储', panel: <StorageFacts facts={facts} /> },
+          { id: 'network', label: '网络', panel: <NetworkFacts facts={facts} /> },
+          { id: 'bmc', label: 'BMC 与传感器', panel: <BmcFacts facts={facts} /> },
+          { id: 'system', label: '系统与软件', panel: <SystemFacts facts={facts} /> },
+        ]}
+      />
     </div>
   )
 }

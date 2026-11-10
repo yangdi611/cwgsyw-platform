@@ -55,21 +55,61 @@ public final class SosArchiveReader {
         "sos_commands/selinux/sestatus",
         "sos_commands/systemd/systemctl_list-units",
         "sos_commands/systemd/systemctl_list-units_--failed",
-        "sos_commands/systemd/timedatectl");
+        "sos_commands/systemd/timedatectl",
+        // 以下为硬件明细和扩展解析（PARSER_VERSION 2）。逐个确认只含清单、状态或统计输出，不含凭据。
+        "etc/ntp.conf",
+        "proc/cpuinfo",
+        // /proc/device-tree 和 /sys/class/dmi/id 是符号链接，sos 把文件存在链接目标下，两处都要读。
+        "proc/device-tree/model",
+        "sys/firmware/devicetree/base/model",
+        "proc/sys/kernel/tainted",
+        "sys/kernel/mm/transparent_hugepage/enabled",
+        "sos_commands/block/lsblk_-O_-P",
+        "sos_commands/boot/mokutil_--sb-state",
+        "sos_commands/chrony/chronyc_tracking",
+        "sos_commands/dellrac/idracadm7_getsysinfo",
+        "sos_commands/dpkg/dpkg_-l",
+        "sos_commands/firewalld/firewall-cmd_--state",
+        "sos_commands/hpssm/ssacli_ctrl_all_show_config_detail",
+        "sos_commands/host/hostname_-f",
+        "sos_commands/host/uptime",
+        "sos_commands/infiniband/ibstat",
+        "sos_commands/kdump/kdumpctl_status",
+        "sos_commands/kernel/lsmod",
+        "sos_commands/megacli/opt.MegaRAID.MegaCli.MegaCli64_-AdpAllInfo_-aALL",
+        "sos_commands/megacli/opt.MegaRAID.MegaCli.MegaCli64_LDPDInfo_-aALL",
+        "sos_commands/multipath/multipath_-ll",
+        "sos_commands/networking/ip_-s_-d_link",
+        "sos_commands/nvidia/nvidia-smi_-q",
+        "sos_commands/nvme/nvme_list",
+        "sos_commands/pci/lspci_-nnvvv",
+        "sos_commands/systemd/systemctl_list-unit-files",
+        "sos_commands/tuned/tuned-adm_active");
 
     /** 文件名里带命令参数，不同 sos 版本会变化，因此按固定模式匹配，不接受任意子路径。 */
     private static final List<Pattern> FILE_PATTERNS = List.of(
         Pattern.compile("proc/net/bonding/[A-Za-z0-9_.:-]{1,64}"),
         Pattern.compile("sos_commands/block/udevadm_info_\\.dev\\.[a-z0-9-]{1,32}"),
         Pattern.compile("sos_commands/filesys/df_-al(_[A-Za-z0-9_-]{0,32})?"),
-        Pattern.compile("sos_commands/networking/ethtool_(-i_|-P_)?[A-Za-z0-9_.:-]{1,64}"),
+        Pattern.compile("sos_commands/networking/ethtool_(-i_|-P_|-m_)?[A-Za-z0-9_.:-]{1,64}"),
         Pattern.compile("sos_commands/networking/netstat_-W_-neopa"),
-        Pattern.compile("sos_commands/rpm/sh_-c_rpm_[A-Za-z0-9_.-]{1,200}"));
+        Pattern.compile("sos_commands/rpm/sh_-c_rpm_[A-Za-z0-9_.-]{1,200}"),
+        // DMI 的 sysfs 镜像，dmidecode 缺失时的备用来源。
+        Pattern.compile("sys/(class|devices/virtual)/dmi/id/[a-z_]{1,32}"),
+        Pattern.compile("sos_commands/ata/smartctl_-a_\\.dev\\.[a-z0-9]{1,32}"),
+        Pattern.compile("sos_commands/nvme/smartctl_--all_\\.dev\\.nvme[0-9]{1,3}n[0-9]{1,3}"),
+        Pattern.compile("sos_commands/ipmitool/ipmitool(_-I_usb)?_(mc_info|lan_print(_[0-9]{1,2})?|fru_print|sensor_list|sel_info|sel_elist|chassis_status)"),
+        Pattern.compile("sos_commands/(storcli/storcli64|perccli/perccli64|perccli2/perccli2)_\\.call(_show_all|\\.eall\\.sall_show_all|\\.sall_show_all)"),
+        Pattern.compile("sos_commands/arcconf/arcconf_getconfig_[0-9]{1,2}"),
+        Pattern.compile("sos_commands/sas3ircu/sas3ircu_[0-9]{1,2}_display"),
+        Pattern.compile("sos_commands/fibrechannel/udevadm_info_-a_\\.sys\\.class\\.fc_host\\.host[0-9]{1,4}"),
+        // lvm2 命令带列名和 --config 参数，随版本变化，只限定前缀和字符集。
+        Pattern.compile("sos_commands/lvm2/(vgs_-v_-o_|lvs_-a_-o_|pvs_-a_-v_-o_)[A-Za-z0-9_.,=-]{1,300}"));
 
     private static final Pattern PLAIN_FILE_NAME = Pattern.compile("[A-Za-z0-9_./:-]+");
 
     /** {@code ethtool_-S_} 这类统计输出量大且无用，不读取。 */
-    private static final Pattern ETHTOOL_OTHER_OPTION = Pattern.compile("sos_commands/networking/ethtool_-(?![iP]_).*");
+    private static final Pattern ETHTOOL_OTHER_OPTION = Pattern.compile("sos_commands/networking/ethtool_-(?![iPm]_).*");
 
     private final Limits limits;
 
