@@ -42,7 +42,8 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
   // 已占用的插槽 DMI 只给出 In Use，这里统一成“已占用”；空插槽由表格显示为标签。
   const slots = factRows(facts, 'hardware.pciSlots').map((row) => ({ ...row, status: isEmptySlot(row) ? row.status : '已占用' }))
   // 板载设备只在“板载设备”表里列出；这里是插在插槽上的卡和没有匹配到插槽的设备。
-  const pci = factRows(facts, 'hardware.pciDevices')
+  const allPci = factRows(facts, 'hardware.pciDevices')
+  const pci = allPci
     .filter((row) => row.onboard !== true)
     .map((row) => ({
       ...row,
@@ -149,7 +150,9 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'source', label: '来源' },
           ]}
           rows={pci}
-          empty="报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库"
+          empty={allPci.length > 0
+            ? '没有插在插槽上的 PCI 设备，板载设备见“板载设备”表'
+            : '报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库'}
         />
         <FactTable
           title="GPU 与加速卡"

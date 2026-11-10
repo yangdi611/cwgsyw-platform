@@ -396,4 +396,25 @@ class SosHardwareInventoryTest {
         assertEquals(1, devices.get(2).get("ports"));
         assertEquals("PCIe Slot 1", row(facts, "network.interfaces", "name", "ens102f1").get("location"), "第二个口沿用同一张卡的插槽");
     }
+
+    @Test
+    void keepsDevicesOnDifferentPciDomainsApart() {
+        Map<String, String> files = files();
+        files.put("sos_commands/pci/lspci_-nnvvv", """
+            0000:01:00.0 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            0000:01:00.1 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            0001:01:00.0 RAID bus controller [0104]: Broadcom / LSI MegaRAID SAS-3 3108 [1000:005d]
+            \tKernel driver in use: megaraid_sas
+            """);
+        List<Map<String, Object>> devices = rows(parse(files), "hardware.pciDevices");
+        assertEquals(List.of("0000:01:00.0", "0001:01:00.0"), devices.stream().map(row -> row.get("address")).toList(),
+            "不同 PCI 域上相同的总线:设备号不能合并");
+        assertEquals(2, devices.get(0).get("ports"));
+        assertEquals(1, devices.get(1).get("ports"));
+        assertEquals("RAID 控制器", devices.get(1).get("category"));
+    }
 }

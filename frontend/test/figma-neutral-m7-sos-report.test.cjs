@@ -352,6 +352,14 @@ test('facts panel groups hardware details into tabs and shows empty slots', () =
   assert.match(html, /<dt>时钟已同步<\/dt><dd>否<\/dd>/)
 })
 
+test('pci table explains when every device is onboard', () => {
+  const onboardOnly = { ...REPORT, facts: { 'hardware.pciDevices': [{ address: '03:00.0', category: 'VGA 显示控制器', onboard: true, ports: 1 }] } }
+  const html = render(FACTS_PANEL, {}, { report: onboardOnly })
+  assert.match(html, /没有插在插槽上的 PCI 设备，板载设备见“板载设备”表/)
+  assert.doesNotMatch(html, /主机未安装 pciutils/)
+  assert.match(render(FACTS_PANEL, {}, { report: { ...REPORT, facts: {} } }), /主机未安装 pciutils/, '完全没有 PCI 数据时才提示缺少 lspci')
+})
+
 test('vendor specific tables stay hidden without data', () => {
   const html = render(FACTS_PANEL, {}, { report: { ...REPORT, facts: {} } })
   assert.match(html, /报告中没有 RAID 卡信息/)

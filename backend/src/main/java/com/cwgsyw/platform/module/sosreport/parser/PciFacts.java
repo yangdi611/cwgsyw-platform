@@ -165,8 +165,10 @@ final class PciFacts {
     void publishDevices() {
         Map<String, Map<String, Object>> devices = new LinkedHashMap<>();
         for (Map<String, Object> function : ctx.pciFunctions) {
-            String key = pciKey((String) function.get("address"));
-            String deviceKey = key == null ? String.valueOf(function.get("address")) : key.substring(0, key.lastIndexOf('.'));
+            // 合并键保留 PCI 域（如 0001:01:00），不同域上相同的总线:设备号是不同的卡。
+            String address = String.valueOf(function.get("address")).toLowerCase(Locale.ROOT);
+            int dot = address.lastIndexOf('.');
+            String deviceKey = dot > 0 ? address.substring(0, dot) : address;
             Map<String, Object> device = devices.get(deviceKey);
             if (device == null) {
                 device = new LinkedHashMap<>(function);
