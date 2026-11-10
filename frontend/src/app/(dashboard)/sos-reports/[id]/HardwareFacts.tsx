@@ -98,6 +98,8 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'type', label: '规格' },
             { key: 'length', label: '长度' },
             { key: 'busAddress', label: '总线地址' },
+            { key: 'deviceCategory', label: '插入设备' },
+            { key: 'deviceModel', label: '设备型号' },
           ]}
           rows={slots}
           empty="报告中没有扩展槽信息"
@@ -109,6 +111,7 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'type', label: '类型' },
             { key: 'status', label: '状态' },
             { key: 'busAddress', label: '总线地址' },
+            { key: 'deviceModel', label: '设备型号' },
           ]}
           rows={factRows(facts, 'hardware.onboardDevices')}
           hideWhenEmpty
@@ -130,7 +133,7 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'serial', label: '序列号' },
           ]}
           rows={pci}
-          empty="报告中没有 PCI 设备信息"
+          empty="报告中没有 PCI 设备信息（需要 sos 的 pci 插件采集 lspci）"
         />
         <FactTable
           title="GPU 与加速卡"

@@ -19,7 +19,9 @@ import static com.cwgsyw.platform.module.sosreport.parser.SosParseContext.putIfU
  */
 final class PciFacts {
 
+    /** sos 4.x 运行 lspci -nnvvv，3.x 运行 lspci -nnvv，输出格式相同。 */
     static final String LSPCI = "sos_commands/pci/lspci_-nnvvv";
+    static final String LSPCI_SOS3 = "sos_commands/pci/lspci_-nnvv";
 
     /** 设备行：{@code 3b:00.0 RAID bus controller [0104]: Broadcom / LSI MegaRAID SAS-3 3108 [1000:005d] (rev 02)}。 */
     private static final Pattern DEVICE_LINE = Pattern.compile(
@@ -81,7 +83,7 @@ final class PciFacts {
         List<Map<String, Object>> rows = new ArrayList<>();
         Map<String, Object> current = null;
         boolean inVpd = false;
-        for (String line : ctx.text(LSPCI).split("\\R")) {
+        for (String line : ctx.firstText(LSPCI, LSPCI_SOS3).split("\\R")) {
             if (line.isBlank()) {
                 current = null;
                 continue;
@@ -144,6 +146,27 @@ final class PciFacts {
             if (kept.size() >= SosParseContext.MAX_DETAIL_ROWS) break;
         }
         ctx.putRows("hardware.pciDevices", kept);
+        describeOccupants("hardware.pciSlots");
+        describeOccupants("hardware.onboardDevices");
+    }
+
+    /**
+     * 插槽和板载设备只有总线地址，这里按地址补上插在其中的设备类别和型号，
+     * 让插槽表能直接看出“哪个槽插了什么卡”。
+     */
+    @SuppressWarnings("unchecked")
+    private void describeOccupants(String key) {
+        if (!(ctx.facts.get(key) instanceof List<?> rows)) return;
+        for (Object item : rows) {
+            if (!(item instanceof Map<?, ?> raw)) continue;
+            Map<String, Object> row = (Map<String, Object>) raw;
+            Map<String, Object> device = ctx.pciByAddress.get(pciKey((String) row.get("busAddress")));
+            // 部分 BIOS 填的是上游桥的地址，桥不是插在槽里的卡，不能当成占用设备。
+            if (device == null || category(String.valueOf(device.get("classCode"))) == null) continue;
+            putIfPresent(row, "deviceCategory", device.get("category"));
+            putIfPresent(row, "deviceVendor", device.get("vendor"));
+            putIfPresent(row, "deviceModel", model(device));
+        }
     }
 
     /** 缩进层级：lspci 每级一个制表符；以空格缩进时按 8 个空格一级。 */

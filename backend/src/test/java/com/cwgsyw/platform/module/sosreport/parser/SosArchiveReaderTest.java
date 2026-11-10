@@ -184,7 +184,9 @@ class SosArchiveReaderTest {
     @Test
     void whitelistCoversHardwareInventorySources() {
         for (String path : new String[] {
-            "sos_commands/pci/lspci_-nnvvv", "proc/cpuinfo", "sys/class/dmi/id/product_serial",
+            "sos_commands/pci/lspci_-nnvvv", "sos_commands/pci/lspci_-nnvv", "sos_commands/ipmitool/ipmitool_sel_list",
+            "sos_commands/nvidia/nvidia-smi_--query-gpu_gpu_name_gpu_bus_id_vbios_version_temperature.gpu_utilization.gpu_memory.total_memory.free_memory.used_--format_csv",
+            "proc/cpuinfo", "sys/class/dmi/id/product_serial",
             "sys/devices/virtual/dmi/id/board_serial", "sys/firmware/devicetree/base/model",
             "sos_commands/ata/smartctl_-a_.dev.sda", "sos_commands/nvme/smartctl_--all_.dev.nvme0n1",
             "sos_commands/nvme/nvme_list", "sos_commands/block/lsblk_-O_-P",
