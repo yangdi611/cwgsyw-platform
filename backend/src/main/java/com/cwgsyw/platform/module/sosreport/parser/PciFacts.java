@@ -94,6 +94,8 @@ final class PciFacts {
             }
             if (current == null) continue;
             String trimmed = line.trim();
+            // VPD 的内容比 Capabilities 行多一级缩进；回到一级缩进（如 Kernel driver in use）即 VPD 结束。
+            if (inVpd && indent(line) <= 1) inVpd = false;
             if (trimmed.startsWith("Capabilities:")) {
                 inVpd = trimmed.contains("Vital Product Data");
                 if (trimmed.contains("Device Serial Number")) {
@@ -142,6 +144,19 @@ final class PciFacts {
             if (kept.size() >= SosParseContext.MAX_DETAIL_ROWS) break;
         }
         ctx.putRows("hardware.pciDevices", kept);
+    }
+
+    /** 缩进层级：lspci 每级一个制表符；以空格缩进时按 8 个空格一级。 */
+    private static int indent(String line) {
+        int tabs = 0;
+        int spaces = 0;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '\t') tabs++;
+            else if (c == ' ') spaces++;
+            else break;
+        }
+        return tabs + spaces / 8;
     }
 
     private static Map<String, Object> device(String line) {

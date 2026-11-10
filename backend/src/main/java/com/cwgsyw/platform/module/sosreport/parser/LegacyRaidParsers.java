@@ -561,6 +561,6 @@ final class LegacyRaidParsers {
         Integer slots = parseInteger(enclosure.get("Numslots"));
         Integer start = parseInteger(enclosure.get("StartSlot"));
         if (id == null || slots == null) return;
-        raid.addEmptySlots(tool, controllerId, id, start == null ? 0 : start, slots, slot -> "E" + id + "/S" + slot);
+        raid.addEmptySlots(tool, controllerId, id, start == null ? 0 : start, slots, -1, slot -> "E" + id + "/S" + slot);
     }
 }

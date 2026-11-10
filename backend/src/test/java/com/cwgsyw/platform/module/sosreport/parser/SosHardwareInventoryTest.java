@@ -228,4 +228,23 @@ class SosHardwareInventoryTest {
         SosReportParser.Result result = SosReportParser.parse(garbage);
         assertNull(result.facts().get("storage.raidPhysicalDrives"));
     }
+
+    @Test
+    void keepsFieldsAfterVpdWhenVpdIsTheLastCapability() {
+        Map<String, String> files = files();
+        files.put("sos_commands/pci/lspci_-nnvvv", """
+            5e:00.0 Ethernet controller [0200]: Intel Corporation Ethernet Controller X710 for 10GbE SFP+ [8086:1572] (rev 02)
+            \tCapabilities: [e0] Vital Product Data
+            \t\tProduct Name: XL710 40GbE Controller
+            \t\tRead-only fields:
+            \t\t\t[PN] Part number: X710DA2G2P5
+            \t\tEnd
+            \tKernel driver in use: i40e
+            \tNUMA node: 1
+            """);
+        Map<String, Object> nic = row(parse(files), "hardware.pciDevices", "address", "5e:00.0");
+        assertEquals("X710DA2G2P5", nic.get("partNumber"));
+        assertEquals("i40e", nic.get("driver"), "VPD 之后的一级缩进字段不能被当成 VPD");
+        assertEquals("1", nic.get("numaNode"));
+    }
 }

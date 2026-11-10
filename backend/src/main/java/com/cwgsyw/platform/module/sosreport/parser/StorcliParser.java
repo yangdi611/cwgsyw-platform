@@ -19,9 +19,12 @@ final class StorcliParser {
     /** DG/VD TYPE State Access Consist Cache Cac sCC Size Name */
     private static final Pattern VD_ROW = Pattern.compile(
         "^(\\d+)/(\\d+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+([\\d.]+\\s+[KMGTP]i?B)\\s*(.*)$");
-    /** EID:Slt DID State DG Size Intf Med SED PI SeSz Model Sp Type */
+    /** EID:Slt DID State DG Size Intf Med SED PI SeSz Model Sp Type（较新版本） */
     private static final Pattern PD_ROW = Pattern.compile(
         "^(\\d*):(\\d+)\\s+(\\d+)\\s+(\\S+)\\s+(\\S+)\\s+([\\d.]+\\s+[KMGTP]i?B)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.+?)\\s+(\\S+)\\s+(\\S+)\\s*$");
+    /** EID:Slt DID State DG Size Intf Med SED PI SeSz Model Sp（较早版本没有 Type 列） */
+    private static final Pattern PD_ROW_WITHOUT_TYPE = Pattern.compile(
+        "^(\\d*):(\\d+)\\s+(\\d+)\\s+(\\S+)\\s+(\\S+)\\s+([\\d.]+\\s+[KMGTP]i?B)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.+?)\\s+(\\S+)\\s*$");
     /** EID State Slots PD PS Fans ... */
     private static final Pattern ENCLOSURE_ROW = Pattern.compile("^(\\d+)\\s+(\\S+)\\s+(\\d+)\\s+(\\d+)\\s+.*$");
     /** Cachevault_Info / BBU_Info：Model State ... */
@@ -32,6 +35,8 @@ final class StorcliParser {
     private final RaidFacts raid;
     private final String tool;
     private final String prefix;
+    /** 物理盘表格是否有 Type 列，按最近一次读到的表头判断。型号中间有空格，只能靠表头确定末尾的列数。 */
+    private boolean pdHasType = true;
 
     StorcliParser(SosParseContext ctx, RaidFacts raid, String tool, String prefix) {
         this.ctx = ctx;
@@ -58,6 +63,7 @@ final class StorcliParser {
                 section = line.replace(":", "").trim();
                 continue;
             }
+            if (readPdHeader(line)) continue;
             Matcher kv = KEY_VALUE.matcher(line);
             if (kv.matches()) {
                 String key = kv.group(1).trim();
@@ -124,9 +130,22 @@ final class StorcliParser {
         set(row, "name", matcher.group(11));
     }
 
+    /** 表头以 EID:Slt 开头时记录有没有 Type 列。 */
+    private boolean readPdHeader(String line) {
+        if (!line.startsWith("EID:Slt")) return false;
+        pdHasType = line.matches(".*\\bSp\\s+Type\\s*$");
+        return true;
+    }
+
+    /** 物理盘表格的一行；两种列数共用前 12 组，第 12 组是型号。 */
+    private Matcher pdRow(String line) {
+        Matcher matcher = (pdHasType ? PD_ROW : PD_ROW_WITHOUT_TYPE).matcher(line);
+        return matcher.matches() ? matcher : null;
+    }
+
     private void physicalDrive(String controllerId, String line) {
-        Matcher matcher = PD_ROW.matcher(line);
-        if (!matcher.matches()) return;
+        Matcher matcher = pdRow(line);
+        if (matcher == null) return;
         String enclosure = matcher.group(1);
         Map<String, Object> row = raid.physicalDrive(tool, controllerId, location(controllerId, enclosure, matcher.group(2)));
         if (!enclosure.isEmpty()) row.put("enclosure", enclosure);
@@ -146,7 +165,8 @@ final class StorcliParser {
         if (!matcher.matches()) return;
         String eid = matcher.group(1);
         int slots = Integer.parseInt(matcher.group(3));
-        raid.addEmptySlots(tool, controllerId, eid, 0, slots, slot -> location(controllerId, eid, String.valueOf(slot)));
+        int drives = Integer.parseInt(matcher.group(4));
+        raid.addEmptySlots(tool, controllerId, eid, 0, slots, drives, slot -> location(controllerId, eid, String.valueOf(slot)));
     }
 
     private static void battery(Map<String, Object> controller, String line) {
@@ -173,9 +193,9 @@ final class StorcliParser {
                 raid.controller(tool, controllerId);
                 continue;
             }
-            if (drive == null) continue;
-            Matcher table = PD_ROW.matcher(line);
-            if (table.matches()) {
+            if (readPdHeader(line) || drive == null) continue;
+            Matcher table = pdRow(line);
+            if (table != null) {
                 set(drive, "state", table.group(4));
                 set(drive, "size", table.group(6));
                 set(drive, "interface", table.group(7));

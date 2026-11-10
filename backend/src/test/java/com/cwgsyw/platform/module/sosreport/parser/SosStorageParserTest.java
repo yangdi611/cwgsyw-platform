@@ -403,4 +403,28 @@ class SosStorageParserTest {
         assertEquals(List.of("E1/S1", "E1/S2", "E1/S3"), empty);
         assertTrue(issues(facts).isEmpty(), String.valueOf(issues(facts)));
     }
+
+    @Test
+    void parsesStorcliTablesWithoutTypeColumn() {
+        Map<String, String> files = files();
+        String older = STORCLI_SUMMARY
+            .replace("Model                Sp Type", "Model                Sp")
+            .replace("INTEL SSDSC2KB480G7  U  -", "INTEL SSDSC2KB480G7  U")
+            .replace("ST4000NM0025         U  -", "ST4000NM0025         U");
+        files.put("sos_commands/storcli/storcli64_.call_show_all", older);
+        Map<String, Object> facts = parse(files);
+        assertEquals("INTEL SSDSC2KB480G7", row(facts, "storage.raidPhysicalDrives", "location", "/c0/e252/s0").get("model"),
+            "没有 Type 列时型号的最后一个词不能被当成 Sp");
+        assertEquals("ST4000NM0025", row(facts, "storage.raidPhysicalDrives", "location", "/c0/e252/s3").get("model"));
+        assertEquals(4, rows(facts, "storage.raidPhysicalDrives").stream().filter(row -> Boolean.FALSE.equals(row.get("installed"))).count());
+    }
+
+    @Test
+    void skipsEmptyBayInferenceWhenSomeDrivesWereNotParsed() {
+        Map<String, String> files = files();
+        // 背板报告 5 块盘，但只解析到 4 块：不推算空槽位，避免把有盘的槽位标成空。
+        files.put("sos_commands/storcli/storcli64_.call_show_all", STORCLI_SUMMARY.replace("252 OK        8  4", "252 OK        8  5"));
+        Map<String, Object> facts = parse(files);
+        assertTrue(rows(facts, "storage.raidPhysicalDrives").stream().noneMatch(row -> Boolean.FALSE.equals(row.get("installed"))));
+    }
 }

@@ -24,10 +24,14 @@ import static com.cwgsyw.platform.module.sosreport.parser.SosParseContext.useful
 final class NetworkFacts {
 
     private static final String NET = "sos_commands/networking/";
+    /**
+     * 网卡名不含 {@code @父接口} 后缀。iproute2 的地址行只打印设备名，后缀只出现在链路行；
+     * 这里统一去掉，保证和 {@code ip -d link} 解析出的名称一致。
+     */
     private static final Pattern IP_ADDR_LINE = Pattern.compile(
-        "^\\d+:\\s+(\\S+)\\s+inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)(?:/(\\d+))?\\s.*");
+        "^\\d+:\\s+([^\\s@]+)(?:@\\S+)?\\s+inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)(?:/(\\d+))?\\s.*");
     private static final Pattern IP6_ADDR_LINE = Pattern.compile(
-        "^\\d+:\\s+(\\S+)\\s+inet6\\s+([0-9a-fA-F:]+)(?:/(\\d+))?\\s+scope\\s+global.*");
+        "^\\d+:\\s+([^\\s@]+)(?:@\\S+)?\\s+inet6\\s+([0-9a-fA-F:]+)(?:/(\\d+))?\\s+scope\\s+global.*");
     private static final Pattern IPV4 = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
     private static final Pattern SAFE_INTERFACE = Pattern.compile("^[A-Za-z0-9_.:-]{1,64}$");
     /** {@code 2: ens1f0.100@ens1f0: <BROADCAST,...> mtu 1500 qdisc ... state UP ...} */

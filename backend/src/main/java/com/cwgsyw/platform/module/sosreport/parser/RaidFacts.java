@@ -100,8 +100,11 @@ final class RaidFacts {
 
     /**
      * 背板槽位数已知时，补出没有插盘的槽位。槽位号从 {@code firstSlot} 起连续编号，是按槽位总数推算的。
+     *
+     * <p>{@code expectedDrives} 是工具报告的该背板盘数（未知时传 -1）。与实际解析到的盘数不一致时，
+     * 说明有盘没解析出来，此时不推算，避免把有盘的槽位标成空。
      */
-    void addEmptySlots(String tool, String controller, String enclosure, int firstSlot, int slots,
+    void addEmptySlots(String tool, String controller, String enclosure, int firstSlot, int slots, int expectedDrives,
                        java.util.function.Function<Integer, String> locationOf) {
         if (slots <= 0 || slots > 512) return;
         Set<Integer> occupied = new LinkedHashSet<>();
@@ -112,6 +115,7 @@ final class RaidFacts {
                 if (slot != null) occupied.add(Integer.valueOf(String.valueOf(slot)));
             }
         }
+        if (expectedDrives >= 0 && occupied.size() != expectedDrives) return;
         for (int slot = firstSlot; slot < firstSlot + slots; slot++) {
             if (occupied.contains(slot)) continue;
             Map<String, Object> row = physicalDrive(tool, controller, locationOf.apply(slot));

@@ -176,4 +176,16 @@ class SosNetworkBmcOsParserTest {
         assertEquals(1, facts.get("software.packageCount"));
         assertEquals("deb", facts.get("software.packageFormat"));
     }
+
+    @Test
+    void stripsParentSuffixFromAddressLines() {
+        Map<String, String> files = files();
+        files.put("sos_commands/networking/ip_-o_addr", """
+            2: ens5f0    inet 10.1.0.5/24 brd 10.1.0.255 scope global ens5f0\\       valid_lft forever
+            3: ens5f0.100@ens5f0    inet 10.100.0.5/24 brd 10.100.0.255 scope global ens5f0.100\\       valid_lft forever
+            """);
+        Map<String, Object> facts = parse(files);
+        assertEquals(List.of("10.100.0.5/24"), row(facts, "network.vlans", "name", "ens5f0.100").get("ipv4"));
+        assertTrue(rows(facts, "network.interfaces").stream().noneMatch(row -> String.valueOf(row.get("name")).contains("@")));
+    }
 }
