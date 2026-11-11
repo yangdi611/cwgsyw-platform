@@ -321,7 +321,10 @@ const HARDWARE_FACTS = {
     { controller: '0', location: '/c0/e252/s0', installed: true, state: 'Onln', serialNumber: 'PHDV1' },
     { controller: '0', location: '/c0/e252/s4', installed: false, state: '空槽位', inferred: true },
   ],
-  'hardware.pciDevices': [{ address: '01:00.0', category: '以太网卡', vendor: 'Mucse（沐创）', vendorId: '8848', deviceId: '1000', source: 'udev' }],
+  'hardware.pciDevices': [
+    { address: '01:00.0', category: '以太网卡', vendor: 'Mucse（沐创）', vendorId: '8848', deviceId: '1000', source: 'udev', ports: 2, interfaces: ['ens102f0', 'ens102f1'] },
+    { address: '03:00.0', category: 'VGA 显示控制器', vendor: 'ASPEED', description: 'ASPEED Graphics Family', onboard: true, ports: 1 },
+  ],
   'os.kdumpStatus': 'not_operational',
   'os.ntpSynchronized': false,
   'network.interfaces': [{ name: 'ens5f0', transceiver: { vendor: 'FINISAR CORP.', partNumber: 'FTLX8571D3BCL' } }],
@@ -340,10 +343,21 @@ test('facts panel groups hardware details into tabs and shows empty slots', () =
   assert.match(html, /Samsung（80CE）/)
   assert.match(html, /MegaRAID SAS 9361-8i/, '插槽表显示插在槽里的设备')
   assert.match(html, /PCI ID 8848:1000/, '没有型号名称时 PCI 表显示 PCI ID')
+  assert.match(html, /2 个口：ens102f0、ens102f1/, '多口网卡合并成一行并列出端口')
+  assert.doesNotMatch(html, /ASPEED Graphics Family/, '板载设备不进 PCI 设备表')
+  assert.match(html, /cwgsyw-devices-panel__head">PCI 设备</)
   assert.match(html, /4\.680\.00-8417/)
   assert.match(html, /FTLX8571D3BCL/, '光模块单独成表')
   assert.match(html, /<dt>kdump<\/dt><dd>未就绪<\/dd>/)
   assert.match(html, /<dt>时钟已同步<\/dt><dd>否<\/dd>/)
+})
+
+test('pci table explains when every device is onboard', () => {
+  const onboardOnly = { ...REPORT, facts: { 'hardware.pciDevices': [{ address: '03:00.0', category: 'VGA 显示控制器', onboard: true, ports: 1 }] } }
+  const html = render(FACTS_PANEL, {}, { report: onboardOnly })
+  assert.match(html, /没有插在插槽上的 PCI 设备，板载设备见“板载设备”表/)
+  assert.doesNotMatch(html, /主机未安装 pciutils/)
+  assert.match(render(FACTS_PANEL, {}, { report: { ...REPORT, facts: {} } }), /主机未安装 pciutils/, '完全没有 PCI 数据时才提示缺少 lspci')
 })
 
 test('vendor specific tables stay hidden without data', () => {

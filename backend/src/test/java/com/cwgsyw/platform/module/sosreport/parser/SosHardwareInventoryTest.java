@@ -363,4 +363,58 @@ class SosHardwareInventoryTest {
         assertEquals("sssraid", rows.get(1).get("driver"));
         assertEquals("3SNIC", rows.get(1).get("vendor"));
     }
+
+    @Test
+    void mergesMultiFunctionDevicesIntoOnePciRowWithPorts() {
+        Map<String, String> files = files();
+        files.put("sos_commands/pci/lspci_-nnvvv", """
+            01:00.0 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            01:00.1 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            03:00.0 VGA compatible controller [0300]: Matrox Electronics Systems Ltd. Integrated Matrox G200eW3 Graphics Controller [102b:0536] (rev 04)
+
+            5e:00.0 Ethernet controller [0200]: Intel Corporation Ethernet Controller X710 for 10GbE SFP+ [8086:1572] (rev 02)
+            \tKernel driver in use: i40e
+            """);
+        files.put("sos_commands/hardware/dmidecode", DMIDECODE.replace("Bus Address: 0000:3b:00.0", "Bus Address: 0000:01:00.0"));
+        files.put("sos_commands/networking/ethtool_-i_ens102f0", "driver: rnp\nbus-info: 0000:01:00.0\n");
+        files.put("sos_commands/networking/ethtool_-i_ens102f1", "driver: rnp\nbus-info: 0000:01:00.1\n");
+        Map<String, Object> facts = parse(files);
+
+        List<Map<String, Object>> devices = rows(facts, "hardware.pciDevices");
+        assertEquals(List.of("01:00.0", "03:00.0", "5e:00.0"), devices.stream().map(row -> row.get("address")).toList(), "两个功能合并为一行");
+        Map<String, Object> nic = devices.get(0);
+        assertEquals(2, nic.get("ports"));
+        assertEquals(List.of("01:00.0", "01:00.1"), nic.get("functions"));
+        assertEquals(List.of("ens102f0", "ens102f1"), nic.get("interfaces"));
+        assertEquals("PCIe Slot 1", nic.get("location"));
+        assertFalse(nic.containsKey("onboard"));
+        assertEquals(Boolean.TRUE, devices.get(2).get("onboard"), "DMI 板载设备表里的地址标记为板载");
+        assertEquals(1, devices.get(2).get("ports"));
+        assertEquals("PCIe Slot 1", row(facts, "network.interfaces", "name", "ens102f1").get("location"), "第二个口沿用同一张卡的插槽");
+    }
+
+    @Test
+    void keepsDevicesOnDifferentPciDomainsApart() {
+        Map<String, String> files = files();
+        files.put("sos_commands/pci/lspci_-nnvvv", """
+            0000:01:00.0 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            0000:01:00.1 Ethernet controller [0200]: Mucse Device [8848:1000]
+            \tKernel driver in use: rnp
+
+            0001:01:00.0 RAID bus controller [0104]: Broadcom / LSI MegaRAID SAS-3 3108 [1000:005d]
+            \tKernel driver in use: megaraid_sas
+            """);
+        List<Map<String, Object>> devices = rows(parse(files), "hardware.pciDevices");
+        assertEquals(List.of("0000:01:00.0", "0001:01:00.0"), devices.stream().map(row -> row.get("address")).toList(),
+            "不同 PCI 域上相同的总线:设备号不能合并");
+        assertEquals(2, devices.get(0).get("ports"));
+        assertEquals(1, devices.get(1).get("ports"));
+        assertEquals("RAID 控制器", devices.get(1).get("category"));
+    }
 }

@@ -11,6 +11,14 @@ function pciModel(row: FactRow): unknown {
   return row.vendorId && row.deviceId ? `PCI ID ${String(row.vendorId)}:${String(row.deviceId)}` : undefined
 }
 
+/** 多功能设备的端口说明：口数加上对应的网卡名；单功能且没有网卡名时不显示。 */
+function portsLabel(row: FactRow): string | undefined {
+  const ports = typeof row.ports === 'number' ? row.ports : 1
+  const interfaces = Array.isArray(row.interfaces) ? row.interfaces.map(String) : []
+  if (interfaces.length > 0) return `${ports} 个口：${interfaces.join('、')}`
+  return ports > 1 ? `${ports} 个口` : undefined
+}
+
 export function FirmwareTable({ facts }: { facts: SosFacts | undefined }) {
   return (
     <FactTable
@@ -33,11 +41,16 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
   const power = factRows(facts, 'hardware.powerSupplies')
   // 已占用的插槽 DMI 只给出 In Use，这里统一成“已占用”；空插槽由表格显示为标签。
   const slots = factRows(facts, 'hardware.pciSlots').map((row) => ({ ...row, status: isEmptySlot(row) ? row.status : '已占用' }))
-  const pci = factRows(facts, 'hardware.pciDevices').map((row) => ({
-    ...row,
-    model: pciModel(row),
-    serial: row.vpdSerialNumber ?? row.serialNumber,
-  }))
+  // 板载设备只在“板载设备”表里列出；这里是插在插槽上的卡和没有匹配到插槽的设备。
+  const allPci = factRows(facts, 'hardware.pciDevices')
+  const pci = allPci
+    .filter((row) => row.onboard !== true)
+    .map((row) => ({
+      ...row,
+      model: pciModel(row),
+      serial: row.vpdSerialNumber ?? row.serialNumber,
+      ports: portsLabel(row),
+    }))
 
   return (
     <div className="cwgsyw-sos-report__sections">
@@ -121,13 +134,14 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
       </Section>
       <Section title="板卡">
         <FactTable
-          title="PCI 板卡"
+          title="PCI 设备"
           columns={[
             { key: 'location', label: '位置' },
             { key: 'address', label: '总线地址' },
             { key: 'category', label: '类别' },
             { key: 'vendor', label: '厂商' },
             { key: 'model', label: '型号' },
+            { key: 'ports', label: '端口' },
             { key: 'driver', label: '驱动' },
             { key: 'linkStatus', label: 'PCIe 链路' },
             { key: 'numaNode', label: 'NUMA' },
@@ -136,7 +150,9 @@ export function HardwareFacts({ facts }: { facts: SosFacts | undefined }) {
             { key: 'source', label: '来源' },
           ]}
           rows={pci}
-          empty="报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库"
+          empty={allPci.length > 0
+            ? '没有插在插槽上的 PCI 设备，板载设备见“板载设备”表'
+            : '报告中没有 PCI 设备信息。主机未安装 pciutils 时 sos 无法运行 lspci，报告里也没有 udev 设备数据库'}
         />
         <FactTable
           title="GPU 与加速卡"

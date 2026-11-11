@@ -74,6 +74,10 @@ sos 把命令转换为文件名的规则：去掉 `/usr/bin/` 等前缀，`[^\w\
   国产芯片在 hwdb 中常没有名称，厂商表补充了 Mucse（8848）、3SNIC（1f3f）、YMTC（1e49），型号缺失时显示 `PCI ID vvvv:dddd`。
   多功能设备的其他功能沿用功能 0 的插槽位置。
 
+**去重（YAN-119）**：`hardware.pciDevices` 按物理设备（总线:设备号）合并，多口网卡一行，`ports` 为口数，`interfaces` 为各口的网卡名，
+`functions` 为各功能地址；DMI 板载设备表里的地址标记 `onboard`。详情页的“PCI 设备”表不显示板载设备（它们在“板载设备”表里），
+“PCIe 插槽”表只保留插入设备的类别和型号作为占用说明。`pciByAddress` 仍按功能索引，网卡、GPU、磁盘的关联不变。
+
 其他修正：bonding、team、bridge 等虚拟接口在 `ethtool -i` 中的 `firmware-version`（如 `2`）不是固件版本，不再记录；
 PCIe 插槽和板载设备按总线地址补充插入设备的类别和型号（只匹配板卡类设备，不匹配上游桥）；
 磁盘的 `ID_PATH` 指向 RAID 类 PCI 设备时标为 RAID 逻辑盘（`raidVolume`）并记录所属控制器。

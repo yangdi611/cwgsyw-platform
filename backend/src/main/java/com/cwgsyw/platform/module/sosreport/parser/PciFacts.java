@@ -139,24 +139,57 @@ final class PciFacts {
         if (rows.isEmpty()) rows = PciFallbacks.fromUdevDatabase(ctx.text(PciFallbacks.UDEV_DB));
         if (rows.isEmpty()) rows = PciFallbacks.fromProcDevices(ctx.text(PciFallbacks.PROC_DEVICES));
 
-        List<Map<String, Object>> kept = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             String address = String.valueOf(row.get("address"));
             String key = pciKey(address);
-            String location = SystemFacts.locationOf(ctx, address);
             // 多功能设备（如双口网卡的 .1）在 DMI 里只登记功能 0 的地址，沿用同一张卡的位置。
-            if (location == null && key != null && !key.endsWith(".0")) {
-                location = SystemFacts.locationOf(ctx, key.substring(0, key.length() - 1) + "0");
-            }
+            String function0 = key != null && !key.endsWith(".0") ? key.substring(0, key.length() - 1) + "0" : address;
+            String location = SystemFacts.locationOf(ctx, address);
+            if (location == null) location = SystemFacts.locationOf(ctx, function0);
             if (location != null) row.put("location", location);
             else if (row.get("physicalSlot") != null) row.put("location", "Slot " + row.get("physicalSlot"));
+            if (SystemFacts.isOnboard(ctx, address) || SystemFacts.isOnboard(ctx, function0)) row.put("onboard", Boolean.TRUE);
             if (key != null) ctx.pciByAddress.put(key, row);
-            if (row.remove("kept") != null) kept.add(row);
-            if (kept.size() >= SosParseContext.MAX_DETAIL_ROWS) break;
+            if (row.remove("kept") != null && ctx.pciFunctions.size() < SosParseContext.MAX_DETAIL_ROWS) ctx.pciFunctions.add(row);
         }
-        ctx.putRows("hardware.pciDevices", kept);
         describeOccupants("hardware.pciSlots");
         describeOccupants("hardware.onboardDevices");
+    }
+
+    /**
+     * 按物理设备（总线:设备号）合并各功能，写出 {@code hardware.pciDevices}：
+     * 一张双口网卡的 .0 和 .1 是两个功能，清单里只列一行，并记下端口数和对应的网卡名。
+     * 在网卡解析之后调用，功能行上才有 {@code interface}。
+     */
+    @SuppressWarnings("unchecked")
+    void publishDevices() {
+        Map<String, Map<String, Object>> devices = new LinkedHashMap<>();
+        for (Map<String, Object> function : ctx.pciFunctions) {
+            // 合并键保留 PCI 域（如 0001:01:00），不同域上相同的总线:设备号是不同的卡。
+            String address = String.valueOf(function.get("address")).toLowerCase(Locale.ROOT);
+            int dot = address.lastIndexOf('.');
+            String deviceKey = dot > 0 ? address.substring(0, dot) : address;
+            Map<String, Object> device = devices.get(deviceKey);
+            if (device == null) {
+                device = new LinkedHashMap<>(function);
+                device.remove("interface");
+                device.put("functions", new ArrayList<String>());
+                device.put("interfaces", new ArrayList<String>());
+                devices.put(deviceKey, device);
+            } else {
+                // 功能 0 的信息最完整；其他功能只补缺失的字段。
+                for (Map.Entry<String, Object> entry : function.entrySet()) {
+                    if (!entry.getKey().equals("interface")) device.putIfAbsent(entry.getKey(), entry.getValue());
+                }
+            }
+            ((List<String>) device.get("functions")).add(String.valueOf(function.get("address")));
+            if (function.get("interface") != null) ((List<String>) device.get("interfaces")).add(String.valueOf(function.get("interface")));
+        }
+        for (Map<String, Object> device : devices.values()) {
+            device.put("ports", ((List<?>) device.get("functions")).size());
+            if (((List<?>) device.get("interfaces")).isEmpty()) device.remove("interfaces");
+        }
+        ctx.putRows("hardware.pciDevices", new ArrayList<>(devices.values()));
     }
 
     /**
